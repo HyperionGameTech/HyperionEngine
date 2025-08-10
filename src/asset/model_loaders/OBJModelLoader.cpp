@@ -462,7 +462,6 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
         scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
         

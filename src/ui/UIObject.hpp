@@ -18,6 +18,7 @@
 
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
+
 #include <rendering/Material.hpp>
 
 #include <core/math/Color.hpp>
@@ -1172,16 +1173,15 @@ public:
             name = Name::Unique(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
         }
 
-        Handle<Node> node = CreateObject<Node>(name);
-
-        // if (attachToRoot) {
-        //     node = GetNode()->AddChild(node);
-        // }
+        Handle<Entity> entity = CreateChildEntity();
+        Assert(entity != nullptr);
+        
+        entity->SetName(name);
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+        entity->SetFlags(entity->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
-        Handle<UIObject> uiObject = CreateUIObjectInternal<T>(name, node, false /* init */);
+        Handle<UIObject> uiObject = CreateUIObjectInternal<T>(name, entity, false /* init */);
 
         uiObject->SetPosition(position);
         uiObject->SetSize(size);
@@ -1418,10 +1418,12 @@ protected:
     EnumFlags<UIObjectUpdateType> m_lockedUpdates;
 
 private:
+    Handle<Entity> CreateChildEntity();
+    
     template <class T>
-    Handle<UIObject> CreateUIObjectInternal(Name name, Handle<Node>& node, bool init = false)
+    Handle<UIObject> CreateUIObjectInternal(Name name, const Handle<Entity>& entity, bool init = false)
     {
-        Assert(node.IsValid());
+        Assert(entity != nullptr);
 
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
@@ -1437,7 +1439,7 @@ private:
         // so we can set it right here.
         uiObject->m_computedTextSize = m_computedTextSize;
 
-        uiObject->SetNodeProxy(node);
+        uiObject->SetNodeProxy(entity);
         uiObject->SetName(name);
 
         if (init)

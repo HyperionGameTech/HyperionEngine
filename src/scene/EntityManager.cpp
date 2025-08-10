@@ -409,7 +409,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
     m_entities.Add(entity);
 
-    entity->m_scene = m_scene;
+    entity->m_entityManager = this;
     InitObject(entity);
 
     // Use basic TypeId tag for the entity, as the type is just Entity
@@ -467,7 +467,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
 
     m_entities.Add(entity);
 
-    entity->m_scene = m_scene;
+    entity->m_entityManager = this;
     InitObject(entity);
 
     if (entity->m_entityInitInfo.receivesUpdate)
@@ -539,11 +539,13 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     }
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
+    
+    InitObject(entity);
 
     m_entities.Add(entity);
+    AssertDebug(m_entities.TryGetEntityData(entity) != nullptr);
 
-    entity->m_scene = m_scene;
-    InitObject(entity);
+    entity->m_entityManager = this;
 
     AddTag<EntityTag::TYPE_ID>(entity);
 
@@ -667,7 +669,7 @@ bool EntityManager::RemoveEntity(Entity* entity)
         }
     }
 
-    entity->m_scene = nullptr;
+    entity->m_entityManager = nullptr;
     m_entities.Remove(entity);
 
     return true;
@@ -770,7 +772,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             }
         }
 
-        entity->m_scene = nullptr;
+        entity->m_entityManager = nullptr;
 
         m_entities.Remove(entity);
     }
@@ -786,7 +788,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         HYP_MT_CHECK_RW(other->m_entitiesDataRaceDetector);
 
         other->m_entities.Add(entity);
-        entity->m_scene = other->m_scene;
+        entity->m_entityManager = other;
 
         InitObject(entity);
 

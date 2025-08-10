@@ -2596,14 +2596,12 @@ void UIObject::SetNodeProxy(Handle<Node> node)
 
     if (m_node.IsValid())
     {
-        if (!m_node->IsA<Entity>())
-        {
-            Assert(m_node->GetScene() != nullptr);
+        Handle<Entity> entity = ObjCast<Entity>(m_node);
+        Assert(entity != nullptr);
+        
+        InitObject(entity);
 
-            m_node = m_node->GetScene()->GetEntityManager()->AddEntity();
-        }
-
-        m_node->GetScene()->GetEntityManager()->AddComponent<UIComponent>(ObjCast<Entity>(m_node), UIComponent { this });
+        entity->GetEntityManager()->AddComponent<UIComponent>(entity, UIComponent { this });
 
         if (!m_affectsParentSize || !m_isVisible)
         {
@@ -3059,6 +3057,17 @@ Handle<UIObject> UIObject::CreateUIObject(const HypClass* hypClass, Name name, V
     InitObject(uiObject);
 
     return uiObject;
+}
+
+Handle<Entity> UIObject::CreateChildEntity()
+{
+    Scene* scene = GetScene();
+    Assert(scene != nullptr);
+    
+    EntityManager* entityManager = scene->GetEntityManager();
+    Assert(entityManager != nullptr);
+    
+    return entityManager->AddEntity();
 }
 
 #pragma endregion UIObject

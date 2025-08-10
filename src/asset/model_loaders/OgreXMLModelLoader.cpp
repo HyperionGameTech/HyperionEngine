@@ -288,10 +288,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
-        const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
-
-        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
+        Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 

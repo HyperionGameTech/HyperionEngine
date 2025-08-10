@@ -209,11 +209,11 @@ void HyperionEditor::Init()
     {
         Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
         skyboxEntity->SetName(NAME("Sky"));
-
-        scene->GetEntityManager()->AddComponent<TransformComponent>(skyboxEntity, TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) });
-
+        
+        skyboxEntity->Scale(1000.0f);
+        
         scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skyboxEntity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+//        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skyboxEntity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
         scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
 
         scene->GetRoot()->AddChild(skyboxEntity);

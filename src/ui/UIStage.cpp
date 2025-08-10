@@ -262,7 +262,8 @@ void UIStage::Init()
     // Will create a new Scene
     SetScene(nullptr);
 
-    SetNodeProxy(m_scene->GetRoot());
+    SetNodeProxy(m_scene->GetEntityManager()->AddEntity());
+    m_scene->SetRoot(m_node);
 
     UIObject::Init();
 }

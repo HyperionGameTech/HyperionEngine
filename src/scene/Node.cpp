@@ -114,7 +114,7 @@ void Node::Init()
         InitObject(child);
     }
     
-    InitEntity();
+//    InitEntity();
 
     SetReady(true);
 }
@@ -234,27 +234,20 @@ void Node::SetScene(Scene* scene)
         {
             Handle<Entity> entityHandle(HandleFromThis());
             
-            if (previousScene->GetEntityManager() != m_scene->GetEntityManager())
+            EntityManager* previousEntityManager = entity->GetEntityManager();
+            
+            if (previousEntityManager != m_scene->GetEntityManager())
             {
-                if (previousScene != nullptr && previousScene->GetEntityManager() != nullptr)
+                if (previousEntityManager != nullptr)
                 {
                     Assert(m_scene->GetEntityManager() != nullptr);
 
-                    previousScene->GetEntityManager()->MoveEntity(entityHandle, m_scene->GetEntityManager());
+                    previousEntityManager->MoveEntity(entityHandle, m_scene->GetEntityManager());
                 }
-                else
-                {
-                    // Entity manager null - exiting engine is likely cause here
-
-                    // Unset the entity
-
-#ifdef HYP_EDITOR
-                    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-                        {
-                            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-                        });
-#endif
-                }
+            }
+            else
+            {
+                m_scene->GetEntityManager()->AddExistingEntity(entityHandle);
             }
         }
     }
@@ -727,16 +720,9 @@ void Node::InitEntity()
         }
         else
         {
-            // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
             m_scene->GetEntityManager()->AddExistingEntity(entity);
         }
 
-#ifdef HYP_EDITOR
-        GetEditorDelegates([this](EditorDelegates* editorDelegates)
-            {
-                editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-            });
-#endif
 
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
         // to match it, as long as we're not locked
@@ -783,13 +769,6 @@ void Node::InitEntity()
     else
     {
         m_transformChanged = false;
-
-#ifdef HYP_EDITOR
-        GetEditorDelegates([this](EditorDelegates* editorDelegates)
-            {
-                editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-            });
-#endif
 
         SetEntityAABB(BoundingBox::Empty());
 
