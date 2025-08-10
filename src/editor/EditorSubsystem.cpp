@@ -714,13 +714,13 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 child->AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(Material::MATERIAL_KEY_ALBEDO))));
             }
 
-            FileByteWriter byteWriter(GetResourceDirectory() / "models/editor/axis_arrows.hypmodel");
-            FBOMWriter writer { FBOMWriterConfig {} };
-            writer.Append(*node);
+            // FileByteWriter byteWriter(GetResourceDirectory() / "models/editor/axis_arrows.hypmodel");
+            // FBOMWriter writer { FBOMWriterConfig {} };
+            // writer.Append(*node);
 
-            FBOMResult writeErr = writer.Emit(&byteWriter);
+            // FBOMResult writeErr = writer.Emit(&byteWriter);
 
-            byteWriter.Close();
+            // byteWriter.Close();
 
             if (writeErr)
             {
