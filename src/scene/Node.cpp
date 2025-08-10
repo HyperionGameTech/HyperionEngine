@@ -452,9 +452,9 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
         node->UnlockTransform();
     }
-    
-    node->OnAttachedToNode(this);
+
     node->SetScene(m_scene);
+    node->OnAttachedToNode(this);
     node->UpdateWorldTransform();
 
     if (wasTransformLocked)
@@ -489,7 +489,7 @@ bool Node::RemoveChild(const Node* node)
     {
         return false;
     }
-    
+
     // TEMP
     if (node == m_entity.Get())
     {
@@ -522,8 +522,8 @@ bool Node::RemoveChild(const Node* node)
         childNode->UnlockTransform();
     }
 
-    childNode->SetScene(nullptr);
     childNode->OnDetachedFromNode(this);
+    childNode->SetScene(nullptr);
     childNode->UpdateWorldTransform();
 
     if (wasTransformLocked)
@@ -589,7 +589,7 @@ void Node::RemoveAllChildren()
         {
             Assert(node.IsValid());
             Assert(node->GetParent() == this);
-            
+
             // TEMP
             if (node.Get() == m_entity.Get())
             {
@@ -597,8 +597,8 @@ void Node::RemoveAllChildren()
                 continue;
             }
 
-            node->SetScene(nullptr);
             node->OnDetachedFromNode(this);
+            node->SetScene(nullptr);
 
             Node* currentParent = this;
 
