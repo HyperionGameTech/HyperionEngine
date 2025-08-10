@@ -2417,7 +2417,7 @@ void EditorSubsystem::InitActiveSceneSelection()
     //                     {
     //                         if (uiObject->IsA<UIMenuItem>())
     //                         {
-    //                             const NodeTag& tag = uiObject->GetNodeTag("Scene");
+    //                             const NodeTag& tag = uiObject->GetTag("Scene");
     //                             HYP_LOG(Editor, Debug, "Checking scene menu item with tag: {}", tag.ToString());
 
     //                             if (tag.IsValid())
@@ -2470,7 +2470,7 @@ void EditorSubsystem::InitActiveSceneSelection()
         Handle<UIMenuItem> sceneMenuItem = activeSceneMenuItem->CreateUIObject<UIMenuItem>(scene->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
         Assert(sceneMenuItem != nullptr);
 
-        sceneMenuItem->SetNodeTag(NodeTag(NAME("Scene"), scene->GetUUID()));
+        sceneMenuItem->AddTag(NodeTag(NAME("Scene"), scene->GetUUID()));
 
         sceneMenuItem->SetText(scene->GetName().LookupString());
 
@@ -2523,7 +2523,7 @@ void EditorSubsystem::InitContentBrowser()
                 {
                     if (listViewItem != nullptr)
                     {
-                        if (const NodeTag& assetPackageTag = listViewItem->GetNodeTag("AssetPackage"); assetPackageTag.IsValid())
+                        if (const NodeTag& assetPackageTag = listViewItem->GetTag("AssetPackage"); assetPackageTag.IsValid())
                         {
                             if (Handle<AssetPackage> assetPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(assetPackageTag.ToString(), /* createIfNotExist */ false))
                             {

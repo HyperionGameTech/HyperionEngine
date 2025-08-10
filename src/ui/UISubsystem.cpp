@@ -238,17 +238,11 @@ void UISubsystem::Update(float delta)
         {
             Assert(uiObject != nullptr);
 
-            const Handle<Node>& node = uiObject->GetNode();
-            Assert(node != nullptr);
-
-            const Handle<Entity>& entity = ObjCast<Entity>(node);
-            Assert(entity != nullptr);
-
-            MeshComponent& meshComponent = node->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(entity);
+            MeshComponent& meshComponent = uiObject->GetEntityManager()->GetComponent<MeshComponent>(uiObject);
 
             // @TODO Include a way to determine the parent tree of the UI Object because some objects will
             // have the same depth but should be rendered in a different order.
-            rpl.GetMeshEntities().Track(entity.Id(), entity, entity->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ false);
+            rpl.GetMeshEntities().Track(uiObject->Id(), uiObject, uiObject->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ false);
 
             if (const Handle<Material>& material = meshComponent.material)
             {
@@ -267,7 +261,7 @@ void UISubsystem::Update(float delta)
                 }
             }
 
-            rpl.meshEntityOrdering.EmplaceBack(entity.Id(), uiObject->GetComputedDepth());
+            rpl.meshEntityOrdering.EmplaceBack(uiObject->Id(), uiObject->GetComputedDepth());
         },
         /* onlyVisible */ true);
 

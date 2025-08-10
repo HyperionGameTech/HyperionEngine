@@ -18,7 +18,7 @@
 #include <scene/EntityManager.hpp>
 #include <scene/ComponentInterface.hpp>
 #include <scene/components/NodeLinkComponent.hpp>
-#include <scene/components/UIComponent.hpp>
+#include <scene/EntityTag.hpp>
 
 #include <ui/UIObject.hpp>
 

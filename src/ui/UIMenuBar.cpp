@@ -92,6 +92,7 @@ void UIMenuItem::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
+    Assert(!m_menuItems.Contains(uiObject));
     m_menuItems.PushBack(uiObject);
 
     UpdateDropDownMenu();
@@ -405,10 +406,10 @@ void UIMenuBar::Init()
     //     return UIEventHandlerResult::STOP_BUBBLING;
     // }).Detach();
 
-    if (m_stage != nullptr)
-    {
-        m_stage->AddChildUIObject(m_container);
-    }
+//    if (m_stage != nullptr)
+//    {
+//        m_stage->AddChildUIObject(m_container);
+//    }
 
     // AddChildUIObject(m_container);
 }
@@ -600,6 +601,7 @@ void UIMenuBar::AddChildUIObject(const Handle<UIObject>& uiObject)
                 })
             .Detach();
 
+        Assert(!m_menuItems.Contains(menuItem));
         m_menuItems.PushBack(menuItem);
     }
 

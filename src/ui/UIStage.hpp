@@ -15,8 +15,6 @@
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
 
-#include <scene/components/UIComponent.hpp>
-
 #include <rendering/Shared.hpp>
 
 #include <input/Mouse.hpp>
@@ -108,7 +106,7 @@ public:
      *
      *  \param scene The scene to set. */
     HYP_METHOD()
-    void SetScene(const Handle<Scene>& scene);
+    virtual void SetScene(Scene* scene) override;
 
     HYP_METHOD()
     const Handle<Camera>& GetCamera() const
@@ -168,10 +166,6 @@ private:
 
     /*! \brief To be called internally from UIObject only */
     void SetFocusedObject(const Handle<UIObject>& uiObject);
-
-    Handle<UIObject> GetUIObjectForEntity(const Entity* entity) const;
-
-    bool Remove(const Entity* entity);
 
     Vec2i m_surfaceSize;
 

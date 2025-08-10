@@ -529,18 +529,6 @@ public:
     virtual void Update(float delta) final;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Entity* GetEntity()
-    {
-        return this;
-    }
-    
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Entity* GetEntity() const
-    {
-        return this;
-    }
-
-    HYP_METHOD()
     UIStage* GetStage() const;
 
     HYP_METHOD()
@@ -867,14 +855,6 @@ public:
      *  \return True if the object has focus, false otherwise. */
     bool HasFocus(bool includeChildren = true) const;
 
-    /*! \brief Check if \ref{other} is either a parent of this object or is equal to the current object.
-     *  \details Comparison is performed by using \ref{Node::IsOrHasParent}. If either this or \ref{other} does not have a Node,
-     *  false is returned.
-     *  \param other The UIObject to check if it is a parent of this object.
-     *  \return Whether \ref{other} is a parent of this object or equal to the current object.
-     */
-    bool IsOrHasParent(const UIObject* other) const;
-
     /*! \brief Get the parent UIObject to this object, if one exists.
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */
     HYP_METHOD()
@@ -990,8 +970,6 @@ public:
      *  If the UIObject has a script component, it will be removed. Only the script component directly attached to the UIObject will be removed.
      *  Subsequent calls to \ref{GetScriptComponent} will return the closest script component to this UIObject in the scene hierarchy, if one exists. */
     void RemoveScriptComponent();
-
-    virtual Scene* GetScene() const;
 
     const Handle<Material>& GetMaterial() const;
 
@@ -1392,8 +1370,6 @@ protected:
     EnumFlags<UIObjectUpdateType> m_lockedUpdates;
 
 private:
-    Handle<Entity> CreateChildEntity();
-    
     template <class T>
     Handle<UIObject> CreateUIObjectInternal(Name name, bool init = false)
     {

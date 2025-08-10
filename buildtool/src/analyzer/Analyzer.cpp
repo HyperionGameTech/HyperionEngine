@@ -728,6 +728,8 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(co
     return results;
 }
 
+#pragma region Analyzer
+
 const HypClassDefinition* Analyzer::FindHypClassDefinition(UTF8StringView class_name) const
 {
     Mutex::Guard guard(m_mutex);
@@ -833,6 +835,54 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 
     return {};
 }
+
+bool Analyzer::HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) const
+{
+    Mutex::Guard guard(m_mutex);
+
+    auto findDefinition = [this](UTF8StringView name) -> const HypClassDefinition*
+    {
+        for (const UniquePtr<Module>& module : m_modules)
+        {
+            const HypClassDefinition* hyp_class = module->FindHypClassDefinition(name);
+
+            if (hyp_class)
+            {
+                return hyp_class;
+            }
+        }
+
+        return nullptr;
+    };
+
+    Proc<bool(const HypClassDefinition&, UTF8StringView)> performCheck;
+
+    performCheck = [&performCheck, &findDefinition](const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) -> bool
+    {
+        auto it = hypClassDefinition.baseClassNames.FindAs(baseClassName);
+
+        if (it != hypClassDefinition.baseClassNames.End())
+        {
+            return true;
+        }
+
+        for (const String& baseClass : hypClassDefinition.baseClassNames)
+        {
+            const HypClassDefinition* baseHypClass = findDefinition(baseClass);
+
+            if (baseHypClass && performCheck(*baseHypClass, baseClassName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    return performCheck(hypClassDefinition, baseClassName);
+}
+
+#pragma endregion Analyzer
 
 } // namespace buildtool
 } // namespace hyperion

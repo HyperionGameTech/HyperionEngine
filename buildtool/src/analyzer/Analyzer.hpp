@@ -140,6 +140,8 @@ public:
 
     TResult<void, AnalyzerError> ProcessModule(Module& mod);
 
+    bool HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) const;
+
 private:
     FilePath m_workingDirectory;
     FilePath m_sourceDirectory;

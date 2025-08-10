@@ -139,15 +139,16 @@ Scene* UIStage::GetScene() const
     return m_scene.GetUnsafe(); // m_scene would have this as a root node so ref would be kept strong as long as this is alive.
 }
 
-void UIStage::SetScene(const Handle<Scene>& scene)
+void UIStage::SetScene(Scene* scene)
 {
     HYP_SCOPE;
-
-    Handle<Scene> newScene = scene;
+    
+    Handle<Scene> currentScene = m_scene.Lock();
+    Handle<Scene> newScene = scene ? scene->HandleFromThis() : nullptr;
 
     if (!newScene.IsValid())
     {
-        const ThreadId ownerThreadId = m_scene.IsValid() ? m_scene->GetOwnerThreadId() : ThreadId::Current();
+        const ThreadId ownerThreadId = currentScene ? currentScene->GetOwnerThreadId() : ThreadId::Current();
 
         newScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
         newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
@@ -159,15 +160,8 @@ void UIStage::SetScene(const Handle<Scene>& scene)
         return;
     }
 
-    if (Handle<Scene> currentScene = m_scene.Lock())
+    if (currentScene != nullptr)
     {
-        Handle<Node> currentRootNode;
-
-        currentRootNode = currentScene->GetRoot();
-        Assert(currentRootNode.IsValid());
-
-        currentRootNode->Remove();
-
         currentScene->RemoveFromWorld();
         currentScene.Reset();
     }
@@ -308,11 +302,18 @@ void UIStage::OnAttached_Internal(UIObject* parent)
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    Assert(parent != nullptr);
-    Assert(parent->GetNode() != nullptr);
-
     // Set root to be empty node proxy, now that it is attached to another object.
-    m_scene->SetRoot(Handle<Node>::empty);
+    Handle<Scene> currentScene = m_scene.Lock();
+    
+    if (!currentScene)
+    {
+        m_scene.Reset();
+        SetScene(nullptr); // create new scene
+    }
+    else
+    {
+        currentScene->SetRoot(nullptr);
+    }
 
     OnAttached();
 }
@@ -323,7 +324,16 @@ void UIStage::OnRemoved_Internal()
     AssertOnOwnerThread();
 
     // Re-set scene root to be our node proxy
-    m_scene->SetRoot(m_node);
+    Handle<Scene> currentScene = m_scene.Lock();
+    AssertDebug(currentScene != nullptr);
+    
+    if (currentScene != nullptr)
+    {
+        Handle<Node> thisHandle = HandleFromThis();
+        AssertDebug(thisHandle != nullptr);
+        
+        currentScene->SetRoot(thisHandle);
+    }
 
     OnRemoved();
 }
@@ -354,15 +364,10 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
 
     RayTestResults rayTestResults;
 
-    for (auto [entity, uiComponent, transformComponent, boundingBoxComponent] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    for (auto [entity, transformComponent, boundingBoxComponent, _] : GetScene()->GetEntityManager()->GetEntitySet<TransformComponent, BoundingBoxComponent, EntityType<UIObject>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
-        UIObject* uiObject = uiComponent.uiObject;
-
-        if (!uiObject)
-        {
-            continue;
-        }
-
+        UIObject* uiObject = static_cast<UIObject*>(entity);
+        
         if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !uiObject->GetComputedVisibility())
         {
             continue;
@@ -395,22 +400,6 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
     }
 
     return outObjects.Any();
-}
-
-Handle<UIObject> UIStage::GetUIObjectForEntity(const Entity* entity) const
-{
-    HYP_SCOPE;
-    AssertOnOwnerThread();
-
-    if (UIComponent* uiComponent = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
-    {
-        if (uiComponent->uiObject != nullptr)
-        {
-            return uiComponent->uiObject->HandleFromThis();
-        }
-    }
-
-    return Handle<UIObject>::empty;
 }
 
 void UIStage::SetFocusedObject(const Handle<UIObject>& uiObject)
@@ -983,24 +972,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
     }
 
     return eventHandlerResult;
-}
-
-bool UIStage::Remove(const Entity* entity)
-{
-    HYP_SCOPE;
-    AssertOnOwnerThread();
-
-    if (!m_scene.IsValid())
-    {
-        return false;
-    }
-
-    if (!GetNode())
-    {
-        return false;
-    }
-
-    return GetNode()->Remove();
 }
 
 } // namespace hyperion

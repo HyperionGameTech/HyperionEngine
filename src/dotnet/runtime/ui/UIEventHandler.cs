@@ -17,7 +17,7 @@ namespace Hyperion
         {
             base.Init(entity);
 
-            uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(entity).UIObject;
+            uiObject = entity as UIObject;
 
             if (uiObject == null)
             {

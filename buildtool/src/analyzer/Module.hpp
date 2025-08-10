@@ -44,8 +44,6 @@ public:
 
     const HypClassDefinition* FindHypClassDefinition(UTF8StringView className) const;
 
-    bool HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) const;
-
 private:
     FilePath m_path;
     HashMap<String, HypClassDefinition> m_hypClasses;
