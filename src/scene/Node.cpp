@@ -362,36 +362,6 @@ void Node::SetScene(Scene* scene)
                 editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
             });
 #endif
-
-        // Move entity from previous scene to new scene
-        if (m_entity.IsValid())
-        {
-            EntityManager* previousEntityManager = m_entity->GetEntityManager();
-
-            if (previousEntityManager != m_scene->GetEntityManager())
-            {
-                if (previousEntityManager != nullptr)
-                {
-                    Assert(m_scene->GetEntityManager() != nullptr);
-
-                    previousEntityManager->MoveEntity(m_entity, m_scene->GetEntityManager());
-                }
-                else
-                {
-                    // Entity manager null - exiting engine is likely cause here
-
-                    // Unset the entity
-                    m_entity.Reset();
-
-#ifdef HYP_EDITOR
-                    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-                        {
-                            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-                        });
-#endif
-                }
-            }
-        }
     }
 }
 
@@ -411,14 +381,14 @@ void Node::OnAttachedToNode(Node* node)
 {
     Assert(node != nullptr);
 
-    // Do nothing in default implementation.
+    m_parentNode = node;
 }
 
 void Node::OnDetachedFromNode(Node* node)
 {
     Assert(node != nullptr);
 
-    // Do nothing in default implementation.
+    m_parentNode = nullptr;
 }
 
 void Node::OnNestedNodeAdded(Node* node, bool direct)
@@ -474,8 +444,6 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
     InitObject(node);
 
-    node->OnAttachedToNode(this);
-
     bool wasTransformLocked = false;
 
     if (node->m_transformLocked)
@@ -484,8 +452,8 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
         node->UnlockTransform();
     }
-
-    node->m_parentNode = this;
+    
+    node->OnAttachedToNode(this);
     node->SetScene(m_scene);
     node->UpdateWorldTransform();
 
@@ -521,6 +489,13 @@ bool Node::RemoveChild(const Node* node)
     {
         return false;
     }
+    
+    // TEMP
+    if (node == m_entity.Get())
+    {
+        SetEntity(nullptr);
+        return true;
+    }
 
     auto it = m_childNodes.FindIf([node](const Handle<Node>& it)
         {
@@ -547,10 +522,9 @@ bool Node::RemoveChild(const Node* node)
         childNode->UnlockTransform();
     }
 
-    childNode->m_parentNode = nullptr;
     childNode->SetScene(nullptr);
-    childNode->UpdateWorldTransform();
     childNode->OnDetachedFromNode(this);
+    childNode->UpdateWorldTransform();
 
     if (wasTransformLocked)
     {
@@ -615,8 +589,14 @@ void Node::RemoveAllChildren()
         {
             Assert(node.IsValid());
             Assert(node->GetParent() == this);
+            
+            // TEMP
+            if (node.Get() == m_entity.Get())
+            {
+                ++it;
+                continue;
+            }
 
-            node->m_parentNode = nullptr;
             node->SetScene(nullptr);
             node->OnDetachedFromNode(this);
 
@@ -889,25 +869,11 @@ void Node::SetEntity(const Handle<Entity>& entity)
 
         AddChild(entity);
 
-        // need to move the entity between EntityManagers
-        if (previousEntityManager)
-        {
-            if (previousEntityManager != m_scene->GetEntityManager().Get())
-            {
-                previousEntityManager->MoveEntity(entity, m_scene->GetEntityManager());
-            }
-        }
-        else
-        {
-            // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
-            m_scene->GetEntityManager()->AddExistingEntity(entity);
-        }
-
         // sanity check
         AssertDebug(entity->GetScene() == m_scene);
 
         m_entity = entity;
-        
+
         // TEMP
         {
 
@@ -1110,6 +1076,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
     if (m_entity.IsValid())
     {
         const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
+        Assert(entityManager.Get() == m_entity->GetEntityManager());
 
         // if (!m_transformChanged) {
         //     // Set to dynamic
@@ -1125,7 +1092,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
         //     m_transformChanged = true;
         // }
 
-        if (entityManager.IsValid())
+        if (entityManager)
         {
             if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(m_entity))
             {

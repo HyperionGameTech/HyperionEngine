@@ -184,6 +184,37 @@ void Entity::Detach()
     }
 }
 
+void Entity::OnAttachedToNode(Node* node)
+{
+    Node::OnAttachedToNode(node);
+
+    AssertDebug(node->GetScene() && node->GetScene()->GetEntityManager());
+
+    Handle<Entity> thisHandle = HandleFromThis();
+    EntityManager* previousEntityManager = GetEntityManager();
+
+    // need to move the entity between EntityManagers
+    if (previousEntityManager)
+    {
+        if (previousEntityManager != node->GetScene()->GetEntityManager().Get())
+        {
+            previousEntityManager->MoveEntity(thisHandle, node->GetScene()->GetEntityManager());
+        }
+    }
+    else
+    {
+        // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
+        node->GetScene()->GetEntityManager()->AddExistingEntity(thisHandle);
+    }
+
+    AssertDebug(GetEntityManager() == node->GetScene()->GetEntityManager());
+}
+
+void Entity::OnDetachedFromNode(Node* node)
+{
+    Node::OnDetachedFromNode(node);
+}
+
 void Entity::OnAddedToWorld(World* world)
 {
     AssertDebug(world != nullptr);
@@ -374,6 +405,31 @@ void Entity::DetachChild(const Handle<Entity>& child)
             HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot detach child {}", Id(), child.Id());
         }
     }
+}
+
+void Entity::SetScene(Scene* scene)
+{
+    if (scene == m_scene)
+    {
+        return;
+    }
+
+    Node::SetScene(scene);
+
+    Assert(m_scene && m_scene->GetEntityManager());
+
+    // Move entity from previous scene to new scene
+    EntityManager* previousEntityManager = GetEntityManager();
+    Assert(previousEntityManager != nullptr);
+
+    Handle<Entity> thisHandle = HandleFromThis();
+
+    if (previousEntityManager != m_scene->GetEntityManager())
+    {
+        previousEntityManager->MoveEntity(thisHandle, m_scene->GetEntityManager());
+    }
+
+    Assert(GetEntityManager() == m_scene->GetEntityManager());
 }
 
 } // namespace hyperion

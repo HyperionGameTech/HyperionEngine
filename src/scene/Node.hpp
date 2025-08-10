@@ -279,7 +279,7 @@ public:
     /*! \brief Set the Scene this Node and its children are attached to.
      *  \internal Not intended to be used in user code. Use Remove() instead. */
     HYP_METHOD(Property = "Scene")
-    void SetScene(Scene* scene);
+    virtual void SetScene(Scene* scene);
 
     /*! \returns A pointer to the World this Node and its children are attached to. May be null. */
     HYP_METHOD(Property = "World")

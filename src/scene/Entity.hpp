@@ -97,6 +97,9 @@ protected:
     {
     }
 
+    virtual void OnAttachedToNode(Node* node);
+    virtual void OnDetachedFromNode(Node* node);
+
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
 
@@ -111,6 +114,8 @@ protected:
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);
+
+    virtual void SetScene(Scene* scene) override;
 
     EntityInitInfo m_entityInitInfo;
 
