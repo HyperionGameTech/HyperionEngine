@@ -175,7 +175,7 @@ private:
 
     Vec2i m_surfaceSize;
 
-    Handle<Scene> m_scene;
+    WeakHandle<Scene> m_scene;
     Handle<Camera> m_camera;
 
     RC<FontAtlas> m_defaultFontAtlas;

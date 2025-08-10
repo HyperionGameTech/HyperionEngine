@@ -71,11 +71,6 @@ public:
 
         const UIEventHandlerResult defaultResult = m_uiObject->GetDefaultEventHandlerResult();
 
-        if (!m_uiObject->GetEntity().IsValid())
-        {
-            return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid entity"));
-        }
-
         if (!m_uiObject->GetScene())
         {
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid scene"));

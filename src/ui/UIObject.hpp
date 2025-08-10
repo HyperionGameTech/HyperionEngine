@@ -496,7 +496,7 @@ struct UIObjectSpawnContext
 #pragma region UIObject
 
 HYP_CLASS(Abstract)
-class HYP_API UIObject : public HypObjectBase
+class HYP_API UIObject : public Entity
 {
     HYP_OBJECT_BODY(UIObject);
 
@@ -529,9 +529,15 @@ public:
     virtual void Update(float delta) final;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
+    HYP_FORCE_INLINE Entity* GetEntity()
     {
-        return ObjCast<Entity>(m_node);
+        return this;
+    }
+    
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Entity* GetEntity() const
+    {
+        return this;
     }
 
     HYP_METHOD()
@@ -539,12 +545,6 @@ public:
 
     HYP_METHOD()
     void SetStage(UIStage* stage);
-
-    HYP_METHOD(Property = "Name")
-    Name GetName() const;
-
-    HYP_METHOD(Property = "Name")
-    void SetName(Name name);
 
     HYP_METHOD(Property = "Position")
     Vec2i GetPosition() const;
@@ -991,12 +991,6 @@ public:
      *  Subsequent calls to \ref{GetScriptComponent} will return the closest script component to this UIObject in the scene hierarchy, if one exists. */
     void RemoveScriptComponent();
 
-    HYP_METHOD()
-    const Handle<Node>& GetNode() const;
-
-    HYP_METHOD()
-    World* GetWorld() const;
-
     virtual Scene* GetScene() const;
 
     const Handle<Material>& GetMaterial() const;
@@ -1014,15 +1008,7 @@ public:
     {
         return m_aabbClamped;
     }
-
-    BoundingBox GetWorldAABB() const;
-    BoundingBox GetLocalAABB() const;
-
-    const NodeTag& GetNodeTag(WeakName key) const;
-    void SetNodeTag(NodeTag&& tag);
-    bool HasNodeTag(WeakName key) const;
-    bool RemoveNodeTag(WeakName key);
-
+    
     /*! \brief The default event handler result which is combined with the results of bound event handlers, if the result is equal to OK.
      *  E.g UIButton could return OK if the button was clicked, and the default event handler result could be set to STOP_BUBBLING so that the event does not propagate to objects behind it. */
     virtual UIEventHandlerResult GetDefaultEventHandlerResult() const
@@ -1166,22 +1152,16 @@ public:
     {
         AssertOnOwnerThread();
 
-        Assert(GetNode().IsValid());
-
         if (!name.IsValid())
         {
             name = Name::Unique(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
         }
 
-        Handle<Entity> entity = CreateChildEntity();
-        Assert(entity != nullptr);
+        Handle<UIObject> uiObject = CreateUIObjectInternal<T>(name, false /* init */);
         
-        entity->SetName(name);
-
+        uiObject->SetName(name);
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        entity->SetFlags(entity->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
-
-        Handle<UIObject> uiObject = CreateUIObjectInternal<T>(name, entity, false /* init */);
+        uiObject->SetFlags(uiObject->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
         uiObject->SetPosition(position);
         uiObject->SetSize(size);
@@ -1293,10 +1273,6 @@ protected:
 
     void UpdateComputedTextSize();
 
-    /*! \brief Sets the Handle<Node> for this UIObject.
-     *  \internal To be called internally from UIStage */
-    void SetNodeProxy(Handle<Node>);
-
     /*! \brief Get the shared quad mesh used for rendering UI objects. Vertices are in range: 0..1, with the origin at the top-left corner.
      *
      * \return The shared quad mesh
@@ -1366,8 +1342,6 @@ protected:
     UIStage* m_stage;
     WeakHandle<UIObject> m_spawnParent;
 
-    Name m_name;
-
     Vec2i m_position;
     Vec2f m_offsetPosition;
 
@@ -1421,10 +1395,8 @@ private:
     Handle<Entity> CreateChildEntity();
     
     template <class T>
-    Handle<UIObject> CreateUIObjectInternal(Name name, const Handle<Entity>& entity, bool init = false)
+    Handle<UIObject> CreateUIObjectInternal(Name name, bool init = false)
     {
-        Assert(entity != nullptr);
-
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
         Handle<UIObject> uiObject = CreateObject<T>();
@@ -1439,7 +1411,6 @@ private:
         // so we can set it right here.
         uiObject->m_computedTextSize = m_computedTextSize;
 
-        uiObject->SetNodeProxy(entity);
         uiObject->SetName(name);
 
         if (init)
@@ -1486,8 +1457,6 @@ private:
     float m_computedTextSize;
 
     AtomicVar<bool> m_needsRepaint;
-
-    Handle<Node> m_node;
 
     Array<Handle<UIObject>> m_childUiObjects;
 

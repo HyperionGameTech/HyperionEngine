@@ -114,7 +114,7 @@ void Node::Init()
         InitObject(child);
     }
     
-//    InitEntity();
+    InitEntity();
 
     SetReady(true);
 }
@@ -706,23 +706,9 @@ void Node::InitEntity()
     
     Handle<Entity> entity(HandleFromThis());
 
-    if (m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
+    if (entity->m_entityManager == nullptr)
     {
-        EntityManager* previousEntityManager = entity->GetEntityManager();
-
-        // need to move the entity between EntityManagers
-        if (previousEntityManager)
-        {
-            if (previousEntityManager != m_scene->GetEntityManager().Get())
-            {
-                previousEntityManager->MoveEntity(entity, m_scene->GetEntityManager());
-            }
-        }
-        else
-        {
-            m_scene->GetEntityManager()->AddExistingEntity(entity);
-        }
-
+        m_scene->GetEntityManager()->AddExistingEntity(entity);
 
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
         // to match it, as long as we're not locked

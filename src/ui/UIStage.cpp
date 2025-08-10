@@ -74,31 +74,33 @@ UIStage::UIStage(ThreadId ownerThreadId)
     SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     m_camera = CreateObject<Camera>();
+    m_camera->SetName(NAME_FMT("{}_Camera", GetName()));
     m_camera->AddCameraController(CreateObject<OrthoCameraController>(
         0.0f, -float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y),
         float(g_minDepth), float(g_maxDepth)));
 
     InitObject(m_camera);
+    AddChild(m_camera);
 }
 
 UIStage::~UIStage()
 {
-    if (m_scene.IsValid())
-    {
-        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
-        {
-            m_scene->RemoveFromWorld();
-        }
-        else
-        {
-            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
-                {
-                    scene->RemoveFromWorld();
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
-    }
+//    if (m_scene.IsValid())
+//    {
+//        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
+//        {
+//            m_scene->RemoveFromWorld();
+//        }
+//        else
+//        {
+//            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
+//                {
+//                    scene->RemoveFromWorld();
+//                },
+//                TaskEnqueueFlags::FIRE_AND_FORGET);
+//        }
+//    }
 }
 
 void UIStage::SetSurfaceSize(Vec2i surfaceSize)
@@ -134,7 +136,7 @@ Scene* UIStage::GetScene() const
         return uiObjectScene;
     }
 
-    return m_scene.Get();
+    return m_scene.GetUnsafe(); // m_scene would have this as a root node so ref would be kept strong as long as this is alive.
 }
 
 void UIStage::SetScene(const Handle<Scene>& scene)
@@ -149,40 +151,36 @@ void UIStage::SetScene(const Handle<Scene>& scene)
 
         newScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
         newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
+        newScene->SetRoot(HandleFromThis()); // strong ref
     }
 
-    if (newScene == m_scene)
+    if (newScene == m_scene.GetUnsafe())
     {
         return;
     }
 
-    if (m_scene)
+    if (Handle<Scene> currentScene = m_scene.Lock())
     {
         Handle<Node> currentRootNode;
 
-        currentRootNode = m_scene->GetRoot();
+        currentRootNode = currentScene->GetRoot();
         Assert(currentRootNode.IsValid());
 
         currentRootNode->Remove();
 
-        newScene->SetRoot(std::move(currentRootNode));
-
-        m_scene->RemoveFromWorld();
-        m_scene.Reset();
+        currentScene->RemoveFromWorld();
+        currentScene.Reset();
     }
-
-    m_camera->SetName(NAME_FMT("{}_Camera", GetName()));
-    newScene->GetRoot()->AddChild(m_camera);
-
-    m_scene = std::move(newScene);
 
     // If no World is set for the scene, use default world
-    if (m_scene && !m_scene->GetWorld())
+    if (newScene && !newScene->GetWorld())
     {
-        g_engineDriver->GetDefaultWorld()->AddScene(m_scene);
+        g_engineDriver->GetDefaultWorld()->AddScene(newScene);
     }
 
-    InitObject(m_scene);
+    InitObject(newScene);
+    
+    m_scene = newScene.ToWeak(); // still holds strong ref to this so would be valid
 }
 
 const RC<FontAtlas>& UIStage::GetDefaultFontAtlas() const
@@ -261,9 +259,6 @@ void UIStage::Init()
 
     // Will create a new Scene
     SetScene(nullptr);
-
-    SetNodeProxy(m_scene->GetEntityManager()->AddEntity());
-    m_scene->SetRoot(m_node);
 
     UIObject::Init();
 }

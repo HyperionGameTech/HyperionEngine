@@ -271,7 +271,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="UIObject")]
-    public class UIObject : HypObject
+    public class UIObject : Entity
     {
         public UIObject()
         {

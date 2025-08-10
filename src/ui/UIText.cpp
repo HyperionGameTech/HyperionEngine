@@ -402,7 +402,7 @@ void UIText::UpdateMeshData_Internal()
         parentAabbClamped = parent->GetAABBClamped();
     }
 
-    MeshComponent& meshComponent = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
+    MeshComponent& meshComponent = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(this);
 
     const Vec2f position = GetAbsolutePosition();
     const float textSize = GetTextSize();
@@ -455,7 +455,7 @@ void UIText::UpdateMeshData_Internal()
     meshComponent.instanceData.SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
     meshComponent.instanceData.SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
 
-    GetScene()->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+    GetScene()->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(this);
 }
 
 bool UIText::Repaint_Internal()
