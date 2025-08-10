@@ -80,6 +80,9 @@ public:
     HYP_METHOD()
     virtual void Detach();
 
+    virtual void LockTransform() override;
+    virtual void UnlockTransform() override;
+
     const int* GetRenderProxyVersionPtr() const
     {
         return &m_renderProxyVersion;
@@ -116,6 +119,8 @@ protected:
     void DetachChild(const Handle<Entity>& child);
 
     virtual void SetScene(Scene* scene) override;
+
+    virtual void OnTransformUpdated(const Transform& transform) override;
 
     EntityInitInfo m_entityInitInfo;
 

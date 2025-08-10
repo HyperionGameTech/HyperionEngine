@@ -769,18 +769,6 @@ void Node::LockTransform()
 {
     m_transformLocked = true;
 
-    // set entity to static
-    if (m_entity.IsValid())
-    {
-        if (const Handle<EntityManager>& entityManager = m_scene->GetEntityManager())
-        {
-            entityManager->AddTag<EntityTag::STATIC>(m_entity);
-            entityManager->RemoveTag<EntityTag::DYNAMIC>(m_entity);
-        }
-
-        m_transformChanged = false;
-    }
-
     for (const Handle<Node>& child : m_childNodes)
     {
         if (!child.IsValid())
@@ -1071,40 +1059,6 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
     if (m_worldTransform == transformBefore)
     {
         return;
-    }
-
-    if (m_entity.IsValid())
-    {
-        const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
-        Assert(entityManager.Get() == m_entity->GetEntityManager());
-
-        // if (!m_transformChanged) {
-        //     // Set to dynamic
-        //     if (entityManager != nullptr) {
-        //         entityManager->AddTag<EntityTag::DYNAMIC>(m_entity);
-        //         entityManager->RemoveTag<EntityTag::STATIC>(m_entity);
-
-        //         HYP_LOG(Node, Debug, "Node: {}; Make Entity #{} dynamic",
-        //             GetName(),
-        //             m_entity.Id().Value());
-        //     }
-
-        //     m_transformChanged = true;
-        // }
-
-        if (entityManager)
-        {
-            if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(m_entity))
-            {
-                transformComponent->transform = m_worldTransform;
-            }
-            else
-            {
-                entityManager->AddComponent<TransformComponent>(m_entity, TransformComponent { m_worldTransform });
-            }
-
-            entityManager->AddTags<EntityTag::UPDATE_AABB>(m_entity);
-        }
     }
 
     OnTransformUpdated(m_worldTransform);

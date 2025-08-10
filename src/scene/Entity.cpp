@@ -11,6 +11,9 @@
 #include <scene/components/NodeLinkComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
+#include <scene/components/TransformComponent.hpp>
+#include <scene/components/VisibilityStateComponent.hpp>
+#include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -436,6 +439,54 @@ void Entity::SetScene(Scene* scene)
     }
 
     AssertDebug(GetEntityManager() == m_scene->GetEntityManager());
+}
+
+void Entity::LockTransform()
+{
+    Node::LockTransform();
+
+    EntityManager* entityManager = GetEntityManager();
+    AssertDebug(entityManager != nullptr);
+
+    // set entity to static
+    entityManager->AddTag<EntityTag::STATIC>(this);
+    entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+
+    m_transformChanged = false;
+}
+
+void Entity::UnlockTransform()
+{
+    Node::UnlockTransform();
+}
+
+void Entity::OnTransformUpdated(const Transform& transform)
+{
+    Node::OnTransformUpdated(transform);
+    
+    EntityManager* entityManager = GetEntityManager();
+    AssertDebug(entityManager != nullptr);
+    AssertDebug(entityManager == m_scene->GetEntityManager());
+    
+    if (!m_transformChanged)
+    {
+        // Set to dynamic
+        entityManager->AddTag<EntityTag::DYNAMIC>(this);
+        entityManager->RemoveTag<EntityTag::STATIC>(this);
+        
+        m_transformChanged = true;
+    }
+    
+    if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(this))
+    {
+        transformComponent->transform = m_worldTransform;
+    }
+    else
+    {
+        entityManager->AddComponent<TransformComponent>(this, TransformComponent { m_worldTransform });
+    }
+    
+    entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
 }
 
 } // namespace hyperion

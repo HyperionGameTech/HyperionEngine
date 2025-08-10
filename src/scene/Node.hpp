@@ -574,10 +574,10 @@ public:
     }
 
     /*! \brief Lock the Node from being transformed. */
-    void LockTransform();
+    virtual void LockTransform();
 
     /*! \brief Unlock the Node from being transformed. */
-    void UnlockTransform();
+    virtual void UnlockTransform();
 
     /*! \brief Get the local-space (model) aabb of the node, excluding the entity's aabb.
      *  \returns The local-space (model) of the node's aabb, excluding the entity's aabb. */
