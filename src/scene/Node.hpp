@@ -205,8 +205,9 @@ public:
 
     Node(const Node& other) = delete;
     Node& operator=(const Node& other) = delete;
-    Node(Node&& other) noexcept;
-    Node& operator=(Node&& other) noexcept;
+    Node(Node&& other) noexcept = delete;
+    Node& operator=(Node&& other) noexcept = delete;
+    
     virtual ~Node() override;
 
     /*! \brief Get the UUID of the Node. */
@@ -716,10 +717,7 @@ protected:
 
     Scene* m_scene;
 
-    bool m_transformLocked;
-
-    // has the transform been updated since the entity has been set or transform has been unlocked?
-    bool m_transformChanged;
+    bool m_transformLocked : 1;
 
     UniquePtr<Delegates> m_delegates;
 

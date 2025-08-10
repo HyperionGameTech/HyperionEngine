@@ -300,23 +300,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
 
-// template <>
-// class FBOMMarshaler<ObjId<Entity>> : public FBOMObjectMarshalerBase<ObjId<Entity>>
-// {
-// public:
-//     virtual ~FBOMMarshaler() override = default;
-
-//     virtual FBOMResult Serialize(const ObjId<Entity> &entityId, FBOMObject &out) const override
-//     {
-//         return FBOMMarshaler<Handle<Entity>>{}.Serialize(Handle<Entity>(entityId), out);
-//     }
-
-//     virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
-//     {
-//         return FBOMMarshaler<Handle<Entity>>{}.Deserialize(in, out);
-//     }
-// };
-
-// HYP_DEFINE_MARSHAL(ObjId<Entity>, FBOMMarshaler<ObjId<Entity>>);
-
 } // namespace hyperion::serialization

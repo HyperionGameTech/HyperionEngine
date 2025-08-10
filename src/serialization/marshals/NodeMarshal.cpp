@@ -38,8 +38,6 @@ public:
             return err;
         }
 
-        out.SetProperty("Type", uint32(inObject.GetType()));
-
         {
             FBOMData tagsData;
 
@@ -71,13 +69,6 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        Node::Type nodeType = Node::Type::NODE;
-
-        if (FBOMResult err = in.GetProperty("Type").ReadUInt32(&nodeType))
-        {
-            return err;
-        }
-
         Node::NodeTagSet tags;
 
         if (FBOMResult err = HypData::Deserialize(context, in.GetProperty("Tags"), tags))
@@ -85,27 +76,32 @@ public:
             return err;
         }
 
-        Handle<Node> node;
+        const HypClass* hypClass = in.GetHypClass();
 
-        switch (nodeType)
+        if (!hypClass)
         {
-        case Node::Type::NODE:
-            node = Handle<Node>(CreateObject<Node>());
-            break;
-        case Node::Type::BONE:
-            node = Handle<Node>(CreateObject<Bone>());
-
-            break;
-        default:
-            return { FBOMResult::FBOM_ERR, "Unsupported node type" };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Object {} does not have a HypClass defined", in.GetType().ToString()) };
         }
 
-        HYP_LOG(Serialization, Debug, "Deserializing Node of type: {}", node->InstanceClass()->GetName());
+        if (!hypClass->IsDerivedFrom(Node::Class()))
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("HypClass {} is not derived from Node", hypClass->GetName()) };
+        }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, node->InstanceClass(), AnyRef(*node)))
+        if (!hypClass->CreateInstance(out))
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of HypClass {}", hypClass->GetName()) };
+        }
+
+        HYP_LOG(Serialization, Debug, "Deserializing Node of type: {}", hypClass->GetName());
+
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, hypClass, out.ToRef()))
         {
             return err;
         }
+
+        const Handle<Node>& node = out.Get<Handle<Node>>();
+        Assert(node != nullptr, "Deserialized HypData is not a valid Node handle");
 
         for (NodeTag& tag : tags)
         {
@@ -119,8 +115,6 @@ public:
                 node->AddChild(child.m_deserializedObject->Get<Handle<Node>>());
             }
         }
-
-        out = HypData(std::move(node));
 
         return { FBOMResult::FBOM_OK };
     }

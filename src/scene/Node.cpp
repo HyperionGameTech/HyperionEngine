@@ -95,7 +95,6 @@ Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& 
       m_localTransform(localTransform),
       m_scene(scene != nullptr ? scene : GetDefaultScene()),
       m_transformLocked(false),
-      m_transformChanged(false),
       m_delegates(MakeUnique<Delegates>())
 {
     SetEntity(entity);
@@ -112,107 +111,6 @@ Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& 
             child->SetScene(scene);
         }
     }
-}
-
-Node::Node(Node&& other) noexcept
-    : m_type(other.m_type),
-      m_flags(other.m_flags),
-      m_name(other.m_name),
-      m_parentNode(other.m_parentNode),
-      m_localTransform(other.m_localTransform),
-      m_worldTransform(other.m_worldTransform),
-      m_entityAabb(other.m_entityAabb),
-      m_scene(other.m_scene),
-      m_transformLocked(other.m_transformLocked),
-      m_transformChanged(other.m_transformChanged),
-      m_delegates(std::move(other.m_delegates))
-{
-    other.m_type = Type::NODE;
-    other.m_flags = NodeFlags::NONE;
-    other.m_name = NAME("<unnamed>");
-    other.m_parentNode = nullptr;
-    other.m_localTransform = Transform::identity;
-    other.m_worldTransform = Transform::identity;
-    other.m_entityAabb = BoundingBox::Empty();
-    other.m_scene = GetDefaultScene();
-    other.m_transformLocked = false;
-    other.m_transformChanged = false;
-
-    Handle<Entity> entity = other.m_entity;
-    other.m_entity = Handle<Entity>::empty;
-    SetEntity(entity);
-
-    m_childNodes = std::move(other.m_childNodes);
-    m_descendants = std::move(other.m_descendants);
-
-    for (const Handle<Node>& node : m_childNodes)
-    {
-        Assert(node.IsValid());
-
-        node->m_parentNode = this;
-        node->SetScene(m_scene);
-    }
-}
-
-Node& Node::operator=(Node&& other) noexcept
-{
-    if (this == &other)
-    {
-        return *this;
-    }
-
-    RemoveAllChildren();
-
-    SetEntity(Handle<Entity>::empty);
-    SetScene(nullptr);
-
-    m_delegates = std::move(other.m_delegates);
-
-    m_type = other.m_type;
-    other.m_type = Type::NODE;
-
-    m_flags = other.m_flags;
-    other.m_flags = NodeFlags::NONE;
-
-    m_parentNode = other.m_parentNode;
-    other.m_parentNode = nullptr;
-
-    m_transformLocked = other.m_transformLocked;
-    other.m_transformLocked = false;
-
-    m_transformChanged = other.m_transformChanged;
-    other.m_transformChanged = false;
-
-    m_localTransform = other.m_localTransform;
-    other.m_localTransform = Transform::identity;
-
-    m_worldTransform = other.m_worldTransform;
-    other.m_worldTransform = Transform::identity;
-
-    m_entityAabb = other.m_entityAabb;
-    other.m_entityAabb = BoundingBox::Empty();
-
-    m_scene = other.m_scene;
-    other.m_scene = GetDefaultScene();
-
-    Handle<Entity> entity = other.m_entity;
-    other.m_entity = Handle<Entity>::empty;
-    SetEntity(entity);
-
-    m_name = std::move(other.m_name);
-
-    m_childNodes = std::move(other.m_childNodes);
-    m_descendants = std::move(other.m_descendants);
-
-    for (const Handle<Node>& node : m_childNodes)
-    {
-        Assert(node.IsValid());
-
-        node->m_parentNode = this;
-        node->SetScene(m_scene);
-    }
-
-    return *this;
 }
 
 Node::~Node()
@@ -888,8 +786,6 @@ void Node::SetEntity(const Handle<Entity>& entity)
     else
     {
         m_entity = Handle<Entity>::empty;
-
-        m_transformChanged = false;
 
 #ifdef HYP_EDITOR
         GetEditorDelegates([this](EditorDelegates* editorDelegates)

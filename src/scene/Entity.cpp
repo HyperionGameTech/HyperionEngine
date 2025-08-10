@@ -32,7 +32,8 @@ namespace hyperion {
 Entity::Entity()
     : m_world(nullptr),
       m_entityManager(nullptr),
-      m_renderProxyVersion(0)
+      m_renderProxyVersion(0),
+      m_transformChanged(false)
 {
 }
 

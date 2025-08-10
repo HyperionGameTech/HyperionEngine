@@ -133,6 +133,9 @@ private:
     Matrix4 m_prevModelMatrix;
 
     int m_renderProxyVersion;
+
+    // has the transform been updated since the Node's transform has been unlocked?
+    bool m_transformChanged : 1;
 };
 
 } // namespace hyperion
