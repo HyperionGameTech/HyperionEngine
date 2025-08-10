@@ -3,7 +3,7 @@
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
-#include <rendering/Mesh.hpp>
+#include <scene/Entity.hpp>
 #include <scene/BVH.hpp>
 
 #include <scene/animation/Bone.hpp>
@@ -33,6 +33,8 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+
+#include <rendering/Mesh.hpp>
 
 #include <cstring>
 
@@ -343,6 +345,16 @@ void Node::SetScene(Scene* scene)
 #endif
 
         m_scene = scene;
+        
+        for (const Handle<Node>& child : m_childNodes)
+        {
+            if (!child.IsValid())
+            {
+                continue;
+            }
+
+            child->SetScene(m_scene);
+        }
 
 #ifdef HYP_EDITOR
         GetEditorDelegates([this](EditorDelegates* editorDelegates)
@@ -354,13 +366,15 @@ void Node::SetScene(Scene* scene)
         // Move entity from previous scene to new scene
         if (m_entity.IsValid())
         {
-            if (previousScene->GetEntityManager() != m_scene->GetEntityManager())
+            EntityManager* previousEntityManager = m_entity->GetEntityManager();
+            
+            if (previousEntityManager != m_scene->GetEntityManager())
             {
-                if (previousScene != nullptr && previousScene->GetEntityManager() != nullptr)
+                if (previousEntityManager != nullptr)
                 {
                     Assert(m_scene->GetEntityManager() != nullptr);
 
-                    previousScene->GetEntityManager()->MoveEntity(m_entity, m_scene->GetEntityManager());
+                    previousEntityManager->MoveEntity(m_entity, m_scene->GetEntityManager());
                 }
                 else
                 {
@@ -378,16 +392,6 @@ void Node::SetScene(Scene* scene)
                 }
             }
         }
-    }
-
-    for (const Handle<Node>& child : m_childNodes)
-    {
-        if (!child.IsValid())
-        {
-            continue;
-        }
-
-        child->SetScene(m_scene);
     }
 }
 
@@ -836,6 +840,8 @@ void Node::SetEntity(const Handle<Entity>& entity)
     if (m_entity.IsValid())
     {
         m_entity->OnDetachedFromNode(this);
+        
+        RemoveChild(m_entity);
 
         if (m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
         {
@@ -843,16 +849,17 @@ void Node::SetEntity(const Handle<Entity>& entity)
         }
     }
 
-    if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
+    if (entity.IsValid())
     {
+        AssertDebug(m_scene && m_scene->GetEntityManager());
+        
+        AddChild(entity);
+        
         EntityManager* previousEntityManager = entity->GetEntityManager();
 
         // need to move the entity between EntityManagers
         if (previousEntityManager)
         {
-            // Detach entity from its current node, if applicable
-            entity->Detach();
-
             if (previousEntityManager != m_scene->GetEntityManager().Get())
             {
                 previousEntityManager->MoveEntity(entity, m_scene->GetEntityManager());

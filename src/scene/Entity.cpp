@@ -28,14 +28,13 @@ namespace hyperion {
 
 Entity::Entity()
     : m_world(nullptr),
-      m_scene(nullptr),
+      m_entityManager(nullptr),
       m_renderProxyVersion(0)
 {
 }
 
 Entity::~Entity()
 {
-    m_scene = nullptr;
     m_world = nullptr;
 
     // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
@@ -87,17 +86,9 @@ Entity::~Entity()
 
 void Entity::Init()
 {
+    Node::Init();
+
     SetReady(true);
-}
-
-EntityManager* Entity::GetEntityManager() const
-{
-    if (!m_scene)
-    {
-        return nullptr;
-    }
-
-    return m_scene->GetEntityManager();
 }
 
 bool Entity::ReceivesUpdate() const
@@ -227,16 +218,11 @@ void Entity::OnAddedToScene(Scene* scene)
     AssertDebug(scene != nullptr);
 
     EntityManager* entityManager = nullptr;
-
-    m_scene = scene;
 }
 
 void Entity::OnRemovedFromScene(Scene* scene)
 {
     AssertDebug(scene != nullptr);
-    AssertDebug(m_scene == scene);
-
-    m_scene = nullptr;
 }
 
 void Entity::OnComponentAdded(AnyRef component)

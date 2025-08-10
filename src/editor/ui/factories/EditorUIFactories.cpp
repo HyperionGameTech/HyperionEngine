@@ -36,6 +36,105 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
+static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData& targetData, const HypProperty* property)
+{
+    Assert(spawnParent != nullptr);
+    Assert(property != nullptr);
+
+    const HypClass* propertyPanelClass = nullptr;
+
+    if (const HypClassAttributeValue& attr = property->GetAttribute("editorpropertypanelclass"))
+    {
+        const HypClass* hypClass = GetClass(CreateNameFromDynamicString(attr.GetString()));
+
+        if (!hypClass)
+        {
+            HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
+
+            return nullptr;
+        }
+
+        if (!hypClass->IsDerivedFrom(EditorPropertyPanelBase::Class()))
+        {
+            HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", hypClass->GetName());
+
+            return nullptr;
+        }
+
+        propertyPanelClass = hypClass;
+    }
+
+    if (!propertyPanelClass)
+    {
+        // try to get the property panel class from the type of the property
+        const TypeId propertyTypeId = property->GetTypeId();
+
+        const HypClass* hypClass = GetClass(propertyTypeId);
+
+        if (!hypClass)
+        {
+            HYP_LOG(Editor, Error, "No HypClass registered for TypeId {}", propertyTypeId.Value());
+
+            return nullptr;
+        }
+
+        const HypClassAttributeValue& attr = hypClass->GetAttribute("editorpropertypanelclass");
+
+        if (attr.IsValid())
+        {
+            if (!attr.IsString())
+            {
+                HYP_LOG(Editor, Error, "Editor property panel class attribute \"editorpropertypanelclass\" must be a string");
+
+                return nullptr;
+            }
+
+            propertyPanelClass = GetClass(CreateNameFromDynamicString(attr.GetString()));
+
+            if (!propertyPanelClass)
+            {
+                HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
+
+                return nullptr;
+            }
+
+            if (!propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::Class()))
+            {
+                HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", propertyPanelClass->GetName());
+
+                return nullptr;
+            }
+        }
+    }
+
+    Handle<UIObject> element;
+
+    Assert(propertyPanelClass != nullptr, "No property panel class found for property {}", property->GetName());
+    Assert(propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::Class()), "Property panel class {} does not inherit from EditorPropertyPanelBase", propertyPanelClass->GetName());
+
+    Handle<UIObject> propertyPanel = spawnParent->CreateUIObject(propertyPanelClass, Name::Unique(propertyPanelClass->GetName().LookupString()), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+    if (!propertyPanel)
+    {
+        HYP_LOG(Editor, Error, "Failed to create editor property panel instance of class \"{}\"", propertyPanelClass->GetName());
+
+        return nullptr;
+    }
+
+    Handle<EditorPropertyPanelBase> propertyPanelCasted = ObjCast<EditorPropertyPanelBase>(propertyPanel);
+
+    if (!propertyPanelCasted)
+    {
+        HYP_LOG(Editor, Error, "Failed to cast editor property panel instance to EditorPropertyPanelBase");
+
+        return nullptr;
+    }
+
+    propertyPanelCasted->Build(targetData);
+
+    return propertyPanelCasted;
+}
+
 class HypDataUIElementFactory : public UIElementFactory<HypData>
 {
 public:
@@ -80,29 +179,24 @@ public:
 
         for (auto& it : propertiesByName)
         {
-            Handle<UIGridRow> row = grid->AddRow();
+            const String& propertyName = it.first;
+            const HypProperty* property = it.second;
 
+            Handle<UIGridRow> row = grid->AddRow();
             Handle<UIGridColumn> column = row->AddColumn();
 
-            Handle<UIPanel> panel = parent->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-            panel->SetPadding({ 1, 1 });
+            // Create property panel instance. Use "EditorPropertyPanelClass" on the property's attribute if it exists,
+            // otherwise, we'll fall back down to the class of the property
 
-            HypData getterResult = it.second->Get(value);
-
-            Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory(getterResult.GetTypeId());
-
-            if (!factory)
+            Handle<UIObject> uiObject = CreatePropertyPanel(parent, value, property);
+            if (!uiObject)
             {
-                HYP_LOG(Editor, Warning, "No factory registered for TypeId {} when creating UI element for attribute \"{}\"", getterResult.GetTypeId().Value(), it.first);
+                HYP_LOG(Editor, Error, "Failed to create property panel for property \"{}\" of class \"{}\"", propertyName, hypClass->GetName());
 
                 continue;
             }
 
-            Handle<UIObject> element = factory->CreateUIObject(parent, getterResult, {});
-            Assert(element != nullptr);
-            panel->AddChildUIObject(element);
-
-            column->AddChildUIObject(panel);
+            column->AddChildUIObject(uiObject);
         }
 
         return grid;
@@ -110,6 +204,7 @@ public:
 
     void Update(UIObject* uiObject, const HypData& value) const
     {
+        // @TODO
     }
 };
 
@@ -651,15 +746,6 @@ public:
 
                         continue;
                     }
-
-                    // HypData propertyPanelInstance;
-                    // propertyPanelClass->CreateInstance(propertyPanelInstance);
-
-                    // if (!propertyPanelInstance.IsValid()) {
-                    //     HYP_LOG(Editor, Error, "Failed to create instance of editor property panel class \"{}\"", propertyPanelClass->GetName());
-
-                    //     continue;
-                    // }
 
                     Handle<UIObject> propertyPanel = parent->CreateUIObject(propertyPanelClass, Name::Unique(propertyPanelClass->GetName().LookupString()), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 

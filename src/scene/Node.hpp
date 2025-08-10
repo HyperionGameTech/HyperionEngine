@@ -20,7 +20,6 @@
 #include <core/Name.hpp>
 #include <core/object/Handle.hpp>
 
-#include <scene/Entity.hpp>
 #include <scene/EntityTag.hpp>
 
 #include <core/math/Transform.hpp>
@@ -33,6 +32,9 @@
 namespace hyperion {
 
 class Scene;
+class Node;
+class World;
+class Entity;
 class EditorDelegates;
 
 HYP_ENUM(Flags)

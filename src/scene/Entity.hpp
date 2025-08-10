@@ -13,6 +13,8 @@
 
 #include <core/math/Matrix4.hpp>
 
+#include <scene/Node.hpp>
+
 namespace hyperion {
 
 class World;
@@ -33,7 +35,7 @@ struct EntityInitInfo
 };
 
 HYP_CLASS()
-class HYP_API Entity : public HypObjectBase
+class HYP_API Entity : public Node
 {
     HYP_OBJECT_BODY(Entity);
 
@@ -51,17 +53,15 @@ public:
         return m_world;
     }
 
-    HYP_FORCE_INLINE Scene* GetScene() const
-    {
-        return m_scene;
-    }
-
     HYP_FORCE_INLINE const Matrix4& GetPrevModelMatrix() const
     {
         return m_prevModelMatrix;
     }
 
-    EntityManager* GetEntityManager() const;
+    HYP_FORCE_INLINE EntityManager* GetEntityManager() const
+    {
+        return m_entityManager;
+    }
 
     bool ReceivesUpdate() const;
     void SetReceivesUpdate(bool receivesUpdate);
@@ -121,7 +121,7 @@ protected:
 
 private:
     World* m_world;
-    Scene* m_scene;
+    EntityManager* m_entityManager;
 
     Matrix4 m_prevModelMatrix;
 

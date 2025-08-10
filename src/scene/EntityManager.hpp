@@ -623,7 +623,7 @@ public:
 
         EntityData* entityData = m_entities.TryGetEntityData(entity);
 
-        if (!entity)
+        if (!entityData)
         {
             return AnyRef::Empty();
         }
