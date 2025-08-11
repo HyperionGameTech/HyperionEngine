@@ -262,11 +262,11 @@ void EnvGrid::OnAttachedToNode(Node* node)
     HYP_SCOPE;
     Assert(IsReady());
 
-    AttachChild(m_camera);
+    AddChild(m_camera);
 
     for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
     {
-        AttachChild(envProbe);
+        AddChild(envProbe);
     }
 }
 
@@ -275,11 +275,11 @@ void EnvGrid::OnDetachedFromNode(Node* node)
     // detach EnvProbes
     HYP_SCOPE;
 
-    DetachChild(m_camera);
+    RemoveChild(m_camera);
 
     for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
     {
-        DetachChild(envProbe);
+        RemoveChild(envProbe);
     }
 }
 

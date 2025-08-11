@@ -66,20 +66,6 @@ public:
     bool ReceivesUpdate() const;
     void SetReceivesUpdate(bool receivesUpdate);
 
-    /*! \brief Attaches this Entity to a Node. If the Entity is already attached to a Node, it will be detached first.
-     *
-     *  \param [in] attachNode The Node to attach the Entity to.
-     */
-    HYP_METHOD()
-    virtual void AttachTo(const Handle<Node>& attachNode);
-
-    /*! \brief Detaches this Entity from its current Node, if it is attached to one.
-     *
-     *  \note This will not remove the Entity from the EntityManager.
-     */
-    HYP_METHOD()
-    virtual void Detach();
-
     virtual void LockTransform() override;
     virtual void UnlockTransform() override;
 
@@ -114,9 +100,6 @@ protected:
 
     virtual void OnTagAdded(EntityTag tag);
     virtual void OnTagRemoved(EntityTag tag);
-
-    void AttachChild(const Handle<Entity>& child);
-    void DetachChild(const Handle<Entity>& child);
 
     virtual void SetScene(Scene* scene) override;
 

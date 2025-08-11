@@ -142,7 +142,7 @@ void Light::CreateShadowViews()
             continue;
         }
 
-        DetachChild(shadowCamera);
+        RemoveChild(shadowCamera);
     }
 
     m_shadowViews.Clear();
@@ -244,6 +244,7 @@ void Light::CreateShadowViews()
     }
 
     InitObject(m_shadowMapCamera);
+    AddChild(m_shadowMapCamera);
 
     AssertDebug(shadowViewFlags.Size() >= 1);
     m_shadowViews.Resize(shadowViewFlags.Size());
@@ -309,15 +310,11 @@ void Light::UpdateShadowViews()
 void Light::OnAttachedToNode(Node* node)
 {
     Entity::OnAttachedToNode(node);
-
-    AttachChild(m_shadowMapCamera);
 }
 
 void Light::OnDetachedFromNode(Node* node)
 {
     Entity::OnDetachedFromNode(node);
-
-    DetachChild(m_shadowMapCamera);
 }
 
 void Light::OnAddedToScene(Scene* scene)

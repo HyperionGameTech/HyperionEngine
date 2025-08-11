@@ -84,12 +84,6 @@ void EnvProbe::Init()
 {
     Entity::Init();
 
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
-        {
-            DetachChild(m_camera);
-            m_camera.Reset();
-        }));
-
     if (!IsControlledByEnvGrid())
     {
         m_camera = CreateObject<Camera>(
@@ -132,14 +126,14 @@ void EnvProbe::OnAttachedToNode(Node* node)
 {
     Entity::OnAttachedToNode(node);
 
-    AttachChild(m_camera);
+    AddChild(m_camera);
 }
 
 void EnvProbe::OnDetachedFromNode(Node* node)
 {
     Entity::OnDetachedFromNode(node);
 
-    DetachChild(m_camera);
+    RemoveChild(m_camera);
 }
 
 void EnvProbe::OnAddedToWorld(World* world)

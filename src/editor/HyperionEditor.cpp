@@ -201,7 +201,7 @@ void HyperionEditor::Init()
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         5.0f);
 
-    sunEntity->AttachTo(sunNode);
+    sunNode->AddChild(sunEntity);
 #endif
 
     // Add Skybox
@@ -215,7 +215,7 @@ void HyperionEditor::Init()
         Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
         skydomeNode->SetEntity(skyboxEntity);
         skydomeNode->SetName(NAME("Sky"));
-        
+
         scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
         scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE };
     }
@@ -244,8 +244,8 @@ void HyperionEditor::Init()
                 Handle<Node> envGridNode = scene->GetRoot()->AddChild();
                 envGridNode->SetName(NAME("EnvGrid2"));
 
-                Handle<Entity> envGridEntity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
-                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(envGridEntity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
+                Handle<Entity> envGridEntity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.2f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
+                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(envGridEntity, BoundingBoxComponent { node->GetWorldAABB() * 1.2f, node->GetWorldAABB() * 1.2f });
 
                 envGridNode->SetEntity(envGridEntity);
 #endif
