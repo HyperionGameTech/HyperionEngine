@@ -678,7 +678,9 @@ static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, c
 }
 
 template <class ElementType, class ProxyType>
-static HYP_FORCE_INLINE void SyncResourcesImpl(ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker, const typename ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>::Impl& impl)
+static HYP_FORCE_INLINE void SyncResourcesImpl(
+    ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker,
+    const typename ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>::Impl& impl)
 {
     if (impl.elements.Empty())
     {
@@ -695,9 +697,11 @@ static HYP_FORCE_INLINE void SyncResourcesImpl(ResourceTracker<ObjId<ElementType
 }
 
 template <class ElementType, class ProxyType>
-static inline void SyncResources(ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>* pLhs, ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>* pRhs)
+static inline void SyncResources(
+    ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>* pLhs,
+    ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>* pRhs)
 {
-    AssertDebug(pLhs != nullptr && pLhs != nullptr);
+    AssertDebug(pLhs != nullptr && pRhs != nullptr);
 
     auto& lhs = *pLhs;
     auto& rhs = *pRhs;
@@ -1085,6 +1089,8 @@ void RenderApi_BeginFrame_RenderThread()
         }
 
         vfd.rplShared->BeginRead();
+
+        AssertDebug(vfd.rplShared->debugIsDestroyed == false, "RenderProxyList for view {} has been destroyed!", vfd.view->Id());
 
         // copy dependencies from shared to ViewData
         CopyDependencies(*vfd.viewData, *vfd.rplShared);

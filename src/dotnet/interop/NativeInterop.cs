@@ -860,7 +860,7 @@ namespace Hyperion
 
         public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Log(LogType.Error, "Unhandled exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
+            Logger.Log(LogType.Error, "Unhandled managed exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
 
             MessageBox.Critical()
                 .Title("Uncaught Exception")

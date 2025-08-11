@@ -916,6 +916,7 @@ inline Handle<T> CreateObject(Args&&... args)
     ObjectContainer<T>& container = ObjectPool::GetObjectContainerMap().GetOrCreate<T>();
 
     HypObjectMemory<T>* header = container.Allocate();
+    AssertDebug(header->container == &container);
 
     T* ptr = header->storage.GetPointer();
 

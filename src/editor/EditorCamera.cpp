@@ -132,6 +132,7 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
     const bool isAltPressed = IsKeyDown(KeyCode::LEFT_ALT) || IsKeyDown(KeyCode::RIGHT_ALT);
+    const bool isCtrlPressed = IsKeyDown(KeyCode::LEFT_CTRL) || IsKeyDown(KeyCode::RIGHT_CTRL);
     const bool isMoveKeyPressed = (GetKeyStates() & g_wasdBits).Count() != 0;
 
     constexpr EnumFlags<MouseButtonState> leftAndRightButtons = MouseButtonState::LEFT | MouseButtonState::RIGHT;
@@ -156,9 +157,12 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         forward.y = 0.0f;
         forward.Normalize();
 
-        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier * m_deltaTime));
+        if (isCtrlPressed)
+        {
+            // rotate around the focal point
 
-        if (!isMoveKeyPressed)
+        }
+        else if (!isMoveKeyPressed)
         {
             if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
             {

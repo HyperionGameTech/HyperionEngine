@@ -242,6 +242,10 @@ RenderProxyList::RenderProxyList(bool isShared)
 
 RenderProxyList::~RenderProxyList()
 {
+#ifdef HYP_DEBUG_MODE
+    debugIsDestroyed = true;
+#endif
+
     for (ResourceTrackerBase* resourceTracker : resourceTrackers)
     {
         delete resourceTracker;

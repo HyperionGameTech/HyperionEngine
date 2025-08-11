@@ -4,6 +4,8 @@
 
 #include <core/object/ObjId.hpp>
 
+#include <core/containers/Array.hpp>
+
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -22,12 +24,14 @@ struct VisibilityStateSnapshot
 
 struct VisibilityState
 {
+    //static_assert(std::is_final_v<Camera>, "ObjId<Camera> must be final (to prevent ID index issues with derived types)");
+    
+    Array<VisibilityStateSnapshot, InlineAllocator<16>> snapshots;
     uint16 validityMarker { 0u };
-    HashMap<ObjId<Camera>, VisibilityStateSnapshot> snapshots;
 
     VisibilityState() = default;
-    VisibilityState(const VisibilityState& other) = default;
-    VisibilityState& operator=(const VisibilityState& other) = default;
+    VisibilityState(const VisibilityState& other) = delete;
+    VisibilityState& operator=(const VisibilityState& other) = delete;
     VisibilityState(VisibilityState&& other) noexcept = default;
     VisibilityState& operator=(VisibilityState&& other) noexcept = default;
     ~VisibilityState() = default;
@@ -39,28 +43,23 @@ struct VisibilityState
 
     HYP_FORCE_INLINE VisibilityStateSnapshot GetSnapshot(ObjId<Camera> id) const
     {
-        auto it = snapshots.Find(id);
-
-        if (it == snapshots.End())
+        if (id.ToIndex() >= snapshots.Size())
         {
             return {};
         }
 
-        return it->second;
+        return snapshots[id.ToIndex()];
     }
 
     HYP_FORCE_INLINE void MarkAsValid(ObjId<Camera> id)
     {
-        auto it = snapshots.Find(id);
+        if (id.ToIndex() >= snapshots.Size())
+        {
+            snapshots.Resize(id.ToIndex() + 1);
+        }
 
-        if (it == snapshots.End())
-        {
-            snapshots.Insert(id, VisibilityStateSnapshot { validityMarker });
-        }
-        else
-        {
-            it->second.validityMarker = validityMarker;
-        }
+        VisibilityStateSnapshot& snapshot = snapshots[id.ToIndex()];
+        snapshot.validityMarker = validityMarker;
     }
 };
 
