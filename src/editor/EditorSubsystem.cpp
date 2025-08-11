@@ -721,11 +721,11 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
             // FBOMResult writeErr = writer.Emit(&byteWriter);
 
             // byteWriter.Close();
-
-            if (writeErr)
-            {
-                HYP_LOG(Editor, Error, "Failed to write axis arrows to disk: {}", writeErr.message);
-            }
+//
+//            if (writeErr)
+//            {
+//                HYP_LOG(Editor, Error, "Failed to write axis arrows to disk: {}", writeErr.message);
+//            }
 
             return node;
         }

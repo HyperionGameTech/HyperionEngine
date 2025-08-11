@@ -119,32 +119,35 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
 
     InitObject(system);
 
-    for (auto entitiesIt = m_entities.Begin(); entitiesIt != m_entities.End(); ++entitiesIt)
+    for (auto& subtypeData : m_entities.GetSubtypeData())
     {
-        Entity* entity = entitiesIt->first;
-        Assert(entity);
-
-        EntityData& entityData = entitiesIt->second;
-
-        const TypeMap<ComponentId>& componentIds = entityData.components;
-
-        if (system->ActsOnComponents(componentIds.Keys(), true))
+        for (auto entitiesIt = subtypeData.data.Begin(); entitiesIt != subtypeData.data.End(); ++entitiesIt)
         {
-            { // critical section
-                Mutex::Guard guard(m_systemEntityMapMutex);
+            EntityData& entityData = *entitiesIt;
 
-                auto systemEntityIt = m_systemEntityMap.Find(system.Get());
+            Entity* entity = entityData.entityWeak.GetUnsafe();
+            Assert(entity != nullptr);
 
-                // Check if the system already has this entity initialized
-                if (systemEntityIt != m_systemEntityMap.End() && (systemEntityIt->second.FindAs(entity) != systemEntityIt->second.End()))
-                {
-                    continue;
+            const TypeMap<ComponentId>& componentIds = entityData.components;
+
+            if (system->ActsOnComponents(componentIds.Keys(), true))
+            {
+                { // critical section
+                    Mutex::Guard guard(m_systemEntityMapMutex);
+
+                    auto systemEntityIt = m_systemEntityMap.Find(system.Get());
+
+                    // Check if the system already has this entity initialized
+                    if (systemEntityIt != m_systemEntityMap.End() && (systemEntityIt->second.FindAs(entity) != systemEntityIt->second.End()))
+                    {
+                        continue;
+                    }
+
+                    m_systemEntityMap[system.Get()].Insert(entity);
                 }
 
-                m_systemEntityMap[system.Get()].Insert(entity);
+                system->OnEntityAdded(entity);
             }
-
-            system->OnEntityAdded(entity);
         }
     }
 }
@@ -157,32 +160,35 @@ void EntityManager::ShutdownSystem(const Handle<SystemBase>& system)
 
     Assert(system.IsValid());
 
-    for (auto entitiesIt = m_entities.Begin(); entitiesIt != m_entities.End(); ++entitiesIt)
+    for (auto& subtypeData : m_entities.GetSubtypeData())
     {
-        Entity* entity = entitiesIt->first;
-        Assert(entity);
-
-        EntityData& entityData = entitiesIt->second;
-
-        const TypeMap<ComponentId>& componentIds = entityData.components;
-
-        if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
+        for (auto entitiesIt = subtypeData.data.Begin(); entitiesIt != subtypeData.data.End(); ++entitiesIt)
         {
-            { // critical section
-                Mutex::Guard guard(m_systemEntityMapMutex);
+            EntityData& entityData = *entitiesIt;
 
-                auto systemEntityIt = m_systemEntityMap.Find(system.Get());
+            Entity* entity = entityData.entityWeak.GetUnsafe();
+            Assert(entity != nullptr);
 
-                // Check if the system already has this entity initialized
-                if (systemEntityIt != m_systemEntityMap.End() && systemEntityIt->second.Contains(entity))
-                {
-                    continue;
+            const TypeMap<ComponentId>& componentIds = entityData.components;
+
+            if (system->ActsOnComponents(componentIds.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
+            {
+                { // critical section
+                    Mutex::Guard guard(m_systemEntityMapMutex);
+
+                    auto systemEntityIt = m_systemEntityMap.Find(system.Get());
+
+                    // Check if the system already has this entity initialized
+                    if (systemEntityIt != m_systemEntityMap.End() && systemEntityIt->second.Contains(entity))
+                    {
+                        continue;
+                    }
+
+                    systemEntityIt->second.Erase(entity);
                 }
 
-                systemEntityIt->second.Erase(entity);
+                system->OnEntityRemoved(entity);
             }
-
-            system->OnEntityRemoved(entity);
         }
     }
 
@@ -194,16 +200,19 @@ void EntityManager::Init()
     Threads::AssertOnThread(m_ownerThreadId);
 
     // Notify all entities that they've been added to the world
-    for (auto& entitiesIt : m_entities)
+    for (auto& subtypeData : m_entities.GetSubtypeData())
     {
-        Entity* entity = entitiesIt.first;
-        Assert(entity);
-
-        entity->OnAddedToScene(m_scene);
-
-        if (m_world)
+        for (EntityData& entityData : subtypeData.data)
         {
-            entity->OnAddedToWorld(m_world);
+            Entity* entity = entityData.entityWeak.GetUnsafe();
+            Assert(entity != nullptr);
+
+            entity->OnAddedToScene(m_scene);
+
+            if (m_world)
+            {
+                entity->OnAddedToWorld(m_world);
+            }
         }
     }
 
@@ -246,59 +255,61 @@ void EntityManager::Shutdown()
     if (IsInitCalled())
     {
         // Notify all entities that they're being removed from the world
-        for (auto& entitiesIt : m_entities)
+        for (auto& subtypeData : m_entities.GetSubtypeData())
         {
-            Entity* entity = entitiesIt.first;
-            Assert(entity);
-
-            // call OnComponentRemoved() for all components of the entity
-            HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
-
-            EntityData& entityData = entitiesIt.second;
-            NotifySystemsOfEntityRemoved(entity, entityData.components);
-
-            for (auto componentInfoPairIt = entityData.components.Begin(); componentInfoPairIt != entityData.components.End();)
+            for (EntityData& entityData : subtypeData.data)
             {
-                const TypeId componentTypeId = componentInfoPairIt->first;
-                const ComponentId componentId = componentInfoPairIt->second;
+                Entity* entity = entityData.entityWeak.GetUnsafe();
+                Assert(entity != nullptr);
 
-                auto componentContainerIt = m_containers.Find(componentTypeId);
-                Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
-                Assert(componentContainerIt->second->HasComponent(componentId), "Component does not exist in component container");
+                // call OnComponentRemoved() for all components of the entity
+                HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 
-                AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
-                Assert(componentRef.HasValue(), "Component of type '%s' with Id %u does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
+                NotifySystemsOfEntityRemoved(entity, entityData.components);
 
-                // Notify the entity that the component is being removed
-                // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-                EntityTag tag;
-                if (IsEntityTagComponent(componentTypeId, tag))
+                for (auto componentInfoPairIt = entityData.components.Begin(); componentInfoPairIt != entityData.components.End();)
                 {
-                    // Remove the tag from the entity
-                    entity->OnTagRemoved(tag);
-                }
-                else
-                {
-                    entity->OnComponentRemoved(componentRef);
+                    const TypeId componentTypeId = componentInfoPairIt->first;
+                    const ComponentId componentId = componentInfoPairIt->second;
+
+                    auto componentContainerIt = m_containers.Find(componentTypeId);
+                    Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
+                    Assert(componentContainerIt->second->HasComponent(componentId), "Component does not exist in component container");
+
+                    AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
+                    Assert(componentRef.HasValue(), "Component of type '%s' with Id %u does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
+
+                    // Notify the entity that the component is being removed
+                    // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
+                    EntityTag tag;
+                    if (IsEntityTagComponent(componentTypeId, tag))
+                    {
+                        // Remove the tag from the entity
+                        entity->OnTagRemoved(tag);
+                    }
+                    else
+                    {
+                        entity->OnComponentRemoved(componentRef);
+                    }
+
+                    HypData componentHypData;
+                    if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
+                    {
+                        HYP_FAIL("Failed to get component of type '%s' as HypData when removing it from entity '%u'",
+                            *GetComponentTypeName(componentTypeId), entity->Id().Value());
+                    }
+
+                    // Update iterator, erase the component from the entity's component map
+                    componentInfoPairIt = entityData.components.Erase(componentInfoPairIt);
                 }
 
-                HypData componentHypData;
-                if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
+                if (m_world)
                 {
-                    HYP_FAIL("Failed to get component of type '%s' as HypData when removing it from entity '%u'",
-                        *GetComponentTypeName(componentTypeId), entity->Id().Value());
+                    entity->OnRemovedFromWorld(m_world);
                 }
 
-                // Update iterator, erase the component from the entity's component map
-                componentInfoPairIt = entityData.components.Erase(componentInfoPairIt);
+                entity->OnRemovedFromScene(m_scene);
             }
-
-            if (m_world)
-            {
-                entity->OnRemovedFromWorld(m_world);
-            }
-
-            entity->OnRemovedFromScene(m_scene);
         }
 
         if (m_world != nullptr)
@@ -357,17 +368,17 @@ void EntityManager::SetWorld(World* world)
         // Call OnRemovedFromWorld() now for all entities in the EntityManager if previous world is not null
         if (m_world)
         {
-            for (auto& entitiesIt : m_entities)
+            for (auto& subtypeData : m_entities.GetSubtypeData())
             {
-                Entity* entity = entitiesIt.first;
-                Assert(entity);
+                for (EntityData& entityData : subtypeData.data)
+                {
+                    Entity* entity = entityData.entityWeak.GetUnsafe();
+                    Assert(entity != nullptr);
 
-                entity->OnRemovedFromWorld(m_world);
+                    entity->OnRemovedFromWorld(m_world);
+                }
             }
-        }
 
-        if (m_world != nullptr)
-        {
             for (const Handle<SystemBase>& system : systems)
             {
                 ShutdownSystem(system);
@@ -383,12 +394,18 @@ void EntityManager::SetWorld(World* world)
                 InitializeSystem(system);
             }
 
-            for (auto& entitiesIt : m_entities)
+            for (auto& subtypeData : m_entities.GetSubtypeData())
             {
-                Entity* entity = entitiesIt.first;
-                Assert(entity);
+                for (EntityData& entityData : subtypeData.data)
+                {
+                    Entity* entity = entityData.entityWeak.GetUnsafe();
+                    Assert(entity != nullptr);
 
-                entity->OnAddedToWorld(m_world);
+                    HYP_LOG(Entity, Debug, "Calling OnAddedToWorld() for Entity {} (subclass idx: {})",
+                        entity->Id(), m_entities.GetSubtypeData().IndexOf(&subtypeData));
+
+                    entity->OnAddedToWorld(m_world);
+                }
             }
         }
 
@@ -456,7 +473,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
         return Handle<Entity>::empty;
     }
 
-    Handle<Entity> entity = std::move(data).Get<Handle<Entity>>();
+    Handle<Entity> entity = std::move(data.Get<Handle<Entity>>());
 
     if (!entity.IsValid())
     {
