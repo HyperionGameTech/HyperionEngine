@@ -240,7 +240,7 @@ void HyperionEditor::Init()
                 Handle<Entity> envGridEntity = CreateObject<EnvGrid>(node->GetWorldAABB() * 1.2f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
                 envGridEntity->SetName(NAME("EnvGrid2"));
                 scene->GetRoot()->AddChild(envGridEntity);
-            
+
                 envGridEntity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { node->GetWorldAABB() * 1.2f, node->GetWorldAABB() * 1.2f });
 #endif
 
@@ -288,26 +288,26 @@ void HyperionEditor::Logic(float delta)
         //        PerformanceClock clock;
         //        clock.Start();
 
-        /*Proc<void(const VoxelOctree&, int)> drawOctant;
+        // Proc<void(const VoxelOctree&, int)> drawOctant;
 
-        drawOctant = [&](const VoxelOctree& octree, int depth)
-        {
-            if (octree.GetPayload().occupiedBit)
-            {
-                AssertDebug(!octree.IsDivided());
-                debugDrawCommands.box(octree.GetAABB().GetCenter(), octree.GetAABB().GetExtent(), Color::Cyan());
-            }
+        // drawOctant = [&](const VoxelOctree& octree, int depth)
+        // {
+        //     if (octree.GetPayload().occupiedBit)
+        //     {
+        //         AssertDebug(!octree.IsDivided());
+        //         debugDrawCommands.box(octree.GetAABB().GetCenter(), octree.GetAABB().GetExtent(), Color::Cyan());
+        //     }
 
-            if (octree.IsDivided())
-            {
-                for (const auto& it : octree.GetOctants())
-                {
-                    drawOctant(static_cast<const VoxelOctree&>(*it.octree), depth + 1);
-                }
-            }
-        };
+        //     if (octree.IsDivided())
+        //     {
+        //         for (const auto& it : octree.GetOctants())
+        //         {
+        //             drawOctant(static_cast<const VoxelOctree&>(*it.octree), depth + 1);
+        //         }
+        //     }
+        // };
 
-        drawOctant(*g_voxelOctree, 0);*/
+        // drawOctant(*g_voxelOctree, 0);
         //
         //        clock.Stop();
         //
@@ -319,7 +319,6 @@ void HyperionEditor::Logic(float delta)
             if (envGrid)
                 envGrid->Remove();
         }
-        
     }
 }
 

@@ -460,11 +460,11 @@ using logging::LogMessage;
 
 // Must be used outside of function (in global scope)
 #define HYP_DEFINE_LOG_CHANNEL(name)                                            \
-    hyperion::logging::LogChannel g_logChannel_##name(HYP_NAME(HYP_STR(name))); \
+    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) };  \
     static hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name)
 
 #define HYP_DEFINE_LOG_SUBCHANNEL(name, parentName)                             \
-    hyperion::logging::LogChannel g_logChannel_##name(HYP_NAME(HYP_STR(name))); \
+    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) };  \
     static hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name, &g_logChannel_##parentName)
 
 // Undefine HYP_LOG if already defined (LoggerFwd could have defined it as an empty macro)

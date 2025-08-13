@@ -110,8 +110,8 @@ protected:
     {
     }
 
-    virtual void OnAttachedToNode(Node* node);
-    virtual void OnDetachedFromNode(Node* node);
+    virtual void OnAttachedToNode(Node* node) override;
+    virtual void OnDetachedFromNode(Node* node) override;
 
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
