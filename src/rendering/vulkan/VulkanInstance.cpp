@@ -279,11 +279,13 @@ RendererResult VulkanInstance::SetupDebugMessenger()
 
 RendererResult VulkanInstance::Initialize(const AppContextBase& appContext, bool loadDebugLayers)
 {
+#ifdef HYP_DEBUG_MODE
     /* Set up our debug and validation layers */
     if (loadDebugLayers)
     {
         HYP_GFX_CHECK(SetupDebug());
     }
+#endif
 
     VkApplicationInfo appInfo { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.pApplicationName = appContext.GetAppName().Data();

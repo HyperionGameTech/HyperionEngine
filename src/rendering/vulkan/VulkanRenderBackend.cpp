@@ -47,11 +47,8 @@
     while (0)
 
 namespace hyperion {
-#ifdef HYP_DEBUG_MODE
-static constexpr bool g_useDebugLayers = true;
-#else
+
 static constexpr bool g_useDebugLayers = false;
-#endif
 
 #pragma region VulkanRenderConfig
 
@@ -1087,8 +1084,7 @@ VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, Vul
     HYP_NOT_IMPLEMENTED();
 }
 
-
-bool VulkanRenderBackend::GetVkExtensions(const AppContextBase* appContext, Array<const char*> &outExtensions)
+bool VulkanRenderBackend::GetVkExtensions(const AppContextBase* appContext, Array<const char*>& outExtensions)
 {
 #ifdef HYP_SDL
     if (const SDLAppContext* sdlAppContext = ObjCast<SDLAppContext>(appContext))
