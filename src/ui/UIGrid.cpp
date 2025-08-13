@@ -490,9 +490,9 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* dataSource)
         {
             HYP_NAMED_SCOPE("Remove element from data source from grid view");
 
-            if (Handle<UIObject> uiObject = FindChildUIObject([element](UIObject* uiObject)
+            if (UIObject* uiObject = FindChildUIObject([element](UIObject* child)
                     {
-                        return uiObject->GetDataSourceElementUUID() == element->GetUUID();
+                        return child->GetDataSourceElementUUID() == element->GetUUID();
                     }))
             {
                 RemoveChildUIObject(uiObject);

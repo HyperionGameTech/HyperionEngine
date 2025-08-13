@@ -873,7 +873,7 @@ public:
     UIObject* GetParentUIObject() const;
 
     template <class T>
-    Handle<T> GetClosestParentUIObject() const
+    T* GetClosestParentUIObject() const
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
@@ -884,7 +884,7 @@ public:
     }
 
     template <class T>
-    Handle<T> GetClosestSpawnParent() const
+    T* GetClosestSpawnParent() const
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
@@ -945,14 +945,14 @@ public:
      *  \param name The Name of the child UIObject to find.
      *  \param deep If true, search all descendants. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
-    Handle<UIObject> FindChildUIObject(WeakName name, bool deep = true) const;
+    UIObject* FindChildUIObject(WeakName name, bool deep = true) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendants using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.
      *  \param predicate The predicate to match against the child UIObjects.
      *  \param deep If true, search all descendants. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
-    Handle<UIObject> FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep = true) const;
+    UIObject* FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */
@@ -963,7 +963,7 @@ public:
      *  \param index The index of the child UIObject to get.
      *  \return The child UIObject at the specified index. */
     HYP_METHOD()
-    Handle<UIObject> GetChildUIObject(int index) const;
+    UIObject* GetChildUIObject(int index) const;
 
     Array<UIObject*> GetChildUIObjects(bool deep) const;
 
@@ -1249,8 +1249,8 @@ protected:
         }
     }
 
-    Handle<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const;
-    Handle<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const;
+    UIObject* GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const;
+    UIObject* GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const;
 
     virtual void UpdateSize_Internal(bool updateChildren);
 
@@ -1448,7 +1448,7 @@ private:
 
     AtomicVar<bool> m_needsRepaint;
 
-    Array<Handle<UIObject>> m_childUiObjects;
+    Array<UIObject*> m_childUiObjects;
 
     Array<DelegateHandler> m_delegateHandlers;
 };

@@ -49,7 +49,7 @@ void UIMenuItem::Init()
 {
     UIObject::Init();
 
-    Handle<UIMenuBar> menuBar = GetClosestSpawnParent<UIMenuBar>();
+    UIMenuBar* menuBar = GetClosestSpawnParent<UIMenuBar>();
     Assert(menuBar != nullptr);
 
     Handle<UIImage> iconElement = CreateUIObject<UIImage>(CreateNameFromDynamicString(HYP_FORMAT("{}_Icon", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
@@ -260,7 +260,7 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
                     return UIEventHandlerResult::OK;
                 }
 
-                Handle<UIMenuBar> menuBar = menuItem->GetClosestSpawnParent<UIMenuBar>();
+                UIMenuBar* menuBar = menuItem->GetClosestSpawnParent<UIMenuBar>();
 
                 if (!menuBar)
                 {

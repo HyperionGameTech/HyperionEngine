@@ -1088,7 +1088,7 @@ Color UIObject::GetTextColor() const
 
     if (uint32(m_textColor) == 0)
     {
-        Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
+        UIObject* spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
             {
                 return uint32(parent->m_textColor) != 0;
             });
@@ -1343,7 +1343,7 @@ void UIObject::UpdateComputedTextSize()
 
     if (m_textSize <= 0.0f)
     {
-        Handle<UIObject> spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
+        UIObject* spawnParent = GetClosestSpawnParent_Proc([](UIObject* parent)
             {
                 return parent->m_textSize > 0.0f;
             });
@@ -1449,7 +1449,7 @@ bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 
         m_childUiObjects.Erase(it);
 
-        uiObject->Remove();
+        Node::RemoveChild(uiObject);
 
         if (UseAutoSizing())
         {
@@ -1577,17 +1577,17 @@ Handle<UIObject> UIObject::DetachFromParent()
     return strongThis;
 }
 
-Handle<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
+UIObject* UIObject::FindChildUIObject(WeakName name, bool deep) const
 {
     HYP_SCOPE;
 
-    Handle<UIObject> foundObject;
+    UIObject* foundObject = nullptr;
 
     ForEachChildUIObject([name, &foundObject](UIObject* child)
         {
             if (child->GetName() == name)
             {
-                foundObject = MakeStrongRef(child);
+                foundObject = child;
 
                 return IterationResult::STOP;
             }
@@ -1599,17 +1599,17 @@ Handle<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
     return foundObject;
 }
 
-Handle<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep) const
+UIObject* UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
     HYP_SCOPE;
 
-    Handle<UIObject> foundObject;
+    UIObject* foundObject = nullptr;
 
     ForEachChildUIObject([&foundObject, &predicate](UIObject* child)
         {
             if (predicate(child))
             {
-                foundObject = MakeStrongRef(child);
+                foundObject = child;
 
                 return IterationResult::STOP;
             }
@@ -1786,16 +1786,9 @@ UIObject* UIObject::GetParentUIObject() const
     return nullptr;
 }
 
-Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const
+UIObject* UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const
 {
     HYP_SCOPE;
-
-    const Scene* scene = GetScene();
-
-    if (!scene)
-    {
-        return Handle<UIObject>::empty;
-    }
 
     Node* parentNode = GetParent();
 
@@ -1805,17 +1798,17 @@ Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIOb
         {
             if (proc(parentUiObject))
             {
-                return MakeStrongRef(parentUiObject);
+                return parentUiObject;
             }
         }
 
         parentNode = parentNode->GetParent();
     }
 
-    return Handle<UIObject>::empty;
+    return nullptr;
 }
 
-Handle<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const
+UIObject* UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const
 {
     HYP_SCOPE;
 
@@ -1831,7 +1824,7 @@ Handle<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObjec
         parentUiObject = parentUiObject->m_spawnParent.Lock();
     }
 
-    return Handle<UIObject>::empty;
+    return nullptr;
 }
 
 Vec2i UIObject::GetParentScrollOffset() const
@@ -2252,7 +2245,6 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
     HYP_SCOPE;
 
     const UIObject* currentUiObject = this;
-    Handle<UIObject> parentUiObject;
 
     while (currentUiObject != nullptr)
     {
@@ -2266,8 +2258,8 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
             return nullptr;
         }
 
-        parentUiObject = currentUiObject->m_spawnParent.Lock();
-        currentUiObject = parentUiObject.Get();
+        Handle<UIObject> parentUiObject = currentUiObject->m_spawnParent.Lock();
+        currentUiObject = parentUiObject;
     }
 
     return nullptr;
@@ -2297,11 +2289,11 @@ void UIObject::RemoveScriptComponent()
     RemoveComponent<ScriptComponent>();
 }
 
-Handle<UIObject> UIObject::GetChildUIObject(int index) const
+UIObject* UIObject::GetChildUIObject(int index) const
 {
     HYP_SCOPE;
 
-    Handle<UIObject> foundObject;
+    UIObject* foundObject = nullptr;
 
     int currentIndex = 0;
 
@@ -2309,7 +2301,7 @@ Handle<UIObject> UIObject::GetChildUIObject(int index) const
         {
             if (currentIndex == index)
             {
-                foundObject = MakeStrongRef(child);
+                foundObject = child;
 
                 return IterationResult::STOP;
             }
@@ -2425,6 +2417,11 @@ Array<UIObject*> UIObject::GetChildUIObjects(bool deep) const
 {
     HYP_SCOPE;
 
+    if (!deep)
+    {
+        return m_childUiObjects;
+    }
+
     Array<UIObject*> childObjects;
 
     ForEachChildUIObject([&childObjects](UIObject* child)
@@ -2466,14 +2463,14 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
     if (!deep)
     {
         // If not deep, iterate using the child UI objects list - more efficient this way
-        for (const Handle<UIObject>& child : m_childUiObjects)
+        for (UIObject* child : m_childUiObjects)
         {
             if (!child)
             {
                 continue;
             }
 
-            const IterationResult iterationResult = lambda(child.Get());
+            const IterationResult iterationResult = lambda(child);
 
             // stop iterating if stop was set to true
             if (iterationResult == IterationResult::STOP)
@@ -2492,9 +2489,9 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
     {
         const UIObject* parent = queue.Pop();
 
-        for (const Handle<UIObject>& child : parent->m_childUiObjects)
+        for (UIObject* child : parent->m_childUiObjects)
         {
-            const IterationResult iterationResult = lambda(child.Get());
+            const IterationResult iterationResult = lambda(child);
 
             // stop iterating if stop was set to true
             if (iterationResult == IterationResult::STOP)
@@ -2502,7 +2499,7 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
                 return;
             }
 
-            queue.Push(child.Get());
+            queue.Push(child);
         }
     }
 }

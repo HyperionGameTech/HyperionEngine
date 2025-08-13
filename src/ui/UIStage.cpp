@@ -434,7 +434,7 @@ void UIStage::SetFocusedObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    if (Handle<UIStage> parentStage = GetClosestParentUIObject<UIStage>())
+    if (UIStage* parentStage = GetClosestParentUIObject<UIStage>())
     {
         parentStage->SetFocusedObject(uiObject);
     }

@@ -411,9 +411,9 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase* dataSource)
 
             if (const UIListViewItem* listViewItem = FindListViewItem(element->GetUUID()))
             {
-                if (Handle<UIObject> uiObject = listViewItem->GetChildUIObject(0))
+                if (UIObject* uiObject = listViewItem->GetChildUIObject(0))
                 {
-                    dataSource->UpdateUIObject(uiObject.Get(), element->GetValue(), {});
+                    dataSource->UpdateUIObject(uiObject, element->GetValue(), {});
                 }
                 else
                 {

@@ -78,12 +78,12 @@ namespace Hyperion
                 HypObject_IncRef(_hypClassPtr, _nativeAddress, false);
             }
             
-            // Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~HypObject()
         {
-            // Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
 
             if (IsValid && HypClass.IsReferenceCounted)
                 HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
@@ -98,6 +98,8 @@ namespace Hyperion
 #if DEBUG
                     Assert.Throw(HypObject_GetRefCountStrong(_hypClassPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
 #endif
+                    Logger.Log(LogType.Debug, "Disposing HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+
 
                     HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
                 }

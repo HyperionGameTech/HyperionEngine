@@ -64,7 +64,7 @@ extern "C"
             return false;
         }
 
-        Handle<UIObject> uiObject = parent->FindChildUIObject([hypClass, name](UIObject* uiObject)
+        UIObject* uiObject = parent->FindChildUIObject([hypClass, name](UIObject* uiObject)
             {
                 return uiObject->IsA(hypClass) && uiObject->GetName() == *name;
             });
@@ -74,7 +74,7 @@ extern "C"
             return false;
         }
 
-        *outHypData = HypData(std::move(uiObject));
+        *outHypData = HypData(MakeStrongRef(uiObject));
 
         return true;
     }

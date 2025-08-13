@@ -1366,7 +1366,7 @@ void EditorSubsystem::InitViewport()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    Handle<UIObject> sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"));
+    UIObject* sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"));
     if (!sceneImageObject)
     {
         HYP_LOG(Editor, Error, "Scene image object not found in UI stage!");
@@ -1441,7 +1441,7 @@ void EditorSubsystem::InitViewport()
     m_views.PushBack(view);
 
     m_delegateHandlers.Remove(&sceneImageObject->OnSizeChange);
-    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), viewWeak = view.ToWeak()]()
+    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = MakeWeakRef(sceneImageObject), viewWeak = MakeWeakRef(view)]()
         {
             Handle<UIObject> sceneImageObject = sceneImageObjectWeak.Lock();
             if (!sceneImageObject)
@@ -1466,24 +1466,25 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    Handle<UIImage> uiImage = ObjCast<UIImage>(sceneImageObject);
-    Assert(uiImage.IsValid());
+    UIImage* uiImage = ObjCast<UIImage>(sceneImageObject);
+    Assert(uiImage != nullptr);
 
     Handle<Texture> readbackTexture = view->GetReadbackTexture();
     Assert(readbackTexture != nullptr);
 
     m_delegateHandlers.Remove("OnReadbackTextureChanged");
-    m_delegateHandlers.Add(NAME("OnReadbackTextureChanged"), view->OnReadbackTextureChanged.Bind([uiImageWeak = uiImage.ToWeak()](const Handle<Texture>& readbackTexture)
-                                                                 {
-                                                                     Handle<UIImage> uiImage = uiImageWeak.Lock();
+    m_delegateHandlers.Add(NAME("OnReadbackTextureChanged"),
+                           view->OnReadbackTextureChanged.Bind([uiImageWeak = MakeWeakRef(uiImage)](const Handle<Texture>& readbackTexture)
+                             {
+                                 Handle<UIImage> uiImage = uiImageWeak.Lock();
 
-                                                                     if (!uiImage)
-                                                                     {
-                                                                         return;
-                                                                     }
+                                 if (!uiImage)
+                                 {
+                                     return;
+                                 }
 
-                                                                     uiImage->SetTexture(readbackTexture);
-                                                                 }));
+                                 uiImage->SetTexture(readbackTexture);
+                             }));
 
     m_delegateHandlers.Remove(&uiImage->OnClick);
     m_delegateHandlers.Add(uiImage->OnClick.Bind([this](const MouseEvent& event)
@@ -1563,7 +1564,7 @@ void EditorSubsystem::InitViewport()
         }));
 
     m_delegateHandlers.Remove(&uiImage->OnMouseDrag);
-    m_delegateHandlers.Add(uiImage->OnMouseDrag.Bind([this, uiImage = uiImage.Get()](const MouseEvent& event)
+    m_delegateHandlers.Add(uiImage->OnMouseDrag.Bind([this, uiImage](const MouseEvent& event)
         {
             // prevent click being triggered on release once mouse has been dragged
             m_shouldCancelNextClick = true;
@@ -1604,7 +1605,7 @@ void EditorSubsystem::InitViewport()
         }));
 
     m_delegateHandlers.Remove(&uiImage->OnMouseMove);
-    m_delegateHandlers.Add(uiImage->OnMouseMove.Bind([this, uiImage = uiImage.Get()](const MouseEvent& event)
+    m_delegateHandlers.Add(uiImage->OnMouseMove.Bind([this, uiImage](const MouseEvent& event)
         {
             m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event);
 
@@ -1660,7 +1661,7 @@ void EditorSubsystem::InitViewport()
         }));
 
     m_delegateHandlers.Remove(&uiImage->OnMouseDown);
-    m_delegateHandlers.Add(uiImage->OnMouseDown.Bind([this, uiImageWeak = uiImage.ToWeak()](const MouseEvent& event)
+    m_delegateHandlers.Add(uiImage->OnMouseDown.Bind([this, uiImageWeak = MakeWeakRef(uiImage)](const MouseEvent& event)
         {
             m_shouldCancelNextClick = false;
 
@@ -1798,8 +1799,8 @@ void EditorSubsystem::InitSceneOutline()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(listView.IsValid());
+    UIListView* listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    AssertDebug(listView != nullptr);
 
     listView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     listView->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
@@ -1815,7 +1816,7 @@ void EditorSubsystem::InitSceneOutline()
     }
 
     m_delegateHandlers.Remove(&listView->OnSelectedItemChange);
-    m_delegateHandlers.Add(listView->OnSelectedItemChange.Bind([this, listViewWeak = listView.ToWeak()](UIListViewItem* listViewItem)
+    m_delegateHandlers.Add(listView->OnSelectedItemChange.Bind([this, listViewWeak = MakeWeakRef(listView)](UIListViewItem* listViewItem)
         {
             Handle<UIListView> listView = listViewWeak.Lock();
 
@@ -1861,7 +1862,7 @@ void EditorSubsystem::InitSceneOutline()
         }));
 }
 
-static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node)
+static void AddNodeToSceneOutline(UIListView* listView, Node* node)
 {
     Assert(node != nullptr);
 
@@ -1912,8 +1913,8 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(listView.IsValid());
+    UIListView* listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    AssertDebug(listView != nullptr);
 
     HYP_LOG(Editor, Debug, "Start watching node: {}", *node->GetName());
 
@@ -1950,7 +1951,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     AddNodeToSceneOutline(listView, node.Get());
 
     m_delegateHandlers.Remove(&node->GetDelegates()->OnChildAdded);
-    m_delegateHandlers.Add(node->GetDelegates()->OnChildAdded.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool isDirect)
+    m_delegateHandlers.Add(node->GetDelegates()->OnChildAdded.Bind([this, listViewWeak = MakeWeakRef(listView)](Node* node, bool isDirect)
         {
             Assert(node != nullptr);
 
@@ -1967,7 +1968,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
         }));
 
     m_delegateHandlers.Remove(&node->GetDelegates()->OnChildRemoved);
-    m_delegateHandlers.Add(node->GetDelegates()->OnChildRemoved.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool)
+    m_delegateHandlers.Add(node->GetDelegates()->OnChildRemoved.Bind([this, listViewWeak = MakeWeakRef(listView)](Node* node, bool)
         {
             // If the node being removed is the focused node, clear the focused node
             if (node == m_focusedNode.GetUnsafe())
@@ -2004,8 +2005,8 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(listView.IsValid());
+    UIListView* listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    AssertDebug(listView != nullptr);
 
     if (const Handle<UIDataSourceBase>& dataSource = listView->GetDataSource())
     {
@@ -2028,8 +2029,8 @@ void EditorSubsystem::ClearWatchedNodes()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(listView.IsValid());
+    UIListView* listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    AssertDebug(listView != nullptr);
 
     if (const Handle<UIDataSourceBase>& dataSource = listView->GetDataSource())
     {
@@ -2085,18 +2086,18 @@ void EditorSubsystem::InitDetailView()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertDebug(uiSubsystem != nullptr);
 
-    Handle<UIListView> detailsListView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")));
-    AssertDebug(detailsListView.IsValid());
+    UIListView* detailsListView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")));
+    AssertDebug(detailsListView != nullptr);
 
-    Handle<UIListView> outlineListView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(outlineListView.IsValid());
+    UIListView* outlineListView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
+    AssertDebug(outlineListView != nullptr);
 
     detailsListView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     m_editorDelegates->RemoveNodeWatchers("DetailView");
 
     m_delegateHandlers.Remove(&OnFocusedNodeChanged);
-    m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, hypClass = Node::Class(), detailsListViewWeak = detailsListView.ToWeak(), outlineListViewWeak = outlineListView.ToWeak()](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
+    m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, hypClass = Node::Class(), detailsListViewWeak = MakeWeakRef(detailsListView), outlineListViewWeak =  MakeWeakRef(outlineListView)](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
         {
             m_editorDelegates->RemoveNodeWatchers("DetailView");
 
@@ -2239,10 +2240,10 @@ void EditorSubsystem::InitConsoleUI()
     m_consoleUi->SetDepth(150);
     m_consoleUi->SetIsVisible(false);
 
-    if (Handle<UIObject> sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
+    if (UIObject* sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
     {
-        Handle<UIImage> sceneImage = ObjCast<UIImage>(sceneImageObject);
-        AssertDebug(sceneImage.IsValid());
+        UIImage* sceneImage = ObjCast<UIImage>(sceneImageObject);
+        AssertDebug(sceneImage != nullptr);
 
         sceneImage->AddChildUIObject(m_consoleUi);
     }
@@ -2278,7 +2279,7 @@ void EditorSubsystem::InitDebugOverlays()
         }
     }
 
-    if (Handle<UIImage> sceneImage = ObjCast<UIImage>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))))
+    if (UIImage* sceneImage = ObjCast<UIImage>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))))
     {
         sceneImage->AddChildUIObject(m_debugOverlayUiObject);
     }
@@ -2291,7 +2292,7 @@ void EditorSubsystem::InitManipulationWidgetSelection()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    Handle<UIObject> manipulationWidgetSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
+    UIObject* manipulationWidgetSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
     if (manipulationWidgetSelection != nullptr)
     {
         manipulationWidgetSelection->RemoveFromParent();
@@ -2337,12 +2338,12 @@ void EditorSubsystem::InitManipulationWidgetSelection()
         manipulationWidgetSelection->AddChildUIObject(std::move(manipulationWidgetMenuItem.second));
     }
 
-    if (Handle<UIObject> sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
+    if (UIObject* sceneImageObject = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
     {
-        Handle<UIImage> sceneImage = ObjCast<UIImage>(sceneImageObject);
+        UIImage* sceneImage = ObjCast<UIImage>(sceneImageObject);
         Assert(sceneImage != nullptr);
 
-        sceneImage->AddChildUIObject(manipulationWidgetSelection);
+        sceneImage->AddChildUIObject(MakeStrongRef(manipulationWidgetSelection));
     }
     else
     {
@@ -2357,16 +2358,16 @@ void EditorSubsystem::InitActiveSceneSelection()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    Handle<UIObject> activeSceneSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("SetActiveScene_MenuItem"));
-    if (!activeSceneSelection.IsValid())
+    UIObject* activeSceneSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("SetActiveScene_MenuItem"));
+    if (!activeSceneSelection)
     {
         HYP_LOG(Editor, Warning, "Failed to find SetActiveScene_MenuItem element; creating a new one");
         return;
     }
 
-    Handle<UIMenuItem> activeSceneMenuItem = ObjCast<UIMenuItem>(activeSceneSelection);
+    UIMenuItem* activeSceneMenuItem = ObjCast<UIMenuItem>(activeSceneSelection);
 
-    if (!activeSceneMenuItem.IsValid())
+    if (!activeSceneMenuItem)
     {
         HYP_LOG(Editor, Error, "Failed to cast SetActiveScene_MenuItem to UIMenuItem");
         return;
@@ -2457,7 +2458,7 @@ void EditorSubsystem::InitActiveSceneSelection()
         sceneMenuItem->SetText(scene->GetName().LookupString());
 
         sceneMenuItem->OnClick
-            .Bind([this, activeSceneMenuItemWeak = activeSceneMenuItem.ToWeak(), sceneMenuItemWeak = sceneMenuItem.ToWeak(), sceneWeak = scene.ToWeak()](const MouseEvent&)
+            .Bind([this, activeSceneMenuItemWeak = MakeWeakRef(activeSceneMenuItem), sceneMenuItemWeak = MakeWeakRef(sceneMenuItem), sceneWeak = MakeWeakRef(scene)](const MouseEvent&)
                 {
                     Handle<Scene> scene = sceneWeak.Lock();
                     if (!scene.IsValid())
@@ -2492,7 +2493,7 @@ void EditorSubsystem::InitContentBrowser()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    m_contentBrowserDirectoryList = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List"));
+    m_contentBrowserDirectoryList = MakeStrongRef(ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List")));
     Assert(m_contentBrowserDirectoryList != nullptr);
 
     m_contentBrowserDirectoryList->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetPackage> {}));
@@ -2523,18 +2524,18 @@ void EditorSubsystem::InitContentBrowser()
                     SetSelectedPackage(Handle<AssetPackage>::empty);
                 }));
 
-    m_contentBrowserContents = ObjCast<UIGrid>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents"));
+    m_contentBrowserContents = MakeStrongRef(ObjCast<UIGrid>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents")));
     Assert(m_contentBrowserContents != nullptr);
 
     // create data source that handles AssetObject and AssetPackage (so we display as subfolders)
     m_contentBrowserContents->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetObject> {}, TypeWrapper<AssetPackage> {}));
     m_contentBrowserContents->SetIsVisible(false);
 
-    m_contentBrowserContentsEmpty = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
+    m_contentBrowserContentsEmpty = MakeStrongRef(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty"));
     Assert(m_contentBrowserContentsEmpty != nullptr);
     m_contentBrowserContentsEmpty->SetIsVisible(true);
 
-    if (Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button"))
+    if (UIObject* importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button"))
     {
         m_delegateHandlers.Remove(NAME("ImportClicked"));
         m_delegateHandlers.Add(
@@ -2929,7 +2930,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 
     RunningEditorTask& runningTask = m_tasks.EmplaceBack(task);
 
-    Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
+    UIMenuItem* tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
 
     if (tasksMenuItem != nullptr)
     {
@@ -3122,7 +3123,7 @@ bool EditorSubsystem::RemoveDebugOverlay(WeakName name)
     {
         if (const Handle<UIObject>& object = (*it)->GetUIObject())
         {
-            Handle<UIListViewItem> listViewItem = object->GetClosestParentUIObject<UIListViewItem>();
+            UIListViewItem* listViewItem = object->GetClosestParentUIObject<UIListViewItem>();
 
             if (listViewItem)
             {
