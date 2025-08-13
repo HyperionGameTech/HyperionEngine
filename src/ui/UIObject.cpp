@@ -1683,7 +1683,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     HYP_SCOPE;
 
     return MaterialAttributes {
-        .shaderDefinition = ShaderDefinition { NAME("UIObject"), ShaderProperties(staticMeshVertexAttributes) },
+        .shaderDefinition = ShaderDefinition { NAME("UIObject"), ShaderProperties(VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0) },
         .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
             BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
         .cullFaces = FCM_BACK,
@@ -2124,21 +2124,6 @@ void UIObject::UpdateMeshData_Internal()
         return;
     }
 
-    UIObjectMeshData uiObjectMeshData {};
-    uiObjectMeshData.size = Vec2u(m_actualSize);
-
-    uiObjectMeshData.clampedAabb = Vec4f(
-        m_aabbClamped.min.x,
-        m_aabbClamped.min.y,
-        m_aabbClamped.max.x,
-        m_aabbClamped.max.y);
-
-    uiObjectMeshData.flags = (m_borderRadius & 0xFFu)
-        | ((uint32(m_borderFlags) & 0xFu) << 8u)
-        | ((uint32(m_focusState) & 0xFFu) << 16u);
-
-    meshComponent->userData.Set(uiObjectMeshData);
-
     Matrix4 instanceTransform;
     instanceTransform[0][0] = m_aabbClamped.max.x - m_aabbClamped.min.x;
     instanceTransform[1][1] = m_aabbClamped.max.y - m_aabbClamped.min.y;
@@ -2152,11 +2137,19 @@ void UIObject::UpdateMeshData_Internal()
 
     Vec4f instanceSizes = Vec4f(Vec2f(m_actualSize), m_aabbClamped.max.GetXY() - m_aabbClamped.min.GetXY());
 
+    Vec4u instanceProperties;
+    instanceProperties[0] = uint32(m_actualSize.x);
+    instanceProperties[1] = uint32(m_actualSize.y);
+    instanceProperties[2] = (m_borderRadius & 0xFFu)
+        | ((uint32(m_borderFlags) & 0xFu) << 8u)
+        | ((uint32(m_focusState) & 0xFFu) << 16u);
+
     meshComponent->instanceData.numInstances = 1;
     meshComponent->instanceData.SetBufferData(0, &instanceTransform, 1);
     meshComponent->instanceData.SetBufferData(1, &instanceTexcoords, 1);
     meshComponent->instanceData.SetBufferData(2, &instanceOffsets, 1);
     meshComponent->instanceData.SetBufferData(3, &instanceSizes, 1);
+    meshComponent->instanceData.SetBufferData(4, &instanceProperties, 1);
 
     AddTag<EntityTag::UPDATE_RENDER_PROXY>();
 }

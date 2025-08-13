@@ -140,7 +140,7 @@ static void ForEachCharacter(const FontAtlas& fontAtlas, const String& text, con
         if (!glyphMetrics.HasValue() || (glyphMetrics->width == 0 || glyphMetrics->height == 0))
         {
             HYP_LOG(UI, Warning, "Ensure how to render char: {}", (int)ch);
-            
+
             if (outCharacterPlacements)
             {
                 outCharacterPlacements->PushBack(placement);
@@ -412,6 +412,7 @@ void UIText::UpdateMeshData_Internal()
     Array<Vec4f> instanceTexcoords;
     Array<Vec4f> instanceOffsets;
     Array<Vec4f> instanceSizes;
+    Array<Vec4u> instanceProperties;
 
     ForEachCharacter(*fontAtlas, m_text, GetParentBounds(), textSize, nullptr, [&](const FontAtlasCharacterIterator& iter)
         {
@@ -450,11 +451,14 @@ void UIText::UpdateMeshData_Internal()
             instanceSizes.PushBack(Vec4f(size, clampedSize));
         });
 
+    instanceProperties.Resize(instanceTransforms.Size());
+
     meshComponent.instanceData.numInstances = instanceTransforms.Size();
     meshComponent.instanceData.SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
     meshComponent.instanceData.SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
     meshComponent.instanceData.SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
     meshComponent.instanceData.SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
+    meshComponent.instanceData.SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
 
     AddTag<EntityTag::UPDATE_RENDER_PROXY>();
 }

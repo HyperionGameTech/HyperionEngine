@@ -1347,7 +1347,7 @@ void EntityManager::BeginAsyncUpdate(float delta)
     {
         AssertDebug(entity->GetEntityManager() == this);
         AssertDebug(entity->GetWorld() == GetWorld());
-
+        HYP_LOG(Entity, Debug, "  Updating entity {} ({})", entity->Id(), entity->GetName());
         entity->Update(delta);
     }
 

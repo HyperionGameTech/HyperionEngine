@@ -255,11 +255,15 @@ void EnvGrid::OnAttachedToNode(Node* node)
 {
     HYP_SCOPE;
     Assert(IsReady());
+    
+    Entity::OnAttachedToNode(node);
 }
 
 void EnvGrid::OnDetachedFromNode(Node* node)
 {
     HYP_SCOPE;
+    
+    Entity::OnDetachedFromNode(node);
 }
 
 void EnvGrid::OnAddedToWorld(World* world)

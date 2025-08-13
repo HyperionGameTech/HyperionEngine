@@ -95,6 +95,7 @@ void EnvProbe::Init()
         m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
 
         InitObject(m_camera);
+        AddChild(m_camera);
 
         CreateView();
     }
@@ -125,15 +126,11 @@ void EnvProbe::Init()
 void EnvProbe::OnAttachedToNode(Node* node)
 {
     Entity::OnAttachedToNode(node);
-
-    AddChild(m_camera);
 }
 
 void EnvProbe::OnDetachedFromNode(Node* node)
 {
     Entity::OnDetachedFromNode(node);
-
-    RemoveChild(m_camera);
 }
 
 void EnvProbe::OnAddedToWorld(World* world)
@@ -252,7 +249,6 @@ void EnvProbe::CreateView()
     };
 
     m_view = CreateObject<View>(viewDesc);
-
     InitObject(m_view);
 }
 

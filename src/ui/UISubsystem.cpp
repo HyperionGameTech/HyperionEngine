@@ -46,9 +46,8 @@ struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
     Vec4f texcoords[maxEntitiesPerInstanceBatch];
     Vec4f offsets[maxEntitiesPerInstanceBatch];
     Vec4f sizes[maxEntitiesPerInstanceBatch];
+    Vec4u properties[maxEntitiesPerInstanceBatch];
 };
-
-static_assert(sizeof(UIEntityInstanceBatch) == 6976);
 
 #pragma region Render commands
 

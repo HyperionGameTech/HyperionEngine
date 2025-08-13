@@ -237,6 +237,7 @@ void HyperionEditor::Init()
                 scene->GetRoot()->AddChild(node);
 
 #if 1
+
                 Handle<Entity> envGridEntity = CreateObject<EnvGrid>(node->GetWorldAABB() * 1.2f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
                 envGridEntity->SetName(NAME("EnvGrid2"));
                 scene->GetRoot()->AddChild(envGridEntity);
@@ -312,13 +313,6 @@ void HyperionEditor::Logic(float delta)
         //        clock.Stop();
         //
         //        HYP_LOG_TEMP("Time to draw boxes: {}", clock.ElapsedMs());
-        auto scene = GetWorld()->GetSceneByName(NAME("myScene"));
-        if (scene)
-        {
-            auto envGrid = scene->GetRoot()->FindChildByName("EnvGrid2");
-            if (envGrid)
-                envGrid->Remove();
-        }
     }
 }
 
