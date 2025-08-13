@@ -231,12 +231,15 @@ void EditorManipulationWidgetBase::Shutdown()
 
 void EditorManipulationWidgetBase::UpdateWidget(const Handle<Node>& focusedNode)
 {
-    m_focusedNode = focusedNode;
-
-    if (!focusedNode.IsValid())
+    if (!focusedNode.IsValid() || focusedNode->IsRoot())
     {
+        // don't want to move the root node.
+        m_focusedNode.Reset();
+
         return;
     }
+
+    m_focusedNode = focusedNode;
 
     if (!m_node.IsValid())
     {
@@ -1371,15 +1374,14 @@ void EditorSubsystem::InitViewport()
     }
 
     uiSubsystem->GetUIStage()->UpdateSize(true);
-    
+
     // bind console key
-    AddDelegateHandler(uiSubsystem->GetUIStage()->OnKeyDown
-        .Bind([this](const KeyboardEvent& event)
+    AddDelegateHandler(uiSubsystem->GetUIStage()->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
             // Check we aren't entering text in non-console text field
             UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
             Assert(uiSubsystem != nullptr && uiSubsystem->GetUIStage() != nullptr);
-        
+
             if (Handle<UIObject> focusedObject = uiSubsystem->GetUIStage()->GetFocusedObject().Lock())
             {
                 if (focusedObject->IsA<UITextbox>() && (m_consoleUi && !m_consoleUi->HasFocus()))
@@ -1387,7 +1389,7 @@ void EditorSubsystem::InitViewport()
                     return UIEventHandlerResult::OK;
                 }
             }
-            
+
             if (event.keyCode == KeyCode::TILDE)
             {
                 const bool isConsoleOpen = m_consoleUi && m_consoleUi->IsVisible();
@@ -1413,7 +1415,7 @@ void EditorSubsystem::InitViewport()
 
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
-            
+
             return UIEventHandlerResult::OK;
         }));
 
@@ -1915,35 +1917,35 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 
     HYP_LOG(Editor, Debug, "Start watching node: {}", *node->GetName());
 
-//    m_editorDelegates->AddNodeWatcher(
-//        NAME("SceneView"),
-//        node.Get(),
-//        { Node::Class()->GetProperty(NAME("Name")), 1 },
-//        [this, listViewWeak = listView.ToWeak()](Node* node, const HypProperty* property)
-//        {
-//            // Update name in list view
-//            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
-//            {
-//                return;
-//            }
-//
-//            HYP_LOG(Editor, Debug, "Node {} property changed : {}", *node->GetName(), *property->GetName());
-//
-//            Handle<UIListView> listView = listViewWeak.Lock();
-//
-//            if (!listView)
-//            {
-//                return;
-//            }
-//
-//            if (UIDataSourceBase* dataSource = listView->GetDataSource())
-//            {
-//                const UIDataSourceElement* dataSourceElement = dataSource->Get(node->GetUUID());
-//                Assert(dataSourceElement != nullptr);
-//
-//                dataSource->ForceUpdate(node->GetUUID());
-//            }
-//        });
+    //    m_editorDelegates->AddNodeWatcher(
+    //        NAME("SceneView"),
+    //        node.Get(),
+    //        { Node::Class()->GetProperty(NAME("Name")), 1 },
+    //        [this, listViewWeak = listView.ToWeak()](Node* node, const HypProperty* property)
+    //        {
+    //            // Update name in list view
+    //            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+    //            {
+    //                return;
+    //            }
+    //
+    //            HYP_LOG(Editor, Debug, "Node {} property changed : {}", *node->GetName(), *property->GetName());
+    //
+    //            Handle<UIListView> listView = listViewWeak.Lock();
+    //
+    //            if (!listView)
+    //            {
+    //                return;
+    //            }
+    //
+    //            if (UIDataSourceBase* dataSource = listView->GetDataSource())
+    //            {
+    //                const UIDataSourceElement* dataSourceElement = dataSource->Get(node->GetUUID());
+    //                Assert(dataSourceElement != nullptr);
+    //
+    //                dataSource->ForceUpdate(node->GetUUID());
+    //            }
+    //        });
 
     AddNodeToSceneOutline(listView, node.Get());
 
@@ -2320,8 +2322,7 @@ void EditorSubsystem::InitManipulationWidgetSelection()
         Handle<UIObject> manipulationWidgetMenuItem = manipulationWidgetSelection->CreateUIObject<UIMenuItem>(manipulationWidget->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
         Assert(manipulationWidgetMenuItem != nullptr);
 
-        // @TODO Add icon
-        manipulationWidgetMenuItem->SetText("<widget>");
+        manipulationWidgetMenuItem->SetText(manipulationWidget->GetMenuText());
 
         auto it = std::lower_bound(manipulationWidgetMenuItems.Begin(), manipulationWidgetMenuItems.End(), manipulationWidget->GetPriority(), [](const Pair<int, Handle<UIObject>>& a, int b)
             {
@@ -3045,6 +3046,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         }
 
         EditorManipulationWidgetBase& manipulationWidget = m_manipulationWidgetHolder.GetSelectedManipulationWidget();
+
         manipulationWidget.UpdateWidget(focusedNode);
     }
 

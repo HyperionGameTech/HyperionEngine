@@ -193,6 +193,8 @@ public:
     {
         return -1;
     }
+    
+    virtual String GetMenuText() const = 0;
 
     virtual void UpdateWidget(const Handle<Node>& focusedNode);
 
@@ -248,6 +250,11 @@ class NullEditorManipulationWidget : public EditorManipulationWidgetBase
 
 public:
     virtual ~NullEditorManipulationWidget() override = default;
+    
+    virtual String GetMenuText() const override
+    {
+        return "<null>";
+    }
 
     virtual EditorManipulationMode GetManipulationMode() const override
     {
@@ -272,6 +279,11 @@ public:
     virtual EditorManipulationMode GetManipulationMode() const override
     {
         return EditorManipulationMode::TRANSLATE;
+    }
+    
+    virtual String GetMenuText() const override
+    {
+        return "Translate";
     }
 
     virtual int GetPriority() const override

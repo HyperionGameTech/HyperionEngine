@@ -233,6 +233,12 @@ void UIGridRow::UpdateSize_Internal(bool updateChildren)
     UIPanel::UpdateSize_Internal(updateChildren);
 
     UpdateColumnOffsets();
+
+    if (UseAutoSizing())
+    {
+        // If the row is using auto-sizing, we need to refit to the new size
+        UIPanel::UpdateSize_Internal(false);
+    }
 }
 
 #pragma endregion UIGridRow
@@ -420,6 +426,12 @@ void UIGrid::UpdateSize_Internal(bool updateChildren)
     UIPanel::UpdateSize_Internal(updateChildren);
 
     UpdateLayout();
+
+    if (UseAutoSizing())
+    {
+        // If the grid is using auto-sizing, we need to refit to the new size
+        UIPanel::UpdateSize_Internal(false);
+    }
 }
 
 void UIGrid::UpdateLayout()
@@ -454,7 +466,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* dataSource)
     {
         return;
     }
-    
+
     for (const auto& pair : dataSource->GetValues())
     {
         AddChildUIObject(dataSource->CreateUIObject(this, pair.second->GetValue(), {}));
@@ -465,11 +477,11 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* dataSource)
             HYP_NAMED_SCOPE("Add element from data source to grid view");
 
             Handle<UIObject> object = dataSourcePtr->CreateUIObject(this, element->GetValue(), {});
-        
+
             if (object)
             {
                 object->SetDataSourceElementUUID(element->GetUUID());
-                
+
                 AddChildUIObject(object);
             }
         });

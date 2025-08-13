@@ -136,7 +136,8 @@ void UIListViewItem::SetIsExpanded(bool isExpanded)
     m_isExpanded = isExpanded;
 
     m_expandedElement->SetIsVisible(m_isExpanded);
-    // UpdateSize();
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
 }
 
 void UIListViewItem::SetIsSelectedItem(bool isSelectedItem)
@@ -148,14 +149,14 @@ void UIListViewItem::SetIsSelectedItem(bool isSelectedItem)
 
     m_isSelectedItem = isSelectedItem;
 
-    UpdateMaterial(false);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
 void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusState)
 {
     UIObject::SetFocusState_Internal(focusState);
 
-    UpdateMaterial(false);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
 Material::ParameterTable UIListViewItem::GetMaterialParameters() const
@@ -185,6 +186,8 @@ Material::ParameterTable UIListViewItem::GetMaterialParameters() const
 UIListView::UIListView()
     : m_orientation(UIListViewOrientation::VERTICAL)
 {
+    SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
     OnClick.Bind([this](...)
                {
                    return UIEventHandlerResult::STOP_BUBBLING;
@@ -306,6 +309,12 @@ void UIListView::UpdateSize_Internal(bool updateChildren)
     UIPanel::UpdateSize_Internal(updateChildren);
 
     UpdateLayout();
+
+    // If the list view is using auto-sizing, we need to refit to the new size
+    if (UseAutoSizing())
+    {
+        UIPanel::UpdateSize_Internal(false);
+    }
 }
 
 void UIListView::UpdateLayout()
@@ -587,7 +596,7 @@ void UIListView::SetSelectedItem(UIListViewItem* listViewItem)
         // Force update of the list view and children after expanding items.
         if (isExpanded)
         {
-            UpdateSize();
+            SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
         }
     }
 

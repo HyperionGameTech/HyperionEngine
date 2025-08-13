@@ -242,7 +242,6 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
     }
 
     m_subItemsDropDownMenu->RemoveFromParent();
-
     m_subItemsDropDownMenu->AddChildUIObject(selectedSubItem->GetDropDownMenuElement());
     m_subItemsDropDownMenu->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 300, UIObjectSize::PIXEL }));
     m_subItemsDropDownMenu->SetPosition(Vec2i { int(selectedSubItem->GetAbsolutePosition().x) + m_dropDownMenu->GetActualSize().x, int(selectedSubItem->GetAbsolutePosition().y) });
@@ -510,14 +509,18 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
         return;
     }
 
-    menuItem->SetFocusState(menuItem->GetFocusState() | UIObjectFocusState::TOGGLED);
+    UIPanel* dropDownMenuElement = menuItem->GetDropDownMenuElement();
 
-    m_container->AddChildUIObject(menuItem->GetDropDownMenuElement());
-    m_container->SetSize(UIObjectSize({ menuItem->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    if (dropDownMenuElement != nullptr)
+    {
+        menuItem->SetFocusState(menuItem->GetFocusState() | UIObjectFocusState::TOGGLED);
 
-    m_container->SetPosition(GetDropDownMenuPosition(menuItem));
-    m_container->SetIsVisible(true);
-    m_container->Focus();
+        m_container->AddChildUIObject(MakeStrongRef(dropDownMenuElement));
+        m_container->SetSize(UIObjectSize({ dropDownMenuElement->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+        m_container->SetPosition(GetDropDownMenuPosition(menuItem));
+        m_container->SetIsVisible(true);
+        m_container->Focus();
+    }
 }
 
 void UIMenuBar::AddChildUIObject(const Handle<UIObject>& uiObject)
