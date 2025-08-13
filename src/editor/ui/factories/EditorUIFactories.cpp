@@ -1141,7 +1141,7 @@ public:
         Handle<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.GetName().LookupString());
 
-        parent->SetNodeTag(NodeTag(NAME("AssetPackage"), value.BuildPackagePath()));
+        parent->Node::AddTag(NodeTag(NAME("AssetPackage"), value.BuildPackagePath()));
 
         return text;
     }
@@ -1162,7 +1162,7 @@ public:
         Handle<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.GetName().LookupString());
 
-        parent->SetNodeTag(NodeTag(NAME("AssetObject"), value.GetUUID()));
+        parent->Node::AddTag(NodeTag(NAME("AssetObject"), value.GetUUID()));
 
         return text;
     }

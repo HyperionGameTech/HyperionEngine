@@ -170,42 +170,6 @@ UIObject::~UIObject()
 {
     m_childUiObjects.Clear();
 
-    static const auto removeUiComponent = [](Scene* scene, Handle<Entity> entity, Handle<Node> node)
-    {
-        Assert(scene != nullptr);
-        Assert(scene->GetEntityManager() != nullptr);
-
-        if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
-        {
-            uiComponent->uiObject = nullptr;
-
-            scene->GetEntityManager()->RemoveComponent<UIComponent>(entity);
-        }
-    };
-
-    if (Handle<Entity> entity = GetEntity())
-    {
-        Scene* scene = GetScene();
-        Assert(scene != nullptr);
-
-        if (Threads::IsOnThread(scene->GetOwnerThreadId()))
-        {
-            removeUiComponent(GetScene(), std::move(entity), std::move(m_node));
-        }
-        else
-        {
-            // Keep node alive until it can be destroyed on the owner thread
-            Task<void> task = Threads::GetThread(scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = MakeStrongRef(GetScene()), node = std::move(m_node), entity = std::move(entity)]() mutable
-                {
-                    removeUiComponent(scene.Get(), std::move(entity), std::move(node));
-                });
-
-            // wait for task completion before finishing destruction,
-            // to ensure that the UIObject is set to nullptr on the UIComponent
-            task.Await();
-        }
-    }
-
     m_verticalScrollbar.Reset();
     m_horizontalScrollbar.Reset();
 
@@ -235,10 +199,15 @@ void UIObject::Init()
 {
     HYP_SCOPE;
 
-    Assert(m_node.IsValid(), "Invalid Handle<Node> provided to UIObject!");
+    Entity::Init();
 
-    const Scene* scene = GetScene();
-    Assert(scene != nullptr);
+    if (!m_affectsParentSize || !m_isVisible)
+    {
+        SetFlags(GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+    }
+
+    // Set it to ignore parent scale so size of the UI object is not affected by the parent
+    SetFlags(GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
     MeshComponent meshComponent;
     meshComponent.mesh = GetQuadMesh();
@@ -246,8 +215,11 @@ void UIObject::Init()
     meshComponent.instanceData.enableAutoInstancing = true;
     meshComponent.userData = MeshComponentUserData {};
 
-    scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(meshComponent));
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent {});
+    AddComponent<MeshComponent>(std::move(meshComponent));
+    AddComponent<BoundingBoxComponent>(BoundingBoxComponent {});
+
+    // temp. For backwards compatibility
+    AddComponent<UIComponent>(UIComponent { this });
 
     SetReady(true);
 
@@ -464,14 +436,9 @@ Vec2f UIObject::GetAbsolutePosition() const
 {
     HYP_SCOPE;
 
-    if (const Handle<Node>& node = GetNode())
-    {
-        const Vec3f worldTranslation = node->GetWorldTranslation();
+    const Vec3f worldTranslation = GetWorldTranslation();
 
-        return { worldTranslation.x, worldTranslation.y };
-    }
-
-    return Vec2f::Zero();
+    return { worldTranslation.x, worldTranslation.y };
 }
 
 void UIObject::SetIsPositionAbsolute(bool isPositionAbsolute)
@@ -503,13 +470,6 @@ void UIObject::UpdatePosition(bool updateChildren)
     }
 
     m_deferredUpdates &= ~(UIObjectUpdateType::UPDATE_POSITION | (updateChildren ? UIObjectUpdateType::UPDATE_CHILDREN_POSITION : UIObjectUpdateType::NONE));
-
-    const Handle<Node>& node = GetNode();
-
-    if (!node)
-    {
-        return;
-    }
 
     ComputeOffsetPosition();
 
@@ -638,7 +598,9 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     m_deferredUpdates &= ~(UIObjectUpdateType::UPDATE_SIZE | (updateChildren ? UIObjectUpdateType::UPDATE_CHILDREN_SIZE : UIObjectUpdateType::NONE));
 
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
+
     SetEntityAABB(CalculateAABB());
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 
     Array<UIObject*> deferredChildren;
 
@@ -679,7 +641,9 @@ void UIObject::UpdateSize_Internal(bool updateChildren)
     if (needsUpdateAfterChildren)
     {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
+
         SetEntityAABB(CalculateAABB());
+        SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
     }
 
     // FILL needs to update the size of the children
@@ -760,37 +724,32 @@ void UIObject::UpdateClampedSize(bool updateChildren)
 
 void UIObject::UpdateNodeTransform()
 {
-    if (!m_node.IsValid())
-    {
-        return;
-    }
-
-    const Vec3f aabbExtent = m_aabb.GetExtent();
+    const Vec3f aabbExtent = GetWorldAABB().GetExtent();
     const Vec3f aabbClampedExtent = m_aabbClamped.GetExtent();
 
     float zValue = float(GetComputedDepth());
 
-    if (Node* parentNode = m_node->GetParent())
+    if (Node* parentNode = GetParent())
     {
         zValue -= parentNode->GetWorldTranslation().z;
     }
 
     const Vec2f parentScrollOffset = Vec2f(GetParentScrollOffset());
 
-    Node* parentNode = m_node->GetParent();
+    Node* parentNode = GetParent();
 
-    Transform worldTransform = m_node->GetWorldTransform();
+    Transform worldTransform = GetWorldTransform();
 
     if (m_isPositionAbsolute)
     {
-        m_node->SetLocalTranslation(Vec3f {
+        SetLocalTranslation(Vec3f {
             float(m_position.x) + m_offsetPosition.x,
             float(m_position.y) + m_offsetPosition.y,
             zValue });
     }
     else
     {
-        m_node->SetLocalTranslation(Vec3f {
+        SetLocalTranslation(Vec3f {
             float(m_position.x) + m_offsetPosition.x - parentScrollOffset.x,
             float(m_position.y) + m_offsetPosition.y - parentScrollOffset.y,
             zValue });
@@ -806,11 +765,11 @@ void UIObject::SetScrollOffset(Vec2i scrollOffset, bool smooth)
 {
     HYP_SCOPE;
 
-    scrollOffset.x = m_actualInnerSize.x > m_actualSize.x
+    scrollOffset.x = (m_actualInnerSize.x > m_actualSize.x && CanScrollOnAxis(SA_HORIZONTAL))
         ? MathUtil::Clamp(scrollOffset.x, 0, m_actualInnerSize.x - m_actualSize.x)
         : 0;
 
-    scrollOffset.y = m_actualInnerSize.y > m_actualSize.y
+    scrollOffset.y = (m_actualInnerSize.y > m_actualSize.y && CanScrollOnAxis(SA_VERTICAL))
         ? MathUtil::Clamp(scrollOffset.y, 0, m_actualInnerSize.y - m_actualSize.y)
         : 0;
 
@@ -1103,8 +1062,7 @@ void UIObject::SetBackgroundColor(const Color& backgroundColor)
 
     m_backgroundColor = backgroundColor;
 
-    UpdateMaterial(false);
-    // SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
 Color UIObject::ComputeBlendedBackgroundColor() const
@@ -1214,19 +1172,16 @@ void UIObject::SetIsVisible(bool isVisible)
 
     m_isVisible = isVisible;
 
-    if (const Handle<Node>& node = GetNode())
+    if (m_isVisible)
     {
-        if (m_isVisible)
+        if (m_affectsParentSize)
         {
-            if (m_affectsParentSize)
-            {
-                node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
-            }
+            SetFlags(GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
-        else
-        {
-            node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
-        }
+    }
+    else
+    {
+        SetFlags(GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
     }
 
     if (IsInitCalled())
@@ -1280,11 +1235,11 @@ void UIObject::UpdateComputedVisibility(bool updateChildren)
         {
             if (m_computedVisibility)
             {
-                scene->GetEntityManager()->AddTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
+                AddTag<EntityTag::UI_OBJECT_VISIBLE>();
             }
             else
             {
-                scene->GetEntityManager()->RemoveTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
+                RemoveTag<EntityTag::UI_OBJECT_VISIBLE>();
             }
         }
 
@@ -1446,31 +1401,6 @@ bool UIObject::HasFocus(bool includeChildren) const
     return hasFocus;
 }
 
-bool UIObject::IsOrHasParent(const UIObject* other) const
-{
-    HYP_SCOPE;
-
-    if (!other)
-    {
-        return false;
-    }
-
-    if (this == other)
-    {
-        return true;
-    }
-
-    const Handle<Node>& thisNode = GetNode();
-    const Handle<Node>& otherNode = other->GetNode();
-
-    if (!thisNode.IsValid() || !otherNode.IsValid())
-    {
-        return false;
-    }
-
-    return thisNode->IsOrHasParent(otherNode.Get());
-}
-
 void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
 {
     HYP_SCOPE;
@@ -1482,25 +1412,7 @@ void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     Assert(!uiObject->IsOrHasParent(this));
 
-    const Handle<Node>& node = GetNode();
-
-    if (!node)
-    {
-        HYP_LOG(UI, Error, "Parent UI object has no attachable node: {}", GetName());
-
-        return;
-    }
-
-    if (Handle<Node> childNode = uiObject->GetNode())
-    {
-        node->AddChild(childNode);
-    }
-    else
-    {
-        HYP_LOG(UI, Error, "Child UI object '{}' has no attachable node", uiObject->GetName());
-
-        return;
-    }
+    AddChild(uiObject);
 
     Assert(!m_childUiObjects.Contains(uiObject));
     m_childUiObjects.PushBack(uiObject);
@@ -1528,24 +1440,16 @@ bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 
     if (parentUiObject == this)
     {
-        Handle<Node> childNode = uiObject->GetNode();
+        uiObject->OnRemoved_Internal();
 
-        {
-            uiObject->OnRemoved_Internal();
+        OnChildRemoved(uiObject);
 
-            OnChildRemoved(uiObject);
+        auto it = m_childUiObjects.Find(uiObject);
+        Assert(it != m_childUiObjects.End());
 
-            auto it = m_childUiObjects.Find(uiObject);
-            Assert(it != m_childUiObjects.End());
+        m_childUiObjects.Erase(it);
 
-            m_childUiObjects.Erase(it);
-        }
-
-        if (childNode)
-        {
-            childNode->Remove();
-            childNode.Reset();
-        }
+        uiObject->Remove();
 
         if (UseAutoSizing())
         {
@@ -1717,71 +1621,6 @@ Handle<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate,
     return foundObject;
 }
 
-const Handle<Node>& UIObject::GetNode() const
-{
-    return m_node;
-}
-
-World* UIObject::GetWorld() const
-{
-    if (m_node.IsValid())
-    {
-        return m_node->GetWorld();
-    }
-
-    return nullptr;
-}
-
-BoundingBox UIObject::GetWorldAABB() const
-{
-    HYP_SCOPE;
-
-    if (const Handle<Node>& node = GetNode())
-    {
-        return node->GetWorldAABB();
-    }
-
-    return BoundingBox::Empty();
-}
-
-BoundingBox UIObject::GetLocalAABB() const
-{
-    HYP_SCOPE;
-
-    if (const Handle<Node>& node = GetNode())
-    {
-        return node->GetLocalAABB();
-    }
-
-    return BoundingBox::Empty();
-}
-
-void UIObject::SetEntityAABB(const BoundingBox& aabb)
-{
-    HYP_SCOPE;
-
-    Transform transform;
-
-    if (Scene* scene = GetScene())
-    {
-        BoundingBoxComponent& boundingBoxComponent = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
-        boundingBoxComponent.localAabb = aabb;
-
-        if (const Handle<Node>& node = GetNode())
-        {
-            node->SetEntityAABB(aabb);
-
-            transform = node->GetWorldTransform();
-        }
-
-        boundingBoxComponent.worldAabb = transform * aabb;
-    }
-
-    m_aabb = transform * aabb;
-
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
-}
-
 BoundingBox UIObject::CalculateAABB() const
 {
     HYP_SCOPE;
@@ -1796,17 +1635,7 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
     HYP_SCOPE;
 
-    if (const Handle<Node>& node = GetNode())
-    {
-        const BoundingBox aabb = node->GetLocalAABB();
-
-        if (aabb.IsFinite() && aabb.IsValid())
-        {
-            return aabb;
-        }
-    }
-
-    return BoundingBox::Empty();
+    return GetLocalAABB();
 }
 
 void UIObject::SetAffectsParentSize(bool affectsParentSize)
@@ -1825,16 +1654,13 @@ void UIObject::SetAffectsParentSize(bool affectsParentSize)
         return;
     }
 
-    if (m_node.IsValid())
+    if (m_affectsParentSize)
     {
-        if (m_affectsParentSize)
-        {
-            m_node->SetFlags(m_node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
-        }
-        else
-        {
-            m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
-        }
+        SetFlags(GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+    }
+    else
+    {
+        SetFlags(GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
     }
 }
 
@@ -1914,15 +1740,7 @@ const Handle<Material>& UIObject::GetMaterial() const
 {
     HYP_SCOPE;
 
-    const Scene* scene = GetScene();
-    const Handle<Entity>& entity = GetEntity();
-
-    if (!entity.IsValid() || !scene)
-    {
-        return Handle<Material>::empty;
-    }
-
-    if (const MeshComponent* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity))
+    if (const MeshComponent* meshComponent = TryGetComponent<MeshComponent>())
     {
         return meshComponent->material;
     }
@@ -1934,15 +1752,7 @@ const Handle<Mesh>& UIObject::GetMesh() const
 {
     HYP_SCOPE;
 
-    const Scene* scene = GetScene();
-    const Handle<Entity>& entity = GetEntity();
-
-    if (!entity.IsValid() || !scene)
-    {
-        return Handle<Mesh>::empty;
-    }
-
-    if (const MeshComponent* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity))
+    if (const MeshComponent* meshComponent = TryGetComponent<MeshComponent>())
     {
         return meshComponent->mesh;
     }
@@ -1961,26 +1771,13 @@ UIObject* UIObject::GetParentUIObject() const
         return nullptr;
     }
 
-    const Handle<Node>& node = GetNode();
-
-    if (!node)
-    {
-        return nullptr;
-    }
-
-    Node* parentNode = node->GetParent();
+    Node* parentNode = GetParent();
 
     while (parentNode != nullptr)
     {
-        if (Entity* entity = ObjCast<Entity>(parentNode))
+        if (UIObject* parentUiObject = ObjCast<UIObject>(parentNode))
         {
-            if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
-            {
-                if (uiComponent->uiObject != nullptr)
-                {
-                    return uiComponent->uiObject;
-                }
-            }
+            return parentUiObject;
         }
 
         parentNode = parentNode->GetParent();
@@ -2000,28 +1797,15 @@ Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIOb
         return Handle<UIObject>::empty;
     }
 
-    const Handle<Node>& node = GetNode();
-
-    if (!node)
-    {
-        return Handle<UIObject>::empty;
-    }
-
-    Node* parentNode = node->GetParent();
+    Node* parentNode = GetParent();
 
     while (parentNode)
     {
-        if (Entity* entity = ObjCast<Entity>(parentNode))
+        if (UIObject* parentUiObject = ObjCast<UIObject>(parentNode))
         {
-            if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
+            if (proc(parentUiObject))
             {
-                if (uiComponent->uiObject != nullptr)
-                {
-                    if (proc(uiComponent->uiObject))
-                    {
-                        return MakeStrongRef(uiComponent->uiObject);
-                    }
-                }
+                return MakeStrongRef(parentUiObject);
             }
         }
 
@@ -2060,18 +1844,6 @@ Vec2i UIObject::GetParentScrollOffset() const
     }
 
     return Vec2i::Zero();
-}
-
-Scene* UIObject::GetScene() const
-{
-    HYP_SCOPE;
-
-    if (const Handle<Node>& node = GetNode())
-    {
-        return node->GetScene();
-    }
-
-    return nullptr;
 }
 
 void UIObject::UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags)
@@ -2345,7 +2117,7 @@ void UIObject::UpdateMeshData_Internal()
         return;
     }
 
-    MeshComponent* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
+    MeshComponent* meshComponent = TryGetComponent<MeshComponent>();
 
     if (!meshComponent)
     {
@@ -2386,7 +2158,7 @@ void UIObject::UpdateMeshData_Internal()
     meshComponent->instanceData.SetBufferData(2, &instanceOffsets, 1);
     meshComponent->instanceData.SetBufferData(3, &instanceSizes, 1);
 
-    scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+    AddTag<EntityTag::UPDATE_RENDER_PROXY>();
 }
 
 void UIObject::UpdateMaterial(bool updateChildren)
@@ -2411,14 +2183,7 @@ void UIObject::UpdateMaterial(bool updateChildren)
             /* deep */ false);
     }
 
-    const Scene* scene = GetScene();
-
-    if (!scene)
-    {
-        return;
-    }
-
-    MeshComponent* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
+    MeshComponent* meshComponent = TryGetComponent<MeshComponent>();
 
     if (!meshComponent)
     {
@@ -2440,7 +2205,7 @@ void UIObject::UpdateMaterial(bool updateChildren)
 
         meshComponent->material = std::move(newMaterial);
 
-        scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+        AddTag<EntityTag::UPDATE_RENDER_PROXY>();
 
         return;
     }
@@ -2463,7 +2228,7 @@ void UIObject::UpdateMaterial(bool updateChildren)
 
             meshComponent->material = newMaterial;
 
-            scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
+            AddTag<EntityTag::UPDATE_RENDER_PROXY>();
         }
 
         Assert(newMaterial->IsDynamic());
@@ -2498,19 +2263,9 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
 
     while (currentUiObject != nullptr)
     {
-        Node* node = currentUiObject->GetNode().Get();
-
-        if (node != nullptr)
+        if (ScriptComponent* scriptComponent = currentUiObject->TryGetComponent<ScriptComponent>())
         {
-            Entity* entity = ObjCast<Entity>(node);
-
-            if (entity != nullptr)
-            {
-                if (ScriptComponent* scriptComponent = entity->TryGetComponent<ScriptComponent>())
-                {
-                    return scriptComponent;
-                }
-            }
+            return scriptComponent;
         }
 
         if (!deep)
@@ -2529,47 +2284,24 @@ void UIObject::SetScriptComponent(ScriptComponent&& scriptComponent)
 {
     HYP_SCOPE;
 
-    const Scene* scene = GetScene();
-    Assert(scene != nullptr && scene->IsReady());
-
-    const Handle<Entity>& entity = GetEntity();
-    Assert(entity != nullptr && entity->IsReady());
-
-    const Handle<EntityManager>& entityManager = scene->GetEntityManager();
-    Assert(entityManager != nullptr && entityManager->IsReady());
-
-    if (entityManager->HasComponent<ScriptComponent>(entity))
+    if (HasComponent<ScriptComponent>())
     {
-        Assert(entityManager->RemoveComponent<ScriptComponent>(entity));
+        Assert(RemoveComponent<ScriptComponent>());
     }
 
-    entityManager->AddComponent<ScriptComponent>(entity, std::move(scriptComponent));
+    AddComponent<ScriptComponent>(std::move(scriptComponent));
 }
 
 void UIObject::RemoveScriptComponent()
 {
     HYP_SCOPE;
 
-    const Scene* scene = GetScene();
-
-    if (!scene)
+    if (!HasComponent<ScriptComponent>())
     {
         return;
     }
 
-    const Handle<Entity>& entity = GetEntity();
-
-    if (!entity.IsValid())
-    {
-        return;
-    }
-
-    if (!scene->GetEntityManager()->HasComponent<ScriptComponent>(entity))
-    {
-        return;
-    }
-
-    scene->GetEntityManager()->RemoveComponent<ScriptComponent>(entity);
+    RemoveComponent<ScriptComponent>();
 }
 
 Handle<UIObject> UIObject::GetChildUIObject(int index) const
@@ -2596,79 +2328,6 @@ Handle<UIObject> UIObject::GetChildUIObject(int index) const
         /* deep */ false);
 
     return foundObject;
-}
-
-void UIObject::SetNodeProxy(Handle<Node> node)
-{
-    if (m_node == node)
-    {
-        return;
-    }
-
-    if (m_node.IsValid())
-    {
-        const Handle<Entity>& entity = ObjCast<Entity>(m_node);
-        Assert(entity != nullptr);
-        Assert(entity->HasComponent<UIComponent>());
-
-        entity->RemoveComponent<UIComponent>();
-    }
-
-    m_node = std::move(node);
-    InitObject(m_node);
-
-    if (m_node.IsValid())
-    {
-        Assert(m_node->IsA<Entity>());
-
-        Entity* entity = ObjCast<Entity>(m_node.Get());
-        entity->AddComponent<UIComponent>(UIComponent { this });
-
-        if (!m_affectsParentSize || !m_isVisible)
-        {
-            m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
-        }
-    }
-}
-
-const NodeTag& UIObject::GetNodeTag(WeakName key) const
-{
-    static const NodeTag emptyTag {};
-
-    if (m_node.IsValid())
-    {
-        return m_node->GetTag(key);
-    }
-
-    return emptyTag;
-}
-
-void UIObject::SetNodeTag(NodeTag&& tag)
-{
-    if (m_node.IsValid())
-    {
-        m_node->AddTag(std::move(tag));
-    }
-}
-
-bool UIObject::HasNodeTag(WeakName key) const
-{
-    if (m_node.IsValid())
-    {
-        return m_node->HasTag(key);
-    }
-
-    return false;
-}
-
-bool UIObject::RemoveNodeTag(WeakName key)
-{
-    if (m_node.IsValid())
-    {
-        return m_node->RemoveTag(key);
-    }
-
-    return false;
 }
 
 void UIObject::CollectObjects(ProcRef<void(UIObject*)> proc, bool onlyVisible) const
@@ -2865,38 +2524,18 @@ void UIObject::ForEachParentUIObject(Lambda&& lambda) const
 {
     HYP_SCOPE;
 
-    const Scene* scene = GetScene();
-
-    if (!scene)
-    {
-        return;
-    }
-
-    const Handle<Node>& node = GetNode();
-
-    if (!node)
-    {
-        return;
-    }
-
-    Node* parentNode = node->GetParent();
+    Node* parentNode = GetParent();
 
     while (parentNode != nullptr)
     {
-        if (Entity* entity = ObjCast<Entity>(parentNode))
+        if (UIObject* parentUiObject = ObjCast<UIObject>(parentNode))
         {
-            if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
-            {
-                if (uiComponent->uiObject != nullptr)
-                {
-                    const IterationResult iterationResult = lambda(uiComponent->uiObject);
+            const IterationResult iterationResult = lambda(parentUiObject);
 
-                    // stop iterating if stop was set to true
-                    if (iterationResult == IterationResult::STOP)
-                    {
-                        return;
-                    }
-                }
+            // stop iterating if stop was set to true
+            if (iterationResult == IterationResult::STOP)
+            {
+                return;
             }
         }
 
@@ -3054,24 +2693,17 @@ Handle<UIObject> UIObject::CreateUIObject(const HypClass* hypClass, Name name, V
     Assert(uiObject != nullptr);
 
     // Assert(IsInitCalled());
-    Assert(GetNode().IsValid());
 
     if (!name.IsValid())
     {
         name = Name::Unique(ANSIString("Unnamed_") + hypClass->GetName().LookupString());
     }
 
-    Handle<Entity> entity = CreateObject<Entity>();
-    entity->SetName(name);
-    // Set it to ignore parent scale so size of the UI object is not affected by the parent
-    entity->SetFlags(entity->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
-
     UIStage* stage = GetStage();
 
     uiObject->m_spawnParent = WeakHandleFromThis();
     uiObject->m_stage = stage;
 
-    uiObject->SetNodeProxy(entity);
     uiObject->SetName(name);
     uiObject->SetPosition(position);
     uiObject->SetSize(size);

@@ -29,10 +29,7 @@
 
 namespace hyperion {
 
-static bool ResizeBuffer(
-    FrameBase* frame,
-    const GpuBufferRef& buffer,
-    SizeType newBufferSize)
+static bool ResizeBuffer(FrameBase* frame, GpuBufferBase* buffer, SizeType newBufferSize)
 {
     if constexpr (IndirectDrawState::useNextPow2Size)
     {
@@ -56,8 +53,8 @@ static bool ResizeBuffer(
 static bool ResizeIndirectDrawCommandsBuffer(
     FrameBase* frame,
     const ByteBuffer& drawCommandsBuffer,
-    const GpuBufferRef& indirectBuffer,
-    const GpuBufferRef& stagingBuffer)
+    GpuBufferBase* indirectBuffer,
+    GpuBufferBase* stagingBuffer)
 {
     const bool wasCreatedOrResized = ResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
 
@@ -90,8 +87,8 @@ static bool ResizeIndirectDrawCommandsBuffer(
 static bool ResizeInstancesBuffer(
     FrameBase* frame,
     uint32 numObjectInstances,
-    const GpuBufferRef& instanceBuffer,
-    const GpuBufferRef& stagingBuffer)
+    GpuBufferBase* instanceBuffer,
+    GpuBufferBase* stagingBuffer)
 {
     const bool wasCreatedOrResized = ResizeBuffer(
         frame,
@@ -117,9 +114,9 @@ static bool ResizeIfNeeded(
 {
     bool resizeHappened = false;
 
-    const GpuBufferRef& indirectBuffer = indirectBuffers[frame->GetFrameIndex()];
-    const GpuBufferRef& instanceBuffer = instanceBuffers[frame->GetFrameIndex()];
-    const GpuBufferRef& stagingBuffer = stagingBuffers[frame->GetFrameIndex()];
+    GpuBufferBase* indirectBuffer = indirectBuffers[frame->GetFrameIndex()];
+    GpuBufferBase* instanceBuffer = instanceBuffers[frame->GetFrameIndex()];
+    GpuBufferBase* stagingBuffer = stagingBuffers[frame->GetFrameIndex()];
 
     if ((dirtyBits & (1u << frame->GetFrameIndex())) || !indirectBuffers[frame->GetFrameIndex()].IsValid())
     {

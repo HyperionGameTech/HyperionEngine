@@ -315,6 +315,7 @@ void Scene::SetRoot(const Handle<Node>& root)
         prevRoot->SetScene(nullptr);
     }
 
+    InitObject(root);
     m_root = root;
 
     if (m_root.IsValid())

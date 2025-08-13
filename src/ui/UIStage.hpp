@@ -85,6 +85,8 @@ public:
     UIStage& operator=(const UIStage& other) = delete;
     virtual ~UIStage() override;
 
+    virtual void SetScene(Scene* scene) override;
+
     /*! \brief Get the size of the surface that the UI objects are rendered on.
      *
      *  \return The size of the surface. */
@@ -96,19 +98,6 @@ public:
 
     HYP_METHOD()
     void SetSurfaceSize(Vec2i surfaceSize);
-
-    /*! \brief Get the scene that contains the UI objects.
-     *
-     *  \return Handle to the scene. */
-    HYP_METHOD()
-    virtual Scene* GetScene() const override;
-
-    /*! \brief Set the scene for this UIStage.
-     *  \internal Used internally, for serialization.
-     *
-     *  \param scene The scene to set. */
-    HYP_METHOD()
-    void SetScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
     const Handle<Camera>& GetCamera() const
@@ -171,11 +160,11 @@ private:
 
     Handle<UIObject> GetUIObjectForEntity(const Entity* entity) const;
 
-    bool Remove(const Entity* entity);
-
     Vec2i m_surfaceSize;
 
-    Handle<Scene> m_scene;
+    Handle<Scene> m_stageScene;
+    WeakHandle<Scene> m_stageSceneWeak;
+
     Handle<Camera> m_camera;
 
     RC<FontAtlas> m_defaultFontAtlas;

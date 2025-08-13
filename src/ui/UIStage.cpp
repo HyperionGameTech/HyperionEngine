@@ -84,17 +84,21 @@ UIStage::UIStage(ThreadId ownerThreadId)
 
 UIStage::~UIStage()
 {
-    if (m_scene.IsValid())
+    // shouldn't happen in reality, as stage scene would have a strong reference to this
+    if (m_stageSceneWeak.IsValid() && !m_stageScene.IsValid())
     {
-        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
+        Handle<Scene> stageScene = m_stageSceneWeak.Lock();
+        Assert(stageScene != nullptr);
+        
+        if (Threads::IsOnThread(stageScene->GetOwnerThreadId()))
         {
-            m_scene->RemoveFromWorld();
+            stageScene->RemoveFromWorld();
         }
         else
         {
-            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
+            Threads::GetThread(stageScene->GetOwnerThreadId())->GetScheduler().Enqueue([stageScene = std::move(stageScene)]()
                 {
-                    scene->RemoveFromWorld();
+                    stageScene->RemoveFromWorld();
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         }
@@ -127,64 +131,51 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
     SetNeedsRepaintFlag();
 }
 
-Scene* UIStage::GetScene() const
-{
-    if (Scene* uiObjectScene = UIObject::GetScene())
-    {
-        return uiObjectScene;
-    }
-
-    return m_scene.Get();
-}
-
-void UIStage::SetScene(const Handle<Scene>& scene)
+void UIStage::SetScene(Scene* scene)
 {
     HYP_SCOPE;
 
-    Handle<Scene> newScene = scene;
+    UIObject::SetScene(scene);
 
-    if (!newScene.IsValid())
+    if (scene == nullptr || scene == m_stageSceneWeak.GetUnsafe())
     {
-        const ThreadId ownerThreadId = m_scene.IsValid() ? m_scene->GetOwnerThreadId() : ThreadId::Current();
+        // set to our own scene
+        if (!m_stageScene.IsValid())
+        {
+            // we're already set to our own scene if the strong reference is invalid but the weak reference is valid
+            Assert(m_stageSceneWeak.IsValid());
+            return;
+        }
 
-        newScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
-        newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
-        newScene->SetRoot(CreateObject<Entity>());
-    }
+        // set now to our own scene
+        m_stageScene = m_stageSceneWeak.Lock();
+        Assert(m_stageScene.IsValid());
 
-    if (newScene == m_scene)
-    {
+        // Add ourselves to stage scene by default
+        m_stageScene->SetRoot(MakeStrongRef(this));
+
+        // add to default world if no world set
+        if (!m_stageScene->GetWorld())
+        {
+            g_engineDriver->GetDefaultWorld()->AddScene(m_stageScene);
+        }
+
         return;
     }
 
-    if (m_scene)
+    // changing from our own scene to another scene,
+    // need to lock stage scene (and remove this root)
+    if (m_stageSceneWeak.IsValid() && !m_stageScene.IsValid())
     {
-        Handle<Node> currentRootNode;
+        m_stageScene = m_stageSceneWeak.Lock();
+        Assert(m_stageScene.IsValid());
 
-        currentRootNode = m_scene->GetRoot();
-        Assert(currentRootNode.IsValid());
+        m_stageScene->RemoveFromWorld();
 
-        currentRootNode->Remove();
-
-        newScene->SetRoot(std::move(currentRootNode));
-
-        m_scene->RemoveFromWorld();
-        m_scene.Reset();
+        // temporary root
+        m_stageScene->SetRoot(CreateObject<Node>());
+        m_stageScene->GetRoot()->SetName(NAME_FMT("{}_TempRoot", GetName()));
     }
-
-    Handle<Node> cameraNode = newScene->GetRoot()->AddChild();
-    cameraNode->SetName(NAME_FMT("{}_Camera", GetName()));
-    cameraNode->AddChild(m_camera);
-
-    m_scene = std::move(newScene);
-
-    // If no World is set for the scene, use default world
-    if (m_scene && !m_scene->GetWorld())
-    {
-        g_engineDriver->GetDefaultWorld()->AddScene(m_scene);
-    }
-
-    InitObject(m_scene);
 }
 
 const RC<FontAtlas>& UIStage::GetDefaultFontAtlas() const
@@ -261,12 +252,30 @@ void UIStage::Init()
         }
     }
 
-    // Will create a new Scene
-    SetScene(nullptr);
-
-    SetNodeProxy(m_scene->GetRoot());
-
     UIObject::Init();
+
+    // create a new Scene for this stage
+    const ThreadId ownerThreadId = ThreadId::Current();
+
+    m_stageScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
+    m_stageScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
+    InitObject(m_stageScene);
+
+    Handle<Node> cameraNode = m_stageScene->GetRoot()->AddChild();
+    cameraNode->SetName(NAME_FMT("{}_Camera", GetName()));
+    cameraNode->AddChild(m_camera);
+
+    m_stageSceneWeak = m_stageScene.ToWeak();
+
+    // Add ourselves to stage scene by default
+    m_stageScene->SetRoot(MakeStrongRef(this));
+
+    g_engineDriver->GetDefaultWorld()->AddScene(m_stageScene);
+
+    UIObject::SetScene(m_stageScene);
+
+    // release strong reference to avoid cyclic reference (keep weak reference around)
+    m_stageScene.Reset();
 }
 
 void UIStage::AddChildUIObject(const Handle<UIObject>& uiObject)
@@ -315,10 +324,6 @@ void UIStage::OnAttached_Internal(UIObject* parent)
     AssertOnOwnerThread();
 
     Assert(parent != nullptr);
-    Assert(parent->GetNode() != nullptr);
-
-    // Set root to be empty node proxy, now that it is attached to another object.
-    m_scene->SetRoot(Handle<Node>::empty);
 
     OnAttached();
 }
@@ -328,8 +333,8 @@ void UIStage::OnRemoved_Internal()
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    // Re-set scene root to be our node proxy
-    m_scene->SetRoot(m_node);
+    // move back over to our own scene
+    SetScene(m_stageSceneWeak.GetUnsafe());
 
     OnRemoved();
 }
@@ -428,7 +433,7 @@ void UIStage::SetFocusedObject(const Handle<UIObject>& uiObject)
     {
         return;
     }
-    
+
     if (Handle<UIStage> parentStage = GetClosestParentUIObject<UIStage>())
     {
         parentStage->SetFocusedObject(uiObject);
@@ -984,24 +989,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
     }
 
     return eventHandlerResult;
-}
-
-bool UIStage::Remove(const Entity* entity)
-{
-    HYP_SCOPE;
-    AssertOnOwnerThread();
-
-    if (!m_scene.IsValid())
-    {
-        return false;
-    }
-
-    if (!GetNode())
-    {
-        return false;
-    }
-
-    return GetNode()->RemoveChild(entity);
 }
 
 } // namespace hyperion

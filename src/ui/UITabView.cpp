@@ -213,10 +213,7 @@ void UITabView::SetSelectedTabIndex(uint32 index)
 
     m_selectedTabIndex = index;
 
-    if (Handle<Node> node = m_container->GetNode())
-    {
-        node->RemoveAllChildren();
-    }
+    m_container->RemoveAllChildUIObjects();
 
     for (SizeType i = 0; i < m_tabs.Size(); i++)
     {

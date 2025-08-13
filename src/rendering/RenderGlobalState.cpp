@@ -259,6 +259,7 @@ struct ResourceBindings
 #ifdef HYP_DEBUG_MODE
         Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 #endif
+        // cache for O(1) retrieval time next go around
         auto cacheIt = cache.Find(typeId);
         if (cacheIt != cache.End())
         {
@@ -267,53 +268,31 @@ struct ResourceBindings
 
         const HypClass* hypClass = GetClass(typeId);
         AssertDebug(hypClass != nullptr, "TypeId {} does not have a HypClass!", typeId.Value());
+        
+        const HypClass* currClass = hypClass;
 
-        int staticIndex = hypClass->GetStaticIndex();
-        AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *hypClass->GetName());
-
-        SubtypeResourceBindings* bindings = subtypeBindings.TryGet(staticIndex);
+        SubtypeResourceBindings* bindings = nullptr;
+        
+        while (currClass != nullptr)
+        {
+            int staticIndex = currClass->GetStaticIndex();
+            AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *currClass->GetName());
+            
+            bindings = subtypeBindings.TryGet(staticIndex);
+            
+            if (bindings != nullptr)
+            {
+                break;
+            }
+            
+            currClass = currClass->GetParent();
+        }
+        
         AssertDebug(bindings != nullptr, "No SubtypeBindings container found for {}", hypClass->GetName());
 
         cache[typeId] = bindings;
 
         return *bindings;
-
-#if 0
-        auto cacheIt = cache.Find(typeId);
-        if (cacheIt != cache.End())
-        {
-            return *cacheIt->second;
-        }
-
-        const HypClass* hypClass = GetClass(typeId);
-        AssertDebug(hypClass != nullptr, "TypeId {} does not have a HypClass!", typeId.Value());
-
-        const HypClass* originalClass = hypClass;
-
-        int staticIndex = -1;
-
-        do
-        {
-            staticIndex = hypClass->GetStaticIndex();
-            AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *hypClass->GetName());
-
-            if (SubtypeResourceBindings* bindings = subtypeBindings.TryGet(staticIndex))
-            {
-                cache[typeId] = bindings;
-
-                return *bindings;
-            }
-
-            HYP_LOG_TEMP("Could not find subtype bindings for {}", hypClass->GetName());
-
-            hypClass = hypClass->GetParent();
-        }
-        while (hypClass);
-#endif
-
-        HYP_FAIL(
-            "No SubtypeBindings container found for TypeId %u (HypClass: %s). Missing DECLARE_RENDER_DATA_CONTAINER() macro invocation for type?",
-            typeId.Value(), *GetClass(typeId)->GetName());
     }
 };
 

@@ -74,7 +74,13 @@ public:
         outDelta = nextValue - m_value;
 
         // T nextValue = m_value + (m_target - m_value) * T(std::log(1.0 + 25.0 * m_fract) / std::log(1.0 + 25.0));
-        const bool changed = m_value != nextValue; //! MathUtil::ApproxEqual(m_value, m_target);
+        bool changed = m_value != nextValue;
+
+        if (!changed && MathUtil::ApproxEqual(m_value, m_target))
+        {
+            nextValue = m_target;
+            changed = false;
+        }
 
         m_value = nextValue;
 
