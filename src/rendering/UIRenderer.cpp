@@ -146,7 +146,10 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
             InitObject(rg);
         }
 
-        mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
+        const int subclassIndex = GetSubclassIndex(TypeId::ForType<Entity>(), meshProxy->entity.Id().GetTypeId());
+        Assert(subclassIndex >= 0 && subclassIndex < mapping.meshProxiesBySubtype.Size());
+
+        mapping.meshProxiesBySubtype[subclassIndex].Set(meshProxy->entity.Id().ToIndex(), meshProxy);
     }
 }
 

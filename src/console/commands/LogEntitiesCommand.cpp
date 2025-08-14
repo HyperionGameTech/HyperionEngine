@@ -72,7 +72,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
         if (!entityManager->GetScene())
         {
-            return;
+            return {};
         }
 
         entityManagerJson["scene"] = entityManager->GetScene()->GetName().LookupString();

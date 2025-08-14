@@ -27,8 +27,7 @@ namespace hyperion {
 
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
-    // For now, use Entity ID as index.
-    RenderApi_AssignResourceBinding(entity, entity->Id().ToIndex());
+    RenderApi_AssignResourceBinding(entity, next);
 }
 
 void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -39,9 +38,7 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
     RenderProxyMesh* proxyCasted = static_cast<RenderProxyMesh*>(proxy);
     AssertDebug(proxyCasted != nullptr);
 
-    AssertDebug(idx == proxyCasted->entity.Id().ToIndex());
-
-    proxyCasted->bufferData.entityIndex = proxyCasted->entity.Id().ToIndex();
+    proxyCasted->bufferData.entityIndex = RenderApi_RetrieveResourceBinding(proxyCasted->entity.Id());
     proxyCasted->bufferData.materialIndex = RenderApi_RetrieveResourceBinding(proxyCasted->material.Id());
     proxyCasted->bufferData.skeletonIndex = RenderApi_RetrieveResourceBinding(proxyCasted->skeleton.Id());
 

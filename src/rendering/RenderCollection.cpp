@@ -34,6 +34,8 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <core/object/HypClass.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -45,6 +47,20 @@
 namespace hyperion {
 
 static constexpr bool doParallelCollection = false; // true;
+
+/// FIXME: Refactor to not need meshProxiesBySubtype / previousAttributesBySubtype.
+
+#pragma region DrawCallCollectionMapping
+
+DrawCallCollectionMapping::DrawCallCollectionMapping()
+{
+    const HypClass* entityClass = Entity::Class();
+    AssertDebug(entityClass != nullptr);
+
+    meshProxiesBySubtype.Resize(entityClass->GetNumDescendants() + 1);
+}
+
+#pragma endregion DrawCallCollectionMapping
 
 #pragma region RenderProxyList
 
@@ -530,6 +546,7 @@ RenderCollector::RenderCollector()
       drawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>()),
       renderGroupFlags(RenderGroupFlags::DEFAULT)
 {
+    previousAttributesBySubtype.Resize(Entity::Class()->GetNumDescendants() + 1);
 }
 
 RenderCollector::~RenderCollector()
@@ -567,7 +584,11 @@ void RenderCollector::Clear(bool freeMemory)
         for (auto& it : mappings)
         {
             DrawCallCollectionMapping& mapping = it.second;
-            mapping.meshProxies.Clear(/* deletePages */ freeMemory);
+
+            for (auto& meshProxies : mapping.meshProxiesBySubtype)
+            {
+                meshProxies.Clear(/* deletePages */ freeMemory);
+            }
 
             if (freeMemory && mapping.indirectRenderer)
             {
@@ -872,7 +893,18 @@ void RenderCollector::RemoveEmptyRenderGroups()
             DrawCallCollectionMapping& mapping = it->second;
             AssertDebug(mapping.IsValid());
 
-            if (mapping.meshProxies.Any())
+            bool anyMeshProxies = false;
+
+            for (auto &meshProxies : mapping.meshProxiesBySubtype)
+            {
+                if (meshProxies.Any())
+                {
+                    anyMeshProxies = true;
+                    break;
+                }
+            }
+
+            if (anyMeshProxies)
             {
                 ++it;
 
@@ -934,9 +966,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : changedIds)
         {
-            const uint32 idx = id.ToIndex();
+            const int subclassIndex = GetSubclassIndex(TypeId::ForType<Entity>(), id.GetTypeId()) + 1;
+            AssertDebug(subclassIndex >= 0 && subclassIndex < previousAttributesBySubtype.Size(),
+                "Bad TypeId: {} is not a equal to nor a subclass of Entity", LookupTypeName(id.GetTypeId()));
 
-            RenderableAttributeSet* cachedAttributes = previousAttributes.TryGet(id.ToIndex());
+            RenderableAttributeSet* cachedAttributes = previousAttributesBySubtype[subclassIndex].TryGet(id.ToIndex());
             AssertDebug(cachedAttributes != nullptr);
 
             // remove from prev
@@ -946,8 +980,13 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             Assert(it != prevMappings.End());
 
             DrawCallCollectionMapping& prevMapping = it->second;
+            Assert(subclassIndex >= 0 && subclassIndex < prevMapping.meshProxiesBySubtype.Size());
 
-            RenderProxyMesh* meshProxy = prevMapping.meshProxies.Get(idx);
+            auto& prevMeshProxies = prevMapping.meshProxiesBySubtype[subclassIndex];
+
+            const uint32 idx = id.ToIndex();
+
+            RenderProxyMesh* meshProxy = prevMeshProxies.Get(idx);
             AssertDebug(meshProxy != nullptr);
 
             RenderableAttributeSet newAttributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
@@ -972,8 +1011,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             AssertDebug(meshProxy->mesh.IsValid() && meshProxy->material.IsValid());
 
-            prevMapping.meshProxies.EraseAt(idx);
-            newMapping.meshProxies.Set(idx, meshProxy);
+            prevMeshProxies.EraseAt(idx);
+            newMapping.meshProxiesBySubtype[subclassIndex].Set(idx, meshProxy);
 
             *cachedAttributes = newAttributes;
         }
@@ -997,11 +1036,15 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 continue;
             }
 
+            const int subclassIndex = GetSubclassIndex(TypeId::ForType<Entity>(), id.GetTypeId()) + 1;
+            AssertDebug(subclassIndex >= 0 && subclassIndex < previousAttributesBySubtype.Size(),
+                "Bad TypeId: {} is not a equal to nor a subclass of Entity", LookupTypeName(id.GetTypeId()));
+
             const uint32 idx = id.ToIndex();
 
-            AssertDebug(previousAttributes.HasIndex(idx));
+            AssertDebug(previousAttributesBySubtype[subclassIndex].HasIndex(idx));
 
-            const RenderableAttributeSet& attributes = previousAttributes.Get(idx);
+            const RenderableAttributeSet& attributes = previousAttributesBySubtype[subclassIndex].Get(idx);
 
             auto& mappings = mappingsByBucket[attributes.GetMaterialAttributes().bucket];
 
@@ -1011,10 +1054,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             DrawCallCollectionMapping& mapping = it->second;
             Assert(mapping.IsValid());
 
-            AssertDebug(mapping.meshProxies.HasIndex(idx));
-            mapping.meshProxies.EraseAt(idx);
+            auto& meshProxies = mapping.meshProxiesBySubtype[subclassIndex];
+            AssertDebug(meshProxies.HasIndex(idx));
+            meshProxies.EraseAt(idx);
 
-            previousAttributes.EraseAt(idx);
+            previousAttributesBySubtype[idx].EraseAt(idx);
         }
     }
 
@@ -1022,6 +1066,10 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : added)
         {
+            const int subclassIndex = GetSubclassIndex(TypeId::ForType<Entity>(), id.GetTypeId()) + 1;
+            AssertDebug(subclassIndex >= 0 && subclassIndex < previousAttributesBySubtype.Size(),
+                "Bad TypeId: {} is not a equal to nor a subclass of Entity", LookupTypeName(id.GetTypeId()));
+
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
@@ -1030,6 +1078,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             // Add proxy to group
             DrawCallCollectionMapping& mapping = mappingsByBucket[attributes.GetMaterialAttributes().bucket][attributes];
+
+            auto& meshProxies = mapping.meshProxiesBySubtype[subclassIndex];
+
             Handle<RenderGroup>& rg = mapping.renderGroup;
 
             if (!rg.IsValid())
@@ -1041,8 +1092,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             const uint32 idx = id.ToIndex();
 
-            mapping.meshProxies.Set(idx, const_cast<RenderProxyMesh*>(meshProxy));
-            previousAttributes.Set(idx, attributes);
+            meshProxies.Set(idx, const_cast<RenderProxyMesh*>(meshProxy));
+            previousAttributesBySubtype[subclassIndex].Set(idx, attributes);
         }
     }
 }
@@ -1104,52 +1155,55 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         drawCallCollection.impl = drawCallCollectionImpl;
         drawCallCollection.renderGroup = mapping.renderGroup;
 
-        for (RenderProxyMesh* meshProxy : mapping.meshProxies)
+        for (auto& meshProxies : mapping.meshProxiesBySubtype)
         {
-            AssertDebug(meshProxy->mesh.IsValid() && meshProxy->mesh->IsReady());
-            AssertDebug(meshProxy->material.IsValid() && meshProxy->material->IsReady());
-
-            if (meshProxy->instanceData.numInstances == 0)
+            for (RenderProxyMesh* meshProxy : meshProxies)
             {
-                continue;
-            }
+                AssertDebug(meshProxy->mesh.IsValid() && meshProxy->mesh->IsReady());
+                AssertDebug(meshProxy->material.IsValid() && meshProxy->material->IsReady());
 
-            DrawCallID drawCallId;
-
-            if (uniquePerMaterial)
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
-            }
-            else
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id());
-            }
-
-            if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
-            {
-                drawCallCollection.PushRenderProxy(drawCallId, *meshProxy); // NOLINT(bugprone-use-after-move)
-
-                continue;
-            }
-
-            EntityInstanceBatch* batch = nullptr;
-
-            if (previousDrawState.IsValid())
-            {
-                // take a batch for reuse if a draw call was using one
-                if ((batch = previousDrawState.TakeDrawCallBatch(drawCallId)) != nullptr)
+                if (meshProxy->instanceData.numInstances == 0)
                 {
-                    const uint32 batchIndex = batch->batchIndex;
-                    AssertDebug(batchIndex != ~0u);
-
-                    // Reset it
-                    *batch = EntityInstanceBatch { batchIndex };
-
-                    drawCallCollection.impl->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
+                    continue;
                 }
-            }
 
-            drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
+                DrawCallID drawCallId;
+
+                if (uniquePerMaterial)
+                {
+                    drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
+                }
+                else
+                {
+                    drawCallId = DrawCallID(meshProxy->mesh->Id());
+                }
+
+                if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
+                {
+                    drawCallCollection.PushRenderProxy(drawCallId, *meshProxy); // NOLINT(bugprone-use-after-move)
+
+                    continue;
+                }
+
+                EntityInstanceBatch* batch = nullptr;
+
+                if (previousDrawState.IsValid())
+                {
+                    // take a batch for reuse if a draw call was using one
+                    if ((batch = previousDrawState.TakeDrawCallBatch(drawCallId)) != nullptr)
+                    {
+                        const uint32 batchIndex = batch->batchIndex;
+                        AssertDebug(batchIndex != ~0u);
+
+                        // Reset it
+                        *batch = EntityInstanceBatch { batchIndex };
+
+                        drawCallCollection.impl->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
+                    }
+                }
+
+                drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
+            }
         }
 
         if (previousDrawState.IsValid())

@@ -77,10 +77,12 @@ struct ParallelRenderingState
 struct DrawCallCollectionMapping
 {
     Handle<RenderGroup> renderGroup;
-    // map entity id to mesh proxy
-    SparsePagedArray<RenderProxyMesh*, 128> meshProxies;
+    // map entity id to mesh proxy, for each subclass of Entity
+    Array<SparsePagedArray<RenderProxyMesh*, 128>> meshProxiesBySubtype;
     DrawCallCollection drawCallCollection;
     IndirectRenderer* indirectRenderer = nullptr;
+
+    DrawCallCollectionMapping();
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -239,7 +241,7 @@ public:
     ParallelRenderingState* parallelRenderingStateTail;
 
     // map entity id to previous attribute set (for draw call collection)
-    SparsePagedArray<RenderableAttributeSet, 128> previousAttributes;
+    Array<SparsePagedArray<RenderableAttributeSet, 128>> previousAttributesBySubtype;
 
     FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, RB_MAX> mappingsByBucket;
 

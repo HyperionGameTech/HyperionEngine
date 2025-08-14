@@ -85,7 +85,7 @@ void RenderApi_UpdateGpuData(ObjIdBase resourceId);
 void RenderApi_AssignResourceBinding(HypObjectBase* resource, uint32 binding);
 // used on render thread only - retrieves the binding set for the given resource (~0u if unset)
 uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource);
-uint32 RenderApi_RetrieveResourceBinding(ObjIdBase resourceId);
+uint32 RenderApi_RetrieveResourceBinding(const ObjIdBase& resourceId);
 
 WorldShaderData* RenderApi_GetWorldBufferData();
 

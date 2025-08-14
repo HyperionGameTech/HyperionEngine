@@ -199,7 +199,7 @@ public:
      * \param name The name of the Node.
      * \param localTransform An optional parameter representing the local-space transform of this Node.
      */
-    Node(Name name = Name::Invalid(), const Transform& localTransform = Transform::identity, Scene* scene = nullptr);
+    Node(Name name = Name::Invalid(), const Transform& localTransform = Transform(), Scene* scene = nullptr);
 
     Node(const Node& other) = delete;
     Node& operator=(const Node& other) = delete;

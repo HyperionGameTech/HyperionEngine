@@ -331,7 +331,7 @@ static void RenderAll(
             // @TODO: Build out initial offset map, store indices as variables so we don't need to use string / name every time.
             ArrayMap<WeakName, uint32> offsets;
             offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
-            offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.entityId.ToIndex());
+            offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.meshEntityBinding);
 
             if (g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
             {
@@ -544,7 +544,7 @@ static void RenderAll_Parallel(
                     {
                         ArrayMap<WeakName, uint32> offsets;
                         offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
-                        offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.entityId.ToIndex());
+                        offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.meshEntityBinding);
 
                         if (g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
                         {

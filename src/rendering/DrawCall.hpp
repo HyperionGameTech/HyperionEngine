@@ -112,7 +112,7 @@ struct DrawCallBase
 /*! \brief Non-instanced draw call for a single entity  */
 struct DrawCall : DrawCallBase
 {
-    ObjId<Entity> entityId;
+    uint32 meshEntityBinding = ~0u;
 };
 
 /*! \brief A draw call for multiple entities sharing the same mesh and material */
@@ -121,7 +121,7 @@ struct InstancedDrawCall : DrawCallBase
     EntityInstanceBatch* batch = nullptr;
 
     uint32 count = 0;
-    ObjId<Entity> entityIds[maxEntitiesPerInstanceBatch];
+    uint32 meshEntityBindings[maxEntitiesPerInstanceBatch];
 };
 
 /// TODO: Refactor to a basic desc struct for Batch size info,
@@ -199,7 +199,7 @@ struct DrawCallCollection
     /*! \brief Push \ref{numInstances} instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<Entity> entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset);
+    uint32 PushMeshEntityToBatch(InstancedDrawCall& drawCall, const MeshInstanceData& meshInstanceData, uint32 meshEntityBinding, uint32 numInstances, uint32 instanceOffset);
 
     IDrawCallCollectionImpl* impl;
 

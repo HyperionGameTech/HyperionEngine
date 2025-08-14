@@ -176,7 +176,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall& drawCall, DrawCommandData& 
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     ObjectInstance& instance = m_objectInstances.EmplaceBack();
-    instance.entityId = drawCall.entityId.Value();
+    instance.meshEntityBinding = drawCall.meshEntityBinding;
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
 
@@ -200,7 +200,7 @@ void IndirectDrawState::PushInstancedDrawCall(const InstancedDrawCall& drawCall,
     for (uint32 index = 0; index < drawCall.count; index++)
     {
         ObjectInstance& instance = m_objectInstances.EmplaceBack();
-        instance.entityId = drawCall.entityIds[index].Value();
+        instance.meshEntityBinding = drawCall.meshEntityBindings[index];
         instance.drawCommandIndex = drawCommandIndex;
         instance.batchIndex = drawCall.batch->batchIndex;
     }

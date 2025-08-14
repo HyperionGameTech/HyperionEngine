@@ -68,7 +68,7 @@ void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& r
     drawCall.mesh = renderProxy.mesh.Get();
     drawCall.material = renderProxy.material.Get();
     drawCall.skeleton = renderProxy.skeleton.Get();
-    drawCall.entityId = renderProxy.entity.Id();
+    drawCall.meshEntityBinding = RenderApi_RetrieveResourceBinding(renderProxy.entity.Id());
     drawCall.drawCommandIndex = ~0u;
 }
 
@@ -134,7 +134,10 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
             batch = nullptr;
         }
 
-        const uint32 remainingInstances = PushEntityToBatch(*drawCall, renderProxy.entity.Id(), renderProxy.instanceData, numInstances, instanceOffset);
+        const uint32 meshEntityBinding = RenderApi_RetrieveResourceBinding(renderProxy.entity.Id());
+        Assert(meshEntityBinding != ~0u);
+
+        const uint32 remainingInstances = PushMeshEntityToBatch(*drawCall, renderProxy.instanceData, meshEntityBinding, numInstances, instanceOffset);
 
         instanceOffset += numInstances - remainingInstances;
         numInstances = remainingInstances;
@@ -200,8 +203,10 @@ void DrawCallCollection::ResetDrawCalls()
     instancedDrawCallIndexMap.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<Entity> entityId, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset)
+uint32 DrawCallCollection::PushMeshEntityToBatch(InstancedDrawCall& drawCall, const MeshInstanceData& meshInstanceData, uint32 meshEntityBinding, uint32 numInstances, uint32 instanceOffset)
 {
+    AssertDebug(meshEntityBinding != ~0u);
+
 #ifdef HYP_DEBUG_MODE // Sanity check
     Assert(numInstances <= meshInstanceData.numInstances);
 
@@ -219,9 +224,9 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
     {
         while (drawCall.batch->numEntities < maxEntitiesPerInstanceBatch && numInstances != 0)
         {
-            const uint32 entityIndex = drawCall.batch->numEntities++;
+            const uint32 idx = drawCall.batch->numEntities++;
 
-            drawCall.batch->indices[entityIndex] = uint32(entityId.ToIndex());
+            drawCall.batch->indices[idx] = meshEntityBinding;
 
             // Starts at the offset of `transforms` in EntityInstanceBatch - data in buffers is expected to be
             // after the `indices` element
@@ -238,13 +243,13 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, bufferStructAlignment);
 
-                void* dstPtr = reinterpret_cast<void*>((uintptr_t(drawCall.batch)) + fieldOffset + (entityIndex * bufferStructSize));
+                void* dstPtr = reinterpret_cast<void*>((uintptr_t(drawCall.batch)) + fieldOffset + (idx * bufferStructSize));
                 void* srcPtr = reinterpret_cast<void*>(uintptr_t(meshInstanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
 
                 // sanity checks
                 AssertDebug((uintptr_t(dstPtr) + bufferStructSize) - uintptr_t(drawCall.batch) <= batchSizeof,
-                    "Buffer struct size is larger than batch size! Buffer struct size: %u, Buffer struct alignment: %u, Batch size: %u, Entity index: %u, Field offset: %u",
-                    bufferStructSize, bufferStructAlignment, batchSizeof, entityIndex, fieldOffset);
+                    "Buffer struct size is larger than batch size! Buffer struct size: %u, Buffer struct alignment: %u, Batch size: %u, MeshEntity Index: %u, Field offset: %u",
+                    bufferStructSize, bufferStructAlignment, batchSizeof, idx, fieldOffset);
                 AssertDebug(meshInstanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,
                     "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
                     meshInstanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
@@ -256,7 +261,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
             instanceOffset++;
 
-            drawCall.entityIds[drawCall.count++] = entityId;
+            drawCall.meshEntityBindings[drawCall.count++] = meshEntityBinding;
 
             --numInstances;
 
@@ -267,12 +272,12 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
     {
         while (drawCall.batch->numEntities < maxEntitiesPerInstanceBatch && numInstances != 0)
         {
-            const uint32 entityIndex = drawCall.batch->numEntities++;
+            const uint32 idx = drawCall.batch->numEntities++;
 
-            drawCall.batch->indices[entityIndex] = uint32(entityId.ToIndex());
-            drawCall.batch->transforms[entityIndex] = Matrix4::identity;
+            drawCall.batch->indices[idx] = meshEntityBinding;
+            drawCall.batch->transforms[idx] = Matrix4::identity;
 
-            drawCall.entityIds[drawCall.count++] = entityId;
+            drawCall.meshEntityBindings[drawCall.count++] = meshEntityBinding;
 
             --numInstances;
 

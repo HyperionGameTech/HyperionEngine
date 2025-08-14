@@ -153,7 +153,8 @@ struct ResourceBindings
         }
     };
 
-    SparsePagedArray<SubtypeResourceBindings, 16> subtypeBindings;
+    LinkedList<SubtypeResourceBindings> subtypeBindingsAllocs;
+    SparsePagedArray<SubtypeResourceBindings*, 64> subtypeBindings;
     HashMap<TypeId, SubtypeResourceBindings*> cache;
 
     ResourceBindingAllocator<> meshEntityBindingsAllocator;
@@ -195,7 +196,7 @@ struct ResourceBindings
     void Assign(HypObjectBase* resource, uint32 binding)
     {
 #ifdef HYP_DEBUG_MODE
-        Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+        Threads::AssertOnThread(g_renderThread);
 #endif
 
         AssertDebug(resource != nullptr);
@@ -245,10 +246,15 @@ struct ResourceBindings
             return Pair<uint32, void*>(~0u, nullptr); // invalid resource
         }
 
-        const SubtypeResourceBindings& bindings = const_cast<ResourceBindings*>(this)->GetSubtypeBindings(resourceId.GetTypeId());
+        const SubtypeResourceBindings* bindings = GetCachedSubtypeBindings(resourceId.GetTypeId());
+        AssertDebug(bindings != nullptr, "Failed to retrieve resource binding for resource with ID: {}; No Subtype bindings cached! (therefore, it wasn't bound)", resourceId);
 
-        const auto* elem = bindings.indexAndMapping.TryGet(resourceId.ToIndex());
+        if (!bindings)
+        {
+            return Pair<uint32, void*>(~0u, nullptr);
+        }
 
+        const auto* elem = bindings->indexAndMapping.TryGet(resourceId.ToIndex());
         AssertDebug(elem != nullptr, "Failed to retrieve resource binding for resource with ID: {}", resourceId);
 
         return elem ? *elem : Pair<uint32, void*>(~0u, nullptr);
@@ -257,42 +263,61 @@ struct ResourceBindings
     SubtypeResourceBindings& GetSubtypeBindings(TypeId typeId)
     {
 #ifdef HYP_DEBUG_MODE
-        Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+        Threads::AssertOnThread(g_renderThread);
 #endif
-        // cache for O(1) retrieval time next go around
-        auto cacheIt = cache.Find(typeId);
-        if (cacheIt != cache.End())
-        {
-            return *cacheIt->second;
-        }
 
         const HypClass* hypClass = GetClass(typeId);
         AssertDebug(hypClass != nullptr, "TypeId {} does not have a HypClass!", typeId.Value());
         
         const HypClass* currClass = hypClass;
+        int currStaticIndex = hypClass->GetStaticIndex();
 
-        SubtypeResourceBindings* bindings = nullptr;
+        SubtypeResourceBindings* pBindings = nullptr;
         
         while (currClass != nullptr)
         {
-            int staticIndex = currClass->GetStaticIndex();
-            AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *currClass->GetName());
+            AssertDebug(currStaticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *currClass->GetName());
             
-            bindings = subtypeBindings.TryGet(staticIndex);
+            SubtypeResourceBindings** ppBindings = subtypeBindings.TryGet(currStaticIndex);
             
-            if (bindings != nullptr)
+            if (ppBindings)
             {
+                pBindings = *ppBindings;
                 break;
             }
             
             currClass = currClass->GetParent();
+
+            if (currClass)
+            {
+                currStaticIndex = currClass->GetStaticIndex();
+            }
         }
         
-        AssertDebug(bindings != nullptr, "No SubtypeBindings container found for {}", hypClass->GetName());
+        AssertDebug(pBindings != nullptr, "No SubtypeBindings container found for {}", hypClass->GetName());
 
-        cache[typeId] = bindings;
+        if (currClass != hypClass)
+        {
+            // save for next time
+            subtypeBindings.Set(currStaticIndex, pBindings);
+        }
 
-        return *bindings;
+        return *pBindings;
+    }
+
+    const SubtypeResourceBindings* GetCachedSubtypeBindings(TypeId typeId) const
+    {
+#ifdef HYP_DEBUG_MODE
+        Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+#endif
+
+        auto cacheIt = cache.Find(typeId);
+        if (cacheIt == cache.End())
+        {
+            return nullptr;
+        }
+
+        return cacheIt->second;
     }
 };
 
@@ -479,8 +504,9 @@ struct ResourceContainerFactory
 
                 if (!resourceBindings.subtypeBindings.HasIndex(staticIndex))
                 {
-                    // add new ResourceSubtypeBindings slot for the given class
-                    resourceBindings.subtypeBindings.Emplace(staticIndex, resourceClass, gpuBufferHolder);
+                    // add new SubtypeResourceBindings slot for the given class
+                    ResourceBindings::SubtypeResourceBindings& bindings = resourceBindings.subtypeBindingsAllocs.EmplaceBack(resourceClass, gpuBufferHolder);
+                    resourceBindings.subtypeBindings.Set(staticIndex, &bindings);
                 }
 
                 AssertDebug(!container.dataByType.HasIndex(staticIndex),
@@ -949,7 +975,7 @@ uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource)
     return g_renderGlobalState->resourceBindings->Retrieve(resource).first;
 }
 
-uint32 RenderApi_RetrieveResourceBinding(ObjIdBase resourceId)
+uint32 RenderApi_RetrieveResourceBinding(const ObjIdBase& resourceId)
 {
 #ifdef HYP_DEBUG_MODE
     // FIXME: Add better check to ensure it is from a render task thread.

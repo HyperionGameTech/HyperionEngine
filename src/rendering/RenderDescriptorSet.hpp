@@ -43,7 +43,9 @@ HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 class IRenderProxy;
 class HypObjectBase;
+struct ObjIdBase;
 
+uint32 RenderApi_RetrieveResourceBinding(const ObjIdBase& resourceId);
 uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource);
 
 template <class T>
@@ -55,6 +57,21 @@ struct ShaderDataOffset
 
     explicit ShaderDataOffset(uint32 index)
         : index(index)
+    {
+    }
+
+    explicit ShaderDataOffset(const ObjIdBase& resourceId, uint32 indexIfNull = invalidIndex)
+        : index(indexIfNull)
+    {
+        if (uint32 idx = RenderApi_RetrieveResourceBinding(resourceId); idx != ~0u)
+        {
+            index = idx;
+        }
+    }
+
+    template <class THypObject>
+    explicit ShaderDataOffset(const Handle<THypObject>& resource, uint32 indexIfNull = invalidIndex)
+        : ShaderDataOffset((HypObjectBase*)resource.Get(), indexIfNull)
     {
     }
 

@@ -31,7 +31,7 @@ class IDrawCallCollectionImpl;
 
 struct alignas(16) ObjectInstance
 {
-    uint32 entityId;
+    uint32 meshEntityBinding;
     uint32 drawCommandIndex;
     uint32 batchIndex;
 };
