@@ -266,11 +266,19 @@ struct ResourceBindings
         Threads::AssertOnThread(g_renderThread);
 #endif
 
+        /*auto cacheIt = cache.Find(typeId);
+        if (cacheIt != cache.End())
+        {
+            return *cacheIt->second;
+        }*/
+
         const HypClass* hypClass = GetClass(typeId);
         AssertDebug(hypClass != nullptr, "TypeId {} does not have a HypClass!", typeId.Value());
+
+        const int staticIndex = hypClass->GetStaticIndex();
         
         const HypClass* currClass = hypClass;
-        int currStaticIndex = hypClass->GetStaticIndex();
+        int currStaticIndex = staticIndex;
 
         SubtypeResourceBindings* pBindings = nullptr;
         
@@ -299,8 +307,11 @@ struct ResourceBindings
         if (currClass != hypClass)
         {
             // save for next time
-            subtypeBindings.Set(currStaticIndex, pBindings);
+            subtypeBindings.Set(staticIndex, pBindings);
+            HYP_LOG(Rendering, Debug, "Initialize pBindings to {} for {} (si: {}, pBindings: {})", currClass->GetName(), hypClass->GetName(), staticIndex, (void*)pBindings);
         }
+        
+        //cache[typeId] = pBindings;
 
         return *pBindings;
     }
@@ -310,14 +321,34 @@ struct ResourceBindings
 #ifdef HYP_DEBUG_MODE
         Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 #endif
+        
 
-        auto cacheIt = cache.Find(typeId);
+        const HypClass* hypClass = GetClass(typeId);
+        AssertDebug(hypClass != nullptr, "TypeId {} does not have a HypClass!", typeId.Value());
+        
+        const int staticIndex = hypClass->GetStaticIndex();
+
+        AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *hypClass->GetName());
+            
+        SubtypeResourceBindings* const* ppBindings = subtypeBindings.TryGet(staticIndex);
+
+        if (!ppBindings)
+        {
+            HYP_LOG(Rendering, Debug, "Failed to get pBindings for subtype : {}", hypClass->GetName());
+            return nullptr;
+        }
+        
+        AssertDebug(*ppBindings != nullptr);
+
+        return *ppBindings;
+
+        /*auto cacheIt = cache.Find(typeId);
         if (cacheIt == cache.End())
         {
             return nullptr;
         }
 
-        return cacheIt->second;
+        return cacheIt->second;*/
     }
 };
 

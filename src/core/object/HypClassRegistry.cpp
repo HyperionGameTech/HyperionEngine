@@ -135,7 +135,7 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
 
     HYP_CORE_ASSERT(!m_isInitialized, "Cannot register class - HypClassRegistry instance already initialized");
 
-    HYP_LOG(Object, Debug, "Register class {}", hypClass->GetName());
+    HYP_LOG(Object, Debug, "Register class {} with static index {}", hypClass->GetName(), hypClass->GetStaticIndex());
 
     const auto it = m_registeredClasses.Find(typeId);
     HYP_CORE_ASSERT(it == m_registeredClasses.End(), "Class already registered for type: %s", *hypClass->GetName());
