@@ -430,6 +430,14 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<Ligh
 
     stagingBuffer->Read(sizeof(LightmapHit) * outHits.Size(), outHits.Data());
 
+#ifdef HYP_DEBUG_MODE
+    // nan / infinity check for debugging
+    for (LightmapHit& hit : outHits)
+    {
+        Assert(!MathUtil::IsNaN(hit.color) && MathUtil::IsFinite(hit.color));
+    }
+#endif
+
     SafeDelete(std::move(stagingBuffer));
 }
 

@@ -37,23 +37,26 @@ class ILightmapAccelerationStructure;
 class LightmapJob;
 class LightmapVolume;
 class Lightmapper;
+struct LightmapElement;
 class AssetObject;
 
 class View;
 struct RenderSetup;
 
+HYP_ENUM()
 enum class LightmapTraceMode : int
 {
     GPU_PATH_TRACING = 0,
     CPU_PATH_TRACING,
-    ENV_GRID,
+    ENV_GRID, // unused
 
     MAX
 };
 
-enum class LightmapShadingType
+HYP_ENUM()
+enum class LightmapShadingType : int
 {
-    IRRADIANCE,
+    IRRADIANCE = 0,
     RADIANCE,
     MAX
 };
@@ -237,9 +240,9 @@ public:
         return *m_uvMap;
     }
 
-    HYP_FORCE_INLINE uint32 GetElementIndex() const
+    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
     {
-        return m_elementIndex;
+        return m_lightmapElement;
     }
 
     HYP_FORCE_INLINE Scene* GetScene() const
@@ -337,7 +340,7 @@ protected:
     Optional<LightmapUVMap> m_uvMap;
     Task<TResult<LightmapUVMap>> m_buildUvMapTask;
 
-    uint32 m_elementIndex;
+    LightmapElement* m_lightmapElement;
 
     Array<TaskBatch*> m_currentTasks;
     mutable Mutex m_currentTasksMutex;

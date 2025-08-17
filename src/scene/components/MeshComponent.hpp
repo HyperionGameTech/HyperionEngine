@@ -69,18 +69,18 @@ struct MeshComponent
 
     // 256
 
-    HYP_FIELD(Property = "LightmapVolume", Serialize = false)
+    HYP_FIELD(Serialize = false)
     WeakHandle<LightmapVolume> lightmapVolume;
 
     // 264
 
-    HYP_FIELD(Property = "LightmapVolumeUUID", Serialize = true)
+    HYP_FIELD(Serialize = true)
     UUID lightmapVolumeUuid = UUID::Invalid();
 
     // 280
 
-    HYP_FIELD(Property = "LightmapElementIndex", Serialize = true)
-    uint32 lightmapElementIndex = ~0u;
+    HYP_FIELD(Serialize = true)
+    uint32 lightmapElementId = ~0u;
 
     HYP_FORCE_INLINE bool operator==(const MeshComponent& other) const
     {
@@ -89,7 +89,7 @@ struct MeshComponent
             && skeleton == other.skeleton
             && instanceData == other.instanceData
             && lightmapVolumeUuid == other.lightmapVolumeUuid
-            && lightmapElementIndex == other.lightmapElementIndex;
+            && lightmapElementId == other.lightmapElementId;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MeshComponent& other) const
@@ -111,7 +111,7 @@ struct MeshComponent
         hashCode.Add(skeleton);
         hashCode.Add(instanceData);
         hashCode.Add(lightmapVolumeUuid);
-        hashCode.Add(lightmapElementIndex);
+        hashCode.Add(lightmapElementId);
 
         return hashCode;
     }

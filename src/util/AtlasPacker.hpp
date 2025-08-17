@@ -38,11 +38,12 @@ struct AtlasPacker
     /*! \brief Adds an element to the atlas, if it will fit.
      *  \param elementDimensions The dimensions of the element to add.
      *  \param outElement The element that was added, with its offset, scale and other properties set.
+     *  \param outElementIndex The index that will be assigned when the element is added. Will be set to ~0u if not added.
      *  \param shrinkToFit If true, the dimensions element will be shrunk to fit the atlas if it doesn't fit. Aspect ratio will be maintained.
      *  \param downscaleLimit The lowest downscale ratio compared to `elementDimensions` to apply when shrinking the element to fit before giving up. (default: 0.25 = 25% of `elementDimensions`)
      *  \return True if the element was added successfully, false otherwise.
      */
-    bool AddElement(const Vec2u& elementDimensions, AtlasElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.25f);
+    bool AddElement(const Vec2u& elementDimensions, AtlasElement& outElement, uint32& outElementIndex, bool shrinkToFit = true, float downscaleLimit = 0.25f);
     bool RemoveElement(const AtlasElement& element);
 
     void Clear();
@@ -60,14 +61,16 @@ AtlasPacker<AtlasElement>::AtlasPacker(const Vec2u& atlasDimensions)
 }
 
 template <class AtlasElement>
-bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, AtlasElement& outElement, bool shrinkToFit, float downscaleLimit)
+bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, AtlasElement& outElement, uint32& outElementIndex, bool shrinkToFit, float downscaleLimit)
 {
+    outElementIndex = ~0u;
+
     if (elementDimensions.x == 0 || elementDimensions.y == 0)
     {
         return false;
     }
 
-    auto tryAddElementToSkyline = [this, &outElement](const Vec2u& dim) -> bool
+    auto tryAddElementToSkyline = [this, &outElement, &outElementIndex](const Vec2u& dim) -> bool
     {
         int bestY = INT32_MAX;
         int bestX = -1;
@@ -90,7 +93,8 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
 
         if (bestIndex != -1)
         {
-            outElement.index = elements.Size();
+            outElementIndex = uint32(elements.Size());
+
             outElement.offsetCoords = Vec2u { uint32(bestX), uint32(bestY) };
             outElement.offsetUv = Vec2f(outElement.offsetCoords) / Vec2f(atlasDimensions - 1);
             outElement.dimensions = dim;

@@ -36,6 +36,8 @@ Bitmap_RGBA16F LightmapUVMap::ToBitmapRadiance() const
 
             color /= color.w;
 
+            AssertDebug(!MathUtil::IsNaN(color));
+
             bitmap.GetPixelReference(index).SetRGBA(color);
         }
     }
@@ -63,6 +65,8 @@ Bitmap_RGBA16F LightmapUVMap::ToBitmapIrradiance() const
             }
 
             color /= color.w;
+
+            AssertDebug(!MathUtil::IsNaN(color));
 
             bitmap.GetPixelReference(index).SetRGBA(color);
         }

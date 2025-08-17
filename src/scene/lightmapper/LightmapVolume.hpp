@@ -47,33 +47,50 @@ struct LightmapElementTextureEntry
 HYP_STRUCT(NoScriptBindings)
 struct LightmapElement
 {
-    HYP_FIELD(Property = "Index", Serialize = true)
-    uint32 index = ~0u;
+    using Id = uint32;
 
-    HYP_FIELD(Property = "Entries", Serialize = true)
+    HYP_FIELD(Serialize = true)
+    uint32 id = ~0u;
+
+    HYP_FIELD(Serialize = true)
     Array<LightmapElementTextureEntry> entries;
 
-    HYP_FIELD(Property = "OffsetUV", Serialize = true)
+    HYP_FIELD(Serialize = true)
     Vec2f offsetUv;
 
-    HYP_FIELD(Property = "OffsetCoords", Serialize = true)
+    HYP_FIELD(Serialize = true)
     Vec2u offsetCoords;
 
-    HYP_FIELD(Property = "Dimensions", Serialize = true)
+    HYP_FIELD(Serialize = true)
     Vec2u dimensions;
 
-    HYP_FIELD(Property = "Scale", Serialize = true)
+    HYP_FIELD(Serialize = true)
     Vec2f scale;
 
     HYP_METHOD()
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
     {
-        return index != ~0u;
+        return id != ~0u;
+    }
+
+    HYP_FORCE_INLINE uint16 GetAtlasIndex() const
+    {
+        return uint16((id >> 16) & 0xFFFFu);
+    }
+
+    HYP_FORCE_INLINE uint16 GetElementIndex() const
+    {
+        return uint16(id & 0xFFFFu);
+    }
+
+    static inline void GetAtlasAndElementIndex(Id elementId, uint16& outAtlasIndex, uint16& outElementIndex)
+    {
+        outAtlasIndex = uint16((elementId >> 16) & 0xFFFFu);
+        outElementIndex = uint16(elementId & 0xFFFFu);
     }
 };
 
 HYP_STRUCT()
-
 struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
 {
     HYP_PROPERTY(AtlasDimensions, &LightmapVolumeAtlas::atlasDimensions)
@@ -100,6 +117,9 @@ class HYP_API LightmapVolume final : public Entity
     HYP_OBJECT_BODY(LightmapVolume);
 
 public:
+    // maximum number of atlases per LightmapVolume
+    static constexpr uint32 s_maxAtlases = 4;
+
     LightmapVolume();
 
     LightmapVolume(const BoundingBox& aabb);
@@ -120,37 +140,67 @@ public:
         return m_aabb;
     }
 
-    HYP_FORCE_INLINE const FixedArray<Handle<Texture>, LTT_MAX>& GetAtlasTextures() const
+    HYP_FORCE_INLINE const Array<Handle<Texture>>& GetAtlasTextures(LightmapTextureType type) const
     {
-        return m_atlasTextures;
+        AssertDebug(type < LTT_MAX);
+
+        switch (type)
+        {
+        case LTT_RADIANCE:
+            return m_radianceAtlasTextures;
+        case LTT_IRRADIANCE:
+            return m_irradianceAtlasTextures;
+        default:
+            break;
+        }
+
+        HYP_UNREACHABLE();
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Texture>& GetAtlasTexture(LightmapTextureType type) const
+    HYP_FORCE_INLINE const Handle<Texture>& GetAtlasTexture(uint16 atlasIndex, LightmapTextureType type) const
     {
         AssertDebug(type < LTT_MAX, "Invalid LightmapTextureType!");
 
-        return m_atlasTextures[type];
+        if (atlasIndex >= m_atlases.Size())
+        {
+            AssertDebug(false, "atlas index out of bounds");
+
+            return Handle<Texture>::Null();
+        }
+
+        switch (type)
+        {
+        case LTT_RADIANCE:
+            AssertDebug(atlasIndex < m_radianceAtlasTextures.Size());
+            return m_radianceAtlasTextures[atlasIndex];
+        case LTT_IRRADIANCE:
+            AssertDebug(atlasIndex < m_irradianceAtlasTextures.Size());
+            return m_irradianceAtlasTextures[atlasIndex];
+        default:
+            return Handle<Texture>::Null();
+        }
     }
 
-    HYP_FORCE_INLINE const LightmapVolumeAtlas& GetAtlas() const
+    HYP_FORCE_INLINE const LightmapVolumeAtlas& GetAtlas(uint16 atlasIndex) const
     {
-        return m_atlas;
+        AssertDebug(atlasIndex < m_atlases.Size());
+        return m_atlases[atlasIndex];
     }
 
     /*! \brief Add a LightmapElement to this volume. */
     bool AddElement(const LightmapUVMap& uvMap, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
-    const LightmapElement* GetElement(uint32 index) const;
+    const LightmapElement* GetElement(LightmapElement::Id elementId) const;
 
-    bool BuildElementTextures(const LightmapUVMap& uvMap, uint32 index);
+    bool BuildElementTextures(const LightmapUVMap& uvMap, LightmapElement::Id elementId);
     
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
 private:
     void Init() override;
 
-    void UpdateAtlasTextures();
+    void UpdateAtlasTextures(uint16 atlasIndex);
 
     HYP_FIELD(Serialize = true)
     UUID m_uuid;
@@ -159,10 +209,13 @@ private:
     BoundingBox m_aabb;
 
     HYP_FIELD(Serialize = true)
-    FixedArray<Handle<Texture>, LTT_MAX> m_atlasTextures;
+    Array<Handle<Texture>> m_radianceAtlasTextures;
 
     HYP_FIELD(Serialize = true)
-    LightmapVolumeAtlas m_atlas;
+    Array<Handle<Texture>> m_irradianceAtlasTextures;
+
+    HYP_FIELD(Serialize = true)
+    Array<LightmapVolumeAtlas> m_atlases;
 };
 
 } // namespace hyperion

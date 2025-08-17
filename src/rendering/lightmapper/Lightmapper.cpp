@@ -186,8 +186,8 @@ static constexpr uint32 g_maxConcurrentRenderingTasksPerJob = 1;
 
 LightmapJob::LightmapJob(LightmapJobParams&& params)
     : m_params(std::move(params)),
-      m_elementIndex(~0u),
       m_texelIndex(0),
+      m_lightmapElement(nullptr),
       m_lastLoggedPercentage(0),
       numConcurrentRenderingTasks(0)
 {
@@ -201,6 +201,8 @@ LightmapJob::~LightmapJob()
 
         delete taskBatch;
     }
+    
+    delete m_lightmapElement;
 }
 
 void LightmapJob::Start()
@@ -288,18 +290,23 @@ void LightmapJob::Process()
 
         if (m_uvMap.HasValue())
         {
-            LightmapElement element;
-
-            if (!m_params.volume->AddElement(*m_uvMap, element, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+            LightmapElement lightmapElement;
+            if (!m_params.volume->AddElement(*m_uvMap, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
             {
-                Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! Dimensions: {}, UV map size: {}",
-                    m_uuid, m_params.volume->GetAtlas().atlasDimensions, Vec2u(m_uvMap->width, m_uvMap->height)));
+                Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
+                    m_uuid, Vec2u(m_uvMap->width, m_uvMap->height)));
 
                 return;
             }
 
-            m_elementIndex = element.index;
-            Assert(m_elementIndex != ~0u);
+            if (m_lightmapElement != nullptr)
+            {
+                *m_lightmapElement = std::move(lightmapElement);
+            }
+            else
+            {
+                m_lightmapElement = new LightmapElement(std::move(lightmapElement));
+            }
 
             // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
             m_texelIndices.Reserve(m_uvMap->uvs.Size());
@@ -684,12 +691,14 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
+    HYP_DEFER({
+        m_queue.Pop();
+        m_numJobs.Decrement(1, MemoryOrder::RELEASE);
+    });
+
     if (job->GetResult().HasError())
     {
         HYP_LOG(Lightmap, Error, "Lightmap job {} failed with error: {}", job->GetUUID(), job->GetResult().GetError().GetMessage());
-
-        m_queue.Pop();
-        m_numJobs.Decrement(1, MemoryOrder::RELEASE);
 
         return;
     }
@@ -697,20 +706,25 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
     HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
 
     const LightmapUVMap& uvMap = job->GetUVMap();
-    const uint32 elementIndex = job->GetElementIndex();
 
-    if (!m_volume->BuildElementTextures(uvMap, elementIndex))
+    LightmapElement* lightmapElement = job->GetLightmapElement();
+
+    if (lightmapElement == nullptr)
     {
-        HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element index: {}", job->GetElementIndex());
+        HYP_LOG(Lightmap, Debug, "Lightmap element is null, skipping building LightmapElement textures for job {}", job->GetUUID());
 
         return;
     }
 
-    const LightmapElement* element = m_volume->GetElement(job->GetElementIndex());
-    Assert(element != nullptr);
+    if (!m_volume->BuildElementTextures(uvMap, lightmapElement->id))
+    {
+        HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
 
-    HYP_LOG(Lightmap, Debug, "Lightmap job {}: Building element with index {}, UV offset: {}, Scale: {}", job->GetUUID(), job->GetElementIndex(),
-        element->offsetUv, element->scale);
+        return;
+    }
+
+    HYP_LOG(Lightmap, Debug, "Lightmap job {}: Building element with id {}, UV offset: {}, Scale: {}", job->GetUUID(), lightmapElement->id,
+        lightmapElement->offsetUv, lightmapElement->scale);
 
     for (SizeType subElementIndex = 0; subElementIndex < job->GetSubElements().Size(); subElementIndex++)
     {
@@ -737,8 +751,8 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
             {
                 Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
                 lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
-                lightmapUv *= element->scale;
-                lightmapUv += Vec2f(element->offsetUv.x, element->offsetUv.y);
+                lightmapUv *= lightmapElement->scale;
+                lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
             }
 
             mesh->SetMeshData(newMeshData);
@@ -753,10 +767,10 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
 
         subElement.material->SetBucket(RB_LIGHTMAP);
 
-        subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(LTT_IRRADIANCE));
-        subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(LTT_RADIANCE));
+        subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
+        subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
 
-        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), elementIndex = job->GetElementIndex(), volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), lightmapElementId = lightmapElement->id, volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
         {
             Handle<EntityManager> entityManager = entityManagerWeak.Lock();
 
@@ -781,7 +795,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
                 }
 
                 meshComponent.lightmapVolume = volume.ToWeak();
-                meshComponent.lightmapElementIndex = elementIndex;
+                meshComponent.lightmapElementId = lightmapElementId;
                 meshComponent.lightmapVolumeUuid = volume->GetUUID();
             }
             else
@@ -793,7 +807,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
                 meshComponent.mesh = subElement.mesh;
                 meshComponent.material = newMaterial;
                 meshComponent.lightmapVolume = volume.ToWeak();
-                meshComponent.lightmapElementIndex = elementIndex;
+                meshComponent.lightmapElementId = lightmapElementId;
                 meshComponent.lightmapVolumeUuid = volume->GetUUID();
 
                 entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
@@ -817,8 +831,6 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
         }
     }
 
-    m_queue.Pop();
-    m_numJobs.Decrement(1, MemoryOrder::RELEASE);
 }
 
 #pragma endregion Lightmapper

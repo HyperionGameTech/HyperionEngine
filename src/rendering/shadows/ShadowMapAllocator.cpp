@@ -32,11 +32,14 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 bool ShadowMapAtlas::AddElement(const Vec2u& elementDimensions, ShadowMapAtlasElement& outElement)
 {
-    if (!AtlasPacker<ShadowMapAtlasElement>::AddElement(elementDimensions, outElement))
+    uint32 elementIndex = ~0u;
+
+    if (!AtlasPacker<ShadowMapAtlasElement>::AddElement(elementDimensions, outElement, elementIndex))
     {
         return false;
     }
 
+    outElement.index = elementIndex;
     outElement.layerIndex = atlasIndex;
 
     return true;
