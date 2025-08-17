@@ -227,6 +227,7 @@ Texture::Texture(const Handle<TextureAsset>& asset)
 Texture::~Texture()
 {
     SafeDelete(std::move(m_gpuImage));
+    SafeDelete(std::move(m_asset));
 }
 
 void Texture::Init()

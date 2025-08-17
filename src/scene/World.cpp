@@ -58,7 +58,7 @@ World::World()
 
 World::~World()
 {
-    if (IsReady())
+    if (IsInitCalled())
     {
         for (const Handle<Scene>& scene : m_scenes)
         {
@@ -89,27 +89,27 @@ World::~World()
 
             scene->SetWorld(nullptr);
         }
+    }
 
-        m_raytracingView = nullptr;
+    m_raytracingView = nullptr;
 
-        m_scenes.Clear();
-        m_views.Clear();
+    SafeDelete(std::move(m_scenes));
+    SafeDelete(std::move(m_views));
 
-        for (auto& it : m_subsystems)
-        {
-            const Handle<Subsystem>& subsystem = it.second;
-            Assert(subsystem.IsValid());
+    for (auto& it : m_subsystems)
+    {
+        const Handle<Subsystem>& subsystem = it.second;
+        Assert(subsystem.IsValid());
 
-            it.second->OnRemovedFromWorld();
-        }
+        it.second->OnRemovedFromWorld();
+    }
 
-        if (m_viewCollectionBatch)
-        {
-            AssertDebug(m_viewCollectionBatch->IsCompleted());
+    if (m_viewCollectionBatch)
+    {
+        AssertDebug(m_viewCollectionBatch->IsCompleted());
 
-            delete m_viewCollectionBatch;
-            m_viewCollectionBatch = nullptr;
-        }
+        delete m_viewCollectionBatch;
+        m_viewCollectionBatch = nullptr;
     }
 
     m_physicsWorld.Teardown();
@@ -675,6 +675,8 @@ bool World::RemoveScene(Scene* scene)
             }
         }
     }
+
+    SafeDelete(std::move(sceneCopy));
 
     return true;
 }

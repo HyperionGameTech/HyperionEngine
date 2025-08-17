@@ -178,6 +178,16 @@ View::~View()
 
         delete *it;
     }
+
+    if (m_camera != nullptr)
+    {
+        SafeDelete(std::move(m_camera));
+    }
+
+    if (m_readbackTexture != nullptr)
+    {
+        SafeDelete(std::move(m_readbackTexture));
+    }
 }
 
 void View::Init()
@@ -512,9 +522,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
-                    if (const Handle<Material>& material = meshComponent.material)
+                    if (Material* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
                         for (const auto& it : material->GetTextures())
                         {
@@ -529,9 +539,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
+                    if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
                     }
                 }
             }
@@ -565,9 +575,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
-                    if (const Handle<Material>& material = meshComponent.material)
+                    if (Material* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
                         for (const auto& it : material->GetTextures())
                         {
@@ -582,9 +592,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
+                    if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
                     }
                 }
             }
@@ -600,9 +610,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
-                    if (const Handle<Material>& material = meshComponent.material)
+                    if (Material* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
                         for (const auto& it : material->GetTextures())
                         {
@@ -617,9 +627,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
+                    if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
                     }
                 }
             }
@@ -653,9 +663,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
-                    if (const Handle<Material>& material = meshComponent.material)
+                    if (Material* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
                         for (const auto& it : material->GetTextures())
                         {
@@ -670,9 +680,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
+                    if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
                     }
                 }
             }
@@ -688,9 +698,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
-                    if (const Handle<Material>& material = meshComponent.material)
+                    if (Material* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
                         for (const auto& it : material->GetTextures())
                         {
@@ -705,9 +715,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
+                    if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
                     }
                 }
             }
@@ -741,9 +751,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
-                    if (const Handle<Material>& material = meshComponent.material)
+                    if (Material* material = meshComponent.material)
                     {
-                        rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
+                        rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
                         for (const auto& it : material->GetTextures())
                         {
@@ -758,9 +768,9 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                         }
                     }
 
-                    if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
+                    if (meshComponent.skeleton != nullptr)
                     {
-                        rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
+                        rpl.GetSkeletons().Track(meshComponent.skeleton->Id(), meshComponent.skeleton, meshComponent.skeleton->GetRenderProxyVersionPtr());
                     }
                 }
             }

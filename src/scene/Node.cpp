@@ -96,7 +96,7 @@ Node::Node(Name name, const Transform& localTransform, Scene* scene)
 
 Node::~Node()
 {
-    for (const Handle<Node>& child : m_childNodes)
+    for (Handle<Node>& child : m_childNodes)
     {
         if (!child.IsValid())
         {
@@ -104,6 +104,8 @@ Node::~Node()
         }
 
         child->m_parentNode = nullptr;
+
+        SafeDelete(std::move(child));
     }
 }
 
@@ -377,6 +379,8 @@ bool Node::RemoveChild(const Node* node)
 
     UpdateWorldTransform();
 
+    SafeDelete(std::move(childNode));
+
     return true;
 }
 
@@ -432,6 +436,7 @@ void Node::RemoveAllChildren()
         }
 
         it = m_childNodes.Erase(it);
+        SafeDelete(std::move(*it));
     }
 
     UpdateWorldTransform();
@@ -585,18 +590,18 @@ Array<Node*> Node::GetDescendants() const
     typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
+    {
+        descendants.Reserve(descendants.Size() + target.GetChildren().Size());
+
+        for (const Handle<Node>& child : target.GetChildren())
         {
-            descendants.Reserve(descendants.Size() + target.GetChildren().Size());
+            AssertDebug(child != nullptr);
 
-            for (const Handle<Node>& child : target.GetChildren())
-            {
-                AssertDebug(child != nullptr);
+            descendants.PushBack(child.Get());
 
-                descendants.PushBack(child.Get());
-
-                reinterpret_cast<CollectFunc>(collectFunc)(descendants, *child, collectFunc);
-            }
-        };
+            reinterpret_cast<CollectFunc>(collectFunc)(descendants, *child, collectFunc);
+        }
+    };
 
     collectFunc(descendants, *this, reinterpret_cast<void*>(collectFunc));
 

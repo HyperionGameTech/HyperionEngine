@@ -108,8 +108,20 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
 
 Light::~Light()
 {
-    SafeDelete(std::move(m_shadowViews));
-    SafeDelete(std::move(m_material));
+    if (m_shadowViews.Any())
+    {
+        SafeDelete(std::move(m_shadowViews));
+    }
+
+    if (m_shadowMapCamera != nullptr)
+    {
+        SafeDelete(std::move(m_shadowMapCamera));
+    }
+
+    if (m_material != nullptr)
+    {
+        SafeDelete(std::move(m_material));
+    }
 }
 
 void Light::Init()
@@ -132,7 +144,7 @@ void Light::Init()
 
 void Light::CreateShadowViews()
 {
-    for (const Handle<View>& shadowView : m_shadowViews)
+    for (Handle<View>& shadowView : m_shadowViews)
     {
         if (!shadowView.IsValid())
         {
@@ -624,7 +636,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 {
     proxy->light = WeakHandleFromThis();
     proxy->lightMaterial = m_material.Get();
-    
+
     proxy->shadowViews.Resize(m_shadowViews.Size());
     for (SizeType i = 0; i < m_shadowViews.Size(); i++)
     {

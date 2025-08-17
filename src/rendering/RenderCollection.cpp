@@ -52,11 +52,11 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyM
 {
     HYP_SCOPE;
 
-    const Handle<Mesh>& mesh = proxy.mesh;
-    Assert(mesh.IsValid());
+    Mesh* mesh = proxy.mesh;
+    Assert(mesh != nullptr);
 
-    const Handle<Material>& material = proxy.material;
-    Assert(material.IsValid());
+    Material* material = proxy.material;
+    Assert(material != nullptr);
 
     RenderableAttributeSet attributes {
         mesh->GetMeshAttributes(),
@@ -127,7 +127,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, Rend
     hasInstancing = proxy->instanceData.enableAutoInstancing || proxy->instanceData.numInstances > 1;
     hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
     hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
-    hasSkinning = proxy->skeleton.IsValid() && proxy->skeleton->NumBones() > 0;
+    hasSkinning = proxy->skeleton != nullptr && proxy->skeleton->NumBones() > 0;
 
     //    // temp testing
     //    MaterialAttributes materialAttributes = attributes.GetMaterialAttributes();
@@ -263,8 +263,6 @@ static inline void UpdateRefs_Impl(ResourceTracker<ObjId<ElementType>, ElementTy
 
     for (ElementType* resource : added)
     {
-        resource->GetObjectHeader_Internal()->IncRefStrong();
-
         if constexpr (!std::is_same_v<ProxyType, NullProxy>)
         {
             ProxyType* pProxy = resourceTracker.GetProxy(ObjId<ElementType>(resource->Id()));
@@ -285,8 +283,6 @@ static inline void UpdateRefs_Impl(ResourceTracker<ObjId<ElementType>, ElementTy
 
     for (ElementType* resource : removed)
     {
-        resource->GetObjectHeader_Internal()->DecRefStrong();
-
         if constexpr (!std::is_same_v<ProxyType, NullProxy>)
         {
             resourceTracker.RemoveProxy(ObjId<ElementType>(resource->Id()));
@@ -340,57 +336,57 @@ RenderProxyList::RenderProxyList(bool isShared, bool useRefCounting)
 
             pResourceTracker = new ResourceTrackerType();
 
-            if (this->useRefCounting)
-            {
-                releaseRefsFunctions[idx] = [](ResourceTrackerBase* resourceTracker) -> void
-                {
-                    ResourceTrackerType* resourceTrackerCasted = static_cast<ResourceTrackerType*>(resourceTracker);
-                    resourceTrackerCasted->Advance(/* clearNextState */ true);
+            // if (this->useRefCounting)
+            // {
+            //     releaseRefsFunctions[idx] = [](ResourceTrackerBase* resourceTracker) -> void
+            //     {
+            //         ResourceTrackerType* resourceTrackerCasted = static_cast<ResourceTrackerType*>(resourceTracker);
+            //         resourceTrackerCasted->Advance(/* clearNextState */ true);
 
-                    HashSet<HypObjectBase*> releasedObjects;
+            //         HashSet<HypObjectBase*> releasedObjects;
 
-                    const auto releaseRefs = [&](auto& elements)
-                    {
-                        // Release weak references to all tracked elements
-                        for (auto* elem : elements)
-                        {
-                            AssertDebug(elem != nullptr);
+            //         const auto releaseRefs = [&](auto& elements)
+            //         {
+            //             // Release weak references to all tracked elements
+            //             for (auto* elem : elements)
+            //             {
+            //                 AssertDebug(elem != nullptr);
 
-                            HypObjectBase* elemCasted = reinterpret_cast<HypObjectBase*>(elem);
-                            AssertDebug(elemCasted->GetObjectHeader_Internal()->GetRefCountStrong() > 0);
+            //                 HypObjectBase* elemCasted = reinterpret_cast<HypObjectBase*>(elem);
+            //                 AssertDebug(elemCasted->GetObjectHeader_Internal()->GetRefCountStrong() > 0);
 
-                            AssertDebug(!releasedObjects.Contains(elemCasted));
+            //                 AssertDebug(!releasedObjects.Contains(elemCasted));
 
-                            elemCasted->GetObjectHeader_Internal()->DecRefStrong();
+            //                 elemCasted->GetObjectHeader_Internal()->DecRefStrong();
 
-                            releasedObjects.Insert(elemCasted);
-                        }
-                    };
+            //                 releasedObjects.Insert(elemCasted);
+            //             }
+            //         };
 
-                    Assert(!resourceTrackerCasted->GetDiff().NeedsUpdate(),
-                        "Update needed when resources are being released! This will lead to improper ref counts!");
+            //         Assert(!resourceTrackerCasted->GetDiff().NeedsUpdate(),
+            //             "Update needed when resources are being released! This will lead to improper ref counts!");
 
-                    Array<typename ResourceTrackerType::TElementType> elements;
-                    // get current REMOVED elements
-                    resourceTrackerCasted->GetRemoved(elements, false);
-                    releaseRefs(elements);
-                    elements.Clear();
+            //         Array<typename ResourceTrackerType::TElementType> elements;
+            //         // get current REMOVED elements
+            //         resourceTrackerCasted->GetRemoved(elements, false);
+            //         releaseRefs(elements);
+            //         elements.Clear();
 
-                    // get current ADDED elements
-                    resourceTrackerCasted->GetAdded(elements, false);
-                    releaseRefs(elements);
-                    elements.Clear();
+            //         // get current ADDED elements
+            //         resourceTrackerCasted->GetAdded(elements, false);
+            //         releaseRefs(elements);
+            //         elements.Clear();
 
-                    // advance, moving the current elements over to the REMOVED bin.
-                    resourceTrackerCasted->Advance(/* clearNextState */ true);
+            //         // advance, moving the current elements over to the REMOVED bin.
+            //         resourceTrackerCasted->Advance(/* clearNextState */ true);
 
-                    // release refs on elements that were moved over
-                    resourceTrackerCasted->GetRemoved(elements, false);
-                    releaseRefs(elements);
+            //         // release refs on elements that were moved over
+            //         resourceTrackerCasted->GetRemoved(elements, false);
+            //         releaseRefs(elements);
 
-                    AssertDebug(resourceTrackerCasted->NumCurrent() == 0);
-                };
-            }
+            //         AssertDebug(resourceTrackerCasted->NumCurrent() == 0);
+            //     };
+            // }
         });
 }
 
@@ -988,7 +984,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 rg = CreateRenderGroup(this, newMapping, newAttributes);
             }
 
-            AssertDebug(meshProxy->mesh.IsValid() && meshProxy->material.IsValid());
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
 
             prevMapping.meshProxies.EraseAt(idx);
             newMapping.meshProxies.Set(idx, meshProxy);
@@ -1055,7 +1051,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
                 rg = CreateRenderGroup(this, mapping, attributes);
             }
 
-            AssertDebug(meshProxy->mesh.IsValid() && meshProxy->material.IsValid());
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
 
             const uint32 idx = id.ToIndex();
 
@@ -1124,8 +1120,8 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
         for (RenderProxyMesh* meshProxy : mapping.meshProxies)
         {
-            AssertDebug(meshProxy->mesh.IsValid() && meshProxy->mesh->IsReady());
-            AssertDebug(meshProxy->material.IsValid() && meshProxy->material->IsReady());
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
+            AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
             if (meshProxy->instanceData.numInstances == 0)
             {

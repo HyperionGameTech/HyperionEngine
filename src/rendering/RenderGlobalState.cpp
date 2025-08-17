@@ -67,8 +67,12 @@ namespace hyperion {
 
 static constexpr uint32 g_numFrames = g_tripleBuffer ? 3 : 2;
 
-static constexpr uint32 g_maxViewsPerFrame = 16;
 static constexpr uint32 g_maxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
+
+// must be greater than or equal to g_minSafeDeleteCycles so that
+// we can ensure no active views hold pointers to deleted objects.
+static_assert(g_maxFramesBeforeDiscard >= g_minSafeDeleteCycles,
+    "g_maxFramesBeforeDiscard must be greater than or equal to g_minSafeDeleteCycles");
 
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int g_frameCleanupBudget = 16;
@@ -76,8 +80,8 @@ static constexpr int g_frameCleanupBudget = 16;
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
 thread_local uint32* g_threadFrameIndex;
-thread_local uint32* g_threadFrameCounter;
-static uint32 g_frameCounter[2] = { 0 };
+
+static volatile int64 g_frameCounter; // atomic
 static uint32 g_frameIndex[2] = { 0 };
 
 // Render thread only
@@ -281,9 +285,7 @@ struct ResourceData final
         : resource(resource),
           useCount(0)
     {
-        AssertDebug(resource);
-
-        resource->GetObjectHeader_Internal()->IncRefStrong();
+        AssertDebug(resource != nullptr);
     }
 
     ResourceData(const ResourceData& other) = delete;
@@ -292,13 +294,7 @@ struct ResourceData final
     ResourceData(ResourceData&& other) noexcept = delete;
     ResourceData& operator=(ResourceData&& other) noexcept = delete;
 
-    ~ResourceData()
-    {
-        if (resource)
-        {
-            resource->GetObjectHeader_Internal()->DecRefStrong();
-        }
-    }
+    ~ResourceData() = default;
 };
 
 struct ResourceSubtypeData final
@@ -525,7 +521,6 @@ void RenderApi_Init()
     Threads::AssertOnThread(g_mainThread);
 
     g_threadFrameIndex = &g_frameIndex[CONSUMER];
-    g_threadFrameCounter = &g_frameCounter[CONSUMER];
 
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
 
@@ -585,16 +580,40 @@ void RenderApi_Shutdown()
     Assert(g_renderBackend->Destroy());
 }
 
+static inline int RenderApi_CurrentThreadType()
+{
+    const ThreadId& threadId = Threads::CurrentThreadId();
+
+    if (threadId == g_renderThread)
+    {
+        return CONSUMER;
+    }
+
+    if (threadId == g_gameThread)
+    {
+        return PRODUCER;
+    }
+
+    // invalid
+    return -1;
+}
+
 uint32 RenderApi_GetFrameIndex()
 {
-    AssertDebug(g_threadFrameIndex != nullptr, "Called from invalid thread or before frame began!");
+    if (!g_threadFrameIndex)
+    {
+        const int threadType = RenderApi_CurrentThreadType();
+        Assert(threadType >= 0, "RenderApi_GetFrameIndex called from an invalid thread!");
+
+        g_threadFrameIndex = &g_frameIndex[threadType];
+    }
+
     return *g_threadFrameIndex;
 }
 
 uint32 RenderApi_GetFrameCounter()
 {
-    AssertDebug(g_threadFrameCounter != nullptr, "Called from invalid thread or before frame began!");
-    return *g_threadFrameCounter;
+    return (uint32)AtomicAdd(&g_frameCounter, 0);
 }
 
 static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
@@ -993,7 +1012,6 @@ void RenderApi_BeginFrame_GameThread()
     HYP_SCOPE;
 
     g_threadFrameIndex = &g_frameIndex[PRODUCER];
-    g_threadFrameCounter = &g_frameCounter[PRODUCER];
 
     g_freeSemaphore.acquire();
 }
@@ -1008,7 +1026,6 @@ void RenderApi_EndFrame_GameThread()
     FrameData& frameData = g_frameData[g_frameIndex[PRODUCER]];
 
     g_frameIndex[PRODUCER] = (g_frameIndex[PRODUCER] + 1) % g_numFrames;
-    ++g_frameCounter[PRODUCER];
 
     g_fullSemaphore.release();
 }
@@ -1025,9 +1042,6 @@ void RenderApi_BeginFrame_RenderThread()
     const uint32 slot = g_frameIndex[CONSUMER];
 
     FrameData& fd = g_frameData[slot];
-
-    g_safeDeleter->UpdateEntryListQueue();
-    g_safeDeleter->Iterate();
 
     HYP_GFX_ASSERT(RenderCommands::Flush());
 
@@ -1289,8 +1303,12 @@ void RenderApi_EndFrame_RenderThread()
         subtypeData.indicesPendingDelete.Clear();
     }
 
+    g_safeDeleter->UpdateEntryListQueue();
+    g_safeDeleter->Iterate();
+
     g_frameIndex[CONSUMER] = (g_frameIndex[CONSUMER] + 1) % g_numFrames;
-    ++g_frameCounter[CONSUMER];
+
+    AtomicIncrement(&g_frameCounter);
 
     g_freeSemaphore.release();
 }

@@ -103,9 +103,9 @@ class RenderProxyMesh final : public IRenderProxy
 {
 public:
     WeakHandle<Entity> entity;
-    Handle<Mesh> mesh;
-    Handle<Material> material;
-    Handle<Skeleton> skeleton;
+    Mesh* mesh = nullptr;
+    Material* material = nullptr;
+    Skeleton* skeleton = nullptr;
     MeshInstanceData instanceData;
     MeshRaytracingData raytracingData;
     EntityShaderData bufferData {};
@@ -218,7 +218,7 @@ class RenderProxyLight final : public IRenderProxy
 public:
     WeakHandle<Light> light;
     Material* lightMaterial = nullptr; // for textured area lights
-    Array<View*> shadowViews;           // optional, for lights casting shadow
+    Array<View*> shadowViews;          // optional, for lights casting shadow
     LightShaderData bufferData {};
     ShadowMap* shadowMap = nullptr;
 };

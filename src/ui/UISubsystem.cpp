@@ -25,8 +25,8 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderEnvironment.hpp>
-
 #include <rendering/Texture.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

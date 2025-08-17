@@ -147,13 +147,9 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
 
 Mesh::~Mesh()
 {
-    if (IsInitCalled())
-    {
-        SetReady(false);
-
-        SafeDelete(std::move(m_vertexBuffer));
-        SafeDelete(std::move(m_indexBuffer));
-    }
+    SafeDelete(std::move(m_vertexBuffer));
+    SafeDelete(std::move(m_indexBuffer));
+    SafeDelete(std::move(m_asset));
 }
 
 void Mesh::Init()

@@ -819,7 +819,7 @@ public:
             ubyte* prevPtr = m_buffer.Data();
 
             ByteBuffer newBuffer;
-            newBuffer.SetSize(2 * (alignedOffset + cmdSize));
+            newBuffer.SetSize(2 * (alignedOffset + cmdSize), /* zeroize */ false);
 
             ubyte* newPtr = newBuffer.Data();
 
@@ -862,7 +862,7 @@ public:
             ubyte* prevPtr = m_buffer.Data();
 
             ByteBuffer newBuffer;
-            newBuffer.SetSize(2 * (newStartOffset + other.m_offset));
+            newBuffer.SetSize(2 * (newStartOffset + other.m_offset), /* zeroize */ false);
 
             ubyte* newPtr = newBuffer.Data();
 
@@ -877,7 +877,7 @@ public:
             ubyte* prevPtr = m_buffer.Data();
 
             // No need to reconstruct commands if the allocation did not change
-            m_buffer.SetSize(newStartOffset + other.m_offset);
+            m_buffer.SetSize(newStartOffset + other.m_offset, /* zeroize */ false);
 
             // Sanity check to ensure SetSize() did not change our capacity. (it shouldn't)
             AssertDebug(m_buffer.Data() == prevPtr);

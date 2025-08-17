@@ -51,8 +51,15 @@ HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 void RenderApi_Init();
 void RenderApi_Shutdown();
 
-uint32 RenderApi_GetFrameIndex();
-uint32 RenderApi_GetFrameCounter();
+/*! \brief Get the current frame index for the current thread (can be called from the game or render threads).
+ *  This is the index of the frame that is currently being processed.
+ *  \note This is thread-safe only if called from the game or render thread. Other threads should not call this function. */
+HYP_API uint32 RenderApi_GetFrameIndex();
+
+/*! \brief Get the global frame counter value that is incremented every frame.
+ *  This is used to track the number of frames that have been rendered.
+ *  \note This is thread-safe and can be called from any thread as the frame counter is atomic. */
+HYP_API uint32 RenderApi_GetFrameCounter();
 
 void RenderApi_BeginFrame_GameThread();
 void RenderApi_EndFrame_GameThread();

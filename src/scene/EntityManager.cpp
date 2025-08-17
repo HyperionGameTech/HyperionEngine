@@ -829,7 +829,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             ComponentContainerBase* container = other->TryGetContainer(componentTypeId);
             Assert(container != nullptr, "Component container does not exist for component of type '{}'", *GetComponentTypeName(componentTypeId));
 
-            const ComponentId componentId = container->AddComponent(componentData);
+            const ComponentId componentId = container->AddComponent(std::move(componentData));
 
             componentIds.Set(componentTypeId, componentId);
 

@@ -21,6 +21,10 @@
 
 namespace hyperion {
 
+static constexpr uint32 g_minSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
+
+HYP_API extern uint32 RenderApi_GetFrameCounter();
+
 class SafeDeleterEntryBase
 {
 protected:
@@ -68,7 +72,7 @@ public:
     {
         uint32 offset = 0;
         uint32 size = 0;
-        int remainingCycles = 0;
+        uint32 fc = 0; // frame counter when the entry was added
 
         void (*moveFn)(void*, void*) = nullptr;
         void (*destructFn)(void*) = nullptr;
@@ -121,11 +125,17 @@ public:
 
         SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
 
-        header.remainingCycles = 3;
+        header.fc = RenderApi_GetFrameCounter();
 
         if constexpr (!std::is_trivially_destructible_v<SafeDeleterEntry<T>>)
         {
-            header.destructFn = &Memory::Destruct<SafeDeleterEntry<T>>;
+            header.destructFn = [](void* ptr)
+            {
+                T* ptrCasted = reinterpret_cast<T*>(ptr);
+                ptrCasted->~T();
+            };
+            
+            //header.destructFn = &Memory::Destruct<SafeDeleterEntry<T>>;
         }
         else
         {

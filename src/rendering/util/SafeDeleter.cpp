@@ -90,13 +90,14 @@ int SafeDeleter::Iterate(int maxIter)
     Array<EntryHeader>& headers = *entryList.currHeaders;
     entryList.SwapHeaderBuffers();
 
+    const uint32 frameCounter = RenderApi_GetFrameCounter();
+
     int iterCount = 0;
     for (auto it = headers.Begin(); iterCount < maxIter && it != headers.End(); ++iterCount)
     {
-        EntryHeader& header = *it;
+        EntryHeader header = *it;
 
-        --header.remainingCycles;
-        if (header.remainingCycles > 0)
+        if ((frameCounter - header.fc) < g_minSafeDeleteCycles)
         {
             ++it;
             continue; // skip this entry, it will be processed again next frame
@@ -104,6 +105,7 @@ int SafeDeleter::Iterate(int maxIter)
 
         if (header.destructFn)
         {
+            HYP_LOG_TEMP("Deleting entry with offset {}", header.offset);
             AssertDebug(header.offset < entryList.buffer.Size());
             AssertDebug(header.size <= entryList.buffer.Size() - header.offset);
             header.destructFn(reinterpret_cast<void*>(entryList.buffer.Data() + header.offset));
@@ -168,7 +170,7 @@ SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
 
         return m_entryLists[bufferIndex];
     }
-    
+
     Mutex::Guard guard(m_mutex);
 
     AtomicIncrement(&m_tempEntryListCount);

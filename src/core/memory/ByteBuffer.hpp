@@ -27,8 +27,9 @@ public:
     }
 
     /*! \brief Constructs a ByteBuffer with the given size, allocating memory on the heap if \ref{count} != 0.
-     *  \param count The size of the ByteBuffer in bytes. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state. */
-    explicit TByteBuffer(SizeType count)
+     *  \param count The size of the ByteBuffer in bytes. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state.
+     *  \param zeroize If true, the memory is initialized to zero. */
+    explicit TByteBuffer(SizeType count, bool zeroize = true)
         : m_size(count)
     {
         m_allocation.SetToInitialState();
@@ -39,7 +40,11 @@ public:
         }
 
         m_allocation.Allocate(m_size);
-        m_allocation.InitZeroed(m_size);
+
+        if (zeroize)
+        {
+            m_allocation.InitZeroed(m_size);
+        }
     }
 
     /*! \brief Constructs a ByteBuffer with the given size and data, allocating memory on the heap if \ref{count} != 0 and copies the data into the buffer. */
@@ -326,8 +331,10 @@ public:
 
     /*! \brief Sets the size of the ByteBuffer to the given size. If the new size is larger than the current size, the new bytes are zeroed out.
      *  If the new size is smaller than the current size, the excess bytes are freed.
-     *  The current data will be copied into the newly allocated memory if the size is changed. */
-    HYP_FORCE_INLINE void SetSize(SizeType newSize)
+     *  The current data will be copied into the newly allocated memory if the size is changed.
+     * \param newSize The new size of the ByteBuffer in bytes.
+     * \param zeroize If true, the new bytes are zeroed out. */
+    HYP_FORCE_INLINE void SetSize(SizeType newSize, bool zeroize = true)
     {
         if (newSize == m_size)
         {
@@ -340,7 +347,7 @@ public:
             SetCapacity(newSize);
         }
 
-        if (newSize > m_size)
+        if (newSize > m_size && zeroize)
         {
             // Zero out the new bytes
             m_allocation.InitZeroed(newSize - m_size, m_size);

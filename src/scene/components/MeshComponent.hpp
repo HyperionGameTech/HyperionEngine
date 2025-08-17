@@ -7,6 +7,8 @@
 
 #include <core/math/Matrix4.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <rendering/MeshInstanceData.hpp>
 
 namespace hyperion {
@@ -45,7 +47,7 @@ struct MeshComponent
     // 128
 
     HYP_FIELD()
-    RenderProxyMesh* UNUSED_proxy = nullptr; /// TODO: Move RenderProxy over to Entity so lights, envprobes etc all have proxies as
+    RenderProxyMesh* UNUSED_proxy = nullptr;
 
     // 136
 
@@ -81,6 +83,126 @@ struct MeshComponent
 
     HYP_FIELD(Serialize = true)
     uint32 lightmapElementId = ~0u;
+
+    MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
+        : mesh(mesh),
+          material(material),
+          skeleton(skeleton),
+          instanceData(),
+          previousModelMatrix(Matrix4::Identity()),
+          lightmapVolumeUuid(UUID::Invalid()),
+          lightmapElementId(~0u)
+    {
+    }
+
+    MeshComponent(const MeshComponent& other)
+        : mesh(other.mesh),
+          material(other.material),
+          skeleton(other.skeleton),
+          instanceData(other.instanceData),
+          previousModelMatrix(other.previousModelMatrix),
+          lightmapVolumeUuid(other.lightmapVolumeUuid),
+          lightmapElementId(other.lightmapElementId)
+    {
+    }
+
+    MeshComponent& operator=(const MeshComponent& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if (mesh)
+        {
+            SafeDelete(std::move(mesh));
+        }
+
+        if (material)
+        {
+            SafeDelete(std::move(material));
+        }
+
+        if (skeleton)
+        {
+            SafeDelete(std::move(skeleton));
+        }
+
+        mesh = other.mesh;
+        material = other.material;
+        skeleton = other.skeleton;
+        instanceData = other.instanceData;
+        previousModelMatrix = other.previousModelMatrix;
+        lightmapVolumeUuid = other.lightmapVolumeUuid;
+        lightmapElementId = other.lightmapElementId;
+
+        return *this;
+    }
+
+    MeshComponent(MeshComponent&& other) noexcept
+        : mesh(std::move(other.mesh)),
+          material(std::move(other.material)),
+          skeleton(std::move(other.skeleton)),
+          instanceData(std::move(other.instanceData)),
+          previousModelMatrix(std::move(other.previousModelMatrix)),
+          lightmapVolumeUuid(std::move(other.lightmapVolumeUuid)),
+          lightmapElementId(other.lightmapElementId)
+    {
+        other.lightmapElementId = ~0u;
+    }
+
+    MeshComponent& operator=(MeshComponent&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if (mesh)
+        {
+            SafeDelete(std::move(mesh));
+        }
+
+        if (material)
+        {
+            SafeDelete(std::move(material));
+        }
+
+        if (skeleton)
+        {
+            SafeDelete(std::move(skeleton));
+        }
+
+        mesh = std::move(other.mesh);
+        material = std::move(other.material);
+        skeleton = std::move(other.skeleton);
+        instanceData = std::move(other.instanceData);
+        previousModelMatrix = std::move(other.previousModelMatrix);
+        lightmapVolumeUuid = std::move(other.lightmapVolumeUuid);
+        lightmapElementId = other.lightmapElementId;
+
+        other.lightmapElementId = ~0u;
+
+        return *this;
+    }
+
+    ~MeshComponent()
+    {
+        if (mesh)
+        {
+            SafeDelete(std::move(mesh));
+        }
+
+        if (material)
+        {
+            SafeDelete(std::move(material));
+        }
+
+        if (skeleton)
+        {
+            SafeDelete(std::move(skeleton));
+        }
+    }
 
     HYP_FORCE_INLINE bool operator==(const MeshComponent& other) const
     {

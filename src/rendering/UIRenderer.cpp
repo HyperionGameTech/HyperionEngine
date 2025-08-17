@@ -97,10 +97,10 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
             continue;
         }
 
-        const Handle<Mesh>& mesh = meshProxy->mesh;
-        const Handle<Material>& material = meshProxy->material;
+        Mesh* mesh = meshProxy->mesh;
+        Material* material = meshProxy->material;
 
-        if (!mesh.IsValid() || !material.IsValid())
+        if (!mesh || !material)
         {
             continue;
         }

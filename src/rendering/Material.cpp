@@ -106,7 +106,12 @@ Material::~Material()
 
     for (SizeType i = 0; i < m_textures.Size(); i++)
     {
-        m_textures.ValueAt(i).Reset();
+        Handle<Texture>& texture = m_textures.ValueAt(i);
+
+        if (texture != nullptr)
+        {
+            SafeDelete(std::move(texture));
+        }
     }
 }
 
@@ -229,6 +234,12 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
         return;
     }
 
+    if (m_textures[key] != nullptr)
+    {
+        // if the texture is already set, delete it
+        SafeDelete(std::move(m_textures[key]));
+    }
+
     m_textures.Set(key, texture);
 
     if (IsInitCalled())
@@ -259,6 +270,16 @@ void Material::SetTextures(const TextureSet& textures)
     if (m_textures == textures)
     {
         return;
+    }
+
+    for (SizeType i = 0; i < m_textures.Size(); i++)
+    {
+        Handle<Texture>& texture = m_textures.ValueAt(i);
+
+        if (texture != nullptr)
+        {
+            SafeDelete(std::move(texture));
+        }
     }
 
     m_textures = textures;
