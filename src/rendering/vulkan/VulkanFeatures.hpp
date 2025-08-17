@@ -395,10 +395,11 @@ private:
     VkPhysicalDeviceBufferDeviceAddressFeatures m_bufferDeviceAddressFeatures;
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_raytracingPipelineFeatures;
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_raytracingPipelineProperties;
+    VkPhysicalDeviceRayQueryFeaturesKHR m_rayQueryFeatures;
     VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT m_samplerMinmaxProperties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures;
     VkPhysicalDeviceAccelerationStructurePropertiesKHR m_accelerationStructureProperties;
-    ;
+
     VkPhysicalDeviceDescriptorIndexingFeatures m_indexingFeatures;
     VkPhysicalDeviceDescriptorIndexingProperties m_indexingProperties;
     VkPhysicalDeviceMultiviewFeatures m_multiviewFeatures;

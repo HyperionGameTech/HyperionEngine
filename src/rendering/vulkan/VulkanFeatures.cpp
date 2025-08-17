@@ -69,9 +69,14 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
             .pNext = &m_raytracingPipelineFeatures
         };
 
+        m_rayQueryFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+            .pNext = &m_accelerationStructureFeatures
+        };
+
         m_multiviewFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR,
-            .pNext = &m_accelerationStructureFeatures
+            .pNext = &m_rayQueryFeatures
         };
 #else
         m_multiviewFeatures = {

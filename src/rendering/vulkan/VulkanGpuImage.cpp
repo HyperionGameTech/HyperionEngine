@@ -727,6 +727,9 @@ void VulkanGpuImage::CopyFromBuffer(CommandBufferBase* commandBuffer, const GpuB
 
 void VulkanGpuImage::CopyToBuffer(CommandBufferBase* commandBuffer, GpuBufferBase* dstBuffer) const
 {
+    HYP_GFX_ASSERT(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
+    HYP_GFX_ASSERT(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
+
     const auto flags = m_textureDesc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
         : IMAGE_SUB_RESOURCE_FLAGS_COLOR;

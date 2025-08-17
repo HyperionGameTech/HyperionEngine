@@ -52,7 +52,7 @@
 
 namespace hyperion {
 
-static constexpr bool g_useDebugLayers = false;
+static constexpr bool g_useDebugLayers = true;
 
 #pragma region VulkanRenderConfig
 

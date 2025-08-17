@@ -240,12 +240,14 @@ public:
 template <class ReturnType, class... Args>
 class DelegateImpl final
 {
-public:
     using ProcType = Proc<ReturnType(Args...)>;
+    using ProcList = Array<DelegateHandlerEntry<ProcType>*>;
 
+public:
     DelegateImpl()
         : m_numProcs(0),
-          m_idCounter(0)
+          m_idCounter(0),
+          m_activeIdx(0)
     {
     }
 
@@ -259,9 +261,19 @@ public:
     {
         m_detachedHandlers.Clear();
 
-        for (auto it = m_procs.Begin(); it != m_procs.End(); ++it)
+        // should always end back on our first list
+        AssertDebug(m_activeIdx % 2 == 0);
+        AssertDebug(m_lists[1].Empty());
+
+        for (DelegateHandlerEntry<ProcType>* entry : m_lists[0])
         {
-            delete *it;
+            while (HYP_UNLIKELY(entry->mask.Get(MemoryOrder::ACQUIRE) & g_readMask))
+            {
+                HYP_NAMED_SCOPE("~DelegateImpl() - Waiting for read scopes to finish");
+                Threads::Sleep(0);
+            }
+
+            delete entry;
         }
     }
 
@@ -278,16 +290,20 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler Bind(ProcType&& proc)
     {
-        Mutex::Guard guard(m_mutex);
+        ProcList& list = LockActiveList();
 
-        DelegateHandlerEntry<ProcType>* entry = m_procs.PushBack(new DelegateHandlerEntry<ProcType>());
+        DelegateHandlerEntry<ProcType>* entry = list.PushBack(new DelegateHandlerEntry<ProcType>());
         entry->index = m_idCounter++;
         entry->callingThreadId = ThreadId::Invalid();
         entry->proc = std::move(proc);
 
         m_numProcs.Increment(1, MemoryOrder::RELEASE);
 
-        return CreateDelegateHandler(entry);
+        DelegateHandler res = CreateDelegateHandler(entry);
+
+        UnlockList(list);
+
+        return res;
     }
 
     /*! \brief Bind a Proc<> to the Delegate.
@@ -308,16 +324,20 @@ public:
         }
 #endif
 
-        Mutex::Guard guard(m_mutex);
+        ProcList& list = LockActiveList();
 
-        DelegateHandlerEntry<ProcType>* entry = m_procs.PushBack(new DelegateHandlerEntry<ProcType>());
+        DelegateHandlerEntry<ProcType>* entry = list.PushBack(new DelegateHandlerEntry<ProcType>());
         entry->index = m_idCounter++;
         entry->callingThreadId = callingThreadId;
         entry->proc = std::move(proc);
 
         m_numProcs.Increment(1, MemoryOrder::RELEASE);
 
-        return CreateDelegateHandler(entry);
+        DelegateHandler res = CreateDelegateHandler(entry);
+
+        UnlockList(list);
+
+        return res;
     }
 
     /*! \brief Remove all detached handlers from the Delegate.
@@ -329,14 +349,15 @@ public:
         {
             return 0;
         }
-
-        Mutex::Guard guard(m_mutex);
-
+        
+        Mutex::Guard guard(m_detachedHandlersMutex);
         m_detachedHandlers.Clear();
 
         int numRemoved = 0;
 
-        for (auto it = m_procs.Begin(); it != m_procs.End();)
+        ProcList& list = LockList(0);
+
+        for (auto it = list.Begin(); it != list.End();)
         {
             DelegateHandlerEntry<ProcType>* current = *it;
 
@@ -352,7 +373,7 @@ public:
             {
                 delete current;
 
-                it = m_procs.Erase(it);
+                it = list.Erase(it);
 
                 ++numRemoved;
 
@@ -363,6 +384,8 @@ public:
         }
 
         m_numProcs.Decrement(uint32(numRemoved), MemoryOrder::RELEASE);
+
+        UnlockList(list);
 
         return numRemoved;
     }
@@ -411,15 +434,15 @@ public:
             }
         }
 
-        // Mutex to prevent adding new elements to the list or broadcasting from another thread.
-        Mutex::Guard guard(m_mutex);
-
         const ThreadId currentThreadId = Threads::CurrentThreadId();
 
         ValueStorage<ReturnType> resultStorage;
         bool resultConstructed = false;
 
-        for (auto it = m_procs.Begin(); it != m_procs.End();)
+        ProcList& list = LockList(0);
+        SwapActiveLists();
+
+        for (auto it = list.Begin(); it != list.End();)
         {
             DelegateHandlerEntry<ProcType>* current = *it;
 
@@ -457,7 +480,7 @@ public:
                 {
                     delete current;
 
-                    it = m_procs.Erase(it);
+                    it = list.Erase(it);
 
                     m_numProcs.Decrement(1, MemoryOrder::RELEASE);
 
@@ -522,6 +545,7 @@ public:
 
                             if (current->IsMarkedForRemoval())
                             {
+                                // free up memory for the Proc immediately, as we are not going to call it again
                                 current->proc.Reset();
                             }
 
@@ -546,6 +570,19 @@ public:
                 ++it;
             }
         }
+
+        // Append any remaining elements that were added while we were broadcasting
+        ProcList& otherList = LockList(1);
+
+        list.Concat(std::move(otherList));
+        otherList.Clear();
+
+        UnlockList(otherList);
+
+        // swap back to the original buffer
+        SwapActiveLists();
+
+        UnlockList(list);
 
         if constexpr (!std::is_void_v<ReturnType>)
         {
@@ -602,8 +639,7 @@ protected:
     /*! \brief Add a delegate handler to hang around after its DelegateHandler is destructed */
     void DetachDelegateHandler(DelegateHandler&& handler)
     {
-        Mutex::Guard guard(m_mutex);
-
+        Mutex::Guard guard(m_detachedHandlersMutex);
         m_detachedHandlers.PushBack(std::move(handler));
     }
 
@@ -617,9 +653,42 @@ protected:
         };
     }
 
-    Array<DelegateHandlerEntry<ProcType>*> m_procs;
+    HYP_FORCE_INLINE void SwapActiveLists()
+    {
+        AtomicIncrement(&m_activeIdx);
+    }
+
+    ProcList& LockActiveList()
+    {
+        const int32 i = AtomicAdd(&m_activeIdx, 0) % 2;
+        m_listMtx[i].Lock();
+
+        return m_lists[i];
+    }
+
+    ProcList& LockList(int32 idx)
+    {
+        m_listMtx[idx].Lock();
+
+        return m_lists[idx];
+    }
+
+    void UnlockList(ProcList& list)
+    {
+        const int32 i = &list == &m_lists[0] ? 0 : 1;
+        m_listMtx[i].Unlock();
+    }
+
+    // double buffered list of procs to allow adding new procs while broadcasting
+    ProcList m_lists[2];
+    Mutex m_listMtx[2];
+
+    // current index to write to. set to 1 while broadcasting to prevent adding new procs to the list being broadcast to.
+    volatile int32 m_activeIdx;
+
     Array<DelegateHandler> m_detachedHandlers;
-    Mutex m_mutex;
+    Mutex m_detachedHandlersMutex;
+
     AtomicVar<uint32> m_numProcs;
     uint32 m_idCounter;
 };

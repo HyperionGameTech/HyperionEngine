@@ -248,6 +248,11 @@ void Texture::Init()
 
     m_gpuImage = g_renderBackend->MakeImage(GetTextureDesc());
 
+    if (m_name.IsValid())
+    {
+        m_gpuImage->SetDebugName(m_name);
+    }
+
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
         WeakHandleFromThis(),
@@ -353,8 +358,15 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
             renderQueue << InsertBarrier(gpuBuffer, RS_COPY_DST);
 
             renderQueue << CopyImageToBuffer(m_gpuImage, gpuBuffer);
-
-            renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+            
+            if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
+            {
+                renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+            }
+            else
+            {
+                renderQueue << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
+            }
         });
 
     RendererResult result = singleTimeCommands->Execute();
@@ -404,15 +416,24 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     renderQueue << CopyImageToBuffer(m_gpuImage, stagingBuffer);
 
-    renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+    if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
+    {
+        renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+    }
+    else
+    {
+        renderQueue << InsertBarrier(m_gpuImage, RS_SHADER_RESOURCE);
+    }
 
     currentFrame->OnFrameEnd
-        .Bind([gpuImageRef = m_gpuImage /* hold a strong reference to our buffer to ensure it is kept alive */,
+        .Bind([gpuImageRef = MakeStrongRef(m_gpuImage), /* hold a strong reference to our buffer to ensure it is kept alive */
                   stagingBuffer = std::move(stagingBuffer),
                   callback = std::move(callback)](...) mutable
             {
                 ByteBuffer byteBuffer;
                 byteBuffer.SetSize(stagingBuffer->Size());
+
+                HYP_LOG_TEMP("Reading {} bytes from staging buffer", byteBuffer.Size());
 
                 stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
 

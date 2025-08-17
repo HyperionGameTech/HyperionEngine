@@ -79,8 +79,11 @@ struct PixelReference
 
         if constexpr (IsSrgb)
         {
-            // convert from sRGB to linear
-            fv = MathUtil::Pow(fv, 2.2f);
+            if (numComponents < 4 || index != 3)
+            {
+                // convert from sRGB to linear
+                fv = MathUtil::Pow(fv, 2.2f);
+            }
         }
 
         return fv;
@@ -566,8 +569,11 @@ struct ConstPixelReference
 
         if constexpr (IsSrgb)
         {
-            // convert from sRGB to linear
-            fv = MathUtil::Pow(fv, 2.2f);
+            if (numComponents < 4 || index != 3)
+            {
+                // convert from sRGB to linear
+                fv = MathUtil::Pow(fv, 2.2f);
+            }
         }
 
         return fv;
@@ -786,7 +792,7 @@ public:
 
         const SizeType numPixels = m_width * m_height;
 
-        HYP_CORE_ASSERT((pixelData.Size() / sizeof(PixelComponentType) == GetByteSize()), "Bad pixel data!");
+        HYP_CORE_ASSERT((pixelData.Size() * sizeof(PixelComponentType) == GetByteSize()), "Bad pixel data!");
 
         for (SizeType i = 0, j = 0; i < pixelData.Size() && j < numPixels; i += numComponents, j++)
         {
@@ -884,18 +890,22 @@ public:
             return PixelReferenceType(nullptr);
         }
 
-        const uint32 byteIndex = SizeType(idx % (m_width * m_height)) * SizeType(numComponents) * sizeof(PixelComponentType);
+        const SizeType byteIndex = (SizeType(idx) % (m_width * m_height)) * numComponents * sizeof(PixelComponentType);
 
-        return PixelReferenceType(m_buffer.Data() + byteIndex);
+        PixelReferenceType pixelReference { m_buffer.Data() + byteIndex };
+
+        return pixelReference;
     }
 
     // Get reference to pixel at x,y
     HYP_FORCE_INLINE PixelReferenceType GetPixelReference(uint32 x, uint32 y)
     {
-        const uint32 index = (((y) + m_height) % m_height) * m_width
-            + ((x + m_width) % m_width);
+        const SizeType index = ((SizeType(y) + m_height) % m_height) * m_width
+            + ((SizeType(x) + m_width) % m_width);
 
-        return PixelReferenceType(m_buffer.Data() + index * numComponents * sizeof(PixelComponentType));
+        PixelReferenceType pixelReference { m_buffer.Data() + index * numComponents * sizeof(PixelComponentType) };
+
+        return pixelReference;
     }
 
     // Get reference to the pixel at the given 1-dimensional index
