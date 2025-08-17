@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
 
@@ -9,6 +9,8 @@
 #include <core/utilities/Variant.hpp>
 
 #include <core/functional/Delegate.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <rendering/RenderBucket.hpp>
 
@@ -21,6 +23,7 @@ namespace hyperion {
 
 using GBufferFormat = Variant<DefaultImageFormat, TextureFormat, Array<TextureFormat>>;
 
+HYP_ENUM()
 enum GBufferTargetName : uint32
 {
     GTN_ALBEDO = 0,
@@ -36,8 +39,11 @@ enum GBufferTargetName : uint32
 
 static_assert(GTN_MAX == g_numGbufferTargets, "GTN_MAX does not match g_numGbufferTargets");
 
-class GBuffer
+HYP_CLASS(NoScriptBindings)
+class GBuffer : public HypObjectBase
 {
+    HYP_OBJECT_BODY(GBuffer);
+
 public:
     class GBufferTarget
     {

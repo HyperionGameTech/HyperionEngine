@@ -46,6 +46,19 @@ protected:
     Handle<T> handle;
 };
 
+template <>
+class SafeDeleterEntry<AnyHandle> final : public SafeDeleterEntryBase
+{
+public:
+    SafeDeleterEntry(AnyHandle&& handle)
+        : handle(std::move(handle))
+    {
+    }
+
+protected:
+    AnyHandle handle;
+};
+
 class HYP_API SafeDeleter
 {
     static constexpr uint32 g_numMultiBuffers = g_tripleBuffer ? 3 : 2;

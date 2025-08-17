@@ -53,34 +53,40 @@ ViewOutputTarget::ViewOutputTarget()
 ViewOutputTarget::ViewOutputTarget(const FramebufferRef& framebuffer)
     : m_impl(framebuffer)
 {
+    AssertDebug(framebuffer != nullptr);
 }
 
-ViewOutputTarget::ViewOutputTarget(GBuffer* gbuffer)
+ViewOutputTarget::ViewOutputTarget(const Handle<GBuffer>& gbuffer)
     : m_impl(gbuffer)
 {
     Assert(gbuffer != nullptr);
 }
 
-GBuffer* ViewOutputTarget::GetGBuffer() const
+ViewOutputTarget::~ViewOutputTarget()
 {
-    GBuffer* const* ptr = m_impl.TryGet<GBuffer*>();
+    SafeDelete(std::move(m_impl));
+}
 
-    return ptr ? *ptr : nullptr;
+const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const
+{
+    if (!m_impl.Is<GBuffer>())
+    {
+        return Handle<GBuffer>::Null();
+    }
+
+    return static_cast<const Handle<GBuffer>&>(m_impl);
 }
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 {
-    if (FramebufferRef const* framebuffer = m_impl.TryGet<FramebufferRef>())
+    if (m_impl.Is<FramebufferBase>())
     {
-        AssertDebug(framebuffer->IsValid());
-
-        return *framebuffer;
+        return static_cast<const FramebufferRef&>(m_impl);
     }
-    else if (GBuffer* const* gbuffer = m_impl.TryGet<GBuffer*>())
-    {
-        AssertDebug(*gbuffer != nullptr);
 
-        return (*gbuffer)->GetBucket(RB_OPAQUE).GetFramebuffer();
+    if (m_impl.Is<GBuffer>())
+    {
+        return static_cast<const Handle<GBuffer>&>(m_impl)->GetBucket(RenderBucket::RB_OPAQUE).GetFramebuffer();
     }
 
     return FramebufferRef::Null();
@@ -88,12 +94,17 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
 {
-    if (m_impl.Is<GBuffer*>())
+    if (m_impl.Is<FramebufferBase>())
     {
-        return m_impl.Get<GBuffer*>()->GetBucket(rb).GetFramebuffer();
+        return static_cast<const FramebufferRef&>(m_impl);
     }
 
-    return m_impl.Get<FramebufferRef>();
+    if (m_impl.Is<GBuffer>())
+    {
+        return static_cast<const Handle<GBuffer>&>(m_impl)->GetBucket(rb).GetFramebuffer();
+    }
+
+    return FramebufferRef::Null();
 }
 
 Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
@@ -103,12 +114,12 @@ Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
         return {};
     }
 
-    if (m_impl.Is<GBuffer*>())
+    if (m_impl.Is<GBuffer>())
     {
-        return m_impl.Get<GBuffer*>()->GetFramebuffers();
+        return static_cast<const Handle<GBuffer>&>(m_impl)->GetFramebuffers();
     }
 
-    return { &m_impl.Get<FramebufferRef>(), 1 };
+    return { &static_cast<const FramebufferRef&>(m_impl), 1 };
 }
 
 #pragma endregion ViewOutputTarget
@@ -157,19 +168,6 @@ View::~View()
 {
     Assert(m_collectionTaskBatch == nullptr, "Collection tasks pending on View destruction!");
 
-    if (GBuffer* gbuffer = m_outputTarget.GetGBuffer())
-    {
-        delete gbuffer;
-
-        m_outputTarget = ViewOutputTarget();
-    }
-    else if (FramebufferRef framebuffer = m_outputTarget.GetFramebuffer())
-    {
-        m_outputTarget = ViewOutputTarget();
-
-        SafeDelete(std::move(framebuffer));
-    }
-
     for (auto it = std::begin(m_renderProxyLists); it != std::end(m_renderProxyLists); ++it)
     {
         // if render proxy lists aren't unique, we just delete the first one and break the loop
@@ -199,7 +197,7 @@ void View::Init()
         AssertDebug(m_viewDesc.outputTargetDesc.attachments.Empty(),
             "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
-        m_outputTarget = ViewOutputTarget(new GBuffer(extent));
+        m_outputTarget = ViewOutputTarget(CreateObject<GBuffer>(extent));
     }
     else if (m_viewDesc.outputTargetDesc.attachments.Any())
     {

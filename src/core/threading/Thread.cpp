@@ -110,7 +110,7 @@ void ThreadBase::AtExit(Proc<void()>&& proc)
         g_onThreadExit = new Delegate<void>();
     }
     
-    g_onThreadExit->Bind(std::move(proc));
+    g_onThreadExit->Bind(std::move(proc)).Detach();
 }
 
 #pragma endregion ThreadBase

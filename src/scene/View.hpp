@@ -109,32 +109,25 @@ class HYP_API ViewOutputTarget
 public:
     ViewOutputTarget();
     ViewOutputTarget(const FramebufferRef& framebuffer);
-    ViewOutputTarget(GBuffer* gbuffer);
+    ViewOutputTarget(const Handle<GBuffer>& gbuffer);
     ViewOutputTarget(const ViewOutputTarget& other) = delete;
     ViewOutputTarget& operator=(const ViewOutputTarget& other) = delete;
     ViewOutputTarget(ViewOutputTarget&& other) noexcept = default;
     ViewOutputTarget& operator=(ViewOutputTarget&& other) noexcept = default;
-    ~ViewOutputTarget() = default;
+    ~ViewOutputTarget();
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        bool isValid = false;
-
-        m_impl.Visit([&isValid](auto&& value)
-            {
-                isValid = bool(value);
-            });
-
-        return isValid;
+        return bool(m_impl);
     }
 
-    GBuffer* GetGBuffer() const;
+    const Handle<GBuffer>& GetGBuffer() const;
     const FramebufferRef& GetFramebuffer() const;
     const FramebufferRef& GetFramebuffer(RenderBucket rb) const;
     Span<const FramebufferRef> GetFramebuffers() const;
 
 private:
-    Variant<FramebufferRef, GBuffer*> m_impl;
+    AnyHandle m_impl;
 };
 
 HYP_CLASS()
