@@ -18,7 +18,6 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/LightmapVolumeComponent.hpp>
 #include <scene/components/SkyComponent.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
@@ -915,18 +914,16 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
         Assert(scene.IsValid());
         Assert(scene->IsReady());
 
-        for (auto [entity, lightmapVolumeComponent] : scene->GetEntityManager()->GetEntitySet<LightmapVolumeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!lightmapVolumeComponent.volume.IsValid())
-            {
-                continue;
-            }
+            LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
+            Assert(lightmapVolume != nullptr);
 
-            const BoundingBox& volumeAabb = lightmapVolumeComponent.volume->GetAABB();
+            const BoundingBox& volumeAabb = lightmapVolume->GetAABB();
 
             if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmapVolumeComponent.volume->Id(), Id());
+                HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmapVolume->Id(), Id());
 
                 continue;
             }
@@ -936,7 +933,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.GetLightmapVolumes().Track(lightmapVolumeComponent.volume->Id(), lightmapVolumeComponent.volume, lightmapVolumeComponent.volume->GetRenderProxyVersionPtr());
+            rpl.GetLightmapVolumes().Track(lightmapVolume->Id(), lightmapVolume, lightmapVolume->GetRenderProxyVersionPtr());
         }
     }
 }

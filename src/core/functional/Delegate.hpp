@@ -423,30 +423,69 @@ public:
         {
             DelegateHandlerEntry<ProcType>* current = *it;
 
+            constexpr uint16 maxSpins = 16;
+            uint16 numSpins = 0;
+
             // set write mask, loop until we have exclusive access.
             uint64 state = current->mask.BitOr(g_writeFlag, MemoryOrder::ACQUIRE);
-            while (state & g_readMask)
+            bool hasWriteAccess = true;
+
+            while ((state & g_readMask))
             {
-                state = current->mask.Get(MemoryOrder::ACQUIRE);
                 HYP_WAIT_IDLE();
+                state = current->mask.Get(MemoryOrder::ACQUIRE);
+
+                if (!(state & g_readMask))
+                {
+                    // acquired
+                    break;
+                }
+
+                if (++numSpins == maxSpins)
+                {
+                    // release write flag
+                    current->mask.BitAnd(~g_writeFlag, MemoryOrder::RELEASE);
+                    state &= ~g_writeFlag;
+                    hasWriteAccess = false;
+                    break;
+                }
             }
 
-            if (current->IsMarkedForRemoval())
+            if (hasWriteAccess)
             {
-                delete current;
+                if (current->IsMarkedForRemoval())
+                {
+                    delete current;
 
-                it = m_procs.Erase(it);
+                    it = m_procs.Erase(it);
 
-                m_numProcs.Decrement(1, MemoryOrder::RELEASE);
+                    m_numProcs.Decrement(1, MemoryOrder::RELEASE);
 
-                continue;
+                    continue;
+                }
+
+                // While we still have write access, mark the mask for reading, so we can prevent writes while calling
+                current->mask.Increment(2, MemoryOrder::RELEASE);
+
+                // Release write access
+                current->mask.BitAnd(~g_writeFlag, MemoryOrder::RELEASE);
             }
+            else
+            {
+                // While we still have write access, mark the mask for reading, so we can prevent writes while calling
+                current->mask.Increment(2, MemoryOrder::RELEASE);
 
-            // While we still have write access, mark the mask for reading, so we can prevent writes while calling
-            current->mask.Increment(2, MemoryOrder::RELEASE);
+                const bool markedForRemoval = current->IsMarkedForRemoval();
+                
+                current->mask.Decrement(2, MemoryOrder::RELEASE);
 
-            // Release write access
-            current->mask.BitAnd(~g_writeFlag, MemoryOrder::RELEASE);
+                if (markedForRemoval)
+                {
+                    // skip broadcast
+
+                    continue;
+                }
+            }
 
             if constexpr (!std::is_void_v<ReturnType>)
             {

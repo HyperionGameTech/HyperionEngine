@@ -35,7 +35,6 @@
 #include <scene/camera/OrthoCamera.hpp>
 
 #include <scene/EntityManager.hpp>
-#include <scene/components/LightmapVolumeComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
@@ -508,15 +507,12 @@ void Lightmapper::Initialize()
     m_view->CollectSync();
 
     m_volume = CreateObject<LightmapVolume>(m_aabb);
+    m_volume->SetName(Name::Unique("LightmapVolume"));
     InitObject(m_volume);
 
-    Handle<Entity> lightmapVolumeEntity = m_scene->GetEntityManager()->AddEntity();
-    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmapVolumeEntity, LightmapVolumeComponent { m_volume });
-    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmapVolumeEntity, BoundingBoxComponent { m_aabb, m_aabb });
+    m_volume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
 
-    Handle<Node> lightmapVolumeNode = m_scene->GetRoot()->AddChild();
-    lightmapVolumeNode->SetName(Name::Unique("LightmapVolume"));
-    lightmapVolumeNode->AddChild(lightmapVolumeEntity);
+    m_scene->GetRoot()->AddChild(m_volume);
 
     Initialize_Internal();
 

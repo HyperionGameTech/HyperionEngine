@@ -3,15 +3,12 @@
 #pragma once
 
 #include <scene/System.hpp>
-#include <scene/components/LightmapVolumeComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/EntityTag.hpp>
 
 namespace hyperion {
 
-// Assigns a MeshComponent with a lightmap volume UUID to a proper LightmapVolume.
-
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Description = "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable.")
 class LightmapSystem : public SystemBase
 {
     HYP_OBJECT_BODY(LightmapSystem);
@@ -34,9 +31,6 @@ private:
     {
         return {
             ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
-
-            ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
-
             ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, COMPONENT_RW_FLAGS_READ_WRITE, false> {}
         };
     }

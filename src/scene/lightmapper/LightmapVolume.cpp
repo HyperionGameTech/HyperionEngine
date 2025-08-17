@@ -36,13 +36,13 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
     WeakHandle<LightmapVolume> lightmapVolumeWeak;
     Array<LightmapElement> lightmapElements;
     Array<Handle<Texture>> atlasTextures;
-    Array<FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
+    HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
 
     RENDER_COMMAND(BakeLightmapAtlasTexture)(
         const WeakHandle<LightmapVolume>& lightmapVolumeWeak,
         const Array<LightmapElement>& lightmapElements,
         Array<Handle<Texture>>&& atlasTextures,
-        Array<FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
+        HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
         : lightmapVolumeWeak(lightmapVolumeWeak),
           lightmapElements(lightmapElements),
           atlasTextures(std::move(atlasTextures)),
@@ -54,9 +54,9 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
     {
         SafeDelete(std::move(atlasTextures));
 
-        for (auto& currentElementTextures : elementTextures)
+        for (auto& it : elementTextures)
         {
-            SafeDelete(std::move(currentElementTextures));
+            SafeDelete(std::move(it.second));
         }
     }
 
@@ -64,7 +64,6 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
     {
         // Ensure the array of atlas textures are resized to the correct count
         Assert(atlasTextures.Size() == uint32(LTT_MAX));
-        Assert(elementTextures.Size() == lightmapElements.Size());
 
         FrameBase* currentFrame = g_renderBackend->GetCurrentFrame();
         Assert(currentFrame != nullptr);
@@ -83,10 +82,18 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
 
             renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
 
-            for (SizeType elementIndex = 0; elementIndex < elementTextures.Size(); elementIndex++)
+            for (auto& elementTexturesIt : elementTextures)
             {
+                uint16 atlasIndex;
+                uint16 elementIndex;
+                LightmapElement::GetAtlasAndElementIndex(elementTexturesIt.first, atlasIndex, elementIndex);
+
+                // @TODO: Add assertion that atlasIndex == our current atlas index
+
+                Assert(elementIndex < lightmapElements.Size());
+
                 const LightmapElement& element = lightmapElements[elementIndex];
-                const Handle<Texture>& elementTexture = elementTextures[elementIndex][textureTypeIndex];
+                const Handle<Texture>& elementTexture = elementTexturesIt.second[textureTypeIndex];
 
                 if (!elementTexture)
                 {
@@ -100,7 +107,6 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
 
                 renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
 
-#if 0 // temp
                 renderQueue << Blit(
                     elementTexture->GetGpuImage(),
                     atlasTexture->GetGpuImage(),
@@ -111,7 +117,6 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
                     0, /* srcFace */
                     0  /* dstFace */
                 );
-#endif
 
                 renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
             }
@@ -190,10 +195,8 @@ LightmapVolume::LightmapVolume(const BoundingBox& aabb)
 
 LightmapVolume::~LightmapVolume()
 {
-    if (IsInitCalled())
-    {
-        SetReady(false);
-    }
+    SafeDelete(std::move(m_radianceAtlasTextures));
+    SafeDelete(std::move(m_irradianceAtlasTextures));
 }
 
 HYP_DISABLE_OPTIMIZATION;
@@ -296,17 +299,15 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
         uvMap.ToBitmapIrradiance() /* IRRADIANCE */
     };
 
-    element.entries.Resize(uint32(LTT_MAX));
+    FixedArray<Handle<Texture>, LTT_MAX> elementTextures;
 
     static const char* textureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        element.entries[i].type = LightmapTextureType(i);
-
-        //ByteBuffer unpackedBytes = bitmaps[i].GetUnpackedBytes(4);
-
-        Handle<Texture> texture = CreateObject<Texture>(TextureData {
+        Handle<Texture>& texture = elementTextures[i];
+        
+        texture = CreateObject<Texture>(TextureData {
             TextureDesc {
                 TT_TEX2D,
                 bitmaps[i].GetFormat(),
@@ -317,23 +318,10 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
             ByteBuffer(bitmaps[i].ToByteView()) });
 
         texture->SetName(NAME_FMT("LightmapVolumeTexture_{}_{}_{}", m_uuid, elementIndex, textureTypeNames[i]));
-
-        element.entries[i].texture = std::move(texture);
+        InitObject(texture);
     }
 
-    if (IsInitCalled())
-    {
-        // Initalize textures for the entries in the element
-        for (LightmapElementTextureEntry& entry : element.entries)
-        {
-            if (entry.texture.IsValid())
-            {
-                InitObject(entry.texture);
-            }
-        }
-
-        UpdateAtlasTextures(atlasIndex);
-    }
+    UpdateAtlasTextures(atlasIndex, { { elementId, std::move(elementTextures) } });
 
     return true;
 }
@@ -341,26 +329,6 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 void LightmapVolume::Init()
 {
     Entity::Init();
-
-    for (uint32 atlasIndex = 0; atlasIndex < uint32(m_atlases.Size()); atlasIndex++)
-    {
-        LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
-
-        for (LightmapElement& element : atlas.elements)
-        {
-            if (!element.IsValid())
-            {
-                continue;
-            }
-
-            for (LightmapElementTextureEntry& entry : element.entries)
-            {
-                InitObject(entry.texture);
-            }
-        }
-
-        UpdateAtlasTextures(atlasIndex);
-    }
 
     SetReady(true);
 }
@@ -374,7 +342,9 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
     proxy->bufferData.textureIndex = ~0u; // @TODO: Set the correct texture index based on the element
 }
 
-void LightmapVolume::UpdateAtlasTextures(uint16 atlasIndex)
+void LightmapVolume::UpdateAtlasTextures(
+    uint16 atlasIndex,
+    HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
 {
     HYP_LOG(Lightmap, Debug, "Updating atlas textures for LightmapVolume {}", m_uuid);
 
@@ -424,7 +394,7 @@ void LightmapVolume::UpdateAtlasTextures(uint16 atlasIndex)
         InitObject(irradianceTexture);
     }
 
-    Array<FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
+    /*Array<FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
     elementTextures.Resize(atlas.elements.Size());
 
     for (SizeType elementIndex = 0; elementIndex < atlas.elements.Size(); elementIndex++)
@@ -439,7 +409,7 @@ void LightmapVolume::UpdateAtlasTextures(uint16 atlasIndex)
 
             currentElementTextures[entry.type] = entry.texture;
         }
-    }
+    }*/
 
     Array<Handle<Texture>> atlasTextures;
     atlasTextures.Resize(uint32(LTT_MAX));

@@ -74,23 +74,21 @@ void LightmapSystem::Process(float delta)
 
 bool LightmapSystem::AssignLightmapVolume(MeshComponent& meshComponent)
 {
-    for (auto [entity, lightmapVolumeComponent] : GetEntityManager().GetEntitySet<LightmapVolumeComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, _] : GetEntityManager().GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
     {
-        if (!lightmapVolumeComponent.volume.IsValid())
-        {
-            continue;
-        }
+        LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
+        Assert(lightmapVolume != nullptr);
 
-        if (lightmapVolumeComponent.volume->GetUUID() == meshComponent.lightmapVolumeUuid)
+        if (lightmapVolume->GetUUID() == meshComponent.lightmapVolumeUuid)
         {
-            const LightmapElement* lightmapElement = lightmapVolumeComponent.volume->GetElement(meshComponent.lightmapElementIndex);
+            const LightmapElement* lightmapElement = lightmapVolume->GetElement(meshComponent.lightmapElementId);
 
             if (!lightmapElement)
             {
                 return false;
             }
 
-            meshComponent.lightmapVolume = lightmapVolumeComponent.volume.ToWeak();
+            meshComponent.lightmapVolume = MakeWeakRef(lightmapVolume);
 
             return true;
         }

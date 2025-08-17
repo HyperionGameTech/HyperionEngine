@@ -34,16 +34,6 @@ enum LightmapTextureType : uint32
     LTT_MAX
 };
 
-HYP_STRUCT()
-struct LightmapElementTextureEntry
-{
-    HYP_FIELD(Property = "TextureType", Serialize = true)
-    LightmapTextureType type = LTT_INVALID;
-
-    HYP_FIELD(Property = "Texture", Serialize = true)
-    Handle<Texture> texture;
-};
-
 HYP_STRUCT(NoScriptBindings)
 struct LightmapElement
 {
@@ -51,9 +41,6 @@ struct LightmapElement
 
     HYP_FIELD(Serialize = true)
     uint32 id = ~0u;
-
-    HYP_FIELD(Serialize = true)
-    Array<LightmapElementTextureEntry> entries;
 
     HYP_FIELD(Serialize = true)
     Vec2f offsetUv;
@@ -140,7 +127,7 @@ public:
         return m_aabb;
     }
 
-    HYP_FORCE_INLINE const Array<Handle<Texture>>& GetAtlasTextures(LightmapTextureType type) const
+    HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(LightmapTextureType type) const
     {
         AssertDebug(type < LTT_MAX);
 
@@ -154,7 +141,7 @@ public:
             break;
         }
 
-        HYP_UNREACHABLE();
+        return {};
     }
 
     HYP_METHOD()
@@ -200,7 +187,9 @@ public:
 private:
     void Init() override;
 
-    void UpdateAtlasTextures(uint16 atlasIndex);
+    void UpdateAtlasTextures(
+        uint16 atlasIndex,
+        HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures);
 
     HYP_FIELD(Serialize = true)
     UUID m_uuid;
@@ -209,13 +198,13 @@ private:
     BoundingBox m_aabb;
 
     HYP_FIELD(Serialize = true)
-    Array<Handle<Texture>> m_radianceAtlasTextures;
+    Array<Handle<Texture>, FixedAllocator<s_maxAtlases>> m_radianceAtlasTextures;
 
     HYP_FIELD(Serialize = true)
-    Array<Handle<Texture>> m_irradianceAtlasTextures;
+    Array<Handle<Texture>, FixedAllocator<s_maxAtlases>> m_irradianceAtlasTextures;
 
     HYP_FIELD(Serialize = true)
-    Array<LightmapVolumeAtlas> m_atlases;
+    Array<LightmapVolumeAtlas, DynamicAllocator> m_atlases;
 };
 
 } // namespace hyperion

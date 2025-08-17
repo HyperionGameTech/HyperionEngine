@@ -37,7 +37,6 @@
 #include <scene/camera/OrthoCamera.hpp>
 
 #include <scene/EntityManager.hpp>
-#include <scene/components/LightmapVolumeComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>

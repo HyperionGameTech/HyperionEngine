@@ -61,7 +61,7 @@ static constexpr inline TypeId GetTypeIdFromEntityTag(EntityTag tag)
 template <class T>
 struct EntityType_Impl
 {
-    static_assert(std::is_base_of_v<Entity, T>, "T must be a base of Entity to use EntityType");
+    //static_assert(std::is_base_of_v<Entity, T>, "T must be a base of Entity to use EntityType");
     static constexpr EntityTag value = (std::is_void_v<T> || std::is_same_v<T, Entity>)
         ? EntityTag::TYPE_ID
         : EntityTag((static_cast<uint64>(TypeId::ForType<T>().Value()) << 32) | uint64(EntityTag::TYPE_ID));
