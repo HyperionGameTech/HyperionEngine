@@ -76,10 +76,6 @@ RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& 
 
 RenderGroup::~RenderGroup()
 {
-    // for (auto &it : m_renderProxies) {
-    //     it.second->DecRefs();
-    // }
-
     SafeDelete(std::move(m_shader));
     SafeDelete(std::move(m_descriptorTable));
 }

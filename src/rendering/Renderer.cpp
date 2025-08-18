@@ -3,6 +3,7 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderBackend.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -64,19 +65,26 @@ int PassData::CullUnusedGraphicsPipelines(int maxIter)
         renderGroupCacheIterator.page,
         renderGroupCacheIterator.elem);
 
-    // Loop around to the beginning of the container when the end is reached.
-    if (renderGroupCacheIterator == renderGroupCache.End())
-    {
-        renderGroupCacheIterator = renderGroupCache.Begin();
-    }
-
     int numCycles = 0;
 
-    for (; renderGroupCacheIterator != renderGroupCache.End() && numCycles < maxIter; numCycles++)
+    for (; numCycles < maxIter; numCycles++)
     {
+        // Loop around to the beginning of the container when the end is reached.
+        if (renderGroupCacheIterator == renderGroupCache.End())
+        {
+            renderGroupCacheIterator = renderGroupCache.Begin();
+            
+            // no elements if still at end
+            if (renderGroupCacheIterator == renderGroupCache.End())
+            {
+                break;
+            }
+        }
+        
         RenderGroupCacheEntry& entry = *renderGroupCacheIterator;
 
-        if (!entry.renderGroup.Lock())
+        // check refcount is zero without lock
+        if (entry.renderGroup.GetUnsafe()->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
         {
             HYP_LOG(Rendering, Debug, "Removing graphics pipeline for RenderGroup '{}' as it is no longer valid.", entry.renderGroup.Id());
 
@@ -202,8 +210,7 @@ int RendererBase::RunCleanupCycle(int maxIter)
     const typename SparsePagedArray<Handle<PassData>, 16>::Iterator startIterator = m_viewPassDataCleanupIterator; // the iterator we started at - use it to check that we don't do duplicate checks
 
     int numCycles = 0;
-
-    while (numCycles < maxIter)
+    for (; numCycles < maxIter; ++numCycles)
     {
         // Loop around to the beginning of the container when the end is reached.
         if (m_viewPassDataCleanupIterator == m_viewPassData.End())
@@ -218,8 +225,6 @@ int RendererBase::RunCleanupCycle(int maxIter)
 
         Handle<PassData>& pd = *m_viewPassDataCleanupIterator;
 
-        int numLocalCycles = 1;
-
         if (!pd->view.Lock())
         {
             HYP_LOG(Rendering, Debug, "Removing PassData for View {} as it is no longer valid.", pd->view.Id());
@@ -230,12 +235,10 @@ int RendererBase::RunCleanupCycle(int maxIter)
         }
         else
         {
-            numLocalCycles += pd->CullUnusedGraphicsPipelines(maxIter - numCycles - 1);
+            pd->CullUnusedGraphicsPipelines(1000);
 
             ++m_viewPassDataCleanupIterator;
         }
-
-        numCycles += numLocalCycles;
 
         if (m_viewPassDataCleanupIterator == startIterator)
         {

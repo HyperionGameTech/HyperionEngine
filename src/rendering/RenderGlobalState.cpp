@@ -1196,7 +1196,7 @@ void RenderApi_EndFrame_RenderThread()
 
     FrameData& frameData = g_frameData[slot];
 
-    // cull ViewData that hasn't been written to for a while
+    // cull ViewData that hasn't been written to for a while, as well as remove unused render groups.
     for (auto it = frameData.viewFrameData.Begin(); it != frameData.viewFrameData.End();)
     {
         ViewFrameData& vfd = *it->second;
@@ -1257,7 +1257,7 @@ void RenderApi_EndFrame_RenderThread()
         }
     }
 
-    g_renderGlobalState->graphicsPipelineCache->RunCleanupCycle(64);
+    numCleanupCycles -= g_renderGlobalState->graphicsPipelineCache->RunCleanupCycle(16);
 
     for (ResourceSubtypeData& subtypeData : g_resources.dataByType)
     {

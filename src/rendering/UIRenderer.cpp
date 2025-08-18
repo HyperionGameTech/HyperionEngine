@@ -85,7 +85,7 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
 
 static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList& rpl, const Array<Pair<ObjId<Entity>, int>>& proxyDepths, const Optional<RenderableAttributeSet>& overrideAttributes)
 {
-    renderCollector.Clear();
+    renderCollector.Clear(/* freeMemory */ false);
 
     for (const Pair<ObjId<Entity>, int>& pair : proxyDepths)
     {

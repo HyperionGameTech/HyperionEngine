@@ -575,7 +575,6 @@ void RenderCollector::Clear(bool freeMemory)
 {
     HYP_SCOPE;
 
-    // Keep the attribs and RenderGroups around so that we can have memory reserved for each slot
     for (auto& mappings : mappingsByBucket)
     {
         for (auto& it : mappings)
@@ -583,11 +582,21 @@ void RenderCollector::Clear(bool freeMemory)
             DrawCallCollectionMapping& mapping = it.second;
             mapping.meshProxies.Clear(/* deletePages */ freeMemory);
 
-            if (freeMemory && mapping.indirectRenderer)
+            if (freeMemory)
             {
-                delete mapping.indirectRenderer;
-                mapping.indirectRenderer = nullptr;
+                if (mapping.indirectRenderer)
+                {
+                    delete mapping.indirectRenderer;
+                    mapping.indirectRenderer = nullptr;
+                }
+
+                SafeDelete(std::move(mapping.renderGroup));
             }
+        }
+        
+        if (freeMemory)
+        {
+            mappings.Clear();
         }
     }
 }
@@ -888,7 +897,7 @@ void RenderCollector::RemoveEmptyRenderGroups()
 
             if (mapping.meshProxies.Any())
             {
-                ++it;
+                ++it; // skip non-empty
 
                 continue;
             }
@@ -898,6 +907,8 @@ void RenderCollector::RemoveEmptyRenderGroups()
                 delete mapping.indirectRenderer;
                 mapping.indirectRenderer = nullptr;
             }
+
+            SafeDelete(std::move(mapping.renderGroup));
 
             it = mappings.Erase(it);
         }

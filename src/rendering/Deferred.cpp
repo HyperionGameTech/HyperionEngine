@@ -1155,7 +1155,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
     descriptorSet->SetDebugName(NAME("FinalPassDescriptorSet"));
     descriptorSet->SetElement("InTexture", inputImageView);
 
-    DeferCreate(descriptorSet);
+    Assert(descriptorSet->Create());
 
     SafeDelete(std::move(passData.finalPassDescriptorSet));
 

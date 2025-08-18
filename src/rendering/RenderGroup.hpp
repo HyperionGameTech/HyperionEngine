@@ -45,7 +45,7 @@ HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 
 struct ParallelRenderingState;
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class HYP_API RenderGroup final : public HypObjectBase
 {
     HYP_OBJECT_BODY(RenderGroup);

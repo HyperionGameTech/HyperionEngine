@@ -206,7 +206,6 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
         && !rpl.GetLights().GetDiff().NeedsUpdate()
         && pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
     {
-        HYP_LOG_TEMP("Skip rendering env probe {}, cached position == {}", envProbe->Id(), pd->cachedProbeOrigin);
         return;
     }
 
@@ -286,13 +285,11 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
         alignas(16) uint32 lightIndices[16];
     };
 
-    HYP_LOG(Rendering, Debug, "Computing Env Map for EnvProbe {}", envProbe->Id());
-
     ShaderProperties shaderProperties;
 
     if (!envProbe->IsSkyProbe())
     {
-//        shaderProperties.Set(NAME("LIGHTING"));
+        shaderProperties.Set(NAME("LIGHTING"));
     }
 
     ShaderRef convolveProbeShader = g_shaderManager->GetOrCreate(NAME("ConvolveProbe"), shaderProperties);
