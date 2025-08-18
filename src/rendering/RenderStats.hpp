@@ -55,6 +55,10 @@ struct RenderStats
     double millisecondsPerFrameAvg = 0.0;
     double millisecondsPerFrameMax = 0.0;
     double millisecondsPerFrameMin = DBL_MAX;
+
+    uint32 deletionQueueNumElements = 0;
+    uint32 deletionQueueTotalBytes = 0;
+
     RenderStatsCounts counts;
 };
 

@@ -94,7 +94,7 @@ static bool InitializeCommandLineArguments(int argc, char** argv)
         return false;
     }
 
-    GlobalConfig config { "app" };
+    GlobalConfig config { "GlobalConfig" };
 
     if (json::JSONValue configArgs = config.Get("app.args"))
     {
@@ -124,6 +124,8 @@ HYP_API const CommandLineArguments& GetCommandLineArguments()
 HYP_API const FilePath& GetExecutablePath()
 {
     static FilePath executablePath = FilePath(g_commandLineArguments.GetCommand()).BasePath();
+
+    HYP_LOG_TEMP("command : {}\tthread : {}", g_commandLineArguments.GetCommand(), Threads::CurrentThreadId().GetName());
 
     return executablePath;
 }
@@ -162,7 +164,7 @@ void UpdateGlobalConfig(const ConfigurationTable& mergeValues)
         prevGlobalConfig = &g_globalConfigChain.Back();
     }
 
-    GlobalConfig& newGlobalConfig = g_globalConfigChain.EmplaceBack("app");
+    GlobalConfig& newGlobalConfig = g_globalConfigChain.EmplaceBack("GlobalConfig");
 
     if (prevGlobalConfig != nullptr)
     {
@@ -179,7 +181,7 @@ HYP_API const GlobalConfig& GetGlobalConfig()
 
     if (g_globalConfigChain.Empty())
     {
-        g_globalConfigChain.EmplaceBack("app");
+        g_globalConfigChain.EmplaceBack("GlobalConfig");
     }
 
     return g_globalConfigChain.Back();
@@ -196,14 +198,14 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
     HypClassRegistry::GetInstance().Initialize();
 
-    {
-        Mutex::Guard guard(g_globalConfigMutex);
-        g_globalConfigChain.EmplaceBack("app");
-    }
-
     if (!InitializeCommandLineArguments(argc, argv))
     {
         return false;
+    }
+
+    {
+        Mutex::Guard guard(g_globalConfigMutex);
+        g_globalConfigChain.EmplaceBack("GlobalConfig");
     }
 
     const FilePath basePath = GetExecutablePath();

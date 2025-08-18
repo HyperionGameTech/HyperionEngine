@@ -108,6 +108,12 @@ public:
     SafeDeleter& operator=(SafeDeleter&&) = delete;
     ~SafeDeleter();
 
+    /*! \brief Read the counter values for the last n frames, accumulated (n = num multi buffers).
+     *   - only call this on the render thread.
+     *  \param outNumElements The number of elements in the deletion queue.
+     *  \param outTotalBytes The total size of the deletion queue in bytes. */
+    void GetCounterValues(uint32& outNumElements, uint32& outTotalBytes) const;
+
     int Iterate(int maxIter = 1000);
 
     // returns number of entries that were deleted
@@ -134,8 +140,8 @@ public:
                 T* ptrCasted = reinterpret_cast<T*>(ptr);
                 ptrCasted->~T();
             };
-            
-            //header.destructFn = &Memory::Destruct<SafeDeleterEntry<T>>;
+
+            // header.destructFn = &Memory::Destruct<SafeDeleterEntry<T>>;
         }
         else
         {
@@ -160,7 +166,14 @@ public:
     }
 
 private:
+    struct Counter
+    {
+        uint32 numElements = 0;
+        uint32 numTotalBytes = 0;
+    };
+
     EntryList& GetCurrentEntryList();
+    void UpdateCounter(uint32 bufferIndex);
 
     // for calling on another thread than game thread / render thread.
     Mutex m_mutex;
@@ -168,11 +181,15 @@ private:
     LinkedList<EntryList> m_tempEntryLists;
     volatile int32 m_tempEntryListCount = 0;
 
-    FixedArray<EntryList, g_numMultiBuffers> m_entryLists;
+    EntryList m_entryLists[g_numMultiBuffers];
+    Counter m_counters[g_numMultiBuffers];
 };
 
 extern HYP_API SafeDeleter* GetSafeDeleterInstance();
 
+/*! \brief Defers deletion of a resource until enough frames have passed that the renderer can finish using it.
+ *   It is garanteed that the number of frames before deletion is at least the number of frames before the game thread and render thread will sync,
+ *   so calling this function on the game thread for example will ensure that the resource is not deleted until the render thread has a chance to finish using it. */
 template <class T>
 static inline void SafeDelete(T&& value)
 {
@@ -180,6 +197,7 @@ static inline void SafeDelete(T&& value)
     new (ptr) SafeDeleterEntry<T>(std::forward<T>(value));
 }
 
+/*! \see SafeDelete(T&& value) */
 template <class T, class AllocatorType>
 static inline void SafeDelete(Array<T, AllocatorType>&& value)
 {
@@ -191,6 +209,7 @@ static inline void SafeDelete(Array<T, AllocatorType>&& value)
     value.Clear();
 }
 
+/*! \see SafeDelete(T&& value) */
 template <class T, SizeType Sz>
 static inline void SafeDelete(FixedArray<T, Sz>&& value)
 {
@@ -207,6 +226,7 @@ static inline void SafeDelete(FixedArray<T, Sz>&& value)
     value = {};
 }
 
+/*! \see SafeDelete(T&& value) */
 template <class T, auto KeyBy>
 static inline void SafeDelete(HashSet<T, KeyBy>&& value)
 {

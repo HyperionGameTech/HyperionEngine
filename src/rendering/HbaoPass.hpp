@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT(ConfigName = "app", JsonPath = "rendering.hbao")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.hbao")
 struct HBAOConfig : public ConfigBase<HBAOConfig>
 {
     HYP_FIELD(JsonPath = "radius")

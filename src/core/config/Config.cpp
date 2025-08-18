@@ -111,7 +111,7 @@ bool ConfigurationTable::IsChanged() const
 
 FilePath ConfigurationTable::GetFilePath() const
 {
-    FilePath configPath = GetResourceDirectory() / "config" / m_name;
+    FilePath configPath = GetExecutablePath() / m_name;
 
     if (!configPath.EndsWith(".json"))
     {

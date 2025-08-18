@@ -227,7 +227,7 @@ void World::Init()
     SetReady(true);
 }
 
-void World::ProcessViewAsync(const Handle<View>& view)
+void World::ProcessViewAsync(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -246,8 +246,13 @@ void World::ProcessViewAsync(const Handle<View>& view)
     m_processViews.PushBack(view);
 }
 
-DelegateHandler World::ProcessViewAsync(const Handle<View>& view, Proc<void()>&& onComplete)
+DelegateHandler World::ProcessViewAsync(View* view, Proc<void()>&& onComplete)
 {
+    if (!view)
+    {
+        return {};
+    }
+
     if (!onComplete.IsValid())
     {
         ProcessViewAsync(view);
@@ -270,7 +275,12 @@ void World::Update(float delta)
     const uint32 currentFrameIndex = RenderApi_GetFrameIndex();
 
     // set buffered Views for current frame index
-    m_viewsPerFrame[currentFrameIndex] = m_views;
+    m_viewsPerFrame[currentFrameIndex].Resize(m_views.Size());
+
+    for (SizeType i = 0; i < m_views.Size(); i++)
+    {
+        m_viewsPerFrame[currentFrameIndex][i] = m_views[i].Get();
+    }
 
     Array<View*> processViews;
     processViews.Resize(m_processViews.Size() + m_views.Size());
@@ -643,7 +653,6 @@ bool World::RemoveScene(Scene* scene)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
-    // @TODO RemoveScene needs to trigger a scene detach event for all rendersubsystems
 
     typename Array<Handle<Scene>>::Iterator it = m_scenes.Find(scene);
 
@@ -652,7 +661,7 @@ bool World::RemoveScene(Scene* scene)
         return false;
     }
 
-    Handle<Scene> sceneCopy = *it;
+    Handle<Scene> strongScene = std::move(*it);
 
     m_scenes.Erase(it);
 
@@ -676,7 +685,7 @@ bool World::RemoveScene(Scene* scene)
         }
     }
 
-    SafeDelete(std::move(sceneCopy));
+    SafeDelete(std::move(strongScene));
 
     return true;
 }
@@ -765,17 +774,20 @@ void World::AddView(const Handle<View>& view)
     }
 }
 
-void World::RemoveView(const Handle<View>& view)
+void World::RemoveView(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    if (!view.IsValid())
+    if (!view)
     {
         return;
     }
 
-    typename Array<Handle<View>>::Iterator it = m_views.Find(view);
+    typename Array<Handle<View>>::Iterator it = m_views.FindIf([view](const Handle<View>& other)
+        {
+            return other.Get() == view;
+        });
 
     if (IsReady())
     {
@@ -798,11 +810,15 @@ void World::RemoveView(const Handle<View>& view)
 
     if (it != m_views.End())
     {
+        Handle<View> strongView = std::move(*it);
+
         m_views.Erase(it);
+
+        SafeDelete(std::move(strongView));
     }
 }
 
-Span<const Handle<View>> World::GetViews() const
+Span<View* const> World::GetViews() const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | g_gameThread);

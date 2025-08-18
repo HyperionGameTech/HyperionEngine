@@ -78,6 +78,9 @@ void EnvProbe::SetIsVisible(ObjId<Camera> cameraId, bool isVisible)
 
 EnvProbe::~EnvProbe()
 {
+    SafeDelete(std::move(m_camera));
+    SafeDelete(std::move(m_prefilteredEnvMap));
+    SafeDelete(std::move(m_view));
 }
 
 void EnvProbe::Init()

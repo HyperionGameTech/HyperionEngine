@@ -933,3 +933,21 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
     file(COPY "${CMAKE_SOURCE_DIR}/tasks-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/tasks.json")
     message(STATUS "Created launch and task json files in .vscode directory")
 endif()
+
+# for all <ConfigName>Template.json files in the root directory, copy them to the CMAKE_RUNTIME_OUTPUT_DIRECTORY directory (if they do not exist),
+# and remove the "Template" part from the filename
+# this is used for configuration files for the engine, like GlobalConfig.json, Hyperion
+file(GLOB CONFIG_TEMPLATES "${CMAKE_SOURCE_DIR}/*ConfigTemplate.json")
+foreach(CONFIG_TEMPLATE ${CONFIG_TEMPLATES})
+    get_filename_component(CONFIG_NAME_WITH_TEMPLATE ${CONFIG_TEMPLATE} NAME_WE)
+    string(REPLACE "ConfigTemplate" "Config" CONFIG_NAME ${CONFIG_NAME_WITH_TEMPLATE})
+    set(OUTPUT_CONFIG_FILE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME}.json")
+
+    if(NOT EXISTS ${OUTPUT_CONFIG_FILE})
+        file(COPY ${CONFIG_TEMPLATE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        file(RENAME "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME_WITH_TEMPLATE}.json" "${OUTPUT_CONFIG_FILE}")
+        message(STATUS "Copied configuration template: ${CONFIG_TEMPLATE} to ${OUTPUT_CONFIG_FILE}")
+    else()
+        message(STATUS "Configuration file already exists: ${OUTPUT_CONFIG_FILE}, skipping copy")
+    endif()
+endforeach()

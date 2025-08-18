@@ -16,6 +16,8 @@
 
 #include <core/memory/allocator/Allocator.hpp>
 
+#include <core/math/MathUtil.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/utilities/IdGenerator.hpp>
@@ -30,9 +32,8 @@ class MemoryPoolBase;
 template <class T>
 struct MemoryPoolInitInfo
 {
-    static_assert(sizeof(T) <= 1024 * 1024, "Element size must be less than or equal to 1 MiB");
-
-    static constexpr uint32 numElementsPerBlock = 1024 * 1024 / sizeof(T); // 1 MiB per block
+    static constexpr uint32 numBytesPerBlock = MathUtil::NextPowerOf2(MathUtil::Max(sizeof(T), 4096));
+    static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(T);
     static constexpr uint32 numInitialElements = numElementsPerBlock;
 };
 

@@ -66,6 +66,8 @@
 namespace hyperion {
 
 static constexpr uint32 g_numFrames = g_tripleBuffer ? 3 : 2;
+static_assert(g_numFrames <= g_minSafeDeleteCycles,
+    "g_numFrames must be less than or equal to g_minSafeDeleteCycles to ensure safe deletion of resources.");
 
 static constexpr uint32 g_maxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
 
@@ -533,7 +535,7 @@ void RenderApi_Init()
         ConfigurationTable renderGlobalConfigOverrides;
 
         // if ray tracing is not supported, we need to update the configuration
-        if (!g_renderBackend->GetRenderConfig().IsRaytracingSupported())
+        if (!g_renderBackend->GetRenderConfig().raytracing)
         {
             renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
             renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
@@ -1194,10 +1196,6 @@ void RenderApi_EndFrame_RenderThread()
 
     FrameData& frameData = g_frameData[slot];
 
-    // update render stats and copy to frame data so the game thread can read it
-    g_renderStatsCalculator.Advance(g_renderStats);
-    frameData.renderStats = g_renderStats;
-
     // cull ViewData that hasn't been written to for a while
     for (auto it = frameData.viewFrameData.Begin(); it != frameData.viewFrameData.End();)
     {
@@ -1304,6 +1302,13 @@ void RenderApi_EndFrame_RenderThread()
     }
 
     g_safeDeleter->UpdateEntryListQueue();
+    
+    // update render stats and copy to frame data so the game thread can read it
+    // do this after calling UpdateEntryListQueue() on SafeDeleter so we can get the total
+    // number of deletion queue items for our stats
+    g_renderStatsCalculator.Advance(g_renderStats);
+    frameData.renderStats = g_renderStats;
+    
     g_safeDeleter->Iterate();
 
     g_frameIndex[CONSUMER] = (g_frameIndex[CONSUMER] + 1) % g_numFrames;
@@ -1610,7 +1615,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
         ->SetElement("LightmapVolumeRadianceTexture", placeholderData->GetImageView2D1x1R8());
 
     // Material
-    if (g_renderBackend->GetRenderConfig().IsBindlessSupported())
+    if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
         for (uint32 textureIndex = 0; textureIndex < g_maxBindlessResources; textureIndex++)
         {

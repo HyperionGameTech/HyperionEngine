@@ -574,9 +574,9 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
         for (uint32 i = 0; i < envProbeCollection.numProbes; i++)
         {
             const uint32 index = (pd->currentProbeIndex + i) % envProbeCollection.numProbes;
-            const Handle<EnvProbe>& probe = envProbeCollection.GetEnvProbeOnRenderThread(index);
+            EnvProbe* probe = envProbeCollection.GetEnvProbeOnRenderThread(index);
 
-            if (probe.IsValid() && probe->NeedsRender())
+            if (probe != nullptr && probe->NeedsRender())
             {
                 indicesDistances.PushBack({
                     index,
@@ -596,8 +596,8 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
                 const uint32 foundIndex = it.first;
                 const uint32 indirectIndex = envProbeCollection.GetIndexOnRenderThread(foundIndex);
 
-                const Handle<EnvProbe>& probe = envProbeCollection.GetEnvProbeDirect(indirectIndex);
-                Assert(probe.IsValid());
+                EnvProbe* probe = envProbeCollection.GetEnvProbeDirect(indirectIndex);
+                Assert(probe != nullptr);
 
                 RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(probe));
                 Assert(envProbeProxy != nullptr);
@@ -651,11 +651,11 @@ void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSet
     const EnvGridOptions& options = envGrid->GetOptions();
     const EnvProbeCollection& envProbeCollection = envGrid->GetEnvProbeCollection();
 
-    const Handle<EnvProbe>& probe = envProbeCollection.GetEnvProbeDirect(probeIndex);
-    Assert(probe.IsValid());
+    EnvProbe* probe = envProbeCollection.GetEnvProbeDirect(probeIndex);
+    Assert(probe != nullptr);
 
     const uint32 probeBoundIndex = RenderApi_RetrieveResourceBinding(probe);
-    AssertDebug(probeBoundIndex != ~0u, "EnvProbe {} is not bound when rendering EnvGrid!", probe.Id());
+    AssertDebug(probeBoundIndex != ~0u, "EnvProbe {} is not bound when rendering EnvGrid!", probe->Id());
 
     {
         RenderSetup rs = renderSetup;
@@ -687,11 +687,11 @@ void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& renderSet
     probe->SetNeedsRender(false);
 }
 
-void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& renderSetup, const Handle<EnvProbe>& probe)
+void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe)
 {
     HYP_SCOPE;
 
-    AssertDebug(probe.IsValid());
+    AssertDebug(probe != nullptr);
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
@@ -868,7 +868,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
 
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = frame->OnFrameEnd.Bind(
-        [probe = Handle<EnvProbe>(probe), delegateHandle](FrameBase* frame)
+        [probe = MakeStrongRef(probe), delegateHandle](FrameBase* frame)
         {
             HYP_NAMED_SCOPE("EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics - Buffer readback");
 
@@ -880,9 +880,11 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
             g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // Enqueue on game thread, not safe to write on render thread.
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]()
+            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]() mutable
                 {
                     probe->SetSphericalHarmonicsData(shData);
+
+                    SafeDelete(std::move(probe));
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
@@ -890,7 +892,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
         });
 }
 
-void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, const Handle<EnvProbe>& probe)
+void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe)
 {
     HYP_SCOPE;
 
@@ -1099,9 +1101,8 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
     // size of a probe in the voxel grid
     const Vec3u probeVoxelExtent = voxelGridTextureExtent / options.density;
 
-    const Handle<EnvProbe>& probe = envProbeCollection.GetEnvProbeDirect(probeIndex);
-    Assert(probe.IsValid());
-    Assert(probe->IsReady());
+    EnvProbe* probe = envProbeCollection.GetEnvProbeDirect(probeIndex);
+    Assert(probe != nullptr && probe->IsReady());
 
     const GpuImageRef& colorImage = framebuffer->GetAttachment(0)->GetImage();
     const Vec3u cubemapDimensions = colorImage->GetExtent();

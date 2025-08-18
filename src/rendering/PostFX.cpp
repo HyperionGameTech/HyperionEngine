@@ -51,7 +51,7 @@ void PostFXPass::CreateDescriptors()
         return;
     }
 
-    if (!g_renderBackend->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
+    if (!g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
     {
         HYP_LOG(Rendering, Warning, "Creating post processing pass on a device that does not support dynamic descriptor indexing");
 

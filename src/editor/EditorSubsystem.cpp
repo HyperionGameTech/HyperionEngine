@@ -1360,7 +1360,7 @@ void EditorSubsystem::InitViewport()
         GetWorld()->RemoveView(view);
     }
 
-    m_views.Clear();
+    SafeDelete(std::move(m_views));
 
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);

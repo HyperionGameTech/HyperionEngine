@@ -41,7 +41,7 @@ class TaskBatch;
 
 using threading::TaskBatch;
 
-HYP_STRUCT(ConfigName = "app", JsonPath = "rendering")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>
 {
     HYP_FIELD(JsonPath = "raytracing.pathTracing.enabled")

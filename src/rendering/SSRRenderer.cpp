@@ -26,7 +26,7 @@ namespace hyperion {
 
 static constexpr bool useTemporalBlending = true;
 
-static constexpr TextureFormat ssrFormat = TF_RGBA16F;
+static constexpr TextureFormat ssrFormat = TF_RGBA8;
 
 struct SSRUniforms
 {

@@ -106,7 +106,10 @@ EnvGrid::EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options)
 {
 }
 
-EnvGrid::~EnvGrid() = default;
+EnvGrid::~EnvGrid()
+{
+    // EnvProbes will be SafeDelete()'d because they are child nodes and Node handles this automatically.
+}
 
 #pragma endregion EnvGrid
 
@@ -311,9 +314,9 @@ void LegacyEnvGrid::Update(float delta)
 
         for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)
         {
-            const Handle<EnvProbe>& probe = m_envProbeCollection.GetEnvProbeDirect(index);
+            EnvProbe* probe = m_envProbeCollection.GetEnvProbeDirect(index);
 
-            if (!probe.IsValid())
+            if (!probe)
             {
                 continue;
             }
@@ -362,8 +365,8 @@ void LegacyEnvGrid::Update(float delta)
 
     for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)
     {
-        const Handle<EnvProbe>& probe = m_envProbeCollection.GetEnvProbeDirect(index);
-        Assert(probe.IsValid());
+        EnvProbe* probe = m_envProbeCollection.GetEnvProbeDirect(index);
+        Assert(probe != nullptr);
 
         // so Collect() on our view updates the EnvProbe's RenderProxy
         probe->SetNeedsRenderProxyUpdate();
@@ -521,9 +524,9 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
                     m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * sizeOfProbe)
                 };
 
-                const Handle<EnvProbe>& probe = m_envProbeCollection.GetEnvProbeDirect(scrolledClampedIndex);
+                EnvProbe* probe = m_envProbeCollection.GetEnvProbeDirect(scrolledClampedIndex);
 
-                if (!probe.IsValid())
+                if (!probe)
                 {
                     // Should not happen, but just in case
                     continue;
@@ -552,7 +555,6 @@ void LegacyEnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
     SetNeedsRenderProxyUpdate();
 }
 
-
 void LegacyEnvGrid::UpdateRenderProxy(RenderProxyEnvGrid* proxy)
 {
     proxy->envGrid = WeakHandleFromThis();
@@ -576,10 +578,10 @@ void LegacyEnvGrid::UpdateRenderProxy(RenderProxyEnvGrid* proxy)
 
     for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)
     {
-        const Handle<EnvProbe>& probe = m_envProbeCollection.GetEnvProbeOnGameThread(index);
-        Assert(probe.IsValid());
+        EnvProbe* probe = m_envProbeCollection.GetEnvProbeOnGameThread(index);
+        Assert(probe != nullptr);
 
-        proxy->envProbes[index] = probe.Get();
+        proxy->envProbes[index] = probe;
     }
 }
 

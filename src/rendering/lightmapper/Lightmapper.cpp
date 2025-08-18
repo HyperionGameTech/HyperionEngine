@@ -168,7 +168,7 @@ void LightmapperConfig::PostLoadCallback()
 {
     if (traceMode == LightmapTraceMode::GPU_PATH_TRACING)
     {
-        if (!g_renderBackend->GetRenderConfig().IsRaytracingSupported())
+        if (!g_renderBackend->GetRenderConfig().raytracing)
         {
             traceMode = LightmapTraceMode::CPU_PATH_TRACING;
 
@@ -200,7 +200,7 @@ LightmapJob::~LightmapJob()
 
         delete taskBatch;
     }
-    
+
     delete m_lightmapElement;
 }
 
@@ -333,7 +333,7 @@ void LightmapJob::Process()
     view->UpdateViewport();
     view->UpdateVisibility();
     view->CollectSync();
-    
+
     if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= g_maxConcurrentRenderingTasksPerJob)
     {
         // Wait for current rendering tasks to complete before enqueueing new ones.
@@ -462,7 +462,8 @@ Lightmapper::~Lightmapper()
     if (m_view != nullptr)
     {
         m_scene->GetWorld()->RemoveView(m_view);
-        m_view.Reset();
+
+        SafeDelete(std::move(m_view));
     }
 }
 
@@ -826,7 +827,6 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
             thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
-
 }
 
 #pragma endregion Lightmapper

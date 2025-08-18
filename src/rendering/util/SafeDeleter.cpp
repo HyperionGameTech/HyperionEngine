@@ -7,6 +7,8 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
 #include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
@@ -24,18 +26,6 @@ SafeDeleter::EntryList::EntryList()
 {
 }
 
-// static inline void AddToEntryList(SafeDeleter::EntryList& entryList, const SafeDeleter::Entry& entry)
-// {
-//     auto reverseMapIt = entryList.reverseMap.Find(entry.ptr);
-//     AssertDebug(reverseMapIt == entryList.reverseMap.End(), "ptr {} added multiple times to deletion queue", entry.ptr);
-
-//     const int32 idx = AtomicIncrement(&entryList.count) - 1;
-//     AssertDebug(idx >= 0);
-
-//     SafeDeleter::Entry* pEntry = &*entryList.entries.Emplace(idx, entry);
-//     entryList.reverseMap.Insert(entry.ptr, pEntry);
-// }
-
 SafeDeleter::SafeDeleter()
     : m_entryLists {},
       m_tempEntryListCount(0)
@@ -44,6 +34,8 @@ SafeDeleter::SafeDeleter()
 
 SafeDeleter::~SafeDeleter()
 {
+    HYP_NAMED_SCOPE("SafeDeleter::~SafeDeleter");
+
     auto deleteAll = [](EntryList& entryList)
     {
         // free all entries in the list
@@ -78,12 +70,28 @@ SafeDeleter::~SafeDeleter()
     }
 }
 
+void SafeDeleter::GetCounterValues(uint32& outNumElements, uint32& outTotalBytes) const
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
+    outNumElements = 0;
+    outTotalBytes = 0;
+
+    for (const Counter& counter : m_counters)
+    {
+        outNumElements += counter.numElements;
+        outTotalBytes += counter.numTotalBytes;
+    }
+}
+
 int SafeDeleter::Iterate(int maxIter)
 {
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     uint32 bufferIndex = RenderApi_GetFrameIndex();
-    AssertDebug(bufferIndex < m_entryLists.Size());
+    AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
 
     SafeDeleter::EntryList& entryList = m_entryLists[bufferIndex];
 
@@ -132,7 +140,10 @@ int SafeDeleter::Iterate(int maxIter)
 
 int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
 {
-    AssertDebug(bufferIndex < m_entryLists.Size());
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
+    AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
 
     SafeDeleter::EntryList& entryList = m_entryLists[bufferIndex];
 
@@ -163,10 +174,12 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
 
 SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
 {
+    HYP_SCOPE;
+
     if (Threads::IsOnThread(g_gameThread | g_renderThread))
     {
         uint32 bufferIndex = RenderApi_GetFrameIndex();
-        AssertDebug(bufferIndex < m_entryLists.Size());
+        AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
 
         return m_entryLists[bufferIndex];
     }
@@ -179,21 +192,36 @@ SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
     return entryList;
 }
 
+void SafeDeleter::UpdateCounter(uint32 bufferIndex)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
+    AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
+
+    SafeDeleter::EntryList& entryList = m_entryLists[bufferIndex];
+    SafeDeleter::Counter& counter = m_counters[bufferIndex];
+
+    counter.numElements = entryList.currHeaders->Size();
+    counter.numTotalBytes = entryList.buffer.Size();
+}
+
 void SafeDeleter::UpdateEntryListQueue()
 {
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
-
-    // move all entries over to current (needs to update pointers as well)
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     uint32 bufferIndex = RenderApi_GetFrameIndex();
-    AssertDebug(bufferIndex < m_entryLists.Size());
+    AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
 
     SafeDeleter::EntryList& currentEntryList = m_entryLists[bufferIndex];
 
     int32 numTempEntryLists = 0;
     if (AtomicAdd(&m_tempEntryListCount, 0) == 0)
     {
-        // no temp entry lists, nothing to do
+        // no temp entry lists, nothing to append to our list,
+        // so just update counter and return
+        UpdateCounter(bufferIndex);
         return;
     }
 
@@ -255,6 +283,8 @@ void SafeDeleter::UpdateEntryListQueue()
     m_tempEntryLists.Clear();
 
     AtomicExchange(&m_tempEntryListCount, 0);
+
+    UpdateCounter(bufferIndex);
 }
 
 void* SafeDeleter::EntryList::Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader)
@@ -283,11 +313,14 @@ void* SafeDeleter::EntryList::Alloc(uint32 size, uint32 alignment, EntryHeader& 
 
 void SafeDeleter::EntryList::Push(const EntryHeader& header)
 {
+    HYP_SCOPE;
     currHeaders->PushBack(header);
 }
 
 void SafeDeleter::EntryList::ResizeBuffer(SizeType newMinSize)
 {
+    HYP_SCOPE;
+
     ByteBuffer newBuffer;
     newBuffer.SetSize(MathUtil::Ceil<double, SizeType>(newMinSize * 1.5));
 

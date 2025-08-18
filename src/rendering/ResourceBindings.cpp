@@ -245,7 +245,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
     Threads::AssertOnThread(g_renderThread);
 
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
-    static const bool isBindlessSupported = renderConfig.IsBindlessSupported();
+    static const bool isBindlessSupported = renderConfig.bindlessTextures;
 
     AssertDebug(material != nullptr);
 
@@ -278,7 +278,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
 {
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
-    static const bool isBindlessSupported = renderConfig.IsBindlessSupported();
+    static const bool isBindlessSupported = renderConfig.bindlessTextures;
 
     if (isBindlessSupported)
     {

@@ -1,0 +1,82 @@
+{
+  "rendering": {
+    "indirect": true,
+    "parallel": true,
+    "ssr": {
+      "coneTracing": false,
+      "numIterations": 32,
+      "quality": 2,
+      "eyeFade": [0.980000, 0.990000],
+      "rayStep": 1.500000,
+      "enabled": true,
+      "screenEdgeFade": [0.960000, 0.990000],
+      "roughnessScattering": true
+    },
+    "envGrid": {
+      "reflections": {
+        "enabled": false
+      },
+      "globalIllumination": {
+        "enabled": false
+      }
+    },
+    "taa": {
+      "enabled": false
+    },
+    "debug": {
+      "reflections": false,
+      "debugDrawer": {
+        "enabled": true,
+        "envGridProbes": false
+      },
+      "irradiance": false
+    },
+    "hbil": {
+      "enabled": false
+    },
+    "raytracing": {
+      "reflections": {
+        "enabled": false
+      },
+      "globalIllumination": {
+        "enabled": true
+      },
+      "pathTracing": {
+        "enabled": false
+      },
+      "enabled": true
+    },
+    "hbao": {
+      "radius": 2.500000,
+      "power": 0.800000,
+      "temporalBlending": false,
+      "enabled": false
+    },
+    "ssgi": {
+      "quality": 0,
+      "enabled": false
+    },
+    "vulkan": {
+      "debugLayers": false
+    }
+  },
+  "editor": {
+    "camera": {
+      "moveSensitivity": 1,
+      "lookSensitivity": 1
+    }
+  },
+  "app": {
+    "name": "HyperionEditor",
+    "args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace"
+  },
+  "lightmapper": {
+    "maxRaysPerFrame": 100000,
+    "traceMode": 0,
+    "numThreadsPerJob": 4,
+    "radiance": true,
+    "idealTrianglesPerJob": 16000,
+    "numSamples": 32,
+    "irradiance": true
+  }
+}

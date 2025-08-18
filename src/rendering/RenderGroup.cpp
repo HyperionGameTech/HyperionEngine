@@ -111,12 +111,12 @@ void RenderGroup::Init()
         }));
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!g_renderBackend->GetRenderConfig().IsParallelRenderingEnabled())
+    if (!g_renderBackend->GetRenderConfig().parallelRendering)
     {
         m_flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
-    if (!g_renderBackend->GetRenderConfig().IsIndirectRenderingEnabled())
+    if (!g_renderBackend->GetRenderConfig().indirectRendering)
     {
         m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
@@ -259,7 +259,7 @@ static void RenderAll(
         AssertDebug(indirectRenderer != nullptr);
     }
 
-    static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().IsBindlessSupported();
+    static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
@@ -335,7 +335,7 @@ static void RenderAll(
             offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
             offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.entityId.ToIndex());
 
-            if (g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+            if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
                 offsets["MaterialsBuffer"] = ShaderDataOffset<MaterialShaderData>(drawCall.material, 0);
             }
@@ -386,7 +386,7 @@ static void RenderAll(
             ArrayMap<WeakName, uint32> offsets;
             offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
 
-            if (g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+            if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
                 offsets["MaterialsBuffer"] = ShaderDataOffset<MaterialShaderData>(drawCall.material, 0);
             }
@@ -463,7 +463,7 @@ static void RenderAll_Parallel(
 
     AssertDebug(parallelRenderingState != nullptr);
 
-    static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().IsBindlessSupported();
+    static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
@@ -548,7 +548,7 @@ static void RenderAll_Parallel(
                         offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
                         offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.entityId.ToIndex());
 
-                        if (g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+                        if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {
                             offsets["MaterialsBuffer"] = ShaderDataOffset<MaterialShaderData>(drawCall.material, 0);
                         }
@@ -628,7 +628,7 @@ static void RenderAll_Parallel(
                         ArrayMap<WeakName, uint32> offsets;
                         offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
 
-                        if (g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+                        if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {
                             offsets["MaterialsBuffer"] = ShaderDataOffset<MaterialShaderData>(drawCall.material, 0);
                         }
@@ -719,7 +719,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& renderSe
         };
     }
 
-    static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().IsIndirectRenderingEnabled();
+    static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = isIndirectRenderingEnabled
         && m_flags[RenderGroupFlags::INDIRECT_RENDERING]

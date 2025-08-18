@@ -41,6 +41,8 @@ namespace Hyperion
         public double millisecondsPerFrameAvg;
         public double millisecondsPerFrameMax;
         public double millisecondsPerFrameMin;
+        public uint deletionQueueNumElements;
+        public uint deletionQueueTotalBytes;
         public RenderStatsCounts counts;
     }
 }

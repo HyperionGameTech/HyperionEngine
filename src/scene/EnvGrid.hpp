@@ -49,8 +49,14 @@ enum EnvGridType : uint32
 struct EnvProbeCollection
 {
     uint32 numProbes = 0;
-    FixedArray<uint32, g_maxBoundAmbientProbes * 2> indirectIndices = { 0 };
-    FixedArray<Handle<EnvProbe>, g_maxBoundAmbientProbes> envProbes = {};
+    Array<uint32, DynamicAllocator> indirectIndices;
+    Array<EnvProbe*, DynamicAllocator> envProbes;
+
+    EnvProbeCollection()
+    {
+        indirectIndices.Resize(g_maxBoundAmbientProbes * 2);
+        envProbes.Resize(g_maxBoundAmbientProbes);
+    }
 
     // Must be called in EnvGrid::Init(), before probes are used from the render thread.
     // returns the index
@@ -72,12 +78,12 @@ struct EnvProbeCollection
         return indirectIndices[index];
     }
 
-    HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbeDirect(uint32 index) const
+    HYP_FORCE_INLINE EnvProbe* GetEnvProbeDirect(uint32 index) const
     {
         return envProbes[index];
     }
 
-    HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbeOnGameThread(uint32 index) const
+    HYP_FORCE_INLINE EnvProbe* GetEnvProbeOnGameThread(uint32 index) const
     {
         return envProbes[indirectIndices[index]];
     }
@@ -95,7 +101,7 @@ struct EnvProbeCollection
         return indirectIndices[g_maxBoundAmbientProbes + index];
     }
 
-    HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbeOnRenderThread(uint32 index) const
+    HYP_FORCE_INLINE EnvProbe* GetEnvProbeOnRenderThread(uint32 index) const
     {
         return envProbes[indirectIndices[g_maxBoundAmbientProbes + index]];
     }

@@ -21,7 +21,7 @@ class PassData;
 struct RenderCommand_DestroyRaytracingReflections;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
-HYP_STRUCT(ConfigName = "app", JsonPath = "rendering.raytracing")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.raytracing")
 struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConfig>
 {
     HYP_FIELD(JsonIgnore)

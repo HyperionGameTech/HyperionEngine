@@ -44,7 +44,7 @@ class PassData;
 struct RenderSetup;
 struct ImmediateDrawShaderData;
 
-HYP_STRUCT(ConfigName = "app", JsonPath = "rendering.debug.debugDrawer")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.debug.debugDrawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
     HYP_FIELD(Description = "Enable or disable the debug drawer.", JsonPath = "enabled")

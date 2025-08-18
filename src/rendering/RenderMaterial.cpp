@@ -47,7 +47,7 @@ MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 
 void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
 {
-    if (g_renderBackend->GetRenderConfig().IsBindlessSupported())
+    if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
         return;
     }

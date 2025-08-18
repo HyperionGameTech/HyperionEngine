@@ -330,7 +330,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {
     proxy->material = WeakHandleFromThis();
 
-    static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().IsBindlessSupported();
+    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
     MaterialShaderData& bufferData = proxy->bufferData;
 

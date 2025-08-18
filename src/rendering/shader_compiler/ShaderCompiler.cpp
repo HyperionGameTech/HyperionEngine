@@ -1240,17 +1240,17 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties& properties)
 
     properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false, ShaderProperty::Value(int(g_numGbufferTargets))));
 
-    if (g_renderBackend->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
+    if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
     {
         properties.Set(ShaderProperty(NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING"), false));
     }
 
-    if (g_renderBackend->GetRenderConfig().IsBindlessSupported())
+    if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
         properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), false));
     }
 
-    if (!g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+    if (!g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
     {
         properties.Set(ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA"), false));
     }
@@ -1587,7 +1587,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
         bundles.PushBack(std::move(bundle));
     }
 
-    const bool supportsRtShaders = g_renderBackend->GetRenderConfig().IsRaytracingSupported();
+    const bool supportsRtShaders = g_renderBackend->GetRenderConfig().raytracing;
 
     HashMap<Bundle*, bool> results;
     Mutex resultsMutex;

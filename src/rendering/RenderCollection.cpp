@@ -689,7 +689,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     AssertDebug(renderSetup.HasView(), "RenderSetup must have a View attached");
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
-    static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().IsIndirectRenderingEnabled();
+    static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
     const bool performOcclusionCulling = isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
 
     if (performOcclusionCulling)
@@ -1067,7 +1067,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    static const bool uniquePerMaterial = g_renderBackend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
+    static const bool uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
 
     if (bucketBits == 0)
     {

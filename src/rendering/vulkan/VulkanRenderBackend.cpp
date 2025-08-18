@@ -21,6 +21,8 @@
 
 #include <core/containers/SparsePagedArray.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -52,52 +54,24 @@
 
 namespace hyperion {
 
-static constexpr bool g_useDebugLayers = true;
+HYP_API extern const GlobalConfig& GetGlobalConfig();
 
 #pragma region VulkanRenderConfig
 
 class VulkanRenderConfig final : public IRenderConfig
 {
 public:
-    VulkanRenderConfig(VulkanRenderBackend* renderingApi)
-        : m_renderBackend(renderingApi)
+    void Initialize(VulkanRenderBackend* renderBackend)
     {
+        Assert(renderBackend != nullptr && renderBackend->GetDevice() != nullptr);
+
+        uniqueDrawCallPerMaterial = true;
+        bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
+        raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
+        indirectRendering = GetGlobalConfig().Get("rendering.indirect").ToBool(true);
+        parallelRendering = GetGlobalConfig().Get("rendering.parallel").ToBool(true);
+        dynamicDescriptorIndexing = false;
     }
-
-    virtual ~VulkanRenderConfig() override = default;
-
-    virtual bool ShouldCollectUniqueDrawCallPerMaterial() const override
-    {
-        return true;
-    }
-
-    virtual bool IsBindlessSupported() const override
-    {
-        return m_renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
-    }
-
-    virtual bool IsRaytracingSupported() const override
-    {
-        return m_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
-    }
-
-    virtual bool IsIndirectRenderingEnabled() const override
-    {
-        return true;
-    }
-
-    virtual bool IsParallelRenderingEnabled() const override
-    {
-        return true;
-    }
-
-    virtual bool IsDynamicDescriptorIndexingSupported() const override
-    {
-        return false; // m_renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
-    }
-
-private:
-    VulkanRenderBackend* m_renderBackend;
 };
 
 #pragma endregion VulkanRenderConfig
@@ -539,7 +513,7 @@ public:
 
 VulkanRenderBackend::VulkanRenderBackend()
     : m_instance(nullptr),
-      m_renderConfig(MakePimpl<VulkanRenderConfig>(this)),
+      m_renderConfig(MakePimpl<VulkanRenderConfig>()),
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_textureCache(MakePimpl<VulkanTextureCache>()),
       m_asyncCompute(MakePimpl<VulkanAsyncCompute>()),
@@ -573,10 +547,19 @@ AsyncComputeBase* VulkanRenderBackend::GetAsyncCompute() const
 
 RendererResult VulkanRenderBackend::Initialize()
 {
+    static const ConfigurationValue& cfgDebugLayers = GetGlobalConfig().Get("rendering.vulkan.debugLayers");
+
+    if (cfgDebugLayers.ToBool(false))
+    {
+        HYP_LOG(RenderingBackend, Info, "Vulkan debug layers enabled");
+    }
+
     m_instance = new VulkanInstance();
-    HYP_GFX_CHECK(m_instance->Initialize(g_useDebugLayers));
+    HYP_GFX_CHECK(m_instance->Initialize(cfgDebugLayers.ToBool(false)));
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
+
+    m_renderConfig->Initialize(this);
 
     m_crashHandler.Initialize();
 

@@ -19,7 +19,7 @@ class GBuffer;
 class View;
 struct SSGIUniforms;
 
-HYP_STRUCT(ConfigName = "app", JsonPath = "rendering.ssgi")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.ssgi")
 struct SSGIConfig : public ConfigBase<SSGIConfig>
 {
     HYP_FIELD(Description = "The quality level of the SSGI effect. (0 = quarter res, 1 = half res)")

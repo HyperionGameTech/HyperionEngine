@@ -98,8 +98,8 @@ void GetDeferredShaderProperties(ShaderProperties& outShaderProperties)
     static const GlobalConfig& globalConfig = GetGlobalConfig();
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
 
-    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.IsRaytracingSupported() && globalConfig.Get("rendering.raytracing.reflections.enabled").ToBool());
-    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.IsRaytracingSupported() && globalConfig.Get("rendering.raytracing.globalIllumination.enabled").ToBool());
+    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.raytracing && globalConfig.Get("rendering.raytracing.reflections.enabled").ToBool());
+    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.raytracing && globalConfig.Get("rendering.raytracing.globalIllumination.enabled").ToBool());
     outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), globalConfig.Get("rendering.envGrid.globalIllumination.enabled").ToBool());
     outShaderProperties.Set(NAME("HBIL_ENABLED"), globalConfig.Get("rendering.hbil.enabled").ToBool());
     outShaderProperties.Set(NAME("HBAO_ENABLED"), globalConfig.Get("rendering.hbao.enabled").ToBool());
@@ -275,7 +275,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
         return;
     }
 
-    static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().IsBindlessSupported();
+    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
     // render with each light
     for (uint32 lightTypeIndex = 0; lightTypeIndex < LT_MAX; lightTypeIndex++)
@@ -1196,7 +1196,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
         DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
         descriptorSet->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frameIndex));
 
-        if (g_renderBackend->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
+        if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
         {
             uint32 gbufferElementIndex = 0;
 
@@ -1315,7 +1315,7 @@ void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredPassData& 
     // Is hardware ray tracing supported at all?
     // We could still create TLAS without necessarily creating reflection and global illumination pass data,
     // and then ray tracing features could be dynamically enabled or disabled.
-    static const bool shouldEnableRaytracingStatic = g_renderBackend->GetRenderConfig().IsRaytracingSupported();
+    static const bool shouldEnableRaytracingStatic = g_renderBackend->GetRenderConfig().raytracing;
 
     if (!shouldEnableRaytracingStatic)
     {
@@ -1442,14 +1442,13 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     // Collect view-independent renderable types from all views, binned
     /// @TODO: We could use the existing binning by subclass that ResourceTracker now provides.
-    FixedArray<HashSet<EnvProbe*>, EPT_MAX> envProbes;
-    FixedArray<HashSet<Light*>, LT_MAX> lights;
-    HashSet<EnvGrid*> envGrids;
+    FixedArray<FlatSet<EnvProbe*>, EPT_MAX> envProbes;
+    FixedArray<FlatSet<Light*>, LT_MAX> lights;
+    FlatSet<EnvGrid*> envGrids;
 
     // For rendering EnvGrids and EnvProbes, we use a directional light from one of the Views that references it (if found)
-    /// TODO: This could be a little bit more robust.
-    HashMap<EnvGrid*, Light*> envGridLights;
-    HashMap<EnvProbe*, Light*> envProbeLights;
+    FlatMap<EnvGrid*, Light*> envGridLights;
+    FlatMap<EnvProbe*, Light*> envProbeLights;
 
     // Render UI to render targets
     for (RendererBase* renderer : g_renderGlobalState->globalRenderers[GRT_UI])
@@ -1459,9 +1458,9 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     // init view pass data and collect global rendering resources
     // (env probes, env grids)
-    for (const Handle<View>& view : rs.world->GetViews())
+    for (View* view : rs.world->GetViews())
     {
-        AssertDebug(view.IsValid());
+        AssertDebug(view != nullptr);
 
         RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
         rpl.BeginRead();
@@ -1649,9 +1648,9 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     // reset renderer state back to what it was before
     newRs = rs;
 
-    for (const Handle<View>& view : rs.world->GetViews())
+    for (View* view : rs.world->GetViews())
     {
-        AssertDebug(view.IsValid());
+        AssertDebug(view != nullptr);
 
         if (!(view->GetFlags() & ViewFlags::GBUFFER))
         {

@@ -89,8 +89,8 @@ public:
 protected:
     void RenderProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex);
 
-    void ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& renderSetup, const Handle<EnvProbe>& probe);
-    void ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, const Handle<EnvProbe>& probe);
+    void ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe);
+    void ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe);
     void OffsetVoxelGrid(FrameBase* frame, const RenderSetup& renderSetup, Vec3i offset);
     void VoxelizeProbe(FrameBase* frame, const RenderSetup& renderSetup, uint32 probeIndex);
 

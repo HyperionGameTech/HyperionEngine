@@ -2,6 +2,7 @@
 
 #include <rendering/RenderStats.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -88,6 +89,11 @@ void RenderStatsCalculator::Advance(RenderStats& renderStats)
     newRenderStats.millisecondsPerFrameMin = resetMinMax
         ? newRenderStats.millisecondsPerFrame
         : MathUtil::Min(renderStats.millisecondsPerFrameMin, newRenderStats.millisecondsPerFrame);
+
+    g_safeDeleter->GetCounterValues(
+        newRenderStats.deletionQueueNumElements,
+        newRenderStats.deletionQueueTotalBytes);
+
     newRenderStats.counts = m_counts;
 
     renderStats = newRenderStats;
@@ -111,14 +117,16 @@ double RenderStatsCalculator::CalculateFramesPerSecond() const
     }
 
     const uint32 count = m_numSamples < maxSamples ? m_numSamples : maxSamples;
-    double total = 0.0;
+
+    double sum = 0.0;
 
     for (uint32 i = 0; i < count; ++i)
     {
-        total += 1.0 / m_samples[i];
+        sum += m_samples[i];
     }
 
-    return total / MathUtil::Max(double(count), MathUtil::epsilonD);
+    const double avgDelta = sum / double(count);
+    return avgDelta > 0.0 ? 1.0 / avgDelta : 0.0;
 }
 
 double RenderStatsCalculator::CalculateMillisecondsPerFrame() const
@@ -132,14 +140,16 @@ double RenderStatsCalculator::CalculateMillisecondsPerFrame() const
     }
 
     const uint32 count = m_numSamples < maxSamples ? m_numSamples : maxSamples;
-    double total = 0.0;
+
+    double sum = 0.0;
 
     for (uint32 i = 0; i < count; ++i)
     {
-        total += m_samples[i] * 1000.0;
+        sum += m_samples[i];
     }
 
-    return total / MathUtil::Max(double(count), MathUtil::epsilonD);
+    const double avgDelta = sum / double(count);
+    return avgDelta * 1000.0;
 }
 
 #pragma endregion RenderStatsCalculator

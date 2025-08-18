@@ -17,7 +17,7 @@ namespace hyperion {
 
 class GBuffer;
 
-HYP_STRUCT(ConfigName = "app", JsonPath = "rendering.ssr")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.ssr")
 struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 {
     HYP_FIELD()

@@ -188,10 +188,10 @@ public:
     void AddView(const Handle<View>& view);
 
     HYP_METHOD()
-    void RemoveView(const Handle<View>& view);
+    void RemoveView(View* view);
 
     /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or game thread. */
-    Span<const Handle<View>> GetViews() const;
+    Span<View* const> GetViews() const;
 
     /*! \brief Gets the View responsible for collecting objects used in ray tracing. Will return nullptr if ray tracing is not enabled. */
     HYP_FORCE_INLINE View* GetRaytracingView() const
@@ -200,8 +200,8 @@ public:
     }
 
     /*! \brief Adds a View for processing asynchronously for this frame. */
-    void ProcessViewAsync(const Handle<View>& view);
-    DelegateHandler ProcessViewAsync(const Handle<View>& view, Proc<void()>&& onComplete);
+    void ProcessViewAsync(View* view);
+    DelegateHandler ProcessViewAsync(View* view, Proc<void()>&& onComplete);
 
     /*! \brief Perform any necessary game thread specific updates to the World.
      * The main logic loop of the engine happens here. Each Scene in the World is updated,
@@ -227,7 +227,7 @@ private:
     Array<Handle<View>> m_views;
 
     // Views, buffered so the render thread can safely read from it
-    Array<Array<Handle<View>>, FixedAllocator<g_tripleBuffer ? 3 : 2>> m_viewsPerFrame;
+    Array<Array<View*>, FixedAllocator<g_tripleBuffer ? 3 : 2>> m_viewsPerFrame;
 
     View* m_raytracingView;
 
@@ -240,7 +240,7 @@ private:
     TaskBatch* m_viewCollectionBatch;
 
     // additional views to process for the current frame
-    Array<Handle<View>> m_processViews;
+    Array<View*> m_processViews;
 };
 
 } // namespace hyperion
