@@ -155,7 +155,7 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
                                 return;
                             }
 
-                            Bitmap_RGBA16F bitmap(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
+                            LightmapAtlasBitmap bitmap(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
                             bitmap.SetPixels(std::move(byteBuffer));
 
                             const String filename = HYP_FORMAT("lightmap_atlas_texture_{}_{}.bmp",
@@ -296,7 +296,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<Bitmap_RGBA16F, uint32(LTT_MAX)> bitmaps = {
+    FixedArray<LightmapAtlasBitmap, uint32(LTT_MAX)> bitmaps = {
         uvMap.ToBitmapRadiance(),  /* RADIANCE */
         uvMap.ToBitmapIrradiance() /* IRRADIANCE */
     };
@@ -307,13 +307,13 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        LinkedList<Bitmap_RGBA16F> tempBitmap;
+        LinkedList<LightmapAtlasBitmap> tempBitmap;
 
-        Bitmap_RGBA16F* pBitmap = &bitmaps[i];
+        LightmapAtlasBitmap* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
-            Bitmap_RGBA16F& rescaledBitmap = tempBitmap.EmplaceBack(elementDimensions.x, elementDimensions.y);
+            LightmapAtlasBitmap& rescaledBitmap = tempBitmap.EmplaceBack(elementDimensions.x, elementDimensions.y);
             
             Rect<uint32> srcRect {
                 0, 0,

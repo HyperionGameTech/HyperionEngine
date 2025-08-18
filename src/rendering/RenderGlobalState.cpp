@@ -530,7 +530,9 @@ void RenderApi_Init()
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
 
     Assert(g_renderBackend != nullptr);
-    Assert(g_renderBackend->Initialize());
+
+    RendererResult result = g_renderBackend->Initialize();
+    Assert(result, "Failed to initialize rendering backend: {}", result.GetError().GetMessage());
 
     { // override global config after renderer initialize
         ConfigurationTable renderGlobalConfigOverrides;

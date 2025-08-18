@@ -161,7 +161,7 @@ public:
     HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, RC<VulkanDescriptorSetLayoutWrapper>& outRef);
 
     VkSurfaceKHR CreateVkSurface(ApplicationWindow* window, VulkanInstance* instance);
-    bool GetVkExtensions(Array<const char*>& outExtensions);
+    RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
 private:
     Delegate<void, SwapchainBase*> OnSwapchainRecreated;

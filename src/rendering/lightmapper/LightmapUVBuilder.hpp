@@ -87,6 +87,8 @@ struct LightmapUV
     LightmapRay ray;
 };
 
+using LightmapAtlasBitmap = Bitmap_RGBA8;
+
 struct LightmapUVMap
 {
     // HashMap from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
@@ -101,8 +103,8 @@ struct LightmapUVMap
     // Mapping from mesh Id to the indices of the UVs that correspond to that mesh.
     MeshToUVIndicesMap meshToUvIndices;
 
-    Bitmap_RGBA16F ToBitmapRadiance() const;
-    Bitmap_RGBA16F ToBitmapIrradiance() const;
+    LightmapAtlasBitmap ToBitmapRadiance() const;
+    LightmapAtlasBitmap ToBitmapIrradiance() const;
 };
 
 class LightmapUVBuilder

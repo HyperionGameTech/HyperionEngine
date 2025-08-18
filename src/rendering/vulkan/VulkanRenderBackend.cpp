@@ -1060,7 +1060,7 @@ VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, Vul
     HYP_NOT_IMPLEMENTED();
 }
 
-bool VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
+RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
 {
 #ifdef HYP_SDL
     if (const SDLAppContext* sdlAppContext = ObjCast<SDLAppContext>(g_appContext))
@@ -1070,17 +1070,17 @@ bool VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
 
         if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, nullptr))
         {
-            return false;
+            return HYP_MAKE_ERROR(RendererError, "Failed to get Vulkan instance extensions from SDL: {}", 0, SDL_GetError());
         }
 
         outExtensions.Resize(numExtensions);
 
         if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, outExtensions.Data()))
         {
-            return false;
+            return HYP_MAKE_ERROR(RendererError, "Failed to get Vulkan instance extensions from SDL: {}", 0, SDL_GetError());
         }
 
-        return true;
+        return {};
     }
 #endif
 
@@ -1116,16 +1116,17 @@ bool VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
             if (!found)
             {
                 // required extension missing.
-                return false;
+                return HYP_MAKE_ERROR(RendererError, "Required Vulkan extension '{}' is not supported by the system", 0, requiredExtension);
             }
 
             outExtensions.PushBack(requiredExtension);
         }
-        return true;
+
+        return {};
     }
 #endif
 
-    return false;
+    return HYP_MAKE_ERROR(RendererError, "Failed to get Vulkan extensions: Unsupported application context type");
 }
 
 #pragma endregion VulkanRenderBackend

@@ -15,11 +15,11 @@ namespace hyperion {
 
 #pragma region LightmapUVMap
 
-Bitmap_RGBA16F LightmapUVMap::ToBitmapRadiance() const
+LightmapAtlasBitmap LightmapUVMap::ToBitmapRadiance() const
 {
     Assert(uvs.Size() == width * height, "Invalid UV map size");
 
-    Bitmap_RGBA16F bitmap(width, height);
+    LightmapAtlasBitmap bitmap(width, height);
 
     for (uint32 x = 0; x < width; x++)
     {
@@ -45,11 +45,11 @@ Bitmap_RGBA16F LightmapUVMap::ToBitmapRadiance() const
     return bitmap;
 }
 
-Bitmap_RGBA16F LightmapUVMap::ToBitmapIrradiance() const
+LightmapAtlasBitmap LightmapUVMap::ToBitmapIrradiance() const
 {
     Assert(uvs.Size() == width * height, "Invalid UV map size");
 
-    Bitmap_RGBA16F bitmap(width, height);
+    LightmapAtlasBitmap bitmap(width, height);
 
     for (uint32 x = 0; x < width; x++)
     {

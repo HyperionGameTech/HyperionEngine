@@ -348,9 +348,9 @@ RendererResult VulkanInstance::Initialize(bool loadDebugLayers)
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
 
-    if (!GetRenderBackend()->GetVkExtensions(extensionNames))
+    if (RendererResult result = GetRenderBackend()->GetVkExtensions(extensionNames); result.HasError())
     {
-        return HYP_MAKE_ERROR(RendererError, "Failed to load Vulkan extensions.");
+        return result;
     }
 
     extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
