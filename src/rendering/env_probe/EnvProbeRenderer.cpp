@@ -199,11 +199,18 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
         pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
     }
 
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
     if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate()
-        && !rpl.GetLights().GetDiff().NeedsUpdate())
+        && !rpl.GetLights().GetDiff().NeedsUpdate()
+        && pd->cachedProbeOrigin == envProbeProxy->bufferData.worldPosition.GetXYZ())
     {
+        HYP_LOG_TEMP("Skip rendering env probe {}, cached position == {}", envProbe->Id(), pd->cachedProbeOrigin);
         return;
     }
+
+    pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
     RenderCollector& renderCollector = RenderApi_GetRenderCollector(view);
 
@@ -285,7 +292,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     if (!envProbe->IsSkyProbe())
     {
-        shaderProperties.Set(NAME("LIGHTING"));
+//        shaderProperties.Set(NAME("LIGHTING"));
     }
 
     ShaderRef convolveProbeShader = g_shaderManager->GetOrCreate(NAME("ConvolveProbe"), shaderProperties);
@@ -323,6 +330,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     }
 
     uniforms.numBoundLights = numBoundLights;
+    
+    HYP_LOG_TEMP("Num bound lights for env probe : {}", uniforms.numBoundLights);
 
     GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
     HYP_GFX_ASSERT(uniformBuffer->Create());

@@ -171,7 +171,7 @@ UIObject::~UIObject()
 {
     m_childUiObjects.Clear();
 
-    static const auto removeUiComponent = [](Scene* scene, Handle<Entity> entity, Handle<Node> node)
+    static const auto removeUiComponent = [](Scene* scene, Handle<Entity> entity)
     {
         Assert(scene != nullptr);
         Assert(scene->GetEntityManager() != nullptr);
@@ -182,6 +182,8 @@ UIObject::~UIObject()
 
             scene->GetEntityManager()->RemoveComponent<UIComponent>(entity);
         }
+
+        SafeDelete(std::move(entity));
     };
 
     if (Handle<Entity> entity = GetEntity())
@@ -191,14 +193,14 @@ UIObject::~UIObject()
 
         if (Threads::IsOnThread(scene->GetOwnerThreadId()))
         {
-            removeUiComponent(GetScene(), std::move(entity), std::move(m_node));
+            removeUiComponent(GetScene(), std::move(entity));
         }
         else
         {
             // Keep node alive until it can be destroyed on the owner thread
-            Task<void> task = Threads::GetThread(scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = MakeStrongRef(GetScene()), node = std::move(m_node), entity = std::move(entity)]() mutable
+            Task<void> task = Threads::GetThread(scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = MakeStrongRef(GetScene()), entity = std::move(entity)]() mutable
                 {
-                    removeUiComponent(scene.Get(), std::move(entity), std::move(node));
+                    removeUiComponent(scene.Get(), std::move(entity));
                 });
 
             // wait for task completion before finishing destruction,
@@ -207,8 +209,20 @@ UIObject::~UIObject()
         }
     }
 
-    m_verticalScrollbar.Reset();
-    m_horizontalScrollbar.Reset();
+    if (m_dataSource)
+    {
+        SafeDelete(std::move(m_dataSource));
+    }
+
+    if (m_verticalScrollbar)
+    {
+        SafeDelete(std::move(m_verticalScrollbar));
+    }
+
+    if (m_horizontalScrollbar)
+    {
+        SafeDelete(std::move(m_horizontalScrollbar));
+    }
 
     OnInit.RemoveAllDetached();
     OnAttached.RemoveAllDetached();
@@ -1541,6 +1555,8 @@ bool UIObject::RemoveChildUIObject(UIObject* uiObject)
         {
             childNode->Remove();
             childNode.Reset();
+
+            SafeDelete(std::move(childNode));
         }
 
         if (UseAutoSizing())
@@ -2447,7 +2463,7 @@ void UIObject::UpdateMaterial(bool updateChildren)
                 GetName());
 
             meshComponent->material = CreateMaterial();
-            
+
             scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
 
             // return, new material would have the updated parameters and textures

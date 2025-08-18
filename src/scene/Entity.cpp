@@ -330,6 +330,8 @@ void Entity::OnTransformUpdated(const Transform& transform)
     transformComponent.transform = m_worldTransform;
 
     entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+
+    SetNeedsRenderProxyUpdate();
 }
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)

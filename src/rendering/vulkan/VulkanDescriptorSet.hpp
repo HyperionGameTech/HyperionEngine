@@ -77,6 +77,7 @@ protected:
     virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const override;
 
     VkDescriptorSet m_handle;
+    VkDescriptorPool m_vkDescriptorPool;
     ElementCache m_cachedElements;
     RC<VulkanDescriptorSetLayoutWrapper> m_vkLayoutWrapper;
     Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;

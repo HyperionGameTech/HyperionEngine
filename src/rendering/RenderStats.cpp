@@ -62,9 +62,15 @@ void RenderStatsCalculator::AddSample(double delta)
         return;
     }
 
-    const uint32 sampleIndex = m_numSamples++;
+    m_numSamples++;
 
-    m_samples[sampleIndex % maxSamples] = delta;
+    if (m_numSamples >= g_minSamples)
+    {
+        m_sampleIndex = (m_sampleIndex % g_maxSamples);
+        m_sampleData[m_sampleIndex] = delta;
+        
+        ++m_sampleIndex;
+    }
 }
 
 void RenderStatsCalculator::Advance(RenderStats& renderStats)
@@ -74,8 +80,20 @@ void RenderStatsCalculator::Advance(RenderStats& renderStats)
 
     m_counter.NextTick();
     m_deltaAccum += m_counter.delta;
-
-    const bool resetMinMax = m_deltaAccum >= 1.0;
+    
+    const bool resetFrameStats = m_counter.delta >= 1.0;
+    const bool resetMinMax = resetFrameStats || m_deltaAccum >= 1.0;
+    
+    // reset frame stats if we have a signficant delta between the last frame,
+    // indicating we probably were paused (e.g in a breakpoint)
+    if (resetFrameStats)
+    {
+        m_counter = GameCounter();
+        m_counter.delta = 1.0;
+        
+        m_numSamples = 0;
+        m_sampleIndex = 0;
+    }
 
     AddSample(m_counter.delta);
 
@@ -111,22 +129,22 @@ double RenderStatsCalculator::CalculateFramesPerSecond() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    if (m_numSamples == 0)
+    if (m_numSamples < g_minSamples)
     {
-        return 0.0;
+        return INFINITY;
     }
 
-    const uint32 count = m_numSamples < maxSamples ? m_numSamples : maxSamples;
+    const uint32 count = MathUtil::Min(m_numSamples, g_maxSamples);
 
     double sum = 0.0;
 
     for (uint32 i = 0; i < count; ++i)
     {
-        sum += m_samples[i];
+        sum += m_sampleData[i];
     }
 
     const double avgDelta = sum / double(count);
-    return avgDelta > 0.0 ? 1.0 / avgDelta : 0.0;
+    return avgDelta > 0.0 ? 1.0 / avgDelta : INFINITY;
 }
 
 double RenderStatsCalculator::CalculateMillisecondsPerFrame() const
@@ -134,18 +152,18 @@ double RenderStatsCalculator::CalculateMillisecondsPerFrame() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    if (m_numSamples == 0)
+    if (m_numSamples < g_minSamples)
     {
         return 0.0;
     }
 
-    const uint32 count = m_numSamples < maxSamples ? m_numSamples : maxSamples;
+    const uint32 count = MathUtil::Min(m_numSamples, g_maxSamples);
 
     double sum = 0.0;
 
     for (uint32 i = 0; i < count; ++i)
     {
-        sum += m_samples[i];
+        sum += m_sampleData[i];
     }
 
     const double avgDelta = sum / double(count);

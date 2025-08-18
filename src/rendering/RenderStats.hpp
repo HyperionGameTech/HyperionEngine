@@ -50,7 +50,7 @@ struct RenderStatsCounts
 HYP_STRUCT()
 struct RenderStats
 {
-    double framesPerSecond = 0.0;
+    double framesPerSecond = INFINITY;
     double millisecondsPerFrame = 0.0;
     double millisecondsPerFrameAvg = 0.0;
     double millisecondsPerFrameMax = 0.0;
@@ -70,10 +70,22 @@ struct HYP_API SuppressRenderStatsScope
 
 class RenderStatsCalculator
 {
-    static constexpr uint32 maxSamples = 512;
+    static constexpr uint32 g_maxSamples = 1000;
+    static constexpr uint32 g_minSamples = 10; // to wait before calculating
 
 public:
     friend struct SuppressRenderStatsScope;
+
+    RenderStatsCalculator()
+        : m_deltaAccum(0.0),
+          m_numSamples(0),
+          m_sampleIndex(0),
+          m_suppressCount(0)
+    {
+        Memory::MemSet(&m_sampleData[0], 0, sizeof(m_sampleData));
+
+        m_counter.delta = 1.0;
+    }
 
     HYP_FORCE_INLINE void Suppress()
     {
@@ -98,12 +110,13 @@ private:
     void AddSample(double delta);
 
     GameCounter m_counter;
-    double m_deltaAccum = 0.0;
-    FixedArray<double, maxSamples> m_samples { 0.0 };
-    uint32 m_numSamples = 0;
+    double m_deltaAccum;
+    uint32 m_numSamples;
+    uint32 m_sampleIndex;
     RenderStatsCounts m_counts;
+    int m_suppressCount;
 
-    int m_suppressCount = 0;
+    double m_sampleData[g_maxSamples];
 };
 
 } // namespace hyperion

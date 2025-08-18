@@ -56,6 +56,11 @@ namespace hyperion {
 
 HYP_API extern const GlobalConfig& GetGlobalConfig();
 
+static inline VulkanRenderBackend* GetRenderBackend()
+{
+    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+}
+
 #pragma region VulkanRenderConfig
 
 class VulkanRenderConfig final : public IRenderConfig
@@ -222,6 +227,18 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
 
 #pragma region VulkanDescriptorSetManager
 
+static const Array<VkDescriptorPoolSize> g_descriptorPoolSizes = {
+    { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
+    { VK_DESCRIPTOR_TYPE_SAMPLER, 256 },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
+    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32000 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32000 },
+    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64000 },
+    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64000 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32000 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32000 }
+};
+
 class VulkanDescriptorSetManager final : public IDescriptorSetManager
 {
 public:
@@ -233,20 +250,28 @@ public:
     RendererResult Create(VulkanDevice* device);
     RendererResult Destroy(VulkanDevice* device);
 
-    RendererResult CreateDescriptorSet(VulkanDevice* device, const RC<VulkanDescriptorSetLayoutWrapper>& layout, VkDescriptorSet& outVkDescriptorSet);
-    RendererResult DestroyDescriptorSet(VulkanDevice* device, VkDescriptorSet vkDescriptorSet);
+    RendererResult CreateDescriptorSet(VulkanDevice* device,
+        const RC<VulkanDescriptorSetLayoutWrapper>& layout,
+        VkDescriptorSet& outVkDescriptorSet,
+        VkDescriptorPool& outVkDescriptorPool);
+
+    RendererResult DestroyDescriptorSet(VulkanDevice* device,
+        VkDescriptorSet vkDescriptorSet,
+        VkDescriptorPool vkDescriptorPool);
 
     RC<VulkanDescriptorSetLayoutWrapper> GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout);
 
 private:
+    VkDescriptorPool GetDescriptorPool();
+    RendererResult CreateDescriptorPool(VkDescriptorPool& outDescriptorPool);
+
     Mutex m_mutex;
     HashMap<HashCode, Weak<VulkanDescriptorSetLayoutWrapper>> m_vkDescriptorSetLayouts;
 
-    VkDescriptorPool m_vkDescriptorPool;
+    Array<VkDescriptorPool> m_vkDescriptorPools;
 };
 
 VulkanDescriptorSetManager::VulkanDescriptorSetManager()
-    : m_vkDescriptorPool(VK_NULL_HANDLE)
 {
 }
 
@@ -254,32 +279,6 @@ VulkanDescriptorSetManager::~VulkanDescriptorSetManager() = default;
 
 RendererResult VulkanDescriptorSetManager::Create(VulkanDevice* device)
 {
-    static const Array<VkDescriptorPoolSize> poolSizes = {
-        { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 256 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32000 }
-    };
-
-    HYP_GFX_ASSERT(m_vkDescriptorPool == VK_NULL_HANDLE);
-
-    VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-    poolInfo.maxSets = maxDescriptorSets;
-    poolInfo.poolSizeCount = uint32(poolSizes.Size());
-    poolInfo.pPoolSizes = poolSizes.Data();
-
-    VULKAN_CHECK(vkCreateDescriptorPool(
-        device->GetDevice(),
-        &poolInfo,
-        nullptr,
-        &m_vkDescriptorPool));
-
     return RendererResult {};
 }
 
@@ -289,55 +288,150 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
 
     m_vkDescriptorSetLayouts.Clear();
 
-    if (m_vkDescriptorPool != VK_NULL_HANDLE)
+    for (VkDescriptorPool descriptorPool : m_vkDescriptorPools)
     {
-        vkDestroyDescriptorPool(
-            device->GetDevice(),
-            m_vkDescriptorPool,
-            nullptr);
-
-        m_vkDescriptorPool = VK_NULL_HANDLE;
+        if (descriptorPool != VK_NULL_HANDLE)
+        {
+            vkDestroyDescriptorPool(
+                device->GetDevice(),
+                descriptorPool,
+                nullptr);
+        }
     }
+
+    m_vkDescriptorPools.Clear();
 
     return result;
 }
 
-RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* device, const RC<VulkanDescriptorSetLayoutWrapper>& layout, VkDescriptorSet& outVkDescriptorSet)
+VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool()
 {
-    HYP_GFX_ASSERT(m_vkDescriptorPool != VK_NULL_HANDLE);
+    if (m_vkDescriptorPools.Empty())
+    {
+        VkDescriptorPool descriptorPool;
+        if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(descriptorPool); createDescriptorPoolResult.HasError())
+        {
+            HYP_FAIL("Failed to create descriptor pool! {}", createDescriptorPoolResult.GetError().GetMessage());
+        }
 
+        return descriptorPool;
+    }
+
+    // return last descriptor pool, it's most likely for allocations
+    // to succeed with it since it would have more free memory
+    return m_vkDescriptorPools.Back();
+}
+
+RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool& outDescriptorPool)
+{
+    outDescriptorPool = VK_NULL_HANDLE;
+
+    VkDescriptorPool& descriptorPool = m_vkDescriptorPools.EmplaceBack(VK_NULL_HANDLE);
+
+    VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    poolInfo.maxSets = maxDescriptorSets;
+    poolInfo.poolSizeCount = uint32(g_descriptorPoolSizes.Size());
+    poolInfo.pPoolSizes = g_descriptorPoolSizes.Data();
+
+    VULKAN_CHECK(vkCreateDescriptorPool(
+        GetRenderBackend()->GetDevice()->GetDevice(),
+        &poolInfo,
+        nullptr,
+        &descriptorPool));
+
+    HYP_LOG(RenderingBackend, Debug, "Created new Vulkan descriptor pool {} ({})", (void*)descriptorPool, m_vkDescriptorPools.Size());
+
+    outDescriptorPool = descriptorPool;
+
+    return {};
+}
+
+HYP_DISABLE_OPTIMIZATION;
+RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* device,
+    const RC<VulkanDescriptorSetLayoutWrapper>& layout,
+    VkDescriptorSet& outVkDescriptorSet,
+    VkDescriptorPool& outVkDescriptorPool)
+{
     HYP_GFX_ASSERT(layout != nullptr);
     HYP_GFX_ASSERT(layout->GetVulkanHandle() != VK_NULL_HANDLE);
 
     VkDescriptorSetLayout layouts[] = { layout->GetVulkanHandle() };
 
-    VkDescriptorSetAllocateInfo allocInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-    allocInfo.descriptorPool = m_vkDescriptorPool;
-    allocInfo.descriptorSetCount = ArraySize(layouts);
-    allocInfo.pSetLayouts = &layouts[0];
+    outVkDescriptorPool = GetDescriptorPool();
 
-    const VkResult vkResult = vkAllocateDescriptorSets(
-        device->GetDevice(),
-        &allocInfo,
-        &outVkDescriptorSet);
+    int descriptorPoolIndex = int(m_vkDescriptorPools.Size() - 1);
 
-    if (vkResult != VK_SUCCESS)
+#ifdef HYP_DEBUG_MODE
+    auto iter = m_vkDescriptorPools.Find(outVkDescriptorPool);
+    HYP_GFX_ASSERT(iter != m_vkDescriptorPools.End());
+    int foundIndex = int(m_vkDescriptorPools.IndexOf(iter));
+    HYP_GFX_ASSERT(foundIndex == descriptorPoolIndex);
+#endif
+
+    bool shouldRetry = false;
+
+    do
     {
-        return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set", int(vkResult));
+        shouldRetry = false;
+
+        HYP_GFX_ASSERT(outVkDescriptorPool != VK_NULL_HANDLE);
+
+        VkDescriptorSetAllocateInfo allocInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+        allocInfo.descriptorPool = outVkDescriptorPool;
+        allocInfo.descriptorSetCount = ArraySize(layouts);
+        allocInfo.pSetLayouts = &layouts[0];
+
+        const VkResult vkResult = vkAllocateDescriptorSets(
+            device->GetDevice(),
+            &allocInfo,
+            &outVkDescriptorSet);
+
+        if (vkResult != VK_SUCCESS)
+        {
+            if (vkResult == VK_ERROR_OUT_OF_POOL_MEMORY)
+            {
+                // descend down the list of existing descriptor pools. we start trying to allocate from the last descriptor pool (see GetDescriptorPool())
+                --descriptorPoolIndex;
+
+                // create a new descriptor pool if we're out of existing pools to try with
+                if (descriptorPoolIndex >= 0)
+                {
+                    outVkDescriptorPool = m_vkDescriptorPools[descriptorPoolIndex];
+                    HYP_GFX_ASSERT(outVkDescriptorPool != VK_NULL_HANDLE);
+                }
+                else
+                {
+                    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(outVkDescriptorPool); createDescriptorPoolResult.HasError())
+                    {
+                        // failed to allocate new descriptor pool
+                        return createDescriptorPoolResult;
+                    }
+                }
+
+                shouldRetry = true;
+
+                // try again with new descriptor pool
+                continue;
+            }
+
+            return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set!", int(vkResult));
+        }
     }
+    while (shouldRetry);
 
     return RendererResult {};
 }
+HYP_ENABLE_OPTIMIZATION;
 
-RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* device, VkDescriptorSet vkDescriptorSet)
+RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* device, VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)
 {
-    HYP_GFX_ASSERT(m_vkDescriptorPool != VK_NULL_HANDLE);
-
     HYP_GFX_ASSERT(vkDescriptorSet != VK_NULL_HANDLE);
+    HYP_GFX_ASSERT(vkDescriptorPool != VK_NULL_HANDLE);
 
     vkFreeDescriptorSets(
         device->GetDevice(),
-        m_vkDescriptorPool,
+        vkDescriptorPool,
         1,
         &vkDescriptorSet);
 
@@ -976,14 +1070,14 @@ QueryImageCapabilitiesResult VulkanRenderBackend::QueryImageCapabilities(const T
     HYP_NOT_IMPLEMENTED();
 }
 
-RendererResult VulkanRenderBackend::CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper>& layout, VkDescriptorSet& outVkDescriptorSet)
+RendererResult VulkanRenderBackend::CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper>& layout, VkDescriptorSet& outVkDescriptorSet, VkDescriptorPool& outVkDescriptorPool)
 {
-    return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(), layout, outVkDescriptorSet);
+    return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(), layout, outVkDescriptorSet, outVkDescriptorPool);
 }
 
-RendererResult VulkanRenderBackend::DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet)
+RendererResult VulkanRenderBackend::DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)
 {
-    return m_descriptorSetManager->DestroyDescriptorSet(m_instance->GetDevice(), vkDescriptorSet);
+    return m_descriptorSetManager->DestroyDescriptorSet(m_instance->GetDevice(), vkDescriptorSet, vkDescriptorPool);
 }
 
 RendererResult VulkanRenderBackend::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, RC<VulkanDescriptorSetLayoutWrapper>& outRef)

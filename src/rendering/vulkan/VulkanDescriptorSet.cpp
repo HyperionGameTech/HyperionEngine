@@ -40,7 +40,8 @@ static inline VulkanRenderBackend* GetRenderBackend()
 
 VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
     : DescriptorSetBase(layout),
-      m_handle(VK_NULL_HANDLE)
+      m_handle(VK_NULL_HANDLE),
+      m_vkDescriptorPool(VK_NULL_HANDLE)
 {
     // Initial layout of elements
     for (auto& it : m_layout.GetElements())
@@ -82,8 +83,10 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
     {
         HYP_LOG(RenderingBackend, Debug, "Destroying descriptor set with layout: {}\tDebug name: {}", m_layout.GetName().LookupString(), GetDebugName().LookupString());
 
-        GetRenderBackend()->DestroyDescriptorSet(m_handle);
+        GetRenderBackend()->DestroyDescriptorSet(m_handle, m_vkDescriptorPool);
+
         m_handle = VK_NULL_HANDLE;
+        m_vkDescriptorPool = VK_NULL_HANDLE;
     }
 
     // Release reference to layout
@@ -352,7 +355,7 @@ void VulkanDescriptorSet::Update(bool force)
 
 RendererResult VulkanDescriptorSet::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
+    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE && m_vkDescriptorPool == VK_NULL_HANDLE);
 
     HYP_LOG(RenderingBackend, Debug, "Created descriptor set with layout: {}\tDebug name: {}", m_layout.GetName().LookupString(), GetDebugName().LookupString());
 
@@ -370,12 +373,14 @@ RendererResult VulkanDescriptorSet::Create()
 
     RendererResult result;
 
-    HYPERION_PASS_ERRORS(GetRenderBackend()->CreateDescriptorSet(m_vkLayoutWrapper, m_handle), result);
+    HYPERION_PASS_ERRORS(GetRenderBackend()->CreateDescriptorSet(m_vkLayoutWrapper, m_handle, m_vkDescriptorPool), result);
 
     if (!result)
     {
         return result;
     }
+    
+    HYP_GFX_ASSERT(m_vkDescriptorPool != VK_NULL_HANDLE);
 
 #ifdef HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())

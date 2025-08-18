@@ -23,7 +23,6 @@
 
 namespace hyperion {
 
-class DescriptorPool;
 class VulkanInstance;
 class VulkanFeatures;
 
@@ -157,8 +156,6 @@ private:
     VulkanDeviceQueue m_queueCompute;
 
     ExtensionMap m_requiredExtensions;
-
-    UniquePtr<DescriptorPool> m_descriptorPool;
 };
 
 } // namespace hyperion

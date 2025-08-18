@@ -28,6 +28,7 @@ public:
 
     // for sky
     Vec4f cachedLightDirIntensity;
+    Vec3f cachedProbeOrigin;
 };
 
 struct EnvProbePassDataExt : PassDataExt

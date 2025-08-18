@@ -172,6 +172,14 @@ void EnvProbe::OnRemovedFromScene(Scene* scene)
     Invalidate();
 }
 
+void EnvProbe::OnTransformUpdated(const Transform& transform)
+{
+    Entity::OnTransformUpdated(transform);
+
+    // set origin
+    SetOrigin(transform.GetTranslation());
+}
+
 void EnvProbe::CreateView()
 {
     if (IsControlledByEnvGrid())
@@ -284,8 +292,17 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
     {
         m_aabb.SetCenter(origin);
     }
+    
+    if (IsInitCalled() && !IsControlledByEnvGrid())
+    {
+        AssertDebug(m_camera != nullptr);
+        
+        m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+    }
 
     Invalidate();
+    
+    SetNeedsRenderProxyUpdate();
 }
 
 void EnvProbe::Update(float delta)
