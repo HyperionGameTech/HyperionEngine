@@ -387,10 +387,6 @@ struct WeakHandle final
             ptr = HypObjectHeader::GetObjectPointer(header);
             HYP_CORE_ASSERT(ptr != nullptr);
 
-            // All HypObjectBase types have an initial weak count of 1 which gets incremented when the object is created and decremented in the destructor of HypObjectBase.
-            // If it is zero, it means the object is not only no longer alive - but that the Id is totally invalid and would sometimes point to the wrong object!
-            HYP_CORE_ASSERT(header->GetRefCountWeak() > 0, "Object overwriting detected! This is likely due to attempting to create a WeakHandle from an Id that is no longer valid or has been reused for another object.");
-
             header->IncRefWeak();
         }
     }

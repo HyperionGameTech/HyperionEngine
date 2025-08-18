@@ -135,7 +135,6 @@ HypObjectBase::HypObjectBase()
     const SizeType headerOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     m_header = reinterpret_cast<HypObjectHeader*>(uintptr_t(this) - headerOffset);
-    m_header->IncRefWeak();
 
     // increment the strong reference count for the Handle<T> that will be returned from CreateObject<T>().
     AtomicIncrement(&m_header->refCountStrong);
@@ -150,8 +149,6 @@ HypObjectBase::~HypObjectBase()
         FreeResource(m_managedObjectResource);
         m_managedObjectResource = nullptr;
     }
-
-    m_header->DecRefWeak();
 }
 
 #pragma endregion HypObjectBase
