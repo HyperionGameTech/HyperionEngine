@@ -300,8 +300,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << BindDescriptorTable(
             m_writeUvs->GetDescriptorTable(),
             m_writeUvs,
-            { { "Global",
-                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frameIndex);
 
         const uint32 viewDescriptorSetIndex = m_writeUvs->GetDescriptorTable()->GetDescriptorSetIndex("View");

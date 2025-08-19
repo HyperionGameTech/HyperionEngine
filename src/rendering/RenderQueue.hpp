@@ -32,18 +32,9 @@ class CmdBase;
 class CmdBase
 {
 public:
-    CmdBase() = default;
-    CmdBase(const CmdBase& other) = delete;
-    CmdBase& operator=(const CmdBase& other) = delete;
-    CmdBase(CmdBase&& other) noexcept = default;
-    CmdBase& operator=(CmdBase&& other) noexcept = default;
-
     static inline void PrepareStatic(CmdBase* cmd, FrameBase* frame)
     {
     }
-
-protected:
-    ~CmdBase() = default;
 };
 
 class BindVertexBuffer final : public CmdBase
@@ -316,10 +307,11 @@ private:
 class BindDescriptorSet final : public CmdBase
 {
 public:
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets = {})
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {})
         : m_descriptorSet(descriptorSet),
-          m_pipeline(pipeline),
-          m_offsets(offsets)
+          m_graphicsPipeline(pipeline),
+          m_offsets(offsets),
+          m_pipelineType(0) // 0 = Graphics
     {
         AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
         AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -328,21 +320,23 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex)
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
         : m_descriptorSet(descriptorSet),
-          m_pipeline(pipeline),
+          m_graphicsPipeline(pipeline),
           m_offsets(offsets),
-          m_bindIndex(bindIndex)
+          m_bindIndex(bindIndex),
+          m_pipelineType(0) // 0 = Graphics
     {
         AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
         AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets = {})
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {})
         : m_descriptorSet(descriptorSet),
-          m_pipeline(pipeline),
-          m_offsets(offsets)
+          m_computePipeline(pipeline),
+          m_offsets(offsets),
+          m_pipelineType(1) // 1 = Compute
     {
         AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
         AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -351,21 +345,23 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex)
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
         : m_descriptorSet(descriptorSet),
-          m_pipeline(pipeline),
+          m_computePipeline(pipeline),
           m_offsets(offsets),
-          m_bindIndex(bindIndex)
+          m_bindIndex(bindIndex),
+          m_pipelineType(1) // 1 = Compute
     {
         AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
         AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets = {})
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets = {})
         : m_descriptorSet(descriptorSet),
-          m_pipeline(pipeline),
-          m_offsets(offsets)
+          m_raytracingPipeline(pipeline),
+          m_offsets(offsets),
+          m_pipelineType(2) // 2 = Raytracing
     {
         AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
         AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -374,11 +370,12 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex)
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
         : m_descriptorSet(descriptorSet),
-          m_pipeline(pipeline),
+          m_raytracingPipeline(pipeline),
           m_offsets(offsets),
-          m_bindIndex(bindIndex)
+          m_bindIndex(bindIndex),
+          m_pipelineType(2) // 2 = Raytracing
     {
         AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
         AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -391,47 +388,67 @@ public:
     {
         BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
 
-        cmdCasted->m_pipeline.Visit([cmdCasted, commandBuffer](auto* pipeline)
-            {
-                cmdCasted->m_descriptorSet->Bind(commandBuffer, pipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
-            });
-
-        cmdCasted->~BindDescriptorSet();
+        switch (cmdCasted->m_pipelineType)
+        {
+        case 0: // Graphics
+            cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_graphicsPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
+            break;
+        case 1: // Compute
+            cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_computePipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
+            break;
+        case 2: // Raytracing
+            cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+        
+        static_assert(std::is_trivially_destructible_v<BindDescriptorSet>);
+        // cmdCasted->~BindDescriptorSet();
     }
 
 private:
     DescriptorSetBase* m_descriptorSet;
-    Variant<GraphicsPipelineBase*, ComputePipelineBase*, RaytracingPipelineBase*> m_pipeline;
-    ArrayMap<WeakName, uint32> m_offsets;
+    union
+    {
+        GraphicsPipelineBase* m_graphicsPipeline;
+        ComputePipelineBase* m_computePipeline;
+        RaytracingPipelineBase* m_raytracingPipeline;
+    };
+    DescriptorSetOffsetMap m_offsets;
     uint32 m_bindIndex;
+    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = Raytracing
 };
 
 class BindDescriptorTable final : public CmdBase
 {
 public:
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets, uint32 frameIndex)
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
         : m_descriptorTable(descriptorTable),
-          m_pipeline(graphicsPipeline),
+          m_graphicsPipeline(graphicsPipeline),
           m_offsets(offsets),
-          m_frameIndex(frameIndex)
+          m_frameIndex(frameIndex),
+          m_pipelineType(0) // 0 = Graphics
     {
         AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
     }
 
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets, uint32 frameIndex)
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
         : m_descriptorTable(descriptorTable),
-          m_pipeline(computePipeline),
+          m_computePipeline(computePipeline),
           m_offsets(offsets),
-          m_frameIndex(frameIndex)
+          m_frameIndex(frameIndex),
+          m_pipelineType(1) // 1 = Compute
     {
         AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
     }
 
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets, uint32 frameIndex)
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
         : m_descriptorTable(descriptorTable),
-          m_pipeline(raytracingPipeline),
+          m_raytracingPipeline(raytracingPipeline),
           m_offsets(offsets),
-          m_frameIndex(frameIndex)
+          m_frameIndex(frameIndex),
+          m_pipelineType(2) // 2 = Raytracing
     {
         AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
     }
@@ -442,19 +459,39 @@ public:
     {
         BindDescriptorTable* cmdCasted = static_cast<BindDescriptorTable*>(cmd);
 
-        cmdCasted->m_pipeline.Visit([cmdCasted, commandBuffer](auto* pipeline)
-            {
-                cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, pipeline, cmdCasted->m_offsets);
-            });
+        switch (cmdCasted->m_pipelineType)
+        {
+        case 0: // Graphics
+            cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_graphicsPipeline, cmdCasted->m_offsets);
+            break;
+        case 1: // Compute
+            cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_computePipeline, cmdCasted->m_offsets);
+            break;
+        case 2: // Raytracing
+            cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets);
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
 
-        cmdCasted->~BindDescriptorTable();
+        static_assert(std::is_trivially_destructible_v<BindDescriptorTable>);
+        // cmdCasted->~BindDescriptorTable();
     }
 
 private:
     DescriptorTableBase* m_descriptorTable;
-    Variant<GraphicsPipelineBase*, ComputePipelineBase*, RaytracingPipelineBase*> m_pipeline;
-    ArrayMap<WeakName, ArrayMap<WeakName, uint32>> m_offsets;
+
+    union
+    {
+        GraphicsPipelineBase* m_graphicsPipeline;
+        ComputePipelineBase* m_computePipeline;
+        RaytracingPipelineBase* m_raytracingPipeline;
+    };
+
+    DescriptorTableOffsetMap m_offsets;
     uint32 m_frameIndex;
+
+    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = Raytracing
 };
 
 class InsertBarrier final : public CmdBase
@@ -464,7 +501,8 @@ public:
         : m_buffer(buffer),
           m_image(nullptr),
           m_state(state),
-          m_shaderModuleType(shaderModuleType)
+          m_shaderModuleType(shaderModuleType),
+          m_hasSubResource(false)
     {
     }
 
@@ -472,7 +510,8 @@ public:
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
-          m_shaderModuleType(shaderModuleType)
+          m_shaderModuleType(shaderModuleType),
+          m_hasSubResource(false)
     {
     }
 
@@ -481,7 +520,8 @@ public:
           m_image(image),
           m_state(state),
           m_subResource(subResource),
-          m_shaderModuleType(shaderModuleType)
+          m_shaderModuleType(shaderModuleType),
+          m_hasSubResource(true)
     {
     }
 
@@ -495,9 +535,9 @@ public:
         }
         else if (cmdCasted->m_image)
         {
-            if (cmdCasted->m_subResource)
+            if (cmdCasted->m_hasSubResource)
             {
-                cmdCasted->m_image->InsertBarrier(commandBuffer, *cmdCasted->m_subResource, cmdCasted->m_state, cmdCasted->m_shaderModuleType);
+                cmdCasted->m_image->InsertBarrier(commandBuffer, cmdCasted->m_subResource, cmdCasted->m_state, cmdCasted->m_shaderModuleType);
             }
             else
             {
@@ -513,8 +553,9 @@ private:
     GpuBufferBase* m_buffer;
     GpuImageBase* m_image;
     ResourceState m_state;
-    Optional<ImageSubResource> m_subResource;
     ShaderModuleType m_shaderModuleType;
+    ImageSubResource m_subResource;
+    bool m_hasSubResource : 1;
 };
 
 class Blit final : public CmdBase
@@ -522,7 +563,10 @@ class Blit final : public CmdBase
 public:
     Blit(GpuImageBase* srcImage, GpuImageBase* dstImage)
         : m_srcImage(srcImage),
-          m_dstImage(dstImage)
+          m_dstImage(dstImage),
+          m_hasMipFaceInfo(false),
+          m_hasSrcRect(false),
+          m_hasDstRect(false)
     {
     }
 
@@ -530,7 +574,10 @@ public:
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
-          m_dstRect(dstRect)
+          m_dstRect(dstRect),
+          m_hasMipFaceInfo(false),
+          m_hasSrcRect(true),
+          m_hasDstRect(true)
     {
     }
 
@@ -539,7 +586,10 @@ public:
           m_dstImage(dstImage),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
-          m_mipFaceInfo(MipFaceInfo { srcMip, dstMip, srcFace, dstFace })
+          m_mipFaceInfo(MipFaceInfo { srcMip, dstMip, srcFace, dstFace }),
+          m_hasMipFaceInfo(true),
+          m_hasSrcRect(true),
+          m_hasDstRect(true)
     {
     }
 
@@ -547,13 +597,13 @@ public:
     {
         Blit* cmdCasted = static_cast<Blit*>(cmd);
 
-        if (cmdCasted->m_mipFaceInfo)
+        if (cmdCasted->m_hasMipFaceInfo)
         {
-            MipFaceInfo info = *cmdCasted->m_mipFaceInfo;
+            MipFaceInfo info = cmdCasted->m_mipFaceInfo;
 
-            if (cmdCasted->m_srcRect && cmdCasted->m_dstRect)
+            if (cmdCasted->m_hasSrcRect && cmdCasted->m_hasDstRect)
             {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, *cmdCasted->m_srcRect, *cmdCasted->m_dstRect, info.srcMip, info.dstMip, info.srcFace, info.dstFace);
+                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect, info.srcMip, info.dstMip, info.srcFace, info.dstFace);
             }
             else
             {
@@ -562,9 +612,9 @@ public:
         }
         else
         {
-            if (cmdCasted->m_srcRect && cmdCasted->m_dstRect)
+            if (cmdCasted->m_hasSrcRect && cmdCasted->m_hasDstRect)
             {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, *cmdCasted->m_srcRect, *cmdCasted->m_dstRect);
+                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
             }
             else
             {
@@ -588,10 +638,14 @@ private:
     GpuImageBase* m_srcImage;
     GpuImageBase* m_dstImage;
 
-    Optional<Rect<uint32>> m_srcRect;
-    Optional<Rect<uint32>> m_dstRect;
+    MipFaceInfo m_mipFaceInfo;
 
-    Optional<MipFaceInfo> m_mipFaceInfo;
+    Rect<uint32> m_srcRect;
+    Rect<uint32> m_dstRect;
+
+    bool m_hasMipFaceInfo : 1;
+    bool m_hasSrcRect : 1;
+    bool m_hasDstRect : 1;
 };
 
 class BlitRect final : public CmdBase
@@ -766,6 +820,7 @@ private:
     Vec3u m_workgroupCount;
 };
 
+HYP_DISABLE_OPTIMIZATION;
 class RenderQueue
 {
     using InvokeCmdFnPtr = void (*)(CmdBase*, CommandBufferBase*);
@@ -774,22 +829,11 @@ class RenderQueue
 
     struct CmdHeader
     {
-        uint32 dataOffset;
+        uint32 offset;
+        uint32 size;
         InvokeCmdFnPtr invokeFnPtr;
         PrepareCmdFnPtr prepareFnPtr;
-        MoveCmdFnPtr moveFnPtr;
     };
-
-    template <class CmdType>
-    static inline void MoveCmdStatic(CmdBase* cmd, void* where)
-    {
-        new (where) CmdType(std::move(*static_cast<CmdType*>(cmd)));
-
-        if constexpr (!std::is_trivially_destructible_v<CmdType>)
-        {
-            static_cast<CmdType*>(cmd)->~CmdType();
-        }
-    }
 
 public:
     RenderQueue();
@@ -810,34 +854,25 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
+        static_assert(isPodType<CmdType>, "CmdType must be POD");
+
         constexpr SizeType cmdSize = sizeof(TCmd);
 
         const uint32 alignedOffset = ByteUtil::AlignAs(m_offset, alignof(TCmd));
 
         if (m_buffer.Size() < alignedOffset + cmdSize)
         {
-            ubyte* prevPtr = m_buffer.Data();
-
-            ByteBuffer newBuffer;
-            newBuffer.SetSize(2 * (alignedOffset + cmdSize), /* zeroize */ false);
-
-            ubyte* newPtr = newBuffer.Data();
-
-            ReconstructCommands(m_cmdHeaders.ToSpan(), prevPtr, newPtr);
-
-            m_buffer = std::move(newBuffer);
-
-            AssertDebug(m_buffer.Data() == newPtr);
+            m_buffer.SetSize(2 * (alignedOffset + cmdSize), /* zeroize */ false);
         }
 
         void* startPtr = m_buffer.Data() + alignedOffset;
         new (startPtr) TCmd(std::forward<CmdType>(cmd));
 
-        m_cmdHeaders.PushBack(CmdHeader {
-            alignedOffset,
-            &TCmd::InvokeStatic,
-            &TCmd::PrepareStatic,
-            &MoveCmdStatic<TCmd> });
+        CmdHeader& header = m_cmdHeaders.EmplaceBack();
+        header.offset = alignedOffset;
+        header.size = cmdSize;
+        header.invokeFnPtr = &TCmd::InvokeStatic;
+        header.prepareFnPtr = &TCmd::PrepareStatic;
 
         m_offset = alignedOffset + cmdSize;
     }
@@ -859,18 +894,7 @@ public:
 
         if (m_buffer.GetCapacity() < newStartOffset + other.m_offset)
         {
-            ubyte* prevPtr = m_buffer.Data();
-
-            ByteBuffer newBuffer;
-            newBuffer.SetSize(2 * (newStartOffset + other.m_offset), /* zeroize */ false);
-
-            ubyte* newPtr = newBuffer.Data();
-
-            ReconstructCommands(m_cmdHeaders.ToSpan(), prevPtr, newPtr);
-
-            m_buffer = std::move(newBuffer);
-
-            AssertDebug(m_buffer.Data() == newPtr);
+            m_buffer.SetSize(2 * (newStartOffset + other.m_offset), /* zeroize */ false);
         }
         else
         {
@@ -886,13 +910,13 @@ public:
         SizeType cmdsOffset = m_cmdHeaders.Size();
 
         // Reconstruct the commands into our memory
-        ReconstructCommands(other.m_cmdHeaders.ToSpan(), other.m_buffer.Data(), m_buffer.Data() + newStartOffset);
+        Memory::MemCpy(m_buffer.Data() + newStartOffset, other.m_buffer.Data(), other.m_offset);
 
         // Add headers and update offsets
         for (const CmdHeader& cmdHeader : other.m_cmdHeaders)
         {
             CmdHeader& newCmdHeader = m_cmdHeaders.PushBack(cmdHeader);
-            newCmdHeader.dataOffset = newStartOffset + cmdHeader.dataOffset;
+            newCmdHeader.offset += newStartOffset;
         }
 
         //        // Copy from other buffer, starting at the new offset
@@ -910,21 +934,11 @@ public:
     void Execute(CommandBufferBase* commandBuffer);
 
 private:
-    // Call when buffer is resized to ensure proper move of resources into new memory locations
-    static void ReconstructCommands(Span<CmdHeader> cmdHeaders, void* prevPtr, void* newPtr)
-    {
-        const uintptr_t uPrevPtr = reinterpret_cast<uintptr_t>(prevPtr);
-        const uintptr_t uNewPtr = reinterpret_cast<uintptr_t>(newPtr);
-
-        for (CmdHeader& cmdHeader : cmdHeaders)
-        {
-            cmdHeader.moveFnPtr(reinterpret_cast<CmdBase*>(uPrevPtr + cmdHeader.dataOffset), reinterpret_cast<void*>(uNewPtr + cmdHeader.dataOffset));
-        }
-    }
 
     Array<CmdHeader> m_cmdHeaders;
     ByteBuffer m_buffer;
     uint32 m_offset;
 };
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion

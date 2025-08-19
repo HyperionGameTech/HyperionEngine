@@ -452,7 +452,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -465,15 +465,25 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
 
     cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
 
+    // TODO: optimize
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
         const WeakName dynamicElementName = m_layout.GetDynamicElements()[i];
 
-        const auto it = offsets.Find(dynamicElementName);
+        int idx = -1;
 
-        if (it != offsets.End())
+        for (uint32 j = 0; j < offsets.count; j++)
         {
-            cachedBinding.dynamicOffsets[i] = it->second;
+            if (offsets.keys[j] == dynamicElementName)
+            {
+                idx = int(j);
+                break;
+            }
+        }
+
+        if (idx != -1)
+        {
+            cachedBinding.dynamicOffsets[i] = offsets.values[idx];
 
             usedOffsets.Insert(dynamicElementName);
         }
@@ -486,16 +496,6 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
 #endif
         }
     }
-
-#ifdef HYP_DEBUG_MODE
-    for (const auto& it : offsets)
-    {
-        if (!usedOffsets.Contains(it.first))
-        {
-            HYP_LOG(RenderingBackend, Warning, "Unused dynamic offset for descriptor set element: {}", Name(it.first));
-        }
-    }
-#endif
 
     auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
 
@@ -566,7 +566,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -579,15 +579,25 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
 
     cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
 
+    // TODO: optimize
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
         const WeakName dynamicElementName = m_layout.GetDynamicElements()[i];
 
-        const auto it = offsets.Find(dynamicElementName);
+        int idx = -1;
 
-        if (it != offsets.End())
+        for (uint32 j = 0; j < offsets.count; j++)
         {
-            cachedBinding.dynamicOffsets[i] = it->second;
+            if (offsets.keys[j] == dynamicElementName)
+            {
+                idx = int(j);
+                break;
+            }
+        }
+
+        if (idx != -1)
+        {
+            cachedBinding.dynamicOffsets[i] = offsets.values[idx];
 
             usedOffsets.Insert(dynamicElementName);
         }
@@ -596,20 +606,10 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
             cachedBinding.dynamicOffsets[i] = 0;
 
 #if defined(HYP_DEBUG_MODE) && false
-            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamicElementName);
+            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", Name(dynamicElementName));
 #endif
         }
     }
-
-#ifdef HYP_DEBUG_MODE
-    for (const auto& it : offsets)
-    {
-        if (!usedOffsets.Contains(it.first))
-        {
-            HYP_LOG(RenderingBackend, Warning, "Unused dynamic offset for descriptor set element: {}", Name(it.first));
-        }
-    }
-#endif
 
     auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
 
@@ -680,7 +680,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
 
@@ -693,15 +693,25 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
 
     cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
 
+    // TODO: optimize
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
         const WeakName dynamicElementName = m_layout.GetDynamicElements()[i];
 
-        const auto it = offsets.Find(dynamicElementName);
+        int idx = -1;
 
-        if (it != offsets.End())
+        for (uint32 j = 0; j < offsets.count; j++)
         {
-            cachedBinding.dynamicOffsets[i] = it->second;
+            if (offsets.keys[j] == dynamicElementName)
+            {
+                idx = int(j);
+                break;
+            }
+        }
+
+        if (idx != -1)
+        {
+            cachedBinding.dynamicOffsets[i] = offsets.values[idx];
 
             usedOffsets.Insert(dynamicElementName);
         }
@@ -714,16 +724,6 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
 #endif
         }
     }
-
-#ifdef HYP_DEBUG_MODE
-    for (const auto& it : offsets)
-    {
-        if (!usedOffsets.Contains(it.first))
-        {
-            HYP_LOG(RenderingBackend, Warning, "Unused dynamic offset for descriptor set element: {}", Name(it.first));
-        }
-    }
-#endif
 
     auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
 

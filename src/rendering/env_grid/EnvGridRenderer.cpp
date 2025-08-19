@@ -1139,8 +1139,7 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
         frame->renderQueue << BindDescriptorTable(
             pd->clearVoxels->GetDescriptorTable(),
             pd->clearVoxels,
-            { { "Global",
-                { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
+            { { "Global", { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
             frame->GetFrameIndex());
 
         frame->renderQueue << DispatchCompute(pd->clearVoxels, (probeVoxelExtent + Vec3u(7)) / Vec3u(8));

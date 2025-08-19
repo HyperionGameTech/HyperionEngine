@@ -671,10 +671,9 @@ public:
             }
         }
 
-        m_validPages.Clear();
-
         if (deletePages)
         {
+            m_validPages.Clear();
             m_pages.Clear();
         }
     }

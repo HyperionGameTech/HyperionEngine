@@ -36,8 +36,8 @@ void RenderQueue::Prepare(FrameBase* frame)
 
     for (CmdHeader& cmdHeader : m_cmdHeaders)
     {
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.dataOffset);
-        AssertDebug(cmdHeader.dataOffset < m_buffer.Size());
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
+        AssertDebug(cmdHeader.offset < m_buffer.Size());
 
         cmdHeader.prepareFnPtr(cmdDataPtr, frame);
     }
@@ -49,8 +49,8 @@ void RenderQueue::Execute(CommandBufferBase* commandBuffer)
 
     for (CmdHeader& cmdHeader : m_cmdHeaders)
     {
-        AssertDebug(cmdHeader.dataOffset < m_buffer.Size());
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.dataOffset);
+        AssertDebug(cmdHeader.offset < m_buffer.Size());
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
 
         cmdHeader.invokeFnPtr(cmdDataPtr, commandBuffer);
     }

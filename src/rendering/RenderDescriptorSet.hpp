@@ -99,6 +99,115 @@ enum class DescriptorSetElementType : uint32
     MAX
 };
 
+struct DescriptorSetOffsetMap
+{
+    static constexpr uint32 g_maxOffsets = 8;
+
+    WeakName keys[g_maxOffsets];
+    uint32 values[g_maxOffsets];
+    uint32 count;
+
+    DescriptorSetOffsetMap()
+        : keys(),
+          values(),
+          count(0)
+    {
+    }
+
+    DescriptorSetOffsetMap(std::initializer_list<Pair<const char*, uint32>> v)
+        : keys(),
+          values(),
+          count(v.size())
+    {
+        AssertDebug(v.size() <= g_maxOffsets, "too many values provided to constructor!");
+
+        for (auto it = v.begin(); it != v.end(); ++it)
+        {
+            keys[it - v.begin()] = it->first;
+            values[it - v.begin()] = it->second;
+        }
+    }
+
+    template <SizeType Count>
+    DescriptorSetOffsetMap(Pair<const char*, uint32> const (&kv)[Count])
+        : keys(),
+          values(),
+          count(Count)
+    {
+        static_assert(Count <= g_maxOffsets, "too many values provided to constructor!");
+
+        for (uint32 i = 0; i < Count; i++)
+        {
+            keys[i] = kv[i].first;
+            values[i] = kv[i].second;
+        }
+    }
+
+    HYP_FORCE_INLINE void Add(WeakName key, uint32 value)
+    {
+        uint32 idx = count++;
+        AssertDebug(idx < g_maxOffsets, "too many offsets!");
+
+        keys[idx] = key;
+        values[idx] = value;
+    }
+};
+
+struct DescriptorTableOffsetMap
+{
+    static constexpr uint32 g_maxSets = 4;
+    
+    WeakName setNames[g_maxSets];
+    DescriptorSetOffsetMap setOffsets[g_maxSets];
+    uint32 count;
+
+    DescriptorTableOffsetMap()
+        : setNames(),
+          setOffsets(),
+          count(0)
+    {
+    }
+
+    DescriptorTableOffsetMap(std::initializer_list<Pair<const char*, DescriptorSetOffsetMap>> v)
+        : setNames(),
+          setOffsets(),
+          count(v.size())
+    {
+        AssertDebug(v.size() <= g_maxSets, "too many values provided to constructor!");
+
+        for (auto it = v.begin(); it != v.end(); ++it)
+        {
+            setNames[it - v.begin()] = it->first;
+            setOffsets[it - v.begin()] = it->second;
+        }
+    }
+
+    template <SizeType Count>
+    DescriptorTableOffsetMap(Pair<const char*, DescriptorSetOffsetMap> const (&v)[Count])
+        : setNames(),
+          setOffsets(),
+          count(Count)
+    {
+        static_assert(Count <= g_maxSets, "too many values provided to constructor!");
+
+        for (uint32 i = 0; i < Count; i++)
+        {
+            setNames[i] = v[i].first;
+            setOffsets[i] = v[i].second;
+        }
+    }
+
+    HYP_FORCE_INLINE DescriptorSetOffsetMap& Add(WeakName setName)
+    {
+        uint32 idx = count++;
+        AssertDebug(idx < g_maxSets, "too many offsets!");
+
+        setNames[idx] = setName;
+
+        return setOffsets[count];
+    }
+};
+
 constexpr uint32 descriptorSetElementTypeToBufferType[uint32(DescriptorSetElementType::MAX)] = {
     0,                                    // UNSET
     (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER
@@ -642,11 +751,11 @@ public:
     void SetElement(WeakName name, const TLASRef& ref);
 
     virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBufferBase* commandBuffer, const GraphicsPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBufferBase* commandBuffer, const ComputePipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBufferBase* commandBuffer, const RaytracingPipelineBase* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
 
 protected:
     DescriptorSetBase(const DescriptorSetLayout& layout)
@@ -974,7 +1083,7 @@ public:
         \param pipeline The pipeline to bind the descriptor sets to
         \param offsets The offsets to bind dynamic descriptor sets with */
     template <class PipelineRef>
-    void Bind(CommandBufferBase* commandBuffer, uint32 frameIndex, const PipelineRef& pipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets) const
+    void Bind(CommandBufferBase* commandBuffer, uint32 frameIndex, const PipelineRef& pipeline, const DescriptorTableOffsetMap& offsets) const
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
@@ -992,13 +1101,22 @@ public:
 
             const uint32 setIndex = GetDescriptorSetIndex(descriptorSetName);
 
-            if (set->GetLayout().GetDynamicElements().Any() && offsets.Any())
+            if (set->GetLayout().GetDynamicElements().Any() && offsets.count != 0)
             {
-                const auto offsetsIt = offsets.Find(descriptorSetName);
+                int offsetIdx = -1;
 
-                if (offsetsIt != offsets.End())
+                for (uint32 i = 0; i < offsets.count; i++)
                 {
-                    set->Bind(commandBuffer, pipeline, offsetsIt->second, setIndex);
+                    if (offsets.setNames[i] == descriptorSetName)
+                    {
+                        offsetIdx = i;
+                        break;
+                    }
+                }
+
+                if (offsetIdx != -1)
+                {
+                    set->Bind(commandBuffer, pipeline, offsets.setOffsets[offsetIdx], setIndex);
 
                     continue;
                 }
