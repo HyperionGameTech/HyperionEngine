@@ -128,6 +128,18 @@ int SafeDeleter::Iterate(int maxIter)
     // swap the buffers back to original state now that we are done iterating
     entryList.currHeaders = &headers;
 
+#ifdef HYP_DEBUG_MODE
+    if (headers.Any())
+    {
+        for (SizeType i = 1; i < headers.Size(); i++)
+        {
+            AssertDebug(headers[i].offset > headers[i - 1].offset);
+            AssertDebug(headers[i].offset >= headers[i - 1].offset + headers[i - 1].size);
+        }
+    }
+#endif
+
+
     if (headers.Empty())
     {
         // clear buffer if all entries have been deleted
@@ -136,11 +148,13 @@ int SafeDeleter::Iterate(int maxIter)
     }
     else
     {
-        // Move it all over
         const uint32 firstOffset = headers[0].offset; // so we can subtract it from all offsets after resizing
 
-        for (EntryHeader& header : headers)
+        for (SizeType headerIdx = 0; headerIdx < headers.Size(); headerIdx++)
         {
+            EntryHeader& header = headers[headerIdx];
+
+            AssertDebug(header.offset >= firstOffset);
             header.offset -= firstOffset;
         }
 
@@ -157,6 +171,8 @@ int SafeDeleter::Iterate(int maxIter)
         {
             entryList.buffer.SetSize(newSize);
         }
+
+        entryList.bufferPos = newSize;
     }
 
     return iterCount;
