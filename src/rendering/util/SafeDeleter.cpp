@@ -128,18 +128,6 @@ int SafeDeleter::Iterate(int maxIter)
     // swap the buffers back to original state now that we are done iterating
     entryList.currHeaders = &headers;
 
-#ifdef HYP_DEBUG_MODE
-    if (headers.Any())
-    {
-        for (SizeType i = 1; i < headers.Size(); i++)
-        {
-            AssertDebug(headers[i].offset > headers[i - 1].offset);
-            AssertDebug(headers[i].offset >= headers[i - 1].offset + headers[i - 1].size);
-        }
-    }
-#endif
-
-
     if (headers.Empty())
     {
         // clear buffer if all entries have been deleted
@@ -155,6 +143,7 @@ int SafeDeleter::Iterate(int maxIter)
             EntryHeader& header = headers[headerIdx];
 
             AssertDebug(header.offset >= firstOffset);
+            AssertDebug(entryList.buffer.Size() >= header.offset + header.size);
             header.offset -= firstOffset;
         }
 
@@ -361,35 +350,7 @@ void SafeDeleter::EntryList::ResizeBuffer(SizeType newMinSize)
 {
     HYP_SCOPE;
 
-    ByteBuffer newBuffer;
-    newBuffer.SetSize(MathUtil::Ceil<double, SizeType>(newMinSize * 1.5));
-
-    // have to move all current commands since the buffer will realloc
-    Array<EntryHeader>& headers = *currHeaders;
-    SwapHeaderBuffers();
-
-    for (EntryHeader& currHeader : headers)
-    {
-        if (currHeader.moveFn)
-        {
-            currHeader.moveFn(reinterpret_cast<void*>(newBuffer.Data() + currHeader.offset), reinterpret_cast<void*>(buffer.Data() + currHeader.offset));
-        }
-        else
-        {
-            Memory::MemCpy(newBuffer.Data() + currHeader.offset, buffer.Data() + currHeader.offset, currHeader.size);
-        }
-
-        if (currHeader.destructFn)
-        {
-            currHeader.destructFn(reinterpret_cast<void*>(buffer.Data() + currHeader.offset));
-        }
-    }
-
-    // concat back the headers that were added while iterating
-    headers.Concat(std::move(*currHeaders));
-    currHeaders = &headers;
-
-    buffer = std::move(newBuffer);
+    buffer.SetSize(newMinSize, /* zeroize */ false);
 }
 
 } // namespace hyperion
