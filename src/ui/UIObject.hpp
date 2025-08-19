@@ -512,6 +512,7 @@ public:
     friend class UISubsystem;
     friend class UIStage;
     friend struct UILockedUpdatesScope;
+    friend class UIUpdateManager;
 
     static constexpr int scrollbarSize = 15;
 
@@ -1043,15 +1044,7 @@ public:
      *  \details Deferred updates are used to defer updates to the UI object until the next Update() call.
      *  \param updateType The type of update to apply.
      *  \param updateChildren If true, also apply the update on all child UIObjects when the deferred update is processed. */
-    void SetDeferredUpdate(EnumFlags<UIObjectUpdateType> updateType, bool updateChildren = true)
-    {
-        if (updateChildren)
-        {
-            updateType |= updateType << 16;
-        }
-
-        m_deferredUpdates |= updateType;
-    }
+    void SetDeferredUpdate(EnumFlags<UIObjectUpdateType> updateType, bool updateChildren = true);
 
     void SetUpdatesLocked(EnumFlags<UIObjectUpdateType> updateType, bool locked)
     {

@@ -61,6 +61,61 @@ static HYP_FORCE_INLINE bool ShouldTriggerKeyDownEvent(const UIObjectKeyState& k
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
+#pragma region UIStageUpdateManager
+
+UIStageUpdateManager::UIStageUpdateManager(UIStage* stage)
+    : UIUpdateManager(),
+      m_stage(stage)
+{
+    Assert(stage != nullptr);
+}
+
+void UIStageUpdateManager::ProcessFrameUpdates(float delta)
+{
+    HYP_SCOPE;
+
+    if (!m_stage)
+    {
+        HYP_LOG(UI, Warning, "UIStageUpdateManager: Stage is null, cannot process frame updates");
+        return;
+    }
+
+    //m_stage->AssertOnOwnerThread();
+
+    UIUpdateManager::ProcessUpdates(delta);
+}
+
+void UIStageUpdateManager::RegisterObjectForUpdate(UIObject* object, EnumFlags<UIObjectUpdateType> updateTypes)
+{
+    HYP_SCOPE;
+
+    if (!object)
+    {
+        HYP_LOG(UI, Warning, "UIStageUpdateManager: Attempted to register null object for update");
+        return;
+    }
+
+    if (!m_stage)
+    {
+        HYP_LOG(UI, Warning, "UIStageUpdateManager: Stage is null, cannot register object for update");
+        return;
+    }
+
+    // Ensure the object belongs to this stage's hierarchy
+    UIStage* objectStage = object->GetStage();
+    if (objectStage != m_stage && !objectStage->IsOrHasParent(m_stage))
+    {
+        HYP_LOG(UI, Warning, "UIStageUpdateManager: Object {} does not belong to this stage hierarchy", object->GetName());
+        return;
+    }
+
+    UIUpdateManager::RegisterForUpdate(object, updateTypes);
+}
+
+#pragma endregion UIStageUpdateManager
+
+#pragma region UIStage
+
 UIStage::UIStage()
     : UIStage(ThreadId::Current())
 {
@@ -68,6 +123,7 @@ UIStage::UIStage()
 
 UIStage::UIStage(ThreadId ownerThreadId)
     : UIObject(ownerThreadId),
+      m_updateManager(this),
       m_surfaceSize { 1000, 1000 }
 {
     SetName(NAME("Stage"));
@@ -288,6 +344,8 @@ void UIStage::Update_Internal(float delta)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
+
+    m_updateManager.ProcessFrameUpdates(delta);
 
     UIObject::Update_Internal(delta);
 
@@ -996,5 +1054,7 @@ bool UIStage::Remove(const Entity* entity)
 
     return GetNode()->RemoveChild(entity);
 }
+
+#pragma endregion UIStage
 
 } // namespace hyperion

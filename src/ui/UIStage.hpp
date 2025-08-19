@@ -1,8 +1,9 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
 
 #include <ui/UIObject.hpp>
+#include <ui/UIUpdateManager.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -63,6 +64,23 @@ enum class UIRayTestFlags : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
+
+/*! \brief Extension to UIStage that adds update manager integration */
+class HYP_API UIStageUpdateManager : public UIUpdateManager
+{
+public:
+    explicit UIStageUpdateManager(UIStage* stage);
+    ~UIStageUpdateManager() = default;
+    
+    /*! \brief Process all pending updates for this frame */
+    void ProcessFrameUpdates(float delta);
+
+    /*! \brief Register an object for selective updating */
+    void RegisterObjectForUpdate(UIObject* object, EnumFlags<UIObjectUpdateType> updateTypes);
+
+private:
+    UIStage* m_stage;
+};
 
 /*! \brief The UIStage is the root of the UI scene graph. */
 
@@ -134,6 +152,16 @@ public:
         return m_focusedObject;
     }
 
+    HYP_FORCE_INLINE UIUpdateManager& GetUpdateManager()
+    {
+        return m_updateManager;
+    }
+
+    HYP_FORCE_INLINE const UIUpdateManager& GetUpdateManager() const
+    {
+        return m_updateManager;
+    }
+
     UIEventHandlerResult OnInputEvent(
         InputManager* inputManager,
         const SystemEvent& event);
@@ -142,6 +170,16 @@ public:
     bool TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);
 
     virtual void AddChildUIObject(const Handle<UIObject>& uiObject) override;
+
+    void RegisterDeferredUpdate(UIObject* object, EnumFlags<UIObjectUpdateType> updateType, bool updateChildren)
+    {
+        if (updateChildren)
+        {
+            updateType |= updateType << 16; // Set children flags
+        }
+
+        m_updateManager.RegisterObjectForUpdate(object, updateType);
+    }
 
 protected:
     virtual void Init() override;
@@ -176,6 +214,8 @@ private:
 
     Handle<Scene> m_scene;
     Handle<Camera> m_camera;
+
+    UIStageUpdateManager m_updateManager;
 
     RC<FontAtlas> m_defaultFontAtlas;
 

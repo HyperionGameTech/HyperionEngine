@@ -275,26 +275,46 @@ void UIObject::Update(float delta)
 
     AssertReady();
 
-    /// @TODO: Built a tree structure of objects that need to be updated
-    // in the next tick. sorted by breadth in the child nodes list
-    // built it out as we mark updates as needed.
-
-    if (NeedsUpdate())
+    // Get the root stage to access the update manager
+    UIStage* rootStage = GetStage();
+    while (rootStage && rootStage->GetStage())
     {
-        Update_Internal(delta);
+        rootStage = rootStage->GetStage();
     }
 
-    // update in breadth-first order
-    ForEachChildUIObject([this, delta](UIObject* child)
+    if (rootStage)
+    {
+        // Use selective update system
+        if (NeedsUpdate())
         {
-            if (child->NeedsUpdate())
-            {
-                child->Update_Internal(delta);
-            }
+            rootStage->GetUpdateManager().RegisterForUpdate(this, m_deferredUpdates);
+        }
+        
+        // Only process updates at the root level to avoid duplication
+        if (this == rootStage)
+        {
+            rootStage->GetUpdateManager().ProcessUpdates(delta);
+        }
+    }
+    else
+    {
+        // Fallback to breadth-first approach
+        if (NeedsUpdate())
+        {
+            Update_Internal(delta);
+        }
 
-            return IterationResult::CONTINUE;
-        },
-        /* deep */ true);
+        ForEachChildUIObject([this, delta](UIObject* child)
+            {
+                if (child->NeedsUpdate())
+                {
+                    child->Update_Internal(delta);
+                }
+
+                return IterationResult::CONTINUE;
+            },
+            /* deep */ true);
+    }
 }
 
 void UIObject::Update_Internal(float delta)
@@ -347,6 +367,31 @@ void UIObject::Update_Internal(float delta)
         {
             UpdateMeshData(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA);
         }
+    }
+}
+
+void UIObject::SetDeferredUpdate(EnumFlags<UIObjectUpdateType> updateType, bool updateChildren)
+{
+    if (updateChildren)
+    {
+        updateType |= updateType << 16;
+    }
+
+    // Try to use selective update system if available
+    UIStage* rootStage = GetStage();
+    while (rootStage && rootStage->GetStage())
+    {
+        rootStage = rootStage->GetStage();
+    }
+
+    if (rootStage)
+    {
+        rootStage->RegisterDeferredUpdate(this, updateType, updateChildren);
+    }
+    else
+    {
+        // Fallback to original system
+        m_deferredUpdates |= updateType;
     }
 }
 
