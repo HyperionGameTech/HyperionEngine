@@ -87,7 +87,7 @@ public:
 
         // current headers to iterate over (changed by calling SwapHeaderBuffers())
         Array<EntryHeader>* currHeaders;
-        uint32 bufferOffset;
+        uint32 bufferPos;
 
         EntryList();
 

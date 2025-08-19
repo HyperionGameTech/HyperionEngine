@@ -22,7 +22,7 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
 SafeDeleter::EntryList::EntryList()
     : buffer(),
       currHeaders(&headers[0]),
-      bufferOffset(0)
+      bufferPos(0)
 {
 }
 
@@ -54,7 +54,7 @@ SafeDeleter::~SafeDeleter()
 
         entryList.currHeaders = &entryList.headers[0];
         entryList.buffer = ByteBuffer();
-        entryList.bufferOffset = 0;
+        entryList.bufferPos = 0;
     };
 
     // delete all entries in all buffers
@@ -132,7 +132,31 @@ int SafeDeleter::Iterate(int maxIter)
     {
         // clear buffer if all entries have been deleted
         entryList.buffer = ByteBuffer();
-        entryList.bufferOffset = 0;
+        entryList.bufferPos = 0;
+    }
+    else
+    {
+        // Move it all over
+        const uint32 firstOffset = headers[0].offset; // so we can subtract it from all offsets after resizing
+
+        for (EntryHeader& header : headers)
+        {
+            header.offset -= firstOffset;
+        }
+
+        const uint32 newSize = headers.Back().offset + headers.Back().size;
+
+        // Move elements to the front of the buffer
+        Memory::MemMove(
+            entryList.buffer.Data(),
+            entryList.buffer.Data() + firstOffset,
+            newSize);
+
+        // compact the buffer to the new size, if size is 20% larger than it needs to be
+        if (entryList.buffer.Size() > newSize * 1.2)
+        {
+            entryList.buffer.SetSize(newSize);
+        }
     }
 
     return iterCount;
@@ -167,7 +191,7 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
 
     // clear buffer if all entries have been deleted
     entryList.buffer = ByteBuffer();
-    entryList.bufferOffset = 0;
+    entryList.bufferPos = 0;
 
     return iterCount;
 }
@@ -228,7 +252,7 @@ void SafeDeleter::UpdateEntryListQueue()
     Mutex::Guard guard(m_mutex);
     for (EntryList& it : m_tempEntryLists)
     {
-        if (it.bufferOffset == 0)
+        if (it.bufferPos == 0)
         {
             // no data in buffers, skip
             continue;
@@ -243,7 +267,7 @@ void SafeDeleter::UpdateEntryListQueue()
         // concat all lists and take ownership of the data
         for (EntryHeader& header : itHeaders)
         {
-            const uint32 newAlignedOffset = ByteUtil::AlignAs(currentEntryList.bufferOffset, 16);
+            const uint32 newAlignedOffset = ByteUtil::AlignAs(currentEntryList.bufferPos, 16);
 
             void* vp = it.buffer.Data() + header.offset;
 
@@ -268,7 +292,7 @@ void SafeDeleter::UpdateEntryListQueue()
 
             header.offset = newAlignedOffset;
 
-            currentEntryList.bufferOffset = newAlignedOffset + header.size;
+            currentEntryList.bufferPos = newAlignedOffset + header.size;
 
             currentEntryList.currHeaders->PushBack(header);
         }
@@ -277,7 +301,7 @@ void SafeDeleter::UpdateEntryListQueue()
         it.currHeaders = &it.headers[0];
 
         it.buffer = ByteBuffer();
-        it.bufferOffset = 0;
+        it.bufferPos = 0;
     }
 
     m_tempEntryLists.Clear();
@@ -293,7 +317,7 @@ void* SafeDeleter::EntryList::Alloc(uint32 size, uint32 alignment, EntryHeader& 
 
     AssertDebug(alignment <= 16);
 
-    const uint32 alignedOffset = ByteUtil::AlignAs(bufferOffset, alignment);
+    const uint32 alignedOffset = ByteUtil::AlignAs(bufferPos, alignment);
 
     if (buffer.Size() < alignedOffset + size)
     {
@@ -302,7 +326,7 @@ void* SafeDeleter::EntryList::Alloc(uint32 size, uint32 alignment, EntryHeader& 
 
     void* ptr = buffer.Data() + alignedOffset;
 
-    bufferOffset = alignedOffset + size;
+    bufferPos = alignedOffset + size;
 
     outHeader = {};
     outHeader.offset = alignedOffset;
