@@ -47,14 +47,14 @@ private:
         int depth = 0; // For sorting by hierarchy depth
     };
 
-    // Objects that need updating, organized by update type for batch processing
-    HashMap<EnumFlags<UIObjectUpdateType>, Array<UpdateEntry>> m_updateQueues;
+    // Objects that need updating, organized by individual update type for proper batching
+    HashMap<UIObjectUpdateType, Array<UpdateEntry>> m_updateQueues;
     
     // All objects that have pending updates (for quick lookup)
     HashSet<WeakHandle<UIObject>> m_pendingObjects;
 
     // Processing order for update types (parents before children for some types)
-    static constexpr EnumFlags<UIObjectUpdateType> s_updateOrder[] = {
+    static constexpr UIObjectUpdateType s_updateOrder[] = {
         UIObjectUpdateType::UPDATE_SIZE,
         UIObjectUpdateType::UPDATE_POSITION,
         UIObjectUpdateType::UPDATE_CLAMPED_SIZE,
@@ -64,7 +64,7 @@ private:
         UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA
     };
 
-    void ProcessUpdateType(EnumFlags<UIObjectUpdateType> updateType, float delta);
+    void ProcessUpdateType(UIObjectUpdateType updateType, float delta);
     void SortByDepth(Array<UpdateEntry>& entries);
 };
 

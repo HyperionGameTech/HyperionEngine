@@ -20,13 +20,12 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
 
     WeakHandle<UIObject> weakHandle = uiObject->WeakHandleFromThis();
     
-    // Check if already registered
+    // Check if already registered and merge update types
     if (m_pendingObjects.Contains(weakHandle))
     {
-        // Update existing entry with new update types
+        // Find and update existing entries
         for (auto& kv : m_updateQueues)
         {
-            EnumFlags<UIObjectUpdateType> updateType = kv.first;
             Array<UpdateEntry>& entries = kv.second;
 
             for (UpdateEntry& entry : entries)
@@ -34,7 +33,6 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
                 if (entry.object == weakHandle)
                 {
                     entry.updateTypes |= updateTypes;
-
                     return;
                 }
             }
@@ -44,27 +42,20 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
     // Add to pending set
     m_pendingObjects.Insert(weakHandle);
 
-    // Add to appropriate queues based on update types
+    // Create entry with all requested update types
     UpdateEntry newEntry {
         .object = weakHandle,
         .updateTypes = updateTypes,
         .depth = uiObject->GetComputedDepth()
     };
 
-    // Group by the primary update type for efficient batch processing
-    EnumFlags<UIObjectUpdateType> primaryType = UIObjectUpdateType::NONE;
-    for (const auto& orderType : s_updateOrder)
+    // Add to each individual update queue based on the flags set
+    for (const auto& updateType : s_updateOrder)
     {
-        if (updateTypes & orderType)
+        if (updateTypes & updateType)
         {
-            primaryType = orderType;
-            break;
+            m_updateQueues[updateType].PushBack(newEntry);
         }
-    }
-
-    if (primaryType != UIObjectUpdateType::NONE)
-    {
-        m_updateQueues[primaryType].PushBack(newEntry);
     }
 }
 
@@ -84,7 +75,7 @@ void UIUpdateManager::UnregisterFromUpdate(UIObject* uiObject)
         return; // Not registered
     }
 
-    // Remove from all queues
+    // Remove from all individual update type queues
     for (auto& kv : m_updateQueues)
     {
         Array<UpdateEntry>& entries = kv.second;
@@ -115,7 +106,7 @@ void UIUpdateManager::ProcessUpdates(float delta)
         return;
     }
 
-    // Process updates in optimal order
+    // Process each update type in optimal order
     for (const auto& updateType : s_updateOrder)
     {
         ProcessUpdateType(updateType, delta);
@@ -125,7 +116,7 @@ void UIUpdateManager::ProcessUpdates(float delta)
     Clear();
 }
 
-void UIUpdateManager::ProcessUpdateType(EnumFlags<UIObjectUpdateType> updateType, float delta)
+void UIUpdateManager::ProcessUpdateType(UIObjectUpdateType updateType, float delta)
 {
     HYP_SCOPE;
 
@@ -138,12 +129,12 @@ void UIUpdateManager::ProcessUpdateType(EnumFlags<UIObjectUpdateType> updateType
     Array<UpdateEntry>& entries = it->second;
     
     // Sort by depth for optimal processing order (parents before children for size/position)
-    if (updateType & (UIObjectUpdateType::UPDATE_SIZE | UIObjectUpdateType::UPDATE_POSITION))
+    if (updateType == UIObjectUpdateType::UPDATE_SIZE || updateType == UIObjectUpdateType::UPDATE_POSITION)
     {
         SortByDepth(entries);
     }
 
-    // Process all objects with this update type
+    // Process all objects with this specific update type
     for (const UpdateEntry& entry : entries)
     {
         Handle<UIObject> object = entry.object.Lock();
@@ -152,40 +143,39 @@ void UIUpdateManager::ProcessUpdateType(EnumFlags<UIObjectUpdateType> updateType
             continue; // Object was destroyed
         }
 
-        // Apply the specific updates
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_SIZE)
+        // Only apply the specific update type we're processing
+        switch (updateType)
         {
+        case UIObjectUpdateType::UPDATE_SIZE:
             object->UpdateSize(false); // Don't cascade to children - they're in the list too
-        }
-        
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_POSITION)
-        {
+            break;
+            
+        case UIObjectUpdateType::UPDATE_POSITION:
             object->UpdatePosition(false);
-        }
-        
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_CLAMPED_SIZE)
-        {
+            break;
+            
+        case UIObjectUpdateType::UPDATE_CLAMPED_SIZE:
             object->UpdateClampedSize(false);
-        }
-        
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY)
-        {
+            break;
+            
+        case UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY:
             object->UpdateComputedVisibility(false);
-        }
-        
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_MATERIAL)
-        {
+            break;
+            
+        case UIObjectUpdateType::UPDATE_MATERIAL:
             object->UpdateMaterial(false);
-        }
-        
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_MESH_DATA)
-        {
+            break;
+            
+        case UIObjectUpdateType::UPDATE_MESH_DATA:
             object->UpdateMeshData(false);
-        }
-        
-        if (entry.updateTypes & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA)
-        {
+            break;
+            
+        case UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA:
             object->UpdateComputedTextSize();
+            break;
+            
+        default:
+            break;
         }
     }
 }

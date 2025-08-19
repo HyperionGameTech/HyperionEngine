@@ -82,6 +82,8 @@ void UIStageUpdateManager::ProcessFrameUpdates(float delta)
 
     //m_stage->AssertOnOwnerThread();
 
+    RegisterForUpdate(m_stage, UIObjectUpdateType::UPDATE_ALL);
+
     UIUpdateManager::ProcessUpdates(delta);
 }
 

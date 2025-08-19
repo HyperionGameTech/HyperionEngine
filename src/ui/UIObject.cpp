@@ -272,48 +272,36 @@ void UIObject::Init()
 void UIObject::Update(float delta)
 {
     HYP_SCOPE;
-
     AssertReady();
 
     // Get the root stage to access the update manager
+    // If we are the root stage, this will be nullptr
     UIStage* rootStage = GetStage();
     while (rootStage && rootStage->GetStage())
     {
         rootStage = rootStage->GetStage();
     }
 
-    if (rootStage)
+    if (rootStage) // Register for updates if we have a root stage
     {
-        // Use selective update system
         if (NeedsUpdate())
         {
             rootStage->GetUpdateManager().RegisterForUpdate(this, m_deferredUpdates);
         }
-        
-        // Only process updates at the root level to avoid duplication
-        if (this == rootStage)
-        {
-            rootStage->GetUpdateManager().ProcessUpdates(delta);
-        }
     }
-    else
+    else // We are the root stage or no stage is set
     {
-        // Fallback to breadth-first approach
-        if (NeedsUpdate())
+        Update_Internal(delta);
+
+        ForEachChildUIObject([delta](UIObject* child)
         {
-            Update_Internal(delta);
-        }
-
-        ForEachChildUIObject([this, delta](UIObject* child)
+            if (child->NeedsUpdate())
             {
-                if (child->NeedsUpdate())
-                {
-                    child->Update_Internal(delta);
-                }
+                child->Update_Internal(delta);
+            }
 
-                return IterationResult::CONTINUE;
-            },
-            /* deep */ true);
+            return IterationResult::CONTINUE;
+        }, /* deep */ true);
     }
 }
 
@@ -326,47 +314,6 @@ void UIObject::Update_Internal(float delta)
     if (m_scrollOffset.Advance(scrollOffsetDelta))
     {
         OnScrollOffsetUpdate(scrollOffsetDelta);
-    }
-
-    if (m_deferredUpdates)
-    {
-        bool updatedPositionOrSize = false;
-
-        { // lock updates within scope; process clamped size at end
-            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-            if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_SIZE))
-            {
-                UpdateSize(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_SIZE);
-                updatedPositionOrSize = true;
-            }
-
-            if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_POSITION | UIObjectUpdateType::UPDATE_CHILDREN_POSITION))
-            {
-                UpdatePosition(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_POSITION);
-                updatedPositionOrSize = true;
-            }
-        }
-
-        if (updatedPositionOrSize || (m_deferredUpdates & (UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE)))
-        {
-            UpdateClampedSize(updatedPositionOrSize || (m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE));
-        }
-
-        if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_MATERIAL | UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL))
-        {
-            UpdateMaterial(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL);
-        }
-
-        if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY | UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY))
-        {
-            UpdateComputedVisibility(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY);
-        }
-
-        if (m_deferredUpdates & (UIObjectUpdateType::UPDATE_MESH_DATA | UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA))
-        {
-            UpdateMeshData(m_deferredUpdates & UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA);
-        }
     }
 }
 
