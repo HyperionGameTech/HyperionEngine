@@ -422,7 +422,8 @@ TaskThread* TaskSystem::GetNextTaskThread(TaskThreadPool& pool)
 const FlatMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> g_threadPoolFactories {
     { TaskThreadPoolName::THREAD_POOL_GENERIC, +[]() -> UniquePtr<TaskThreadPool>
         {
-            return MakeUnique<GenericTaskThreadPool>(2, ThreadPriorityValue::HIGHEST);
+            // we generally don't have more than 3 concurrent Systems running at once.
+            return MakeUnique<GenericTaskThreadPool>(3, ThreadPriorityValue::HIGHEST);
         } },
     { TaskThreadPoolName::THREAD_POOL_RENDER, +[]() -> UniquePtr<TaskThreadPool>
         {

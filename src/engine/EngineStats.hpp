@@ -9,6 +9,8 @@
 
 #include <core/Name.hpp>
 
+#include <core/profiling/PerformanceClock.hpp>
+
 #include <cfloat>
 
 namespace hyperion {
@@ -70,6 +72,40 @@ public:
 
     HYP_FIELD()
     Handle<EngineStatGroup> statGroups[g_maxStatGroups];
+};
+
+class EngineStatTimer
+{
+public:
+    EngineStatTimer(Name name)
+        : m_name(name),
+          m_clock()
+    {
+    }
+
+    void Reset()
+    {
+        m_clock = PerformanceClock();
+    }
+
+    void StartTiming()
+    {
+        m_clock.Start();
+    }
+
+    void StopTiming()
+    {
+        m_clock.Stop();
+    }
+
+    double GetElapsedMs() const
+    {
+        return m_clock.ElapsedMs();
+    }
+    
+private:
+    Name m_name;
+    PerformanceClock m_clock;
 };
 
 } // namespace hyperion

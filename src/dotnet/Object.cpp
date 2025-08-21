@@ -53,8 +53,6 @@ Object::~Object()
 
 void Object::Reset()
 {
-    HYP_MT_CHECK_RW(m_dataRaceDetector);
-
     if (IsValid() && m_keepAlive.Get(MemoryOrder::ACQUIRE))
     {
         Assert(SetKeepAlive(false), "Failed to set keep alive to false!");

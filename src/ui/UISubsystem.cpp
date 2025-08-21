@@ -276,6 +276,8 @@ void UISubsystem::Update(float delta)
 
         for (Entity* entity : added)
         {
+            AssertDebug(entity->InstanceClass() == Entity::Class());
+            
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
             AssertDebug(meshComponent != nullptr);
 
