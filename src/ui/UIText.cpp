@@ -48,12 +48,16 @@ struct FontAtlasCharacterIterator
 
     float bearingY;
     float charWidth;
-
-    utf::u32char charValue;
 };
 
 template <class Callback>
-static void ForEachCharacter(const FontAtlas& fontAtlas, const String& text, const Vec2i& parentBounds, float textSize, Array<Vec2f>* outCharacterPlacements, Callback&& callback)
+static void ForEachCharacter(
+    const FontAtlas& fontAtlas,
+    const String& text,
+    const Vec2i& parentBounds,
+    float textSize,
+    Array<Vec2f>* outCharacterPlacements,
+    Callback&& callback)
 {
     HYP_SCOPE;
 
@@ -139,7 +143,7 @@ static void ForEachCharacter(const FontAtlas& fontAtlas, const String& text, con
 
         if (!glyphMetrics.HasValue() || (glyphMetrics->width == 0 || glyphMetrics->height == 0))
         {
-            HYP_LOG(UI, Warning, "Ensure how to render char: {}", (int)ch);
+            HYP_LOG_ONCE(UI, Warning, "Ensure how to render char: {}", (int)ch);
 
             if (outCharacterPlacements)
             {
@@ -150,7 +154,6 @@ static void ForEachCharacter(const FontAtlas& fontAtlas, const String& text, con
         }
 
         FontAtlasCharacterIterator& characterIterator = currentWordChars.EmplaceBack();
-        characterIterator.charValue = ch;
         characterIterator.placement = placement;
         characterIterator.atlasPixelSize = atlasPixelSize;
         characterIterator.cellDimensions = cellDimensions;
