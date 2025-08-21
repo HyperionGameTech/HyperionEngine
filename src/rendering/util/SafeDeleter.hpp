@@ -25,42 +25,34 @@ static constexpr uint32 g_minSafeDeleteCycles = 10; // minimum number of cycles 
 
 HYP_API extern uint32 RenderApi_GetFrameCounter();
 
-class SafeDeleterEntryBase
-{
-protected:
-    friend class SafeDeleter;
-
-    SafeDeleterEntryBase() = default;
-    ~SafeDeleterEntryBase() = default;
-};
-
 template <class T>
 class SafeDeleterEntry;
 
+template <>
+class SafeDeleterEntry<HypObjectBase*>
+{
+public:
+    enum ConstructFromHandleTag
+    {
+        CONSTRUCT_FROM_HANDLE
+    };
+
+    HYP_API SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag);
+    HYP_API ~SafeDeleterEntry();
+
+protected:
+    HypObjectBase* ptr;
+};
+
 template <class T>
-class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntryBase
+class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntry<HypObjectBase*>
 {
 public:
     SafeDeleterEntry(Handle<T>&& handle)
-        : handle(std::move(handle))
+        : SafeDeleterEntry<HypObjectBase*>(handle.ptr, CONSTRUCT_FROM_HANDLE)
     {
+        handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
     }
-
-protected:
-    Handle<T> handle;
-};
-
-template <>
-class SafeDeleterEntry<AnyHandle> final : public SafeDeleterEntryBase
-{
-public:
-    SafeDeleterEntry(AnyHandle&& handle)
-        : handle(std::move(handle))
-    {
-    }
-
-protected:
-    AnyHandle handle;
 };
 
 class HYP_API SafeDeleter
@@ -135,11 +127,9 @@ public:
         {
             header.destructFn = [](void* ptr)
             {
-                T* ptrCasted = reinterpret_cast<T*>(ptr);
-                ptrCasted->~T();
+                SafeDeleterEntry<T>* ptrCasted = reinterpret_cast<SafeDeleterEntry<T>*>(ptr);
+                ptrCasted->~SafeDeleterEntry<T>();
             };
-
-            // header.destructFn = &Memory::Destruct<SafeDeleterEntry<T>>;
         }
         else
         {

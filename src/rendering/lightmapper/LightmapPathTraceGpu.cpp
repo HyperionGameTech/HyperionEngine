@@ -437,7 +437,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<Ligh
     }
 #endif
 
-    SafeDelete(std::move(stagingBuffer));
+    stagingBuffer.Reset();
 }
 
 void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJob* job, Span<const LightmapRay> rays, uint32 rayOffset)

@@ -4,6 +4,9 @@
 
 #include <rendering/RenderGlobalState.hpp>
 
+// temp
+#include <rendering/Texture.hpp>
+
 #include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
 
@@ -19,12 +22,43 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
     return g_safeDeleter;
 }
 
-SafeDeleter::EntryList::EntryList()
-    : buffer(),
-      currHeaders(&headers[0]),
-      bufferPos(0)
+#pragma region SafeDeleterEntry<HypObjectBase*>
+
+SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag)
+    : ptr(ptr)
 {
+    if (ptr)
+    {
+        const bool hasManagedObjectResource = ptr->GetManagedObjectResource() != nullptr;
+
+        int32 count = AtomicAdd(&ptr->GetObjectHeader_Internal()->refCountStrong, 0);
+
+        // 1 is since the managed object lock would have its own strong reference count of 1.
+        while (count != (hasManagedObjectResource ? 1 : 0))
+        {
+            if (AtomicCompareExchange(&ptr->GetObjectHeader_Internal()->refCountStrong, count, count - 1))
+            {
+                if (hasManagedObjectResource)
+                    HypObject_ReleaseManagedObjectLock(ptr);
+
+                break;
+            }
+        }
+    }
 }
+
+SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
+{
+    // call destructor if no more strong references
+    if (ptr && AtomicAdd(&ptr->GetObjectHeader_Internal()->refCountStrong, 0) == 0)
+    {
+        ptr->~HypObjectBase();
+    }
+}
+
+#pragma region SafeDeleterEntry<HypObjectBase*>
+
+#pragma region SafeDeleter
 
 SafeDeleter::SafeDeleter()
     : m_entryLists {},
@@ -201,26 +235,6 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
     return iterCount;
 }
 
-SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
-{
-    HYP_SCOPE;
-
-    if (Threads::IsOnThread(g_gameThread | g_renderThread))
-    {
-        uint32 bufferIndex = RenderApi_GetFrameIndex();
-        AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
-
-        return m_entryLists[bufferIndex];
-    }
-
-    Mutex::Guard guard(m_mutex);
-
-    AtomicIncrement(&m_tempEntryListCount);
-    SafeDeleter::EntryList& entryList = m_tempEntryLists.EmplaceBack();
-
-    return entryList;
-}
-
 void SafeDeleter::UpdateCounter(uint32 bufferIndex)
 {
     HYP_SCOPE;
@@ -316,6 +330,37 @@ void SafeDeleter::UpdateEntryListQueue()
     UpdateCounter(bufferIndex);
 }
 
+#pragma endregion SafeDeleter
+
+#pragma region SafeDeleter::EntryList
+
+SafeDeleter::EntryList::EntryList()
+    : buffer(),
+      currHeaders(&headers[0]),
+      bufferPos(0)
+{
+}
+
+SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
+{
+    HYP_SCOPE;
+
+    if (Threads::IsOnThread(g_gameThread | g_renderThread))
+    {
+        uint32 bufferIndex = RenderApi_GetFrameIndex();
+        AssertDebug(bufferIndex < HYP_ARRAY_SIZE(m_entryLists));
+
+        return m_entryLists[bufferIndex];
+    }
+
+    Mutex::Guard guard(m_mutex);
+
+    AtomicIncrement(&m_tempEntryListCount);
+    SafeDeleter::EntryList& entryList = m_tempEntryLists.EmplaceBack();
+
+    return entryList;
+}
+
 void* SafeDeleter::EntryList::Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader)
 {
     HYP_SCOPE;
@@ -352,5 +397,7 @@ void SafeDeleter::EntryList::ResizeBuffer(SizeType newMinSize)
 
     buffer.SetSize(newMinSize, /* zeroize */ false);
 }
+
+#pragma endregion SafeDeleter::EntryList
 
 } // namespace hyperion

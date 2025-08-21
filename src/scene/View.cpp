@@ -64,7 +64,14 @@ ViewOutputTarget::ViewOutputTarget(const Handle<GBuffer>& gbuffer)
 
 ViewOutputTarget::~ViewOutputTarget()
 {
-    SafeDelete(std::move(m_impl));
+    if (m_impl.Is<GBuffer>())
+    {
+        SafeDelete(reinterpret_cast<Handle<GBuffer>&&>(std::move(m_impl)));
+    }
+    else if (m_impl.Is<FramebufferBase>())
+    {
+        SafeDelete(reinterpret_cast<FramebufferRef&&>(std::move(m_impl)));
+    }
 }
 
 const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const

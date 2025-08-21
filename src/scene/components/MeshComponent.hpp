@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
 
@@ -6,8 +6,6 @@
 #include <core/utilities/UserData.hpp>
 
 #include <core/math/Matrix4.hpp>
-
-#include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/MeshInstanceData.hpp>
 
@@ -106,103 +104,10 @@ struct MeshComponent
     {
     }
 
-    MeshComponent& operator=(const MeshComponent& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        if (mesh)
-        {
-            SafeDelete(std::move(mesh));
-        }
-
-        if (material)
-        {
-            SafeDelete(std::move(material));
-        }
-
-        if (skeleton)
-        {
-            SafeDelete(std::move(skeleton));
-        }
-
-        mesh = other.mesh;
-        material = other.material;
-        skeleton = other.skeleton;
-        instanceData = other.instanceData;
-        previousModelMatrix = other.previousModelMatrix;
-        lightmapVolumeUuid = other.lightmapVolumeUuid;
-        lightmapElementId = other.lightmapElementId;
-
-        return *this;
-    }
-
-    MeshComponent(MeshComponent&& other) noexcept
-        : mesh(std::move(other.mesh)),
-          material(std::move(other.material)),
-          skeleton(std::move(other.skeleton)),
-          instanceData(std::move(other.instanceData)),
-          previousModelMatrix(std::move(other.previousModelMatrix)),
-          lightmapVolumeUuid(std::move(other.lightmapVolumeUuid)),
-          lightmapElementId(other.lightmapElementId)
-    {
-        other.lightmapElementId = ~0u;
-    }
-
-    MeshComponent& operator=(MeshComponent&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        if (mesh)
-        {
-            SafeDelete(std::move(mesh));
-        }
-
-        if (material)
-        {
-            SafeDelete(std::move(material));
-        }
-
-        if (skeleton)
-        {
-            SafeDelete(std::move(skeleton));
-        }
-
-        mesh = std::move(other.mesh);
-        material = std::move(other.material);
-        skeleton = std::move(other.skeleton);
-        instanceData = std::move(other.instanceData);
-        previousModelMatrix = std::move(other.previousModelMatrix);
-        lightmapVolumeUuid = std::move(other.lightmapVolumeUuid);
-        lightmapElementId = other.lightmapElementId;
-
-        other.lightmapElementId = ~0u;
-
-        return *this;
-    }
-
-    ~MeshComponent()
-    {
-        if (mesh)
-        {
-            SafeDelete(std::move(mesh));
-        }
-
-        if (material)
-        {
-            SafeDelete(std::move(material));
-        }
-
-        if (skeleton)
-        {
-            SafeDelete(std::move(skeleton));
-        }
-    }
+    HYP_API MeshComponent& operator=(const MeshComponent& other);
+    HYP_API MeshComponent(MeshComponent&& other) noexcept;
+    HYP_API MeshComponent& operator=(MeshComponent&& other) noexcept;
+    HYP_API ~MeshComponent();
 
     HYP_FORCE_INLINE bool operator==(const MeshComponent& other) const
     {
