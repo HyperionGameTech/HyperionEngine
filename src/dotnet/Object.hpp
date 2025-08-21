@@ -180,8 +180,6 @@ private:
     EnumFlags<ObjectFlags> m_objectFlags;
 
     AtomicVar<bool> m_keepAlive;
-
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
 } // namespace hyperion::dotnet

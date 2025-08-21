@@ -149,13 +149,13 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadId threadId, EnumFl
         if (((mask = m_writers.BitOr(testMask, MemoryOrder::ACQUIRE_RELEASE)) & ~testMask))
         {
             LogDataRace(0ull, mask);
-            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is writing. Write mask: %llu", mask);
+            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is writing. Write mask: {}", mask);
         }
 
         if ((mask = m_readers.BitOr(testMask, MemoryOrder::ACQUIRE_RELEASE)) & ~testMask)
         {
             LogDataRace(mask, 0ull);
-            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is reading. Write mask: %llu", mask);
+            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is reading. Write mask: {}", mask);
         }
     }
     else
@@ -165,7 +165,7 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadId threadId, EnumFl
         if ((mask = m_writers.Get(MemoryOrder::ACQUIRE)) & ~testMask)
         {
             LogDataRace(mask, 0ull);
-            HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: %llu", mask);
+            HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: {}", mask);
         }
     }
 
@@ -286,6 +286,8 @@ void DataRaceDetector::LogDataRace(uint64 readersMask, uint64 writersMask) const
         ThreadId::Current().GetName(), ThreadId::Current().GetValue(),
         writerThreadsString,
         readerThreadsString);
+    
+    debug::DebugLog_FlushOutputStream();
 }
 
 void DataRaceDetector::GetThreadIds(uint64 readersMask, uint64 writersMask, Array<Pair<ThreadId, DataAccessState>>& outReaderThreadIds, Array<Pair<ThreadId, DataAccessState>>& outWriterThreadIds) const
@@ -297,7 +299,7 @@ void DataRaceDetector::GetThreadIds(uint64 readersMask, uint64 writersMask, Arra
         if (bitIndex >= numPreallocatedStates)
         {
             const uint32 dynamicStateIndex = bitIndex - numPreallocatedStates;
-            HYP_CORE_ASSERT(dynamicStateIndex < m_dynamicStates.Size(), "Invalid dynamic state index: %u; Out of range of elements: %u", dynamicStateIndex, m_dynamicStates.Size());
+            HYP_CORE_ASSERT(dynamicStateIndex < m_dynamicStates.Size(), "Invalid dynamic state index: {}; Out of range of elements: {}", dynamicStateIndex, m_dynamicStates.Size());
 
             outReaderThreadIds.EmplaceBack(m_dynamicStates[dynamicStateIndex].threadId, m_dynamicStates[dynamicStateIndex].state);
         }
@@ -314,7 +316,7 @@ void DataRaceDetector::GetThreadIds(uint64 readersMask, uint64 writersMask, Arra
         if (bitIndex >= numPreallocatedStates)
         {
             const uint32 dynamicStateIndex = bitIndex - numPreallocatedStates;
-            HYP_CORE_ASSERT(dynamicStateIndex < m_dynamicStates.Size(), "Invalid dynamic state index: %u; Out of range of elements: %u", dynamicStateIndex, m_dynamicStates.Size());
+            HYP_CORE_ASSERT(dynamicStateIndex < m_dynamicStates.Size(), "Invalid dynamic state index: {}; Out of range of elements: {}", dynamicStateIndex, m_dynamicStates.Size());
 
             outWriterThreadIds.EmplaceBack(m_dynamicStates[dynamicStateIndex].threadId, m_dynamicStates[dynamicStateIndex].state);
         }

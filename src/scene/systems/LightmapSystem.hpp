@@ -8,6 +8,8 @@
 
 namespace hyperion {
 
+class LightmapVolume;
+
 HYP_CLASS(NoScriptBindings, Description = "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable.")
 class LightmapSystem : public SystemBase
 {
@@ -30,8 +32,12 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
+            // writes to entities with these components
             ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
-            ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, COMPONENT_RW_FLAGS_READ_WRITE, false> {}
+            ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
+
+            // used to assign entities to LightmapVolumes
+            ComponentDescriptor<EntityType<LightmapVolume>, COMPONENT_RW_FLAGS_READ, false> {}
         };
     }
 

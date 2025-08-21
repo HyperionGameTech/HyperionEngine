@@ -31,6 +31,7 @@ static constexpr uint32 g_entityManagerCommandQueueWarningSize = 8192;
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
+#define HYP_SYSTEM_LOG_PERFORMANCE
 
 #pragma region EntityManager
 
@@ -1440,21 +1441,24 @@ void EntityManager::EndAsyncUpdate()
         m_rootSynchronousExecutionGroup = nullptr;
     }
 
-#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
+#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
     {
         const PerformanceClock& performanceClock = systemExecutionGroup.GetPerformanceClock();
         const double elapsedTimeMs = performanceClock.Elapsed() / 1000.0;
 
+#ifdef HYP_SYSTEMS_LAG_SPIKE_DETECTION
         if (elapsedTimeMs >= g_systemExecutionGroupLagSpikeThreshold)
         {
             HYP_LOG(Entity, Warning, "SystemExecutionGroup spike detected: {} ms", elapsedTimeMs);
-
-            for (const auto& it : systemExecutionGroup.GetPerformanceClocks())
-            {
-                HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.Elapsed() / 1000.0);
-            }
         }
+#endif
+#ifdef HYP_SYSTEM_LOG_PERFORMANCE
+        for (const auto& it : systemExecutionGroup.GetPerformanceClocks())
+        {
+            HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.Elapsed() / 1000.0);
+        }
+#endif
     }
 #endif
 }
@@ -1506,7 +1510,7 @@ void SystemExecutionGroup::StartProcessing(float delta)
 
     AssertDebug(AllowUpdate());
 
-#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
+#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
     m_performanceClock.Start();
 
     for (auto& it : m_systems)
@@ -1517,22 +1521,30 @@ void SystemExecutionGroup::StartProcessing(float delta)
     }
 #endif
 
+#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
+    HYP_LOG(Entity, Debug, "Starting SystemExecutionGroup processing with {} systems", m_systems.Size());
+#endif
+
     for (auto& it : m_systems)
     {
         SystemBase* system = it.second.Get();
+
+#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
+        HYP_LOG(Entity, Debug, "\t\tSystem: {}", system->GetName());
+#endif
 
         m_taskBatch->AddTask([this, system, delta]
             {
                 HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
-#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
+#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
                 PerformanceClock& performanceClock = m_performanceClocks[system];
                 performanceClock.Start();
 #endif
 
                 system->Process(delta);
 
-#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
+#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
                 performanceClock.Stop();
 #endif
             });

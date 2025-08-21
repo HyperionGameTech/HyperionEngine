@@ -128,15 +128,12 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                             const UIComponent* uiComponent = entityManager->TryGetComponent<UIComponent>(entity);
                             if (uiComponent)
                             {
-                                if (UIObject* uiObject = uiComponent->uiObject)
+                                if (Handle<UIObject> uiObject = uiComponent->uiObject.Lock())
                                 {
-                                    Handle<UIObject> uiObjectRef = MakeStrongRef(uiObject);
-                                    Assert(uiObjectRef.IsValid());
-
                                     componentJson["ui_object"] = json::JSONObject({ { "name", json::JSONString(*uiObject->GetName()) },
                                         { "type", json::JSONString(*uiObject->InstanceClass()->GetName()) },
-                                        { "refCountStrong", uiObjectRef->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
-                                        { "refCountWeak", uiObjectRef->GetObjectHeader_Internal()->GetRefCountWeak() } });
+                                        { "refCountStrong", uiObject->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
+                                        { "refCountWeak", uiObject->GetObjectHeader_Internal()->GetRefCountWeak() } });
                                 }
                             }
                         }

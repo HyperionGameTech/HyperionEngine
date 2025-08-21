@@ -348,7 +348,7 @@ struct EntitySetView
 
             for (SizeType i = 0; i < m_componentDataRaceDetectors.Size(); i++)
             {
-                m_componentDataAccessScopes.ConstructElement(i, dataAccessFlags, *m_componentDataRaceDetectors[i], DataRaceDetector::DataAccessState { currentFunction, message.Length() != 0 ? message : ANSIStringView(componentNames[i]) });
+                new (m_componentDataAccessScopes.GetPointer() + i) DataRaceDetector::DataAccessScope(dataAccessFlags, *m_componentDataRaceDetectors[i], DataRaceDetector::DataAccessState { currentFunction, message.Length() != 0 ? message : ANSIStringView(componentNames[i]) });
             }
         }
     }
@@ -384,7 +384,7 @@ struct EntitySetView
                     accessFlags |= DataAccessFlags::ACCESS_WRITE;
                 }
 
-                m_componentDataAccessScopes.ConstructElement(i, accessFlags, *m_componentDataRaceDetectors[i], DataRaceDetector::DataAccessState { currentFunction, message.Length() != 0 ? message : ANSIStringView(componentNames[i]) });
+                new (m_componentDataAccessScopes.GetPointer() + i) DataRaceDetector::DataAccessScope(accessFlags, *m_componentDataRaceDetectors[i], DataRaceDetector::DataAccessState { currentFunction, message.Length() != 0 ? message : ANSIStringView(componentNames[i]) });
             }
         }
     }
@@ -407,10 +407,20 @@ struct EntitySetView
         {
             for (SizeType i = 0; i < m_componentDataAccessScopes.Size(); i++)
             {
-                m_componentDataAccessScopes.DestructElement(i);
+                (m_componentDataAccessScopes.GetPointer() + i)->~DataAccessScope();
             }
         }
 #endif
+    }
+    
+    /*! \brief Gets the elements array of this set.
+     *  The elements array contains the entities in this set and the corresponding component IDs.
+     *
+     *  \return Reference to the elements array of this set.
+     */
+    HYP_FORCE_INLINE const Array<typename EntitySet<Components...>::Element>& GetElements() const
+    {
+        return entitySet.GetElements();
     }
 
     HYP_DEF_STL_BEGIN_END(entitySet.Begin(), entitySet.End())

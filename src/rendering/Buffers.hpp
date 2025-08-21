@@ -199,6 +199,8 @@ protected:
 
     FixedArray<GpuBufferRef, g_framesInFlight> m_buffers;
     FixedArray<Range<uint32>, g_framesInFlight> m_dirtyRanges;
+    
+    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
 template <class StructType>
