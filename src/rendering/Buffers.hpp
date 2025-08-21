@@ -214,6 +214,9 @@ public:
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         for (auto& it : m_dirtyRanges)
         {
             it |= { index, index + 1 };
@@ -229,6 +232,9 @@ public:
 
     void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         bool wasResized = false;
         HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
 
@@ -242,6 +248,7 @@ public:
 
     void CopyToGpuBuffer(const GpuBufferRef& buffer, uint32 frameIndex)
     {
+        Threads::AssertOnThread(g_renderThread);
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
         if (!m_dirtyRanges[frameIndex])
@@ -332,22 +339,34 @@ public:
 
     virtual void UpdateBufferSize(uint32 frameIndex) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         // m_pool.RemoveEmptyBlocks();
         m_pool.EnsureGpuBufferCapacity(m_buffers[frameIndex], frameIndex);
     }
 
     virtual void UpdateBufferData(uint32 frameIndex) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         m_pool.CopyToGpuBuffer(m_buffers[frameIndex], frameIndex);
     }
 
     virtual void MarkDirty(uint32 index) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         m_pool.MarkDirty(index);
     }
 
     virtual void ReadbackElement(uint32 frameIndex, uint32 index, void* dst) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         AssertDebug(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = {}, Size = {}", index, m_pool.NumAllocatedElements());
 
         m_buffers[frameIndex]->Read(sizeof(StructType) * index, sizeof(StructType), dst);
@@ -355,11 +374,17 @@ public:
 
     HYP_FORCE_INLINE uint32 AcquireIndex(StructType** outElementPtr)
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         return m_pool.AcquireIndex(outElementPtr);
     }
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         StructType* elementPtr;
         const uint32 index = m_pool.AcquireIndex(&elementPtr);
 
@@ -373,21 +398,33 @@ public:
 
     virtual void ReleaseIndex(uint32 batchIndex) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         return m_pool.ReleaseIndex(batchIndex);
     }
 
     virtual void EnsureCapacity(uint32 index) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         m_pool.EnsureCapacity(index);
     }
 
     HYP_FORCE_INLINE void WriteBufferData(uint32 index, const StructType& value)
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         m_pool.SetElement(index, value);
     }
 
     virtual void* GetCpuMapping(uint32 index) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         AssertDebug(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = {}, Size = {}", index, m_pool.NumAllocatedElements());
 
         return &m_pool.GetElement(index);
@@ -396,6 +433,9 @@ public:
 private:
     virtual void WriteBufferData_Internal(uint32 index, const void* bufferDataPtr) override
     {
+        Threads::AssertOnThread(g_renderThread);
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         WriteBufferData(index, *reinterpret_cast<const StructType*>(bufferDataPtr));
     }
 

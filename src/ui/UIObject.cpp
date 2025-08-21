@@ -295,25 +295,22 @@ void UIObject::Update(float delta)
 
     if (rootStage)
     {
-        // Use selective update system
         if (NeedsUpdate())
         {
             rootStage->GetUpdateManager().RegisterForUpdate(this, m_deferredUpdates);
         }
-        
-        // Only process updates at the root level to avoid duplication
-        if (this == rootStage)
-        {
-            rootStage->GetUpdateManager().ProcessUpdates(delta);
-        }
     }
     else
     {
+        // this is the root stage; call Update_Internal() on this and all children that need updating
+        // if child UIObjects need to be continually updated, they should call RegisterForUpdate() in the Update_Internal() method
+
         Update_Internal(delta);
 
         ForEachChildUIObject([this, delta](UIObject* child)
             {
-                child->Update_Internal(delta);
+                if (child->NeedsUpdate())
+                    child->Update_Internal(delta);
 
                 return IterationResult::CONTINUE;
             },
@@ -330,8 +327,11 @@ void UIObject::Update_Internal(float delta)
     if (m_scrollOffset.Advance(scrollOffsetDelta))
     {
         OnScrollOffsetUpdate(scrollOffsetDelta);
-    }
 
+        // Register for next update:
+        SetDeferredUpdate(UIObjectUpdateType::UPDATE_CUSTOM, false);
+    }
+    
     if (m_deferredUpdates)
     {
         bool updatedPositionOrSize = false;

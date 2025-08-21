@@ -64,7 +64,8 @@ private:
         UIObjectUpdateType::UPDATE_CLAMPED_SIZE,
         UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY,
         UIObjectUpdateType::UPDATE_MATERIAL,
-        UIObjectUpdateType::UPDATE_MESH_DATA
+        UIObjectUpdateType::UPDATE_MESH_DATA,
+        UIObjectUpdateType::UPDATE_CUSTOM
     };
 
     void ProcessUpdateType(UIObjectUpdateType updateType, float delta);

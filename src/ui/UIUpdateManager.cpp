@@ -168,7 +168,8 @@ void UIUpdateManager::ProcessUpdateType(UIObjectUpdateType updateType, float del
         return;
     }
 
-    Array<UpdateEntry*>& entries = it->second;
+    // copy the array so we can modify the original while processing
+    Array<UpdateEntry*> entries = it->second;
     
     // Sort by depth for optimal processing order (parents before children)
     SortByDepth(entries);
@@ -206,6 +207,11 @@ void UIUpdateManager::ProcessUpdateType(UIObjectUpdateType updateType, float del
 
         case UIObjectUpdateType::UPDATE_MESH_DATA:
             object->UpdateMeshData(false);
+            break;
+
+        case UIObjectUpdateType::UPDATE_CUSTOM:
+            object->Update_Internal(delta);
+
             break;
 
         default:
