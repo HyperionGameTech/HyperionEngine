@@ -201,9 +201,17 @@ void DrawCallCollection::ResetDrawCalls()
 
 uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<Entity> entityId, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset)
 {
-#ifdef HYP_DEBUG_MODE // Sanity check
+#ifdef HYP_DEBUG_MODE // Sanity checks
+    // type check - cannot be a subclass of Entity, indices would get messed up
+    extern HYP_API const char* LookupTypeName(TypeId typeId);
+
+    static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
+    Assert(entityId.GetTypeId() == entityTypeId, "Cannot push Entity subclass to EntityInstanceBatch: {}", LookupTypeName(entityId.GetTypeId()));
+
+    // bounds check
     Assert(numInstances <= meshInstanceData.numInstances);
 
+    // buffer size check
     for (uint32 bufferIndex = 0; bufferIndex < uint32(meshInstanceData.buffers.Size()); bufferIndex++)
     {
         Assert(meshInstanceData.buffers[bufferIndex].Size() / meshInstanceData.bufferStructSizes[bufferIndex] == meshInstanceData.numInstances);

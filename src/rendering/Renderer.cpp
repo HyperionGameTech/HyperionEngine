@@ -175,6 +175,8 @@ const Handle<PassData>& RendererBase::TryGetViewPassData(View* view)
         return Handle<PassData>::empty;
     }
 
+    AssertDebug(view->InstanceClass() == View::Class(), "View cannot be subclassed"); // indices would get messed up
+
     if (Handle<PassData>* pPassData = m_viewPassData.TryGet(view->Id().ToIndex()))
     {
         return *pPassData;
@@ -189,6 +191,8 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
     {
         return Handle<PassData>::empty;
     }
+
+    AssertDebug(view->InstanceClass() == View::Class(), "View cannot be subclassed"); // indices would get messed up
 
     Handle<PassData>* pPassData = m_viewPassData.TryGet(view->Id().ToIndex());
 

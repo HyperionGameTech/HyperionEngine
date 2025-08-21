@@ -410,7 +410,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
 
     for (auto [entity, uiComponent, transformComponent, boundingBoxComponent] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
-        UIObject* uiObject = uiComponent.uiObject;
+        UIObject* uiObject = uiComponent.uiObject.GetUnsafe();
 
         if (!uiObject)
         {

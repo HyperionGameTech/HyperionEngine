@@ -23,7 +23,7 @@ HYP_STRUCT(Component, Size = 8)
 struct UIComponent
 {
     HYP_FIELD()
-    UIObject* uiObject = nullptr;
+    WeakHandle<UIObject> uiObject;
 };
 
 } // namespace hyperion
