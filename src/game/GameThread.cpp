@@ -89,6 +89,17 @@ void GameThread::operator()()
 
         counter.NextTick();
 
+        // execute posted tasks
+        if (uint32 numEnqueued = m_scheduler.NumEnqueued())
+        {
+            m_scheduler.AcceptAll(tasks);
+
+            while (tasks.Any())
+            {
+                tasks.Pop().Execute();
+            }
+        }
+
         AssetManager::GetInstance()->Update(counter.delta);
 
         if (g_appContext->GetMainWindow()->GetInputEventSink().Poll(events))

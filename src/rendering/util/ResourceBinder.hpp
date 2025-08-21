@@ -157,6 +157,8 @@ class ResourceBinder : public ResourceBinderBase
                 return;
             }
 
+            AssertDebug(id.GetTypeId() == typeId);
+
             currentFrameIds.Set(id.ToIndex(), true);
         }
 
@@ -168,6 +170,8 @@ class ResourceBinder : public ResourceBinderBase
             {
                 return;
             }
+            
+            AssertDebug(id.GetTypeId() == typeId);
 
             currentFrameIds.Set(id.ToIndex(), false);
         }

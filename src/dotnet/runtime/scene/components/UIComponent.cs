@@ -8,7 +8,7 @@ namespace Hyperion
     public struct UIComponent : IComponent
     {
         [FieldOffset(0)]
-        private Ptr<UIObject> uiObject;
+        private WeakHandle<UIObject> uiObject;
 
         public UIComponent()
         {
@@ -18,11 +18,11 @@ namespace Hyperion
         {
         }
 
-        public UIObject UIObject
+        public Handle<UIObject> UIObject
         {
             get
             {
-                return (UIObject)uiObject.GetValue();
+                return uiObject.Lock();
             }
         }
     }

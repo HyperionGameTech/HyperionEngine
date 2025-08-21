@@ -170,60 +170,19 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    m_childUiObjects.Clear();
+    SafeDelete(std::move(m_childUiObjects));
 
-    static const auto removeUiComponent = [](Scene* scene, Handle<Entity> entity)
-    {
-        Assert(scene != nullptr);
-        Assert(scene->GetEntityManager() != nullptr);
-
-        if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
-        {
-            uiComponent->uiObject = nullptr;
-
-            scene->GetEntityManager()->RemoveComponent<UIComponent>(entity);
-        }
-
-        SafeDelete(std::move(entity));
-    };
-
-    if (Handle<Entity> entity = GetEntity())
-    {
-        Scene* scene = GetScene();
-        Assert(scene != nullptr);
-
-        if (Threads::IsOnThread(scene->GetOwnerThreadId()))
-        {
-            removeUiComponent(GetScene(), std::move(entity));
-        }
-        else
-        {
-            // Keep node alive until it can be destroyed on the owner thread
-            Task<void> task = Threads::GetThread(scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = MakeStrongRef(GetScene()), entity = std::move(entity)]() mutable
-                {
-                    removeUiComponent(scene.Get(), std::move(entity));
-                });
-
-            // wait for task completion before finishing destruction,
-            // to ensure that the UIObject is set to nullptr on the UIComponent
-            task.Await();
-        }
-    }
+    if (m_node)
+        SafeDelete(std::move(m_node));
 
     if (m_dataSource)
-    {
         SafeDelete(std::move(m_dataSource));
-    }
 
     if (m_verticalScrollbar)
-    {
         SafeDelete(std::move(m_verticalScrollbar));
-    }
 
     if (m_horizontalScrollbar)
-    {
         SafeDelete(std::move(m_horizontalScrollbar));
-    }
 
     OnInit.RemoveAllDetached();
     OnAttached.RemoveAllDetached();
@@ -2036,9 +1995,9 @@ UIObject* UIObject::GetParentUIObject() const
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {
-                if (uiComponent->uiObject != nullptr)
+                if (uiComponent->uiObject.IsValid())
                 {
-                    return uiComponent->uiObject;
+                    return uiComponent->uiObject.GetUnsafe();
                 }
             }
         }
@@ -2075,11 +2034,11 @@ Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIOb
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {
-                if (uiComponent->uiObject != nullptr)
+                if (Handle<UIObject> uiObject = uiComponent->uiObject.Lock())
                 {
-                    if (proc(uiComponent->uiObject))
+                    if (proc(uiObject))
                     {
-                        return MakeStrongRef(uiComponent->uiObject);
+                        return uiObject;
                     }
                 }
             }
@@ -2680,7 +2639,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
         Assert(m_node->IsA<Entity>());
 
         Entity* entity = ObjCast<Entity>(m_node.Get());
-        entity->AddComponent<UIComponent>(UIComponent { this });
+        entity->AddComponent<UIComponent>(UIComponent { WeakHandleFromThis() });
 
         if (!m_affectsParentSize || !m_isVisible)
         {
@@ -2744,24 +2703,24 @@ void UIObject::CollectObjects(ProcRef<void(UIObject*)> proc, bool onlyVisible) c
     {
         for (auto [entity, uiComponent, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!uiComponent.uiObject)
+            if (!uiComponent.uiObject.IsValid())
             {
                 continue;
             }
 
-            proc(uiComponent.uiObject);
+            proc(uiComponent.uiObject.GetUnsafe());
         }
     }
     else
     {
         for (auto [entity, uiComponent] : scene->GetEntityManager()->GetEntitySet<UIComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!uiComponent.uiObject)
+            if (!uiComponent.uiObject.IsValid())
             {
                 continue;
             }
 
-            proc(uiComponent.uiObject);
+            proc(uiComponent.uiObject.GetUnsafe());
         }
     }
 
@@ -2945,9 +2904,9 @@ void UIObject::ForEachParentUIObject(Lambda&& lambda) const
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {
-                if (uiComponent->uiObject != nullptr)
+                if (uiComponent->uiObject.IsValid())
                 {
-                    const IterationResult iterationResult = lambda(uiComponent->uiObject);
+                    const IterationResult iterationResult = lambda(uiComponent->uiObject.GetUnsafe());
 
                     // stop iterating if stop was set to true
                     if (iterationResult == IterationResult::STOP)

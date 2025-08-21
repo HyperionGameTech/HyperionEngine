@@ -27,6 +27,10 @@ namespace hyperion {
 
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
+    AssertDebug(entity->InstanceClass() == Entity::Class(),
+        "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
+        entity->InstanceClass()->GetName());
+
     // For now, use Entity ID as index.
     RenderApi_AssignResourceBinding(entity, entity->Id().ToIndex());
 }
@@ -40,6 +44,9 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
     AssertDebug(proxyCasted != nullptr);
 
     AssertDebug(idx == proxyCasted->entity.Id().ToIndex());
+    AssertDebug(proxyCasted->entity.Id().GetTypeId() == TypeId::ForType<Entity>(),
+        "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
+        LookupTypeName(proxyCasted->entity.Id().GetTypeId()));
 
     proxyCasted->bufferData.entityIndex = proxyCasted->entity.Id().ToIndex();
     proxyCasted->bufferData.materialIndex = RenderApi_RetrieveResourceBinding(proxyCasted->material);

@@ -372,7 +372,7 @@ struct ResourceContainer
         return dataByType.Get(staticIndex);
     }
 
-    SparsePagedArray<ResourceSubtypeData, 16> dataByType;
+    SparsePagedArray<ResourceSubtypeData, 64> dataByType;
 };
 
 struct ResourceContainerFactoryRegistry
@@ -716,6 +716,8 @@ static inline void SyncResources(
         AssertDebug(resourceId.IsValid());
 
         ResourceSubtypeData& subtypeData = g_resources.GetSubtypeData(pResource->InstanceClass());
+        AssertDebug(resourceId.GetTypeId() == subtypeData.typeId);
+
         ResourceData* rd = subtypeData.data.TryGet(resourceId.ToIndex());
 
         if (!rd)
@@ -751,6 +753,8 @@ static inline void SyncResources(
         AssertDebug(resourceId.IsValid());
 
         ResourceSubtypeData& subtypeData = g_resources.GetSubtypeData(pResource->InstanceClass());
+        AssertDebug(resourceId.GetTypeId() == subtypeData.typeId);
+
         ResourceData* rd = subtypeData.data.TryGet(resourceId.ToIndex());
         AssertDebug(rd != nullptr, "No resource data for {}", resourceId);
 
@@ -885,6 +889,7 @@ IRenderProxy* RenderApi_GetRenderProxy(const HypObjectBase* resource)
         subtypeData.typeId.Value(), *GetClass(subtypeData.typeId)->GetName());
 
     const ObjIdBase resourceId = resource->Id();
+    AssertDebug(resourceId.GetTypeId() == subtypeData.typeId);
 
     if (!subtypeData.proxies.HasIndex(resourceId.ToIndex()))
     {
@@ -908,6 +913,7 @@ void RenderApi_UpdateGpuData(const HypObjectBase* resource)
     const ObjIdBase resourceId = resource->Id();
 
     ResourceSubtypeData& subtypeData = g_resources.GetSubtypeData(resource->InstanceClass());
+    AssertDebug(resourceId.GetTypeId() == subtypeData.typeId);
 
     AssertDebug(subtypeData.gpuBufferHolder != nullptr,
         "Cannot update GPU data for type which does not have a GpuBufferHolder! TypeId: {}, HypClass {}",

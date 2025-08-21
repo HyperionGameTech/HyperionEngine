@@ -3,7 +3,6 @@
 #include <scene/SceneOctree.hpp>
 #include <scene/Entity.hpp>
 #include <scene/Node.hpp>
-#include <rendering/Mesh.hpp>
 #include <scene/BVH.hpp>
 
 #include <scene/EntityManager.hpp>
@@ -12,6 +11,10 @@
 #include <scene/components/MeshComponent.hpp>
 
 #include <scene/camera/Camera.hpp>
+
+#include <rendering/Mesh.hpp>
+
+#include <core/object/HypClass.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -441,6 +444,12 @@ SceneOctree::Result SceneOctree::Insert_Internal(Entity* entity, const BoundingB
         stateCasted->entityToOctant[entity] = this;
     }
 
+#ifdef HYP_DEBUG_MODE
+    AssertDebug(entity->InstanceClass() == Entity::Class(),
+        "Cannot use insert subclass of Entity into SceneOctree: {}",
+        entity->InstanceClass()->GetName());
+#endif
+
     m_payload.entries.Set(entity->Id().ToIndex(), SceneOctreePayload::Entry { entity, aabb });
 
     // mark dirty (not for rebuild), but ontant id has changed
@@ -478,6 +487,12 @@ SceneOctree::Result SceneOctree::Remove(Entity* entity, bool allowRebuild)
 
 SceneOctree::Result SceneOctree::Remove_Internal(Entity* entity, bool allowRebuild)
 {
+#ifdef HYP_DEBUG_MODE
+    AssertDebug(entity->InstanceClass() == Entity::Class(),
+        "Cannot use remove subclass of Entity from SceneOctree: {}",
+        entity->InstanceClass()->GetName());
+#endif
+
     const SizeType entryIndex = entity->Id().ToIndex();
     SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entryIndex);
 
@@ -575,6 +590,12 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
     HYP_SCOPE;
 
     AssertDebug(entity != nullptr);
+
+#ifdef HYP_DEBUG_MODE
+    AssertDebug(entity->InstanceClass() == Entity::Class(),
+        "Cannot use move subclass of Entity in SceneOctree: {}",
+        entity->InstanceClass()->GetName());
+#endif
 
     const BoundingBox& newAabb = aabb;
 
@@ -782,6 +803,12 @@ SceneOctree::Result SceneOctree::Update(Entity* entity, const BoundingBox& aabb,
 
 SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingBox& aabb, bool forceInvalidation, bool allowRebuild)
 {
+#ifdef HYP_DEBUG_MODE
+    AssertDebug(entity->InstanceClass() == Entity::Class(),
+        "Cannot use insert subclass of Entity into SceneOctree: {}",
+        entity->InstanceClass()->GetName());
+#endif
+
     const SizeType entryIndex = entity->Id().ToIndex();
     SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entryIndex);
 
