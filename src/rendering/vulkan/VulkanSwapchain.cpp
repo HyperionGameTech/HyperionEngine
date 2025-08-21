@@ -26,7 +26,8 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
-static const bool useSrgb = true;
+static const bool g_useSrgbFormat = true;
+static const bool g_useHdrFormat = true;
 static const VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult HandleNextFrame(
@@ -267,7 +268,40 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
 {
     m_surfaceFormat = {};
 
-    if (useSrgb)
+    if (g_useHdrFormat)
+    {
+        /* look for hdr format */
+        m_imageFormat = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+            m_supportDetails,
+            { { TF_R10G10B10A2, TF_R11G11B10F, TF_RGBA16F } },
+            [this](VkSurfaceFormatKHR format)
+            {
+                if (format.colorSpace != VK_COLOR_SPACE_HDR10_ST2084_EXT &&
+                    format.colorSpace != VK_COLOR_SPACE_BT2020_LINEAR_EXT &&
+                    format.colorSpace != VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
+                {
+                    return false;
+                }
+
+                m_surfaceFormat = format;
+
+                if (format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT)
+                {
+                    m_isPqHdr = true;
+                }
+
+                return true;
+            });
+
+        if (m_imageFormat != TF_NONE)
+        {
+            HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (HDR): {}", EnumToString(m_imageFormat));
+
+            HYPERION_RETURN_OK;
+        }
+    }
+
+    if (g_useSrgbFormat)
     {
         /* look for srgb format */
         m_imageFormat = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(

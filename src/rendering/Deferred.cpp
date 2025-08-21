@@ -20,6 +20,13 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderObject.hpp>
+#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/RenderDevice.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderSwapchain.hpp>
 #include <rendering/rt/MeshBlasBuilder.hpp>
 #include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/rt/DDGI.hpp>
@@ -28,11 +35,7 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 
-#include <rendering/RenderObject.hpp>
-#include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderDevice.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderGraphicsPipeline.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>
@@ -394,7 +397,18 @@ void TonemapPass::CreatePipeline()
             .blendFunction = BlendFunction::None(),
             .flags = MAF_NONE });
 
-    m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"));
+    ShaderProperties shaderProperties;
+
+    if (g_renderBackend->GetSwapchain()->IsPqHdr())
+    {
+        shaderProperties.Set(NAME("OUTPUT_PQ_HDR"));
+    }
+    else
+    {
+        shaderProperties.Set(NAME("OUTPUT_SDR"));
+    }
+    
+    m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"), shaderProperties);
 
     FullScreenPass::CreatePipeline(renderableAttributes);
 }

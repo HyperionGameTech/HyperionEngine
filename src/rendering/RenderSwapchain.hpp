@@ -43,6 +43,11 @@ public:
         return m_imageFormat;
     }
 
+    HYP_FORCE_INLINE bool IsPqHdr() const
+    {
+        return m_isPqHdr;
+    }
+
     HYP_FORCE_INLINE uint32 GetAcquiredImageIndex() const
     {
         return m_acquiredImageIndex;
@@ -59,16 +64,19 @@ protected:
     SwapchainBase()
         : m_extent(Vec2i::Zero()),
           m_acquiredImageIndex(0),
-          m_currentFrameIndex(0)
+          m_currentFrameIndex(0),
+          m_imageFormat(TF_NONE),
+          m_isPqHdr(false)
     {
     }
 
     Array<GpuImageRef> m_images;
     Array<FramebufferRef> m_framebuffers;
     Vec2u m_extent;
-    TextureFormat m_imageFormat = TF_NONE;
+    TextureFormat m_imageFormat;
     uint32 m_acquiredImageIndex;
     uint32 m_currentFrameIndex;
+    bool m_isPqHdr : 1;
 };
 
 } // namespace hyperion
