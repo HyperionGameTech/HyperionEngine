@@ -172,14 +172,12 @@ String EnumToString(EnumType value)
         return String::empty;
     }
 
-    for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_CONSTANT))
+    for (HypConstant* memberConstant : hypClass->GetConstants())
     {
-        HypConstant& memberConstant = static_cast<HypConstant&>(member);
-
         // If the function sets stopIteration to true, stop iteration
-        if (static_cast<EnumType>(memberConstant.Get().Get<EnumUnderlyingType>()) == value)
+        if (static_cast<EnumType>(memberConstant->Get().Get<EnumUnderlyingType>()) == value)
         {
-            return *memberConstant.GetName();
+            return *memberConstant->GetName();
         }
     }
 
