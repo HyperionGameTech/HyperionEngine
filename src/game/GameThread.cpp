@@ -103,16 +103,6 @@ void GameThread::operator()()
             events.Clear();
         }
 
-        if (uint32 numEnqueued = m_scheduler.NumEnqueued())
-        {
-            m_scheduler.AcceptAll(tasks);
-
-            while (tasks.Any())
-            {
-                tasks.Pop().Execute();
-            }
-        }
-
         if (m_game.IsValid())
         {
             m_game->Update(counter.delta);
