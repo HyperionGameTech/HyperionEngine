@@ -264,20 +264,18 @@ public:
 
             const uint32 index = blockIndex * Base::numElementsPerBlock;
 
-            const SizeType offset = index;
-            const SizeType count = MathUtil::Min(Base::numElementsPerBlock, rangeEnd - index);
+            const SizeType count = MathUtil::Min(Base::numElementsPerBlock, rangeEnd - rangeStart);
 
             // sanity checks
-            AssertDebug((offset - index) * sizeof(StructType) < sizeof(beginIt->buffer));
-            AssertDebug(count <= int64(bufferSize / sizeof(StructType)) - int64(offset),
+            AssertDebug(count <= int64(bufferSize / sizeof(StructType)),
                 "Buffer does not have enough space for the current number of elements! Buffer size = {}, Required size = {}",
                 bufferSize,
-                (offset + count) * sizeof(StructType));
+                count * sizeof(StructType));
 
             buffer->Copy(
-                offset * sizeof(StructType),
+                0,
                 count * sizeof(StructType),
-                &reinterpret_cast<StructType*>(beginIt->buffer.GetPointer())[offset - index]);
+                reinterpret_cast<StructType*>(beginIt->buffer.GetPointer()));
         }
     }
 
