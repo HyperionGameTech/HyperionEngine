@@ -116,8 +116,6 @@ struct RTRadianceUniforms
 
 struct PendingGpuBufferUpdate
 {
-    static constexpr uint32 s_bufferSize = 65535; // @TODO Figure out the most efficient size
-
     uint32 offset = 0;
     uint32 count = 0;
     GpuBufferRef stagingBuffer;
@@ -131,7 +129,7 @@ struct PendingGpuBufferUpdate
 
     ~PendingGpuBufferUpdate();
 
-    void Init();
+    void Init(uint32 bufferSize);
 };
 
 class GpuBufferHolderBase
@@ -231,6 +229,9 @@ template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
+    static constexpr uint32 s_minUpdateBufferSize = 65535;
+    static constexpr uint32 s_updateBufferSize = MathUtil::NextMultiple(s_minUpdateBufferSize, sizeof(StructType));
+
     explicit GpuBufferHolder(uint32 initialCount = 0)
         : GpuBufferHolderBase(TypeWrapper<StructType> {}),
           m_pool(CreateNameFromDynamicString(ANSIString("GfxBuffers_") + TypeNameWithoutNamespace<StructType>().Data()), initialCount)
@@ -308,9 +309,9 @@ public:
         for (PendingGpuBufferUpdate& it : m_pendingUpdates)
         {
             // start of where to write into in the main gpu buffer
-            const SizeType startOffset = it.offset - (it.offset % PendingGpuBufferUpdate::s_bufferSize);
+            const SizeType startOffset = it.offset - (it.offset % s_updateBufferSize);
 
-            if (indexTimesSize >= startOffset && indexTimesSize + sizeof(StructType) <= startOffset + PendingGpuBufferUpdate::s_bufferSize)
+            if (indexTimesSize >= startOffset && indexTimesSize + sizeof(StructType) <= startOffset + s_updateBufferSize)
             {
                 update = &it;
                 break;
@@ -324,8 +325,7 @@ public:
 
             // write to the staging buffer
             AssertDebug(update->stagingBuffer != nullptr);
-
-            update->stagingBuffer->Copy(indexTimesSize % PendingGpuBufferUpdate::s_bufferSize, sizeof(StructType), &value);
+            update->stagingBuffer->Copy(indexTimesSize % s_updateBufferSize, sizeof(StructType), &value);
 
             return;
         }
@@ -335,10 +335,14 @@ public:
         newUpdate.offset = indexTimesSize; // dst offset in the gpu buffer
         newUpdate.count = sizeof(StructType);
 
-        newUpdate.Init();
+        newUpdate.Init(s_updateBufferSize);
 
         // write to the staging buffer at the relative offset
-        const SizeType relativeOffset = indexTimesSize % PendingGpuBufferUpdate::s_bufferSize;
+        const SizeType relativeOffset = indexTimesSize % s_updateBufferSize;
+
+        AssertDebug(relativeOffset + sizeof(StructType) <= s_updateBufferSize,
+            "Relative offset {} + size {} exceeds staging buffer size {}!",
+            relativeOffset, sizeof(StructType), s_updateBufferSize);
 
         newUpdate.stagingBuffer->Copy(relativeOffset, sizeof(StructType), &value);
     }

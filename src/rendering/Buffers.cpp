@@ -59,14 +59,14 @@ PendingGpuBufferUpdate::~PendingGpuBufferUpdate()
     SafeDelete(std::move(stagingBuffer));
 }
 
-void PendingGpuBufferUpdate::Init()
+void PendingGpuBufferUpdate::Init(uint32 bufferSize)
 {
     if (stagingBuffer != nullptr)
     {
         return;
     }
 
-    stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, s_bufferSize);
+    stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
     Assert(stagingBuffer->Create());
 }
 
@@ -126,7 +126,7 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
         AssertDebug(pendingUpdate.stagingBuffer != nullptr);
         AssertDebug(pendingUpdate.offset + pendingUpdate.count <= m_gpuBuffer->Size());
         
-        const uint32 srcOffset = pendingUpdate.offset % PendingGpuBufferUpdate::s_bufferSize;
+        const uint32 srcOffset = pendingUpdate.offset % pendingUpdate.stagingBuffer->Size();
         const uint32 dstOffset = pendingUpdate.offset;
 
         rq << CopyBuffer(pendingUpdate.stagingBuffer, m_gpuBuffer, srcOffset, dstOffset, pendingUpdate.count);

@@ -199,6 +199,8 @@ void DDGI::CreateStorageBuffers()
     const Vec3u probeCounts = m_gridInfo.NumProbesPerDimension();
 
     m_radianceBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, m_gridInfo.GetImageDimensions().x * m_gridInfo.GetImageDimensions().y * sizeof(ProbeRayData));
+    m_radianceBuffer->SetDebugName(NAME("DDGI_RadianceBuffer"));
+    m_radianceBuffer->SetRequireCpuAccessible(true); // TEMP
 
     PUSH_RENDER_COMMAND(CreateDDGIRadianceBuffer, m_radianceBuffer, m_gridInfo);
 
