@@ -274,7 +274,7 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type)
     case GpuBufferType::CBUFF:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::SSBO:
-        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        return VMA_MEMORY_USAGE_AUTO;
     case GpuBufferType::ATOMIC_COUNTER:
         return 0;
     case GpuBufferType::STAGING_BUFFER:
@@ -515,7 +515,7 @@ void VulkanGpuBuffer::InsertBarrier(
 void VulkanGpuBuffer::CopyFrom(
     CommandBufferBase* commandBuffer,
     const GpuBufferBase* srcBuffer,
-    SizeType count)
+    uint32 count)
 {
     if (!IsCreated())
     {
@@ -537,6 +537,44 @@ void VulkanGpuBuffer::CopyFrom(
     VkBufferCopy region {};
     region.size = count;
 
+    vkCmdCopyBuffer(
+        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        VULKAN_CAST(srcBuffer)->m_handle,
+        m_handle,
+        1,
+        &region);
+}
+
+void VulkanGpuBuffer::CopyFrom(
+    CommandBufferBase* commandBuffer,
+    const GpuBufferBase* srcBuffer,
+    uint32 srcOffset, uint32 dstOffset,
+    uint32 count)
+{
+    if (!IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but dst buffer was not created");
+
+        return;
+    }
+
+    if (!srcBuffer->IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but src buffer was not created");
+
+        return;
+    }
+
+    HYP_GFX_ASSERT((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
+
+    InsertBarrier(commandBuffer, RS_COPY_DST);
+    srcBuffer->InsertBarrier(commandBuffer, RS_COPY_SRC);
+
+    VkBufferCopy region {};
+    region.size = count;
+    region.srcOffset = srcOffset;
+    region.dstOffset = dstOffset;
+    
     vkCmdCopyBuffer(
         VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
         VULKAN_CAST(srcBuffer)->m_handle,

@@ -727,10 +727,19 @@ private:
 class CopyBuffer final : public CmdBase
 {
 public:
-    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, SizeType size)
+    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 count)
         : m_srcBuffer(srcBuffer),
           m_dstBuffer(dstBuffer),
-          m_size(size)
+          m_offset(0),
+          m_count(count)
+    {
+    }
+
+    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 offset, uint32 count)
+        : m_srcBuffer(srcBuffer),
+          m_dstBuffer(dstBuffer),
+          m_offset(offset),
+          m_count(count)
     {
     }
 
@@ -738,7 +747,7 @@ public:
     {
         CopyBuffer* cmdCasted = static_cast<CopyBuffer*>(cmd);
 
-        cmdCasted->m_dstBuffer->CopyFrom(commandBuffer, cmdCasted->m_srcBuffer, cmdCasted->m_size);
+        cmdCasted->m_dstBuffer->CopyFrom(commandBuffer, cmdCasted->m_srcBuffer, cmdCasted->m_count);
 
         static_assert(std::is_trivially_destructible_v<CopyBuffer>);
         // cmdCasted->~CopyBuffer();
@@ -747,7 +756,8 @@ public:
 private:
     GpuBufferBase* m_srcBuffer;
     GpuBufferBase* m_dstBuffer;
-    SizeType m_size;
+    uint32 m_offset;
+    uint32 m_count;
 };
 
 class GenerateMipmaps final : public CmdBase

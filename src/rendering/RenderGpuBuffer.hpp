@@ -86,7 +86,13 @@ public:
     virtual void CopyFrom(
         CommandBufferBase* commandBuffer,
         const GpuBufferBase* srcBuffer,
-        SizeType count) = 0;
+        uint32 count) = 0;
+
+    virtual void CopyFrom(
+        CommandBufferBase* commandBuffer,
+        const GpuBufferBase* srcBuffer,
+        uint32 srcOffset, uint32 dstOffset,
+        uint32 count) = 0;
 
     virtual RendererResult EnsureCapacity(
         SizeType minimumSize,

@@ -34,7 +34,13 @@ public:
     virtual void CopyFrom(
         CommandBufferBase* commandBuffer,
         const GpuBufferBase* srcBuffer,
-        SizeType count) override;
+        uint32 count) override;
+
+    virtual void CopyFrom(
+        CommandBufferBase* commandBuffer,
+        const GpuBufferBase* srcBuffer,
+        uint32 srcOffset, uint32 dstOffset,
+        uint32 count) override;
 
     RendererResult CheckCanAllocate(SizeType size) const;
 

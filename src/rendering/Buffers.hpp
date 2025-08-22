@@ -114,6 +114,26 @@ struct RTRadianceUniforms
     alignas(Vec4f) uint32 lightIndices[16];
 };
 
+struct PendingGpuBufferUpdate
+{
+    static constexpr uint32 s_bufferSize = 65535; // @TODO Figure out the most efficient size
+
+    uint32 offset = 0;
+    uint32 count = 0;
+    GpuBufferRef stagingBuffer;
+
+    PendingGpuBufferUpdate();
+    PendingGpuBufferUpdate(const PendingGpuBufferUpdate&) = delete;
+    PendingGpuBufferUpdate& operator=(const PendingGpuBufferUpdate&) = delete;
+
+    PendingGpuBufferUpdate(PendingGpuBufferUpdate&& other) noexcept;
+    PendingGpuBufferUpdate& operator=(PendingGpuBufferUpdate&& other) noexcept;
+
+    ~PendingGpuBufferUpdate();
+
+    void Init(uint32 alignment);
+};
+
 class GpuBufferHolderBase
 {
 protected:
@@ -148,13 +168,8 @@ public:
 
     HYP_FORCE_INLINE const GpuBufferRef& GetBuffer(uint32 frameIndex) const
     {
-        return m_buffers[frameIndex];
+        return m_gpuBuffer;
     }
-
-    virtual void MarkDirty(uint32 index) = 0;
-
-    virtual void UpdateBufferSize(uint32 frameIndex) = 0;
-    virtual void UpdateBufferData(uint32 frameIndex) = 0;
 
     /*! \brief Copy an element from the GPU back to the CPU side buffer.
      * \param frameIndex The index of the frame to copy the element from.
@@ -189,6 +204,8 @@ public:
 
     virtual void* GetCpuMapping(uint32 index) = 0;
 
+    void ApplyPendingUpdates(FrameBase* frame);
+
 protected:
     void CreateBuffers(GpuBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
 
@@ -197,8 +214,8 @@ protected:
     TypeId m_structTypeId;
     SizeType m_structSize;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_buffers;
-    FixedArray<Range<uint32>, g_framesInFlight> m_dirtyRanges;
+    GpuBufferRef m_gpuBuffer;
+    Array<PendingGpuBufferUpdate> m_pendingUpdates;
 };
 
 template <class StructType>
@@ -212,108 +229,6 @@ public:
     {
     }
 
-    HYP_FORCE_INLINE void MarkDirty(uint32 index)
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        for (auto& it : m_dirtyRanges)
-        {
-            it |= { index, index + 1 };
-        }
-    }
-
-    void SetElement(uint32 index, const StructType& value)
-    {
-        Base::SetElement(index, value);
-
-        MarkDirty(index);
-    }
-
-    void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        bool wasResized = false;
-        HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
-
-        if (wasResized)
-        {
-            // Reset the dirty ranges
-            for (auto& it : m_dirtyRanges)
-            {
-                it.SetStart(0);
-                it.SetEnd(Base::NumAllocatedElements());
-            }
-
-            HYP_LOG_TEMP("RESIZE BUFFER {} to {} bytes",
-                TypeNameHelper<StructType, true>::value.Data(),
-                Base::NumAllocatedElements() * sizeof(StructType));
-        }
-    }
-
-    void CopyToGpuBuffer(const GpuBufferRef& buffer, uint32 frameIndex)
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        if (!m_dirtyRanges[frameIndex])
-        {
-            return;
-        }
-
-        const uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd(),
-                     rangeStart = m_dirtyRanges[frameIndex].GetStart();
-
-        AssertDebug(buffer->Size() >= rangeEnd * sizeof(StructType),
-            "Buffer does not have enough space for the current number of elements! Buffer size = %llu",
-            buffer->Size());
-
-        uint32 blockIndex = 0;
-
-        typename LinkedList<typename Base::Block>::Iterator beginIt = Base::m_blocks.Begin();
-        typename LinkedList<typename Base::Block>::Iterator endIt = Base::m_blocks.End();
-
-        for (uint32 blockIndex = 0; blockIndex < Base::m_numBlocks.Get(MemoryOrder::ACQUIRE) && beginIt != endIt; ++blockIndex, ++beginIt)
-        {
-            if (blockIndex < rangeStart / Base::numElementsPerBlock)
-            {
-                continue;
-            }
-
-            if (blockIndex * Base::numElementsPerBlock >= rangeEnd)
-            {
-                break;
-            }
-
-            const SizeType bufferSize = buffer->Size();
-
-            const uint32 index = blockIndex * Base::numElementsPerBlock;
-
-            const SizeType offset = index;
-            const SizeType count = Base::numElementsPerBlock;
-
-            // sanity checks
-            AssertDebug((offset - index) * sizeof(StructType) < sizeof(beginIt->buffer));
-            AssertDebug(count <= int64(bufferSize / sizeof(StructType)) - int64(offset),
-                "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
-                bufferSize,
-                (offset + count) * sizeof(StructType));
-
-            buffer->Copy(
-                offset * sizeof(StructType),
-                count * sizeof(StructType),
-                &reinterpret_cast<StructType*>(beginIt->buffer.GetPointer())[offset - index]);
-        }
-
-        m_dirtyRanges[frameIndex].Reset();
-    }
-
-private:
-    // @TODO Make atomic
-    FixedArray<Range<uint32>, 2> m_dirtyRanges;
-
 protected:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
@@ -326,7 +241,7 @@ public:
         : GpuBufferHolderBase(TypeWrapper<StructType> {}),
           m_pool(CreateNameFromDynamicString(ANSIString("GfxBuffers_") + TypeNameWithoutNamespace<StructType>().Data()), initialCount)
     {
-        GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType));
+        GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType), alignof(StructType));
     }
 
     GpuBufferHolder(const GpuBufferHolder& other) = delete;
@@ -342,41 +257,6 @@ public:
     virtual uint32 NumElementsPerBlock() const override
     {
         return m_pool.numElementsPerBlock;
-    }
-
-    virtual void UpdateBufferSize(uint32 frameIndex) override
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        // m_pool.RemoveEmptyBlocks();
-        m_pool.EnsureGpuBufferCapacity(m_buffers[frameIndex], frameIndex);
-    }
-
-    virtual void UpdateBufferData(uint32 frameIndex) override
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        m_pool.CopyToGpuBuffer(m_buffers[frameIndex], frameIndex);
-    }
-
-    virtual void MarkDirty(uint32 index) override
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        m_pool.MarkDirty(index);
-    }
-
-    virtual void ReadbackElement(uint32 frameIndex, uint32 index, void* dst) override
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        AssertDebug(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = {}, Size = {}", index, m_pool.NumAllocatedElements());
-
-        m_buffers[frameIndex]->Read(sizeof(StructType) * index, sizeof(StructType), dst);
     }
 
     HYP_FORCE_INLINE uint32 AcquireIndex(StructType** outElementPtr)
@@ -425,6 +305,42 @@ public:
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
         m_pool.SetElement(index, value);
+
+        PendingGpuBufferUpdate* update = nullptr;
+        // find an existing update that contains this index
+
+        const SizeType indexTimesSize = index * sizeof(StructType);
+
+        for (PendingGpuBufferUpdate& it : m_pendingUpdates)
+        {
+            if (indexTimesSize >= it.offset && indexTimesSize < it.offset + PendingGpuBufferUpdate::s_bufferSize)
+            {
+                update = &it;
+                break;
+            }
+        }
+
+        if (update != nullptr)
+        {
+            update->count = MathUtil::Max(update->count, (indexTimesSize + sizeof(StructType)) - update->offset);
+
+            // write to the staging buffer
+            AssertDebug(update->stagingBuffer != nullptr);
+
+            update->stagingBuffer->Copy(indexTimesSize - update->offset, sizeof(StructType), &value);
+
+            return;
+        }
+
+        // make a new update
+        PendingGpuBufferUpdate& newUpdate = m_pendingUpdates.EmplaceBack();
+        newUpdate.offset = indexTimesSize - (indexTimesSize % PendingGpuBufferUpdate::s_bufferSize);
+        newUpdate.count = MathUtil::Min(PendingGpuBufferUpdate::s_bufferSize, sizeof(StructType) + (indexTimesSize - newUpdate.offset));
+
+        newUpdate.Init(alignof(StructType));
+
+        // write to the staging buffer
+        newUpdate.stagingBuffer->Copy(indexTimesSize - newUpdate.offset, sizeof(StructType), &value);
     }
 
     virtual void* GetCpuMapping(uint32 index) override
