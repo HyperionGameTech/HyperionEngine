@@ -411,9 +411,20 @@ void GaussianSplattingInstance::CreateBuffers()
     const SizeType numPoints = m_model->points.Size();
 
     m_splatBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, numPoints * sizeof(GaussianSplattingInstanceShaderData));
+    m_splatBuffer->SetDebugName(NAME("SplatInstancesBuffer"));
+    m_splatBuffer->SetRequireCpuAccessible(true);
+
     m_splatIndicesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, MathUtil::NextPowerOf2(numPoints) * sizeof(GaussianSplatIndex));
+    m_splatIndicesBuffer->SetDebugName(NAME("SplatIndicesBuffer"));
+    m_splatIndicesBuffer->SetRequireCpuAccessible(true);
+
     m_sceneBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(GaussianSplattingSceneShaderData));
+    m_sceneBuffer->SetDebugName(NAME("GaussianSplattingSceneShaderData"));
+    m_sceneBuffer->SetRequireCpuAccessible(true);
+
     m_indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, 0);
+    m_indirectBuffer->SetDebugName(NAME("GaussianSplattingIndirectBuffer"));
+    m_indirectBuffer->SetRequireCpuAccessible(true);
 
     PUSH_RENDER_COMMAND(
         CreateGaussianSplattingInstanceBuffers,

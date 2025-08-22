@@ -197,8 +197,16 @@ void ParticleSpawner::Init()
 void ParticleSpawner::CreateBuffers()
 {
     m_particleBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, m_params.maxParticles * sizeof(ParticleShaderData));
+    m_particleBuffer->SetDebugName(NAME("ParticleBuffer"));
+    m_particleBuffer->SetRequireCpuAccessible(true); // TEMP
+
     m_indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+    m_indirectBuffer->SetDebugName(NAME("IndirectDrawCommandsBuffer"));
+    m_indirectBuffer->SetRequireCpuAccessible(true); // TEMP
+
     m_noiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(float) * 128 * 128);
+    m_noiseBuffer->SetDebugName(NAME("NoiseBuffer"));
+    m_noiseBuffer->SetRequireCpuAccessible(true); // TEMP
 
     PUSH_RENDER_COMMAND(
         CreateParticleSpawnerBuffers,

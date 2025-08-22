@@ -163,12 +163,18 @@ void IndirectDrawState::Create()
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
         m_instanceBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ObjectInstance));
+        m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("ObjectInstancesBuffer_{}", frameIndex));
+        m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true); // TEMP
         DeferCreate(m_instanceBuffers[frameIndex]);
 
         m_indirectBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, drawCommandsBuffer.Size());
+        m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDrawCommandsBuffer_{}", frameIndex));
+        m_indirectBuffers[frameIndex]->SetRequireCpuAccessible(true); // TEMP
         DeferCreate(m_indirectBuffers[frameIndex]);
 
         m_stagingBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
+        m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDrawStagingBuffer_{}", frameIndex));
+        m_stagingBuffers[frameIndex]->SetRequireCpuAccessible(true); // TEMP
         DeferCreate(m_stagingBuffers[frameIndex]);
     }
 }

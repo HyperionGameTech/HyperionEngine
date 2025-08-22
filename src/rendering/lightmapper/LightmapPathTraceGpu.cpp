@@ -173,6 +173,8 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
     for (GpuBufferRef& raysBuffer : m_raysBuffers)
     {
         raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512), alignof(Vec4f));
+        raysBuffer->SetDebugName(NAME_FMT("LightmapRaysBuffer_{}", m_raysBuffers.IndexOf(&raysBuffer)));
+        raysBuffer->SetRequireCpuAccessible(true); // TEMP
     }
 
     // ATOMIC_COUNTER type allows readback to cpu.

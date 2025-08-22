@@ -382,7 +382,9 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
     for (uint32 i = 0; i < shNumLevels; i++)
     {
         const SizeType size = sizeof(SHTile) * (shNumTiles.x >> i) * (shNumTiles.y >> i);
+
         pd.shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
+        pd.shTilesBuffers[i]->SetRequireCpuAccessible(true);
 
         DeferCreate(pd.shTilesBuffers[i]);
     }

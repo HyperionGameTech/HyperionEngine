@@ -440,8 +440,13 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     {
         const SizeType size = sizeof(SHTile) * (shNumTiles.x >> i) * (shNumTiles.y >> i);
 
-        shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
-        HYP_GFX_ASSERT(shTilesBuffers[i]->Create());
+        GpuBufferRef& shTilesBuffer = shTilesBuffers[i];
+
+        shTilesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
+        shTilesBuffer->SetDebugName(NAME_FMT("SHTilesBuffer_{}", i));
+        shTilesBuffer->SetRequireCpuAccessible(true);
+
+        HYP_GFX_ASSERT(shTilesBuffer->Create());
     }
 
     ShaderProperties shaderProperties;
