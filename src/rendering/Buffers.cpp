@@ -17,68 +17,16 @@
 
 namespace hyperion {
 
-#pragma region PendingGpuBufferUpdate
-
-PendingGpuBufferUpdate::PendingGpuBufferUpdate()
-{
-}
-
-PendingGpuBufferUpdate::PendingGpuBufferUpdate(PendingGpuBufferUpdate&& other) noexcept
-    : offset(other.offset),
-      count(other.count),
-      stagingBuffer(std::move(other.stagingBuffer))
-{
-    other.offset = 0;
-    other.count = 0;
-    other.stagingBuffer = nullptr;
-}
-
-PendingGpuBufferUpdate& PendingGpuBufferUpdate::operator=(PendingGpuBufferUpdate&& other) noexcept
-{
-    if (this == &other)
-    {
-        return *this;
-    }
-
-    if (stagingBuffer)
-        SafeDelete(std::move(stagingBuffer));
-
-    offset = other.offset;
-    count = other.count;
-    stagingBuffer = std::move(other.stagingBuffer);
-
-    other.offset = 0;
-    other.count = 0;
-    other.stagingBuffer = nullptr;
-
-    return *this;
-}
-
-PendingGpuBufferUpdate::~PendingGpuBufferUpdate()
-{
-    if (stagingBuffer)
-        SafeDelete(std::move(stagingBuffer));
-}
-
-void PendingGpuBufferUpdate::Init(uint32 bufferSize)
-{
-    if (stagingBuffer != nullptr)
-    {
-        return;
-    }
-
-    stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
-    Assert(stagingBuffer->Create());
-}
-
-#pragma endregion PendingGpuBufferUpdate
-
 #pragma region GpuBufferHolderBase
 
 GpuBufferHolderBase::~GpuBufferHolderBase()
 {
     SafeDelete(std::move(m_gpuBuffer));
-    m_pendingUpdates.Clear();
+
+    for (CachedStagingBuffer& it : m_cachedStagingBuffers)
+    {
+        SafeDelete(std::move(it.stagingBuffer));
+    }
 }
 
 void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCount, SizeType size)
@@ -97,6 +45,16 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCoun
 
     m_gpuBuffer = g_renderBackend->MakeGpuBuffer(type, gpuBufferSize);
     DeferCreate(m_gpuBuffer);
+}
+
+GpuBufferRef GpuBufferHolderBase::CreateStagingBuffer(uint32 size)
+{
+    HYP_SCOPE;
+
+    GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, size);
+    Assert(stagingBuffer->Create());
+
+    return stagingBuffer;
 }
 
 void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
@@ -147,7 +105,28 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
             ? RS_UNORDERED_ACCESS
             : RS_SHADER_RESOURCE);
 
+    const uint32 currFrame = RenderApi_GetFrameCounter();
+
     m_pendingUpdates.Clear();
+
+    // Remove cached staging buffers that are older than 10 frames
+    for (auto it = m_cachedStagingBuffers.Begin(); it != m_cachedStagingBuffers.End();)
+    {
+        CachedStagingBuffer& cachedStagingBuffer = *it;
+
+        const int64 frameDiff = int64(currFrame) - int64(it->lastFrame);
+
+        if (frameDiff >= 10)
+        {
+            SafeDelete(std::move(cachedStagingBuffer.stagingBuffer));
+
+            it = m_cachedStagingBuffers.Erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 #pragma endregion GpuBufferHolderBase

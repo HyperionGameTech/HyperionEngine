@@ -118,19 +118,10 @@ struct PendingGpuBufferUpdate
 {
     uint32 offset = 0;
     uint32 count = 0;
-    GpuBufferRef stagingBuffer;
-
-    PendingGpuBufferUpdate();
-    PendingGpuBufferUpdate(const PendingGpuBufferUpdate&) = delete;
-    PendingGpuBufferUpdate& operator=(const PendingGpuBufferUpdate&) = delete;
-
-    PendingGpuBufferUpdate(PendingGpuBufferUpdate&& other) noexcept;
-    PendingGpuBufferUpdate& operator=(PendingGpuBufferUpdate&& other) noexcept;
-
-    ~PendingGpuBufferUpdate();
-
-    void Init(uint32 bufferSize);
+    GpuBufferBase* stagingBuffer = nullptr;
 };
+
+extern HYP_API uint32 RenderApi_GetFrameCounter();
 
 class GpuBufferHolderBase
 {
@@ -206,6 +197,8 @@ protected:
     void CreateBuffers(GpuBufferType type, SizeType count, SizeType size);
     void ApplyPendingUpdates(FrameBase* frame);
 
+    GpuBufferRef CreateStagingBuffer(uint32 size);
+
     virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
 
     TypeId m_structTypeId;
@@ -215,6 +208,16 @@ protected:
     Range<uint32> m_dirtyRange;
 
     Array<PendingGpuBufferUpdate> m_pendingUpdates;
+    
+    struct CachedStagingBuffer
+    {
+        uint32 offset = 0; // offset in the gpu buffer
+        uint32 count = 0; // number of elements in the gpu buffer
+        uint32 lastFrame = uint32(-1); // frame index this was last used
+        GpuBufferRef stagingBuffer;
+    };
+
+    Array<CachedStagingBuffer> m_cachedStagingBuffers;
 };
 
 template <class StructType>
@@ -267,7 +270,7 @@ public:
             // sanity checks
             AssertDebug((offset - index) * sizeof(StructType) < sizeof(beginIt->buffer));
             AssertDebug(count <= int64(bufferSize / sizeof(StructType)) - int64(offset),
-                "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
+                "Buffer does not have enough space for the current number of elements! Buffer size = {}, Required size = {}",
                 bufferSize,
                 (offset + count) * sizeof(StructType));
 
@@ -314,7 +317,6 @@ public:
 
     virtual void UpdateBufferData(FrameBase* frame) override
     {
-        //m_pool.CopyToGpuBuffer(m_buffer, frameIndex);
         Threads::AssertOnThread(g_renderThread);
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
@@ -328,21 +330,36 @@ public:
         const uint32 rangeStart = m_dirtyRange.GetStart();
         const uint32 rangeEnd = m_dirtyRange.GetEnd();
 
-        for (uint32 i = rangeStart; i < rangeEnd; i += s_updateBufferSize / sizeof(StructType))
+        auto getNextPendingUpdate = [this](uint32 offset, uint32 count) -> PendingGpuBufferUpdate*
         {
-            // offset into the main buffer for this staging buffer
-            const SizeType startOffset = (i * sizeof(StructType)) - ((i * sizeof(StructType)) % s_updateBufferSize);
+            PendingGpuBufferUpdate& newUpdate = m_pendingUpdates.EmplaceBack();
+            newUpdate.offset = offset; // dst offset in the gpu buffer
+            newUpdate.count = count;
+            newUpdate.stagingBuffer = GetCachedStagingBuffer(offset, count);
+
+            return &newUpdate;
+        };
+
+        for (uint32 i = rangeStart; i < rangeEnd;)
+        {
+            const uint32 startOffset = i - (i % (s_updateBufferSize / sizeof(StructType)));
+            const uint32 endOffset = MathUtil::Min(startOffset + (s_updateBufferSize / sizeof(StructType)), rangeEnd);
 
             // make a new update
-            PendingGpuBufferUpdate& newUpdate = m_pendingUpdates.EmplaceBack();
-            newUpdate.offset = startOffset; // dst offset in the gpu buffer
-            newUpdate.count = s_updateBufferSize;
-            newUpdate.Init(s_updateBufferSize);
+            PendingGpuBufferUpdate* update = getNextPendingUpdate(startOffset * sizeof(StructType), s_updateBufferSize);
+            HYP_GFX_ASSERT(update != nullptr);
 
-            m_pool.WriteToStagingBuffer(newUpdate.stagingBuffer, i, i + (s_updateBufferSize / sizeof(StructType)));
+            m_pool.WriteToStagingBuffer(
+                update->stagingBuffer,
+                startOffset,
+                endOffset);
+
+            i += (endOffset - startOffset);
         }
 
         ApplyPendingUpdates(frame);
+
+        m_dirtyRange.Reset();
     }
 
     HYP_FORCE_INLINE uint32 AcquireIndex(StructType** outElementPtr)
@@ -376,6 +393,8 @@ public:
     HYP_FORCE_INLINE void WriteBufferData(uint32 index, const StructType& value)
     {
         m_pool.SetElement(index, value);
+        
+        m_dirtyRange |= { index, index + 1 };
     }
 
     virtual void* GetCpuMapping(uint32 index) override
@@ -389,6 +408,47 @@ private:
     virtual void WriteBufferData_Internal(uint32 index, const void* bufferDataPtr) override
     {
         WriteBufferData(index, *reinterpret_cast<const StructType*>(bufferDataPtr));
+    }
+
+    GpuBufferBase* GetCachedStagingBuffer(uint32 offset, uint32 count)
+    {
+        GpuBufferRef* cachedStagingBuffer = nullptr;
+
+        for (CachedStagingBuffer& it : m_cachedStagingBuffers)
+        {
+            if (it.offset == offset && it.count == count)
+            {
+                it.lastFrame = RenderApi_GetFrameCounter();
+
+                HYP_GFX_ASSERT(it.stagingBuffer != nullptr, "Staging buffer should not be null!");
+
+                return it.stagingBuffer;
+            }
+        }
+
+        // none found with same offset and count, look for one with 0 count (meaning it was reset last frame and we can re-use it)
+        for (CachedStagingBuffer& it : m_cachedStagingBuffers)
+        {
+            if (it.count == 0)
+            {
+                it.offset = offset;
+                it.count = count;
+                it.lastFrame = RenderApi_GetFrameCounter();
+
+                HYP_GFX_ASSERT(it.stagingBuffer != nullptr, "Staging buffer should not be null!");
+
+                return it.stagingBuffer;
+            }
+        }
+
+        // finally, create a new one if none found
+        CachedStagingBuffer& newCachedStagingBuffer = m_cachedStagingBuffers.EmplaceBack();
+        newCachedStagingBuffer.offset = offset;
+        newCachedStagingBuffer.count = count;
+        newCachedStagingBuffer.lastFrame = RenderApi_GetFrameCounter();
+        newCachedStagingBuffer.stagingBuffer = CreateStagingBuffer(count);
+
+        return newCachedStagingBuffer.stagingBuffer;
     }
 
     GpuBufferHolderMemoryPool<StructType> m_pool;
