@@ -944,6 +944,58 @@
       </CustomListItems>
     </Expand>
   </Type>
+  <Type Name="hyperion::WeakName">
+    <Expand>
+      <CustomListItems>
+        <Variable Name="bucketIndex" InitialValue="0" />
+
+        <Variable Name="found" InitialValue="false"/>
+
+        <Variable Name="hc" InitialValue="this-&gt;hashCode"/>
+        <Variable Name="g_nameRegistry" InitialValue="Name::s_registry"/>
+
+        <Variable Name="bucketPtr" InitialValue="g_nameRegistry-&gt;g_nullBucket" />
+        <Variable Name="currentHead" InitialValue="g_nameRegistry-&gt;g_nullNode" />
+
+        <Exec Condition="g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;(g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
+        <Exec Condition="g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;(g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.buffer))</Exec>
+        <Exec Condition="g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;(g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0]))</Exec>
+
+        <Exec Condition="g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 1">bucketPtr = (hyperion::NameRegistry::Bucket* )(g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.buffer + g_nameRegistry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+        <Exec Condition="g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == true">bucketPtr = (hyperion::NameRegistry::Bucket* )(g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.buffer + g_nameRegistry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+        <Exec Condition="g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.allocationType == 2 &amp;&amp; g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.isDynamic == false">bucketPtr = (hyperion::NameRegistry::Bucket* )(&amp;g_nameRegistry-&gt;m_nameMap.m_buckets.m_allocation.storage.dataBuffer[0] + g_nameRegistry-&gt;m_nameMap.m_buckets.m_startOffset)</Exec>
+
+        <Loop>
+          <Break Condition="found == true || bucketIndex == (g_nameRegistry-&gt;m_nameMap.m_buckets.m_size - g_nameRegistry-&gt;m_nameMap.m_buckets.m_startOffset)" />
+
+          <Exec>currentHead = bucketPtr-&gt;head</Exec>
+
+          <If Condition="found == false &amp;&amp; currentHead != nullptr">
+           <Loop>
+              <Break Condition="found == true || currentHead == nullptr" />
+              <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&gt;value.first">
+                <If Condition="currentHead-&gt;value.second.first.m_allocation.allocationType == 2 &amp;&amp; currentHead-&gt;value.second.first.m_allocation.isDynamic == false">
+                  <Item Name="StringValue">(char*)&amp;(currentHead-&gt;value.second.first.m_allocation.storage.dataBuffer + currentHead-&gt;value.second.first.m_startOffset)[0],sb</Item>
+                </If>
+                <If Condition="currentHead-&gt;value.second.first.m_allocation.allocationType == 1 || currentHead-&gt;value.second.first.m_allocation.isDynamic == true">
+                  <Item Name="StringValue">&amp;((char*)currentHead-&gt;value.second.first.m_allocation.buffer + currentHead-&gt;value.second.first.m_startOffset)[0],sb</Item>
+                </If>
+                <Exec>found = true</Exec>
+              </If>
+              <Exec>currentHead = currentHead-&gt;next</Exec>
+            </Loop>
+          </If>
+
+          <Exec>bucketPtr++</Exec>
+          <Exec>bucketIndex++</Exec>
+        </Loop>
+
+        <If Condition="found == false">
+          <Item Name="StringValue">"???"</Item>
+        </If>
+      </CustomListItems>
+    </Expand>
+  </Type>
 
   <Type Name="hyperion::renderer::RenderObjectHandle_Strong&lt;*,*&gt;">
     <DisplayString>{{ ID={index} Strong={s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value} Weak={s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>

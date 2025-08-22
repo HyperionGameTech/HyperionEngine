@@ -540,9 +540,6 @@ void VulkanGpuBuffer::CopyFrom(
         return;
     }
 
-    InsertBarrier(commandBuffer, RS_COPY_DST);
-    srcBuffer->InsertBarrier(commandBuffer, RS_COPY_SRC);
-
     VkBufferCopy region {};
     region.size = count;
 
@@ -575,9 +572,6 @@ void VulkanGpuBuffer::CopyFrom(
     }
 
     HYP_GFX_ASSERT((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
-
-    InsertBarrier(commandBuffer, RS_COPY_DST);
-    srcBuffer->InsertBarrier(commandBuffer, RS_COPY_SRC);
 
     VkBufferCopy region {};
     region.size = count;

@@ -142,6 +142,27 @@ void ShadowRendererBase::Shutdown()
     }
 }
 
+
+ShadowRendererBase::CachedShadowMapData::~CachedShadowMapData()
+{
+    if (csBlurShadowMap)
+        SafeDelete(std::move(csBlurShadowMap));
+
+    if (combineShadowMapsPass)
+        SafeDelete(std::move(combineShadowMapsPass));
+
+    if (combinedShadowMapsBlurred)
+        SafeDelete(std::move(combinedShadowMapsBlurred));
+
+    if (shadowMap != nullptr)
+    {
+        bool shadowMapFreed = g_renderGlobalState->shadowMapAllocator->FreeShadowMap(shadowMap);
+        AssertDebug(shadowMapFreed, "Failed to free shadow map!");
+    }
+
+    shadowMap = nullptr;
+}
+
 int ShadowRendererBase::RunCleanupCycle(int maxIter)
 {
     int numCycles = RendererBase::RunCleanupCycle(maxIter);
@@ -152,12 +173,6 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
         if (!it->first || it->first.GetUnsafe()->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
         {
             HYP_LOG(Rendering, Debug, "Removing cached shadow map for Light {} as it is no longer valid.", it->first.Id());
-
-            if (it->second.shadowMap != nullptr)
-            {
-                bool shadowMapFreed = g_renderGlobalState->shadowMapAllocator->FreeShadowMap(it->second.shadowMap);
-                AssertDebug(shadowMapFreed, "Failed to free shadow map for Light {}!", it->first.Id());
-            }
 
             it = m_cachedShadowMapData.Erase(it);
 

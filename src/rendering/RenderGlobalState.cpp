@@ -1445,7 +1445,7 @@ void RenderGlobalState::UpdateBuffers(FrameBase* frame)
 
     for (auto& it : gpuBufferHolders->GetItems())
     {
-        it.second->ApplyPendingUpdates(frame);
+        it.second->UpdateBufferData(frame);
     }
 }
 

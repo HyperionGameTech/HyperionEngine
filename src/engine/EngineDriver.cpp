@@ -447,6 +447,8 @@ HYP_API void EngineDriver::RenderNextFrame()
         m_finalPass->Render(frame, rs);
     }
 
+    g_renderGlobalState->UpdateBuffers(frame);
+
     g_renderBackend->PresentFrame(frame);
 }
 
@@ -455,8 +457,6 @@ void EngineDriver::PreFrameUpdate(FrameBase* frame)
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_renderThread);
-
-    g_renderGlobalState->UpdateBuffers(frame);
 }
 
 #pragma endregion EngineDriver

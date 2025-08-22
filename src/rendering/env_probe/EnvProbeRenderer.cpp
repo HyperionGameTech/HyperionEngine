@@ -702,6 +702,20 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     //        delete delegateHandle;
     //    });
+
+    for (auto& it : pipelines)
+    {
+        ShaderRef& shader = it.second.first;
+        ComputePipelineRef& pipeline = it.second.second;
+
+        if (shader)
+            SafeDelete(std::move(shader));
+
+        if (pipeline)
+            SafeDelete(std::move(pipeline));
+    }
+
+    SafeDelete(std::move(computeShDescriptorTables));
 }
 
 #pragma endregion ReflectionProbeRenderer

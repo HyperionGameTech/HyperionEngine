@@ -29,7 +29,7 @@ namespace memory {
 
 class MemoryPoolBase;
 
-template <class T>
+template <class T, class T2 = void>
 struct MemoryPoolInitInfo
 {
     static constexpr uint32 numBytesPerBlock = MathUtil::NextPowerOf2(MathUtil::Max(sizeof(T), 4096));

@@ -1082,9 +1082,12 @@ public:
         \param frameIndex The index of the frame to bind the descriptor sets for
         \param pipeline The pipeline to bind the descriptor sets to
         \param offsets The offsets to bind dynamic descriptor sets with */
-    template <class PipelineRef>
-    void Bind(CommandBufferBase* commandBuffer, uint32 frameIndex, const PipelineRef& pipeline, const DescriptorTableOffsetMap& offsets) const
+    template <class PipelineType>
+    void Bind(CommandBufferBase* commandBuffer, uint32 frameIndex, PipelineType* pipeline, const DescriptorTableOffsetMap& offsets) const
     {
+        HYP_GFX_ASSERT(commandBuffer != nullptr, "Command buffer is null");
+        HYP_GFX_ASSERT(pipeline != nullptr && pipeline->IsCreated(), "Pipeline is null or not created");
+
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
             if (!set->GetLayout().IsValid())

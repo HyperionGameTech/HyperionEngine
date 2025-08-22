@@ -17,7 +17,6 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
 extern RenderGlobalState* g_renderGlobalState;
-extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 {
@@ -202,15 +201,9 @@ void DrawCallCollection::ResetDrawCalls()
 
 uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<Entity> entityId, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset)
 {
-#ifdef HYP_DEBUG_MODE // Sanity checks
-    // type check - cannot be a subclass of Entity, indices would get messed up
-    static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
-    Assert(entityId.GetTypeId() == entityTypeId, "Cannot push Entity subclass to EntityInstanceBatch: {}", LookupTypeName(entityId.GetTypeId()));
-
-    // bounds check
+#ifdef HYP_DEBUG_MODE // Sanity check
     Assert(numInstances <= meshInstanceData.numInstances);
 
-    // buffer size check
     for (uint32 bufferIndex = 0; bufferIndex < uint32(meshInstanceData.buffers.Size()); bufferIndex++)
     {
         Assert(meshInstanceData.buffers[bufferIndex].Size() / meshInstanceData.bufferStructSizes[bufferIndex] == meshInstanceData.numInstances);
@@ -288,7 +281,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
     if (dirty)
     {
-        impl->GetGpuBufferHolder()->WriteBufferData(drawCall.batch->batchIndex, drawCall.batch, batchSizeof);
+        impl->GetGpuBufferHolder()->MarkDirty(drawCall.batch->batchIndex);
     }
 
     return numInstances;

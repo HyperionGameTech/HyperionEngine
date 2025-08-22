@@ -1185,8 +1185,9 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);
 
-                    // Reset it
-                    *batch = EntityInstanceBatch { batchIndex };
+                    // Reset it except for batchIndex
+                    Memory::MemSet(batch, 0, drawCallCollection.impl->GetStructSize());
+                    batch->batchIndex = batchIndex;
 
                     drawCallCollection.impl->GetGpuBufferHolder()->WriteBufferData(
                         batch->batchIndex,

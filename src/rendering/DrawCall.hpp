@@ -237,6 +237,18 @@ public:
     }
 };
 
+namespace memory {
+
+template <class T>
+struct MemoryPoolInitInfo<T, std::enable_if_t<std::is_base_of_v<EntityInstanceBatch, T>>>
+{
+    static constexpr uint32 numBytesPerBlock = MathUtil::NextPowerOf2(MathUtil::Max(sizeof(T), 1024 * 1024)); // 1MB minimum block size
+    static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(T);
+    static constexpr uint32 numInitialElements = numElementsPerBlock;
+};
+
+} // namespace memory
+
 extern HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeId typeId);
 extern HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeId typeId, UniquePtr<IDrawCallCollectionImpl>&& impl);
 

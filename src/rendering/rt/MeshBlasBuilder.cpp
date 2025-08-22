@@ -90,8 +90,17 @@ struct RENDER_COMMAND(BuildMeshBlas)
 
         singleTimeCommands->Push([this, packedVerticesSize, packedIndicesSize](RenderQueue& renderQueue)
             {
+                renderQueue << InsertBarrier(packedVerticesBuffer, RS_COPY_DST);
+                renderQueue << InsertBarrier(packedIndicesBuffer, RS_COPY_DST);
+
+                renderQueue << InsertBarrier(verticesStagingBuffer, RS_COPY_SRC);
+                renderQueue << InsertBarrier(indicesStagingBuffer, RS_COPY_SRC);
+
                 renderQueue << CopyBuffer(verticesStagingBuffer, packedVerticesBuffer, packedVerticesSize);
                 renderQueue << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
+
+                renderQueue << InsertBarrier(packedVerticesBuffer, RS_SHADER_RESOURCE);
+                renderQueue << InsertBarrier(packedIndicesBuffer, RS_SHADER_RESOURCE);
             });
 
         HYP_GFX_CHECK(singleTimeCommands->Execute());

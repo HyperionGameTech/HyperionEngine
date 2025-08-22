@@ -308,8 +308,17 @@ void Mesh::CreateGpuBuffers()
             FrameBase* frame = g_renderBackend->GetCurrentFrame();
             RenderQueue& renderQueue = frame->renderQueue;
 
+            renderQueue << InsertBarrier(stagingBufferVertices, RS_COPY_SRC);
+            renderQueue << InsertBarrier(stagingBufferIndices, RS_COPY_SRC);
+
+            renderQueue << InsertBarrier(vertexBuffer, RS_COPY_DST);
+            renderQueue << InsertBarrier(indexBuffer, RS_COPY_DST);
+
             renderQueue << CopyBuffer(stagingBufferVertices, vertexBuffer, packedBufferSize);
             renderQueue << CopyBuffer(stagingBufferIndices, indexBuffer, packedIndicesSize);
+
+            renderQueue << InsertBarrier(vertexBuffer, RS_VERTEX_BUFFER);
+            renderQueue << InsertBarrier(indexBuffer, RS_INDEX_BUFFER);
 
             SafeDelete(std::move(stagingBufferVertices));
             SafeDelete(std::move(stagingBufferIndices));

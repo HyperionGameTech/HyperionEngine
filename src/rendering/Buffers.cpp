@@ -56,7 +56,8 @@ PendingGpuBufferUpdate& PendingGpuBufferUpdate::operator=(PendingGpuBufferUpdate
 
 PendingGpuBufferUpdate::~PendingGpuBufferUpdate()
 {
-    SafeDelete(std::move(stagingBuffer));
+    if (stagingBuffer)
+        SafeDelete(std::move(stagingBuffer));
 }
 
 void PendingGpuBufferUpdate::Init(uint32 bufferSize)
@@ -90,7 +91,11 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCoun
         initialCount = 1;
     }
 
-    m_gpuBuffer = g_renderBackend->MakeGpuBuffer(type, size * initialCount);
+    AssertDebug(m_structSize > 0);
+
+    const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, m_structSize);
+
+    m_gpuBuffer = g_renderBackend->MakeGpuBuffer(type, gpuBufferSize);
     DeferCreate(m_gpuBuffer);
 }
 
@@ -117,7 +122,7 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
 
     const SizeType requiredBufferSize = m_pendingUpdates.Back().offset + m_pendingUpdates.Back().count;
 
-    m_gpuBuffer->EnsureCapacity(requiredBufferSize);
+    HYP_GFX_ASSERT(m_gpuBuffer->EnsureCapacity(requiredBufferSize));
 
     rq << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
@@ -126,8 +131,12 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
         AssertDebug(pendingUpdate.stagingBuffer != nullptr);
         AssertDebug(pendingUpdate.offset + pendingUpdate.count <= m_gpuBuffer->Size());
         
-        const uint32 srcOffset = pendingUpdate.offset % pendingUpdate.stagingBuffer->Size();
+        const SizeType startOffset = pendingUpdate.offset - (pendingUpdate.offset % pendingUpdate.stagingBuffer->Size());
+        
+        const uint32 srcOffset = 0;
         const uint32 dstOffset = pendingUpdate.offset;
+
+        rq << InsertBarrier(pendingUpdate.stagingBuffer, RS_COPY_SRC);
 
         rq << CopyBuffer(pendingUpdate.stagingBuffer, m_gpuBuffer, srcOffset, dstOffset, pendingUpdate.count);
     }
