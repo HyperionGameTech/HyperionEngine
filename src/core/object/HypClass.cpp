@@ -174,7 +174,7 @@ SizeType GetNumDescendants(TypeId typeId)
 using FormattedStringMap = HashMap<TypeId, String, HashTable_DynamicNodeAllocator<KeyValuePair<TypeId, String>>>;
 thread_local FormattedStringMap* g_formattedStringMap;
 
-const char* LookupTypeName(TypeId typeId)
+HYP_API const char* LookupTypeName(TypeId typeId)
 {
     const HypClass* hypClass = GetClass(typeId);
 

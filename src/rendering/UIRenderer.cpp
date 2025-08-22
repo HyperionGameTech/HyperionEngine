@@ -39,6 +39,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
+extern HYP_API const char* LookupTypeName(TypeId type_id);
+
 #pragma region UIRenderCollector
 
 static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet& entityAttributes, const Optional<RenderableAttributeSet>& overrideAttributes)
@@ -98,8 +100,6 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
         }
 
 #ifdef HYP_DEBUG_MODE
-        extern HYP_API const char* LookupTypeName(TypeId type_id);
-
         AssertDebug(meshProxy->entity.Id().GetTypeId() == TypeId::ForType<Entity>(),
             "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
             LookupTypeName(meshProxy->entity.Id().GetTypeId()));

@@ -81,10 +81,10 @@ static constexpr int g_frameCleanupBudget = 16;
 
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
-thread_local uint32* g_threadFrameIndex;
+thread_local volatile int32* g_threadFrameIndex;
 
 static volatile int64 g_frameCounter; // atomic
-static uint32 g_frameIndex[2] = { 0 };
+static volatile int32 g_frameIndex[2] = { 0 };
 
 // Render thread only
 static RenderStats g_renderStats {};
@@ -525,7 +525,6 @@ void RenderApi_Init()
     g_threadFrameIndex = &g_frameIndex[CONSUMER];
 
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
-
     Assert(g_renderBackend != nullptr);
 
     RendererResult result = g_renderBackend->Initialize();
@@ -610,7 +609,7 @@ uint32 RenderApi_GetFrameIndex()
         g_threadFrameIndex = &g_frameIndex[threadType];
     }
 
-    return *g_threadFrameIndex;
+    return AtomicAdd(g_threadFrameIndex, 0);
 }
 
 uint32 RenderApi_GetFrameCounter()
@@ -962,7 +961,7 @@ WorldShaderData* RenderApi_GetWorldBufferData()
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 #endif
 
-    return &g_frameData[*g_threadFrameIndex].worldBufferData;
+    return &g_frameData[AtomicAdd(g_threadFrameIndex, 0)].worldBufferData;
 }
 
 Viewport& RenderApi_GetViewport(View* view)
@@ -971,7 +970,7 @@ Viewport& RenderApi_GetViewport(View* view)
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 #endif
 
-    return GetViewFrameData(view, *g_threadFrameIndex)->viewport;
+    return GetViewFrameData(view, AtomicAdd(g_threadFrameIndex, 0))->viewport;
 }
 
 RenderStats* RenderApi_GetRenderStats()
@@ -985,7 +984,7 @@ RenderStats* RenderApi_GetRenderStats()
     Threads::AssertOnThread(g_gameThread);
 #endif
 
-    return &g_frameData[*g_threadFrameIndex].renderStats;
+    return &g_frameData[AtomicAdd(g_threadFrameIndex, 0)].renderStats;
 }
 
 void RenderApi_AddRenderStats(const RenderStatsCounts& counts)
@@ -1031,9 +1030,14 @@ void RenderApi_EndFrame_GameThread()
     Threads::AssertOnThread(g_gameThread);
 #endif
 
-    FrameData& frameData = g_frameData[g_frameIndex[PRODUCER]];
+    int32 slot = AtomicAdd(&g_frameIndex[PRODUCER], 0);
 
-    g_frameIndex[PRODUCER] = (g_frameIndex[PRODUCER] + 1) % g_numFrames;
+    FrameData& frameData = g_frameData[slot];
+
+    while (!AtomicCompareExchange(&g_frameIndex[PRODUCER], slot, (slot + 1) % g_numFrames))
+    {
+        HYP_FAIL("Data race !");
+    }
 
     g_fullSemaphore.release();
 }
@@ -1047,7 +1051,7 @@ void RenderApi_BeginFrame_RenderThread()
 
     g_fullSemaphore.acquire();
 
-    const uint32 slot = g_frameIndex[CONSUMER];
+    int32 slot = AtomicAdd(&g_frameIndex[CONSUMER], 0);
 
     FrameData& fd = g_frameData[slot];
 
@@ -1198,7 +1202,7 @@ void RenderApi_EndFrame_RenderThread()
     Threads::AssertOnThread(g_renderThread);
 #endif
 
-    const uint32 slot = g_frameIndex[CONSUMER];
+    int32 slot = AtomicAdd(&g_frameIndex[CONSUMER], 0);
 
     FrameData& frameData = g_frameData[slot];
 
@@ -1316,8 +1320,11 @@ void RenderApi_EndFrame_RenderThread()
     frameData.renderStats = g_renderStats;
     
     g_safeDeleter->Iterate();
-
-    g_frameIndex[CONSUMER] = (g_frameIndex[CONSUMER] + 1) % g_numFrames;
+    
+    while (!AtomicCompareExchange(&g_frameIndex[CONSUMER], slot, (slot + 1) % g_numFrames))
+    {
+        HYP_FAIL("Data race !");
+    }
 
     AtomicIncrement(&g_frameCounter);
 

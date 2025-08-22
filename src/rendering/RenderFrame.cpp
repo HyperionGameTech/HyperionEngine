@@ -30,7 +30,8 @@ void FrameBase::UpdateUsedDescriptorSets()
             "Descriptor set '%s' is not yet created when updating the frame's used descriptor sets!",
             descriptorSet->GetLayout().GetName().LookupString());
 
-        bool isDirty = false;
+        // TEMP DEBUGGING!
+        bool isDirty = true;// false;
         descriptorSet->UpdateDirtyState(&isDirty);
 
         if (!isDirty)

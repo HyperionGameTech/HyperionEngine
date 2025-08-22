@@ -17,6 +17,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
 extern RenderGlobalState* g_renderGlobalState;
+extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 {
@@ -203,8 +204,6 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 {
 #ifdef HYP_DEBUG_MODE // Sanity checks
     // type check - cannot be a subclass of Entity, indices would get messed up
-    extern HYP_API const char* LookupTypeName(TypeId typeId);
-
     static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
     Assert(entityId.GetTypeId() == entityTypeId, "Cannot push Entity subclass to EntityInstanceBatch: {}", LookupTypeName(entityId.GetTypeId()));
 

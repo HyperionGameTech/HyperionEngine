@@ -44,7 +44,7 @@
 
 namespace hyperion {
 
-static constexpr bool doParallelCollection = false; // true;
+extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 #pragma region RenderProxyList
 
@@ -961,8 +961,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            extern HYP_API const char* LookupTypeName(TypeId typeId);
-
             static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
@@ -1024,8 +1022,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            extern HYP_API const char* LookupTypeName(TypeId typeId);
-
             static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
@@ -1065,8 +1061,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            extern HYP_API const char* LookupTypeName(TypeId typeId);
-
             static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif

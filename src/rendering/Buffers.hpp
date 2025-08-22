@@ -241,8 +241,15 @@ public:
         if (wasResized)
         {
             // Reset the dirty ranges
-            m_dirtyRanges[frameIndex].SetStart(0);
-            m_dirtyRanges[frameIndex].SetEnd(Base::NumAllocatedElements());
+            for (auto& it : m_dirtyRanges)
+            {
+                it.SetStart(0);
+                it.SetEnd(Base::NumAllocatedElements());
+            }
+
+            HYP_LOG_TEMP("RESIZE BUFFER {} to {} bytes",
+                TypeNameHelper<StructType, true>::value.Data(),
+                Base::NumAllocatedElements() * sizeof(StructType));
         }
     }
 

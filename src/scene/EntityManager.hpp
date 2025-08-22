@@ -1021,6 +1021,8 @@ private:
         Assert(system.IsValid());
         Assert(system->m_entityManager == nullptr || system->m_entityManager == this);
 
+        system->InitComponentInfos_Internal();
+
         bool wasAdded = false;
 
         if ((m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION) && system->AllowParallelExecution())
@@ -1054,8 +1056,6 @@ private:
         // If the EntityManager is initialized, call Initialize() on the System.
         if (IsInitCalled() && wasAdded)
         {
-            system->InitComponentInfos_Internal();
-
             if (m_world != nullptr)
             {
                 InitializeSystem(system);

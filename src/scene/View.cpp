@@ -39,8 +39,20 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-// #define HYP_DISABLE_VISIBILITY_CHECK
+#define HYP_DISABLE_VISIBILITY_CHECK // temp
 // #define HYP_VISIBILITY_CHECK_DEBUG
+
+#ifndef HYP_DEBUG_MODE
+
+#ifdef HYP_DISABLE_VISIBILITY_CHECK
+#error "HYP_DISABLE_VISIBILITY_CHECK is only for debug mode, please remove it in release builds!"
+#endif
+
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+#undef HYP_VISIBILITY_CHECK_DEBUG
+#endif
+
+#endif
 
 namespace hyperion {
 

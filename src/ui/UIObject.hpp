@@ -526,9 +526,6 @@ public:
 
     static constexpr int scrollbarSize = 15;
 
-    HYP_FIELD()
-    static constexpr int tmpField = 4;
-
     UIObject();
     UIObject(const UIObject& other) = delete;
     UIObject& operator=(const UIObject& other) = delete;
