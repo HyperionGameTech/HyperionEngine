@@ -131,7 +131,7 @@ struct PendingGpuBufferUpdate
 
     ~PendingGpuBufferUpdate();
 
-    void Init(uint32 alignment);
+    void Init();
 };
 
 class GpuBufferHolderBase
@@ -307,7 +307,10 @@ public:
 
         for (PendingGpuBufferUpdate& it : m_pendingUpdates)
         {
-            if (indexTimesSize >= it.offset && indexTimesSize < it.offset + PendingGpuBufferUpdate::s_bufferSize)
+            // start of where to write into in the main gpu buffer
+            const SizeType startOffset = it.offset - (it.offset % PendingGpuBufferUpdate::s_bufferSize);
+
+            if (indexTimesSize >= startOffset && indexTimesSize + sizeof(StructType) <= startOffset + PendingGpuBufferUpdate::s_bufferSize)
             {
                 update = &it;
                 break;
@@ -332,7 +335,7 @@ public:
         newUpdate.offset = indexTimesSize; // dst offset in the gpu buffer
         newUpdate.count = sizeof(StructType);
 
-        newUpdate.Init(alignof(StructType));
+        newUpdate.Init();
 
         // write to the staging buffer at the relative offset
         const SizeType relativeOffset = indexTimesSize % PendingGpuBufferUpdate::s_bufferSize;

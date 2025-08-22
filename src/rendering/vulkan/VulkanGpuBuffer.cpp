@@ -263,23 +263,24 @@ VmaMemoryUsage GetVkMemoryUsage(GpuBufferType type)
     }
 }
 
-VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type)
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false)
 {
     switch (type)
     {
     case GpuBufferType::MESH_VERTEX_BUFFER:
-        return 0;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::MESH_INDEX_BUFFER:
-        return 0;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::CBUFF:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::SSBO:
-        return VMA_MEMORY_USAGE_AUTO;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::ATOMIC_COUNTER:
-        return 0;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -288,8 +289,10 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type)
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -410,7 +413,13 @@ bool VulkanGpuBuffer::IsCreated() const
 
 bool VulkanGpuBuffer::IsCpuAccessible() const
 {
-    return m_vmaUsage != VMA_MEMORY_USAGE_GPU_ONLY;
+    VmaAllocationInfo info {};
+    vmaGetAllocationInfo(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, &info);
+
+    VkMemoryPropertyFlags flags = 0;
+    vmaGetMemoryTypeProperties(GetRenderBackend()->GetDevice()->GetAllocator(), info.memoryType, &flags);
+
+    return (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 }
 
 RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
@@ -593,8 +602,7 @@ RendererResult VulkanGpuBuffer::Create()
 
     m_vkBufferUsageFlags = GetVkUsageFlags(m_type);
     m_vmaUsage = GetVkMemoryUsage(m_type);
-    m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type)
-        | VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+    m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type, m_requireCpuAccessible);
 
     if (m_size == 0)
     {
@@ -636,8 +644,10 @@ RendererResult VulkanGpuBuffer::Create()
 
     if (IsCpuAccessible())
     {
+        Map();
+        
         // Memset all to zero
-        Memset(m_size, 0);
+        Memory::MemSet(m_mapping, 0, m_size);
     }
 
 #ifdef HYP_DEBUG_MODE

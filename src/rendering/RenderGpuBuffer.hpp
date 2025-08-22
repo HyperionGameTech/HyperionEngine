@@ -17,6 +17,8 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
+
+HYP_ENUM()
 enum class GpuBufferType : uint8
 {
     NONE = 0,
@@ -78,7 +80,15 @@ public:
     virtual RendererResult Create() = 0;
 
     virtual bool IsCreated() const = 0;
+
     virtual bool IsCpuAccessible() const = 0;
+
+    HYP_FORCE_INLINE void SetRequireCpuAccessible(bool requireCpuAccessible)
+    {
+        HYP_GFX_ASSERT(!IsCreated(), "Cannot set RequireCpuAccessible after the buffer has been created!");
+
+        m_requireCpuAccessible = requireCpuAccessible;
+    }
 
     virtual void InsertBarrier(CommandBufferBase* commandBuffer, ResourceState newState) const = 0;
     virtual void InsertBarrier(CommandBufferBase* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const = 0;
@@ -119,7 +129,8 @@ protected:
         : m_type(type),
           m_size(size),
           m_alignment(alignment),
-          m_resourceState(RS_UNDEFINED)
+          m_resourceState(RS_UNDEFINED),
+          m_requireCpuAccessible(false)
     {
     }
 
@@ -130,6 +141,8 @@ protected:
     mutable ResourceState m_resourceState;
 
     Name m_debugName;
+
+    bool m_requireCpuAccessible : 1;
 };
 
 } // namespace hyperion

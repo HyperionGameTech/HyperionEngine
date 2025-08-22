@@ -59,7 +59,7 @@ PendingGpuBufferUpdate::~PendingGpuBufferUpdate()
     SafeDelete(std::move(stagingBuffer));
 }
 
-void PendingGpuBufferUpdate::Init(uint32 alignment)
+void PendingGpuBufferUpdate::Init()
 {
     if (stagingBuffer != nullptr)
     {
@@ -83,6 +83,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
 void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCount, SizeType size)
 {
     HYP_SCOPE;
+    //Threads::AssertOnThread(g_renderThread);
 
     if (initialCount == 0)
     {
@@ -118,9 +119,6 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
 
     m_gpuBuffer->EnsureCapacity(requiredBufferSize);
 
-    const ResourceState prevResourceState = m_gpuBuffer->GetResourceState();
-    AssertDebug(prevResourceState == RS_UNORDERED_ACCESS || prevResourceState == RS_SHADER_RESOURCE);
-
     rq << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
     for (PendingGpuBufferUpdate& pendingUpdate : m_pendingUpdates)
@@ -134,7 +132,11 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
         rq << CopyBuffer(pendingUpdate.stagingBuffer, m_gpuBuffer, srcOffset, dstOffset, pendingUpdate.count);
     }
 
-    rq << InsertBarrier(m_gpuBuffer, prevResourceState);
+    rq << InsertBarrier(
+        m_gpuBuffer,
+        m_gpuBuffer->GetBufferType() == GpuBufferType::SSBO
+            ? RS_UNORDERED_ACCESS
+            : RS_SHADER_RESOURCE);
 
     m_pendingUpdates.Clear();
 }

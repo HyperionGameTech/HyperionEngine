@@ -14,6 +14,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderShader.hpp>
 #include <rendering/RenderBackend.hpp>
+#include <rendering/RenderHelpers.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -1475,7 +1476,6 @@ void RenderGlobalState::RemoveRenderer(GlobalRendererType globalRendererType, Re
 
     globalRenderers[globalRendererType].Erase(renderer);
 }
-
 void RenderGlobalState::CreateBlueNoiseBuffer()
 {
     HYP_SCOPE;
@@ -1498,11 +1498,36 @@ void RenderGlobalState::CreateBlueNoiseBuffer()
             + ((scramblingTileOffset - (sobol256spp256dOffset + sobol256spp256dSize)) + scramblingTileSize)
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
-    GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    // Create the destination SSBO
+    GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, blueNoiseBufferSize);
     HYP_GFX_ASSERT(blueNoiseBuffer->Create());
-    blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
-    blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
-    blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
+
+    // Create a staging buffer for uploading the data
+    GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, blueNoiseBufferSize);
+    HYP_GFX_ASSERT(stagingBuffer->Create());
+
+    // Copy data to the staging buffer
+    stagingBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
+    stagingBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
+    stagingBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
+
+    // Use SingleTimeCommands to transfer the data since we're in initialization
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+
+    singleTimeCommands->Push([stagingBuffer, blueNoiseBuffer, blueNoiseBufferSize](RenderQueue& renderQueue)
+        {
+            // Insert barriers and copy from staging buffer to SSBO
+            renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+            renderQueue << InsertBarrier(blueNoiseBuffer, RS_COPY_DST);
+            renderQueue << CopyBuffer(stagingBuffer, blueNoiseBuffer, blueNoiseBufferSize);
+            renderQueue << InsertBarrier(blueNoiseBuffer, RS_SHADER_RESOURCE);
+        });
+
+    RendererResult result = singleTimeCommands->Execute();
+    Assert(result, "Failed to upload blue noise buffer data: {}", result.GetError().GetMessage());
+
+    // Clean up staging buffer since we're done with it
+    SafeDelete(std::move(stagingBuffer));
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {

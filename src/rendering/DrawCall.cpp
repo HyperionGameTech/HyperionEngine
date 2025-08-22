@@ -288,7 +288,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
     if (dirty)
     {
-        impl->GetGpuBufferHolder()->MarkDirty(drawCall.batch->batchIndex);
+        impl->GetGpuBufferHolder()->WriteBufferData(drawCall.batch->batchIndex, drawCall.batch, batchSizeof);
     }
 
     return numInstances;

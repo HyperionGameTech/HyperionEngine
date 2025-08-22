@@ -676,6 +676,8 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
     {
         m_meshDescriptionsBuffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::SSBO, meshDescriptionsBufferSize);
         m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
+        m_meshDescriptionsBuffer->SetRequireCpuAccessible(true);
+
         HYP_GFX_CHECK(m_meshDescriptionsBuffer->Create());
 
         meshDescriptionsBufferRecreated = true;
