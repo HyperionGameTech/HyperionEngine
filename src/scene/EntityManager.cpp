@@ -1510,7 +1510,7 @@ void SystemExecutionGroup::StartProcessing(float delta)
 
     AssertDebug(AllowUpdate());
 
-#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
+#ifdef HYP_DEBUG_MODE
     m_performanceClock.Start();
 
     for (auto& it : m_systems)
@@ -1537,14 +1537,14 @@ void SystemExecutionGroup::StartProcessing(float delta)
             {
                 HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
-#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
+#ifdef HYP_DEBUG_MODE
                 PerformanceClock& performanceClock = m_performanceClocks[system];
                 performanceClock.Start();
 #endif
 
                 system->Process(delta);
 
-#if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
+#ifdef HYP_DEBUG_MODE
                 performanceClock.Stop();
 #endif
             });
