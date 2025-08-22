@@ -15,6 +15,7 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/RenderFrame.hpp>
 
 #include <core/math/Matrix4.hpp>
 
@@ -114,15 +115,6 @@ struct RTRadianceUniforms
     alignas(Vec4f) uint32 lightIndices[16];
 };
 
-struct PendingGpuBufferUpdate
-{
-    uint32 offset = 0;
-    uint32 count = 0;
-    GpuBufferBase* stagingBuffer = nullptr;
-};
-
-extern HYP_API uint32 RenderApi_GetFrameCounter();
-
 class GpuBufferHolderBase
 {
 protected:
@@ -160,11 +152,9 @@ public:
         return m_gpuBuffer;
     }
 
-    HYP_FORCE_INLINE void MarkDirty(uint32 index)
-    {
-        m_dirtyRange |= { index, index + 1 };
-    }
+    virtual void MarkDirty(uint32 index) = 0;
 
+    virtual void UpdateBufferSize(uint32 frameIndex) = 0;
     virtual void UpdateBufferData(FrameBase* frame) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
@@ -194,12 +184,8 @@ public:
     virtual void* GetCpuMapping(uint32 index) = 0;
 
 protected:
-    void CreateBuffers(GpuBufferType type, SizeType count, SizeType size);
-    void ApplyPendingUpdates(FrameBase* frame);
-
-    GpuBufferRef CreateStagingBuffer(uint32 size);
-    
-    GpuBufferBase* GetCachedStagingBuffer(FrameBase* frame, uint32 offset, uint32 count);
+    void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
+    void CopyToGpuBuffer(FrameBase* frame, uint32 rangeStart, uint32 rangeEnd);
 
     virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
 
@@ -207,19 +193,7 @@ protected:
     SizeType m_structSize;
 
     GpuBufferRef m_gpuBuffer;
-    Range<uint32> m_dirtyRange;
-
-    Array<PendingGpuBufferUpdate> m_pendingUpdates;
-    
-    struct CachedStagingBuffer
-    {
-        uint32 offset = 0; // offset in the gpu buffer
-        uint32 count = 0; // number of elements in the gpu buffer
-        uint32 lastFrame = uint32(-1); // frame index this was last used
-        GpuBufferRef stagingBuffer;
-    };
-
-    FixedArray<Array<CachedStagingBuffer>, g_framesInFlight> m_cachedStagingBuffers;
+    FixedArray<GpuBufferRef, g_framesInFlight> m_stagingBuffers;
 };
 
 template <class StructType>
@@ -233,17 +207,52 @@ public:
     {
     }
 
-    void WriteToStagingBuffer(GpuBufferBase* buffer, uint32 rangeStart, uint32 rangeEnd)
+    HYP_FORCE_INLINE void MarkDirty(uint32 index)
+    {
+        for (auto& it : m_dirtyRanges)
+        {
+            it |= { index, index + 1 };
+        }
+    }
+
+    void SetElement(uint32 index, const StructType& value)
+    {
+        Base::SetElement(index, value);
+
+        MarkDirty(index);
+    }
+
+    void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
+    {
+        bool wasResized = false;
+        HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
+
+        if (wasResized)
+        {
+            // Reset the dirty ranges
+            m_dirtyRanges[frameIndex].SetStart(0);
+            m_dirtyRanges[frameIndex].SetEnd(Base::NumAllocatedElements());
+        }
+    }
+
+    void CopyToStagingBuffer(const GpuBufferRef& buffer, uint32 frameIndex, uint32& outRangeStart, uint32& ourRangeEnd)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        HYP_GFX_ASSERT(buffer != nullptr);
-        HYP_GFX_ASSERT(rangeStart <= rangeEnd);
-
-        if (rangeStart == rangeEnd)
+        if (!m_dirtyRanges[frameIndex])
         {
             return;
         }
+
+        const uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd(),
+                     rangeStart = m_dirtyRanges[frameIndex].GetStart();
+
+        outRangeStart = rangeStart * sizeof(StructType);
+        ourRangeEnd = rangeEnd * sizeof(StructType);
+
+        AssertDebug(buffer->Size() >= rangeEnd * sizeof(StructType),
+            "Buffer does not have enough space for the current number of elements! Buffer size = %llu",
+            buffer->Size());
 
         uint32 blockIndex = 0;
 
@@ -266,34 +275,36 @@ public:
 
             const uint32 index = blockIndex * Base::numElementsPerBlock;
 
-            const SizeType count = MathUtil::Min(Base::numElementsPerBlock, rangeEnd - rangeStart);
+            const SizeType offset = index;
+            const SizeType count = MathUtil::Min<uint32>(Base::numElementsPerBlock, rangeEnd - index);
 
             // sanity checks
-            AssertDebug(count <= int64(bufferSize / sizeof(StructType)),
-                "Buffer does not have enough space for the current number of elements! Buffer size = {}, Required size = {}",
+            AssertDebug((offset - index) * sizeof(StructType) < sizeof(beginIt->buffer));
+            AssertDebug(count <= int64(bufferSize / sizeof(StructType)) - int64(offset),
+                "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
                 bufferSize,
-                count * sizeof(StructType));
+                (offset + count) * sizeof(StructType));
 
             buffer->Copy(
-                0,
+                offset * sizeof(StructType),
                 count * sizeof(StructType),
-                reinterpret_cast<StructType*>(beginIt->buffer.GetPointer()));
+                &reinterpret_cast<StructType*>(beginIt->buffer.GetPointer())[offset - index]);
         }
+
+        m_dirtyRanges[frameIndex].Reset();
     }
 
-private:
 protected:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+
+    FixedArray<Range<uint32>, 2> m_dirtyRanges;
 };
 
 template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
-    static constexpr uint32 s_minUpdateBufferSize = 65535;
-    static constexpr uint32 s_updateBufferSize = MathUtil::NextMultiple(s_minUpdateBufferSize, sizeof(StructType));
-
-    explicit GpuBufferHolder(uint32 initialCount = 0)
+    GpuBufferHolder(uint32 initialCount = 0)
         : GpuBufferHolderBase(TypeWrapper<StructType> {}),
           m_pool(CreateNameFromDynamicString(ANSIString("GfxBuffers_") + TypeNameWithoutNamespace<StructType>().Data()), initialCount)
     {
@@ -315,54 +326,27 @@ public:
         return m_pool.numElementsPerBlock;
     }
 
+    virtual void UpdateBufferSize(uint32 frameIndex) override
+    {
+        // m_pool.RemoveEmptyBlocks();
+        m_pool.EnsureGpuBufferCapacity(m_stagingBuffers[frameIndex], frameIndex);
+    }
+
     virtual void UpdateBufferData(FrameBase* frame) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
+        const uint32 frameIndex = frame->GetFrameIndex();
 
-        // Create staging buffers
+        uint32 rangeStart;
+        uint32 rangeEnd;
 
-        if (!m_dirtyRange)
-        {
-            return;
-        }
+        m_pool.CopyToStagingBuffer(m_stagingBuffers[frameIndex], frameIndex, rangeStart, rangeEnd);
 
-        const uint32 rangeStart = m_dirtyRange.GetStart();
-        const uint32 rangeEnd = m_dirtyRange.GetEnd();
+        GpuBufferHolderBase::CopyToGpuBuffer(frame, rangeStart, rangeEnd);
+    }
 
-        auto getNextPendingUpdate = [this, frame](uint32 offset, uint32 count) -> PendingGpuBufferUpdate*
-        {
-            PendingGpuBufferUpdate& newUpdate = m_pendingUpdates.EmplaceBack();
-            newUpdate.offset = offset; // dst offset in the gpu buffer
-            newUpdate.count = count;
-            newUpdate.stagingBuffer = GetCachedStagingBuffer(frame, offset, count);
-
-            return &newUpdate;
-        };
-
-        for (uint32 i = rangeStart; i < rangeEnd;)
-        {
-            const uint32 startOffset = i - (i % (s_updateBufferSize / sizeof(StructType)));
-            const uint32 endOffset = MathUtil::Min(startOffset + (s_updateBufferSize / sizeof(StructType)), rangeEnd);
-
-            HYP_LOG_TEMP("Start offset: {}", startOffset);
-            HYP_LOG_TEMP("End offset: {}", endOffset);
-
-            // make a new update
-            PendingGpuBufferUpdate* update = getNextPendingUpdate(startOffset * sizeof(StructType), s_updateBufferSize);
-            HYP_GFX_ASSERT(update != nullptr);
-
-            m_pool.WriteToStagingBuffer(
-                update->stagingBuffer,
-                startOffset,
-                endOffset);
-
-            i += (endOffset - startOffset);
-        }
-
-        ApplyPendingUpdates(frame);
-
-        m_dirtyRange.Reset();
+    virtual void MarkDirty(uint32 index) override
+    {
+        m_pool.MarkDirty(index);
     }
 
     HYP_FORCE_INLINE uint32 AcquireIndex(StructType** outElementPtr)
@@ -396,8 +380,6 @@ public:
     HYP_FORCE_INLINE void WriteBufferData(uint32 index, const StructType& value)
     {
         m_pool.SetElement(index, value);
-        
-        m_dirtyRange |= { index, index + 1 };
     }
 
     virtual void* GetCpuMapping(uint32 index) override
