@@ -679,7 +679,24 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             Unmap();
         }
 
-        vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), m_handle, m_vmaAllocation);
+        struct VulkanBufferDeleter
+        {
+            VkBuffer buffer;
+            VmaAllocation vmaAllocation;
+        };
+        
+        // safely destroy the buffer after the GPU is done with it:
+        VulkanBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<VulkanBufferDeleter>([](void* ptr)
+            {
+                VulkanBufferDeleter* bufferDeleter = reinterpret_cast<VulkanBufferDeleter*>(ptr);
+
+                vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
+            });
+
+        new (deleter) VulkanBufferDeleter {
+            .buffer = m_handle,
+            .vmaAllocation = m_vmaAllocation
+        };
 
         m_handle = VK_NULL_HANDLE;
         m_vmaAllocation = VK_NULL_HANDLE;

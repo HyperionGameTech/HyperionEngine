@@ -657,46 +657,46 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), delegateHandle](FrameBase* frame) mutable
-        {
-            HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
+    //DelegateHandler* delegateHandle = new DelegateHandler();
+    //*delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), delegateHandle](FrameBase* frame) mutable
+    //    {
+    //        HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
 
-            const uint32 boundIndex = RenderApi_RetrieveResourceBinding(envProbe);
-            Assert(boundIndex != ~0u);
+    //        const uint32 boundIndex = RenderApi_RetrieveResourceBinding(envProbe);
+    //        Assert(boundIndex != ~0u);
 
-            EnvProbeShaderData readbackBuffer;
+    //        EnvProbeShaderData readbackBuffer;
 
-            g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
+    //        g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // Enqueue on game thread, not safe to write on render thread.
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
-                {
-                    HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());
-                    for (uint32 i = 0; i < 9; i++)
-                    {
-                        HYP_LOG(Rendering, Debug, "\tSH[{}] = {}", i, shData.values[i]);
-                    }
+    //        // Enqueue on game thread, not safe to write on render thread.
+    //        Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
+    //            {
+    //                HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());
+    //                for (uint32 i = 0; i < 9; i++)
+    //                {
+    //                    HYP_LOG(Rendering, Debug, "\tSH[{}] = {}", i, shData.values[i]);
+    //                }
 
-                    envProbe->SetSphericalHarmonicsData(shData);
+    //                envProbe->SetSphericalHarmonicsData(shData);
 
-                    SafeDelete(std::move(envProbe));
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+    //                SafeDelete(std::move(envProbe));
+    //            },
+    //            TaskEnqueueFlags::FIRE_AND_FORGET);
 
-            for (auto& it : pipelines)
-            {
-                ShaderRef& shader = it.second.first;
-                ComputePipelineRef& pipeline = it.second.second;
+    //        for (auto& it : pipelines)
+    //        {
+    //            ShaderRef& shader = it.second.first;
+    //            ComputePipelineRef& pipeline = it.second.second;
 
-                SafeDelete(std::move(shader));
-                SafeDelete(std::move(pipeline));
-            }
+    //            SafeDelete(std::move(shader));
+    //            SafeDelete(std::move(pipeline));
+    //        }
 
-            SafeDelete(std::move(descriptorTables));
+    //        SafeDelete(std::move(descriptorTables));
 
-            delete delegateHandle;
-        });
+    //        delete delegateHandle;
+    //    });
 }
 
 #pragma endregion ReflectionProbeRenderer

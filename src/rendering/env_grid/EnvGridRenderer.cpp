@@ -866,30 +866,30 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
 
     asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind(
-        [probe = MakeStrongRef(probe), delegateHandle](FrameBase* frame)
-        {
-            HYP_NAMED_SCOPE("EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics - Buffer readback");
+    //DelegateHandler* delegateHandle = new DelegateHandler();
+    //*delegateHandle = frame->OnFrameEnd.Bind(
+    //    [probe = MakeStrongRef(probe), delegateHandle](FrameBase* frame)
+    //    {
+    //        HYP_NAMED_SCOPE("EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics - Buffer readback");
 
-            EnvProbeShaderData readbackBuffer;
+    //        EnvProbeShaderData readbackBuffer;
 
-            const uint32 boundIndex = RenderApi_RetrieveResourceBinding(probe);
-            Assert(boundIndex != ~0u);
+    //        const uint32 boundIndex = RenderApi_RetrieveResourceBinding(probe);
+    //        Assert(boundIndex != ~0u);
 
-            g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
+    //        g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // Enqueue on game thread, not safe to write on render thread.
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]() mutable
-                {
-                    probe->SetSphericalHarmonicsData(shData);
+    //        // Enqueue on game thread, not safe to write on render thread.
+    //        Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]() mutable
+    //            {
+    //                probe->SetSphericalHarmonicsData(shData);
 
-                    SafeDelete(std::move(probe));
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+    //                SafeDelete(std::move(probe));
+    //            },
+    //            TaskEnqueueFlags::FIRE_AND_FORGET);
 
-            delete delegateHandle;
-        });
+    //        delete delegateHandle;
+    //    });
 }
 
 void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& renderSetup, EnvProbe* probe)

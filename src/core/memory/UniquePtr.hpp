@@ -395,8 +395,6 @@ public:
     template <class... Args>
     HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr Construct(Args&&... args)
     {
-        static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
-
         UniquePtr ptr;
         ptr.Reset(Memory::AllocateAndConstruct<T>(std::forward<Args>(args)...));
 

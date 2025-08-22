@@ -66,7 +66,7 @@ void PendingGpuBufferUpdate::Init(uint32 alignment)
         return;
     }
 
-    stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, s_bufferSize, alignment);
+    stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, s_bufferSize);
     Assert(stagingBuffer->Create());
 }
 
@@ -80,7 +80,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
     m_pendingUpdates.Clear();
 }
 
-void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCount, SizeType size, SizeType alignment)
+void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCount, SizeType size)
 {
     HYP_SCOPE;
 
@@ -89,7 +89,7 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initialCoun
         initialCount = 1;
     }
 
-    m_gpuBuffer = g_renderBackend->MakeGpuBuffer(type, size * initialCount, alignment);
+    m_gpuBuffer = g_renderBackend->MakeGpuBuffer(type, size * initialCount);
     DeferCreate(m_gpuBuffer);
 }
 
@@ -109,11 +109,14 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
 
     // ensure the updates are sorted, so the last update gives us the necessary buffer size
     std::sort(m_pendingUpdates.Begin(), m_pendingUpdates.End(),
-        [](const PendingGpuBufferUpdate& a, const PendingGpuBufferUpdate& b) {
-            return a.offset < b.offset;
+        [](const PendingGpuBufferUpdate& a, const PendingGpuBufferUpdate& b)
+        {
+            return a.offset + a.count < b.offset + b.count;
         });
 
-    m_gpuBuffer->EnsureCapacity(m_pendingUpdates.Back().offset + m_pendingUpdates.Back().count);
+    const SizeType requiredBufferSize = m_pendingUpdates.Back().offset + m_pendingUpdates.Back().count;
+
+    m_gpuBuffer->EnsureCapacity(requiredBufferSize);
 
     const ResourceState prevResourceState = m_gpuBuffer->GetResourceState();
     AssertDebug(prevResourceState == RS_UNORDERED_ACCESS || prevResourceState == RS_SHADER_RESOURCE);
@@ -124,8 +127,11 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
     {
         AssertDebug(pendingUpdate.stagingBuffer != nullptr);
         AssertDebug(pendingUpdate.offset + pendingUpdate.count <= m_gpuBuffer->Size());
+        
+        const uint32 srcOffset = pendingUpdate.offset % PendingGpuBufferUpdate::s_bufferSize;
+        const uint32 dstOffset = pendingUpdate.offset;
 
-        rq << CopyBuffer(pendingUpdate.stagingBuffer, m_gpuBuffer, pendingUpdate.offset, pendingUpdate.count);
+        rq << CopyBuffer(pendingUpdate.stagingBuffer, m_gpuBuffer, srcOffset, dstOffset, pendingUpdate.count);
     }
 
     rq << InsertBarrier(m_gpuBuffer, prevResourceState);

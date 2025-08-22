@@ -730,15 +730,17 @@ public:
     CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 count)
         : m_srcBuffer(srcBuffer),
           m_dstBuffer(dstBuffer),
-          m_offset(0),
+          m_srcOffset(0),
+          m_dstOffset(0),
           m_count(count)
     {
     }
 
-    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 offset, uint32 count)
+    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 srcOffset, uint32 dstOffset, uint32 count)
         : m_srcBuffer(srcBuffer),
           m_dstBuffer(dstBuffer),
-          m_offset(offset),
+          m_srcOffset(srcOffset),
+          m_dstOffset(dstOffset),
           m_count(count)
     {
     }
@@ -747,7 +749,12 @@ public:
     {
         CopyBuffer* cmdCasted = static_cast<CopyBuffer*>(cmd);
 
-        cmdCasted->m_dstBuffer->CopyFrom(commandBuffer, cmdCasted->m_srcBuffer, cmdCasted->m_count);
+        cmdCasted->m_dstBuffer->CopyFrom(
+            commandBuffer,
+            cmdCasted->m_srcBuffer,
+            cmdCasted->m_srcOffset,
+            cmdCasted->m_dstOffset,
+            cmdCasted->m_count);
 
         static_assert(std::is_trivially_destructible_v<CopyBuffer>);
         // cmdCasted->~CopyBuffer();
@@ -756,7 +763,8 @@ public:
 private:
     GpuBufferBase* m_srcBuffer;
     GpuBufferBase* m_dstBuffer;
-    uint32 m_offset;
+    uint32 m_srcOffset;
+    uint32 m_dstOffset;
     uint32 m_count;
 };
 

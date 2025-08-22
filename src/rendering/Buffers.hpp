@@ -171,12 +171,6 @@ public:
         return m_gpuBuffer;
     }
 
-    /*! \brief Copy an element from the GPU back to the CPU side buffer.
-     * \param frameIndex The index of the frame to copy the element from.
-     * \param index The index of the element to copy.
-     * \param dst The destination pointer to copy the element to.
-     */
-    virtual void ReadbackElement(uint32 frameIndex, uint32 index, void* dst) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -207,7 +201,7 @@ public:
     void ApplyPendingUpdates(FrameBase* frame);
 
 protected:
-    void CreateBuffers(GpuBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
+    void CreateBuffers(GpuBufferType type, SizeType count, SizeType size);
 
     virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
 
@@ -237,11 +231,11 @@ template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
-    GpuBufferHolder(uint32 initialCount = 0)
+    explicit GpuBufferHolder(uint32 initialCount = 0)
         : GpuBufferHolderBase(TypeWrapper<StructType> {}),
           m_pool(CreateNameFromDynamicString(ANSIString("GfxBuffers_") + TypeNameWithoutNamespace<StructType>().Data()), initialCount)
     {
-        GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType), alignof(StructType));
+        GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType));
     }
 
     GpuBufferHolder(const GpuBufferHolder& other) = delete;
@@ -322,25 +316,28 @@ public:
 
         if (update != nullptr)
         {
+            update->offset = MathUtil::Min(update->offset, indexTimesSize);
             update->count = MathUtil::Max(update->count, (indexTimesSize + sizeof(StructType)) - update->offset);
 
             // write to the staging buffer
             AssertDebug(update->stagingBuffer != nullptr);
 
-            update->stagingBuffer->Copy(indexTimesSize - update->offset, sizeof(StructType), &value);
+            update->stagingBuffer->Copy(indexTimesSize % PendingGpuBufferUpdate::s_bufferSize, sizeof(StructType), &value);
 
             return;
         }
 
         // make a new update
         PendingGpuBufferUpdate& newUpdate = m_pendingUpdates.EmplaceBack();
-        newUpdate.offset = indexTimesSize - (indexTimesSize % PendingGpuBufferUpdate::s_bufferSize);
-        newUpdate.count = MathUtil::Min(PendingGpuBufferUpdate::s_bufferSize, sizeof(StructType) + (indexTimesSize - newUpdate.offset));
+        newUpdate.offset = indexTimesSize; // dst offset in the gpu buffer
+        newUpdate.count = sizeof(StructType);
 
         newUpdate.Init(alignof(StructType));
 
-        // write to the staging buffer
-        newUpdate.stagingBuffer->Copy(indexTimesSize - newUpdate.offset, sizeof(StructType), &value);
+        // write to the staging buffer at the relative offset
+        const SizeType relativeOffset = indexTimesSize % PendingGpuBufferUpdate::s_bufferSize;
+
+        newUpdate.stagingBuffer->Copy(relativeOffset, sizeof(StructType), &value);
     }
 
     virtual void* GetCpuMapping(uint32 index) override
