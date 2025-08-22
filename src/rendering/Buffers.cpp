@@ -17,15 +17,22 @@
 
 namespace hyperion {
 
+extern HYP_API const char* LookupTypeName(TypeId typeId);
+
 #pragma region GpuBufferHolderBase
 
 GpuBufferHolderBase::~GpuBufferHolderBase()
 {
     SafeDelete(std::move(m_gpuBuffer));
 
-    for (CachedStagingBuffer& it : m_cachedStagingBuffers)
+    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        SafeDelete(std::move(it.stagingBuffer));
+        for (CachedStagingBuffer& it : m_cachedStagingBuffers[frameIndex])
+        {
+            SafeDelete(std::move(it.stagingBuffer));
+        }
+
+        m_cachedStagingBuffers[frameIndex].Clear();
     }
 }
 
@@ -57,6 +64,49 @@ GpuBufferRef GpuBufferHolderBase::CreateStagingBuffer(uint32 size)
     return stagingBuffer;
 }
 
+GpuBufferBase* GpuBufferHolderBase::GetCachedStagingBuffer(FrameBase* frame, uint32 offset, uint32 count)
+{
+    const uint32 frameIndex = frame->GetFrameIndex();
+
+    GpuBufferRef* cachedStagingBuffer = nullptr;
+
+    for (CachedStagingBuffer& it : m_cachedStagingBuffers[frameIndex])
+    {
+        if (it.offset == offset && it.count == count)
+        {
+            it.lastFrame = RenderApi_GetFrameCounter();
+
+            HYP_GFX_ASSERT(it.stagingBuffer != nullptr, "Staging buffer should not be null!");
+
+            return it.stagingBuffer;
+        }
+    }
+
+    // none found with same offset and count, look for one with 0 count (meaning it was reset last frame and we can re-use it)
+    for (CachedStagingBuffer& it : m_cachedStagingBuffers[frameIndex])
+    {
+        if (it.count == 0)
+        {
+            it.offset = offset;
+            it.count = count;
+            it.lastFrame = RenderApi_GetFrameCounter();
+
+            HYP_GFX_ASSERT(it.stagingBuffer != nullptr, "Staging buffer should not be null!");
+
+            return it.stagingBuffer;
+        }
+    }
+
+    // finally, create a new one if none found
+    CachedStagingBuffer& newCachedStagingBuffer = m_cachedStagingBuffers[frameIndex].EmplaceBack();
+    newCachedStagingBuffer.offset = offset;
+    newCachedStagingBuffer.count = count;
+    newCachedStagingBuffer.lastFrame = RenderApi_GetFrameCounter();
+    newCachedStagingBuffer.stagingBuffer = CreateStagingBuffer(count);
+
+    return newCachedStagingBuffer.stagingBuffer;
+}
+
 void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
 {
     HYP_SCOPE;
@@ -67,6 +117,7 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
         return;
     }
 
+    const uint32 frameIndex = frame->GetFrameIndex();
     RenderQueue& rq = frame->renderQueue;
 
     Assert(m_gpuBuffer != nullptr);
@@ -80,7 +131,13 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
 
     const SizeType requiredBufferSize = m_pendingUpdates.Back().offset + m_pendingUpdates.Back().count;
 
-    HYP_GFX_ASSERT(m_gpuBuffer->EnsureCapacity(requiredBufferSize));
+    bool resized = false;
+    HYP_GFX_ASSERT(m_gpuBuffer->EnsureCapacity(requiredBufferSize, &resized));
+
+    if (resized)
+    {
+        HYP_LOG_TEMP("Resized GPU buffer for {} to {} bytes", LookupTypeName(GetStructTypeId()), m_gpuBuffer->Size());
+    }
 
     rq << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
@@ -110,7 +167,7 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
     m_pendingUpdates.Clear();
 
     // Remove cached staging buffers that are older than 10 frames
-    for (auto it = m_cachedStagingBuffers.Begin(); it != m_cachedStagingBuffers.End();)
+    for (auto it = m_cachedStagingBuffers[frameIndex].Begin(); it != m_cachedStagingBuffers[frameIndex].End();)
     {
         CachedStagingBuffer& cachedStagingBuffer = *it;
 
@@ -120,7 +177,7 @@ void GpuBufferHolderBase::ApplyPendingUpdates(FrameBase* frame)
         {
             SafeDelete(std::move(cachedStagingBuffer.stagingBuffer));
 
-            it = m_cachedStagingBuffers.Erase(it);
+            it = m_cachedStagingBuffers[frameIndex].Erase(it);
         }
         else
         {
