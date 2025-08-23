@@ -67,10 +67,13 @@ void GpuBufferHolderBase::CopyToGpuBuffer(FrameBase* frame, uint32 rangeStart, u
     Assert(m_gpuBuffer != nullptr);
     Assert(m_stagingBuffers[frameIndex] != nullptr);
 
-    const SizeType requiredBufferSize = m_stagingBuffers[frameIndex]->Size();
+    const SizeType requiredBufferSize = rangeEnd;
 
     bool resized = false;
     HYP_GFX_ASSERT(m_gpuBuffer->EnsureCapacity(requiredBufferSize, &resized));
+    
+    HYP_GFX_ASSERT(rangeEnd <= requiredBufferSize, "Range start: %u, range end: %u, req. buffered size: %u",
+        rangeStart, rangeEnd, requiredBufferSize);
 
     rq << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
     rq << InsertBarrier(m_stagingBuffers[frameIndex], RS_COPY_SRC);

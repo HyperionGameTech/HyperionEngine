@@ -154,7 +154,7 @@ public:
 
     virtual void MarkDirty(uint32 index) = 0;
 
-    virtual void UpdateBufferSize(uint32 frameIndex) = 0;
+    virtual void UpdateBufferSize() = 0;
     virtual void UpdateBufferData(FrameBase* frame) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
@@ -205,6 +205,10 @@ public:
     GpuBufferHolderMemoryPool(Name poolName, uint32 initialCount = Base::InitInfo::numInitialElements)
         : Base(poolName, initialCount, /* createInitialBlocks */ true, /* blockInitCtx */ nullptr)
     {
+        for (Range<uint32>& dirtyRange : m_dirtyRanges)
+        {
+            dirtyRange = { 0, MathUtil::Max(initialCount, 1) };
+        }
     }
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
@@ -244,11 +248,20 @@ public:
             return;
         }
 
-        const uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd(),
-                     rangeStart = m_dirtyRanges[frameIndex].GetStart();
-
-        outRangeStart = rangeStart * sizeof(StructType);
-        ourRangeEnd = rangeEnd * sizeof(StructType);
+        uint32 rangeStart = m_dirtyRanges[frameIndex].GetStart();
+        uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd();
+        
+        bool wasResized = false;
+        HYP_GFX_ASSERT(buffer->EnsureCapacity(rangeEnd * sizeof(StructType), &wasResized));
+        
+        if (wasResized)
+        {
+            rangeStart = 0;
+            rangeEnd = ~0u;
+        }
+        
+        outRangeStart = rangeStart;
+        ourRangeEnd = rangeEnd;
 
         AssertDebug(buffer->Size() >= rangeEnd * sizeof(StructType),
             "Buffer does not have enough space for the current number of elements! Buffer size = %llu",
@@ -300,6 +313,8 @@ protected:
     FixedArray<Range<uint32>, 2> m_dirtyRanges;
 };
 
+HYP_DISABLE_OPTIMIZATION;
+
 template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
 {
@@ -326,10 +341,14 @@ public:
         return m_pool.numElementsPerBlock;
     }
 
-    virtual void UpdateBufferSize(uint32 frameIndex) override
+    virtual void UpdateBufferSize() override
     {
         // m_pool.RemoveEmptyBlocks();
-        m_pool.EnsureGpuBufferCapacity(m_stagingBuffers[frameIndex], frameIndex);
+        
+        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        {
+            m_pool.EnsureGpuBufferCapacity(m_stagingBuffers[frameIndex], frameIndex);
+        }
     }
 
     virtual void UpdateBufferData(FrameBase* frame) override
@@ -341,7 +360,7 @@ public:
 
         m_pool.CopyToStagingBuffer(m_stagingBuffers[frameIndex], frameIndex, rangeStart, rangeEnd);
 
-        GpuBufferHolderBase::CopyToGpuBuffer(frame, rangeStart, rangeEnd);
+        GpuBufferHolderBase::CopyToGpuBuffer(frame, rangeStart * sizeof(StructType), rangeEnd * sizeof(StructType));
     }
 
     virtual void MarkDirty(uint32 index) override
@@ -397,5 +416,7 @@ private:
 
     GpuBufferHolderMemoryPool<StructType> m_pool;
 };
+
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion
