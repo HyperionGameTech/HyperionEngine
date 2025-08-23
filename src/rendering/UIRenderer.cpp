@@ -198,8 +198,6 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
             });
     }
 
-    // HYP_LOG(UI, Debug, " UI rendering {} render groups", iterators.Size());
-
     for (SizeType index = 0; index < iterators.Size(); index++)
     {
         const auto& it = *iterators[index];
@@ -212,16 +210,6 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
         Assert(renderGroup.IsValid());
 
         const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-
-        // debugging
-        for (const DrawCall& drawCall : drawCallCollection.drawCalls)
-        {
-            AssertDebug(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
-        }
-        for (const InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
-        {
-            AssertDebug(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
-        }
 
         ParallelRenderingState* parallelRenderingState = nullptr;
 

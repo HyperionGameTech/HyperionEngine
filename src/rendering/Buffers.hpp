@@ -215,11 +215,12 @@ protected:
     GpuBufferRef m_gpuBuffer;
 };
 
+
 // Specialization for Memory pool init info to allocate larger blocks:
 template <class StructType>
-struct GpuBufferHolderMemoryPoolInitInfo : MemoryPoolInitInfo<StructType>
+struct GpuBufferHolderMemoryPoolInitInfo
 {
-    static constexpr uint32 numBytesPerBlock = MathUtil::NextPowerOf2(MathUtil::Max(sizeof(StructType), 1024 * 1024)); // 1 MB default block size
+    static constexpr uint32 numBytesPerBlock = MathUtil::Max(MathUtil::NextPowerOf2(sizeof(StructType)), 1u << 14); // minimum 16KB blocks
     static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(StructType);
     static constexpr uint32 numInitialElements = numElementsPerBlock;
 };
@@ -299,15 +300,16 @@ public:
             }
 
             const uint32 offset = blockIndex * Base::numElementsPerBlock;
-            const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
+            const uint32 count = Base::numElementsPerBlock;
 
-            GpuBufferBase* buffer = outStagingBuffers.PushBack(StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, offset, bufferSize));
+            const uint32 bufferOffset = offset * uint32(sizeof(StructType));
+            const uint32 bufferSize = count * uint32(sizeof(StructType));
+
+            GpuBufferBase* buffer = outStagingBuffers.PushBack(StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, bufferOffset, bufferSize));
             Assert(buffer != nullptr && buffer->IsCreated());
 
-            const SizeType count = Base::numElementsPerBlock;
-
-            outChunkStarts.EmplaceBack(offset * sizeof(StructType));
-            outChunkEnds.EmplaceBack((offset + count) * sizeof(StructType));
+            outChunkStarts.EmplaceBack(bufferOffset);
+            outChunkEnds.EmplaceBack(bufferOffset + bufferSize);
 
             // copy to staging buffer
             buffer->Copy(0, bufferSize, beginIt->buffer.GetPointer());
@@ -321,8 +323,6 @@ protected:
 
     FixedArray<Range<uint32>, g_framesInFlight> m_dirtyRanges;
 };
-
-HYP_DISABLE_OPTIMIZATION;
 
 template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
@@ -438,7 +438,5 @@ private:
 
     GpuBufferHolderMemoryPool<StructType> m_pool;
 };
-
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion
