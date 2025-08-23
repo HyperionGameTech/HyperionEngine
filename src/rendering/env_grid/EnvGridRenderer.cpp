@@ -383,6 +383,7 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
     {
         const SizeType size = sizeof(SHTile) * (shNumTiles.x >> i) * (shNumTiles.y >> i);
         pd.shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
+        pd.shTilesBuffers[i]->SetRequireCpuAccessible(true);
 
         DeferCreate(pd.shTilesBuffers[i]);
     }
@@ -877,7 +878,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
             const uint32 boundIndex = RenderApi_RetrieveResourceBinding(probe);
             Assert(boundIndex != ~0u);
 
-            g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
+            // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
             // Enqueue on game thread, not safe to write on render thread.
             Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]() mutable

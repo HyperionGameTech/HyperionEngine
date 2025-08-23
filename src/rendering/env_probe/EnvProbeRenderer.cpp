@@ -441,6 +441,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         const SizeType size = sizeof(SHTile) * (shNumTiles.x >> i) * (shNumTiles.y >> i);
 
         shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
+        shTilesBuffers[i]->SetRequireCpuAccessible(true);
         HYP_GFX_ASSERT(shTilesBuffers[i]->Create());
     }
 
@@ -667,22 +668,22 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
             EnvProbeShaderData readbackBuffer;
 
-            g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
+            // g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // Enqueue on game thread, not safe to write on render thread.
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
-                {
-                    HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());
-                    for (uint32 i = 0; i < 9; i++)
-                    {
-                        HYP_LOG(Rendering, Debug, "\tSH[{}] = {}", i, shData.values[i]);
-                    }
+            // // Enqueue on game thread, not safe to write on render thread.
+            // Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
+            //     {
+            //         HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());
+            //         for (uint32 i = 0; i < 9; i++)
+            //         {
+            //             HYP_LOG(Rendering, Debug, "\tSH[{}] = {}", i, shData.values[i]);
+            //         }
 
-                    envProbe->SetSphericalHarmonicsData(shData);
+            //         envProbe->SetSphericalHarmonicsData(shData);
 
-                    SafeDelete(std::move(envProbe));
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
+            //         SafeDelete(std::move(envProbe));
+            //     },
+            //     TaskEnqueueFlags::FIRE_AND_FORGET);
 
             for (auto& it : pipelines)
             {

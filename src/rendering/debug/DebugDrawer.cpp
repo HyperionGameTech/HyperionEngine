@@ -446,6 +446,7 @@ void DebugDrawer::Initialize()
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
         m_instanceBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData));
+        m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
         DeferCreate(m_instanceBuffers[frameIndex]);
     }
 

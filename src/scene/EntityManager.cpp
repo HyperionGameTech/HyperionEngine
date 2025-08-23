@@ -31,7 +31,7 @@ static constexpr uint32 g_entityManagerCommandQueueWarningSize = 8192;
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
-#define HYP_SYSTEM_LOG_PERFORMANCE
+// #define HYP_SYSTEM_LOG_PERFORMANCE
 
 #pragma region EntityManager
 

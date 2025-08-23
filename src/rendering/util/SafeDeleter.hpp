@@ -55,6 +55,43 @@ public:
     }
 };
 
+/*! \brief Wrapper for a custom safe deleter type, with a ustom deleter function pointer. */
+enum CustomDeleterTag
+{
+    CUSTOM_DELETER
+};
+
+template <class T>
+class SafeDeleterEntry final
+{
+    SafeDeleterEntry() = delete;
+
+public:
+    SafeDeleterEntry(const T& value, void (*deleteFn)(T&), CustomDeleterTag)
+        : value(value),
+          deleteFn(deleteFn)
+    {
+    }
+
+    SafeDeleterEntry(T&& value, void (*deleteFn)(T&), CustomDeleterTag)
+        : value(std::move(value)),
+          deleteFn(deleteFn)
+    {
+    }
+
+    ~SafeDeleterEntry()
+    {
+        if (deleteFn)
+        {
+            deleteFn(value);
+        }
+    }
+
+private:
+    T value;
+    void (*deleteFn)(T&);
+};
+
 class HYP_API SafeDeleter
 {
 public:
@@ -147,6 +184,26 @@ public:
         {
             header.moveFn = nullptr;
         }
+
+        list.Push(header);
+
+        return ptr;
+    }
+    
+    template <class T>
+    T* AllocCustom(void (*destructFn)(void*))
+    {
+        static_assert(isPodType<T>, "T must be a POD type");
+
+        EntryHeader header;
+
+        EntryList& list = GetCurrentEntryList();
+
+        T* ptr = reinterpret_cast<T*>(list.Alloc(sizeof(T), alignof(T), header));
+
+        header.fc = RenderApi_GetFrameCounter();
+        header.destructFn = destructFn;
+        header.moveFn = nullptr;
 
         list.Push(header);
 

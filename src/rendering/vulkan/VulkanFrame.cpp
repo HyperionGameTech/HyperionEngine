@@ -84,6 +84,7 @@ RendererResult VulkanFrame::ResetFrameState()
 
 RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommandBuffer* commandBuffer)
 {
+    preRenderQueue.Prepare(this);
     renderQueue.Prepare(this);
 
     UpdateUsedDescriptorSets();
@@ -95,6 +96,7 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
     }
 
     commandBuffer->Begin();
+    preRenderQueue.Execute(commandBuffer);
     renderQueue.Execute(commandBuffer);
     commandBuffer->End();
 

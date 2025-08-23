@@ -18,11 +18,11 @@ namespace Hyperion
         {
         }
 
-        public Handle<UIObject> UIObject
+        public UIObject? UIObject
         {
             get
             {
-                return uiObject.Lock();
+                return uiObject.Lock().GetValue();
             }
         }
     }

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/memory/MemoryPool.hpp>
+#include <core/memory/Pimpl.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
 
@@ -15,6 +16,7 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/RenderFrame.hpp>
 
 #include <core/math/Matrix4.hpp>
 
@@ -114,6 +116,21 @@ struct RTRadianceUniforms
     alignas(Vec4f) uint32 lightIndices[16];
 };
 
+
+class StagingBufferPool
+{
+public:
+    HYP_API static StagingBufferPool& GetInstance();
+
+    HYP_API StagingBufferPool();
+
+    HYP_API void Cleanup(uint32 frameIndex);
+    HYP_API GpuBufferBase* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
+
+private:
+    Pimpl<struct StagingBufferPoolImpl> m_impl;
+};
+
 class GpuBufferHolderBase
 {
 protected:
@@ -148,20 +165,13 @@ public:
 
     HYP_FORCE_INLINE const GpuBufferRef& GetBuffer(uint32 frameIndex) const
     {
-        return m_buffers[frameIndex];
+        return m_gpuBuffer;
     }
 
     virtual void MarkDirty(uint32 index) = 0;
 
     virtual void UpdateBufferSize(uint32 frameIndex) = 0;
-    virtual void UpdateBufferData(uint32 frameIndex) = 0;
-
-    /*! \brief Copy an element from the GPU back to the CPU side buffer.
-     * \param frameIndex The index of the frame to copy the element from.
-     * \param index The index of the element to copy.
-     * \param dst The destination pointer to copy the element to.
-     */
-    virtual void ReadbackElement(uint32 frameIndex, uint32 index, void* dst) = 0;
+    virtual void UpdateBufferData(FrameBase* frame) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -190,35 +200,47 @@ public:
     virtual void* GetCpuMapping(uint32 index) = 0;
 
 protected:
-    void CreateBuffers(GpuBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
+    void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
+    void CopyToGpuBuffer(
+        FrameBase* frame,
+        const Array<GpuBufferBase*>& stagingBuffers,
+        const Array<uint32>& chunkStarts,
+        const Array<uint32>& chunkEnds);
 
     virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
 
     TypeId m_structTypeId;
     SizeType m_structSize;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_buffers;
-    FixedArray<Range<uint32>, g_framesInFlight> m_dirtyRanges;
-    
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+    GpuBufferRef m_gpuBuffer;
+};
+
+// Specialization for Memory pool init info to allocate larger blocks:
+template <class StructType>
+struct GpuBufferHolderMemoryPoolInitInfo : MemoryPoolInitInfo<StructType>
+{
+    static constexpr uint32 numBytesPerBlock = MathUtil::NextPowerOf2(MathUtil::Max(sizeof(StructType), 1024 * 1024)); // 1 MB default block size
+    static constexpr uint32 numElementsPerBlock = numBytesPerBlock / sizeof(StructType);
+    static constexpr uint32 numInitialElements = numElementsPerBlock;
 };
 
 template <class StructType>
-class GpuBufferHolderMemoryPool final : public MemoryPool<StructType>
+class GpuBufferHolderMemoryPool final : public MemoryPool<StructType, GpuBufferHolderMemoryPoolInitInfo<StructType>>
 {
 public:
-    using Base = MemoryPool<StructType>;
+    using Base = MemoryPool<StructType, GpuBufferHolderMemoryPoolInitInfo<StructType>>;
 
     GpuBufferHolderMemoryPool(Name poolName, uint32 initialCount = Base::InitInfo::numInitialElements)
         : Base(poolName, initialCount, /* createInitialBlocks */ true, /* blockInitCtx */ nullptr)
     {
+        for (Range<uint32>& dirtyRange : m_dirtyRanges)
+        {
+            dirtyRange = { 0, MathUtil::Max(initialCount, 1) };
+        }
     }
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         for (auto& it : m_dirtyRanges)
         {
             it |= { index, index + 1 };
@@ -234,23 +256,19 @@ public:
 
     void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         bool wasResized = false;
         HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
 
         if (wasResized)
         {
-            // Reset the dirty ranges
+            // if resized, we need to copy all data again
             m_dirtyRanges[frameIndex].SetStart(0);
             m_dirtyRanges[frameIndex].SetEnd(Base::NumAllocatedElements());
         }
     }
 
-    void CopyToGpuBuffer(const GpuBufferRef& buffer, uint32 frameIndex)
+    void BuildStagingBuffers(uint32 frameIndex, Array<GpuBufferBase*>& outStagingBuffers, Array<uint32>& outChunkStarts, Array<uint32>& outChunkEnds)
     {
-        Threads::AssertOnThread(g_renderThread);
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
         if (!m_dirtyRanges[frameIndex])
@@ -258,19 +276,17 @@ public:
             return;
         }
 
-        const uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd(),
-                     rangeStart = m_dirtyRanges[frameIndex].GetStart();
-
-        AssertDebug(buffer->Size() >= rangeEnd * sizeof(StructType),
-            "Buffer does not have enough space for the current number of elements! Buffer size = %llu",
-            buffer->Size());
+        uint32 rangeStart = m_dirtyRanges[frameIndex].GetStart();
+        uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd();
 
         uint32 blockIndex = 0;
 
         typename LinkedList<typename Base::Block>::Iterator beginIt = Base::m_blocks.Begin();
         typename LinkedList<typename Base::Block>::Iterator endIt = Base::m_blocks.End();
 
-        for (uint32 blockIndex = 0; blockIndex < Base::m_numBlocks.Get(MemoryOrder::ACQUIRE) && beginIt != endIt; ++blockIndex, ++beginIt)
+        const uint32 numBlocks = Base::m_numBlocks.Get(MemoryOrder::ACQUIRE);
+
+        for (uint32 blockIndex = 0; blockIndex < numBlocks && beginIt != endIt; ++blockIndex, ++beginIt)
         {
             if (blockIndex < rangeStart / Base::numElementsPerBlock)
             {
@@ -282,36 +298,31 @@ public:
                 break;
             }
 
-            const SizeType bufferSize = buffer->Size();
+            const uint32 offset = blockIndex * Base::numElementsPerBlock;
+            const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
 
-            const uint32 index = blockIndex * Base::numElementsPerBlock;
+            GpuBufferBase* buffer = outStagingBuffers.PushBack(StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, offset, bufferSize));
+            Assert(buffer != nullptr && buffer->IsCreated());
 
-            const SizeType offset = index;
             const SizeType count = Base::numElementsPerBlock;
 
-            // sanity checks
-            AssertDebug((offset - index) * sizeof(StructType) < sizeof(beginIt->buffer));
-            AssertDebug(count <= int64(bufferSize / sizeof(StructType)) - int64(offset),
-                "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
-                bufferSize,
-                (offset + count) * sizeof(StructType));
+            outChunkStarts.EmplaceBack(offset * sizeof(StructType));
+            outChunkEnds.EmplaceBack((offset + count) * sizeof(StructType));
 
-            buffer->Copy(
-                offset * sizeof(StructType),
-                count * sizeof(StructType),
-                &reinterpret_cast<StructType*>(beginIt->buffer.GetPointer())[offset - index]);
+            // copy to staging buffer
+            buffer->Copy(0, bufferSize, beginIt->buffer.GetPointer());
         }
 
         m_dirtyRanges[frameIndex].Reset();
     }
 
-private:
-    // @TODO Make atomic
-    FixedArray<Range<uint32>, 2> m_dirtyRanges;
-
 protected:
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+
+    FixedArray<Range<uint32>, g_framesInFlight> m_dirtyRanges;
 };
+
+HYP_DISABLE_OPTIMIZATION;
 
 template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
@@ -341,52 +352,51 @@ public:
 
     virtual void UpdateBufferSize(uint32 frameIndex) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         // m_pool.RemoveEmptyBlocks();
-        m_pool.EnsureGpuBufferCapacity(m_buffers[frameIndex], frameIndex);
+        
+        m_pool.EnsureGpuBufferCapacity(m_gpuBuffer, frameIndex);
     }
 
-    virtual void UpdateBufferData(uint32 frameIndex) override
+    virtual void UpdateBufferData(FrameBase* frame) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
+        const uint32 frameIndex = frame->GetFrameIndex();
 
-        m_pool.CopyToGpuBuffer(m_buffers[frameIndex], frameIndex);
+        Array<GpuBufferBase*> stagingBuffers;
+        Array<uint32> chunkStarts;
+        Array<uint32> chunkEnds;
+
+        m_pool.BuildStagingBuffers(frameIndex, stagingBuffers, chunkStarts, chunkEnds);
+
+        // sanity check, ensure that the chunks are in ascending order
+        for (SizeType i = 1; i < chunkStarts.Size(); ++i)
+        {
+            AssertDebug(chunkStarts[i] >= chunkEnds[i - 1]);
+        }
+
+        // sanity check, ensure that the chunks are within bounds of our main gpu buffer
+        const SizeType gpuBufferSize = m_gpuBuffer->Size();
+
+        for (SizeType i = 0; i < chunkStarts.Size(); ++i)
+        {
+            AssertDebug(chunkStarts[i] < gpuBufferSize);
+            AssertDebug(chunkEnds[i] <= gpuBufferSize);
+        }
+
+        GpuBufferHolderBase::CopyToGpuBuffer(frame, stagingBuffers, chunkStarts, chunkEnds);
     }
 
     virtual void MarkDirty(uint32 index) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         m_pool.MarkDirty(index);
-    }
-
-    virtual void ReadbackElement(uint32 frameIndex, uint32 index, void* dst) override
-    {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        AssertDebug(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = {}, Size = {}", index, m_pool.NumAllocatedElements());
-
-        m_buffers[frameIndex]->Read(sizeof(StructType) * index, sizeof(StructType), dst);
     }
 
     HYP_FORCE_INLINE uint32 AcquireIndex(StructType** outElementPtr)
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         return m_pool.AcquireIndex(outElementPtr);
     }
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         StructType* elementPtr;
         const uint32 index = m_pool.AcquireIndex(&elementPtr);
 
@@ -400,33 +410,21 @@ public:
 
     virtual void ReleaseIndex(uint32 batchIndex) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         return m_pool.ReleaseIndex(batchIndex);
     }
 
     virtual void EnsureCapacity(uint32 index) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         m_pool.EnsureCapacity(index);
     }
 
     HYP_FORCE_INLINE void WriteBufferData(uint32 index, const StructType& value)
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         m_pool.SetElement(index, value);
     }
 
     virtual void* GetCpuMapping(uint32 index) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         AssertDebug(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = {}, Size = {}", index, m_pool.NumAllocatedElements());
 
         return &m_pool.GetElement(index);
@@ -435,13 +433,12 @@ public:
 private:
     virtual void WriteBufferData_Internal(uint32 index, const void* bufferDataPtr) override
     {
-        Threads::AssertOnThread(g_renderThread);
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         WriteBufferData(index, *reinterpret_cast<const StructType*>(bufferDataPtr));
     }
 
     GpuBufferHolderMemoryPool<StructType> m_pool;
 };
+
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion

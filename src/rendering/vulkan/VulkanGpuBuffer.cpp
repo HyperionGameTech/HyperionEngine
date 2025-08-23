@@ -263,23 +263,24 @@ VmaMemoryUsage GetVkMemoryUsage(GpuBufferType type)
     }
 }
 
-VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type)
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false)
 {
     switch (type)
     {
     case GpuBufferType::MESH_VERTEX_BUFFER:
-        return 0;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::MESH_INDEX_BUFFER:
-        return 0;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::CBUFF:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::SSBO:
-        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::ATOMIC_COUNTER:
-        return 0;
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::STAGING_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -288,8 +289,10 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type)
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -410,7 +413,13 @@ bool VulkanGpuBuffer::IsCreated() const
 
 bool VulkanGpuBuffer::IsCpuAccessible() const
 {
-    return m_vmaUsage != VMA_MEMORY_USAGE_GPU_ONLY;
+    VmaAllocationInfo info {};
+    vmaGetAllocationInfo(GetRenderBackend()->GetDevice()->GetAllocator(), m_vmaAllocation, &info);
+
+    VkMemoryPropertyFlags flags = 0;
+    vmaGetMemoryTypeProperties(GetRenderBackend()->GetDevice()->GetAllocator(), info.memoryType, &flags);
+
+    return (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 }
 
 RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
@@ -515,7 +524,7 @@ void VulkanGpuBuffer::InsertBarrier(
 void VulkanGpuBuffer::CopyFrom(
     CommandBufferBase* commandBuffer,
     const GpuBufferBase* srcBuffer,
-    SizeType count)
+    uint32 count)
 {
     if (!IsCreated())
     {
@@ -531,12 +540,44 @@ void VulkanGpuBuffer::CopyFrom(
         return;
     }
 
-    InsertBarrier(commandBuffer, RS_COPY_DST);
-    srcBuffer->InsertBarrier(commandBuffer, RS_COPY_SRC);
-
     VkBufferCopy region {};
     region.size = count;
 
+    vkCmdCopyBuffer(
+        VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
+        VULKAN_CAST(srcBuffer)->m_handle,
+        m_handle,
+        1,
+        &region);
+}
+
+void VulkanGpuBuffer::CopyFrom(
+    CommandBufferBase* commandBuffer,
+    const GpuBufferBase* srcBuffer,
+    uint32 srcOffset, uint32 dstOffset,
+    uint32 count)
+{
+    if (!IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but dst buffer was not created");
+
+        return;
+    }
+
+    if (!srcBuffer->IsCreated())
+    {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but src buffer was not created");
+
+        return;
+    }
+
+    HYP_GFX_ASSERT((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
+
+    VkBufferCopy region {};
+    region.size = count;
+    region.srcOffset = srcOffset;
+    region.dstOffset = dstOffset;
+    
     vkCmdCopyBuffer(
         VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
         VULKAN_CAST(srcBuffer)->m_handle,
@@ -555,8 +596,7 @@ RendererResult VulkanGpuBuffer::Create()
 
     m_vkBufferUsageFlags = GetVkUsageFlags(m_type);
     m_vmaUsage = GetVkMemoryUsage(m_type);
-    m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type)
-        | VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+    m_vmaAllocationCreateFlags = GetVkAllocationCreateFlags(m_type, m_requireCpuAccessible);
 
     if (m_size == 0)
     {
@@ -598,8 +638,10 @@ RendererResult VulkanGpuBuffer::Create()
 
     if (IsCpuAccessible())
     {
+        Map();
+        
         // Memset all to zero
-        Memset(m_size, 0);
+        Memory::MemSet(m_mapping, 0, m_size);
     }
 
 #ifdef HYP_DEBUG_MODE
@@ -641,7 +683,24 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             Unmap();
         }
 
-        vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), m_handle, m_vmaAllocation);
+        struct VulkanBufferDeleter
+        {
+            VkBuffer buffer;
+            VmaAllocation vmaAllocation;
+        };
+        
+        // safely destroy the buffer after the GPU is done with it:
+        VulkanBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<VulkanBufferDeleter>([](void* ptr)
+            {
+                VulkanBufferDeleter* bufferDeleter = reinterpret_cast<VulkanBufferDeleter*>(ptr);
+
+                vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
+            });
+
+        new (deleter) VulkanBufferDeleter {
+            .buffer = m_handle,
+            .vmaAllocation = m_vmaAllocation
+        };
 
         m_handle = VK_NULL_HANDLE;
         m_vmaAllocation = VK_NULL_HANDLE;

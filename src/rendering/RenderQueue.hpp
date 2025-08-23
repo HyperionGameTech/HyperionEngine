@@ -724,21 +724,48 @@ private:
     GpuImageBase* m_image;
 };
 
+HYP_DISABLE_OPTIMIZATION;
 class CopyBuffer final : public CmdBase
 {
 public:
-    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, SizeType size)
+    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 count)
         : m_srcBuffer(srcBuffer),
           m_dstBuffer(dstBuffer),
-          m_size(size)
+          m_srcOffset(0),
+          m_dstOffset(0),
+          m_count(count)
     {
+        AssertDebug(srcBuffer && dstBuffer);
+        AssertDebug(count <= srcBuffer->Size(), "Source buffer copy range out of bounds");
+        AssertDebug(count <= dstBuffer->Size(), "Destination buffer copy range out of bounds");
+    }
+
+    CopyBuffer(GpuBufferBase* srcBuffer, GpuBufferBase* dstBuffer, uint32 srcOffset, uint32 dstOffset, uint32 count)
+        : m_srcBuffer(srcBuffer),
+          m_dstBuffer(dstBuffer),
+          m_srcOffset(srcOffset),
+          m_dstOffset(dstOffset),
+          m_count(count)
+    {
+        AssertDebug(srcBuffer && dstBuffer);
+        AssertDebug(srcOffset + count <= srcBuffer->Size(), "Source buffer copy range out of bounds");
+        AssertDebug(dstOffset + count <= dstBuffer->Size(), "Destination buffer copy range out of bounds");
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
     {
         CopyBuffer* cmdCasted = static_cast<CopyBuffer*>(cmd);
 
-        cmdCasted->m_dstBuffer->CopyFrom(commandBuffer, cmdCasted->m_srcBuffer, cmdCasted->m_size);
+        AssertDebug(cmdCasted->m_srcBuffer && cmdCasted->m_dstBuffer);
+        AssertDebug(cmdCasted->m_srcOffset + cmdCasted->m_count <= cmdCasted->m_srcBuffer->Size(), "Source buffer copy range out of bounds: {}", cmdCasted->m_srcOffset + cmdCasted->m_count);
+        AssertDebug(cmdCasted->m_dstOffset + cmdCasted->m_count <= cmdCasted->m_dstBuffer->Size(), "Destination buffer copy range out of bounds {}", cmdCasted->m_dstOffset + cmdCasted->m_count);
+
+        cmdCasted->m_dstBuffer->CopyFrom(
+            commandBuffer,
+            cmdCasted->m_srcBuffer,
+            cmdCasted->m_srcOffset,
+            cmdCasted->m_dstOffset,
+            cmdCasted->m_count);
 
         static_assert(std::is_trivially_destructible_v<CopyBuffer>);
         // cmdCasted->~CopyBuffer();
@@ -747,8 +774,11 @@ public:
 private:
     GpuBufferBase* m_srcBuffer;
     GpuBufferBase* m_dstBuffer;
-    SizeType m_size;
+    uint32 m_srcOffset;
+    uint32 m_dstOffset;
+    uint32 m_count;
 };
+HYP_ENABLE_OPTIMIZATION;
 
 class GenerateMipmaps final : public CmdBase
 {

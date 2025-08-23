@@ -222,10 +222,10 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
     set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED")
     set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 
-# for VS solutions, we want to add the .natvis file as a custom solution item
+# for VS solutions, we want to add some files as a custom solution item
 elseif(MSVC)
-    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/src/Hyperion.natvis")
-    add_custom_target(VisualStudioSolutionFiles SOURCES ${SOLUTION_FILES})
+    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/src/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/.clang-format" "${CMAKE_SOURCE_DIR}/.clang-tidy")
+    add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
 if(NOT IOS)

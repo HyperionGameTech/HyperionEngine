@@ -1435,11 +1435,15 @@ void RenderGlobalState::UpdateBuffers(FrameBase* frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
+    const uint32 frameIndex = frame->GetFrameIndex();
+
     for (auto& it : gpuBufferHolders->GetItems())
     {
-        it.second->UpdateBufferSize(frame->GetFrameIndex());
-        it.second->UpdateBufferData(frame->GetFrameIndex());
+        it.second->UpdateBufferSize(frameIndex);
+        it.second->UpdateBufferData(frame);
     }
+
+    StagingBufferPool::GetInstance().Cleanup(frameIndex);
 }
 
 void RenderGlobalState::AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
@@ -1493,6 +1497,7 @@ void RenderGlobalState::CreateBlueNoiseBuffer()
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
     GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    blueNoiseBuffer->SetRequireCpuAccessible(true);
     HYP_GFX_ASSERT(blueNoiseBuffer->Create());
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
     blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);

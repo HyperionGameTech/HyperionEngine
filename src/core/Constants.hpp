@@ -23,7 +23,7 @@ namespace hyperion {
 
 #endif
 
-static constexpr bool g_tripleBuffer = false;
+static constexpr bool g_tripleBuffer = true;
 static constexpr uint32 g_numMultiBuffers = g_tripleBuffer ? 3 : 2;
 
 constexpr uint8 g_engineMajorVersion = HYP_VERSION_MAJOR;

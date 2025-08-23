@@ -44,6 +44,7 @@ public:
     Delegate<void, FrameBase*> OnFrameEnd;
 
     RenderQueue renderQueue;
+    RenderQueue preRenderQueue;
 
 protected:
     FrameBase(uint32 frameIndex)

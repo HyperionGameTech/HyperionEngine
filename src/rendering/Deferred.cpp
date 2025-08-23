@@ -292,6 +292,13 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             {
                 continue;
             }
+            
+            if (!m_directLightGraphicsPipelines[lightTypeIndex].IsAlive())
+            {
+                FullScreenPass::CreatePipeline();
+
+                AssertDebug(m_directLightGraphicsPipelines[lightTypeIndex].IsAlive());
+            }
 
             const GraphicsPipelineRef& pipeline = *m_directLightGraphicsPipelines[lightTypeIndex];
 
