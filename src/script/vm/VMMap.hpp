@@ -66,7 +66,7 @@ public:
         return this == &other;
     }
 
-    void SetElement(VMMapKey key, Value&& value);
+    void SetElement(VMMapKey&& key, Value&& value);
 
     Value* GetElement(const VMMapKey& key);
     const Value* GetElement(const VMMapKey& key) const;

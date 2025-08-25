@@ -151,7 +151,11 @@ Value& Value::operator=(Value&& other) noexcept
 {
     if (this != &other)
     {
-        *GetHypData() = std::move(*other.GetHypData());
+        GetHypData()->~HypData();
+        new (m_internal) HypData(std::move(*other.GetHypData()));
+
+        other.GetHypData()->~HypData();
+        new (other.m_internal) HypData();
     }
 
     return *this;
@@ -162,7 +166,7 @@ Value::~Value()
     // have to manually call destructor because we used placement new
     GetHypData()->~HypData();
 
-    // set all bytes to 0xFF to indicate garbage
+    // set all bytes to 0xFF to indicate garbage for debugging purposes
     Memory::MemSet(m_internal, 0xFFu, sizeof(m_internal));
 }
 
@@ -417,7 +421,7 @@ bool Value::GetNumber(double* out) const
 
         return true;
     }
-    
+
     if (number.flags & Number::FLAG_UNSIGNED)
     {
         *out = static_cast<double>(number.u);
@@ -433,7 +437,6 @@ bool Value::GetNumber(Number* out) const
     const HypData& data = *GetHypData();
 
     const TypeId typeId = data.GetTypeId();
-
 
     if (typeId == TypeId::ForType<float>())
     {
@@ -589,7 +592,6 @@ VMArray* Value::GetArray() const
     if (!data.Is<VMArray>())
     {
         return nullptr;
-
     }
     return &data.Get<VMArray>();
 }
@@ -743,7 +745,7 @@ const char* Value::GetTypeString() const
     {
         return typeName;
     }
-    
+
     return "<Unknown type>";
 }
 

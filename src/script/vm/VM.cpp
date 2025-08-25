@@ -20,303 +20,305 @@
 #include <mutex>
 #include <sstream>
 
-#define HYP_NUMERIC_OPERATION(a, b, oper)                                              \
-    do                                                                                 \
-    {                                                                                  \
-        switch (numericType)                                                         \
-        {                                                                              \
-        case NT_I8:                                                                \
-            result.i = static_cast<int8>(a.i) oper static_cast<int8>(b.i);              \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;                    \
-            break;                                                                     \
-        case NT_I16:                                                               \
-            result.i = static_cast<int16>(a.i) oper static_cast<int16>(b.i);            \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;                   \
-            break;                                                                     \
-        case NT_I32:                                                               \
-            result.i = static_cast<int32>(a.i) oper static_cast<int32>(b.i);           \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;                  \
-            break;                                                                     \
-        case NT_I64:                                                               \
-            result.i = a.i oper b.i;                                                    \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;                   \
-            break;                                                                     \
-        case NT_U8:                                                                \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint8>(a.i);                                      \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = static_cast<uint8>(a.u);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint8>(b.i);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = static_cast<uint8>(b.u);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            break;                                                                     \
-        case NT_U16:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint16>(a.i);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = static_cast<uint16>(a.u);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint16>(b.i);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = static_cast<uint16>(b.u);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            break;                                                                     \
-        case NT_U32:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint32>(a.i);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = static_cast<uint32>(a.u);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint32>(b.i);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = static_cast<uint32>(b.u);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            break;                                                                     \
-        case NT_U64:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint64>(a.i);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = a.u;                                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint64>(b.i);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = b.u;                                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            break;                                                                     \
-        case NT_F32:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.f = static_cast<float>(a.i);                            \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;            \
-            }                                                                          \
-            else if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                          \
-                result.f = static_cast<float>(a.u);                            \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;            \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.f = static_cast<float>(a.f);                            \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;            \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.f oper## = static_cast<float>(b.i);                     \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;            \
-            }                                                                          \
-            else if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                          \
-                result.f oper## = static_cast<float>(b.u);                     \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;            \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.f oper## = static_cast<float>(b.f);                     \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;            \
-            }                                                                          \
-            break;                                                                     \
-        case NT_F64:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.f = static_cast<double>(a.i);                           \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;            \
-            }                                                                          \
-            else if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                          \
-                result.f = static_cast<double>(a.u);                           \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;            \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.f = a.f;                                                \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;            \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.f oper## = static_cast<double>(b.i);                    \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;            \
-            }                                                                          \
-            else if (a.flags & Number::FLAG_UNSIGNED)                                  \
-            {                                                                          \
-                result.f oper## = static_cast<double>(b.u);                    \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;            \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.f oper## = b.f;                                                  \
-                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;            \
-            }                                                                          \
-            break;                                                                     \
-        default:                                                                       \
-            Assert(false, "Invalid type, should not reach this state.");               \
-            break;                                                                     \
-        }                                                                              \
-    }                                                                                  \
+#define HYP_NUMERIC_OPERATION(a, b, oper)                                         \
+    do                                                                            \
+    {                                                                             \
+        switch (numericType)                                                      \
+        {                                                                         \
+        case NT_I8:                                                               \
+            result.i = static_cast<int8>(a.i) oper static_cast<int8>(b.i);        \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;              \
+            break;                                                                \
+        case NT_I16:                                                              \
+            result.i = static_cast<int16>(a.i) oper static_cast<int16>(b.i);      \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;             \
+            break;                                                                \
+        case NT_I32:                                                              \
+            result.i = static_cast<int32>(a.i) oper static_cast<int32>(b.i);      \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;             \
+            break;                                                                \
+        case NT_I64:                                                              \
+            result.i = a.i oper b.i;                                              \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;             \
+            break;                                                                \
+        case NT_U8:                                                               \
+            if (a.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u = static_cast<uint8>(a.i);                               \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u = static_cast<uint8>(a.u);                               \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
+            }                                                                     \
+            if (b.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u oper## = static_cast<uint8>(b.i);                        \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u oper## = static_cast<uint8>(b.u);                        \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;        \
+            }                                                                     \
+            break;                                                                \
+        case NT_U16:                                                              \
+            if (a.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u = static_cast<uint16>(a.i);                              \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u = static_cast<uint16>(a.u);                              \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
+            }                                                                     \
+            if (b.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u oper## = static_cast<uint16>(b.i);                       \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u oper## = static_cast<uint16>(b.u);                       \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;       \
+            }                                                                     \
+            break;                                                                \
+        case NT_U32:                                                              \
+            if (a.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u = static_cast<uint32>(a.i);                              \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u = static_cast<uint32>(a.u);                              \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
+            }                                                                     \
+            if (b.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u oper## = static_cast<uint32>(b.i);                       \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u oper## = static_cast<uint32>(b.u);                       \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       \
+            }                                                                     \
+            break;                                                                \
+        case NT_U64:                                                              \
+            if (a.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u = static_cast<uint64>(a.i);                              \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u = a.u;                                                   \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
+            }                                                                     \
+            if (b.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.u oper## = static_cast<uint64>(b.i);                       \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.u oper## = b.u;                                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       \
+            }                                                                     \
+            break;                                                                \
+        case NT_F32:                                                              \
+            if (a.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.f = static_cast<float>(a.i);                               \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
+            }                                                                     \
+            else if (a.flags & Number::FLAG_UNSIGNED)                             \
+            {                                                                     \
+                result.f = static_cast<float>(a.u);                               \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.f = static_cast<float>(a.f);                               \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
+            }                                                                     \
+            if (b.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.f oper## = static_cast<float>(b.i);                        \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
+            }                                                                     \
+            else if (a.flags & Number::FLAG_UNSIGNED)                             \
+            {                                                                     \
+                result.f oper## = static_cast<float>(b.u);                        \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.f oper## = static_cast<float>(b.f);                        \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; \
+            }                                                                     \
+            break;                                                                \
+        case NT_F64:                                                              \
+            if (a.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.f = static_cast<double>(a.i);                              \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
+            }                                                                     \
+            else if (a.flags & Number::FLAG_UNSIGNED)                             \
+            {                                                                     \
+                result.f = static_cast<double>(a.u);                              \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.f = a.f;                                                   \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
+            }                                                                     \
+            if (b.flags & Number::FLAG_SIGNED)                                    \
+            {                                                                     \
+                result.f oper## = static_cast<double>(b.i);                       \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
+            }                                                                     \
+            else if (a.flags & Number::FLAG_UNSIGNED)                             \
+            {                                                                     \
+                result.f oper## = static_cast<double>(b.u);                       \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
+            }                                                                     \
+            else                                                                  \
+            {                                                                     \
+                result.f oper## = b.f;                                            \
+                result.flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; \
+            }                                                                     \
+            break;                                                                \
+        default:                                                                  \
+            Assert(false, "Invalid type, should not reach this state.");          \
+            break;                                                                \
+        }                                                                         \
+    }                                                                             \
     while (0)
 
-#define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper)                                      \
-    do                                                                                 \
-    {                                                                                  \
-        switch (numericType)                                                         \
-        {                                                                              \
-        case NT_I8:                                                                \
-            result.i = static_cast<int8>(a.i) oper static_cast<int8>(b.i);    \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;                    \
-            break;                                                                     \
-        case NT_I16:                                                               \
-            result.i = static_cast<int16>(a.i) oper static_cast<int16>(b.i); \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;                   \
-            break;                                                                     \
-        case NT_I32:                                                               \
-            result.i = static_cast<int32>(a.i) oper static_cast<int32>(b.i); \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;                   \
-            break;                                                                     \
-        case NT_I64:                                                               \
-            result.i = a.i oper b.i;                                         \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;                   \
-            break;                                                                     \
-        case NT_U8:                                                                \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint8>(a.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = static_cast<uint8>(a.u);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint8>(b.i);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = static_cast<uint8>(b.u);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;              \
-            }                                                                          \
-            break;                                                                     \
-        case NT_U16:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint16>(a.i);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = static_cast<uint16>(a.u);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint16>(b.i);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = static_cast<uint16>(b.u);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;             \
-            }                                                                          \
-            break;                                                                     \
-        case NT_U32:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint32>(a.i);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = static_cast<uint32>(a.u);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint32>(b.i);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = static_cast<uint32>(b.u);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;             \
-            }                                                                          \
-            break;                                                                     \
-        case NT_U64:                                                               \
-            if (a.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u = static_cast<uint64>(a.i);                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u = a.u;                                              \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            if (b.flags & Number::FLAG_SIGNED)                                         \
-            {                                                                          \
-                result.u oper## = static_cast<uint64>(b.i);                  \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            else                                                                       \
-            {                                                                          \
-                result.u oper## = b.u;                                       \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;             \
-            }                                                                          \
-            break;                                                                     \
-        default:                                                                       \
-            state->ThrowException(thread, Exception::InvalidBitwiseArgument());        \
-            break;                                                                     \
-        }                                                                              \
-    }                                                                                  \
+#define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper)                               \
+    do                                                                          \
+    {                                                                           \
+        switch (numericType)                                                    \
+        {                                                                       \
+        case NT_I8:                                                             \
+            result.i = static_cast<int8>(a.i) oper static_cast<int8>(b.i);      \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;            \
+            break;                                                              \
+        case NT_I16:                                                            \
+            result.i = static_cast<int16>(a.i) oper static_cast<int16>(b.i);    \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;           \
+            break;                                                              \
+        case NT_I32:                                                            \
+            result.i = static_cast<int32>(a.i) oper static_cast<int32>(b.i);    \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;           \
+            break;                                                              \
+        case NT_I64:                                                            \
+            result.i = a.i oper b.i;                                            \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;           \
+            break;                                                              \
+        case NT_U8:                                                             \
+            if (a.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u = static_cast<uint8>(a.i);                             \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;      \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u = static_cast<uint8>(a.u);                             \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;      \
+            }                                                                   \
+            if (b.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u oper## = static_cast<uint8>(b.i);                      \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;      \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u oper## = static_cast<uint8>(b.u);                      \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;      \
+            }                                                                   \
+            break;                                                              \
+        case NT_U16:                                                            \
+            if (a.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u = static_cast<uint16>(a.i);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;     \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u = static_cast<uint16>(a.u);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;     \
+            }                                                                   \
+            if (b.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u oper## = static_cast<uint16>(b.i);                     \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;     \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u oper## = static_cast<uint16>(b.u);                     \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;     \
+            }                                                                   \
+            break;                                                              \
+        case NT_U32:                                                            \
+            if (a.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u = static_cast<uint32>(a.i);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;     \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u = static_cast<uint32>(a.u);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;     \
+            }                                                                   \
+            if (b.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u oper## = static_cast<uint32>(b.i);                     \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;     \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u oper## = static_cast<uint32>(b.u);                     \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;     \
+            }                                                                   \
+            break;                                                              \
+        case NT_U64:                                                            \
+            if (a.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u = static_cast<uint64>(a.i);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;     \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u = a.u;                                                 \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;     \
+            }                                                                   \
+            if (b.flags & Number::FLAG_SIGNED)                                  \
+            {                                                                   \
+                result.u oper## = static_cast<uint64>(b.i);                     \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;     \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                result.u oper## = b.u;                                          \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;     \
+            }                                                                   \
+            break;                                                              \
+        default:                                                                \
+            state->ThrowException(thread, Exception::InvalidBitwiseArgument()); \
+            break;                                                              \
+        }                                                                       \
+    }                                                                           \
     while (0)
 
 namespace hyperion {
+
+extern const char* LookupTypeName(TypeId typeId);
 
 #pragma region ScriptApi
 
@@ -342,7 +344,7 @@ static inline vm::Value ScriptApi_MakeScriptValueRef(vm::Value* pRef)
 
     vm::Script_VMData vmData;
     vmData.type = vm::Script_VMData::VALUE_REF;
-    vmData.valueRef = pRef;
+    vmData.valueRef = pRef->Deref();
 
     return vm::Value(vmData);
 }
@@ -500,7 +502,6 @@ public:
             stk.GetStackPointer());
 
         // read value from stack at the index into the the register
-        // NOTE: read from main thread
         thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&stk[index]), false);
     }
 
@@ -513,14 +514,7 @@ public:
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
     {
-        if (HeapValue* hv = state->HeapAlloc(thread))
-        {
-            hv->Assign(VMString(str));
-
-            thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(VMString(str)), false);
-
-            hv->Mark();
-        }
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(VMString(str)), false);
     }
 
     HYP_FORCE_INLINE void LoadAddr(BCRegister reg, BCAddress addr)
@@ -593,7 +587,7 @@ public:
 
         state->ThrowException(
             thread,
-            Exception("Cannot access member by index: Not an VMObject"));
+            Exception("Cannot access member by index: Not a VMObject"));
     }
 
     HYP_FORCE_INLINE void LoadMemHash(BCRegister dstReg, BCRegister srcReg, uint32 hash)
@@ -687,25 +681,28 @@ public:
 
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
     {
-        thread->m_regs[reg] = ScriptApi_MakeScriptValueRef(&thread->m_stack[thread->m_stack.GetStackPointer() - offset]);
+        // load reference to stack value at (sp - offset) into the register
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&thread->m_stack[thread->m_stack.GetStackPointer() - offset]), false);
     }
 
     HYP_FORCE_INLINE void LoadIndexRef(BCRegister reg, uint16 index)
     {
-        auto& stk = state->MAIN_THREAD->m_stack;
+        Script_StackMemory& stackMemory = state->MAIN_THREAD->m_stack;
 
         Assert(
-            index < stk.GetStackPointer(),
+            index < stackMemory.GetStackPointer(),
             "Stack index out of bounds (%u >= %llu)",
             index,
-            stk.GetStackPointer());
+            stackMemory.GetStackPointer());
 
-        thread->m_regs[reg] = ScriptApi_MakeScriptValueRef(&stk[index]);
+        // load reference to stack value at index into the register
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&stackMemory[index]), false);
     }
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValueRef(&thread->m_regs[srcReg]);
+        // load reference to value in srcReg into dstReg
+        thread->m_regs[dstReg].AssignValue(ScriptApi_MakeScriptValueRef(&thread->m_regs[srcReg]), false);
     }
 
     HYP_FORCE_INLINE void LoadDeref(BCRegister dstReg, BCRegister srcReg)
@@ -752,15 +749,15 @@ public:
         //// ensure we will not be overwriting something that is marked ALWAYS_ALIVE
         //// will cause a memory leak if we overwrite it, or if we did change the flag,
         //// it could cause corruption in places where we expect something to always exist.
-        //if (state->m_staticMemory[index].m_type == Value::HEAP_POINTER)
+        // if (state->m_staticMemory[index].m_type == Value::HEAP_POINTER)
         //{
-        //    HeapValue* hv = state->m_staticMemory[index].m_value.internal.ptr;
-        //    if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE))
-        //    {
-        //        // state->ThrowException(
-        //        //     thread,
-        //        //     Exception("Cannot overwrite static value marked as ALWAYS_ALIVE")
-        //        // );
+        //     HeapValue* hv = state->m_staticMemory[index].m_value.internal.ptr;
+        //     if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE))
+        //     {
+        //         // state->ThrowException(
+        //         //     thread,
+        //         //     Exception("Cannot overwrite static value marked as ALWAYS_ALIVE")
+        //         // );
 
         //        // return;
 
@@ -770,13 +767,13 @@ public:
         //}
 
         //// Mark our new value as ALWAYS_ALIVE if applicable.
-        //if (thread->m_regs[reg].m_type == Value::HEAP_POINTER)
+        // if (thread->m_regs[reg].m_type == Value::HEAP_POINTER)
         //{
-        //    if (HeapValue* hv = thread->m_regs[reg].m_value.internal.ptr)
-        //    {
-        //        thread->m_regs[reg].m_value.internal.ptr->EnableFlags(GC_ALWAYS_ALIVE);
-        //    }
-        //}
+        //     if (HeapValue* hv = thread->m_regs[reg].m_value.internal.ptr)
+        //     {
+        //         thread->m_regs[reg].m_value.internal.ptr->EnableFlags(GC_ALWAYS_ALIVE);
+        //     }
+        // }
 
         // @TODO: Come back to review this for GC stuff.
 
@@ -787,14 +784,19 @@ public:
 
     HYP_FORCE_INLINE void MovMem(BCRegister dstReg, uint8 index, BCRegister srcReg)
     {
-        Value& sv = thread->m_regs[dstReg];
-        
+        Value& sv = thread->m_regs[dstReg]; //<---- need to deref here?
+
         VMObject* object = sv.GetObject();
         if (object == nullptr)
         {
+            // TEMP; debug
+            HypData* hypData = sv.GetHypData();
+            Assert(hypData != nullptr && !hypData->IsNull());
+
+            DebugLog(LogType::Debug, "Type name: %s\t String value: %s\tCurr program counter: %u\n", sv.GetTypeString(), sv.ToString().GetData(), bs->Position());
             state->ThrowException(
                 thread,
-                Exception("Cannot assign member by index: Not an VMObject"));
+                Exception("Cannot assign member by index: Not a VMObject"));
             return;
         }
 
@@ -819,7 +821,7 @@ public:
         {
             state->ThrowException(
                 thread,
-                Exception("Cannot assign member by hash: Not an VMObject"));
+                Exception("Cannot assign member by hash: Not a VMObject"));
             return;
         }
 
@@ -843,15 +845,15 @@ public:
 
         VMArray* array = sv.GetArray();
 
-        //if (array == nullptr)
+        // if (array == nullptr)
         //{
-        //    if (auto* memoryBuffer = hv->GetPointer<VMMemoryBuffer>())
-        //    {
-        //        if (static_cast<SizeType>(index) >= memoryBuffer->GetSize())
-        //        {
-        //            state->ThrowException(
-        //                thread,
-        //                Exception::OutOfBoundsException());
+        //     if (auto* memoryBuffer = hv->GetPointer<VMMemoryBuffer>())
+        //     {
+        //         if (static_cast<SizeType>(index) >= memoryBuffer->GetSize())
+        //         {
+        //             state->ThrowException(
+        //                 thread,
+        //                 Exception::OutOfBoundsException());
 
         //            return;
         //        }
@@ -966,11 +968,11 @@ public:
             return;
         }
 
-        //if (array == nullptr)
+        // if (array == nullptr)
         //{
-        //    if (auto* memoryBuffer = hv->GetPointer<VMMemoryBuffer>())
-        //    {
-        //        Number dstData;
+        //     if (auto* memoryBuffer = hv->GetPointer<VMMemoryBuffer>())
+        //     {
+        //         Number dstData;
 
         //        if (!thread->m_regs[srcReg].GetSignedOrUnsigned(&dstData))
         //        {
@@ -1120,7 +1122,10 @@ public:
     HYP_FORCE_INLINE void Push(BCRegister reg)
     {
         // push a copy of the register value to the top of the stack
-        thread->m_stack.Push(std::move(thread->m_regs[reg]));
+        thread->m_stack.Push(std::move(*thread->m_regs[reg].Deref()));
+
+        // temp, debugging
+        DebugLog(LogType::Debug, "Pushed register %u to stack. Value: %s\n", reg, thread->m_stack.Top().ToString().GetData());
     }
 
     HYP_FORCE_INLINE void Pop()
@@ -1131,7 +1136,7 @@ public:
     HYP_FORCE_INLINE void PushArray(BCRegister dstReg, BCRegister srcReg)
     {
         Value& dst = thread->m_regs[dstReg];
-        
+
         VMArray* array = dst.GetArray();
         if (!array)
         {
@@ -1306,7 +1311,7 @@ public:
             for (SizeType index = 0; index < it.Size(); index++)
             {
                 /// FIXME: This will be an issue as we do not clone
-                //allMembers.PushBack(it.Data()[index]);
+                // allMembers.PushBack(it.Data()[index]);
             }
         }
 
@@ -1388,8 +1393,8 @@ public:
                 thread->m_regs.m_flags = (lhsBool == rhsBool)
                     ? EQUAL
                     : ((lhsBool > rhsBool)
-                        ? GREATER
-                        : NONE);
+                              ? GREATER
+                              : NONE);
             }
             else
             {
@@ -1450,7 +1455,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1483,7 +1488,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1516,7 +1521,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1549,7 +1554,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1593,7 +1598,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1667,7 +1672,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1700,7 +1705,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1733,7 +1738,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1765,7 +1770,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1797,7 +1802,7 @@ public:
         // load values from registers
         Value* lhs = &thread->m_regs[lhsReg];
         Value* rhs = &thread->m_regs[rhsReg];
-        
+
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
         Number a, b;
@@ -1831,7 +1836,7 @@ public:
 
         Number result;
         result.flags = num.flags;
-        
+
         // we only allow bitwise NOT on integers
         if (value.GetNumber(&num) && (num.flags & (Number::FLAG_SIGNED | Number::FLAG_UNSIGNED)))
         {
@@ -2019,7 +2024,7 @@ public:
         {
             result.u = static_cast<uint16>(num.f);
         }
-        
+
         thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
     }
 
@@ -3773,10 +3778,6 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             // set varargsPush value so we know how to get back to the stack size before.
             previousAddr.call.varargsPush = varargsAmt - 1;
 
-            // allocate heap object
-            HeapValue* hv = state->HeapAlloc(thread);
-            Assert(hv != nullptr);
-
             // create VMArray object to hold variadic args
             VMArray arr(varargsAmt);
 
@@ -3886,9 +3887,8 @@ void VM::CreateStackTrace(Script_ExecutionThread* thread, StackTrace* out)
         const Value& top = thread->m_stack[sp - 1];
 
         Script_VMData* topVmData = top.GetVMData();
-        Assert(topVmData != nullptr);
 
-        if (topVmData->type == Script_VMData::FUNCTION_CALL)
+        if (topVmData && topVmData->type == Script_VMData::FUNCTION_CALL)
         {
             out->callAddresses[numRecordedCallAddresses++] = static_cast<int>(topVmData->call.returnAddress);
         }

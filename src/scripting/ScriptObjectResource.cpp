@@ -58,9 +58,9 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Cl
 
 #ifdef HYP_SCRIPT
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, vm::Value value)
+ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, vm::Value&& value)
     : m_ptr(ptr),
-      m_value(value)
+      m_value(std::move(value))
 {
     // Need to inc ref for proper book keeping w/ creating new .NET objects
     if (ptr.IsValid())
@@ -83,7 +83,7 @@ ScriptObjectResource::~ScriptObjectResource()
 ScriptLanguage ScriptObjectResource::GetScriptLanguage() const
 {
 #ifdef HYP_SCRIPT
-    if (m_value.GetType() != vm::Value::NONE)
+    if (m_value.IsValid())
     {
         return SL_HYPSCRIPT;
     }

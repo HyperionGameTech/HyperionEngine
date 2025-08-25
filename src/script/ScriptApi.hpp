@@ -449,25 +449,6 @@ private:
 
 #pragma endregion
 
-#pragma region Helpers
-
-template <class T>
-static inline auto CxxToScriptValueInternal(T&& value) -> vm::Value
-{
-    return vm::Value(HypData(std::forward<T>(value)));
-}
-
-template <int Index, class T>
-static inline auto GetArgument(sdk::Params& params)
-{
-    vm::Value* value = params.args[Index];
-    Assert(value != nullptr);
-
-    return value->GetHypData()->Get<T>();
-}
-
-#pragma endregion
-
 #pragma region Native Script Binding Helper Structs
 
 struct ScriptBindingsBase;

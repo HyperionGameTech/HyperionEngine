@@ -27,6 +27,7 @@ static struct MathScriptBindings : ScriptBindingsBase
 
     virtual void Generate(scriptapi2::Context& context) override
     {
+#if 0
         context.Global("NAN", "float", Value { Value::F32, { .f = MathUtil::NaN<float>() } });
         context.Global("sqrt", "function< float, float >", CxxFn<float, float, &MathUtil::Sqrt<float>>);
         context.Global("pow", "function< float, float, float >", CxxFn<float, float, float, &MathUtil::Pow<float>>);
@@ -67,6 +68,7 @@ static struct MathScriptBindings : ScriptBindingsBase
             .Method("getZ", "function< float, Vec3f >", CxxMemberFn<float, Vec3f, &Vec3f::GetZ>)
             .Method("setZ", "function< Vec3f, Vec3f, float >", CxxMemberFn<Vec3f&, Vec3f, float, &Vec3f::SetZ>)
             .Build();
+#endif
     }
 
 } mathUtilScriptBindings {};

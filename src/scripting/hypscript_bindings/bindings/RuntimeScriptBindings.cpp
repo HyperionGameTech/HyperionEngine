@@ -25,6 +25,7 @@ static struct RuntimeScriptBindings : ScriptBindingsBase
 
     virtual void Generate(scriptapi2::Context& context) override
     {
+#if 0
         context.Global("testGenericFn", "<T>", "function< T, T >", CxxFn<vm::Value, vm::Value, [](vm::Value value) -> vm::Value
                                                                        {
                                                                            return value;
@@ -95,6 +96,7 @@ static struct RuntimeScriptBindings : ScriptBindingsBase
 
                                                                              return isInstance;
                                                                          }>);
+#endif
     }
 
 } runtimeScriptBindings {};

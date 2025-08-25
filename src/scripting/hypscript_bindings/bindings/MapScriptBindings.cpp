@@ -23,8 +23,12 @@ static struct MapScriptBindings : ScriptBindingsBase
 
     virtual void Generate(scriptapi2::Context& context) override
     {
+#if 0
         context.Class<VMMap>("Map", String("<K, V>"))
-            .Method("$construct", "function< Map, any >", CxxCtor<VMMap>)
+            .Method("$construct", "function< Map, any >", []() -> VMMap
+                    {
+                        return VMMap();
+                    })
             .Method("operator[]", "function< V, any, K >", CxxFn<vm::Value, VMMap*, vm::Value, [](VMMap* map, vm::Value key) -> vm::Value
                                                                {
                                                                    if (!map)
@@ -133,6 +137,7 @@ static struct MapScriptBindings : ScriptBindingsBase
                                                                        return map;
                                                                    }>)
             .Build();
+#endif
     }
 
 } mapScriptBindings {};

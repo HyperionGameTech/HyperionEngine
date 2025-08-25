@@ -34,9 +34,9 @@ VMMap::~VMMap()
 {
 }
 
-void VMMap::SetElement(VMMapKey key, Value&& value)
+void VMMap::SetElement(VMMapKey&& key, Value&& value)
 {
-    m_map[key] = std::move(value);
+    m_map.Set(std::move(key), std::move(value));
 }
 
 Value* VMMap::GetElement(const VMMapKey& key)

@@ -90,6 +90,7 @@ static struct LoggerScriptBindings : ScriptBindingsBase
 
     virtual void Generate(scriptapi2::Context& context) override
     {
+#if 0
         context.Class<Logger>("Logger")
             .StaticMember("DEBUG", "uint", vm::Value { vm::Value::U32, { .u32 = logging::Debug().value } })
             .StaticMember("INFO", "uint", vm::Value { vm::Value::U32, { .u32 = logging::Info().value } })
@@ -163,6 +164,8 @@ static struct LoggerScriptBindings : ScriptBindingsBase
                         std::printf("%s", str.Data());
                     }>)
             .Build();
+
+#endif
     }
 
 } loggerScriptBindings {};

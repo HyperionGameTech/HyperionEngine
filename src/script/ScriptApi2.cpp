@@ -304,7 +304,7 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
 
         const int stackLocation = global.varDecl->GetIdentifier()->GetStackLocation();
         Assert(stackLocation != -1, "Global {} has no stack location", global.symbol.name.Data());
-        
+
         Script_VMData vmData;
         vmData.type = Script_VMData::VALUE_REF;
         vmData.valueRef = global.symbol.value.Deref();

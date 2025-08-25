@@ -38,7 +38,7 @@ public:
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(HypObjectPtr ptr, vm::Value value);
+    ScriptObjectResource(HypObjectPtr ptr, vm::Value&& value);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;

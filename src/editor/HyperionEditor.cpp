@@ -106,7 +106,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    #if 1
+#if 1
     //{ // script 1
     //    // temp
     //    String str;
@@ -130,7 +130,7 @@ void HyperionEditor::Init()
     { // script 2
         // temp
         String str;
-        str = "export func x(a, b) { Logger.log(Logger.INFO, \"a = {}, b = {}\", a, b); };";
+        str = "export func x(a, b) { return a * b; };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 
@@ -148,10 +148,10 @@ void HyperionEditor::Init()
             HypScript::GetInstance().Run(scriptHandle);
 
             // call function
-            Value v;
-            if (HypScript::GetInstance().GetFunctionHandle("x", v))
+            FunctionHandle functionHandle;
+            if (HypScript::GetInstance().GetFunctionHandle("x", functionHandle))
             {
-                HypScript::GetInstance().CallFunction(scriptHandle, v, 5, 4);
+                HypScript::GetInstance().CallFunction(scriptHandle, functionHandle, 5, 4);
             }
             else
             {
@@ -161,7 +161,7 @@ void HyperionEditor::Init()
             HypScript::GetInstance().DestroyScript(scriptHandle);
         }
     }
-    #endif
+#endif
 
     HYP_BREAKPOINT;
     // temp

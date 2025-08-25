@@ -52,11 +52,11 @@ void VMState::ThrowException(Script_ExecutionThread* thread, const Exception& ex
         // exception cannot be handled, no try block found
         if (thread->m_id == 0)
         {
-            HYP_FAIL("unhandled exception in main thread: {}", exception.ToString());
+            DebugLog(LogType::Error, "unhandled exception in main thread: %s", exception.ToString());
         }
         else
         {
-            HYP_FAIL("unhandled exception in thread {}: {}", thread->m_id, exception.ToString());
+            DebugLog(LogType::Error, "unhandled exception in thread %d: %s", thread->m_id, exception.ToString());
         }
 
         good = false;

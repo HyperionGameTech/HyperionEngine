@@ -10,9 +10,9 @@
 
 #include <script/HypScript.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <core/object/HypData.hpp>
 
-#include <core/containers/TypeMap.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 

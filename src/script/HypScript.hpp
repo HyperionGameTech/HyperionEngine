@@ -28,13 +28,13 @@ class Context;
 
 class HypScript;
 
-#define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps) \
-    enum class handleTypeName##Handle : uint32; \
+#define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType) \
+    enum class handleTypeName##Handle : underlyingType; \
     constexpr handleTypeName##Handle INVALID_##handleTypeNameCaps = handleTypeName##Handle(0);
 
-HYP_DEF_SCRIPT_API_HANDLE(Script, SCRIPT)
-HYP_DEF_SCRIPT_API_HANDLE(Function, FUNCTION)
-HYP_DEF_SCRIPT_API_HANDLE(Object, OBJECT)
+HYP_DEF_SCRIPT_API_HANDLE(Script, SCRIPT, uint32)
+HYP_DEF_SCRIPT_API_HANDLE(Function, FUNCTION, uint64)
+HYP_DEF_SCRIPT_API_HANDLE(Object, OBJECT, uint64)
 
 #undef HYP_DEF_SCRIPT_API_HANDLE
 
@@ -81,13 +81,13 @@ public:
     void Run(ScriptHandle scriptHandle);
 
     template <class T>
-    constexpr Value CreateArgument(T&& item)
+    static inline Value CreateArgument(T&& item)
     {
-        return HypData(std::forward<T>(item));
+        return Value(HypData(std::forward<T>(item)));
     }
 
     template <class... Args>
-    auto CreateArguments(Args&&... args) -> FixedArray<Value, sizeof...(Args)>
+    static inline auto CreateArguments(Args&&... args) -> FixedArray<Value, sizeof...(Args)>
     {
         return FixedArray<Value, sizeof...(Args)> {
             CreateArgument(args)...
@@ -107,11 +107,11 @@ public:
     bool SetMember(ObjectHandle objectHandle, const char* memberName, Value&& value);
 
     template <class... Args>
-    void CallFunction(ScriptHandle scriptHandle, const Value& function, Args&&... args)
+    void CallFunction(ScriptHandle scriptHandle, FunctionHandle functionHandle, Args&&... args)
     {
         auto arguments = CreateArguments(std::forward<Args>(args)...);
 
-        CallFunctionArgV(scriptHandle, function, arguments.Data(), arguments.Size());
+        CallFunctionArgV(scriptHandle, functionHandle, arguments.Data(), arguments.Size());
     }
 
 #if 0
