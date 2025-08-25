@@ -80,12 +80,8 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 #endif
 
 #ifdef HYP_SCRIPT
-            // @TODO Review
-
             ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, HYP_SCRIPT_OBJECT);
-
             Assert(scriptObjectResource != nullptr);
-            scriptObjectResource->IncRef();
 
             target->SetScriptObjectResource(scriptObjectResource);
 
@@ -235,7 +231,7 @@ HYP_API void HypObjectPtr::DecRef(bool weak)
 
 #pragma endregion HypObjectPtr
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
 
 HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
 {

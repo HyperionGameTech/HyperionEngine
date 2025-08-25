@@ -65,11 +65,6 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, HypScriptObjectTag)
     : m_ptr(ptr),
       m_scriptLanguage(SL_HYPSCRIPT)
 {
-    // Need to inc ref for proper book keeping w/ creating new .NET objects
-    if (ptr.IsValid())
-    {
-        ptr.IncRef();
-    }
 }
 
 #endif

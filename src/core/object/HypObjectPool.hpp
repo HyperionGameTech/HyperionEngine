@@ -39,7 +39,7 @@ HYP_API extern void ReleaseHypObject(const HypClass* hypClass, uint32 index);
 class HypObjectContainerBase
 {
     friend class HypObjectPool;
-    
+
 public:
     virtual ~HypObjectContainerBase() = default;
 
@@ -119,7 +119,7 @@ struct HypObjectHeader
         {
             if (AtomicCompareExchange(&refCountStrong, count, count + 1))
             {
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
                 // if count was added successfully (and now, greater than 1), we can acquire the lock for the managed object
                 HypObject_IncScriptObjectRef(GetObjectPointer(this));
 #endif
@@ -136,7 +136,7 @@ struct HypObjectHeader
     {
         const int32 count = AtomicIncrement(&refCountStrong);
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
         if (count > 1)
         {
             HypObject_IncScriptObjectRef(GetObjectPointer(this));
@@ -174,7 +174,7 @@ struct HypObjectHeader
 
         HYP_CORE_ASSERT(count > 0, "RefCount bug! strong count went negative");
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
         if (count > 1)
         {
             HypObject_DecScriptObjectRef(GetObjectPointer(this));

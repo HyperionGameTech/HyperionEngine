@@ -171,7 +171,7 @@ private:
     const HypClass* m_hypClass;
 };
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
 HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr);
 HYP_API void HypObject_DecScriptObjectRef(HypObjectBase* ptr);
 #endif

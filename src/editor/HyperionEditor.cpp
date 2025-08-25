@@ -164,9 +164,6 @@ void HyperionEditor::Init()
                 if (lastReturn.IsValid())
                 {
                     HYP_LOG(Editor, Debug, "Last value : {}", lastReturn.ToString().GetData());
-
-                    const AnyHandle& handle = lastReturn.GetObject();
-                    HYP_LOG(Editor, Debug, "Handle ptr: {}, type id: {}, class: {}", (void*)handle.ptr, handle.typeId.Value(), handle.ptr->InstanceClass()->GetName());
                 }
                 else
                 {

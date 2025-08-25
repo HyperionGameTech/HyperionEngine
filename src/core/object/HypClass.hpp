@@ -899,6 +899,7 @@ protected:
     }
 };
 
+/*! \brief a runtime created HypClass instance, for use in scripts or external code such as .NET or HypScript */
 class DynamicHypClassInstance final : public HypClass
 {
 public:
