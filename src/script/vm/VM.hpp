@@ -22,6 +22,8 @@ class APIInstance;
 
 namespace vm {
 
+class GC;
+
 class VM
 {
 public:
@@ -42,6 +44,11 @@ public:
     const VMState& GetState() const
     {
         return m_state;
+    }
+
+    GC* GetGC() const
+    {
+        return m_state.GetGC();
     }
 
     void Invoke(

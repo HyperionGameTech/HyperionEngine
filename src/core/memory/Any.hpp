@@ -770,6 +770,7 @@ protected:
 } // namespace memory
 
 using memory::Any;
+using memory::AnyBase;
 using memory::CopyableAny;
 
 } // namespace hyperion

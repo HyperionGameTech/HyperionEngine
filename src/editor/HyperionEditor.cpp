@@ -152,6 +152,14 @@ void HyperionEditor::Init()
             if (HypScript::GetInstance().GetFunctionHandle("x", functionHandle))
             {
                 HypScript::GetInstance().CallFunction(scriptHandle, functionHandle, 5, 4);
+                
+                vm::Value* lastReturn;
+                HypScript::GetInstance().ReadLastReturnValue(lastReturn);
+                
+                if (lastReturn != nullptr)
+                {
+                    HYP_LOG(Editor, Debug, "Last value : {}", lastReturn->ToString().GetData());
+                }
             }
             else
             {

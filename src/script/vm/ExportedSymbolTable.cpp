@@ -31,8 +31,10 @@ bool ExportedSymbolTable::Find(HashFNV1 hash, Value*& out)
     {
         return false;
     }
+    
+    Assert(it->second != nullptr);
 
-    out = it->second;
+    out = it->second->Deref();
 
     return true;
 }

@@ -32,6 +32,8 @@ class InstructionHandler;
 struct Script_ExecutionThread;
 class HeapValue;
 struct VMState;
+class VM;
+class GC;
 class Exception;
 
 enum NumericType : uint8
@@ -77,7 +79,8 @@ struct Number
     Flags flags;
 
     constexpr Number()
-        : i(0), flags(FLAG_NONE)
+        : i(0),
+          flags(FLAG_NONE)
     {
     }
 
@@ -217,11 +220,16 @@ struct alignas(8) Script_VMData
     } type;
 };
 
+enum class GCIndex : uint32;
+static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
+
 class alignas(8) Value
 {
     friend class VM;
+    friend class GC;
 
     char m_internal[40];
+    GCIndex m_gcIndex;
 
 public:
     Value();
@@ -238,7 +246,13 @@ public:
 
     ~Value();
 
-    Script_VMData* GetVMData() const;
+    HYP_FORCE_INLINE GCIndex GetGCIndex() const
+    {
+        return m_gcIndex;
+    }
+
+    Script_VMData* GetVMData();
+    const Script_VMData* GetVMData() const;
 
     HypData* GetHypData();
     const HypData* GetHypData() const;

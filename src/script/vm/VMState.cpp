@@ -1,4 +1,5 @@
 #include <script/vm/VMState.hpp>
+#include <script/vm/GC.hpp>
 
 #include <util/UTF8.hpp>
 
@@ -12,6 +13,7 @@ namespace hyperion {
 namespace vm {
 
 VMState::VMState()
+    : m_gc(new GC())
 {
     for (int i = 0; i < VM_MAX_THREADS; i++)
     {
@@ -22,6 +24,9 @@ VMState::VMState()
 VMState::~VMState()
 {
     Reset();
+
+    delete m_gc;
+    m_gc = nullptr;
 }
 
 void VMState::Reset()
@@ -108,36 +113,36 @@ HeapValue* VMState::HeapAlloc(Script_ExecutionThread* thread)
     return m_heap.Alloc();
 }
 
-void VMState::GC()
-{
-    DebugLog(
-        LogType::Debug,
-        "Begin gc\n");
+// void VMState::GC()
+// {
+//     DebugLog(
+//         LogType::Debug,
+//         "Begin gc\n");
 
-    m_exportedSymbols.MarkAll();
+//     m_exportedSymbols.MarkAll();
 
-    // mark stack objects on each thread
-    for (uint32 i = 0; i < VM_MAX_THREADS; i++)
-    {
-        if (m_threads[i] != nullptr)
-        {
-            m_threads[i]->m_stack.MarkAll();
+//     // mark stack objects on each thread
+//     for (uint32 i = 0; i < VM_MAX_THREADS; i++)
+//     {
+//         if (m_threads[i] != nullptr)
+//         {
+//             m_threads[i]->m_stack.MarkAll();
 
-            for (uint32 j = 0; j < VM_NUM_REGISTERS; j++)
-            {
-                m_threads[i]->GetRegisters()[j].Mark();
-            }
-        }
-    }
+//             for (uint32 j = 0; j < VM_NUM_REGISTERS; j++)
+//             {
+//                 m_threads[i]->GetRegisters()[j].Mark();
+//             }
+//         }
+//     }
 
-    uint32 numCollected;
-    m_heap.Sweep(&numCollected);
+//     uint32 numCollected;
+//     m_heap.Sweep(&numCollected);
 
-    DebugLog(
-        LogType::Debug,
-        "%u objects garbage collected\n",
-        numCollected);
-}
+//     DebugLog(
+//         LogType::Debug,
+//         "%u objects garbage collected\n",
+//         numCollected);
+// }
 
 Script_ExecutionThread* VMState::CreateThread()
 {

@@ -6,6 +6,7 @@
 #include <script/vm/VMObject.hpp>
 #include <script/vm/VMString.hpp>
 #include <script/vm/VMTypeInfo.hpp>
+#include <script/vm/GC.hpp>
 
 #include <core/object/HypData.hpp>
 #include <core/debug/Debug.hpp>
@@ -323,30 +324,101 @@ extern const char* LookupTypeName(TypeId typeId);
 #pragma region ScriptApi
 
 template <class T, typename = std::enable_if_t<!std::is_same_v<vm::Script_VMData, NormalizedType<T>> && !std::is_same_v<vm::Number, NormalizedType<T>>>>
-static inline vm::Value ScriptApi_MakeScriptValue(T&& data)
+static inline vm::Value ScriptApi_MakeValue(T&& data)
 {
     return vm::Value(HypData(std::forward<T>(data)));
 }
 
-static inline vm::Value ScriptApi_MakeScriptValue(const vm::Script_VMData& data)
+static inline vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data)
 {
     return vm::Value(data);
 }
 
-static inline vm::Value ScriptApi_MakeScriptValue(const vm::Number& number)
+static inline vm::Value ScriptApi_MakeValue(const vm::Number& number)
 {
     return vm::Value(number);
 }
 
-static inline vm::Value ScriptApi_MakeScriptValueRef(vm::Value* pRef)
+/*! \brief Use for loading into registers - does not promote to tracked memory */
+static inline vm::Value ScriptApi_MakeRef(vm::Value& refValue)
 {
-    Assert(pRef != nullptr);
+    vm::Value* pValue = &refValue;
 
     vm::Script_VMData vmData;
     vmData.type = vm::Script_VMData::VALUE_REF;
-    vmData.valueRef = pRef->Deref();
+    vmData.valueRef = refValue.Deref();
+
+    Assert(vmData.valueRef != nullptr);
 
     return vm::Value(vmData);
+}
+
+/*! \brief Use for loading into registers - promotes to tracked memory if needed */
+static inline vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory)
+{
+    if (promoteToTrackedMemory && refValue.GetGCIndex() == vm::INVALID_GC_INDEX)
+    {
+        Assert(gc != nullptr);
+
+        Assert(!refValue.IsRef());
+
+        const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
+
+        vm::Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
+        Assert(pValue != nullptr);
+        Assert(pValue->GetGCIndex() != vm::INVALID_GC_INDEX);
+
+        refValue = ScriptApi_MakeRef(*pValue); // update original reference to point to tracked memory
+
+        Assert(refValue.IsRef());
+        Assert(refValue.Deref() == pValue);
+        Assert(refValue.Deref()->GetHypData()->GetTypeId() == originalTypeId);
+    }
+
+    return ScriptApi_MakeRef(refValue);
+}
+
+// Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
+static inline vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
+{
+    vm::Value* pValue = refValue.Deref();
+
+    if (pValue->GetGCIndex() != vm::INVALID_GC_INDEX)
+    {
+        // already in tracked memory
+        return ScriptApi_MakeRef(refValue);
+    }
+
+    const HypData& hypData = *pValue->GetHypData();
+
+    // 'Any' is used internally by HypData for object that is heap-allocated,
+    // and we use reference semantics for it rather than copying.
+    const bool shouldDoCopy = !hypData.Is<Any>();
+
+    if (shouldDoCopy)
+    {
+        HypData newHypData;
+
+        Visit(hypData.value, [&newHypData](const auto& val)
+            {
+                if constexpr (!std::is_base_of_v<AnyBase, NormalizedType<decltype(val)>>)
+                {
+                    newHypData.value.Set<NormalizedType<decltype(val)>>(val);
+                }
+                else
+                {
+                    // should never be hit; all of the types in the condition would be copy-constructible
+                    HYP_UNREACHABLE();
+                }
+            });
+
+        newHypData.serializeFunction = hypData.serializeFunction;
+
+        return vm::Value(std::move(newHypData));
+    }
+
+    // reference type - promote to tracked memory
+    return ScriptApi_MakeRef(refValue, gc, true);
 }
 
 // set return value on main thread
@@ -449,72 +521,72 @@ public:
 
     HYP_FORCE_INLINE void LoadI32(BCRegister reg, int32 i32)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(i32), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(i32), false);
     }
 
     HYP_FORCE_INLINE void LoadI64(BCRegister reg, int64 i64)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(i64), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(i64), false);
     }
 
     HYP_FORCE_INLINE void LoadU32(BCRegister reg, uint32 u32)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(u32), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(u32), false);
     }
 
     HYP_FORCE_INLINE void LoadU64(BCRegister reg, uint64 u64)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(u64), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(u64), false);
     }
 
     HYP_FORCE_INLINE void LoadF32(BCRegister reg, float f32)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(f32), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(f32), false);
     }
 
     HYP_FORCE_INLINE void LoadF64(BCRegister reg, double f64)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(f64), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(f64), false);
     }
 
     HYP_FORCE_INLINE void LoadOffset(BCRegister reg, uint16 offset)
     {
-        Script_StackMemory& stk = state->MAIN_THREAD->m_stack;
+        Script_StackMemory& stackMemory = thread->m_stack;
 
         Assert(
-            offset <= stk.GetStackPointer(),
+            offset <= stackMemory.GetStackPointer(),
             "Stack offset out of bounds (%u)",
             offset);
 
         // read value from stack at (sp - offset)
         // into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&thread->m_stack[thread->m_stack.GetStackPointer() - offset]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset]), false);
     }
 
     HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16 index)
     {
-        Script_StackMemory& stk = state->MAIN_THREAD->m_stack;
+        Script_StackMemory& stackMemory = thread->m_stack;
 
         Assert(
-            index < stk.GetStackPointer(),
+            index < stackMemory.GetStackPointer(),
             "Stack index out of bounds (%u >= %llu)",
             index,
-            stk.GetStackPointer());
+            stackMemory.GetStackPointer());
 
         // read value from stack at the index into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&stk[index]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index]), false);
     }
 
     HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16 index)
     {
         // read value from static memory
         // at the index into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&state->m_staticMemory[index]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(state->m_staticMemory[index]), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(VMString(str)), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(VMString(str)), false);
     }
 
     HYP_FORCE_INLINE void LoadAddr(BCRegister reg, BCAddress addr)
@@ -523,7 +595,7 @@ public:
         vmData.type = Script_VMData::ADDRESS;
         vmData.addr = addr;
 
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(vmData), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(vmData), false);
     }
 
     HYP_FORCE_INLINE void LoadFunc(
@@ -538,7 +610,7 @@ public:
         vmData.func.m_nargs = nargs;
         vmData.func.m_flags = flags;
 
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(vmData), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(vmData), false);
     }
 
     HYP_FORCE_INLINE void LoadType( // come back to this
@@ -561,7 +633,7 @@ public:
         Value& parentClassValue = thread->m_regs[reg];
 
         // create prototype object
-        Value value = ScriptApi_MakeScriptValue(VMObject(members, size, std::move(parentClassValue)));
+        Value value = ScriptApi_MakeValue(VMObject(members, size, std::move(parentClassValue)));
 
         delete[] members;
 
@@ -580,7 +652,7 @@ public:
                 index,
                 object->GetSize());
 
-            thread->m_regs[dst].AssignValue(ScriptApi_MakeScriptValueRef(&object->GetMember(index).value), false);
+            thread->m_regs[dst].AssignValue(ScriptApi_MakeRef(object->GetMember(index).value), false);
 
             return;
         }
@@ -598,7 +670,7 @@ public:
         {
             if (Member* member = object->LookupMemberFromHash(hash))
             {
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeScriptValueRef(&member->value), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(member->value), false);
             }
             else
             {
@@ -616,7 +688,7 @@ public:
 
     HYP_FORCE_INLINE void LoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
     {
-        Value& sv = thread->m_regs[srcReg];
+        Value& src = *thread->m_regs[srcReg].Deref();
 
         struct
         {
@@ -632,7 +704,7 @@ public:
             return;
         }
 
-        if (VMArray* array = sv.GetArray())
+        if (VMArray* array = src.GetArray())
         {
             if (key.index.flags & Number::FLAG_SIGNED)
             {
@@ -657,7 +729,7 @@ public:
                     }
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeScriptValueRef(&array->AtIndex(key.index.i)), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(array->AtIndex(key.index.i)), false);
             }
             else if (key.index.flags & Number::FLAG_UNSIGNED)
             {
@@ -669,7 +741,7 @@ public:
                     return;
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeScriptValueRef(&array->AtIndex(key.index.u)), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(array->AtIndex(key.index.u)), false);
             }
 
             return;
@@ -682,7 +754,7 @@ public:
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&thread->m_stack[thread->m_stack.GetStackPointer() - offset]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(thread->m_stack[thread->m_stack.GetStackPointer() - offset], state->GetGC(), true), false);
     }
 
     HYP_FORCE_INLINE void LoadIndexRef(BCRegister reg, uint16 index)
@@ -696,23 +768,19 @@ public:
             stackMemory.GetStackPointer());
 
         // load reference to stack value at index into the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValueRef(&stackMemory[index]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], state->GetGC(), true), false);
     }
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
         // load reference to value in srcReg into dstReg
-        thread->m_regs[dstReg].AssignValue(ScriptApi_MakeScriptValueRef(&thread->m_regs[srcReg]), false);
+        thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(thread->m_regs[srcReg], state->GetGC(), true), false);
     }
 
     HYP_FORCE_INLINE void LoadDeref(BCRegister dstReg, BCRegister srcReg)
     {
-        Value& src = thread->m_regs[srcReg];
-        Value* pRef = src.GetRef();
-
-        Assert(pRef != nullptr, "Invalid reference!");
-
-        thread->m_regs[dstReg].AssignValue(ScriptApi_MakeScriptValueRef(pRef), false);
+        Value& src = *thread->m_regs[srcReg].Deref();
+        thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(src, state->GetGC()), false);
     }
 
     HYP_FORCE_INLINE void LoadNull(BCRegister reg)
@@ -722,12 +790,12 @@ public:
 
     HYP_FORCE_INLINE void LoadTrue(BCRegister reg)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(true), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(true), false);
     }
 
     HYP_FORCE_INLINE void LoadFalse(BCRegister reg)
     {
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeScriptValue(false), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(false), false);
     }
 
     HYP_FORCE_INLINE void MovOffset(uint16 offset, BCRegister reg)
@@ -745,58 +813,23 @@ public:
     HYP_FORCE_INLINE void MovStatic(uint16 index, BCRegister reg)
     {
         Assert(index < state->m_staticMemory.staticSize);
-
-        //// ensure we will not be overwriting something that is marked ALWAYS_ALIVE
-        //// will cause a memory leak if we overwrite it, or if we did change the flag,
-        //// it could cause corruption in places where we expect something to always exist.
-        // if (state->m_staticMemory[index].m_type == Value::HEAP_POINTER)
-        //{
-        //     HeapValue* hv = state->m_staticMemory[index].m_value.internal.ptr;
-        //     if (hv != nullptr && (hv->GetFlags() & GC_ALWAYS_ALIVE))
-        //     {
-        //         // state->ThrowException(
-        //         //     thread,
-        //         //     Exception("Cannot overwrite static value marked as ALWAYS_ALIVE")
-        //         // );
-
-        //        // return;
-
-        //        // TEMP, hack
-        //        hv->DisableFlags(GC_ALWAYS_ALIVE);
-        //    }
-        //}
-
-        //// Mark our new value as ALWAYS_ALIVE if applicable.
-        // if (thread->m_regs[reg].m_type == Value::HEAP_POINTER)
-        //{
-        //     if (HeapValue* hv = thread->m_regs[reg].m_value.internal.ptr)
-        //     {
-        //         thread->m_regs[reg].m_value.internal.ptr->EnableFlags(GC_ALWAYS_ALIVE);
-        //     }
-        // }
-
-        // @TODO: Come back to review this for GC stuff.
+        Assert(state->m_staticMemory[index].GetGCIndex() == INVALID_GC_INDEX);
 
         // copy value from register to static memory at index
-        // moves to static do not impact refs
         state->m_staticMemory[index].AssignValue(std::move(thread->m_regs[reg]), false);
     }
 
     HYP_FORCE_INLINE void MovMem(BCRegister dstReg, uint8 index, BCRegister srcReg)
     {
-        Value& sv = thread->m_regs[dstReg]; //<---- need to deref here?
+        Value& src = *thread->m_regs[dstReg].Deref();
 
-        VMObject* object = sv.GetObject();
+        VMObject* object = src.GetObject();
         if (object == nullptr)
         {
-            // TEMP; debug
-            HypData* hypData = sv.GetHypData();
-            Assert(hypData != nullptr && !hypData->IsNull());
-
-            DebugLog(LogType::Debug, "Type name: %s\t String value: %s\tCurr program counter: %u\n", sv.GetTypeString(), sv.ToString().GetData(), bs->Position());
             state->ThrowException(
                 thread,
                 Exception("Cannot assign member by index: Not a VMObject"));
+
             return;
         }
 
@@ -814,9 +847,9 @@ public:
 
     HYP_FORCE_INLINE void MovMemHash(BCRegister dstReg, uint32_t hash, BCRegister srcReg)
     {
-        Value& sv = thread->m_regs[dstReg];
+        Value* pValue = thread->m_regs[dstReg].Deref();
 
-        VMObject* object = sv.GetObject();
+        VMObject* object = pValue->GetObject();
         if (object == nullptr)
         {
             state->ThrowException(
@@ -835,15 +868,15 @@ public:
         }
 
         // set value in member
-        member->value.AssignValue(std::move(thread->m_regs[srcReg]), true);
+        member->value.AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], state->GetGC()), true);
         member->value.Mark();
     }
 
     HYP_FORCE_INLINE void MovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
     {
-        Value& sv = thread->m_regs[dstReg];
+        Value& src = *thread->m_regs[dstReg].Deref();
 
-        VMArray* array = sv.GetArray();
+        VMArray* array = src.GetArray();
 
         // if (array == nullptr)
         //{
@@ -941,7 +974,7 @@ public:
                 }
             }*/
 
-            array->AtIndex(index).AssignValue(std::move(thread->m_regs[srcReg]), false);
+            array->AtIndex(index).AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], state->GetGC()), false);
             array->AtIndex(index).Mark();
             return;
         }
@@ -952,9 +985,9 @@ public:
 
     HYP_FORCE_INLINE void MovArrayIdxReg(BCRegister dstReg, BCRegister indexReg, BCRegister srcReg)
     {
-        Value& sv = thread->m_regs[dstReg];
+        Value& src = *thread->m_regs[dstReg].Deref();
 
-        VMArray* array = sv.GetArray();
+        VMArray* array = src.GetArray();
 
         Number index;
         Value& indexRegisterValue = thread->m_regs[indexReg];
@@ -1072,7 +1105,7 @@ public:
                     }
                 }
 
-                array->AtIndex(indexValue).AssignValue(std::move(thread->m_regs[srcReg]), false);
+                array->AtIndex(indexValue).AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], state->GetGC()), false);
                 array->AtIndex(indexValue).Mark();
             }
             else
@@ -1088,7 +1121,7 @@ public:
                     return;
                 }
 
-                array->AtIndex(indexValue).AssignValue(std::move(thread->m_regs[srcReg]), false);
+                array->AtIndex(indexValue).AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], state->GetGC()), false);
                 array->AtIndex(indexValue).Mark();
             }
 
@@ -1105,27 +1138,23 @@ public:
 
     HYP_FORCE_INLINE void HasMemHash(BCRegister dstReg, BCRegister srcReg, uint32 hash)
     {
-        Value& src = thread->m_regs[srcReg];
-
+        Value& src = *thread->m_regs[srcReg].Deref();
         Value& result = thread->m_regs[dstReg];
 
         if (VMObject* object = src.GetObject())
         {
-            result.AssignValue(ScriptApi_MakeScriptValue(object->LookupMemberFromHash(hash) != nullptr), false);
+            result.AssignValue(ScriptApi_MakeValue(object->LookupMemberFromHash(hash) != nullptr), false);
         }
         else
         {
-            state->ThrowException(thread, Exception("Not an object!"));
+            result.AssignValue(ScriptApi_MakeValue(false), false);
         }
     }
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
     {
-        // push a copy of the register value to the top of the stack
-        thread->m_stack.Push(std::move(*thread->m_regs[reg].Deref()));
-
-        // temp, debugging
-        DebugLog(LogType::Debug, "Pushed register %u to stack. Value: %s\n", reg, thread->m_stack.Top().ToString().GetData());
+        // Move value from register to top of stack
+        thread->m_stack.Push(ScriptApi_ShallowCopy(*thread->m_regs[reg].Deref(), state->GetGC()));
     }
 
     HYP_FORCE_INLINE void Pop()
@@ -1135,7 +1164,7 @@ public:
 
     HYP_FORCE_INLINE void PushArray(BCRegister dstReg, BCRegister srcReg)
     {
-        Value& dst = thread->m_regs[dstReg];
+        Value& dst = *thread->m_regs[dstReg].Deref();
 
         VMArray* array = dst.GetArray();
         if (!array)
@@ -1146,7 +1175,7 @@ public:
             return;
         }
 
-        array->Push(std::move(thread->m_regs[srcReg]));
+        array->Push(ScriptApi_ShallowCopy(*thread->m_regs[srcReg].Deref(), state->GetGC()));
         array->AtIndex(array->GetSize() - 1).Mark();
     }
 
@@ -1209,7 +1238,7 @@ public:
 
         Script_VMData* vmData = top.GetVMData();
         Assert(vmData != nullptr);
-        Assert(vmData->type == Script_VMData::FUNCTION);
+        Assert(vmData->type == Script_VMData::FUNCTION_CALL);
 
         auto& callInfo = vmData->call;
 
@@ -1235,7 +1264,7 @@ public:
         vmData.tryCatchInfo.catchAddress = addr;
 
         // store the info
-        thread->m_stack.Push(ScriptApi_MakeScriptValue(vmData));
+        thread->m_stack.Push(ScriptApi_MakeValue(vmData));
     }
 
     HYP_FORCE_INLINE void EndTry()
@@ -1257,7 +1286,7 @@ public:
     HYP_FORCE_INLINE void New(BCRegister dst, BCRegister src) // come back to this
     {
         // read value from register
-        Value& classValue = thread->m_regs[src];
+        Value& classValue = *thread->m_regs[src].Deref();
 
         Array<Span<Member>> memberSpans;
 
@@ -1315,14 +1344,13 @@ public:
             }
         }
 
-        thread->m_regs[dst].AssignValue(ScriptApi_MakeScriptValue(VMObject(allMembers.Data(), allMembers.Size(), std::move(classValue))), false);
+        thread->m_regs[dst].AssignValue(ScriptApi_MakeValue(VMObject(allMembers.Data(), allMembers.Size(), std::move(classValue))), false);
     }
 
     HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32_t size)
     {
         // assign register value to the allocated object
-        Value& value = thread->m_regs[dst];
-        value = ScriptApi_MakeScriptValue(VMArray());
+        thread->m_regs[dst] = ScriptApi_MakeValue(VMArray());
     }
 
     HYP_FORCE_INLINE void Cmp(BCRegister lhsReg, BCRegister rhsReg)
@@ -1335,8 +1363,8 @@ public:
         }
 
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -1419,7 +1447,7 @@ public:
     HYP_FORCE_INLINE void CmpZ(BCRegister reg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[reg];
+        Value* lhs = thread->m_regs[reg].Deref();
 
         Number num;
 
@@ -1453,8 +1481,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1477,7 +1505,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Sub(
@@ -1486,8 +1514,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1510,7 +1538,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Mul(
@@ -1519,8 +1547,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1543,7 +1571,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Div(
@@ -1552,8 +1580,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1587,7 +1615,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Mod(
@@ -1596,8 +1624,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1661,7 +1689,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void And(
@@ -1670,8 +1698,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1694,7 +1722,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Or(
@@ -1703,8 +1731,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1727,7 +1755,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Xor(
@@ -1736,8 +1764,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1760,7 +1788,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Shl(BCRegister lhsReg,
@@ -1768,8 +1796,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1792,7 +1820,7 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Shr(BCRegister lhsReg,
@@ -1800,8 +1828,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = &thread->m_regs[lhsReg];
-        Value* rhs = &thread->m_regs[rhsReg];
+        Value* lhs = thread->m_regs[lhsReg].Deref();
+        Value* rhs = thread->m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1824,13 +1852,13 @@ public:
         }
 
         // set the destination register to be the result
-        thread->m_regs[dstReg] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Not(BCRegister reg)
     {
         // load value from register
-        Value& value = thread->m_regs[reg];
+        Value& value = *thread->m_regs[reg].Deref();
 
         Number num;
 
@@ -1891,13 +1919,13 @@ public:
             return;
         }
 
-        value = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[reg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void Throw(BCRegister reg)
     {
         // load value from register
-        Value* value = &thread->m_regs[reg];
+        Value* value = thread->m_regs[reg].Deref();
 
         // @TODO Allow throwing the arugment
 
@@ -1908,7 +1936,7 @@ public:
 
     HYP_FORCE_INLINE void ExportSymbol(BCRegister reg, uint32_t hash)
     {
-        if (!state->GetExportedSymbols().Store(hash, std::move(thread->m_regs[reg])).second)
+        if (!state->GetExportedSymbols().Store(hash, ScriptApi_ShallowCopy(*thread->m_regs[reg].Deref(), state->GetGC())).second)
         {
             state->ThrowException(
                 thread,
@@ -1919,7 +1947,7 @@ public:
     HYP_FORCE_INLINE void Neg(BCRegister reg)
     {
         // load value from register
-        Value& value = thread->m_regs[reg];
+        Value& value = *thread->m_regs[reg].Deref();
 
         Number num;
 
@@ -1951,13 +1979,13 @@ public:
             result.f = -num.f;
         }
 
-        value = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[reg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastU8(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
 
         Number num;
 
@@ -1988,13 +2016,13 @@ public:
             result.u = static_cast<uint8>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastU16(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
 
         Number num;
 
@@ -2025,13 +2053,13 @@ public:
             result.u = static_cast<uint16>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastU32(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2060,13 +2088,13 @@ public:
             result.u = static_cast<uint32>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastU64(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2095,12 +2123,12 @@ public:
             result.u = static_cast<uint64>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastI8(BCRegister dst, BCRegister src)
     {
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2129,12 +2157,12 @@ public:
             result.i = static_cast<int8>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastI16(BCRegister dst, BCRegister src)
     {
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2163,12 +2191,12 @@ public:
             result.i = static_cast<int16>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastI32(BCRegister dst, BCRegister src)
     {
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2197,12 +2225,12 @@ public:
             result.i = static_cast<int32>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastI64(BCRegister dst, BCRegister src)
     {
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2231,13 +2259,13 @@ public:
             result.i = static_cast<int64>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastF32(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2266,13 +2294,13 @@ public:
             result.f = static_cast<float>(num.f);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastF64(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2301,13 +2329,13 @@ public:
             result.f = num.f;
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastBool(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = thread->m_regs[src];
+        Value& value = *thread->m_regs[src].Deref();
 
         // use same logic as CmpZ to determine truthiness
         bool result = false;
@@ -2331,13 +2359,13 @@ public:
             result = (ptrValue != nullptr);
         }
 
-        thread->m_regs[dst] = ScriptApi_MakeScriptValue(result);
+        thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void CastDynamic(BCRegister dst, BCRegister src) // come back to this
     {
         // load the VMObject from dst
-        Value& value = thread->m_regs[dst];
+        Value& value = *thread->m_regs[src].Deref();
 
         // Ensure it is a VMObject
         VMObject* classObjectPtr = value.GetObject();
@@ -2354,7 +2382,7 @@ public:
         }
 
         // load the target from src
-        Value& target = thread->m_regs[src];
+        Value& target = *thread->m_regs[src].Deref();
 
         // Ensure it is a VMObject
         VMObject* targetObjectPtr = target.GetObject();
@@ -2426,7 +2454,7 @@ public:
         Assert(pBase != nullptr);
 
         // Set the destination register to be the target
-        thread->m_regs[dst].AssignValue(ScriptApi_MakeScriptValueRef(pBase), false);
+        thread->m_regs[dst].AssignValue(ScriptApi_MakeRef(*pBase), false);
     }
 };
 
@@ -3624,7 +3652,7 @@ void VM::PushNativeFunctionPtr(Script_NativeFunction ptr)
     vmData.type = Script_VMData::NATIVE_FUNCTION;
     vmData.nativeFunc = ptr;
 
-    m_state.GetMainThread()->m_stack.Push(ScriptApi_MakeScriptValue(vmData));
+    m_state.GetMainThread()->m_stack.Push(ScriptApi_MakeValue(vmData));
 }
 
 void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
@@ -3707,7 +3735,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
                     thread->m_stack.Push(std::move(value));
                 }
 
-                Invoke(handler, ScriptApi_MakeScriptValueRef(&member->value), nargs + 1);
+                Invoke(handler, ScriptApi_MakeRef(member->value), nargs + 1);
 
                 Value& top = thread->m_stack.Top();
 
@@ -3736,8 +3764,11 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
         return;
     }
 
+    Value* deref = value.Deref();
+    Assert(deref != nullptr);
+
     // non-native function here
-    Script_VMData* vmData = value.GetVMData();
+    Script_VMData* vmData = deref->GetVMData();
     Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
 
     if ((vmData->func.m_flags & FunctionFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
@@ -3789,11 +3820,11 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             }
 
             // push the array to the stack
-            thread->GetStack().Push(ScriptApi_MakeScriptValue(std::move(arr)));
+            thread->GetStack().Push(ScriptApi_MakeValue(std::move(arr)));
         }
 
         // push the address
-        thread->GetStack().Push(ScriptApi_MakeScriptValue(previousAddr));
+        thread->GetStack().Push(ScriptApi_MakeValue(previousAddr));
 
         // seek to the new address
         bs->Seek(vmData->func.m_addr);
@@ -3819,7 +3850,10 @@ void VM::InvokeNow(
         thread,
         bs);
 
-    Script_VMData* pVmData = value.GetVMData();
+    Value* deref = value.Deref();
+    Assert(deref != nullptr);
+
+    Script_VMData* pVmData = deref->GetVMData();
     Assert(pVmData != nullptr);
     Assert(pVmData->type == Script_VMData::FUNCTION || pVmData->type == Script_VMData::NATIVE_FUNCTION);
 
@@ -3886,7 +3920,7 @@ void VM::CreateStackTrace(Script_ExecutionThread* thread, StackTrace* out)
 
         const Value& top = thread->m_stack[sp - 1];
 
-        Script_VMData* topVmData = top.GetVMData();
+        const Script_VMData* topVmData = top.GetVMData();
 
         if (topVmData && topVmData->type == Script_VMData::FUNCTION_CALL)
         {

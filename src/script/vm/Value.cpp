@@ -65,16 +65,19 @@ const void* GetRawPointerForHeapValue(const HeapValue* heapValue)
 }
 
 Value::Value()
+    : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData();
 }
 
 Value::Value(HypData&& data)
+    : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(std::move(data));
 }
 
 Value::Value(Number number)
+    : m_gcIndex(INVALID_GC_INDEX)
 {
     if (number.flags & Number::FLAG_FLOATING_POINT)
     {
@@ -132,6 +135,7 @@ Value::Value(Number number)
 }
 
 Value::Value(const Script_VMData& vmData)
+    : m_gcIndex(INVALID_GC_INDEX)
 {
     static_assert(sizeof(Script_VMData) == sizeof(HypData_UserData128));
     static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128));
@@ -143,7 +147,9 @@ Value::Value(const Script_VMData& vmData)
 }
 
 Value::Value(Value&& other) noexcept
+    : m_gcIndex(INVALID_GC_INDEX)
 {
+    Assert(other.m_gcIndex == INVALID_GC_INDEX); // should not be moved if it is tracked by the GC
     new (m_internal) HypData(std::move(*other.GetHypData()));
 }
 
@@ -151,11 +157,10 @@ Value& Value::operator=(Value&& other) noexcept
 {
     if (this != &other)
     {
+        Assert(m_gcIndex == INVALID_GC_INDEX && other.m_gcIndex == INVALID_GC_INDEX); // should not be assigned to if it is tracked by the GC
+
         GetHypData()->~HypData();
         new (m_internal) HypData(std::move(*other.GetHypData()));
-
-        other.GetHypData()->~HypData();
-        new (other.m_internal) HypData();
     }
 
     return *this;
@@ -163,6 +168,8 @@ Value& Value::operator=(Value&& other) noexcept
 
 Value::~Value()
 {
+    Assert(m_gcIndex == INVALID_GC_INDEX); // should not be destroyed if it is tracked by the GC
+
     // have to manually call destructor because we used placement new
     GetHypData()->~HypData();
 
@@ -198,11 +205,18 @@ void Value::Mark()
     // @TODO: Mark heap pointer
 }
 
-Script_VMData* Value::GetVMData() const
+Script_VMData* Value::GetVMData()
+{
+    HypData& data = *GetHypData();
+
+    return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+}
+
+const Script_VMData* Value::GetVMData() const
 {
     const HypData& data = *GetHypData();
 
-    return data.TryGet<Script_VMData>().TryGet();
+    return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
 bool Value::IsValid() const
@@ -270,20 +284,26 @@ Value* Value::GetRef() const
         return nullptr;
     }
 
-    return vmData->valueRef;
+    return vmData->valueRef; // shouldn't be a reference itself so no need to deref
 }
 
 void Value::AssignValue(Value&& other, bool assignRef)
 {
     Value* ref;
 
-    if (assignRef && (ref = GetRef()) != nullptr)
+    if (assignRef && (ref = Deref()) != nullptr)
     {
-        *ref = std::move(other);
+        Assert(ref->GetGCIndex() == INVALID_GC_INDEX);
+        
+        ref->~Value();
+        new (ref) Value(std::move(other));
     }
     else
     {
-        *this = std::move(other);
+        Assert(GetGCIndex() == INVALID_GC_INDEX);
+        
+        this->~Value();
+        new (this) Value(std::move(other));
     }
 }
 
@@ -819,6 +839,40 @@ VMString Value::ToString() const
     {
         return BOOLEAN_STRINGS[data.Get<bool>() ? 1 : 0];
     }
+    else if (typeId == TypeId::ForType<VMString>())
+    {
+        return data.Get<VMString>();
+    }
+    else if (typeId == TypeId::ForType<VMArray>())
+    {
+        std::stringstream ss;
+        data.Get<VMArray>().GetRepresentation(ss, false, depth);
+        return VMString(ss.str().c_str());
+    }
+    else if (typeId == TypeId::ForType<VMMap>())
+    {
+        std::stringstream ss;
+        data.Get<VMMap>().GetRepresentation(ss, false, depth);
+        return VMString(ss.str().c_str());
+    }
+    else if (typeId == TypeId::ForType<VMMemoryBuffer>())
+    {
+        std::stringstream ss;
+        data.Get<VMMemoryBuffer>().GetRepresentation(ss, false, depth);
+        return VMString(ss.str().c_str());
+    }
+    else if (typeId == TypeId::ForType<VMArraySlice>())
+    {
+        std::stringstream ss;
+        data.Get<VMArraySlice>().GetRepresentation(ss, false, depth);
+        return VMString(ss.str().c_str());
+    }
+    else if (typeId == TypeId::ForType<VMObject>())
+    {
+        std::stringstream ss;
+        data.Get<VMObject>().GetRepresentation(ss, false, depth);
+        return VMString(ss.str().c_str());
+    }
     else if (const Script_VMData* vmData = GetVMData())
     {
         switch (vmData->type)
@@ -839,14 +893,7 @@ VMString Value::ToString() const
             return VMString(buf);
         case Script_VMData::VALUE_REF:
             Assert(vmData->valueRef != nullptr);
-            if (vmData->valueRef == this)
-            {
-                return VMString("<Circular Reference>");
-            }
-            else
-            {
-                return vmData->valueRef->ToString();
-            }
+            return VMString(String("<Reference to ") + vmData->valueRef->GetTypeString() + String(">: ") + vmData->valueRef->ToString().GetData() + String(""));
         default:
             HYP_UNREACHABLE();
             return VMString("<Unknown VM data>");

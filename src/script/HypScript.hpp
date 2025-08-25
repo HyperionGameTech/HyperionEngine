@@ -113,6 +113,8 @@ public:
 
         CallFunctionArgV(scriptHandle, functionHandle, arguments.Data(), arguments.Size());
     }
+    
+    void ReadLastReturnValue(Value*& outValue);
 
 #if 0
     template <class RegisteredType, class T>

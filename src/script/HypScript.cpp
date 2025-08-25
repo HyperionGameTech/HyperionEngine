@@ -296,6 +296,14 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
     }
 }
 
+void HypScript::ReadLastReturnValue(Value*& outValue)
+{
+    outValue = nullptr;
+
+    Script_ExecutionThread* mainThread = m_vm->GetState().GetMainThread();
+    outValue = &mainThread->m_regs[0];
+}
+
 bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)
 {
     if (objectHandle == INVALID_OBJECT)
@@ -350,6 +358,8 @@ bool HypScript::SetMember(ObjectHandle objectHandle, const char* memberName, Val
 
 bool HypScript::GetFunctionHandle(const char* name, FunctionHandle& outFunctionHandle)
 {
+    outFunctionHandle = INVALID_FUNCTION;
+
     Value* pValue;
     if (!GetExportedValue(name, pValue))
     {
@@ -361,13 +371,15 @@ bool HypScript::GetFunctionHandle(const char* name, FunctionHandle& outFunctionH
         return false;
     }
 
-    outFunctionHandle = *reinterpret_cast<FunctionHandle*>(pValue);
+    outFunctionHandle = (FunctionHandle)((uintptr_t)pValue);
 
     return true;
 }
 
 bool HypScript::GetObjectHandle(const char* name, ObjectHandle& outObjectHandle)
 {
+    outObjectHandle = INVALID_OBJECT;
+
     Value* pValue;
 
     if (!GetExportedValue(name, pValue))
@@ -386,7 +398,7 @@ bool HypScript::GetObjectHandle(const char* name, ObjectHandle& outObjectHandle)
         return false;
     }
 
-    outObjectHandle = *reinterpret_cast<ObjectHandle*>(pRef);
+    outObjectHandle = (ObjectHandle)((uintptr_t)pRef);
 
     return true;
 }

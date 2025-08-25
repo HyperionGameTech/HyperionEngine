@@ -32,6 +32,7 @@ namespace vm {
 
 // forward declaration
 class VM;
+class GC;
 
 struct Script_RegisterMemory
 {
@@ -105,6 +106,7 @@ struct VMState
 
     Script_ExecutionThread* m_threads[VM_MAX_THREADS];
     Heap m_heap;
+    GC* m_gc = nullptr;
     StaticMemory m_staticMemory;
     VM* m_vm = nullptr;
     Tracemap m_tracemap;
@@ -122,7 +124,7 @@ struct VMState
 
     void ThrowException(Script_ExecutionThread* thread, const Exception& exception);
     HeapValue* HeapAlloc(Script_ExecutionThread* thread);
-    void GC();
+    // void GC();
 
     // void CloneValue(const Value &other, Script_ExecutionThread *thread, Value &out);
 
@@ -151,6 +153,11 @@ struct VMState
     const Heap& GetHeap() const
     {
         return m_heap;
+    }
+
+    GC* GetGC() const
+    {
+        return m_gc;
     }
 
     ExportedSymbolTable& GetExportedSymbols()

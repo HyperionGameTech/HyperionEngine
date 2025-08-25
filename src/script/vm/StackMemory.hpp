@@ -29,11 +29,11 @@ public:
 
     HYP_FORCE_INLINE Value* GetData()
     {
-        return m_data.Data();
+        return reinterpret_cast<Value*>(m_data.Data());
     }
     HYP_FORCE_INLINE const Value* GetData() const
     {
-        return m_data.Data();
+        return reinterpret_cast<const Value*>(m_data.Data());
     }
 
     HYP_FORCE_INLINE SizeType GetStackPointer() const
@@ -44,34 +44,34 @@ public:
     HYP_FORCE_INLINE Value& operator[](SizeType index)
     {
         Assert(index < STACK_SIZE, "out of bounds");
-        return m_data[index];
+        return m_data[index].Get();
     }
 
     HYP_FORCE_INLINE const Value& operator[](SizeType index) const
     {
         Assert(index < STACK_SIZE, "out of bounds");
-        return m_data[index];
+        return m_data[index].Get();
     }
 
     // return the top value from the stack
     HYP_FORCE_INLINE Value& Top()
     {
         Assert(m_sp > 0, "read from empty stack");
-        return m_data[m_sp - 1];
+        return m_data[m_sp - 1].Get();
     }
 
     // return the top value from the stack
     HYP_FORCE_INLINE const Value& Top() const
     {
         Assert(m_sp > 0, "read from empty stack");
-        return m_data[m_sp - 1];
+        return m_data[m_sp - 1].Get();
     }
 
     // push a value to the stack
     HYP_FORCE_INLINE void Push(Value&& value)
     {
         Assert(m_sp < STACK_SIZE, "stack overflow");
-        m_data[m_sp++] = std::move(value);
+        new (&m_data[m_sp++]) Value(std::move(value));
     }
 
     // pop top value from the stack
@@ -79,16 +79,22 @@ public:
     {
         Assert(m_sp > 0, "pop from empty stack");
         m_sp--;
+
+        m_data[m_sp].Destruct();
     }
 
     // pop top n value(s) from the stack
     HYP_FORCE_INLINE void Pop(SizeType count)
     {
         Assert(m_sp >= count, "pop from empty stack");
-        m_sp -= count;
+
+        for (SizeType i = 0; i < count; i++)
+        {
+            m_data[--m_sp].Destruct();
+        }
     }
 
-    HeapArray<Value, STACK_SIZE> m_data;
+    HeapArray<ValueStorage<Value>, STACK_SIZE> m_data;
     SizeType m_sp;
 };
 

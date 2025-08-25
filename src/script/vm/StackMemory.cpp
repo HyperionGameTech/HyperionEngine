@@ -19,7 +19,7 @@ std::ostream& operator<<(std::ostream& os, const Script_StackMemory& stack)
 
     for (SizeType i = 0; i < stack.m_sp; i++)
     {
-        const Value& value = stack.m_data[i];
+        const Value& value = stack.m_data[i].Get();
 
         os << std::setw(5) << i << "| ";
 
@@ -46,20 +46,20 @@ Script_StackMemory::~Script_StackMemory() = default;
 
 void Script_StackMemory::Purge()
 {
-    // just set stack pointer to zero
-    // heap allocated objects are not owned,
-    // so we don't have to delete them
-    // they will be deleted either by the destructor of the `Heap` class,
-    // or by the `Purge` function of the `Heap` class.
+    for (SizeType i = m_sp; i > 0; i--)
+    {
+        m_data[i - 1].Destruct();
+    }
+
     m_sp = 0;
 }
 
 void Script_StackMemory::MarkAll()
 {
-    for (SizeType i = 0; i < m_sp; i++)
-    {
-        m_data[i].Mark();
-    }
+    // for (SizeType i = 0; i < m_sp; i++)
+    // {
+    //     m_data[i].Mark();
+    // }
 }
 
 } // namespace vm
