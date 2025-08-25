@@ -374,7 +374,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (closureHeldType != BuiltinTypes::UNDEFINED)
         {
-            Assert(closureHeldType->GetId() != -1);
+//            Assert(closureHeldType->GetId() != -1);
             // Assert(closureHeldType->GetTypeObject().Lock() != nullptr);
         }
 

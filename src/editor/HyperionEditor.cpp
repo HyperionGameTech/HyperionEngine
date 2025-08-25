@@ -134,7 +134,7 @@ void HyperionEditor::Init()
               "    func x(a: int, b: int) { return a + b; };\n"
               "};\n"
               "\n"
-              "export func x(a: float, b: int) { return a * b; };";
+              "export func x(a: float, b: int) {\nreturn () { return a; };\n};";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 
@@ -163,6 +163,10 @@ void HyperionEditor::Init()
                 if (lastReturn.IsValid())
                 {
                     HYP_LOG(Editor, Debug, "Last value : {}", lastReturn.ToString().GetData());
+                }
+                else
+                {
+                    HYP_LOG(Editor, Error, "INVALID LAST VALUE");
                 }
             }
             else

@@ -556,7 +556,7 @@ public:
 
         // read value from stack at (sp - offset)
         // into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_ShallowCopy(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC()), false);
     }
 
     HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16 index)
@@ -570,7 +570,7 @@ public:
             stackMemory.GetStackPointer());
 
         // read value from stack at the index into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index]), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_ShallowCopy(stackMemory[index], vm->GetGC()), false);
     }
 
     HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16 index)
@@ -579,7 +579,7 @@ public:
         // at the index into the the register
         Value& value = vm->m_staticMemory[index];
 
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(value), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_ShallowCopy(value, vm->GetGC()), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
@@ -750,7 +750,7 @@ public:
                     }
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(array->AtIndex(key.index.i)), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.index.i), vm->GetGC()), false);
             }
             else if (key.index.flags & Number::FLAG_UNSIGNED)
             {
@@ -762,7 +762,7 @@ public:
                     return;
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(array->AtIndex(key.index.u)), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.index.u), vm->GetGC()), false);
             }
 
             return;
@@ -2471,7 +2471,7 @@ public:
         Assert(pBase != nullptr);
 
         // Set the destination register to be the target
-        thread->m_regs[dst].AssignValue(ScriptApi_MakeRef(*pBase), false);
+        thread->m_regs[dst].AssignValue(ScriptApi_ShallowCopy(*pBase, vm->GetGC()), false);
 #endif
     }
 };
@@ -3704,7 +3704,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
                     thread->m_stack.Push(std::move(value));
                 }
 
-                Invoke(handler, ScriptApi_MakeRef(member->value), nargs + 1);
+                Invoke(handler, ScriptApi_ShallowCopy(member->value, vm->GetGC()), nargs + 1);
 
                 Value& top = thread->m_stack.Top();
 
