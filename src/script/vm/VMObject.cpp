@@ -177,6 +177,8 @@ VMObject::VMObject(const VMObject* prototype)
 VMObject::VMObject(Value&& classValue)
     : m_classValue(std::move(classValue))
 {
+    HYP_NOT_IMPLEMENTED();
+#if 0
     const VMObject* protoObj = m_classValue.GetObject();
     Assert(protoObj != nullptr);
 
@@ -190,6 +192,7 @@ VMObject::VMObject(Value&& classValue)
     {
         m_objectMap->Push(m_members[i].hash, &m_members[i]);
     }
+#endif
 }
 
 VMObject::VMObject(const Member* members, SizeType size, Value&& classValue)
@@ -247,6 +250,8 @@ VMObject::~VMObject()
 
 Member* VMObject::LookupMemberFromHash(HashCode::ValueType hash, bool deep) const
 {
+    HYP_NOT_IMPLEMENTED();
+#if 0
     if (Member* member = m_objectMap->Get(hash))
     {
         return member;
@@ -261,6 +266,7 @@ Member* VMObject::LookupMemberFromHash(HashCode::ValueType hash, bool deep) cons
     }
 
     return nullptr;
+#endif
 }
 
 void VMObject::SetMember(const char* name, Value&& value)
@@ -306,6 +312,8 @@ void VMObject::GetRepresentation(
     bool addTypeName,
     int depth) const
 {
+    HYP_NOT_IMPLEMENTED();
+#if 0
     if (depth == 0)
     {
         ss << static_cast<const void*>(this);
@@ -346,6 +354,7 @@ void VMObject::GetRepresentation(
     }
 
     ss << "}";
+#endif
 }
 
 } // namespace vm

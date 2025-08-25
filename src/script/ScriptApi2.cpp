@@ -313,6 +313,7 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
         vm->GetMainThread()->GetStack().GetData()[stackLocation].AssignValue(Value(vmData), false);
     }
 
+#if 0 // TODO: fix
     for (ClassDefinition& classDefinition : m_classDefinitions)
     {
         Assert(classDefinition.expr != nullptr);
@@ -361,7 +362,7 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
             vmData.valueRef = symbol.value.Deref();
 
             Memory::StrCpy(classObjectMembers[i].name, symbol.name.Data(), MathUtil::Min(symbol.name.Size(), 255));
-            classObjectMembers[i].hash = hashFnv1(classObjectMembers[i].name);
+            classObjectMembers[i].hash = HashCode::GetHashCode(classObjectMembers[i].name).Value();
             classObjectMembers[i].value = Value(vmData);
         }
 
@@ -379,7 +380,7 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
             vmData.valueRef = symbol.value.Deref();
 
             Memory::StrCpy(protoObjectMembers[i].name, symbol.name.Data(), MathUtil::Min(symbol.name.Size(), 255));
-            protoObjectMembers[i].hash = hashFnv1(protoObjectMembers[i].name);
+            protoObjectMembers[i].hash = HashCode::GetHashCode(protoObjectMembers[i].name).Value();
             protoObjectMembers[i].value = Value(vmData);
         }
 
@@ -424,6 +425,7 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
 
         DebugLog(LogType::Debug, "Bound class %s at stack location %u\n", classDefinition.name.Data(), stackLocation);
     }
+#endif
 }
 
 } // namespace scriptapi2

@@ -310,7 +310,7 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
     }
 
     { // load member `from` from array type expr
-        constexpr uint32 fromHash = hashFnv1("from");
+        constexpr HashCode::ValueType fromHash = HashCode::GetHashCode("from").Value();
 
         chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, fromHash));
     }

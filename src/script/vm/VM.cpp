@@ -9,6 +9,12 @@
 #include <script/vm/Exception.hpp>
 
 #include <core/object/HypData.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypMember.hpp>
+#include <core/object/HypField.hpp>
+#include <core/object/HypProperty.hpp>
+#include <core/object/HypMethod.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
@@ -323,10 +329,15 @@ extern const char* LookupTypeName(TypeId typeId);
 
 #pragma region ScriptApi
 
-template <class T, typename = std::enable_if_t<!std::is_same_v<vm::Script_VMData, NormalizedType<T>> && !std::is_same_v<vm::Number, NormalizedType<T>>>>
+template <class T, typename = std::enable_if_t<!std::is_same_v<vm::Script_VMData, NormalizedType<T>> && !std::is_same_v<vm::Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
 static inline vm::Value ScriptApi_MakeValue(T&& data)
 {
     return vm::Value(HypData(std::forward<T>(data)));
+}
+
+vm::Value ScriptApi_MakeValue(HypData&& data)
+{
+    return vm::Value(std::move(data));
 }
 
 vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data)
@@ -607,39 +618,57 @@ public:
         uint16 size,
         char** names)
     {
-        // create members
-        Member* members = new Member[size];
-
-        for (uint16 i = 0; i < size; i++)
-        {
-            Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
-            members[i].hash = HashCode::GetHashCode(names[i]).Value();
-            members[i].value = Value();
-        }
-
         Value& parentClassValue = thread->m_regs[reg];
 
-        // create prototype object
-        Value value = ScriptApi_MakeValue(VMObject(members, size, std::move(parentClassValue)));
+        DebugLog(LogType::Debug, "Loading type %s with parent class %s\n", typeName, parentClassValue.ToString().GetData());
 
-        delete[] members;
+        const HypClass* parentClass = parentClassValue.ToRef().TryGet<const HypClass>();
+        Assert(parentClass != nullptr);
 
-        thread->m_regs[reg].AssignValue(std::move(value), false);
+        /// @TODO: Delete on GC
+        DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
+            TypeId::ForManagedType(typeName),
+            CreateNameFromDynamicString(typeName),
+            parentClass,
+            Span<const HypClassAttribute>(),
+            HypClassFlags::NONE,
+            Span<HypMember>());
+
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(newClass), false);
+
+        // @TODO: Implement
+        // // create members
+        // HypMember* members = (HypMember*)StackAlloc(sizeof(HypMember) * size);
+
+        // for (uint16 i = 0; i < size; i++)
+        // {
+        //     new (&members[i]) HypMember()
+        //     Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
+        //     members[i].hash = HashCode::GetHashCode(names[i]).Value();
+        //     members[i].value = Value();
+        // }
+
+        // // create prototype object
+        // Value value = ScriptApi_MakeValue(VMObject(members, size, std::move(parentClassValue)));
+
+        // thread->m_regs[reg].AssignValue(std::move(value), false);
     }
 
     HYP_FORCE_INLINE void LoadMem(BCRegister dstReg, BCRegister srcReg, uint8 index)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
 
-        if (VMObject* object = src.GetObject())
+        if (const AnyHandle& object = src.GetObject())
         {
+            Array<HypField*> fields = object.ptr->InstanceClass()->GetFields();
+
             Assert(
-                index < object->GetSize(),
+                index < fields.Size(),
                 "Index out of bounds (%u >= %llu)",
                 index,
-                object->GetSize());
+                fields.Size());
 
-            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(object->GetMember(index).value), false);
+            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(fields[index]->Get(*src.GetHypData())), false);
 
             return;
         }
@@ -653,18 +682,23 @@ public:
     {
         Value& src = *thread->m_regs[srcReg].Deref();
 
-        if (VMObject* object = src.GetObject())
+        if (const AnyHandle& object = src.GetObject())
         {
-            if (Member* member = object->LookupMemberFromHash(hash))
-            {
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(member->value), false);
-            }
-            else
+            const HypClass* hypClass = object.ptr->InstanceClass();
+            Assert(hypClass != nullptr);
+
+            HypField* field = hypClass->GetField(WeakName(NameID(hash)));
+            if (!field)
             {
                 vm->ThrowException(
                     thread,
                     Exception::MemberNotFoundException(hash));
+
+                return;
             }
+
+            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
+
             return;
         }
 
@@ -809,30 +843,34 @@ public:
     {
         Value& src = *thread->m_regs[dstReg].Deref();
 
-        VMObject* object = src.GetObject();
-        if (object == nullptr)
+        const AnyHandle& object = src.GetObject();
+        if (!object.IsValid())
         {
             vm->ThrowException(thread, Exception("Cannot assign member by index: Not a VMObject"));
 
             return;
         }
 
-        if (index >= object->GetSize())
+        const HypClass* hypClass = object.ptr->InstanceClass();
+        Assert(hypClass != nullptr);
+
+        Array<HypField*> fields = hypClass->GetFields();
+
+        if (index >= fields.Size())
         {
             vm->ThrowException(thread, Exception::OutOfBoundsException());
             return;
         }
 
-        object->GetMember(index).value.AssignValue(std::move(thread->m_regs[srcReg]), true);
-        object->GetMember(index).value.Mark();
+        fields[index]->Set(*src.GetHypData(), *thread->m_regs[srcReg].GetHypData());
     }
 
     HYP_FORCE_INLINE void MovMemHash(BCRegister dstReg, uint64 hash, BCRegister srcReg)
     {
         Value* pValue = thread->m_regs[dstReg].Deref();
 
-        VMObject* object = pValue->GetObject();
-        if (object == nullptr)
+        const AnyHandle& object = pValue->GetObject();
+        if (!object)
         {
             vm->ThrowException(
                 thread,
@@ -840,8 +878,12 @@ public:
             return;
         }
 
-        Member* member = object->LookupMemberFromHash(hash);
-        if (member == nullptr)
+        const HypClass* hypClass = object.ptr->InstanceClass();
+        Assert(hypClass != nullptr);
+
+        HypField* field = hypClass->GetField(WeakName(NameID(hash)));
+
+        if (!field)
         {
             vm->ThrowException(
                 thread,
@@ -849,9 +891,7 @@ public:
             return;
         }
 
-        // set value in member
-        member->value.AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], vm->GetGC()), true);
-        member->value.Mark();
+        field->Set(*pValue->GetHypData(), *thread->m_regs[srcReg].GetHypData());
     }
 
     HYP_FORCE_INLINE void MovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
@@ -1123,14 +1163,26 @@ public:
         Value& src = *thread->m_regs[srcReg].Deref();
         Value& result = thread->m_regs[dstReg];
 
-        if (VMObject* object = src.GetObject())
+        if (const AnyHandle& object = src.GetObject())
         {
-            result.AssignValue(ScriptApi_MakeValue(object->LookupMemberFromHash(hash) != nullptr), false);
+            const HypClass* hypClass = object.ptr->InstanceClass();
+            Assert(hypClass != nullptr);
+
+            HypField* field = hypClass->GetField(WeakName(NameID(hash)));
+
+            if (field)
+            {
+                result.AssignValue(ScriptApi_MakeValue(true), false);
+            }
+            else
+            {
+                result.AssignValue(ScriptApi_MakeValue(false), false);
+            }
+
+            return;
         }
-        else
-        {
-            result.AssignValue(ScriptApi_MakeValue(false), false);
-        }
+
+        result.AssignValue(ScriptApi_MakeValue(false), false);
     }
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
@@ -1272,44 +1324,8 @@ public:
 
         Array<Span<Member>> memberSpans;
 
-        VMObject* classPtr = classValue.GetObject();
-
-        while (classPtr != nullptr)
-        {
-            // the NEW instruction makes a copy of the $proto data member
-            // of the prototype object.
-            Member* protoMem = classPtr->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH, false);
-
-            if (!protoMem)
-            {
-                // This base class does not have a prototype member.
-                break;
-            }
-
-            VMObject* protoMemberObject = protoMem->value.Deref()->GetObject();
-
-            if (!protoMemberObject)
-            {
-                vm->ThrowException(
-                    thread,
-                    Exception::InvalidConstructorException());
-
-                return;
-            }
-
-            memberSpans.PushBack({ protoMemberObject->GetMembers(), protoMemberObject->GetSize() });
-
-            Member* baseMember = classPtr->LookupMemberFromHash(VMObject::BASE_MEMBER_HASH, false);
-
-            if (baseMember)
-            {
-                classPtr = baseMember->value.GetObject();
-            }
-            else
-            {
-                classPtr = nullptr;
-            }
-        }
+        const HypClass* hypClass = classValue.ToRef().TryGet<const HypClass>();
+        Assert(hypClass != nullptr);
 
         // Combine all proto members
         // The topmost type (first in the chain)
@@ -1330,7 +1346,20 @@ public:
             }
         }
 
-        thread->m_regs[dst].AssignValue(ScriptApi_MakeValue(VMObject(allMembers.Data(), allMembers.Size(), ScriptApi_ShallowCopy(classValue, vm->GetGC()))), false);
+        HypData hypData;
+        if (!hypClass->CreateInstance(hypData))
+        {
+            vm->ThrowException(
+                thread,
+                Exception::InvalidOperationException(
+                    "NEW",
+                    "Could not create instance of type",
+                    hypClass->GetName().LookupString()));
+
+            return;
+        }
+
+        thread->m_regs[dst].AssignValue(ScriptApi_MakeValue(std::move(hypData)), false);
     }
 
     HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32 size)
@@ -2350,6 +2379,8 @@ public:
 
     HYP_FORCE_INLINE void CastDynamic(BCRegister dst, BCRegister src) // come back to this
     {
+        HYP_NOT_IMPLEMENTED();
+#if 0
         // load the VMObject from dst
         Value& value = *thread->m_regs[src].Deref();
 
@@ -2441,6 +2472,7 @@ public:
 
         // Set the destination register to be the target
         thread->m_regs[dst].AssignValue(ScriptApi_MakeRef(*pBase), false);
+#endif
     }
 };
 
@@ -3640,7 +3672,15 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
         }
         else if (const AnyHandle& object = value.GetObject()) // functor object
         {
-            if (Member* member = object->LookupMemberFromHash(invokeHash))
+            HYP_NOT_IMPLEMENTED(); // come back to this
+#if 0
+            // Lookup $invoke member
+            const HypClass* hypClass = object.ptr->InstanceClass();
+            Assert(hypClass != nullptr);
+
+            IHypMember* member = hypClass->GetMember(WeakName("$invoke"));
+
+            if (member != nullptr)
             {
                 const int64 sp = int64(thread->m_stack.GetStackPointer());
                 const int64 argsStart = sp - nargs;
@@ -3678,6 +3718,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
 
                 return;
             }
+#endif
         }
 
         char buffer[256];

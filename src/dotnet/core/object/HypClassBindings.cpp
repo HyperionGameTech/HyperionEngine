@@ -50,6 +50,14 @@ DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const
 }
 #endif
 
+#ifdef HYP_SCRIPT
+DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members)
+{
+    Assert(parentClass != nullptr, "Parent class cannot be null for DynamicHypClassInstance");
+}
+#endif
+
 DynamicHypClassInstance::~DynamicHypClassInstance()
 {
 }

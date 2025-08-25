@@ -521,12 +521,12 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
         // load $proto
         chunk->Append(BytecodeUtil::Make<Comment>("Load $proto"));
-        const uint32 protoHash = hashFnv1("$proto");
+        const HashCode::ValueType protoHash = HashCode::GetHashCode("$proto").Value();
         chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, protoHash));
 
         // store into $invoke
         chunk->Append(BytecodeUtil::Make<Comment>("Store $invoke"));
-        const uint32 invokeHash = hashFnv1("$invoke");
+        const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
         chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, invokeHash));
 
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();

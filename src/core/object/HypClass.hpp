@@ -906,6 +906,10 @@ public:
     DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
 #endif
 
+#ifdef HYP_SCRIPT
+    DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+#endif
+
     virtual ~DynamicHypClassInstance() override;
 
     virtual bool IsValid() const override;

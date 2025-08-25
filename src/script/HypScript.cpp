@@ -304,6 +304,10 @@ void HypScript::ReadLastReturnValue(Value& outValue)
 
 bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)
 {
+    HYP_NOT_IMPLEMENTED();
+    
+#if 0
+    
     if (objectHandle == INVALID_OBJECT)
     {
         return false;
@@ -326,10 +330,13 @@ bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Val
     }
 
     return false;
+#endif
 }
 
 bool HypScript::SetMember(ObjectHandle objectHandle, const char* memberName, Value&& value)
 {
+    HYP_NOT_IMPLEMENTED();
+#if 0
     if (objectHandle == INVALID_OBJECT)
     {
         return false;
@@ -352,6 +359,7 @@ bool HypScript::SetMember(ObjectHandle objectHandle, const char* memberName, Val
     }
 
     return false;
+#endif
 }
 
 bool HypScript::GetFunctionHandle(const char* name, FunctionHandle& outFunctionHandle)
@@ -403,7 +411,7 @@ bool HypScript::GetObjectHandle(const char* name, ObjectHandle& outObjectHandle)
 
 bool HypScript::GetExportedValue(const char* name, Value*& outValue)
 {
-    return GetExportedSymbols().Find(hashFnv1(name), outValue);
+    return GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), outValue);
 }
 
 ExportedSymbolTable& HypScript::GetExportedSymbols() const

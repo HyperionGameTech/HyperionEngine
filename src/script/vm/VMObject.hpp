@@ -64,8 +64,8 @@ private:
 class VMObject
 {
 public:
-    static const uint32 PROTO_MEMBER_HASH;
-    static const uint32 BASE_MEMBER_HASH;
+    static const HashCode::ValueType PROTO_MEMBER_HASH;
+    static const HashCode::ValueType BASE_MEMBER_HASH;
 
     // construct from prototype
     explicit VMObject(const VMObject* prototype);
