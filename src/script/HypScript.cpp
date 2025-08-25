@@ -296,12 +296,10 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
     }
 }
 
-void HypScript::ReadLastReturnValue(Value*& outValue)
+void HypScript::ReadLastReturnValue(Value& outValue)
 {
-    outValue = nullptr;
-
     Script_ExecutionThread* mainThread = m_vm->GetState().GetMainThread();
-    outValue = &mainThread->m_regs[0];
+    outValue = ScriptApi_ShallowCopy(mainThread->m_regs[0], m_vm->GetState().GetGC());
 }
 
 bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)

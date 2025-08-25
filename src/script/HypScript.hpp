@@ -29,7 +29,7 @@ class Context;
 class HypScript;
 
 #define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType) \
-    enum class handleTypeName##Handle : underlyingType; \
+    enum class handleTypeName##Handle : underlyingType;                               \
     constexpr handleTypeName##Handle INVALID_##handleTypeNameCaps = handleTypeName##Handle(0);
 
 HYP_DEF_SCRIPT_API_HANDLE(Script, SCRIPT, uint32)
@@ -113,8 +113,8 @@ public:
 
         CallFunctionArgV(scriptHandle, functionHandle, arguments.Data(), arguments.Size());
     }
-    
-    void ReadLastReturnValue(Value*& outValue);
+
+    void ReadLastReturnValue(Value& outValue);
 
 #if 0
     template <class RegisteredType, class T>

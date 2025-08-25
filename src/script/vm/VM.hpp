@@ -20,6 +20,13 @@ namespace hyperion {
 
 class APIInstance;
 
+extern vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data);
+extern vm::Value ScriptApi_MakeValue(const vm::Number& number);
+extern vm::Value ScriptApi_MakeValue(HypData&& data);
+extern vm::Value ScriptApi_MakeRef(vm::Value& refValue);
+extern vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory);
+extern vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc);
+
 namespace vm {
 
 class GC;

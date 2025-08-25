@@ -329,18 +329,18 @@ static inline vm::Value ScriptApi_MakeValue(T&& data)
     return vm::Value(HypData(std::forward<T>(data)));
 }
 
-static inline vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data)
+vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data)
 {
     return vm::Value(data);
 }
 
-static inline vm::Value ScriptApi_MakeValue(const vm::Number& number)
+vm::Value ScriptApi_MakeValue(const vm::Number& number)
 {
     return vm::Value(number);
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory */
-static inline vm::Value ScriptApi_MakeRef(vm::Value& refValue)
+vm::Value ScriptApi_MakeRef(vm::Value& refValue)
 {
     vm::Value* pValue = &refValue;
 
@@ -354,7 +354,7 @@ static inline vm::Value ScriptApi_MakeRef(vm::Value& refValue)
 }
 
 /*! \brief Use for loading into registers - promotes to tracked memory if needed */
-static inline vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory)
+vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory)
 {
     if (promoteToTrackedMemory && refValue.GetGCIndex() == vm::INVALID_GC_INDEX)
     {
@@ -379,7 +379,7 @@ static inline vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool 
 }
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-static inline vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
+vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 {
     vm::Value* pValue = refValue.Deref();
 
@@ -640,11 +640,11 @@ public:
         thread->m_regs[reg].AssignValue(std::move(value), false);
     }
 
-    HYP_FORCE_INLINE void LoadMem(BCRegister dst, BCRegister src, uint8 index)
+    HYP_FORCE_INLINE void LoadMem(BCRegister dstReg, BCRegister srcReg, uint8 index)
     {
-        Value& sv = thread->m_regs[src];
+        Value& src = *thread->m_regs[srcReg].Deref();
 
-        if (VMObject* object = sv.GetObject())
+        if (VMObject* object = src.GetObject())
         {
             Assert(
                 index < object->GetSize(),
@@ -652,7 +652,7 @@ public:
                 index,
                 object->GetSize());
 
-            thread->m_regs[dst].AssignValue(ScriptApi_MakeRef(object->GetMember(index).value), false);
+            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(object->GetMember(index).value), false);
 
             return;
         }
@@ -664,9 +664,9 @@ public:
 
     HYP_FORCE_INLINE void LoadMemHash(BCRegister dstReg, BCRegister srcReg, uint32 hash)
     {
-        Value& sv = thread->m_regs[srcReg];
+        Value& src = *thread->m_regs[srcReg].Deref();
 
-        if (VMObject* object = sv.GetObject())
+        if (VMObject* object = src.GetObject())
         {
             if (Member* member = object->LookupMemberFromHash(hash))
             {
@@ -1304,10 +1304,14 @@ public:
                 break;
             }
 
-            VMObject* protoMemberObject = protoMem->value.GetObject();
+            VMObject* protoMemberObject = protoMem->value.Deref()->GetObject();
 
             if (!protoMemberObject)
             {
+                DebugLog(
+                    LogType::Error,
+                    "Prototype member is not an object in class, got '%s' instead",
+                    protoMem->value.GetTypeString());
                 state->ThrowException(
                     thread,
                     Exception::InvalidConstructorException());
@@ -1339,12 +1343,16 @@ public:
         {
             for (SizeType index = 0; index < it.Size(); index++)
             {
-                /// FIXME: This will be an issue as we do not clone
-                // allMembers.PushBack(it.Data()[index]);
+                Member& srcMember = it.Data()[index];
+
+                Member& dstMember = allMembers.EmplaceBack();
+                Memory::MemCpy(&dstMember.name, &srcMember.name, sizeof(Member::name));
+                dstMember.hash = srcMember.hash;
+                dstMember.value = ScriptApi_ShallowCopy(srcMember.value, state->GetGC());
             }
         }
 
-        thread->m_regs[dst].AssignValue(ScriptApi_MakeValue(VMObject(allMembers.Data(), allMembers.Size(), std::move(classValue))), false);
+        thread->m_regs[dst].AssignValue(ScriptApi_MakeValue(VMObject(allMembers.Data(), allMembers.Size(), ScriptApi_ShallowCopy(classValue, state->GetGC()))), false);
     }
 
     HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32_t size)

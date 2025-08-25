@@ -130,7 +130,14 @@ void HyperionEditor::Init()
     { // script 2
         // temp
         String str;
-        str = "export func x(a, b) { return a * b; };";
+        str = "class MyClass {\n"
+              "    func x(a, b) { return a + b; };\n"
+              "};\n"
+              "\n"
+              "ins := new MyClass();\n"
+              "y := ins.x(5, 6);\n"
+              "export y;\n\n"
+              "export func x(a, b) { return ins; };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 
@@ -152,13 +159,13 @@ void HyperionEditor::Init()
             if (HypScript::GetInstance().GetFunctionHandle("x", functionHandle))
             {
                 HypScript::GetInstance().CallFunction(scriptHandle, functionHandle, 5, 4);
-                
-                vm::Value* lastReturn;
+
+                vm::Value lastReturn;
                 HypScript::GetInstance().ReadLastReturnValue(lastReturn);
-                
-                if (lastReturn != nullptr)
+
+                if (lastReturn.IsValid())
                 {
-                    HYP_LOG(Editor, Debug, "Last value : {}", lastReturn->ToString().GetData());
+                    HYP_LOG(Editor, Debug, "Last value : {}", lastReturn.ToString().GetData());
                 }
             }
             else

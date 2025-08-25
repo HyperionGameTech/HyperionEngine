@@ -754,6 +754,8 @@ const char* Value::GetTypeString() const
             return "<Try catch info>";
         case Script_VMData::USER_DATA:
             return "UserData";
+        case Script_VMData::VALUE_REF:
+            return "Reference";
         default:
             HYP_UNREACHABLE();
         }
