@@ -367,11 +367,16 @@ vm::Value ScriptApi_MakeRef(vm::Value& refValue)
 /*! \brief Use for loading into registers - promotes to tracked memory if needed */
 vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory)
 {
-    if (promoteToTrackedMemory && refValue.GetGCIndex() == vm::INVALID_GC_INDEX)
+    if (promoteToTrackedMemory)
     {
         Assert(gc != nullptr);
-
         Assert(!refValue.IsRef());
+
+        if (refValue.GetGCIndex() != vm::INVALID_GC_INDEX)
+        {
+            // already in tracked memory, make a reference to this value
+            return ScriptApi_MakeRef(refValue);
+        }
 
         const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
 
@@ -379,7 +384,8 @@ vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrack
         Assert(pValue != nullptr);
         Assert(pValue->GetGCIndex() != vm::INVALID_GC_INDEX);
 
-        refValue = ScriptApi_MakeRef(*pValue); // update original reference to point to tracked memory
+        // update original reference to point to tracked memory
+        refValue = ScriptApi_MakeRef(*pValue);
 
         Assert(refValue.IsRef());
         Assert(refValue.Deref() == pValue);
@@ -393,6 +399,12 @@ vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrack
 vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 {
     vm::Value* pValue = refValue.Deref();
+
+    if (pValue->IsRef())
+    {
+        // already a reference, make a new reference to the same value
+        return ScriptApi_MakeRef(*refValue.Deref());
+    }
 
     if (pValue->GetGCIndex() != vm::INVALID_GC_INDEX)
     {
@@ -775,7 +787,10 @@ public:
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(thread->m_stack[thread->m_stack.GetStackPointer() - offset], vm->GetGC(), true), false);
+        Value newRef = ScriptApi_MakeRef(thread->m_stack[thread->m_stack.GetStackPointer() - offset], vm->GetGC(), true);
+        Assert(newRef.IsRef());
+
+        thread->m_regs[reg].AssignValue(std::move(newRef), false);
     }
 
     HYP_FORCE_INLINE void LoadIndexRef(BCRegister reg, uint16 index)
@@ -788,14 +803,20 @@ public:
             index,
             stackMemory.GetStackPointer());
 
+        Value newRef = ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true);
+        Assert(newRef.IsRef());
+
         // load reference to stack value at index into the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true), false);
+        thread->m_regs[reg].AssignValue(std::move(newRef), false);
     }
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
+        Value newRef = ScriptApi_MakeRef(thread->m_regs[srcReg], vm->GetGC(), true);
+        Assert(newRef.IsRef());
+
         // load reference to value in srcReg into dstReg
-        thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(thread->m_regs[srcReg], vm->GetGC(), true), false);
+        thread->m_regs[dstReg].AssignValue(std::move(newRef), false);
     }
 
     HYP_FORCE_INLINE void LoadDeref(BCRegister dstReg, BCRegister srcReg)
@@ -1187,8 +1208,14 @@ public:
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
     {
+        DebugLog(
+            LogType::Debug,
+            "Pushing register %u to stack (sp = %u), value = %s\n",
+            reg,
+            thread->m_stack.GetStackPointer(),
+            thread->m_regs[reg].ToString().GetData());
         // Move value from register to top of stack
-        thread->m_stack.Push(ScriptApi_ShallowCopy(*thread->m_regs[reg].Deref(), vm->GetGC()));
+        thread->m_stack.Push(ScriptApi_ShallowCopy(thread->m_regs[reg], vm->GetGC()));
     }
 
     HYP_FORCE_INLINE void Pop()
@@ -1209,7 +1236,7 @@ public:
             return;
         }
 
-        array->Push(ScriptApi_ShallowCopy(*thread->m_regs[srcReg].Deref(), vm->GetGC()));
+        array->Push(ScriptApi_ShallowCopy(thread->m_regs[srcReg], vm->GetGC()));
         array->AtIndex(array->GetSize() - 1).Mark();
     }
 
@@ -3627,11 +3654,13 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
     Assert(thread != nullptr);
     Assert(bs != nullptr);
 
-    if (value.IsFunction())
+    Value& deref = *value.Deref();
+
+    if (deref.IsFunction())
     {
-        if (value.IsNativeFunction())
+        if (deref.IsNativeFunction())
         {
-            Value** args = new Value*[nargs > 0 ? nargs : 1];
+            Value** args = (Value**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(Value*));
 
             int64 i = static_cast<int64>(thread->m_stack.GetStackPointer()) - 1;
             for (int j = nargs - 1; j >= 0 && i >= 0; i--, j--)
@@ -3658,7 +3687,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             //            enableAutoGc = false;
 
             // call the native function
-            Script_VMData* vmData = value.GetVMData();
+            Script_VMData* vmData = deref.GetVMData();
             Assert(vmData != nullptr && vmData->nativeFunc != nullptr);
 
             vmData->nativeFunc(params);
@@ -3666,11 +3695,9 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             // re-enable auto gc
             //            enableAutoGc = ENABLE_GC;
 
-            delete[] args;
-
             return;
         }
-        else if (const AnyHandle& object = value.GetObject()) // functor object
+        else if (const AnyHandle& object = deref.GetObject()) // functor object
         {
             HYP_NOT_IMPLEMENTED(); // come back to this
 #if 0
@@ -3697,16 +3724,16 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
                     }
 
                     // set 'self' object to start of args
-                    thread->m_stack[argsStart].AssignValue(std::move(value), false);
+                    thread->m_stack[argsStart].AssignValue(ScriptApi_ShallowCopy(deref, GetGC()), false);
                 }
                 else
                 {
-                    thread->m_stack.Push(std::move(value));
+                    thread->m_stack.Push(ScriptApi_ShallowCopy(deref, GetGC()));
                 }
 
-                Invoke(handler, ScriptApi_ShallowCopy(member->value, vm->GetGC()), nargs + 1);
+                Invoke(handler, ScriptApi_ShallowCopy(member->value, GetGC()), nargs + 1);
 
-                Value& top = thread->m_stack.Top();
+                Value& top = thread->m_stack.Top(); // shouldn't need to deref - should directly hold stack frame
 
                 Script_VMData* topVmData = top.GetVMData();
                 Assert(topVmData != nullptr && topVmData->type == Script_VMData::FUNCTION_CALL);
@@ -3720,80 +3747,74 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             }
 #endif
         }
+        // non-native function here
+        Script_VMData* vmData = deref.GetVMData();
+        Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
 
-        char buffer[256];
-        std::snprintf(
-            buffer,
-            HYP_ARRAY_SIZE(buffer),
-            "cannot invoke type '%s' as a function",
-            value.GetTypeString());
+        if ((vmData->func.m_flags & FunctionFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
+        {
+            // if variadic, make sure the arg count is /at least/ what is required
+            ThrowException(thread, Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
+        }
+        else if (!(vmData->func.m_flags & FunctionFlags::VARIADIC) && vmData->func.m_nargs != nargs)
+        {
+            ThrowException(thread, Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
+        }
+        else
+        {
+            Script_VMData previousAddr;
+            previousAddr.type = Script_VMData::FUNCTION_CALL;
+            previousAddr.call.varargsPush = 0;
+            previousAddr.call.returnAddress = static_cast<BCAddress>(bs->Position());
 
-        ThrowException(
-            thread,
-            Exception(buffer));
+            if (vmData->func.m_flags & FunctionFlags::VARIADIC)
+            {
+                // for each argument that is over the expected size, we must pop it from
+                // the stack and add it to a new array.
+                int varargsAmt = nargs - vmData->func.m_nargs + 1;
+                if (varargsAmt < 0)
+                {
+                    varargsAmt = 0;
+                }
+
+                // set varargsPush value so we know how to get back to the stack size before.
+                previousAddr.call.varargsPush = varargsAmt - 1;
+
+                // create VMArray object to hold variadic args
+                VMArray arr(varargsAmt);
+
+                for (int i = varargsAmt - 1; i >= 0; i--)
+                {
+                    // push to array
+                    arr.AtIndex(i, std::move(thread->GetStack().Top()));
+                    thread->GetStack().Pop();
+                }
+
+                // push the array to the stack
+                thread->GetStack().Push(ScriptApi_MakeValue(std::move(arr)));
+            }
+
+            // push the address
+            thread->GetStack().Push(ScriptApi_MakeValue(previousAddr));
+
+            // seek to the new address
+            bs->Seek(vmData->func.m_addr);
+
+            // increase function depth
+            thread->m_funcDepth++;
+        }
 
         return;
     }
 
-    Value* deref = value.Deref();
-    Assert(deref != nullptr);
+    char buffer[256];
+    std::snprintf(
+        buffer,
+        HYP_ARRAY_SIZE(buffer),
+        "cannot invoke type '%s' as a function",
+        value.GetTypeString());
 
-    // non-native function here
-    Script_VMData* vmData = deref->GetVMData();
-    Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
-
-    if ((vmData->func.m_flags & FunctionFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
-    {
-        // if variadic, make sure the arg count is /at least/ what is required
-        ThrowException(thread, Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
-    }
-    else if (!(vmData->func.m_flags & FunctionFlags::VARIADIC) && vmData->func.m_nargs != nargs)
-    {
-        ThrowException(thread, Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
-    }
-    else
-    {
-        Script_VMData previousAddr;
-        previousAddr.type = Script_VMData::FUNCTION_CALL;
-        previousAddr.call.varargsPush = 0;
-        previousAddr.call.returnAddress = static_cast<BCAddress>(bs->Position());
-
-        if (vmData->func.m_flags & FunctionFlags::VARIADIC)
-        {
-            // for each argument that is over the expected size, we must pop it from
-            // the stack and add it to a new array.
-            int varargsAmt = nargs - vmData->func.m_nargs + 1;
-            if (varargsAmt < 0)
-            {
-                varargsAmt = 0;
-            }
-
-            // set varargsPush value so we know how to get back to the stack size before.
-            previousAddr.call.varargsPush = varargsAmt - 1;
-
-            // create VMArray object to hold variadic args
-            VMArray arr(varargsAmt);
-
-            for (int i = varargsAmt - 1; i >= 0; i--)
-            {
-                // push to array
-                arr.AtIndex(i, std::move(thread->GetStack().Top()));
-                thread->GetStack().Pop();
-            }
-
-            // push the array to the stack
-            thread->GetStack().Push(ScriptApi_MakeValue(std::move(arr)));
-        }
-
-        // push the address
-        thread->GetStack().Push(ScriptApi_MakeValue(previousAddr));
-
-        // seek to the new address
-        bs->Seek(vmData->func.m_addr);
-
-        // increase function depth
-        thread->m_funcDepth++;
-    }
+    ThrowException(thread, Exception(buffer));
 }
 
 void VM::InvokeNow(BytecodeStream* bs, Value&& value, uint8 nargs)

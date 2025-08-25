@@ -290,19 +290,21 @@ void Value::AssignValue(Value&& other, bool assignRef)
 {
     Value* ref;
 
+    Assert(other.GetGCIndex() == INVALID_GC_INDEX);
+
     if (assignRef && (ref = Deref()) != nullptr)
     {
-        Assert(ref->GetGCIndex() == INVALID_GC_INDEX);
+        HypData* hypData = ref->GetHypData();
+        hypData->~HypData();
 
-        ref->~Value();
-        new (ref) Value(std::move(other));
+        new (hypData) HypData(std::move(*other.GetHypData()));
     }
     else
     {
-        Assert(GetGCIndex() == INVALID_GC_INDEX);
+        HypData* hypData = GetHypData();
+        hypData->~HypData();
 
-        this->~Value();
-        new (this) Value(std::move(other));
+        new (hypData) HypData(std::move(*other.GetHypData()));
     }
 }
 
