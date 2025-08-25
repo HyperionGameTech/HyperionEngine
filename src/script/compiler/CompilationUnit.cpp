@@ -31,10 +31,10 @@ void CompilationUnit::RegisterType(const SymbolTypeRef& typePtr)
 {
     Assert(typePtr != nullptr);
 
-    Assert(
-        typePtr->GetTypeObject().Lock() != nullptr,
-        "Type object must be assigned to SymbolType before RegisterType() is called. SymbolType name: %s",
-        typePtr->GetName().Data());
+    // Assert(
+    //     typePtr->GetTypeObject().Lock() != nullptr,
+    //     "Type object must be assigned to SymbolType before RegisterType() is called. SymbolType name: %s",
+    //     typePtr->GetName().Data());
 
     // @TODO Use a more efficient data structure
     // for registeredTypes like an IntrusiveHashSet or something

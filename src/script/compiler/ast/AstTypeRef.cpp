@@ -37,24 +37,24 @@ UniquePtr<Buildable> AstTypeRef::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_symbolType != nullptr);
 
-    Assert(
-        m_symbolType->GetId() != -1,
-        "SymbolType %s not registered, invalid type ref",
-        m_symbolType->ToString(true).Data());
+//    Assert(
+//        m_symbolType->GetId() != -1,
+//        "SymbolType %s not registered, invalid type ref",
+//        m_symbolType->ToString(true).Data());
 
-    Assert(
-        m_symbolType->GetTypeObject() != nullptr,
-        "SymbolType %s has no type object set, invalid type ref",
-        m_symbolType->ToString(true).Data());
+    // Assert(
+    //     m_symbolType->GetTypeObject() != nullptr,
+    //     "SymbolType %s has no type object set, invalid type ref",
+    //     m_symbolType->ToString(true).Data());
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    // Load it from static storage
-    auto instrLoadStatic = BytecodeUtil::Make<StorageOperation>();
-    instrLoadStatic->GetBuilder().Load(rp).Static().ByIndex(m_symbolType->GetId());
-    chunk->Append(std::move(instrLoadStatic));
+//    const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+//
+//    // Load it from static storage
+//    auto instrLoadStatic = BytecodeUtil::Make<StorageOperation>();
+//    instrLoadStatic->GetBuilder().Load(rp).Static().ByIndex(m_symbolType->GetId());
+//    chunk->Append(std::move(instrLoadStatic));
 
     return chunk;
 }

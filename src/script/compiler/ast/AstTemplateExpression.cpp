@@ -80,29 +80,29 @@ void AstTemplateExpression::Visit(AstVisitor* visitor, Module* mod)
             genericParam->GetName(),
             BuiltinTypes::CLASS_TYPE);
 
-        RC<AstTypeObject> genericParamTypeObject(new AstTypeObject(
-            genericParamType,
-            BuiltinTypes::CLASS_TYPE,
-            m_location));
+        // RC<AstTypeObject> genericParamTypeObject(new AstTypeObject(
+        //     genericParamType,
+        //     BuiltinTypes::CLASS_TYPE,
+        //     m_location));
 
-        genericParamType->SetTypeObject(genericParamTypeObject);
+        // genericParamType->SetTypeObject(genericParamTypeObject);
 
         mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(genericParamType);
 
-        // when visited, will register the SymbolType
-        genericParamTypeObject->Visit(visitor, mod);
+        // // when visited, will register the SymbolType
+        // genericParamTypeObject->Visit(visitor, mod);
 
-        {
-            auto* genericParamTypeObjectValueOf = genericParamTypeObject->GetDeepValueOf();
-            Assert(genericParamTypeObjectValueOf != nullptr);
+        // {
+        //     auto* genericParamTypeObjectValueOf = genericParamTypeObject->GetDeepValueOf();
+        //     Assert(genericParamTypeObjectValueOf != nullptr);
 
-            SymbolTypeRef genericParamTypeObjectValueOfType = genericParamTypeObjectValueOf->GetHeldType();
-            Assert(genericParamTypeObjectValueOfType != nullptr);
-            genericParamType = genericParamTypeObjectValueOfType->GetUnaliased();
-        }
+        //     SymbolTypeRef genericParamTypeObjectValueOfType = genericParamTypeObjectValueOf->GetHeldType();
+        //     Assert(genericParamTypeObjectValueOfType != nullptr);
+        //     genericParamType = genericParamTypeObjectValueOfType->GetUnaliased();
+        // }
 
-        // Keep it around because SymbolType holds a weak reference to it
-        m_genericParamTypeObjects.PushBack(std::move(genericParamTypeObject));
+        // // Keep it around because SymbolType holds a weak reference to it
+        // m_genericParamTypeObjects.PushBack(std::move(genericParamTypeObject));
 
         RC<AstVariableDeclaration> varDecl;
 
@@ -233,13 +233,13 @@ void AstTemplateExpression::Visit(AstVisitor* visitor, Module* mod)
 
         m_symbolType->SetFlags(m_symbolType->GetFlags() | SYMBOL_TYPE_FLAGS_NATIVE);
 
-        // Create dummy type object
-        m_nativeDummyTypeObject.Reset(new AstTypeObject(
-            m_symbolType,
-            BuiltinTypes::CLASS_TYPE,
-            m_location));
+        // // Create dummy type object
+        // m_nativeDummyTypeObject.Reset(new AstTypeObject(
+        //     m_symbolType,
+        //     BuiltinTypes::CLASS_TYPE,
+        //     m_location));
 
-        m_symbolType->SetTypeObject(m_nativeDummyTypeObject);
+        // m_symbolType->SetTypeObject(m_nativeDummyTypeObject);
 
         // Register our type
         visitor->GetCompilationUnit()->RegisterType(m_symbolType);

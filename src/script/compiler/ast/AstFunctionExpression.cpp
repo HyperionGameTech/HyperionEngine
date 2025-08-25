@@ -301,27 +301,26 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     functionType = functionType->GetUnaliased();
 
-    // if (functionType != BuiltinTypes::UNDEFINED) {
-    //     const int currentSymbolTypeId = functionType->GetId();
-    //     Assert(currentSymbolTypeId != -1);
+    if (functionType != BuiltinTypes::UNDEFINED)
+    {
+//        const int currentSymbolTypeId = functionType->GetId();
+//        Assert(currentSymbolTypeId != -1);
 
-    //     const RC<AstTypeObject> currentTypeObject = functionType->GetTypeObject().Lock();
-    //     Assert(currentTypeObject != nullptr);
+        // const RC<AstTypeObject> currentTypeObject = functionType->GetTypeObject().Lock();
+        // Assert(currentTypeObject != nullptr);
 
-    //     const SymbolTypeFlags currentFlags = functionType->GetFlags();
+        const SymbolTypeFlags currentFlags = functionType->GetFlags();
 
-    //     functionType = SymbolType::GenericInstance(
-    //         functionType,
-    //         GenericInstanceTypeInfo {
-    //             genericParamTypes
-    //         }
-    //     );
+        functionType = SymbolType::GenericInstance(
+            functionType,
+            GenericInstanceTypeInfo {
+                genericParamTypes });
 
-    //     // Reuse the same ID
-    //     functionType->SetId(currentSymbolTypeId);
-    //     functionType->SetTypeObject(currentTypeObject);
-    //     functionType->SetFlags(currentFlags);
-    // }
+        // Reuse the same ID
+//        functionType->SetId(currentSymbolTypeId);
+        // functionType->SetTypeObject(currentTypeObject);
+        functionType->SetFlags(currentFlags);
+    }
 
     if (m_isClosure)
     {
@@ -376,7 +375,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         if (closureHeldType != BuiltinTypes::UNDEFINED)
         {
             Assert(closureHeldType->GetId() != -1);
-            Assert(closureHeldType->GetTypeObject().Lock() != nullptr);
+            // Assert(closureHeldType->GetTypeObject().Lock() != nullptr);
         }
 
         m_functionTypeExpr.Reset(new AstPrototypeSpecification(

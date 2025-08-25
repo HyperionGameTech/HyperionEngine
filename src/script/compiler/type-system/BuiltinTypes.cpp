@@ -62,13 +62,7 @@ const SymbolTypeRef BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
             BuiltinTypes::OBJECT,
             RC<AstTypeRef>(new AstTypeRef(
                 BuiltinTypes::OBJECT,
-                SourceLocation::eof)) }
-        /*SymbolTypeMember {
-            "name",
-            BuiltinTypes::ANY, // Set to any until this is refactored - string relies on class
-            RC<AstString>(new AstString("Class", SourceLocation::eof))
-        }*/
-    });
+                SourceLocation::eof)) } });
 
 // Enum type is a generic class type similar to Array<T>.
 // e.g. Enum<uint>

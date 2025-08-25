@@ -60,11 +60,8 @@ void AstTemplateInstantiationWrapper::MakeSymbolTypeGenericInstance(SymbolTypeRe
     // So we can use the params that were provided, later
     if (symbolType != BuiltinTypes::UNDEFINED)
     {
-        const int currentSymbolTypeId = symbolType->GetId();
-        Assert(currentSymbolTypeId != -1);
-
-        const RC<AstTypeObject> currentTypeObject = symbolType->GetTypeObject().Lock();
-        Assert(currentTypeObject != nullptr);
+        //const int currentSymbolTypeId = symbolType->GetId();
+        //Assert(currentSymbolTypeId != -1);
 
         const SymbolTypeFlags currentFlags = symbolType->GetFlags();
 
@@ -74,8 +71,7 @@ void AstTemplateInstantiationWrapper::MakeSymbolTypeGenericInstance(SymbolTypeRe
                 m_genericArgs });
 
         // Reuse the same ID
-        symbolType->SetId(currentSymbolTypeId);
-        symbolType->SetTypeObject(currentTypeObject);
+        //symbolType->SetId(currentSymbolTypeId);
         symbolType->SetFlags(currentFlags);
     }
 }

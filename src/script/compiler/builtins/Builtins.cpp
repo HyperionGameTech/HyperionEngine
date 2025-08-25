@@ -133,10 +133,10 @@ void Builtins::Visit(AstVisitor* visitor)
         Assert(typePtr != nullptr);
 
         typePtr->SetId(-1); // TEMP; refactor this
-        typePtr->SetTypeObject({});
+        // typePtr->SetTypeObject({});
 
         Assert(typePtr->GetId() == -1);
-        Assert(typePtr->GetTypeObject() == nullptr);
+        // Assert(typePtr->GetTypeObject() == nullptr);
 
         // add 'name' member here
         typePtr->AddMember({ "name",
@@ -151,15 +151,15 @@ void Builtins::Visit(AstVisitor* visitor)
                 typePtr->GetDefaultValue() });
         }
 
-        RC<AstTypeObject> typeObject(new AstTypeObject(
-            typePtr,
-            typePtr->GetBaseType(),
-            BUILTIN_SOURCE_LOCATION));
+        // RC<AstTypeObject> typeObject(new AstTypeObject(
+        //     typePtr,
+        //     typePtr->GetBaseType(),
+        //     BUILTIN_SOURCE_LOCATION));
 
-        // push it so that it can be visited, and registered
-        visitor->GetAstIterator()->Push(typeObject);
+        // // push it so that it can be visited, and registered
+        // visitor->GetAstIterator()->Push(typeObject);
 
-        typePtr->SetTypeObject(typeObject);
+        // typePtr->SetTypeObject(typeObject);
 
         // add it to the global scope
         Scope& scope = m_unit->GetGlobalModule()->m_scopes.Top();

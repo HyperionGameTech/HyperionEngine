@@ -134,10 +134,7 @@ void HyperionEditor::Init()
               "    func x(a: int, b: int) { return a + b; };\n"
               "};\n"
               "\n"
-              "ins := new MyClass();\n"
-              "y := ins.x(5, 6);\n"
-              "export y;\n\n"
-              "export func x(a: float, b: int) { return ins; };";
+              "export func x(a: float, b: int) { return a * b; };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

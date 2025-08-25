@@ -109,12 +109,12 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
             GenericInstanceTypeInfo {
                 { { "of", m_enumUnderlyingType } } });
 
-        m_typeObject.Reset(new AstTypeObject(
-            m_symbolType,
-            BuiltinTypes::CLASS_TYPE,
-            m_enumUnderlyingType,
-            m_isProxyClass,
-            m_location));
+        // m_typeObject.Reset(new AstTypeObject(
+        //     m_symbolType,
+        //     BuiltinTypes::CLASS_TYPE,
+        //     m_enumUnderlyingType,
+        //     m_isProxyClass,
+        //     m_location));
     }
     else
     {
@@ -133,12 +133,12 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
             m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
         }
 
-        m_typeObject.Reset(new AstTypeObject(
-            m_symbolType,
-            BuiltinTypes::CLASS_TYPE,
-            m_enumUnderlyingType,
-            m_isProxyClass,
-            m_location));
+        // m_typeObject.Reset(new AstTypeObject(
+        //     m_symbolType,
+        //     BuiltinTypes::CLASS_TYPE,
+        //     m_enumUnderlyingType,
+        //     m_isProxyClass,
+        //     m_location));
 
         // special names
         bool protoFound = false;
@@ -200,7 +200,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    m_symbolType->SetTypeObject(m_typeObject);
+    // m_symbolType->SetTypeObject(m_typeObject);
 
     // Add the symbol type to the identifier table so that it can be used within the type definition.
     // scope->GetIdentifierTable().AddSymbolType(m_symbolType);
@@ -469,19 +469,19 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 #endif
 
-    { // create a type object for the prototype type
-        m_prototypeExpr.Reset(new AstTypeObject(
-            prototypeType,
-            BuiltinTypes::CLASS_TYPE,
-            m_location));
+    // { // create a type object for the prototype type
+    //     m_prototypeExpr.Reset(new AstTypeObject(
+    //         prototypeType,
+    //         BuiltinTypes::CLASS_TYPE,
+    //         m_location));
 
-        prototypeType->SetTypeObject(m_prototypeExpr);
-        m_prototypeExpr->Visit(visitor, mod); // will register the type. it will be built later.
-    }
+    //     prototypeType->SetTypeObject(m_prototypeExpr);
+    //     m_prototypeExpr->Visit(visitor, mod); // will register the type. it will be built later.
+    // }
 
-    { // Finally we visit the newly created AstTypeObject, this will Register our SymbolType
-        m_typeObject->Visit(visitor, mod);
-    }
+    // { // Finally we visit the newly created AstTypeObject, this will Register our SymbolType
+    //     m_typeObject->Visit(visitor, mod);
+    // }
 
     { // create a type ref for the symbol type
         m_typeRef.Reset(new AstTypeRef(
@@ -497,7 +497,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
 UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_symbolType != nullptr);
-    Assert(m_symbolType->GetId() != -1);
+//    Assert(m_symbolType->GetId() != -1);
 
     Assert(m_isVisited);
 
@@ -510,8 +510,8 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(m_prototypeExpr->Build(visitor, mod));
     }
 
-    Assert(m_typeObject != nullptr);
-    chunk->Append(m_typeObject->Build(visitor, mod));
+    // Assert(m_typeObject != nullptr);
+    // chunk->Append(m_typeObject->Build(visitor, mod));
 
     Assert(m_typeRef != nullptr);
     chunk->Append(m_typeRef->Build(visitor, mod));
@@ -523,11 +523,11 @@ void AstTypeExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
     Assert(m_isVisited);
 
-    Assert(m_typeObject != nullptr);
-    m_typeObject->Optimize(visitor, mod);
+    // Assert(m_typeObject != nullptr);
+    // m_typeObject->Optimize(visitor, mod);
 
-    Assert(m_prototypeExpr != nullptr);
-    m_prototypeExpr->Optimize(visitor, mod);
+//    Assert(m_prototypeExpr != nullptr);
+//    m_prototypeExpr->Optimize(visitor, mod);
 
     Assert(m_typeRef != nullptr);
     m_typeRef->Optimize(visitor, mod);
