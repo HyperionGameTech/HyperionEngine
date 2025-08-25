@@ -469,7 +469,7 @@ void DecompilationUnit::DecodeNext(
         uint8 src;
         bs.Read(&src);
 
-        uint32 hash;
+        uint64 hash;
         bs.Read(&hash);
 
         if (os != nullptr)
@@ -478,7 +478,7 @@ void DecompilationUnit::DecodeNext(
                 << "loadMemHash ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
-                << "u32(" << hash << ")"
+                << "u64(" << hash << ")"
                 << "]"
                 << std::endl;
         }
@@ -728,7 +728,7 @@ void DecompilationUnit::DecodeNext(
         uint8 reg;
         bs.Read(&reg);
 
-        uint32 hash;
+        uint64 hash;
         bs.Read(&hash);
 
         uint8 src;
@@ -739,7 +739,7 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "movMemHash ["
                 << "%" << (int)reg << ", "
-                << "u32(" << hash << "), "
+                << "u64(" << hash << "), "
                 << "%" << (int)src
                 << "]"
                 << std::endl;
@@ -823,7 +823,7 @@ void DecompilationUnit::DecodeNext(
         uint8 src;
         bs.Read(&src);
 
-        uint32 hash;
+        uint64 hash;
         bs.Read(&hash);
 
         if (os != nullptr)
@@ -832,7 +832,7 @@ void DecompilationUnit::DecodeNext(
                 << "hasMemHash ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
-                << "u32(" << hash << ")"
+                << "u64(" << hash << ")"
                 << "]"
                 << std::endl;
         }
@@ -1446,7 +1446,7 @@ void DecompilationUnit::DecodeNext(
         uint8 reg;
         bs.Read(&reg);
 
-        uint32 hash;
+        uint64 hash;
         bs.Read(&hash);
 
         if (os != nullptr)
@@ -1454,7 +1454,7 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "export ["
                 << "%" << (int)reg << ", "
-                << "u32(" << hash << ")"
+                << "u64(" << hash << ")"
                 << "]"
                 << std::endl;
         }

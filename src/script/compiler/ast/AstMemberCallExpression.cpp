@@ -19,7 +19,7 @@
 
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
-#include <script/Hasher.hpp>
+#include <core/HashCode.hpp>
 
 #include <iostream>
 
@@ -197,7 +197,7 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
     }
     else
     {
-        const uint32 hash = hashFnv1(m_fieldName.Data());
+        const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
         chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
     }

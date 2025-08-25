@@ -6,7 +6,6 @@
 #include <script/vm/VMString.hpp>
 #include <script/vm/VMMap.hpp>
 #include <script/vm/HeapValue.hpp>
-#include <script/Hasher.hpp>
 
 #include <core/object/HypData.hpp>
 
@@ -294,14 +293,14 @@ void Value::AssignValue(Value&& other, bool assignRef)
     if (assignRef && (ref = Deref()) != nullptr)
     {
         Assert(ref->GetGCIndex() == INVALID_GC_INDEX);
-        
+
         ref->~Value();
         new (ref) Value(std::move(other));
     }
     else
     {
         Assert(GetGCIndex() == INVALID_GC_INDEX);
-        
+
         this->~Value();
         new (this) Value(std::move(other));
     }
@@ -593,16 +592,16 @@ bool Value::GetBoolean(bool* out) const
     return true;
 }
 
-VMObject* Value::GetObject() const
+const AnyHandle& Value::GetObject() const
 {
     const HypData& data = *GetHypData();
 
-    if (!data.Is<VMObject>())
+    if (!data.Is<AnyHandle>())
     {
-        return nullptr;
+        return AnyHandle::empty;
     }
 
-    return &data.Get<VMObject>();
+    return data.Get<AnyHandle>();
 }
 
 VMArray* Value::GetArray() const

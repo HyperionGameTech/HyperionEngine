@@ -10,10 +10,10 @@
 
 #include <core/object/HypData.hpp>
 #include <core/debug/Debug.hpp>
+#include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
 #include <script/Instructions.hpp>
-#include <script/Hasher.hpp>
 
 #include <algorithm>
 #include <cstdio>
@@ -613,7 +613,7 @@ public:
         for (uint16 i = 0; i < size; i++)
         {
             Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
-            members[i].hash = hashFnv1(names[i]);
+            members[i].hash = HashCode::GetHashCode(names[i]).Value();
             members[i].value = Value();
         }
 
@@ -649,7 +649,7 @@ public:
             Exception("Cannot access member by index: Not a VMObject"));
     }
 
-    HYP_FORCE_INLINE void LoadMemHash(BCRegister dstReg, BCRegister srcReg, uint32 hash)
+    HYP_FORCE_INLINE void LoadMemHash(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
 
@@ -827,7 +827,7 @@ public:
         object->GetMember(index).value.Mark();
     }
 
-    HYP_FORCE_INLINE void MovMemHash(BCRegister dstReg, uint32_t hash, BCRegister srcReg)
+    HYP_FORCE_INLINE void MovMemHash(BCRegister dstReg, uint64 hash, BCRegister srcReg)
     {
         Value* pValue = thread->m_regs[dstReg].Deref();
 
@@ -1118,7 +1118,7 @@ public:
         thread->m_regs[dstReg] = std::move(thread->m_regs[srcReg]);
     }
 
-    HYP_FORCE_INLINE void HasMemHash(BCRegister dstReg, BCRegister srcReg, uint32 hash)
+    HYP_FORCE_INLINE void HasMemHash(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
         Value& result = thread->m_regs[dstReg];
@@ -1333,7 +1333,7 @@ public:
         thread->m_regs[dst].AssignValue(ScriptApi_MakeValue(VMObject(allMembers.Data(), allMembers.Size(), ScriptApi_ShallowCopy(classValue, vm->GetGC()))), false);
     }
 
-    HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32_t size)
+    HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32 size)
     {
         // assign register value to the allocated object
         thread->m_regs[dst] = ScriptApi_MakeValue(VMArray());
@@ -1920,7 +1920,7 @@ public:
             Exception("User exception"));
     }
 
-    HYP_FORCE_INLINE void ExportSymbol(BCRegister reg, uint32_t hash)
+    HYP_FORCE_INLINE void ExportSymbol(BCRegister reg, uint64 hash)
     {
         if (!vm->GetExportedSymbols().Store(hash, ScriptApi_ShallowCopy(*thread->m_regs[reg].Deref(), vm->GetGC())).second)
         {
@@ -2697,7 +2697,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         bs->Read(&dst);
         BCRegister src;
         bs->Read(&src);
-        uint32 hash;
+        uint64 hash;
         bs->Read(&hash);
 
         handler.LoadMemHash(
@@ -2866,7 +2866,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
-        uint32 hash;
+        uint64 hash;
         bs->Read(&hash);
         BCRegister src;
         bs->Read(&src);
@@ -2929,7 +2929,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         bs->Read(&dst);
         BCRegister src;
         bs->Read(&src);
-        uint32 hash;
+        uint64 hash;
         bs->Read(&hash);
 
         handler.HasMemHash(
@@ -3362,7 +3362,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
-        uint32 hash;
+        uint64 hash;
         bs->Read(&hash);
 
         handler.ExportSymbol(reg, hash);
@@ -3587,7 +3587,7 @@ void VM::PushNativeFunctionPtr(Script_NativeFunction ptr)
 
 void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
 {
-    static const uint32 invokeHash = hashFnv1("$invoke");
+    static const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
 
     Script_ExecutionThread* thread = handler->thread;
     BytecodeStream* bs = handler->bs;
@@ -3638,11 +3638,11 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
 
             return;
         }
-        else if (VMObject* object = value.GetObject()) // functor object
+        else if (const AnyHandle& object = value.GetObject()) // functor object
         {
             if (Member* member = object->LookupMemberFromHash(invokeHash))
             {
-                const int64 sp = static_cast<int64>(thread->m_stack.GetStackPointer());
+                const int64 sp = int64(thread->m_stack.GetStackPointer());
                 const int64 argsStart = sp - nargs;
 
                 if (nargs > 0)

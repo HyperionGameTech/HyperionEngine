@@ -24,7 +24,6 @@
 
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
-#include <script/Hasher.hpp>
 
 #include <vector>
 #include <iostream>

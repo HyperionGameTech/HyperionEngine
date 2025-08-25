@@ -1,8 +1,8 @@
 #include <script/vm/VMObject.hpp>
 #include <script/vm/HeapValue.hpp>
-#include <script/Hasher.hpp>
 #include <core/debug/Debug.hpp>
 #include <core/math/MathUtil.hpp>
+#include <core/HashCode.hpp>
 #include <core/Core.hpp>
 
 #include <cmath>
@@ -10,8 +10,8 @@
 namespace hyperion {
 namespace vm {
 
-const uint32 VMObject::PROTO_MEMBER_HASH = hashFnv1("$proto");
-const uint32 VMObject::BASE_MEMBER_HASH = hashFnv1("base");
+const HashCode::ValueType VMObject::PROTO_MEMBER_HASH = HashCode::GetHashCode("$proto").Value();
+const HashCode::ValueType VMObject::BASE_MEMBER_HASH = HashCode::GetHashCode("base").Value();
 
 ObjectMap::ObjectBucket::ObjectBucket()
     : m_data(new Member*[DEFAULT_BUCKET_CAPACITY]),
@@ -82,7 +82,7 @@ void ObjectMap::ObjectBucket::Push(Member* member)
     m_data[m_size++] = member;
 }
 
-bool ObjectMap::ObjectBucket::Lookup(uint32 hash, Member** out)
+bool ObjectMap::ObjectBucket::Lookup(HashCode::ValueType hash, Member** out)
 {
     for (SizeType i = 0; i < m_size; i++)
     {
@@ -139,13 +139,13 @@ ObjectMap& ObjectMap::operator=(const ObjectMap& other)
     return *this;
 }
 
-void ObjectMap::Push(uint32 hash, Member* member)
+void ObjectMap::Push(HashCode::ValueType hash, Member* member)
 {
     Assert(m_size != 0);
     m_buckets[hash % m_size].Push(member);
 }
 
-Member* ObjectMap::Get(uint32 hash)
+Member* ObjectMap::Get(HashCode::ValueType hash)
 {
     if (m_size == 0)
     {
@@ -245,7 +245,7 @@ VMObject::~VMObject()
     m_members = nullptr;
 }
 
-Member* VMObject::LookupMemberFromHash(uint32 hash, bool deep) const
+Member* VMObject::LookupMemberFromHash(HashCode::ValueType hash, bool deep) const
 {
     if (Member* member = m_objectMap->Get(hash))
     {
@@ -265,7 +265,7 @@ Member* VMObject::LookupMemberFromHash(uint32 hash, bool deep) const
 
 void VMObject::SetMember(const char* name, Value&& value)
 {
-    const uint32 hash = hashFnv1(name);
+    const HashCode::ValueType hash = HashCode::GetHashCode(name).Value();
 
     Member* member = LookupMemberFromHash(hash, /* deep */ false);
 

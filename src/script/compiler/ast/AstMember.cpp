@@ -20,7 +20,7 @@
 
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
-#include <script/Hasher.hpp>
+#include <core/HashCode.hpp>
 
 #include <iostream>
 
@@ -245,7 +245,7 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
     if (m_foundIndex == ~0u)
     {
         // no exact index of member found, have to load from hash.
-        const uint32 hash = hashFnv1(m_fieldName.Data());
+        const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
         switch (m_accessMode)
         {

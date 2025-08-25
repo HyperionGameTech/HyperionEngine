@@ -32,7 +32,7 @@ public:
     static Exception NullReferenceException();
     static Exception DivisionByZeroException();
     static Exception OutOfBoundsException();
-    static Exception MemberNotFoundException(uint32 hashCode);
+    static Exception MemberNotFoundException(HashCode::ValueType hashCode);
     static Exception FileOpenException(const char* fileName);
     static Exception UnopenedFileWriteException();
     static Exception UnopenedFileReadException();
@@ -48,4 +48,3 @@ private:
 
 } // namespace vm
 } // namespace hyperion
-

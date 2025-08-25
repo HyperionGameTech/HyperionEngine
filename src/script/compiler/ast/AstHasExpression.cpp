@@ -12,7 +12,8 @@
 
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
-#include <script/Hasher.hpp>
+
+#include <core/HashCode.hpp>
 
 #include <core/containers/String.hpp>
 
@@ -129,7 +130,7 @@ UniquePtr<Buildable> AstHasExpression::Build(AstVisitor* visitor, Module* mod)
     {
         // indeterminate at compile time.
         // check at runtime.
-        const HashFNV1 hash = hashFnv1(m_fieldName.Data());
+        const uint64 hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
         // the label to jump to the very end
         LabelId endLabel = contextGuard->NewLabel();
@@ -149,7 +150,7 @@ UniquePtr<Buildable> AstHasExpression::Build(AstVisitor* visitor, Module* mod)
             instrHasMemHash->opcode = HAS_MEM_HASH;
             instrHasMemHash->Accept<uint8>(rp);
             instrHasMemHash->Accept<uint8>(rp);
-            instrHasMemHash->Accept<uint32>(hash);
+            instrHasMemHash->Accept<uint64>(hash);
             chunk->Append(std::move(instrHasMemHash));
 
             chunk->Append(BytecodeUtil::Make<Comment>("Check if object has member " + m_fieldName));

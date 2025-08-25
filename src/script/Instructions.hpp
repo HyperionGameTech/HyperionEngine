@@ -59,7 +59,7 @@ enum Instructions : hyperion::uint8
     LOAD_FUNC,       // loadFunc         [% reg, @ addr, u8 nargs, u8 flags]
     LOAD_TYPE,       // loadType         [% reg, u16 nameLen, byte[nameLen] name, u16 size, { u16 len, byte[len] memberName }[size]]
     LOAD_MEM,        // loadMem          [% reg, % src, u8 idx]
-    LOAD_MEM_HASH,   // loadMemHash     [% reg, % src, u32 hash]
+    LOAD_MEM_HASH,   // loadMemHash     [% reg, % src, u64 hash]
     LOAD_ARRAYIDX,   // loadArrayidx     [% reg, % src, % idx]
     LOAD_OFFSET_REF, // loadOffsetRef   [% reg, u16 offset]
     LOAD_INDEX_REF,  // loadIndexRef    [% reg, u16 idx]
@@ -79,7 +79,7 @@ enum Instructions : hyperion::uint8
     /* Copy register value to object member */
     MOV_MEM, // movMem      [% dstObj, u8 dstIdx, % src]
     /* Copy register value to object member (using hashcode) */
-    MOV_MEM_HASH, // movMemHash [% dstObj, u32 hash, % src]
+    MOV_MEM_HASH, // movMemHash [% dstObj, u64 hash, % src]
     /* Copy register value to array index */
     MOV_ARRAYIDX, // movArrayidx [% dstArray, u32 dstIdx, %src]
     /* Copy register value to array index held in other register */
@@ -89,7 +89,7 @@ enum Instructions : hyperion::uint8
     /* Check if the object in the register has a member with the hash,
         setting a boolean value in the dst register
     */
-    HAS_MEM_HASH, // hasMemHash [% dst, % src, u32 hash]
+    HAS_MEM_HASH, // hasMemHash [% dst, % src, u64 hash]
 
     /* Push a value from register to the stack */
     PUSH, // push [% src]
@@ -173,4 +173,3 @@ enum Instructions : hyperion::uint8
     /* Signifies the end of the stream */
     EXIT = 0xFF
 };
-

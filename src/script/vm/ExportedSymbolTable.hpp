@@ -1,9 +1,10 @@
 #pragma once
 
 #include <script/vm/Value.hpp>
-#include <script/Hasher.hpp>
 
-#include <core/containers/FlatMap.hpp>
+#include <core/HashCode.hpp>
+
+#include <core/containers/HashMap.hpp>
 #include <core/debug/Debug.hpp>
 
 #include <utility>
@@ -13,7 +14,7 @@ namespace vm {
 
 class ExportedSymbolTable
 {
-    using SymbolMap = FlatMap<HashFNV1, Value*>;
+    using SymbolMap = HashMap<HashCode::ValueType, Value*>;
 
 public:
     ExportedSymbolTable();
@@ -26,9 +27,9 @@ public:
     void MarkAll();
 
     bool Find(const char* name, Value*& out);
-    bool Find(HashFNV1 hash, Value*& out);
+    bool Find(HashCode::ValueType hash, Value*& out);
     typename SymbolMap::InsertResult Store(const char* name, Value&& value);
-    typename SymbolMap::InsertResult Store(HashFNV1 hash, Value&& value);
+    typename SymbolMap::InsertResult Store(HashCode::ValueType hash, Value&& value);
 
 private:
     SymbolMap m_symbols;
@@ -36,4 +37,3 @@ private:
 
 } // namespace vm
 } // namespace hyperion
-

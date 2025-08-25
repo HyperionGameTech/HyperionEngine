@@ -34,7 +34,7 @@ void StorageOperation::StrategyBuilder::ByOffset(int offset)
     }
 }
 
-void StorageOperation::StrategyBuilder::ByHash(int hash)
+void StorageOperation::StrategyBuilder::ByHash(HashCode::ValueType hash)
 {
     op->strategy = strategy = Strategies::BY_HASH;
 

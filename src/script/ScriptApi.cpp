@@ -6,7 +6,6 @@
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/vm/VM.hpp>
-#include <script/Hasher.hpp>
 
 #include <core/debug/Debug.hpp>
 

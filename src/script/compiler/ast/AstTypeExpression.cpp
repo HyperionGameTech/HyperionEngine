@@ -17,7 +17,6 @@
 
 #include <core/utilities/Optional.hpp>
 
-#include <script/Hasher.hpp>
 #include <core/debug/Debug.hpp>
 
 namespace hyperion::compiler {

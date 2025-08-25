@@ -94,7 +94,7 @@ UniquePtr<Buildable> Compiler::BuildCall(
     return chunk;
 }
 
-UniquePtr<Buildable> Compiler::LoadMemberFromHash(AstVisitor* visitor, Module* mod, uint32 hash)
+UniquePtr<Buildable> Compiler::LoadMemberFromHash(AstVisitor* visitor, Module* mod, HashCode::ValueType hash)
 {
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
@@ -103,7 +103,7 @@ UniquePtr<Buildable> Compiler::LoadMemberFromHash(AstVisitor* visitor, Module* m
     return instrLoadMemHash;
 }
 
-UniquePtr<Buildable> Compiler::StoreMemberFromHash(AstVisitor* visitor, Module* mod, uint32 hash)
+UniquePtr<Buildable> Compiler::StoreMemberFromHash(AstVisitor* visitor, Module* mod, HashCode::ValueType hash)
 {
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 

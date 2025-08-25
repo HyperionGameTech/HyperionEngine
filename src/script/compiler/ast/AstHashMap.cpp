@@ -20,7 +20,7 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
-#include <script/Hasher.hpp>
+#include <core/HashCode.hpp>
 #include <core/debug/Debug.hpp>
 
 #include <core/containers/FlatSet.hpp>
@@ -298,7 +298,7 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
     }
 
     { // load member `from` from array type expr
-        constexpr uint32 fromHash = hashFnv1("from");
+        constexpr uint64 fromHash = HashCode::GetHashCode("from").Value();
 
         chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, fromHash));
     }

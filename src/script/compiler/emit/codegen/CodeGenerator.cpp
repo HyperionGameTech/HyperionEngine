@@ -1,5 +1,5 @@
 #include <script/compiler/emit/codegen/CodeGenerator.hpp>
-#include <script/Hasher.hpp>
+#include <core/HashCode.hpp>
 #include <iostream>
 
 namespace hyperion::compiler {
@@ -459,7 +459,9 @@ void CodeGenerator::Visit(Comment* node)
 
 void CodeGenerator::Visit(SymbolExport* node)
 {
-    const uint32 hash = hashFnv1(node->name.Data());
+    const HashCode::ValueType hash = HashCode::GetHashCode(node->name.Data()).Value();
+
+    static_assert(sizeof(hash) == 8, "Expected hash to be 64 bits");
 
     m_ibs.Put(Instructions::EXPORT);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->reg), sizeof(node->reg));

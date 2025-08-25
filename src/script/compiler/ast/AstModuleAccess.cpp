@@ -7,7 +7,6 @@
 
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
-#include <script/Hasher.hpp>
 
 namespace hyperion::compiler {
 

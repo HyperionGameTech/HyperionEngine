@@ -14,7 +14,6 @@
 
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
-#include <script/Hasher.hpp>
 
 namespace hyperion::compiler {
 

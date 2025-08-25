@@ -11,7 +11,6 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <core/containers/String.hpp>
 
-#include <script/Hasher.hpp>
 #include <core/debug/Debug.hpp>
 
 namespace hyperion::compiler {

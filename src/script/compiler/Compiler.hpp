@@ -6,7 +6,7 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 
 #include <core/debug/Debug.hpp>
-
+#include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
 #include <memory>
@@ -45,9 +45,9 @@ public:
         const RC<AstExpression>& target,
         uint8 nargs);
 
-    static UniquePtr<Buildable> LoadMemberFromHash(AstVisitor* visitor, Module* mod, uint32 hash);
+    static UniquePtr<Buildable> LoadMemberFromHash(AstVisitor* visitor, Module* mod, HashCode::ValueType hash);
 
-    static UniquePtr<Buildable> StoreMemberFromHash(AstVisitor* visitor, Module* mod, uint32 hash);
+    static UniquePtr<Buildable> StoreMemberFromHash(AstVisitor* visitor, Module* mod, HashCode::ValueType hash);
 
     static UniquePtr<Buildable> LoadMemberAtIndex(AstVisitor* visitor, Module* mod, uint8 index);
 
@@ -95,4 +95,3 @@ public:
 };
 
 } // namespace hyperion::compiler
-

@@ -19,6 +19,7 @@
 namespace hyperion {
 
 class APIInstance;
+class AnyHandle;
 struct HypData;
 
 namespace vm {
@@ -303,7 +304,7 @@ public:
 
     bool GetBoolean(bool* out) const;
 
-    VMObject* GetObject() const;
+    const AnyHandle& GetObject() const;
     VMArray* GetArray() const;
 
     AnyRef ToRef() const;

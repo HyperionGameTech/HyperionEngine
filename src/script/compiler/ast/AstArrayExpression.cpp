@@ -20,7 +20,6 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
-#include <script/Hasher.hpp>
 #include <core/debug/Debug.hpp>
 
 #include <core/containers/FlatSet.hpp>

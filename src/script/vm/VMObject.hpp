@@ -18,7 +18,7 @@ namespace vm {
 struct Member
 {
     char name[256];
-    uint32 hash;
+    HashCode::ValueType hash;
     Value value;
 };
 
@@ -31,8 +31,8 @@ public:
 
     ObjectMap& operator=(const ObjectMap& other);
 
-    void Push(uint32 hash, Member* member);
-    Member* Get(uint32 hash);
+    void Push(HashCode::ValueType hash, Member* member);
+    Member* Get(HashCode::ValueType hash);
 
     SizeType GetSize() const
     {
@@ -54,7 +54,7 @@ private:
 
         void Resize(SizeType capacity);
         void Push(Member* member);
-        bool Lookup(uint32 hash, Member** out);
+        bool Lookup(HashCode::ValueType hash, Member** out);
     };
 
     ObjectBucket* m_buckets;
@@ -81,7 +81,7 @@ public:
         return this == &other;
     }
 
-    Member* LookupMemberFromHash(uint32 hash, bool deep = true) const;
+    Member* LookupMemberFromHash(HashCode::ValueType hash, bool deep = true) const;
 
     Member* GetMembers() const
     {
@@ -142,4 +142,3 @@ private:
 
 } // namespace vm
 } // namespace hyperion
-

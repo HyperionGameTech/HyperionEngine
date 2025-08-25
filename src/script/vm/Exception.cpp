@@ -142,10 +142,10 @@ Exception Exception::OutOfBoundsException()
     return Exception("Index out of bounds of Array");
 }
 
-Exception Exception::MemberNotFoundException(uint32 hashCode)
+Exception Exception::MemberNotFoundException(HashCode::ValueType hashCode)
 {
     char buffer[256];
-    std::snprintf(buffer, 256, "Member with hash code %u not found", hashCode);
+    std::snprintf(buffer, 256, "Member with hash code %llu not found", hashCode);
 
     return Exception(buffer);
 }

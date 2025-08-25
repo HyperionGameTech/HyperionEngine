@@ -4,9 +4,7 @@
 
 #include <core/debug/Debug.hpp>
 #include <core/Types.hpp>
-
-#include <vector>
-#include <memory>
+#include <core/HashCode.hpp>
 
 namespace hyperion::compiler {
 
@@ -54,7 +52,7 @@ struct StorageOperation : public Buildable
         {
             uint16 index;
             uint16 offset;
-            uint32 hash;
+            uint64 hash;
 
             struct
             {
@@ -64,7 +62,7 @@ struct StorageOperation : public Buildable
                 {
                     RegIndex reg;
                     uint8 index;
-                    uint32 hash;
+                    uint64 hash;
                 } member;
             } objectData;
         } b;
@@ -129,7 +127,7 @@ struct StorageOperation : public Buildable
 
         void ByIndex(int index);
         void ByOffset(int offset);
-        void ByHash(int hash);
+        void ByHash(HashCode::ValueType hash);
 
         Strategies strategy;
 
@@ -140,4 +138,3 @@ struct StorageOperation : public Buildable
 };
 
 } // namespace hyperion::compiler
-
