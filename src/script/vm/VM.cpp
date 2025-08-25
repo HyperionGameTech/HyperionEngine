@@ -452,7 +452,6 @@ const uint16 Script_StaticMemory::staticSize = 65535;
 Script_StaticMemory::Script_StaticMemory()
     : m_data(new Value[staticSize])
 {
-    Memory::MemSet(m_data, 0, staticSize * sizeof(Value));
 }
 
 Script_StaticMemory::~Script_StaticMemory()
@@ -567,7 +566,9 @@ public:
     {
         // read value from static memory
         // at the index into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(vm->m_staticMemory[index]), false);
+        Value& value = vm->m_staticMemory[index];
+
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(value), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
@@ -799,10 +800,9 @@ public:
     HYP_FORCE_INLINE void MovStatic(uint16 index, BCRegister reg)
     {
         Assert(index < vm->m_staticMemory.staticSize);
-        Assert(vm->m_staticMemory[index].GetGCIndex() == INVALID_GC_INDEX);
 
-        // copy value from register to static memory at index
-        vm->m_staticMemory[index].AssignValue(std::move(thread->m_regs[reg]), false);
+        Value& value = vm->m_staticMemory[index];
+        value.AssignValue(std::move(thread->m_regs[reg]), false);
     }
 
     HYP_FORCE_INLINE void MovMem(BCRegister dstReg, uint8 index, BCRegister srcReg)
@@ -812,18 +812,14 @@ public:
         VMObject* object = src.GetObject();
         if (object == nullptr)
         {
-            vm->ThrowException(
-                thread,
-                Exception("Cannot assign member by index: Not a VMObject"));
+            vm->ThrowException(thread, Exception("Cannot assign member by index: Not a VMObject"));
 
             return;
         }
 
         if (index >= object->GetSize())
         {
-            vm->ThrowException(
-                thread,
-                Exception::OutOfBoundsException());
+            vm->ThrowException(thread, Exception::OutOfBoundsException());
             return;
         }
 
@@ -1294,10 +1290,6 @@ public:
 
             if (!protoMemberObject)
             {
-                DebugLog(
-                    LogType::Error,
-                    "Prototype member is not an object in class, got '%s' instead",
-                    protoMem->value.GetTypeString());
                 vm->ThrowException(
                     thread,
                     Exception::InvalidConstructorException());

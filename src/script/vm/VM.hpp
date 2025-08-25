@@ -60,17 +60,14 @@ public:
 public:
     Script_StaticMemory();
     Script_StaticMemory(const Script_StaticMemory& other) = delete;
+    Script_StaticMemory& operator=(const Script_StaticMemory& other) = delete;
+    Script_StaticMemory(Script_StaticMemory&& other) noexcept = delete;
+    Script_StaticMemory& operator=(Script_StaticMemory&& other) noexcept = delete;
     ~Script_StaticMemory();
 
     HYP_FORCE_INLINE Value& operator[](SizeType index)
     {
-        Assert(index < staticSize, "out of bounds");
-        return m_data[index];
-    }
-
-    HYP_FORCE_INLINE const Value& operator[](SizeType index) const
-    {
-        Assert(index < staticSize, "out of bounds");
+        AssertDebug(index < staticSize, "out of bounds");
         return m_data[index];
     }
 
@@ -112,13 +109,17 @@ public:
 
     HYP_FORCE_INLINE Value& operator[](SizeType index)
     {
-        Assert(index < STACK_SIZE, "out of bounds");
+        AssertDebug(index < STACK_SIZE, "out of bounds");
+        AssertDebug(index < m_sp, "reading uninitialized stack memory");
+
         return m_data[index].Get();
     }
 
     HYP_FORCE_INLINE const Value& operator[](SizeType index) const
     {
         Assert(index < STACK_SIZE, "out of bounds");
+        Assert(index < m_sp, "reading uninitialized stack memory");
+
         return m_data[index].Get();
     }
 

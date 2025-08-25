@@ -384,9 +384,8 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
         }
 
         // Set class object in static memory
-        vm->m_staticMemory[index] = Value(HypData(std::move(classObject)));
-
         Value& classObjectValue = vm->m_staticMemory[index];
+        classObjectValue.AssignValue(Value(HypData(std::move(classObject))), false);
 
         // Add __intern member
         protoObjectMembers.PushBack(Member { "__intern", hashFnv1("__intern"), Value() });
