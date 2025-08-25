@@ -236,7 +236,9 @@ HYP_API void HypObjectPtr::DecRef(bool weak)
 HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
 {
     AssertDebug(ptr->GetObjectHeader_Internal()->GetRefCountStrong() > 1);
-    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource())
+
+    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+        scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
     {
         scriptObjectResource->IncRef();
     }
@@ -244,7 +246,8 @@ HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
 
 HYP_API void HypObject_DecScriptObjectRef(HypObjectBase* ptr)
 {
-    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource())
+    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+        scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
     {
         scriptObjectResource->DecRef();
     }
