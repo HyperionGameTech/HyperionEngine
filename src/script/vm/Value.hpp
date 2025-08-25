@@ -31,7 +31,6 @@ struct Value;
 class InstructionHandler;
 struct Script_ExecutionThread;
 class HeapValue;
-struct VMState;
 class VM;
 class GC;
 class Exception;
@@ -149,7 +148,6 @@ struct Params
 
 // native typedefs
 typedef void (*Script_NativeFunction)(hyperion::sdk::Params);
-typedef void (*Script_Initializer)(hyperion::vm::VMState*, hyperion::vm::Script_ExecutionThread* thread, hyperion::vm::Value*);
 typedef void* Script_UserData;
 
 namespace hyperion {

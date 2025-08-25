@@ -259,7 +259,7 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
     Assert(scriptHandle != INVALID_SCRIPT);
     Assert(functionHandle != INVALID_FUNCTION);
 
-    Script_ExecutionThread* mainThread = m_vm->GetState().GetMainThread();
+    Script_ExecutionThread* mainThread = m_vm->GetMainThread();
 
     if (numArgs != 0)
     {
@@ -298,8 +298,8 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
 
 void HypScript::ReadLastReturnValue(Value& outValue)
 {
-    Script_ExecutionThread* mainThread = m_vm->GetState().GetMainThread();
-    outValue = ScriptApi_ShallowCopy(mainThread->m_regs[0], m_vm->GetState().GetGC());
+    Script_ExecutionThread* mainThread = m_vm->GetMainThread();
+    outValue = ScriptApi_ShallowCopy(mainThread->m_regs[0], m_vm->GetGC());
 }
 
 bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)
@@ -408,7 +408,7 @@ bool HypScript::GetExportedValue(const char* name, Value*& outValue)
 
 ExportedSymbolTable& HypScript::GetExportedSymbols() const
 {
-    return m_vm->GetState().GetExportedSymbols();
+    return m_vm->GetExportedSymbols();
 }
 
 } // namespace hyperion

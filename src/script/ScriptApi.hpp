@@ -44,104 +44,104 @@
     {                                                                                        \
         if (!(params.nargs cmp amt))                                                         \
         {                                                                                    \
-            params.throwException(params.ctx,                    \
+            params.throwException(params.ctx,                                                \
                 hyperion::vm::Exception::InvalidArgsException(#cmp " " #amt, params.nargs)); \
             return;                                                                          \
         }                                                                                    \
     }                                                                                        \
     while (false)
 
-#define HYP_SCRIPT_THROW(exception)            \
-    do                                         \
-    {                                          \
-        params.throwException( \
-            params.ctx,            \
-            exception);                        \
-        return;                                \
-    }                                          \
+#define HYP_SCRIPT_THROW(exception) \
+    do                              \
+    {                               \
+        params.throwException(      \
+            params.ctx,             \
+            exception);             \
+        return;                     \
+    }                               \
     while (0)
 
-#define HYP_SCRIPT_RETURN(value)                           \
-    do                                                     \
-    {                                                      \
+#define HYP_SCRIPT_RETURN(value)                             \
+    do                                                       \
+    {                                                        \
         params.setReturnValue(params.ctx, std::move(value)); \
-        return;                                            \
-    }                                                      \
+        return;                                              \
+    }                                                        \
     while (false)
 
-#define HYP_SCRIPT_RETURN_PTR(value)           \
+#define HYP_SCRIPT_RETURN_PTR(value)    \
+    do                                  \
+    {                                   \
+        Assert(value != nullptr);       \
+        value->Mark();                  \
+        vm::Value _res(HypData(value)); \
+        HYP_SCRIPT_RETURN(_res);        \
+    }                                   \
+    while (false)
+
+#define HYP_SCRIPT_RETURN_VOID(value) \
+    do                                \
+    {                                 \
+        (void)(value);                \
+        vm::Value _res;               \
+        HYP_SCRIPT_RETURN(_res);      \
+    }                                 \
+    while (false)
+
+#define HYP_SCRIPT_RETURN_INT32(value)         \
     do                                         \
     {                                          \
-        Assert(value != nullptr);              \
-        value->Mark();                         \
-        vm::Value _res(HypData(value));       \
+        vm::Value _res(HypData((int32)value)); \
         HYP_SCRIPT_RETURN(_res);               \
     }                                          \
     while (false)
 
-#define HYP_SCRIPT_RETURN_VOID(value)  \
-    do                                 \
-    {                                  \
-        (void)(value);                 \
-        vm::Value _res;                \
-        HYP_SCRIPT_RETURN(_res);       \
-    }                                  \
-    while (false)
-
-#define HYP_SCRIPT_RETURN_INT32(value) \
-    do                                 \
-    {                                  \
-        vm::Value _res(HypData((int32)value)); \
-        HYP_SCRIPT_RETURN(_res);       \
-    }                                  \
-    while (false)
-
-#define HYP_SCRIPT_RETURN_INT64(value) \
-    do                                 \
-    {                                  \
+#define HYP_SCRIPT_RETURN_INT64(value)         \
+    do                                         \
+    {                                          \
         vm::Value _res(HypData((int64)value)); \
-        HYP_SCRIPT_RETURN(_res);       \
-    }                                  \
+        HYP_SCRIPT_RETURN(_res);               \
+    }                                          \
     while (false)
 
-#define HYP_SCRIPT_RETURN_UINT32(value) \
-    do                                  \
-    {                                   \
+#define HYP_SCRIPT_RETURN_UINT32(value)         \
+    do                                          \
+    {                                           \
         vm::Value _res(HypData((uint32)value)); \
-        HYP_SCRIPT_RETURN(_res);        \
-    }                                   \
+        HYP_SCRIPT_RETURN(_res);                \
+    }                                           \
     while (false)
 
-#define HYP_SCRIPT_RETURN_UINT64(value) \
-    do                                  \
-    {                                   \
+#define HYP_SCRIPT_RETURN_UINT64(value)         \
+    do                                          \
+    {                                           \
         vm::Value _res(HypData((uint64)value)); \
-        HYP_SCRIPT_RETURN(_res);        \
-    }                                   \
+        HYP_SCRIPT_RETURN(_res);                \
+    }                                           \
     while (false)
 
-#define HYP_SCRIPT_RETURN_FLOAT32(value) \
-    do                                   \
-    {                                    \
+#define HYP_SCRIPT_RETURN_FLOAT32(value)       \
+    do                                         \
+    {                                          \
         vm::Value _res(HypData((float)value)); \
-        HYP_SCRIPT_RETURN(_res);         \
-    }                                    \
+        HYP_SCRIPT_RETURN(_res);               \
+    }                                          \
     while (false)
 
-#define HYP_SCRIPT_RETURN_FLOAT64(value) \
-    do                                   \
-    {                                    \
+#define HYP_SCRIPT_RETURN_FLOAT64(value)        \
+    do                                          \
+    {                                           \
         vm::Value _res(HypData((double)value)); \
-        HYP_SCRIPT_RETURN(_res);         \
-    }                                    \
+        HYP_SCRIPT_RETURN(_res);                \
+    }                                           \
     while (false)
 
-#define HYP_SCRIPT_RETURN_BOOLEAN(value)  \
-    do                                    \
-    {                                     \
+#define HYP_SCRIPT_RETURN_BOOLEAN(value)      \
+    do                                        \
+    {                                         \
         vm::Value _res(HypData((bool)value)); \
-        HYP_SCRIPT_RETURN(_res);          \
-    }                                     \
+        HYP_SCRIPT_RETURN(_res);              \
+    }                                         \
     while (false)
 
 #define HYP_SCRIPT_GET_ARG_INT(index, name)                                                                                                                  \
@@ -382,7 +382,7 @@
         ptrResult->Assign((assignment));                                                     \
         ptrResult->Mark();                                                                   \
                                                                                              \
-        outName = vm::Value(vm::Value::HEAP_POINTER, { .internal = { .ptr = ptrResult } });                  \
+        outName = vm::Value(vm::Value::HEAP_POINTER, { .internal = { .ptr = ptrResult } });  \
     }                                                                                        \
     while (false)
 
@@ -402,9 +402,7 @@ namespace hyperion {
 namespace vm {
 // forward declarations
 class VM;
-struct VMState;
 // struct Value;
-struct Script_ExecutionThread;
 class InstructionHandler;
 class VMString;
 class VMObject;

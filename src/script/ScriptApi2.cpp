@@ -309,13 +309,8 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
         vmData.type = Script_VMData::VALUE_REF;
         vmData.valueRef = global.symbol.value.Deref();
 
-        VMState& vmState = vm->GetState();
-
-        Assert(vmState.GetMainThread()->GetStack().STACK_SIZE > stackLocation);
-        vmState.GetMainThread()->GetStack().GetData()[stackLocation].AssignValue(Value(vmData), false);
-
-        DebugLog(LogType::Debug, "Bound global %s at stack location %u\n",
-            global.symbol.name.Data(), stackLocation);
+        Assert(vm->GetMainThread()->GetStack().STACK_SIZE > stackLocation);
+        vm->GetMainThread()->GetStack().GetData()[stackLocation].AssignValue(Value(vmData), false);
     }
 
     for (ClassDefinition& classDefinition : m_classDefinitions)
@@ -338,10 +333,8 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
         // Load the class object from the VM - it is stored in StaticMemory
         // at the index
 
-        VMState& vmState = vm->GetState();
-
         const int index = heldType->GetId();
-        Assert(vmState.m_staticMemory.staticSize > index);
+        Assert(vm->m_staticMemory.staticSize > index);
 
         Array<Member> classObjectMembers;
         classObjectMembers.Resize(heldType->GetMembers().Size());
@@ -391,9 +384,9 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
         }
 
         // Set class object in static memory
-        vmState.m_staticMemory[index] = Value(HypData(std::move(classObject)));
+        vm->m_staticMemory[index] = Value(HypData(std::move(classObject)));
 
-        Value& classObjectValue = vmState.m_staticMemory[index];
+        Value& classObjectValue = vm->m_staticMemory[index];
 
         // Add __intern member
         protoObjectMembers.PushBack(Member { "__intern", hashFnv1("__intern"), Value() });
@@ -427,8 +420,8 @@ void Context::BindAll(APIInstance& apiInstance, VM* vm)
         }
 
         // Set class object in global scope
-        Assert(vmState.GetMainThread()->GetStack().STACK_SIZE > stackLocation);
-        vmState.GetMainThread()->GetStack().GetData()[stackLocation].AssignValue(std::move(value), false);
+        Assert(vm->GetMainThread()->GetStack().STACK_SIZE > stackLocation);
+        vm->GetMainThread()->GetStack().GetData()[stackLocation].AssignValue(std::move(value), false);
 
         DebugLog(LogType::Debug, "Bound class %s at stack location %u\n", classDefinition.name.Data(), stackLocation);
     }

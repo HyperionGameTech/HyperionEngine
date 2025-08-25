@@ -2035,7 +2035,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         Keyword_ref
     };
 
-    std::set<Keywords> usedSpecifiers;
+    HashSet<Keywords> usedSpecifiers;
 
     while (Match(TK_KEYWORD, false))
     {
@@ -2045,9 +2045,9 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         {
             if (MatchKeyword(keyword, true))
             {
-                if (usedSpecifiers.find(keyword) == usedSpecifiers.end())
+                if (usedSpecifiers.Find(keyword) == usedSpecifiers.End())
                 {
-                    usedSpecifiers.insert(keyword);
+                    usedSpecifiers.Insert(keyword);
 
                     foundKeyword = true;
 
@@ -2070,12 +2070,12 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         }
     }
 
-    if (usedSpecifiers.find(Keyword_const) != usedSpecifiers.end())
+    if (usedSpecifiers.Find(Keyword_const) != usedSpecifiers.End())
     {
         flags |= IdentifierFlags::FLAG_CONST;
     }
 
-    if (usedSpecifiers.find(Keyword_ref) != usedSpecifiers.end())
+    if (usedSpecifiers.Find(Keyword_ref) != usedSpecifiers.End())
     {
         flags |= IdentifierFlags::FLAG_REF;
     }
