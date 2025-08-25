@@ -135,7 +135,7 @@ void HyperionEditor::Init()
               "};\n"
               "ins : MyClass = new MyClass();\n"
               "func modValue(ref v: int) {\nv = 4483;\n};"
-              "export func x(a: float, ref b: int) {\nb2 := 2;\nmodValue(b2);\nreturn b2;\n};";
+              "export func x(a: float, ref b: int) {\nb2 := 2;\nmodValue(b2);\nreturn ins;\n};";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 
@@ -164,6 +164,9 @@ void HyperionEditor::Init()
                 if (lastReturn.IsValid())
                 {
                     HYP_LOG(Editor, Debug, "Last value : {}", lastReturn.ToString().GetData());
+
+                    const AnyHandle& handle = lastReturn.GetObject();
+                    HYP_LOG(Editor, Debug, "Handle ptr: {}, type id: {}, class: {}", (void*)handle.ptr, handle.typeId.Value(), handle.ptr->InstanceClass()->GetName());
                 }
                 else
                 {
