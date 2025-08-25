@@ -74,15 +74,15 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
                 scriptObjectResource->IncRef();
 
                 target->SetScriptObjectResource(scriptObjectResource);
-                
+
                 return;
             }
 #endif
 
 #ifdef HYP_SCRIPT
-            // @TODO
-            
-            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, vm::Value());
+            // @TODO Review
+
+            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, HYP_SCRIPT_OBJECT);
 
             Assert(scriptObjectResource != nullptr);
             scriptObjectResource->IncRef();

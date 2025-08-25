@@ -20,6 +20,10 @@
 
 #include <core/Types.hpp>
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#include <scripting/ScriptObjectResource.hpp>
+#endif
+
 using namespace hyperion;
 
 namespace hyperion {
@@ -28,33 +32,30 @@ namespace hyperion {
 
 #ifdef HYP_DOTNET
 DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-    : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members)
+    : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
     if (classPtr != nullptr)
     {
         SetManagedClass(classPtr->RefCountedPtrFromThis());
     }
 
-    Assert(parentClass != nullptr, "Parent class cannot be null for DynamicHypClassInstance");
-
     m_parent = parentClass;
     m_parentName = parentClass->GetName();
 
-    if (!m_parent->CanCreateInstance())
+    if (m_parent)
     {
-        HYP_LOG(Object, Error, "DynamicHypClassInstance: Will be unable to create an instance of class {} because parent class {} cannot create instance", *m_name, *m_parent->GetName());
+        m_size = m_parent->GetSize();
+        m_alignment = m_parent->GetAlignment();
     }
-
-    m_size = m_parent->GetSize();
-    m_alignment = m_parent->GetAlignment();
 }
 #endif
 
 #ifdef HYP_SCRIPT
 DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-    : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags, members)
+    : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
-    Assert(parentClass != nullptr, "Parent class cannot be null for DynamicHypClassInstance");
+    m_size = sizeof(HypObjectBase);
+    m_alignment = alignof(HypObjectBase);
 }
 #endif
 
@@ -64,16 +65,48 @@ DynamicHypClassInstance::~DynamicHypClassInstance()
 
 bool DynamicHypClassInstance::IsValid() const
 {
-    Assert(m_parent != nullptr);
+    if (m_parent != nullptr)
+    {
+        return m_parent->IsValid();
+    }
 
-    return m_parent->IsValid();
+    return true;
+}
+
+HypObjectContainerBase* DynamicHypClassInstance::GetObjectContainer() const
+{
+    if (m_parent != nullptr)
+    {
+        return m_parent->GetObjectContainer();
+    }
+
+#ifdef HYP_DOTNET
+    if (GetManagedClass() != nullptr) // it is a .NET class
+    {
+        return nullptr; // no container for .NET managed-only types
+    }
+#endif
+
+#ifdef HYP_SCRIPT
+    // get or create new container for dynamic type
+    // HypScript can use HypObjectBase as the base type for all script objects
+    return &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, []() -> HypObjectContainerBase*
+        {
+            return new HypObjectContainer<HypObjectBase>();
+        });
+#endif
+
+    return nullptr;
 }
 
 HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
 {
-    Assert(m_parent != nullptr);
+    if (m_parent != nullptr)
+    {
+        return m_parent->GetAllocationMethod();
+    }
 
-    return m_parent->GetAllocationMethod();
+    return HypClassAllocationMethod::HANDLE;
 }
 
 #ifdef HYP_DOTNET
@@ -108,19 +141,34 @@ bool DynamicHypClassInstance::CanCreateInstance() const
 #ifdef HYP_DOTNET
     RC<dotnet::Class> managedClass = GetManagedClass();
 
-    return m_parent->CanCreateInstance()
-        && managedClass != nullptr
-        && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT);
-#else
-    return false;
+    if (managedClass != nullptr)
+    {
+        Assert(m_parent != nullptr);
+
+        return m_parent->CanCreateInstance()
+            && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT);
+    }
 #endif
+
+#ifdef HYP_SCRIPT
+    return true;
+#endif
+
+    return false;
 }
 
 bool DynamicHypClassInstance::ToHypData(ByteView memory, HypData& outHypData) const
 {
-    Assert(m_parent != nullptr);
+    if (m_parent != nullptr)
+    {
+        return m_parent->ToHypData(memory, outHypData);
+    }
 
-    return m_parent->ToHypData(memory, outHypData);
+#ifdef HYP_SCRIPT
+    HYP_NOT_IMPLEMENTED(); // not yet implemented for script
+#endif
+
+    return false;
 }
 
 void DynamicHypClassInstance::PostLoad_Internal(void* objectPtr) const
@@ -129,13 +177,14 @@ void DynamicHypClassInstance::PostLoad_Internal(void* objectPtr) const
 
 bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 {
-    Assert(m_parent != nullptr);
-
 #ifdef HYP_DOTNET
     RC<dotnet::Class> managedClass = GetManagedClass();
-    Assert(managedClass != nullptr);
 
-    { // suppress default managed object creation - we will create it ourselves
+    if (managedClass != nullptr)
+    {
+        Assert(m_parent != nullptr);
+
+        // suppress default managed object creation - we will create it ourselves
         GlobalContextScope scope(HypObjectInitializerContext { this, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
         {
@@ -160,25 +209,62 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
                 out = std::move(value);
             }
         }
+
+        AssertDebug(m_parent->UseHandles());
+
+        HypObjectBase* target = reinterpret_cast<HypObjectBase*>(out.ToRef().GetPointer());
+        Assert(target != nullptr);
+
+        ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, target), managedClass);
+        AssertDebug(scriptObjectResource != nullptr);
+
+        // keep it alive
+        scriptObjectResource->IncRef();
+
+        target->SetScriptObjectResource(scriptObjectResource);
+
+        return true;
+    }
+#endif
+
+#ifdef HYP_SCRIPT
+    if (m_parent != nullptr)
+    {
+        return m_parent->CreateInstance(out);
     }
 
-    AssertDebug(m_parent->UseHandles());
+    PushGlobalContext(HypObjectInitializerContext {
+        .hypClass = this,
+        .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
-    HypObjectBase* target = reinterpret_cast<HypObjectBase*>(out.ToRef().GetPointer());
-    Assert(target != nullptr);
+    // get or create new container for dynamic type
+    HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());
+    Assert(container != nullptr);
+    Assert(container->GetObjectTypeId() == m_typeId);
 
-    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, target), managedClass);
-    AssertDebug(scriptObjectResource != nullptr);
+    HypObjectMemory<HypObjectBase>* header = container->Allocate();
+    header->hypClass = this;
 
-    // keep it alive
+    HypObjectBase* ptr = header->storage.GetPointer();
+    new (ptr) HypObjectBase();
+
+    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), HYP_SCRIPT_OBJECT);
+    Assert(scriptObjectResource != nullptr);
     scriptObjectResource->IncRef();
 
-    target->SetScriptObjectResource(scriptObjectResource);
+    ptr->SetScriptObjectResource(scriptObjectResource);
+
+    Handle<HypObjectBase> handle;
+    handle.ptr = static_cast<HypObjectBase*>(ptr);
+
+    out = HypData(std::move(handle));
+
+    PopGlobalContext<HypObjectInitializerContext>();
 
     return true;
-#else
-    HYP_NOT_IMPLEMENTED();
 #endif
+
+    return false;
 }
 
 bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
@@ -428,7 +514,7 @@ extern "C"
         Assert(parentHypClass != nullptr);
 
 #ifdef HYP_DOTNET
-        return new DynamicHypClassInstance(*typeId, CreateNameFromDynamicString(name), parentHypClass, nullptr, Span<const HypClassAttribute>(), HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, Span<HypMember>());
+        return new DynamicHypClassInstance(*typeId, CreateNameFromDynamicString(name), parentHypClass, nullptr, Span<const HypClassAttribute>(), HypClassFlags::NONE, Span<HypMember>());
 #else
         return nullptr;
 #endif

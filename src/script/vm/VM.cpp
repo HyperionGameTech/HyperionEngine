@@ -14,6 +14,7 @@
 #include <core/object/HypField.hpp>
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypMethod.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <core/debug/Debug.hpp>
 #include <core/HashCode.hpp>
@@ -623,49 +624,6 @@ public:
         thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(vmData), false);
     }
 
-    HYP_FORCE_INLINE void LoadType( // come back to this
-        BCRegister reg,
-        uint16 typeNameLen,
-        const char* typeName,
-        uint16 size,
-        char** names)
-    {
-        Value& parentClassValue = thread->m_regs[reg];
-
-        DebugLog(LogType::Debug, "Loading type %s with parent class %s\n", typeName, parentClassValue.ToString().GetData());
-
-        const HypClass* parentClass = parentClassValue.ToRef().TryGet<const HypClass>();
-        Assert(parentClass != nullptr);
-
-        /// @TODO: Delete on GC
-        DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
-            TypeId::ForManagedType(typeName),
-            CreateNameFromDynamicString(typeName),
-            parentClass,
-            Span<const HypClassAttribute>(),
-            HypClassFlags::NONE,
-            Span<HypMember>());
-
-        thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(newClass), false);
-
-        // @TODO: Implement
-        // // create members
-        // HypMember* members = (HypMember*)StackAlloc(sizeof(HypMember) * size);
-
-        // for (uint16 i = 0; i < size; i++)
-        // {
-        //     new (&members[i]) HypMember()
-        //     Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
-        //     members[i].hash = HashCode::GetHashCode(names[i]).Value();
-        //     members[i].value = Value();
-        // }
-
-        // // create prototype object
-        // Value value = ScriptApi_MakeValue(VMObject(members, size, std::move(parentClassValue)));
-
-        // thread->m_regs[reg].AssignValue(std::move(value), false);
-    }
-
     HYP_FORCE_INLINE void LoadMem(BCRegister dstReg, BCRegister srcReg, uint8 index)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
@@ -838,6 +796,22 @@ public:
     HYP_FORCE_INLINE void LoadFalse(BCRegister reg)
     {
         thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(false), false);
+    }
+
+    HYP_FORCE_INLINE void LoadClass(BCRegister reg, uint64 nameHash)
+    {
+        Name name = Name(NameID(nameHash));
+        const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(name);
+        if (!hypClass)
+        {
+            vm->ThrowException(thread, Exception::ClassNotFoundException(name));
+
+            return;
+        }
+
+        Value classValue = ScriptApi_MakeValue(HypData(AnyRef(const_cast<HypClass*>(hypClass))));
+
+        thread->m_regs[reg].AssignValue(std::move(classValue), false);
     }
 
     HYP_FORCE_INLINE void MovOffset(uint16 offset, BCRegister reg)
@@ -1349,9 +1323,12 @@ public:
         // read value from register
         Value& classValue = *thread->m_regs[src].Deref();
 
+        // log out what is in the classValue
+        DebugLog(LogType::Debug, "Creating new instance of type %s\n", classValue.ToString().GetData());
+
         Array<Span<Member>> memberSpans;
 
-        const HypClass* hypClass = classValue.ToRef().TryGet<const HypClass>();
+        const HypClass* hypClass = classValue.ToRef().TryGet<HypClass>();
         Assert(hypClass != nullptr);
 
         // Combine all proto members
@@ -1393,6 +1370,58 @@ public:
     {
         // assign register value to the allocated object
         thread->m_regs[dst] = ScriptApi_MakeValue(VMArray());
+    }
+
+    HYP_FORCE_INLINE void NewClass( // come back to this
+        BCRegister reg,
+        uint16 typeNameLen,
+        const char* typeName,
+        uint16 size,
+        char** names)
+    {
+        Value& parentClassValue = thread->m_regs[reg];
+
+        DebugLog(LogType::Debug, "Loading type %s with parent class %s\n", typeName, parentClassValue.ToString().GetData());
+
+        const HypClass* parentClass = nullptr;
+
+        if (parentClassValue.IsValid())
+        {
+            parentClass = parentClassValue.ToRef().TryGet<const HypClass>();
+            Assert(parentClass != nullptr);
+        }
+
+        /// @TODO: Delete on GC
+        DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
+            TypeId::ForManagedType(typeName),
+            CreateNameFromDynamicString(typeName),
+            parentClass,
+            Span<const HypClassAttribute>(),
+            HypClassFlags::NONE,
+            Span<HypMember>());
+
+        HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
+
+        Value classValue = ScriptApi_MakeValue(AnyRef(static_cast<HypClass*>(newClass)));
+
+        thread->m_regs[reg].AssignValue(std::move(classValue), false);
+
+        // @TODO: Implement
+        // // create members
+        // HypMember* members = (HypMember*)StackAlloc(sizeof(HypMember) * size);
+
+        // for (uint16 i = 0; i < size; i++)
+        // {
+        //     new (&members[i]) HypMember()
+        //     Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
+        //     members[i].hash = HashCode::GetHashCode(names[i]).Value();
+        //     members[i].value = Value();
+        // }
+
+        // // create prototype object
+        // Value value = ScriptApi_MakeValue(VMObject(members, size, std::move(parentClassValue)));
+
+        // thread->m_regs[reg].AssignValue(std::move(value), false);
     }
 
     HYP_FORCE_INLINE void Cmp(BCRegister lhsReg, BCRegister rhsReg)
@@ -2687,53 +2716,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case LOAD_TYPE:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        uint16 typeNameLen;
-        bs->Read(&typeNameLen);
-
-        char* typeName = new char[typeNameLen + 1];
-        typeName[typeNameLen] = '\0';
-        bs->Read(typeName, typeNameLen);
-
-        // number of members
-        uint16 size;
-        bs->Read(&size);
-
-        char** names = new char*[size];
-
-        // load each name
-        for (uint16 i = 0; i < size; i++)
-        {
-            uint16 length;
-            bs->Read(&length);
-
-            names[i] = new char[length + 1];
-            names[i][length] = '\0';
-            bs->Read(names[i], length);
-        }
-
-        handler.LoadType(
-            reg,
-            typeNameLen,
-            typeName,
-            size,
-            names);
-
-        delete[] typeName;
-
-        // delete the names
-        for (uint16 i = 0; i < size; i++)
-        {
-            delete[] names[i];
-        }
-
-        delete[] names;
-
-        break;
-    }
     case LOAD_MEM:
     {
         BCRegister dst;
@@ -2863,6 +2845,19 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         handler.LoadFalse(
             reg);
+
+        break;
+    }
+    case LOAD_CLASS:
+    {
+        BCRegister reg;
+        bs->Read(&reg);
+        uint64 nameHash;
+        bs->Read(&nameHash);
+
+        handler.LoadClass(
+            reg,
+            nameHash);
 
         break;
     }
@@ -3169,6 +3164,53 @@ HYP_FORCE_INLINE static void HandleInstruction(
         handler.Cmp(
             lhsReg,
             rhsReg);
+
+        break;
+    }
+    case NEW_CLASS:
+    {
+        BCRegister reg;
+        bs->Read(&reg);
+        uint16 typeNameLen;
+        bs->Read(&typeNameLen);
+
+        char* typeName = new char[typeNameLen + 1];
+        typeName[typeNameLen] = '\0';
+        bs->Read(typeName, typeNameLen);
+
+        // number of members
+        uint16 size;
+        bs->Read(&size);
+
+        char** names = new char*[size];
+
+        // load each name
+        for (uint16 i = 0; i < size; i++)
+        {
+            uint16 length;
+            bs->Read(&length);
+
+            names[i] = new char[length + 1];
+            names[i][length] = '\0';
+            bs->Read(names[i], length);
+        }
+
+        handler.NewClass(
+            reg,
+            typeNameLen,
+            typeName,
+            size,
+            names);
+
+        delete[] typeName;
+
+        // delete the names
+        for (uint16 i = 0; i < size; i++)
+        {
+            delete[] names[i];
+        }
+
+        delete[] names;
 
         break;
     }

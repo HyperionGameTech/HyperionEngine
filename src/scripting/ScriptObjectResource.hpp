@@ -13,10 +13,6 @@
 
 #include <core/Types.hpp>
 
-#ifdef HYP_SCRIPT
-#include <script/vm/Value.hpp>
-#endif
-
 namespace hyperion {
 
 namespace dotnet {
@@ -29,6 +25,13 @@ struct ObjectReference;
 enum class ObjectFlags : uint32;
 enum ScriptLanguage : uint32;
 
+#ifdef HYP_SCRIPT
+enum HypScriptObjectTag
+{
+    HYP_SCRIPT_OBJECT
+};
+#endif
+
 class HYP_API ScriptObjectResource final : public ResourceBase
 {
 public:
@@ -38,7 +41,7 @@ public:
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(HypObjectPtr ptr, vm::Value&& value);
+    ScriptObjectResource(HypObjectPtr ptr, HypScriptObjectTag);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;
@@ -49,7 +52,10 @@ public:
 
     ~ScriptObjectResource();
 
-    ScriptLanguage GetScriptLanguage() const;
+    HYP_FORCE_INLINE ScriptLanguage GetScriptLanguage() const
+    {
+        return m_scriptLanguage;
+    }
 
     HYP_FORCE_INLINE dotnet::Object* GetManagedObject() const
     {
@@ -67,12 +73,10 @@ protected:
 
     HypObjectPtr m_ptr;
 
+    ScriptLanguage m_scriptLanguage;
+
     dotnet::Object* m_objectPtr;
     RC<dotnet::Class> m_managedClass;
-
-#ifdef HYP_SCRIPT
-    vm::Value m_value;
-#endif
 };
 
 } // namespace hyperion

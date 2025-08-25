@@ -58,6 +58,8 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
 
     HypObjectContainerBase* container = createFn();
     HYP_CORE_ASSERT(container != nullptr);
+    
+    container->m_typeId = typeId;
 
     return *m_map.EmplaceBack(typeId, container).second;
 }

@@ -112,139 +112,139 @@ UniquePtr<Buildable> AstTypeObject::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    // get active register
-    uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    // // get active register
+    // uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    // if (m_symbolType->GetId() != -1) {
-    //     chunk->Append(BytecodeUtil::Make<Comment>("Load class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
+    // // if (m_symbolType->GetId() != -1) {
+    // //     chunk->Append(BytecodeUtil::Make<Comment>("Load class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
 
-    //     // already built, we can just load it from the static table
-    //     auto instrLoadStatic = BytecodeUtil::Make<StorageOperation>();
-    //     instrLoadStatic->GetBuilder().Load(rp).Static().ByIndex(m_symbolType->GetId());
-    //     chunk->Append(std::move(instrLoadStatic));
+    // //     // already built, we can just load it from the static table
+    // //     auto instrLoadStatic = BytecodeUtil::Make<StorageOperation>();
+    // //     instrLoadStatic->GetBuilder().Load(rp).Static().ByIndex(m_symbolType->GetId());
+    // //     chunk->Append(std::move(instrLoadStatic));
 
-    //     return chunk;
+    // //     return chunk;
+    // // }
+
+    // chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
+
+    // if (m_baseTypeRef != nullptr)
+    // {
+    //     chunk->Append(m_baseTypeRef->Build(visitor, mod));
+    // }
+    // else
+    // {
+    //     chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
     // }
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
+    // rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    if (m_baseTypeRef != nullptr)
-    {
-        chunk->Append(m_baseTypeRef->Build(visitor, mod));
-    }
-    else
-    {
-        chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
-    }
+    // // store object's register location
+    // const uint8 objReg = rp;
 
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    // { // load the type into register objReg
+    //     auto instrType = BytecodeUtil::Make<BuildableType>();
+    //     instrType->reg = objReg;
+    //     instrType->name = m_symbolType->GetName();
 
-    // store object's register location
-    const uint8 objReg = rp;
+    //     for (const SymbolTypeMember& mem : m_symbolType->GetMembers())
+    //     {
+    //         instrType->members.PushBack(mem.name);
+    //     }
 
-    { // load the type into register objReg
-        auto instrType = BytecodeUtil::Make<BuildableType>();
-        instrType->reg = objReg;
-        instrType->name = m_symbolType->GetName();
+    //     chunk->Append(std::move(instrType));
+    // }
 
-        for (const SymbolTypeMember& mem : m_symbolType->GetMembers())
-        {
-            instrType->members.PushBack(mem.name);
-        }
+    // Assert(m_memberExpressions.Size() == m_symbolType->GetMembers().Size());
 
-        chunk->Append(std::move(instrType));
-    }
+    // if (m_memberExpressions.Any())
+    // {
+    //     // push the class to the stack
+    //     const int classStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
-    Assert(m_memberExpressions.Size() == m_symbolType->GetMembers().Size());
+    //     // use above as self arg so PUSH
+    //     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    if (m_memberExpressions.Any())
-    {
-        // push the class to the stack
-        const int classStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    //     { // add instruction to store on stack
+    //         auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+    //         instrPush->opcode = PUSH;
+    //         instrPush->Accept<uint8>(rp);
+    //         chunk->Append(std::move(instrPush));
+    //     }
 
-        // use above as self arg so PUSH
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    //     // increment stack size for class
+    //     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
-        { // add instruction to store on stack
-            auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-            instrPush->opcode = PUSH;
-            instrPush->Accept<uint8>(rp);
-            chunk->Append(std::move(instrPush));
-        }
+    //     for (SizeType index = 0; index < m_memberExpressions.Size(); index++)
+    //     {
+    //         Assert(index < MathUtil::MaxSafeValue<uint8>(), "Argument out of bouds of max arguments");
 
-        // increment stack size for class
-        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+    //         const RC<AstExpression>& mem = m_memberExpressions[index];
+    //         Assert(mem != nullptr);
 
-        for (SizeType index = 0; index < m_memberExpressions.Size(); index++)
-        {
-            Assert(index < MathUtil::MaxSafeValue<uint8>(), "Argument out of bouds of max arguments");
+    //         chunk->Append(mem->Build(visitor, mod));
 
-            const RC<AstExpression>& mem = m_memberExpressions[index];
-            Assert(mem != nullptr);
+    //         // increment to not overwrite object in register with out class
+    //         rp = visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
 
-            chunk->Append(mem->Build(visitor, mod));
+    //         const int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
-            // increment to not overwrite object in register with out class
-            rp = visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
+    //         { // load class from stack into register
+    //             auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+    //             instrLoadOffset->GetBuilder().Load(rp).Local().ByOffset(stackSize - classStackLocation);
+    //             chunk->Append(std::move(instrLoadOffset));
+    //         }
 
-            const int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    //         { // store data member
+    //             auto instrMovMem = BytecodeUtil::Make<RawOperation<>>();
+    //             instrMovMem->opcode = MOV_MEM;
+    //             instrMovMem->Accept<uint8>(rp);
+    //             instrMovMem->Accept<uint8>(uint8(index));
+    //             instrMovMem->Accept<uint8>(objReg);
+    //             chunk->Append(std::move(instrMovMem));
+    //         }
 
-            { // load class from stack into register
-                auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-                instrLoadOffset->GetBuilder().Load(rp).Local().ByOffset(stackSize - classStackLocation);
-                chunk->Append(std::move(instrLoadOffset));
-            }
+    //         // no longer using obj in reg
+    //         rp = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
 
-            { // store data member
-                auto instrMovMem = BytecodeUtil::Make<RawOperation<>>();
-                instrMovMem->opcode = MOV_MEM;
-                instrMovMem->Accept<uint8>(rp);
-                instrMovMem->Accept<uint8>(uint8(index));
-                instrMovMem->Accept<uint8>(objReg);
-                chunk->Append(std::move(instrMovMem));
-            }
+    //         { // comment for debug
+    //             chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_symbolType->GetMembers()[index].name));
+    //         }
+    //     }
 
-            // no longer using obj in reg
-            rp = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
+    //     // "return" our class to the last used register before popping
+    //     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-            { // comment for debug
-                chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_symbolType->GetMembers()[index].name));
-            }
-        }
+    //     const int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
-        // "return" our class to the last used register before popping
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    //     { // load class from stack into register so it is back in rp
+    //         auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+    //         instrLoadOffset->GetBuilder()
+    //             .Load(rp)
+    //             .Local()
+    //             .ByOffset(stackSize - classStackLocation);
 
-        const int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    //         chunk->Append(std::move(instrLoadOffset));
+    //     }
 
-        { // load class from stack into register so it is back in rp
-            auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-            instrLoadOffset->GetBuilder()
-                .Load(rp)
-                .Local()
-                .ByOffset(stackSize - classStackLocation);
+    //     // pop class off stack
+    //     visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+    //     chunk->Append(Compiler::PopStack(visitor, 1));
+    // }
+    // else
+    // {
+    //     Assert(objReg == visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister());
+    // }
 
-            chunk->Append(std::move(instrLoadOffset));
-        }
+    // { // store class in static table
+    //     chunk->Append(BytecodeUtil::Make<Comment>("Store class " + m_symbolType->GetName() + " in static data at index " + String::ToString(m_symbolType->GetId())));
 
-        // pop class off stack
-        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-        chunk->Append(Compiler::PopStack(visitor, 1));
-    }
-    else
-    {
-        Assert(objReg == visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister());
-    }
+    //     auto instrStoreStatic = BytecodeUtil::Make<StorageOperation>();
+    //     instrStoreStatic->GetBuilder().Store(rp).Static().ByIndex(m_symbolType->GetId());
+    //     chunk->Append(std::move(instrStoreStatic));
+    // }
 
-    { // store class in static table
-        chunk->Append(BytecodeUtil::Make<Comment>("Store class " + m_symbolType->GetName() + " in static data at index " + String::ToString(m_symbolType->GetId())));
-
-        auto instrStoreStatic = BytecodeUtil::Make<StorageOperation>();
-        instrStoreStatic->GetBuilder().Store(rp).Static().ByIndex(m_symbolType->GetId());
-        chunk->Append(std::move(instrStoreStatic));
-    }
-
-    chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbolType->GetName()));
+    // chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbolType->GetName()));
 
     return chunk;
 }

@@ -38,6 +38,8 @@ HYP_API extern void ReleaseHypObject(const HypClass* hypClass, uint32 index);
 
 class HypObjectContainerBase
 {
+    friend class HypObjectPool;
+    
 public:
     virtual ~HypObjectContainerBase() = default;
 
@@ -351,11 +353,10 @@ public:
             return container;
         }
 
+        HYP_API HypObjectContainerBase& GetOrCreate(TypeId typeId, HypObjectContainerBase* (*createFn)(void));
+
         HYP_API HypObjectContainerBase& Get(TypeId typeId);
         HYP_API HypObjectContainerBase* TryGet(TypeId typeId);
-
-    private:
-        HYP_API HypObjectContainerBase& GetOrCreate(TypeId typeId, HypObjectContainerBase* (*createFn)(void));
     };
 
     HYP_API static ContainerMap& GetObjectContainerMap();

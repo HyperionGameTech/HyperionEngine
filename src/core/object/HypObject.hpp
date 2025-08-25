@@ -22,8 +22,6 @@ public:                                                                         
     struct HypObjectData                                                         \
     {                                                                            \
         using Type = T;                                                          \
-                                                                                 \
-        static constexpr bool isHypObject = true;                                \
     };                                                                           \
                                                                                  \
     HYP_FORCE_INLINE ObjId<T> Id() const                                         \

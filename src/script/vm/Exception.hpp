@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/Name.hpp>
+
 #include <util/UTF8.hpp>
 
 namespace hyperion {
@@ -41,6 +43,7 @@ public:
     static Exception LibraryFunctionLoadException(const char* funcName);
     static Exception DuplicateExportException();
     static Exception KeyNotFoundException(const char* key);
+    static Exception ClassNotFoundException(Name name);
 
 private:
     char* m_str;

@@ -914,6 +914,8 @@ public:
 
     virtual bool IsValid() const override;
 
+    virtual HypObjectContainerBase* GetObjectContainer() const override;
+
     virtual HypClassAllocationMethod GetAllocationMethod() const override;
 
 #ifdef HYP_DOTNET

@@ -130,10 +130,10 @@ void HyperionEditor::Init()
     { // script 2
         // temp
         String str;
-        str = "class MyClass {\n"
+        str = "class Node {}; \nclass MyClass : Node {\n"
               "    func x(a: int, b: int) { return a + b; };\n"
               "};\n"
-              "\n"
+              "ins : MyClass = new MyClass();\n"
               "func modValue(ref v: int) {\nv = 4483;\n};"
               "export func x(a: float, ref b: int) {\nb2 := 2;\nmodValue(b2);\nreturn b2;\n};";
 

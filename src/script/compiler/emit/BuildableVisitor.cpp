@@ -76,6 +76,10 @@ void BuildableVisitor::Visit(Buildable* buildable)
     {
         Visit(node);
     }
+    else if (auto* node = dynamic_cast<LoadClass*>(buildable))
+    {
+        Visit(node);
+    }
     else if (auto* node = dynamic_cast<BuildableTryCatch*>(buildable))
     {
         Visit(node);

@@ -71,6 +71,14 @@ class HYP_API HypObjectBase
     friend bool InitObject(const Handle<T>&);
 
 public:
+    struct HypObjectData
+    {
+        using Type = HypObjectBase;
+    };
+
+    /*! \internal */
+    HypObjectBase();
+
     virtual ~HypObjectBase();
 
     HYP_FORCE_INLINE ObjIdBase Id() const
@@ -85,6 +93,11 @@ public:
         HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
 
         return GetTypeIdForHypClass(m_header->hypClass);
+    }
+
+    HYP_FORCE_INLINE static const HypClass* Class()
+    {
+        return nullptr;
     }
 
     HYP_FORCE_INLINE const HypClass* InstanceClass() const
@@ -136,8 +149,6 @@ protected:
         INIT_STATE_INIT_CALLED = 0x1,
         INIT_STATE_READY = 0x2
     };
-
-    HypObjectBase();
 
     HypObjectBase(const HypObjectBase& other) = delete;
     HypObjectBase& operator=(const HypObjectBase& other) = delete;

@@ -57,7 +57,6 @@ enum Instructions : hyperion::uint8
     LOAD_STRING,     // loadStr          [% reg, u32 len, byte[len] str]
     LOAD_ADDR,       // loadAddr         [% reg, @ addr]
     LOAD_FUNC,       // loadFunc         [% reg, @ addr, u8 nargs, u8 flags]
-    LOAD_TYPE,       // loadType         [% reg, u16 nameLen, byte[nameLen] name, u16 size, { u16 len, byte[len] memberName }[size]]
     LOAD_MEM,        // loadMem          [% reg, % src, u8 idx]
     LOAD_MEM_HASH,   // loadMemHash     [% reg, % src, u64 hash]
     LOAD_ARRAYIDX,   // loadArrayidx     [% reg, % src, % idx]
@@ -66,6 +65,7 @@ enum Instructions : hyperion::uint8
     LOAD_NULL,       // loadNull         [% reg]
     LOAD_TRUE,       // loadTrue         [% reg]
     LOAD_FALSE,      // loadFalse        [% reg]
+    LOAD_CLASS,      // loadClass        [% reg, u64 nameHash] <-- TODO: Change to TypeId
 
     REF,   // ref               [% reg, % src]
     DEREF, // deref             [% reg, % src]
@@ -119,6 +119,7 @@ enum Instructions : hyperion::uint8
 
     NEW,       // new [% dst, % srcTypeReg]
     NEW_ARRAY, // newArray [% dst, u32 size]
+    NEW_CLASS, // newClass [% dst, u16 nameLen, byte[nameLen] name, u16 size, { u16 len, byte[len] memberName }[size]]
 
     /* Compare two register values */
     CMP,  // cmp [% lhs, % rhs]

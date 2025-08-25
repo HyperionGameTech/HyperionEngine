@@ -709,7 +709,7 @@ SymbolTypeRef SymbolType::Object(
     SymbolTypeRef symbolType(new SymbolType(
         name,
         TYPE_USER_DEFINED,
-        BuiltinTypes::CLASS_TYPE,
+        BuiltinTypes::OBJECT,
         nullptr,
         members));
 

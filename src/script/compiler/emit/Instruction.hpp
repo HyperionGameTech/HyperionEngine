@@ -281,6 +281,21 @@ struct ConstNull : public Buildable
     virtual ~ConstNull() = default;
 };
 
+struct LoadClass final : public Buildable
+{
+    RegIndex reg;
+    uint64 nameHash;
+
+    LoadClass() = default;
+    LoadClass(RegIndex reg, uint64 nameHash)
+        : reg(reg),
+          nameHash(nameHash)
+    {
+    }
+
+    virtual ~LoadClass() = default;
+};
+
 struct BuildableTryCatch final : public Buildable
 {
     LabelId catchLabelId;
@@ -431,4 +446,3 @@ struct RawOperation<T, Ts...> : RawOperation<Ts...>
 };
 
 } // namespace hyperion::compiler
-

@@ -31,6 +31,7 @@ public:
     virtual void Visit(ConstF64*) = 0;
     virtual void Visit(ConstBool*) = 0;
     virtual void Visit(ConstNull*) = 0;
+    virtual void Visit(LoadClass*) = 0;
     virtual void Visit(BuildableTryCatch*) = 0;
     virtual void Visit(BuildableFunction*) = 0;
     virtual void Visit(BuildableType*) = 0;
@@ -43,4 +44,3 @@ public:
 };
 
 } // namespace hyperion::compiler
-

@@ -388,55 +388,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_TYPE:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint16 typeNameLen;
-        bs.Read(&typeNameLen);
-
-        Array<uint8> typeName;
-        typeName.Resize(typeNameLen + 1);
-        typeName[typeNameLen] = '\0';
-        bs.Read(&typeName[0], typeNameLen);
-
-        uint16 size;
-        bs.Read(&size);
-
-        Array<Array<uint8>> names;
-        names.Resize(size);
-
-        for (int i = 0; i < size; i++)
-        {
-            uint16 len;
-            bs.Read(&len);
-
-            names[i].Resize(len + 1);
-            names[i][len] = '\0';
-            bs.Read(&names[i][0], len);
-        }
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "loadType ["
-                << "%" << (int)reg << ", "
-                << "str(" << typeName.Data() << "), "
-                << "u16(" << (int)size << ")";
-
-            for (int i = 0; i < size; i++)
-            {
-                (*os) << ", str(" << names[i].Data() << ")";
-            }
-
-            (*os)
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case LOAD_MEM:
     {
         uint8 reg;
@@ -633,6 +584,26 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "loadFalse ["
                 << "%" << (int)reg
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
+    case LOAD_CLASS:
+    {
+        uint8 reg;
+        bs.Read(&reg);
+
+        uint64 name_hash;
+        bs.Read(&name_hash);
+
+        if (os != nullptr)
+        {
+            (*os)
+                << "loadClass ["
+                << "%" << (int)reg << ", "
+                << "u64(" << name_hash << ")"
                 << "]"
                 << std::endl;
         }
@@ -1088,6 +1059,55 @@ void DecompilationUnit::DecodeNext(
                 << "newArray ["
                 << "%" << (int)dst << ", "
                 << "u32(" << (int)size << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
+    case NEW_CLASS:
+    {
+        uint8 reg;
+        bs.Read(&reg);
+
+        uint16 typeNameLen;
+        bs.Read(&typeNameLen);
+
+        Array<uint8> typeName;
+        typeName.Resize(typeNameLen + 1);
+        typeName[typeNameLen] = '\0';
+        bs.Read(&typeName[0], typeNameLen);
+
+        uint16 size;
+        bs.Read(&size);
+
+        Array<Array<uint8>> names;
+        names.Resize(size);
+
+        for (int i = 0; i < size; i++)
+        {
+            uint16 len;
+            bs.Read(&len);
+
+            names[i].Resize(len + 1);
+            names[i][len] = '\0';
+            bs.Read(&names[i][0], len);
+        }
+
+        if (os != nullptr)
+        {
+            (*os)
+                << "newClass ["
+                << "%" << (int)reg << ", "
+                << "str(" << typeName.Data() << "), "
+                << "u16(" << (int)size << ")";
+
+            for (int i = 0; i < size; i++)
+            {
+                (*os) << ", str(" << names[i].Data() << ")";
+            }
+
+            (*os)
                 << "]"
                 << std::endl;
         }

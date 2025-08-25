@@ -219,6 +219,13 @@ void CodeGenerator::Visit(ConstNull* node)
     m_ibs.Put(node->reg);
 }
 
+void CodeGenerator::Visit(LoadClass* node)
+{
+    m_ibs.Put(Instructions::LOAD_CLASS);
+    m_ibs.Put(node->reg);
+    m_ibs.Put(reinterpret_cast<ubyte*>(&node->nameHash), sizeof(node->nameHash));
+}
+
 void CodeGenerator::Visit(BuildableTryCatch* node)
 {
     m_ibs.Put(Instructions::BEGIN_TRY);
@@ -238,7 +245,7 @@ void CodeGenerator::Visit(BuildableFunction* node)
 void CodeGenerator::Visit(BuildableType* node)
 {
     // TODO: make it store and load statically
-    m_ibs.Put(Instructions::LOAD_TYPE);
+    m_ibs.Put(Instructions::NEW_CLASS);
     m_ibs.Put(node->reg);
 
     uint16_t nameLen = (uint16_t)node->name.Size();

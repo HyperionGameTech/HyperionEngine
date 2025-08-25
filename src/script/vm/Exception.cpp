@@ -205,5 +205,21 @@ Exception Exception::KeyNotFoundException(const char* key)
     return Exception(buffer);
 }
 
+Exception Exception::ClassNotFoundException(Name name)
+{
+    char buffer[256];
+    const char* nameStr = name.LookupString();
+
+    if (nameStr == nullptr || nameStr[0] == '\0')
+    {
+        std::snprintf(buffer, 256, "Class with hash code %llu not found", name.GetHashCode().Value());
+        return Exception(buffer);
+    }
+
+    std::snprintf(buffer, 256, "Class `%s` not found", name.LookupString());
+
+    return Exception(buffer);
+}
+
 } // namespace vm
 } // namespace hyperion
