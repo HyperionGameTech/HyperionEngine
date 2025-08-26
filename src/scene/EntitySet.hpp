@@ -122,10 +122,8 @@ public:
     virtual bool ValidForEntity(ObjId<Entity> entityId) const = 0;
 
     /*! \brief Removes the given Entity from this EntitySet.
-     *
-     *  \param entityId The ID of the Entity to remove.
      */
-    virtual void RemoveEntity(ObjId<Entity> entityId) = 0;
+    virtual void RemoveEntity(Entity* entity) = 0;
 
     /*! \brief To be used by the EntityManager
         \note Do not call this function directly. */
@@ -197,31 +195,35 @@ public:
     }
 
     /*! \brief Remove an Entity from this EntitySet
-     *
-     *  \param entityId The ID of the Entity to remove.
      */
-    virtual void RemoveEntity(ObjId<Entity> entityId) override
+    virtual void RemoveEntity(Entity* entity) override
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-        Assert(entityId.IsValid());
+        Assert(entity != nullptr);
+
+        // fine to access these following Entity fields, even if the entity is destructed
+        // - the HypObjectHeader will still be valid until the entry is freed from the pool.
+        // we just need a weak reference to the entity to exist.
+        // (this is only called from Entity::~Entity() where we do that).
+        HypObjectHeader* header = entity->GetObjectHeader_Internal();
+        Assert(header != nullptr);
+
+        const HypClass* hypClass = header->hypClass;
+        Assert(hypClass != nullptr);
+
+        const TypeId entityTypeId = entity->GetTypeId();
 
         // Get pointer from ID
-        HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(entityId.GetTypeId());
+        HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(entityTypeId);
 
         HYP_CORE_ASSERT(container != nullptr,
             "Container is not initialized for type! Possibly using an Id created without pointing to a valid object with TypeId %u?",
-            entityId.GetTypeId().Value());
+            entityTypeId.Value());
 
-        HypObjectHeader* header = container->GetObjectHeader(entityId.ToIndex());
-        HYP_CORE_ASSERT(header != nullptr);
-
-        HypObjectBase* entityPtr = container->GetObjectPointer(header);
-        HYP_CORE_ASSERT(entityPtr != nullptr);
-
-        const auto entityElementIt = m_elements.FindIf([entityPtr](const Element& element)
+        const auto entityElementIt = m_elements.FindIf([entity](const Element& element)
             {
-                return static_cast<HypObjectBase*>(element.template GetElement<0>()) == entityPtr;
+                return static_cast<HypObjectBase*>(element.template GetElement<0>()) == entity;
             });
 
         if (entityElementIt != m_elements.End())
@@ -412,7 +414,7 @@ struct EntitySetView
         }
 #endif
     }
-    
+
     /*! \brief Gets the elements array of this set.
      *  The elements array contains the entities in this set and the corresponding component IDs.
      *

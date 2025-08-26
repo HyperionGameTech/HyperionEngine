@@ -74,6 +74,8 @@
 
 #include <core/config/Config.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/containers/SparsePagedArray.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -105,6 +107,18 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
+
+    Pool poolTest;
+    void* vp = poolTest.Allocate(32, 16);
+    void* vp2 = poolTest.Allocate(64, 32);
+    void* vp3 = poolTest.Allocate(128, 64);
+    poolTest.Free(vp2);
+    void* vp4 = poolTest.Allocate(16, 8);
+    poolTest.Free(vp);
+    poolTest.Free(vp4);
+    poolTest.Free(vp3);
+
+    HYP_BREAKPOINT;
 
 #if 1
     //{ // script 1

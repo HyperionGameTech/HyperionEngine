@@ -5,15 +5,17 @@
 
 namespace hyperion {
 
-HYP_API void ReleaseHypObject(const HypClass* hypClass, uint32 index)
+HYP_API void ReleaseHypObject(HypObjectHeader* header)
 {
-    HYP_CORE_ASSERT(hypClass != nullptr, "HypClass is null");
-    HYP_CORE_ASSERT(index != ~0u, "Invalid index");
+    HYP_CORE_ASSERT(header != nullptr);
+
+    const HypClass* hypClass = header->hypClass;
+    HYP_CORE_ASSERT(hypClass != nullptr);
 
     HypObjectContainerBase* container = hypClass->GetObjectContainer();
     HYP_CORE_ASSERT(container != nullptr, "HypClass has no HypObjectContainer");
 
-    hypClass->GetObjectContainer()->ReleaseIndex(index);
+    hypClass->GetObjectContainer()->Release(header);
 }
 
 static HypObjectPool::ContainerMap g_objectContainerMap {};
@@ -58,7 +60,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
 
     HypObjectContainerBase* container = createFn();
     HYP_CORE_ASSERT(container != nullptr);
-    
+
     container->m_typeId = typeId;
 
     return *m_map.EmplaceBack(typeId, container).second;

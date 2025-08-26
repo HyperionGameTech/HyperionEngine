@@ -1072,12 +1072,10 @@ private:
     void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& componentIds);
 
     /*! \brief Removes an entity from the EntityManager.
-     *
-     *  \param[in] entityId The ID of the entity to remove.
-     *
+    
      *  \return True if the entity was removed, false otherwise.
      */
-    bool RemoveEntity(ObjId<Entity> entityId);
+    bool RemoveEntity(Entity* entity);
 
     bool IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const;
 

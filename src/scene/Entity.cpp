@@ -54,7 +54,7 @@ Entity::~Entity()
 
         HYP_LOG(Entity, Debug, "Removing Entity {} from entity manager", Id());
 
-        if (!entityManager->RemoveEntity(Id()))
+        if (!entityManager->RemoveEntity(this))
         {
             HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", Id());
         }
@@ -75,7 +75,7 @@ Entity::~Entity()
 
                 HYP_LOG(Entity, Debug, "Removing Entity {} from entity manager", weakThis.Id());
 
-                if (!entityManager->RemoveEntity(weakThis.Id()))
+                if (!entityManager->RemoveEntity(weakThis.GetUnsafe()))
                 {
                     HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", weakThis.Id());
                 }

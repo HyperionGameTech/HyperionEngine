@@ -8,6 +8,8 @@
 
 #include <core/object/HypObjectFwd.hpp>
 
+#include <core/utilities/IdGenerator.hpp>
+
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/AtomicVar.hpp>
@@ -16,7 +18,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/Memory.hpp>
-#include <core/memory/MemoryPool.hpp>
+#include <core/memory/pool/Pool.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
@@ -34,7 +36,7 @@ class HypObjectContainerBase;
 struct HypObjectHeader;
 class HypClass;
 
-HYP_API extern void ReleaseHypObject(const HypClass* hypClass, uint32 index);
+HYP_API extern void ReleaseHypObject(HypObjectHeader* header);
 
 class HypObjectContainerBase
 {
@@ -53,13 +55,10 @@ public:
         return m_hypClass;
     }
 
-    virtual SizeType NumAllocatedElements() const = 0;
-    virtual SizeType NumAllocatedBytes() const = 0;
-
     virtual HypObjectBase* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
 
-    virtual void ReleaseIndex(uint32 index) = 0;
+    virtual void Release(HypObjectHeader* header) = 0;
 
 protected:
     HypObjectContainerBase(TypeId typeId, const HypClass* hypClass)
@@ -72,6 +71,7 @@ protected:
 
     TypeId m_typeId;
     const HypClass* m_hypClass;
+    IdGenerator m_idGenerator;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -166,7 +166,7 @@ struct HypObjectHeader
             if (AtomicDecrement(&refCountWeak) == 0)
             {
                 // Free the slot for this
-                ReleaseHypObject(hypClass, index);
+                ReleaseHypObject(this);
             }
 
             return 0;
@@ -193,7 +193,7 @@ struct HypObjectHeader
             if (AtomicAdd(&refCountStrong, 0) == 0)
             {
                 // Free the slot for this
-                ReleaseHypObject(hypClass, index);
+                ReleaseHypObject(this);
             }
 
             return 0;
@@ -256,7 +256,7 @@ static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T
 template <class T>
 class HypObjectContainer final : public HypObjectContainerBase
 {
-    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, MemoryPoolInitInfo<T>, ObjectContainer_OnBlockAllocated<T>>;
+    using MemoryPoolType = Pool;
 
     using HypObjectMemory = HypObjectMemory<T>;
 
@@ -264,8 +264,7 @@ class HypObjectContainer final : public HypObjectContainerBase
 
 public:
     HypObjectContainer()
-        : HypObjectContainerBase(TypeId::ForType<T>(), T::Class()),
-          m_pool(s_poolName, 2048, /* createInitialBlocks */ true, /* blockInitCtx */ this)
+        : HypObjectContainerBase(TypeId::ForType<T>(), T::Class())
     {
     }
 
@@ -273,25 +272,31 @@ public:
     HypObjectContainer& operator=(const HypObjectContainer& other) = delete;
     HypObjectContainer(HypObjectContainer&& other) noexcept = delete;
     HypObjectContainer& operator=(HypObjectContainer&& other) noexcept = delete;
-    virtual ~HypObjectContainer() override = default;
 
-    virtual SizeType NumAllocatedElements() const override
+    virtual ~HypObjectContainer() override
     {
-        return m_pool.NumAllocatedElements();
+        // Free all allocated elements
+        for (HypObjectHeader* header : m_headers)
+        {
+            HYP_CORE_ASSERT(header != nullptr);
+
+            HypObjectHeader::DestructThisObject(header);
+
+            m_pool.Free(header);
+        }
     }
 
-    virtual SizeType NumAllocatedBytes() const override
+    HYP_NODISCARD HypObjectMemory* Allocate()
     {
-        return m_pool.NumAllocatedBytes();
-    }
+        Mutex::Guard guard(m_mutex);
 
-    HYP_NODISCARD HYP_FORCE_INLINE HypObjectMemory* Allocate()
-    {
-        HypObjectMemory* element;
-        m_pool.AcquireIndex(&element);
-        AssertDebug(element->GetRefCountStrong() == 0 && element->GetRefCountWeak() == 0,
-            "HypObjectMemory should not have any references when allocated from the pool!! Got: {} strong, {} weak",
-            element->GetRefCountStrong(), element->GetRefCountWeak());
+        HypObjectMemory* element = (HypObjectMemory*)m_pool.Allocate(sizeof(HypObjectMemory), alignof(HypObjectMemory));
+        element->index = m_idGenerator.Next() - 1;
+        element->hypClass = m_hypClass;
+        element->refCountStrong = 0;
+        element->refCountWeak = 0;
+
+        m_headers.Emplace(element->index, (HypObjectHeader*)element);
 
         return element;
     }
@@ -308,16 +313,41 @@ public:
 
     virtual HypObjectHeader* GetObjectHeader(uint32 index) override
     {
-        return &m_pool.GetElement(index);
+        if (index == ~0u)
+        {
+            return nullptr;
+        }
+
+        Mutex::Guard guard(m_mutex);
+
+        if (!m_headers.HasIndex(index))
+        {
+            return nullptr;
+        }
+
+        return m_headers[index];
     }
 
-    virtual void ReleaseIndex(uint32 index) override
+    virtual void Release(HypObjectHeader* header) override
     {
-        m_pool.ReleaseIndex(index);
+        HYP_CORE_ASSERT(header != nullptr);
+
+        Mutex::Guard guard(m_mutex);
+
+        const uint32 index = header->index;
+        HYP_CORE_ASSERT(index != ~0u, "Invalid index");
+
+        m_idGenerator.ReleaseId(index + 1);
+        m_pool.Free(header);
+
+        m_headers.EraseAt(index);
     }
 
 private:
     MemoryPoolType m_pool;
+
+    SparsePagedArray<HypObjectHeader*, 1024> m_headers;
+    mutable Mutex m_mutex;
 };
 
 template <class T>

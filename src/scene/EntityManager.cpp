@@ -610,19 +610,21 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 /// Called from Entity destructor or from a task enqueued during Entity destructor.
 /// Does not operate on the Entity pointer as it would be invalid at this point,
 /// so NotifySystemsOfEntityRemoved() is not called (it's expected that this is a non-world EntityManager so it wouldn't be called anyway).
-bool EntityManager::RemoveEntity(ObjId<Entity> entityId)
+bool EntityManager::RemoveEntity(Entity* entity)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_ownerThreadId);
 
     Assert(m_world == nullptr, "RemoveEntity() can only be called on non-world EntityManagers. Use MoveEntity() to move entities out of a world EntityManager on its owner thread.");
 
-    if (!entityId.IsValid())
+    if (!entity)
     {
         return false;
     }
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
+
+    const ObjId<Entity> entityId = entity->Id();
 
     // Components generically stored as HypData by TypeId - to add to other EntityManager
     TypeMap<HypData> componentHypDatas;
@@ -672,7 +674,7 @@ bool EntityManager::RemoveEntity(ObjId<Entity> entityId)
                 {
                     EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
 
-                    entitySet.RemoveEntity(entityId);
+                    entitySet.RemoveEntity(entity);
                 }
             }
         }
@@ -1348,7 +1350,7 @@ void EntityManager::BeginAsyncUpdate(float delta)
     {
         AssertDebug(entity->GetEntityManager() == this);
         AssertDebug(entity->GetWorld() == GetWorld());
-        
+
         entity->Update(delta);
     }
 
