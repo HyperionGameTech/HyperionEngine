@@ -130,12 +130,14 @@ void HyperionEditor::Init()
     { // script 2
         // temp
         String str;
-        str = "class Node {}; \nclass MyClass : Node {\n"
+        str = "class Node {}; \n"
+              "class MyClass : Node {\n"
+              "    blah: int = 5;\n"
               "    func x(a: int, b: int) { return a + b; };\n"
               "};\n"
               "ins : MyClass = new MyClass();\n"
               "func modValue(ref v: int) {\nv = 4483;\n};"
-              "export func x(a: float, ref b: int) {\nb2 := 2;\nmodValue(b2);\nreturn ins;\n};";
+              "export func x(a: float, ref b: int) {\nb2 := 2;\nmodValue(b2);\nreturn ins.blah;\n};";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

@@ -57,7 +57,6 @@ enum Instructions : hyperion::uint8
     LOAD_STRING,     // loadStr          [% reg, u32 len, byte[len] str]
     LOAD_ADDR,       // loadAddr         [% reg, @ addr]
     LOAD_FUNC,       // loadFunc         [% reg, @ addr, u8 nargs, u8 flags]
-    LOAD_MEM,        // loadMem          [% reg, % src, u8 idx]
     LOAD_MEM_HASH,   // loadMemHash      [% reg, % src, u64 hash]
     LOAD_ARRAYIDX,   // loadArrayidx     [% reg, % src, % idx]
     LOAD_OFFSET_REF, // loadOffsetRef   [% reg, u16 offset]
@@ -76,8 +75,6 @@ enum Instructions : hyperion::uint8
     MOV_INDEX, // movIndex    [u16 dst, % src]
     /* Copy register value to static index */
     MOV_STATIC, // movStatic   [u16 dst, % src]
-    /* Copy register value to object member */
-    MOV_MEM, // movMem      [% dstObj, u8 dstIdx, % src]
     /* Copy register value to object member (using hashcode) */
     MOV_MEM_HASH, // movMemHash [% dstObj, u64 hash, % src]
     /* Copy register value to array index */

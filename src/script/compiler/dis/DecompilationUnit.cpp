@@ -391,30 +391,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_MEM:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint8 src;
-        bs.Read(&src);
-
-        uint8 idx;
-        bs.Read(&idx);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "loadMem ["
-                << "%" << (int)reg << ", "
-                << "%" << (int)src << ", "
-                << "u8(" << (int)idx << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case LOAD_MEM_HASH:
     {
         uint8 reg;
@@ -667,30 +643,6 @@ void DecompilationUnit::DecodeNext(
                 << "movStatic ["
                 << "#" << dst << ", "
                 << "%" << (int)src
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case MOV_MEM:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint8 idx;
-        bs.Read(&idx);
-
-        uint8 src;
-        bs.Read(&src);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "movMem ["
-                << "%" << (int)reg << ", "
-                << "u8(" << (int)idx << "), "
-                << "%" << (int)src << ""
                 << "]"
                 << std::endl;
         }

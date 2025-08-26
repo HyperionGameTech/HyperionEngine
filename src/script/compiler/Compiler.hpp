@@ -49,10 +49,6 @@ public:
 
     static UniquePtr<Buildable> StoreMemberFromHash(AstVisitor* visitor, Module* mod, HashCode::ValueType hash);
 
-    static UniquePtr<Buildable> LoadMemberAtIndex(AstVisitor* visitor, Module* mod, uint8 index);
-
-    static UniquePtr<Buildable> StoreMemberAtIndex(AstVisitor* visitor, Module* mod, uint8 index);
-
     /** Compiler a standard if-then-else statement into the program.
         If the `else` expression is nullptr it will be omitted.
     */

@@ -623,30 +623,6 @@ public:
         thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(vmData), false);
     }
 
-    HYP_FORCE_INLINE void LoadMem(BCRegister dstReg, BCRegister srcReg, uint8 index)
-    {
-        Value& src = *thread->m_regs[srcReg].Deref();
-
-        if (const AnyHandle& object = src.GetObject())
-        {
-            Array<HypField*> fields = object.ptr->InstanceClass()->GetFields();
-
-            Assert(
-                index < fields.Size(),
-                "Index out of bounds (%u >= %llu)",
-                index,
-                fields.Size());
-
-            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(fields[index]->Get(*src.GetHypData())), false);
-
-            return;
-        }
-
-        vm->ThrowException(
-            thread,
-            Exception("Cannot access member by index: Not a VMObject"));
-    }
-
     HYP_FORCE_INLINE void LoadMemHash(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
@@ -831,32 +807,6 @@ public:
 
         Value& value = vm->m_staticMemory[index];
         value.AssignValue(std::move(thread->m_regs[reg]), false);
-    }
-
-    HYP_FORCE_INLINE void MovMem(BCRegister dstReg, uint8 index, BCRegister srcReg)
-    {
-        Value& src = *thread->m_regs[dstReg].Deref();
-
-        const AnyHandle& object = src.GetObject();
-        if (!object.IsValid())
-        {
-            vm->ThrowException(thread, Exception("Cannot assign member by index: Not a VMObject"));
-
-            return;
-        }
-
-        const HypClass* hypClass = object.ptr->InstanceClass();
-        Assert(hypClass != nullptr);
-
-        Array<HypField*> fields = hypClass->GetFields();
-
-        if (index >= fields.Size())
-        {
-            vm->ThrowException(thread, Exception::OutOfBoundsException());
-            return;
-        }
-
-        fields[index]->Set(*src.GetHypData(), *thread->m_regs[srcReg].GetHypData());
     }
 
     HYP_FORCE_INLINE void MovMemHash(BCRegister dstReg, uint64 hash, BCRegister srcReg)
@@ -2728,22 +2678,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case LOAD_MEM:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-        BCRegister src;
-        bs->Read(&src);
-        uint8 index;
-        bs->Read(&index);
-
-        handler.LoadMem(
-            dst,
-            src,
-            index);
-
-        break;
-    }
     case LOAD_MEM_HASH:
     {
         BCRegister dst;
@@ -2909,22 +2843,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
         handler.MovStatic(
             index,
             reg);
-
-        break;
-    }
-    case MOV_MEM:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-        uint8 index;
-        bs->Read(&index);
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.MovMem(
-            dst,
-            index,
-            src);
 
         break;
     }

@@ -554,17 +554,11 @@ void CodeGenerator::Visit(StorageOperation* node)
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(Instructions::LOAD_MEM);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.index), sizeof(node->op.b.objectData.member.index));
+                Assert(false, "Not implemented");
 
                 break;
             case Operations::STORE:
-                m_ibs.Put(Instructions::MOV_MEM);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.index), sizeof(node->op.b.objectData.member.index));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
+                Assert(false, "Not implemented");
 
                 break;
             }

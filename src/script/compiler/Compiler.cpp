@@ -111,32 +111,6 @@ UniquePtr<Buildable> Compiler::StoreMemberFromHash(AstVisitor* visitor, Module* 
     return instrMovMemHash;
 }
 
-UniquePtr<Buildable> Compiler::LoadMemberAtIndex(AstVisitor* visitor, Module* mod, uint8 index)
-{
-    uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    auto instrLoadMem = BytecodeUtil::Make<RawOperation<>>();
-    instrLoadMem->opcode = LOAD_MEM;
-    instrLoadMem->Accept<uint8>(rp);    // dst
-    instrLoadMem->Accept<uint8>(rp);    // src
-    instrLoadMem->Accept<uint8>(index); // index
-
-    return instrLoadMem;
-}
-
-UniquePtr<Buildable> Compiler::StoreMemberAtIndex(AstVisitor* visitor, Module* mod, uint8 index)
-{
-    uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    auto instrMovMem = BytecodeUtil::Make<RawOperation<>>();
-    instrMovMem->opcode = MOV_MEM;
-    instrMovMem->Accept<uint8>(rp);     // dst
-    instrMovMem->Accept<uint8>(index);  // index
-    instrMovMem->Accept<uint8>(rp - 1); // src
-
-    return instrMovMem;
-}
-
 UniquePtr<Buildable> Compiler::CreateConditional(
     AstVisitor* visitor,
     Module* mod,

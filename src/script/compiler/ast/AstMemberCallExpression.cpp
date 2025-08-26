@@ -154,7 +154,7 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
     m_substitutedArgs.PopFront();
 
     // location of 'self' var
-    const auto targetStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    const int targetStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
     // use above as self arg so PUSH
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
