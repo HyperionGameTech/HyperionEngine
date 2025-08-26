@@ -2444,7 +2444,7 @@ void UIObject::UpdateMaterial_Internal()
         return;
     }
 
-    const Handle<Material>& currentMaterial = meshComponent->material;
+    Handle<Material>& currentMaterial = meshComponent->material;
 
     MaterialAttributes materialAttributes = GetMaterialAttributes();
     Material::ParameterTable materialParameters = GetMaterialParameters();
@@ -2457,6 +2457,7 @@ void UIObject::UpdateMaterial_Internal()
         // need to get a new Material if attributes have changed
         Handle<Material> newMaterial = CreateMaterial();
 
+        SafeDelete(std::move(currentMaterial));
         meshComponent->material = std::move(newMaterial);
 
         scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
@@ -2476,6 +2477,7 @@ void UIObject::UpdateMaterial_Internal()
                 "Consider setting the material to dynamic if you want to update it at runtime.",
                 GetName());
 
+            SafeDelete(std::move(currentMaterial));
             meshComponent->material = CreateMaterial();
 
             scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
