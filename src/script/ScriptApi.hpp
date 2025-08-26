@@ -372,20 +372,6 @@
     }                                                                                                                                      \
     while (false)
 
-#define HYP_SCRIPT_CREATE_PTR(assignment, outName)                                           \
-    vm::Value outName;                                                                       \
-    do                                                                                       \
-    {                                                                                        \
-        vm::HeapValue* ptrResult = params.handler->state->HeapAlloc(params.handler->thread); \
-        Assert(ptrResult != nullptr);                                                        \
-                                                                                             \
-        ptrResult->Assign((assignment));                                                     \
-        ptrResult->Mark();                                                                   \
-                                                                                             \
-        outName = vm::Value(vm::Value::HEAP_POINTER, { .internal = { .ptr = ptrResult } });  \
-    }                                                                                        \
-    while (false)
-
 #define HYP_SCRIPT_SET_MEMBER(object, nameStr, assignment)                                                  \
     do                                                                                                      \
     {                                                                                                       \

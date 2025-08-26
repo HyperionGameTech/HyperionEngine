@@ -1,11 +1,8 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/VMObject.hpp>
 #include <script/vm/VMArray.hpp>
-#include <script/vm/VMMemoryBuffer.hpp>
-#include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMString.hpp>
 #include <script/vm/VMMap.hpp>
-#include <script/vm/HeapValue.hpp>
 
 #include <core/object/HypData.hpp>
 
@@ -32,36 +29,6 @@ static const TypeId typeIdU8 = TypeId::ForType<uint8>();
 static const TypeId typeIdU16 = TypeId::ForType<uint16>();
 static const TypeId typeIdU32 = TypeId::ForType<uint32>();
 static const TypeId typeIdU64 = TypeId::ForType<uint64>();
-
-TypeId GetTypeIdForHeapValue(const HeapValue* heapValue)
-{
-    if (!heapValue)
-    {
-        return TypeId::ForType<void>();
-    }
-
-    return heapValue->GetTypeId();
-}
-
-void* GetRawPointerForHeapValue(HeapValue* heapValue)
-{
-    if (!heapValue)
-    {
-        return nullptr;
-    }
-
-    return heapValue->GetRawPointer();
-}
-
-const void* GetRawPointerForHeapValue(const HeapValue* heapValue)
-{
-    if (!heapValue)
-    {
-        return nullptr;
-    }
-
-    return heapValue->GetRawPointer();
-}
 
 Value::Value()
     : m_gcIndex(INVALID_GC_INDEX)
@@ -856,18 +823,6 @@ VMString Value::ToString() const
     {
         std::stringstream ss;
         data.Get<VMMap>().GetRepresentation(ss, false, depth);
-        return VMString(ss.str().c_str());
-    }
-    else if (typeId == TypeId::ForType<VMMemoryBuffer>())
-    {
-        std::stringstream ss;
-        data.Get<VMMemoryBuffer>().GetRepresentation(ss, false, depth);
-        return VMString(ss.str().c_str());
-    }
-    else if (typeId == TypeId::ForType<VMArraySlice>())
-    {
-        std::stringstream ss;
-        data.Get<VMArraySlice>().GetRepresentation(ss, false, depth);
         return VMString(ss.str().c_str());
     }
     else if (typeId == TypeId::ForType<VMObject>())

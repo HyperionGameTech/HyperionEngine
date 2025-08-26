@@ -1,6 +1,5 @@
 #include <script/ScriptBindings.hpp>
 #include <script/ScriptBindingDef.generated.hpp>
-#include <script/vm/VMMemoryBuffer.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
 

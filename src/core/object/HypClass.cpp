@@ -750,6 +750,46 @@ Array<HypConstant*> HypClass::GetConstantsInherited() const
     return m_constants;
 }
 
+void HypClass::AddProperty(HypProperty* property)
+{
+    HYP_CORE_ASSERT(property != nullptr, "Cannot add null property to HypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(m_propertiesByName.Find(property->GetName()) == m_propertiesByName.End(),
+        "Property with name %s already exists in HypClass %s", property->GetName().LookupString(), GetName().LookupString());
+
+    m_properties.PushBack(property);
+    m_propertiesByName[property->GetName()] = property;
+}
+
+void HypClass::AddMethod(HypMethod* method)
+{
+    HYP_CORE_ASSERT(method != nullptr, "Cannot add null method to HypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(m_methodsByName.Find(method->GetName()) == m_methodsByName.End(),
+        "Method with name %s already exists in HypClass %s", method->GetName().LookupString(), GetName().LookupString());
+
+    m_methods.PushBack(method);
+    m_methodsByName[method->GetName()] = method;
+}
+
+void HypClass::AddField(HypField* field)
+{
+    HYP_CORE_ASSERT(field != nullptr, "Cannot add null field to HypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(m_fieldsByName.Find(field->GetName()) == m_fieldsByName.End(),
+        "Field with name %s already exists in HypClass %s", field->GetName().LookupString(), GetName().LookupString());
+
+    m_fields.PushBack(field);
+    m_fieldsByName[field->GetName()] = field;
+}
+
+void HypClass::AddConstant(HypConstant* constant)
+{
+    HYP_CORE_ASSERT(constant != nullptr, "Cannot add null constant to HypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(m_constantsByName.Find(constant->GetName()) == m_constantsByName.End(),
+        "Constant with name %s already exists in HypClass %s", constant->GetName().LookupString(), GetName().LookupString());
+
+    m_constants.PushBack(constant);
+    m_constantsByName[constant->GetName()] = constant;
+}
+
 bool HypClass::IsDerivedFrom(const HypClass* other) const
 {
     if (other == nullptr)
@@ -1061,6 +1101,66 @@ bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> element
 HashCode DynamicHypClassInstance::GetInstanceHashCode_Internal(ConstAnyRef ref) const
 {
     HYP_NOT_IMPLEMENTED();
+}
+
+void DynamicHypClassInstance::SetField(uint32 index, HypField* field)
+{
+    HYP_CORE_ASSERT(field != nullptr, "Cannot set null field to DynamicHypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(!m_fieldsByName.Contains(field->GetName()),
+        "Field with name %s already exists in DynamicHypClass %s", field->GetName().LookupString(), GetName().LookupString());
+
+    if (index >= m_fields.Size())
+    {
+        m_fields.Resize(index + 1);
+    }
+
+    m_fields[index] = field;
+    m_fieldsByName[field->GetName()] = field;
+}
+
+void DynamicHypClassInstance::SetMethod(uint32 index, HypMethod* method)
+{
+    HYP_CORE_ASSERT(method != nullptr, "Cannot set null method to DynamicHypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(!m_methodsByName.Contains(method->GetName()),
+        "Method with name %s already exists in DynamicHypClass %s", method->GetName().LookupString(), GetName().LookupString());
+
+    if (index >= m_methods.Size())
+    {
+        m_methods.Resize(index + 1);
+    }
+
+    m_methods[index] = method;
+    m_methodsByName[method->GetName()] = method;
+}
+
+void DynamicHypClassInstance::SetProperty(uint32 index, HypProperty* property)
+{
+    HYP_CORE_ASSERT(property != nullptr, "Cannot set null property to DynamicHypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(!m_propertiesByName.Contains(property->GetName()),
+        "Property with name %s already exists in DynamicHypClass %s", property->GetName().LookupString(), GetName().LookupString());
+
+    if (index >= m_properties.Size())
+    {
+        m_properties.Resize(index + 1);
+    }
+
+    m_properties[index] = property;
+    m_propertiesByName[property->GetName()] = property;
+}
+
+void DynamicHypClassInstance::SetConstant(uint32 index, HypConstant* constant)
+{
+    HYP_CORE_ASSERT(constant != nullptr, "Cannot set null constant to DynamicHypClass %s", GetName().LookupString());
+    HYP_CORE_ASSERT(!m_constantsByName.Contains(constant->GetName()),
+        "Constant with name %s already exists in DynamicHypClass %s", constant->GetName().LookupString(), GetName().LookupString());
+
+    if (index >= m_constants.Size())
+    {
+        m_constants.Resize(index + 1);
+    }
+
+    m_constants[index] = constant;
+    m_constantsByName[constant->GetName()] = constant;
 }
 
 #pragma endregion DynamicHypClassInstance

@@ -1,5 +1,4 @@
 #include <script/vm/VMObject.hpp>
-#include <script/vm/HeapValue.hpp>
 #include <core/debug/Debug.hpp>
 #include <core/math/MathUtil.hpp>
 #include <core/HashCode.hpp>

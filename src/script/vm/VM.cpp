@@ -1,7 +1,6 @@
 #include <script/vm/VM.hpp>
 #include <script/vm/Value.hpp>
 #include <script/vm/VMArray.hpp>
-#include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMObject.hpp>
 #include <script/vm/VMString.hpp>
 #include <script/vm/VMTypeInfo.hpp>
@@ -895,80 +894,6 @@ public:
 
         VMArray* array = src.GetArray();
 
-        // if (array == nullptr)
-        //{
-        //     if (auto* memoryBuffer = hv->GetPointer<VMMemoryBuffer>())
-        //     {
-        //         if (static_cast<SizeType>(index) >= memoryBuffer->GetSize())
-        //         {
-        //             vm->ThrowException(
-        //                 thread,
-        //                 Exception::OutOfBoundsException());
-
-        //            return;
-        //        }
-
-        //        if (index < 0)
-        //        {
-        //            // wrap around (python style)
-        //            index = static_cast<int64>(memoryBuffer->GetSize() + static_cast<SizeType>(index));
-        //            if (index < 0 || static_cast<SizeType>(index) >= memoryBuffer->GetSize())
-        //            {
-        //                vm->ThrowException(
-        //                    thread,
-        //                    Exception::OutOfBoundsException());
-        //                return;
-        //            }
-        //        }
-
-        //        Number dstData;
-
-        //        if (!thread->m_regs[srcReg].GetSignedOrUnsigned(&dstData))
-        //        {
-        //            vm->ThrowException(
-        //                thread,
-        //                Exception::InvalidArgsException("integer"));
-
-        //            return;
-        //        }
-
-        //        ubyte byteValue = 0x0;
-
-        //        // take the passed int/uint value and clip it to the first byte.
-        //        if (dstData.flags & Number::FLAG_SIGNED)
-        //        {
-        //            // convert -128..127 to 0..255 for signed integers.
-        //            byteValue = static_cast<ubyte>((dstData.i + 128) & 0xff);
-        //        }
-        //        else if (dstData.flags & Number::FLAG_UNSIGNED)
-        //        {
-        //            byteValue = static_cast<ubyte>(dstData.u & 0xff);
-        //        }
-        //        else
-        //        {
-        //            Assert(false, "Should not reach!");
-        //        }
-
-        //        // copy first byte from value
-        //        Memory::MemCpy(static_cast<ubyte*>(memoryBuffer->GetBuffer()) + index, &byteValue, sizeof(ubyte));
-
-        //        return;
-        //    }
-
-        //    char buffer[256];
-        //    std::snprintf(
-        //        buffer,
-        //        sizeof(buffer),
-        //        "Expected Array or MemoryBuffer, got %s",
-        //        sv.GetTypeString());
-
-        //    vm->ThrowException(
-        //        thread,
-        //        Exception(buffer));
-
-        //    return;
-        //}
-
         if (array != nullptr)
         {
             if (index >= array->GetSize())
@@ -978,18 +903,6 @@ public:
                     Exception::OutOfBoundsException());
                 return;
             }
-
-            /*if (index < 0) {
-                // wrap around (python style)
-                index = array->GetSize() + index;
-                if (index < 0 || index >= array->GetSize()) {
-                    vm->ThrowException(
-                        thread,
-                        Exception::OutOfBoundsException()
-                    );
-                    return;
-                }
-            }*/
 
             array->AtIndex(index).AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], vm->GetGC()), false);
             array->AtIndex(index).Mark();
@@ -1017,82 +930,6 @@ public:
 
             return;
         }
-
-        // if (array == nullptr)
-        //{
-        //     if (auto* memoryBuffer = hv->GetPointer<VMMemoryBuffer>())
-        //     {
-        //         Number dstData;
-
-        //        if (!thread->m_regs[srcReg].GetSignedOrUnsigned(&dstData))
-        //        {
-        //            vm->ThrowException(
-        //                thread,
-        //                Exception::InvalidArgsException("integer"));
-
-        //            return;
-        //        }
-
-        //        if (index.flags & Number::FLAG_SIGNED)
-        //        {
-        //            int64 indexValue = index.i;
-
-        //            if (static_cast<SizeType>(indexValue) >= memoryBuffer->GetSize())
-        //            {
-        //                vm->ThrowException(
-        //                    thread,
-        //                    Exception::OutOfBoundsException());
-
-        //                return;
-        //            }
-
-        //            if (indexValue < 0)
-        //            {
-        //                // wrap around (python style)
-        //                indexValue = static_cast<int64>(memoryBuffer->GetSize() + static_cast<SizeType>(indexValue));
-        //                if (indexValue < 0 || static_cast<SizeType>(indexValue) >= memoryBuffer->GetSize())
-        //                {
-        //                    vm->ThrowException(
-        //                        thread,
-        //                        Exception::OutOfBoundsException());
-        //                    return;
-        //                }
-        //            }
-
-        //            Memory::MemCpy(&static_cast<uint8*>(memoryBuffer->GetBuffer())[indexValue], &dstData, sizeof(dstData));
-        //        }
-        //        else
-        //        { // unsigned
-        //            const uint64 indexValue = index.u;
-
-        //            if (static_cast<SizeType>(indexValue) >= memoryBuffer->GetSize())
-        //            {
-        //                vm->ThrowException(
-        //                    thread,
-        //                    Exception::OutOfBoundsException());
-
-        //                return;
-        //            }
-
-        //            Memory::MemCpy(&static_cast<uint8*>(memoryBuffer->GetBuffer())[indexValue], &dstData, sizeof(dstData));
-        //        }
-
-        //        return;
-        //    }
-
-        //    char buffer[256];
-        //    std::snprintf(
-        //        buffer,
-        //        sizeof(buffer),
-        //        "Expected Array or MemoryBuffer, got %s",
-        //        indexRegisterValue.GetTypeString());
-
-        //    vm->ThrowException(
-        //        thread,
-        //        Exception(buffer));
-
-        //    return;
-        //}
 
         if (array != nullptr)
         {
@@ -1399,6 +1236,8 @@ public:
             Span<const HypClassAttribute>(),
             HypClassFlags::NONE,
             Span<HypMember>());
+
+        // Set up members
 
         HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 

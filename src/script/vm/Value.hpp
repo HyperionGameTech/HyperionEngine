@@ -31,7 +31,6 @@ struct Value;
 
 class InstructionHandler;
 struct Script_ExecutionThread;
-class HeapValue;
 class VM;
 class GC;
 class Exception;
@@ -154,10 +153,6 @@ typedef void* Script_UserData;
 namespace hyperion {
 namespace vm {
 
-TypeId GetTypeIdForHeapValue(const HeapValue*);
-void* GetRawPointerForHeapValue(HeapValue*);
-const void* GetRawPointerForHeapValue(const HeapValue*);
-
 enum CompareFlags : uint8
 {
     NONE = 0x00,
@@ -173,8 +168,6 @@ struct alignas(8) Script_VMData
     union
     {
         Value* valueRef;
-
-        HeapValue* ptr;
 
         struct
         {

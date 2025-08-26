@@ -165,10 +165,6 @@ void HyperionEditor::Init()
                 {
                     HYP_LOG(Editor, Debug, "Last value : {}", lastReturn.ToString().GetData());
                 }
-                else
-                {
-                    HYP_LOG(Editor, Error, "INVALID LAST VALUE");
-                }
             }
             else
             {

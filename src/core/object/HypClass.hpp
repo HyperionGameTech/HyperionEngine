@@ -643,6 +643,11 @@ protected:
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
+    void AddProperty(HypProperty* property);
+    void AddMethod(HypMethod* method);
+    void AddField(HypField* field);
+    void AddConstant(HypConstant* constant);
+
     TypeId m_typeId;
     Name m_name;
     int m_staticIndex;
@@ -926,6 +931,16 @@ public:
     virtual bool CanCreateInstance() const override;
 
     virtual bool ToHypData(ByteView memory, HypData& outHypData) const override;
+
+    using HypClass::AddConstant;
+    using HypClass::AddField;
+    using HypClass::AddMethod;
+    using HypClass::AddProperty;
+
+    void SetField(uint32 index, HypField* field);
+    void SetMethod(uint32 index, HypMethod* method);
+    void SetProperty(uint32 index, HypProperty* property);
+    void SetConstant(uint32 index, HypConstant* constant);
 
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override;
