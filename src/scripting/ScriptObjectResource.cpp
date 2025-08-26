@@ -14,6 +14,8 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Resource);
 HYP_DECLARE_LOG_CHANNEL(Object);
 
+#pragma region ScriptObjectResource
+
 ScriptObjectResource::ScriptObjectResource(dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass)
     : m_objectPtr(objectPtr),
       m_managedClass(managedClass),
@@ -145,5 +147,35 @@ void ScriptObjectResource::Destroy()
     }
 #endif
 }
+
+#pragma endregion ScriptObjectResource
+
+#ifdef HYP_DOTNET
+
+#pragma region HypObject Extensions for .NET
+
+HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
+{
+    AssertDebug(ptr->GetObjectHeader_Internal()->GetRefCountStrong() > 1);
+
+    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+        scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
+    {
+        scriptObjectResource->IncRef();
+    }
+}
+
+HYP_API void HypObject_DecScriptObjectRef(HypObjectBase* ptr)
+{
+    if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+        scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
+    {
+        scriptObjectResource->DecRef();
+    }
+}
+
+#pragma endregion // HypObject Extensions for .NET
+
+#endif
 
 } // namespace hyperion

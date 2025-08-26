@@ -1110,32 +1110,8 @@ public:
         // read value from register
         Value& classValue = *thread->m_regs[src].Deref();
 
-        // log out what is in the classValue
-        DebugLog(LogType::Debug, "Creating new instance of type %s\n", classValue.ToString().GetData());
-
-        Array<Span<Member>> memberSpans;
-
         const HypClass* hypClass = classValue.ToRef().TryGet<HypClass>();
         Assert(hypClass != nullptr);
-
-        // Combine all proto members
-        // The topmost type (first in the chain)
-        // MUST be first so that loads/stores using member index match up!
-        Array<Member> allMembers;
-        allMembers.Reserve(1);
-
-        for (auto& it : memberSpans)
-        {
-            for (SizeType index = 0; index < it.Size(); index++)
-            {
-                Member& srcMember = it.Data()[index];
-
-                Member& dstMember = allMembers.EmplaceBack();
-                Memory::MemCpy(&dstMember.name, &srcMember.name, sizeof(Member::name));
-                dstMember.hash = srcMember.hash;
-                dstMember.value = ScriptApi_ShallowCopy(srcMember.value, vm->GetGC());
-            }
-        }
 
         HypData hypData;
         if (!hypClass->CreateInstance(hypData))
