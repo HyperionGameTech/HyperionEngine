@@ -14,12 +14,11 @@
 
 namespace hyperion {
 
-enum class HypClassAttributeType : uint32
+enum class HypClassAttributeType : uint8
 {
     NONE = 0,
     STRING,
     INT,
-    FLOAT,
     BOOLEAN
 };
 
@@ -46,12 +45,6 @@ struct HypClassAttributeValue
 
     HypClassAttributeValue(int value)
         : type(HypClassAttributeType::INT),
-          value(value)
-    {
-    }
-
-    HypClassAttributeValue(double value)
-        : type(HypClassAttributeType::FLOAT),
           value(value)
     {
     }
@@ -101,8 +94,10 @@ struct HypClassAttributeValue
 
     HYP_API bool IsString() const;
     HYP_API const String& GetString() const;
+
     HYP_API bool IsBool() const;
     HYP_API bool GetBool() const;
+
     HYP_API bool IsInt() const;
     HYP_API int GetInt() const;
 
@@ -128,18 +123,18 @@ struct HypClassAttributeValue
 
         return result;
     }
-    
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(type);
         hc.Add(value);
-        
+
         return hc;
     }
 
     HypClassAttributeType type;
-    Variant<String, int, double, bool> value;
+    Variant<String, int, bool> value;
 };
 
 struct HypClassAttribute
@@ -151,7 +146,7 @@ struct HypClassAttribute
           value(value)
     {
     }
-    
+
     HypClassAttribute(ANSIStringView name, const HypClassAttributeValue& value)
         : name(CreateNameFromDynamicString(name)),
           value(value)
@@ -185,13 +180,13 @@ struct HypClassAttribute
     {
         return name != other.name || value != other.value;
     }
-    
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(name);
         hc.Add(value);
-        
+
         return hc;
     }
 
@@ -249,6 +244,18 @@ public:
     HYP_FORCE_INLINE SizeType Size() const
     {
         return m_attributes.Size();
+    }
+
+    HYP_FORCE_INLINE HypClassAttributeValue& operator[](Name name)
+    {
+        auto it = m_attributes.FindAs(name);
+
+        if (it == m_attributes.End())
+        {
+            it = m_attributes.Insert(HypClassAttribute(name, HypClassAttributeValue())).first;
+        }
+
+        return it->value;
     }
 
     HYP_FORCE_INLINE const HypClassAttributeValue& operator[](WeakName name) const

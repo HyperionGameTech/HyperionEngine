@@ -1209,16 +1209,208 @@ public:
         thread->m_regs[dst] = ScriptApi_MakeValue(VMArray());
     }
 
-    HYP_FORCE_INLINE void NewClass( // come back to this
-        BCRegister reg,
-        uint16 typeNameLen,
-        const char* typeName,
-        uint16 size,
-        char** names)
+    HYP_FORCE_INLINE void BeginClass(BCRegister reg)
     {
-        Value& parentClassValue = thread->m_regs[reg];
+        // Read class name length and name
+        uint16 nameLen;
+        bs->Read(&nameLen);
 
-        DebugLog(LogType::Debug, "Loading type %s with parent class %s\n", typeName, parentClassValue.ToString().GetData());
+        char* nameStr = (char*)StackAlloc(nameLen + 1);
+        nameStr[nameLen] = '\0';
+        bs->Read(nameStr, nameLen);
+
+        // Read type id
+        TypeId::ValueType typeIdValue;
+        bs->Read(&typeIdValue);
+
+        // Create a new class with the given name
+        Name className = CreateNameFromDynamicString(nameStr);
+
+        Array<HypMember> members;
+        bool hitEnd = false;
+
+        // Read members until we hit END_CLASS
+        while (!bs->Eof() && !hitEnd)
+        {
+            ubyte nextByte;
+            bs->Read(&nextByte);
+
+            if (nextByte == Instructions::END_CLASS)
+            {
+                hitEnd = true;
+                break;
+            }
+
+            HypMemberType memberType = HypMemberType(nextByte);
+            static_assert(sizeof(HypMemberType) == 1, "HypMemberType must be 1 byte");
+
+            // Read member count
+            uint16 memberCount;
+            bs->Read(&memberCount);
+
+            // Read each member
+            for (uint16 i = 0; i < memberCount; i++)
+            {
+                // Read member name
+                uint16 memberNameLen;
+                bs->Read(&memberNameLen);
+
+                char* memberNameStr = (char*)StackAlloc(memberNameLen + 1);
+                memberNameStr[memberNameLen] = '\0';
+                bs->Read(memberNameStr, memberNameLen);
+
+                // Read attributes
+                uint16 numAttrs;
+                bs->Read(&numAttrs);
+
+                Array<HypClassAttribute> attrs;
+                attrs.Reserve(numAttrs);
+
+                // Skip attributes for now - read and discard them
+                for (uint16 attrIdx = 0; attrIdx < numAttrs; attrIdx++)
+                {
+                    HypClassAttribute attr;
+
+                    // Read attribute name
+                    uint16 attrNameLen;
+                    bs->Read(&attrNameLen);
+
+                    char* attrNameStr = (char*)StackAlloc(attrNameLen + 1);
+                    attrNameStr[attrNameLen] = '\0';
+                    bs->Read(attrNameStr, attrNameLen);
+
+                    attr.name = CreateNameFromDynamicString(attrNameStr);
+
+                    // Read attribute type
+                    uint8 attrType;
+                    bs->Read(&attrType);
+
+                    // Skip attribute value based on type
+                    switch (HypClassAttributeType(attrType))
+                    {
+                    case HypClassAttributeType::STRING:
+                    {
+                        uint32 strLen;
+                        bs->Read(&strLen);
+
+                        Array<char> strData;
+                        strData.Resize(strLen + 1);
+                        strData[strLen] = '\0';
+
+                        bs->Read(strData.Data(), strLen);
+
+                        attr.value = HypClassAttributeValue(String(strData.Begin(), strData.End()));
+
+                        break;
+                    }
+                    case HypClassAttributeType::INT:
+                    {
+                        int32 iValue;
+                        bs->Read(&iValue);
+
+                        attr.value = HypClassAttributeValue(iValue);
+
+                        break;
+                    }
+                    case HypClassAttributeType::BOOLEAN:
+                    {
+                        ubyte bValue;
+                        bs->Read(&bValue);
+
+                        attr.value = HypClassAttributeValue(bValue != 0);
+
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+
+                    attrs.PushBack(std::move(attr));
+                }
+
+                // Read member type id
+                TypeId::ValueType memberTypeIdValue;
+                bs->Read(&memberTypeIdValue);
+
+                switch (memberType)
+                {
+                case HypMemberType::TYPE_FIELD:
+                {
+                    // field writes target typeid, offset, size
+                    TypeId::ValueType targetTypeIdValue;
+                    bs->Read(&targetTypeIdValue);
+
+                    uint32 offset;
+                    bs->Read(&offset);
+
+                    uint32 size;
+                    bs->Read(&size);
+
+                    // Create field
+                    members.PushBack(HypMember(HypField(
+                        CreateNameFromDynamicString(memberNameStr),
+                        TypeId(memberTypeIdValue),
+                        TypeId(targetTypeIdValue),
+                        offset,
+                        size,
+                        attrs.ToSpan())));
+
+                    break;
+                }
+                case HypMemberType::TYPE_METHOD:
+                {
+                    // method writes target typeid, flags (u8)
+
+                    TypeId::ValueType targetTypeIdValue;
+                    bs->Read(&targetTypeIdValue);
+
+                    ubyte flags;
+                    bs->Read(&flags);
+
+                    // Create method
+                    members.PushBack(HypMember(HypMethod(
+                        CreateNameFromDynamicString(memberNameStr),
+                        TypeId(memberTypeIdValue),
+                        TypeId(targetTypeIdValue),
+                        flags,
+                        attrs.ToSpan())));
+
+                    break;
+                }
+                case HypMemberType::TYPE_PROPERTY:
+                {
+                    members.PushBack(HypMember(HypProperty(
+                        CreateNameFromDynamicString(memberNameStr),
+                        TypeId(memberTypeIdValue),
+                        attrs.ToSpan())));
+
+                    break;
+                }
+                case HypMemberType::TYPE_CONSTANT:
+                {
+                    // constant writes value size
+                    uint32 valueSize;
+                    bs->Read(&valueSize);
+
+                    members.PushBack(HypMember(HypConstant(
+                        CreateNameFromDynamicString(memberNameStr),
+                        TypeId(memberTypeIdValue),
+                        valueSize,
+                        attrs.ToSpan())));
+
+                    break;
+                }
+                default:
+                    HYP_UNREACHABLE();
+                    break;
+                }
+            }
+        }
+
+        Assert(hitEnd);
+
+        // Read parent class register
+        Value& parentClassValue = thread->m_regs[reg];
 
         const HypClass* parentClass = nullptr;
 
@@ -1230,37 +1422,18 @@ public:
 
         /// @TODO: Delete on GC
         DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
-            TypeId::ForManagedType(typeName),
-            CreateNameFromDynamicString(typeName),
+            TypeId(typeIdValue),
+            className,
             parentClass,
-            Span<const HypClassAttribute>(),
+            Span<const HypClassAttribute>(), // @TODO: Class attributes
             HypClassFlags::NONE,
-            Span<HypMember>());
-
-        // Set up members
+            members.ToSpan());
 
         HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
         Value classValue = ScriptApi_MakeValue(AnyRef(static_cast<HypClass*>(newClass)));
 
         thread->m_regs[reg].AssignValue(std::move(classValue), false);
-
-        // @TODO: Implement
-        // // create members
-        // HypMember* members = (HypMember*)StackAlloc(sizeof(HypMember) * size);
-
-        // for (uint16 i = 0; i < size; i++)
-        // {
-        //     new (&members[i]) HypMember()
-        //     Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
-        //     members[i].hash = HashCode::GetHashCode(names[i]).Value();
-        //     members[i].value = Value();
-        // }
-
-        // // create prototype object
-        // Value value = ScriptApi_MakeValue(VMObject(members, size, std::move(parentClassValue)));
-
-        // thread->m_regs[reg].AssignValue(std::move(value), false);
     }
 
     HYP_FORCE_INLINE void Cmp(BCRegister lhsReg, BCRegister rhsReg)
@@ -3006,50 +3179,12 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case NEW_CLASS:
+    case BEGIN_CLASS:
     {
         BCRegister reg;
         bs->Read(&reg);
-        uint16 typeNameLen;
-        bs->Read(&typeNameLen);
 
-        char* typeName = new char[typeNameLen + 1];
-        typeName[typeNameLen] = '\0';
-        bs->Read(typeName, typeNameLen);
-
-        // number of members
-        uint16 size;
-        bs->Read(&size);
-
-        char** names = new char*[size];
-
-        // load each name
-        for (uint16 i = 0; i < size; i++)
-        {
-            uint16 length;
-            bs->Read(&length);
-
-            names[i] = new char[length + 1];
-            names[i][length] = '\0';
-            bs->Read(names[i], length);
-        }
-
-        handler.NewClass(
-            reg,
-            typeNameLen,
-            typeName,
-            size,
-            names);
-
-        delete[] typeName;
-
-        // delete the names
-        for (uint16 i = 0; i < size; i++)
-        {
-            delete[] names[i];
-        }
-
-        delete[] names;
+        handler.BeginClass(reg);
 
         break;
     }

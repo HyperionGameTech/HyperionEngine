@@ -1,7 +1,6 @@
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -60,8 +59,8 @@ void AstTemplateInstantiationWrapper::MakeSymbolTypeGenericInstance(SymbolTypeRe
     // So we can use the params that were provided, later
     if (symbolType != BuiltinTypes::UNDEFINED)
     {
-        //const int currentSymbolTypeId = symbolType->GetId();
-        //Assert(currentSymbolTypeId != -1);
+        // const int currentSymbolTypeId = symbolType->GetId();
+        // Assert(currentSymbolTypeId != -1);
 
         const SymbolTypeFlags currentFlags = symbolType->GetFlags();
 
@@ -71,7 +70,7 @@ void AstTemplateInstantiationWrapper::MakeSymbolTypeGenericInstance(SymbolTypeRe
                 m_genericArgs });
 
         // Reuse the same ID
-        //symbolType->SetId(currentSymbolTypeId);
+        // symbolType->SetId(currentSymbolTypeId);
         symbolType->SetFlags(currentFlags);
     }
 }

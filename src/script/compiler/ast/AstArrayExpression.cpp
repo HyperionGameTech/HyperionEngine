@@ -1,5 +1,4 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstMember.hpp>

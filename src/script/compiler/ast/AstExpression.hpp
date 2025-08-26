@@ -9,8 +9,6 @@
 
 namespace hyperion::compiler {
 
-class AstTypeObject;
-
 using ExprAccess = uint32;
 
 enum ExprAccessBits : ExprAccess
@@ -134,4 +132,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

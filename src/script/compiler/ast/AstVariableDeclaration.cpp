@@ -258,18 +258,9 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             }
             else
             {
-                // Set the type to be the deduced type from the expression.
-                // if (const AstTypeObject *realAssignmentAsTypeObject = dynamic_cast<const AstTypeObject*>(m_realAssignment->GetValueOf())) {
-                //     m_symbolType = realAssignmentAsTypeObject->GetHeldType();
-                // } else {
                 m_symbolType = m_realAssignment->GetExprType();
-                // }
             }
         }
-
-        // if (m_symbolType == BuiltinTypes::ANY) {
-        //     noDefaultAssignment = false;
-        // }
 
         if (noDefaultAssignment)
         {

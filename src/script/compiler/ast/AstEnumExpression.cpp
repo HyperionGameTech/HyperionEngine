@@ -1,5 +1,6 @@
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Module.hpp>

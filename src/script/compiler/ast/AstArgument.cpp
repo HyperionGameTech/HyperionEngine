@@ -1,6 +1,5 @@
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/AstVisitor.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>

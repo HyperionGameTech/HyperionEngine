@@ -3,8 +3,7 @@
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
-#include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>

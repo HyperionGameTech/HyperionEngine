@@ -2,12 +2,8 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 
-#include <memory>
-#include <vector>
-
 namespace hyperion::compiler {
 
-class AstTypeObject;
 class AstPrototypeSpecification;
 
 class AstArrayExpression : public AstExpression
@@ -64,4 +60,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

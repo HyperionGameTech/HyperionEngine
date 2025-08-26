@@ -2,7 +2,6 @@
 #include <script/compiler/Module.hpp>
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/Configuration.hpp>
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
@@ -490,23 +489,6 @@ UniquePtr<BytecodeChunk> Compiler::Compile()
 
     Module* mod = m_compilationUnit->GetCurrentModule();
     Assert(mod != nullptr);
-
-    // For all registered types, we need to build their type objects.
-
-    // for (const SymbolTypeRef &symbolType : m_compilationUnit->GetRegisteredTypes()) {
-    //     Assert(symbolType != nullptr);
-    //     Assert(symbolType->GetId() != -1, "Type %s has not been registered", symbolType->GetName().Data());
-
-    //     // if (symbolType->IsGenericType()) {
-    //     //     continue; // generic types are not buildable
-    //     // }
-
-    //     const RC<AstTypeObject> typeObject = symbolType->GetTypeObject().Lock();
-    //     Assert(typeObject != nullptr, "No AstTypeObject bound to SymbolType %s", symbolType->GetName().Data());
-    //     Assert(typeObject->IsVisited(), "AstTypeObject %s has not been visited", typeObject->GetName().Data());
-
-    //     chunk->Append(typeObject->Build(this, mod));
-    // }
 
     while (m_astIterator->HasNext())
     {

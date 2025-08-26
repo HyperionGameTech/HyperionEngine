@@ -40,8 +40,6 @@ public:
     /** Look up an identifier by name. Returns nullptr if not found */
     RC<Identifier> LookUpIdentifier(const String& name);
 
-    void BindTypeToIdentifier(const String& name, SymbolTypeRef symbolType);
-
     /** Look up symbol type by name */
     SymbolTypeRef LookupSymbolType(const String& name) const;
 
@@ -58,4 +56,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

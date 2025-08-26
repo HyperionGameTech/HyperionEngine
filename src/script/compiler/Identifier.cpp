@@ -15,8 +15,7 @@ Identifier::Identifier(
       m_usecount(0),
       m_flags(flags),
       m_aliasee(aliasee),
-      m_symbolType(BuiltinTypes::UNDEFINED),
-      m_isReassigned(false)
+      m_symbolType(BuiltinTypes::UNDEFINED)
 {
 }
 
@@ -28,8 +27,7 @@ Identifier::Identifier(const Identifier& other)
       m_flags(other.m_flags),
       m_aliasee(other.m_aliasee),
       m_currentValue(other.m_currentValue),
-      m_symbolType(other.m_symbolType),
-      m_isReassigned(false)
+      m_symbolType(other.m_symbolType)
 {
 }
 

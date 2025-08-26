@@ -3,8 +3,6 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
-#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/vm/VM.hpp>
 
 #include <core/debug/Debug.hpp>

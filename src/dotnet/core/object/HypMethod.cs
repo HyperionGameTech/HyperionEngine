@@ -18,7 +18,7 @@ namespace Hyperion
     }
 
     [Flags]
-    public enum HypMethodFlags : uint
+    public enum HypMethodFlags : byte
     {
         None = 0x0,
         Static = 0x1,
@@ -253,7 +253,7 @@ namespace Hyperion
         private static extern uint HypMethod_GetParameters([In] IntPtr methodPtr, [Out] out IntPtr outParamsPtr);
 
         [DllImport("hyperion", EntryPoint = "HypMethod_GetFlags")]
-        private static extern uint HypMethod_GetFlags([In] IntPtr methodPtr);
+        private static extern byte HypMethod_GetFlags([In] IntPtr methodPtr);
 
         [DllImport("hyperion", EntryPoint = "HypMethod_Invoke")]
         [return: MarshalAs(UnmanagedType.I1)]

@@ -1,6 +1,5 @@
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 

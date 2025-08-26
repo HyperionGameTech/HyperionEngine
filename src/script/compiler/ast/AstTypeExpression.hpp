@@ -3,7 +3,6 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 
 #include <string>
@@ -142,8 +141,6 @@ protected:
 
     SymbolTypeRef m_symbolType;
 
-    RC<AstTypeObject> m_typeObject;
-    RC<AstTypeObject> m_prototypeExpr;
     RC<AstTypeRef> m_typeRef;
     Array<RC<AstVariableDeclaration>> m_outsideMembers;
     Array<RC<AstVariableDeclaration>> m_combinedMembers;
@@ -165,4 +162,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

@@ -31,6 +31,14 @@ class HypClass;
 class HypConstant : public IHypMember
 {
 public:
+    HypConstant(Name name, TypeId typeId, uint32 size, Span<const HypClassAttribute> attributes = {})
+        : m_name(name),
+          m_typeId(typeId),
+          m_size(size),
+          m_attributes(attributes)
+    {
+    }
+
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
@@ -113,6 +121,11 @@ public:
     virtual TypeId GetTargetTypeId() const override
     {
         return TypeId::Void();
+    }
+
+    HYP_FORCE_INLINE uint32 GetSize() const
+    {
+        return m_size;
     }
 
     virtual bool CanSerialize() const override

@@ -7,7 +7,6 @@
 
 namespace hyperion::compiler {
 
-class AstTypeObject;
 class AstPrototypeSpecification;
 class AstBlock;
 
@@ -64,7 +63,6 @@ private:
     SymbolTypeRef m_keyType;
     SymbolTypeRef m_valueType;
     SymbolTypeRef m_exprType;
-    RC<AstTypeObject> m_typeObject;
     RC<AstBlock> m_block;
 
     RC<AstHashMap> CloneImpl() const
@@ -77,4 +75,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

@@ -1,6 +1,5 @@
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 

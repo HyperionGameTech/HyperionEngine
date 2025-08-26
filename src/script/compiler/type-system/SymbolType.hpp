@@ -17,7 +17,6 @@ namespace hyperion::compiler {
 // forward declaration
 class SymbolType;
 class AstExpression;
-class AstTypeObject;
 class AstArgument;
 
 using SymbolTypeRef = RC<SymbolType>;
@@ -354,16 +353,6 @@ public:
     bool HasTrait(const SymbolTypeTrait& trait) const;
     bool HasTraitDeep(const SymbolTypeTrait& trait) const;
 
-    const Weak<AstTypeObject>& GetTypeObject() const
-    {
-        return m_typeObject;
-    }
-
-    void SetTypeObject(const Weak<AstTypeObject>& typeObject)
-    {
-        m_typeObject = typeObject;
-    }
-
     bool IsOrHasBase(const SymbolType& baseType) const;
     /** Search the inheritance chain to see if the given type
         is a base of this type. */
@@ -431,8 +420,6 @@ private:
     // type that this type is based off of
     SymbolTypeRef m_base;
 
-    Weak<AstTypeObject> m_typeObject;
-
     // if this is an alias of another type
     AliasTypeInfo m_aliasInfo;
     // if this type is a function
@@ -447,4 +434,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

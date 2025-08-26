@@ -57,14 +57,14 @@ extern "C"
         return (uint32)method->GetParameters().Size();
     }
 
-    HYP_EXPORT uint32 HypMethod_GetFlags(const HypMethod* method)
+    HYP_EXPORT ubyte HypMethod_GetFlags(const HypMethod* method)
     {
         if (!method)
         {
-            return uint32(HypMethodFlags::NONE);
+            return ubyte(HypMethodFlags::NONE);
         }
 
-        return uint32(method->GetFlags());
+        return ubyte(method->GetFlags());
     }
 
     HYP_EXPORT bool HypMethod_Invoke(const HypMethod* method, HypData* args, uint32 numArgs, HypData* outResult)

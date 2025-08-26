@@ -6,13 +6,9 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
-#include <string>
-#include <vector>
-
 namespace hyperion::compiler {
 
 class AstVariableDeclaration;
-class AstTypeObject;
 
 // An expression to represent an instantiated expression
 class AstTemplateInstantiationWrapper : public AstExpression
@@ -125,7 +121,6 @@ private:
     RC<AstTemplateInstantiationWrapper> m_innerExpr;
     RC<AstBlock> m_block;
     RC<AstExpression> m_targetExpr;
-    RC<AstTypeObject> m_typeObject;
     Array<RC<AstArgument>> m_substitutedArgs;
     SymbolTypeRef m_exprType;
     SymbolTypeRef m_heldType;
@@ -142,4 +137,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

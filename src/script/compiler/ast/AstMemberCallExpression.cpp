@@ -1,7 +1,6 @@
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -187,20 +186,9 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
         chunk->Append(std::move(instrLoadOffset));
     }
 
-    // now we load the member into the register, we call that
-    if (m_foundIndex != -1)
-    {
-        chunk->Append(Compiler::LoadMemberAtIndex(
-            visitor,
-            mod,
-            m_foundIndex));
-    }
-    else
-    {
-        const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
+    const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
-        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
-    }
+    chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
 
     chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName));
 

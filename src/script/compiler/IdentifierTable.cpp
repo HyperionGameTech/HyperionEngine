@@ -1,7 +1,5 @@
 #include <script/compiler/IdentifierTable.hpp>
 #include <script/compiler/Configuration.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
-#include <script/compiler/ast/AstTypeRef.hpp>
 
 #include <core/containers/HashSet.hpp>
 
@@ -115,15 +113,6 @@ RC<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
     }
 
     return nullptr;
-}
-
-void IdentifierTable::BindTypeToIdentifier(const String& name, SymbolTypeRef symbolType)
-{
-    AddIdentifier(
-        name,
-        0,
-        RC<AstTypeRef>(new AstTypeRef(symbolType, SourceLocation::eof)),
-        symbolType->GetBaseType());
 }
 
 SymbolTypeRef IdentifierTable::LookupSymbolType(const String& name) const

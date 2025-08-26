@@ -17,6 +17,14 @@
 #include <cstdint>
 #include <iostream>
 
+namespace hyperion {
+class HypField;
+class HypMethod;
+class HypConstant;
+class HypProperty;
+class IHypMember;
+} // namespace hyperion
+
 namespace hyperion::compiler {
 
 struct Instruction : public Buildable
@@ -313,9 +321,12 @@ struct BuildableType final : public Buildable
 {
     RegIndex reg;
     String name;
-    Array<String> members;
+    Array<HypField*> fields;
+    Array<HypMethod*> methods;
+    Array<HypConstant*> constants;
+    Array<HypProperty*> properties;
 
-    virtual ~BuildableType() = default;
+    virtual ~BuildableType();
 };
 
 struct BuildableString final : public Buildable

@@ -1,5 +1,4 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Scope.hpp>

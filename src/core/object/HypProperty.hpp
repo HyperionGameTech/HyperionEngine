@@ -370,6 +370,14 @@ public:
     {
     }
 
+    HypProperty(Name name, TypeId typeId, const Span<const HypClassAttribute>& attributes = {})
+        : m_name(name),
+          m_typeId(typeId),
+          m_attributes(attributes),
+          m_originalMember(nullptr)
+    {
+    }
+
     HypProperty(Name name, HypPropertyGetter&& getter, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
           m_typeId(getter.typeInfo.valueTypeId),

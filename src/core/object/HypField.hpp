@@ -42,6 +42,16 @@ public:
     {
     }
 
+    HypField(Name name, TypeId typeId, TypeId targetTypeId, uint32 offset, uint32 size, const Span<const HypClassAttribute>& attributes = {})
+        : m_name(name),
+          m_typeId(typeId),
+          m_targetTypeId(targetTypeId),
+          m_offset(offset),
+          m_size(size),
+          m_attributes(attributes)
+    {
+    }
+
     template <class ThisType, class FieldType>
     HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
@@ -311,6 +321,11 @@ public:
     HYP_FORCE_INLINE uint32 GetOffset() const
     {
         return m_offset;
+    }
+
+    HYP_FORCE_INLINE uint32 GetSize() const
+    {
+        return m_size;
     }
 
     HYP_FORCE_INLINE HypData Get(const HypData& targetData) const

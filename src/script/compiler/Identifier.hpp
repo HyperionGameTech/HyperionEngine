@@ -39,7 +39,7 @@ enum IdentifierFlags : IdentifierFlagBits
 class Identifier
 {
 public:
-    Identifier(const String& name, int Index, IdentifierFlagBits flags, Identifier* aliasee = nullptr);
+    Identifier(const String& name, int index, IdentifierFlagBits flags, Identifier* aliasee = nullptr);
     Identifier(const Identifier& other);
 
     const String& GetName() const
@@ -93,17 +93,6 @@ public:
     {
         m_flags = flags;
     }
-
-    bool IsReassigned() const
-    {
-        return m_isReassigned;
-    }
-
-    void SetIsReassigned(bool isReassigned)
-    {
-        m_isReassigned = isReassigned;
-    }
-
     const RC<AstExpression>& GetCurrentValue() const
     {
         return Unalias()->m_currentValue;
@@ -149,10 +138,8 @@ private:
     Identifier* m_aliasee;
     RC<AstExpression> m_currentValue;
     SymbolTypeRef m_symbolType;
-    bool m_isReassigned;
 
     Array<GenericInstanceTypeInfo::Arg> m_templateParams;
 };
 
 } // namespace hyperion::compiler
-

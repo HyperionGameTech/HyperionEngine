@@ -3,6 +3,9 @@
 #include <core/containers/Array.hpp>
 #include <core/Types.hpp>
 
+#include <core/object/HypClassAttribute.hpp>
+#include <core/object/HypMemberFwd.hpp>
+
 #include <sstream>
 #include <cstdio>
 
@@ -1065,52 +1068,242 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case NEW_CLASS:
+    case BEGIN_CLASS:
     {
         uint8 reg;
         bs.Read(&reg);
 
-        uint16 typeNameLen;
-        bs.Read(&typeNameLen);
+        // Read class name length and name
+        uint16 nameLen;
+        bs.Read(&nameLen);
 
-        Array<uint8> typeName;
-        typeName.Resize(typeNameLen + 1);
-        typeName[typeNameLen] = '\0';
-        bs.Read(&typeName[0], typeNameLen);
+        char* nameStr = new char[nameLen + 1];
+        nameStr[nameLen] = '\0';
+        bs.Read(nameStr, nameLen);
 
-        uint16 size;
-        bs.Read(&size);
-
-        Array<Array<uint8>> names;
-        names.Resize(size);
-
-        for (int i = 0; i < size; i++)
-        {
-            uint16 len;
-            bs.Read(&len);
-
-            names[i].Resize(len + 1);
-            names[i][len] = '\0';
-            bs.Read(&names[i][0], len);
-        }
+        // Read type id
+        TypeId::ValueType typeIdValue; // keep same type as VM
+        bs.Read(&typeIdValue);
 
         if (os != nullptr)
         {
-            (*os)
-                << "newClass ["
-                << "%" << (int)reg << ", "
-                << "str(" << typeName.Data() << "), "
-                << "u16(" << (int)size << ")";
+            (*os) << "beginClass [%" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << ")]" << std::endl;
+        }
 
-            for (int i = 0; i < size; i++)
+        bool hitEnd = false;
+
+        // Read members until we hit END_CLASS
+        while (!bs.Eof() && !hitEnd)
+        {
+            uint8 nextByte;
+            bs.Read(&nextByte);
+
+            if (nextByte == Instructions::END_CLASS)
             {
-                (*os) << ", str(" << names[i].Data() << ")";
+                if (os != nullptr)
+                {
+                    (*os) << "endClass" << std::endl;
+                }
+                hitEnd = true;
+                break;
             }
 
-            (*os)
-                << "]"
-                << std::endl;
+            uint8 memberType = nextByte;
+
+            // Read member count
+            uint16 memberCount;
+            bs.Read(&memberCount);
+
+            if (os != nullptr)
+            {
+                const char* memberTypeStr = "unknown";
+                switch (memberType)
+                {
+                case 0:
+                    memberTypeStr = "constant";
+                    break; // HypMemberType::TYPE_CONSTANT
+                case 1:
+                    memberTypeStr = "property";
+                    break; // HypMemberType::TYPE_PROPERTY
+                case 2:
+                    memberTypeStr = "field";
+                    break; // HypMemberType::TYPE_FIELD
+                case 3:
+                    memberTypeStr = "method";
+                    break; // HypMemberType::TYPE_METHOD
+                }
+                (*os) << "\tmembers [type(" << memberTypeStr << "), count(" << memberCount << ")]" << std::endl;
+            }
+
+            // Read each member
+            for (uint16 i = 0; i < memberCount; i++)
+            {
+                // Read member name
+                uint16 memberNameLen;
+                bs.Read(&memberNameLen);
+
+                char* memberNameStr = new char[memberNameLen + 1];
+                memberNameStr[memberNameLen] = '\0';
+                bs.Read(memberNameStr, memberNameLen);
+
+                // Read attributes
+                uint16 numAttrs;
+                bs.Read(&numAttrs);
+
+                if (os != nullptr)
+                {
+                    (*os) << "\t\tmember [name(" << memberNameStr << "), attrs(" << numAttrs << ")]" << std::endl;
+                }
+
+                // Read each attribute
+                for (uint16 attrIdx = 0; attrIdx < numAttrs; attrIdx++)
+                {
+                    // Read attribute name
+                    uint16 attrNameLen;
+                    bs.Read(&attrNameLen);
+
+                    char* attrNameStr = new char[attrNameLen + 1];
+                    attrNameStr[attrNameLen] = '\0';
+                    bs.Read(attrNameStr, attrNameLen);
+
+                    // Read attribute type
+                    uint8 attrType;
+                    bs.Read(&attrType);
+
+                    if (os != nullptr)
+                    {
+                        (*os) << "\t\t\tattr [name(" << attrNameStr << "), type(" << (int)attrType << ")";
+                    }
+
+                    switch ((HypClassAttributeType)attrType)
+                    {
+                    case HypClassAttributeType::STRING:
+                    {
+                        uint32 strLen;
+                        bs.Read(&strLen);
+
+                        char* strData = new char[strLen + 1];
+                        strData[strLen] = '\0';
+                        bs.Read(strData, strLen);
+
+                        if (os != nullptr)
+                        {
+                            (*os) << ", value(\"" << strData << "\")";
+                        }
+
+                        delete[] strData;
+                        break;
+                    }
+                    case HypClassAttributeType::INT:
+                    {
+                        int32 iValue;
+                        bs.Read(&iValue);
+
+                        if (os != nullptr)
+                        {
+                            (*os) << ", value(" << iValue << ")";
+                        }
+                        break;
+                    }
+                    case HypClassAttributeType::BOOLEAN:
+                    {
+                        uint8 bValue;
+                        bs.Read(&bValue);
+
+                        if (os != nullptr)
+                        {
+                            (*os) << ", value(" << (bValue ? "true" : "false") << ")";
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+
+                    if (os != nullptr)
+                    {
+                        (*os) << "]" << std::endl;
+                    }
+
+                    delete[] attrNameStr;
+                }
+
+                // Read member type id (same as VM)
+                TypeId::ValueType memberTypeIdValue;
+                bs.Read(&memberTypeIdValue);
+
+                // Read member-type-specific data (mirror VM)
+                switch ((HypMemberType)memberType)
+                {
+                case HypMemberType::TYPE_FIELD:
+                {
+                    TypeId::ValueType targetTypeIdValue;
+                    bs.Read(&targetTypeIdValue);
+
+                    uint32 offset;
+                    bs.Read(&offset);
+
+                    uint32 size;
+                    bs.Read(&size);
+
+                    if (os != nullptr)
+                    {
+                        (*os) << "\t\t\tfield [typeId(" << memberTypeIdValue << "), targetTypeId(" << targetTypeIdValue
+                              << "), offset(" << offset << "), size(" << size << ")]" << std::endl;
+                    }
+                    break;
+                }
+                case HypMemberType::TYPE_METHOD:
+                {
+                    TypeId::ValueType targetTypeIdValue;
+                    bs.Read(&targetTypeIdValue);
+
+                    uint8 flags;
+                    bs.Read(&flags);
+
+                    if (os != nullptr)
+                    {
+                        (*os) << "\t\t\tmethod [typeId(" << memberTypeIdValue << "), targetTypeId(" << targetTypeIdValue
+                              << "), flags(" << (int)flags << ")]" << std::endl;
+                    }
+                    break;
+                }
+                case HypMemberType::TYPE_PROPERTY:
+                {
+                    if (os != nullptr)
+                    {
+                        (*os) << "\t\t\tproperty [typeId(" << memberTypeIdValue << ")]" << std::endl;
+                    }
+                    break;
+                }
+                case HypMemberType::TYPE_CONSTANT:
+                {
+                    uint32 valueSize;
+                    bs.Read(&valueSize);
+
+                    if (os != nullptr)
+                    {
+                        (*os) << "\t\t\tconstant [typeId(" << memberTypeIdValue << "), size(" << valueSize << ")]" << std::endl;
+                    }
+                    break;
+                }
+                default:
+                    break;
+                }
+
+                delete[] memberNameStr;
+            }
         }
+
+        if (!hitEnd)
+        {
+            if (os != nullptr)
+            {
+                (*os) << "warning: BEGIN_CLASS missing END_CLASS before EOF" << std::endl;
+            }
+        }
+
+        delete[] nameStr;
 
         break;
     }

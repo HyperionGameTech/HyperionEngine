@@ -11,7 +11,6 @@ namespace hyperion::compiler {
 
 // forward declaration
 class Scope;
-class AstTypeObject;
 
 struct AstIdentifierProperties
 {

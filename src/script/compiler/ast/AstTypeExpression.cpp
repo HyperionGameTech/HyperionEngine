@@ -5,6 +5,7 @@
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstString.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -16,6 +17,11 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
+
+#include <core/object/HypField.hpp>
+#include <core/object/HypMethod.hpp>
+#include <core/object/HypConstant.hpp>
+#include <core/object/HypProperty.hpp>
 
 #include <core/utilities/Optional.hpp>
 
@@ -110,13 +116,6 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
             BuiltinTypes::ENUM_TYPE,
             GenericInstanceTypeInfo {
                 { { "of", m_enumUnderlyingType } } });
-
-        // m_typeObject.Reset(new AstTypeObject(
-        //     m_symbolType,
-        //     BuiltinTypes::CLASS_TYPE,
-        //     m_enumUnderlyingType,
-        //     m_isProxyClass,
-        //     m_location));
     }
     else
     {
@@ -143,13 +142,6 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
         }
-
-        // m_typeObject.Reset(new AstTypeObject(
-        //     m_symbolType,
-        //     BuiltinTypes::CLASS_TYPE,
-        //     m_enumUnderlyingType,
-        //     m_isProxyClass,
-        //     m_location));
 
         // special names
         bool protoFound = false;
@@ -480,20 +472,6 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 #endif
 
-    // { // create a type object for the prototype type
-    //     m_prototypeExpr.Reset(new AstTypeObject(
-    //         prototypeType,
-    //         BuiltinTypes::CLASS_TYPE,
-    //         m_location));
-
-    //     prototypeType->SetTypeObject(m_prototypeExpr);
-    //     m_prototypeExpr->Visit(visitor, mod); // will register the type. it will be built later.
-    // }
-
-    // { // Finally we visit the newly created AstTypeObject, this will Register our SymbolType
-    //     m_typeObject->Visit(visitor, mod);
-    // }
-
     { // create a type ref for the symbol type
         m_typeRef.Reset(new AstTypeRef(
             m_symbolType,
@@ -519,29 +497,56 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
 
     // Assert(!m_isUninstantiatedGeneric, "Cannot build an uninstantiated generic type.");
 
-    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+    Array<HypField*> fields;
+    Array<HypMethod*> methods;
+    Array<HypConstant*> constants;
+    Array<HypProperty*> properties;
 
-    if (m_prototypeExpr != nullptr)
+    // setup fields
+    for (const RC<AstVariableDeclaration>& varDecl : m_dataMembers)
     {
-        chunk->Append(m_prototypeExpr->Build(visitor, mod));
+        Assert(varDecl != nullptr);
+        Assert(varDecl->GetIdentifier() != nullptr);
+        Assert(varDecl->GetIdentifier()->GetSymbolType() != nullptr);
+
+        HypField* field = new HypField(
+            CreateNameFromDynamicString(*varDecl->GetName()),
+            TypeId::Void(),
+            TypeId::Void(),
+            0, // @TODO: Offset
+            0, // @TODO: size
+            {} // @TODO: attrs
+        );
+
+        fields.PushBack(field);
     }
+
+    // setup methods
+    for (const RC<AstVariableDeclaration>& varDecl : m_functionMembers)
+    {
+        Assert(varDecl != nullptr);
+        Assert(varDecl->GetIdentifier() != nullptr);
+        Assert(varDecl->GetIdentifier()->GetSymbolType() != nullptr);
+
+        HypMethod* method = new HypMethod(
+            CreateNameFromDynamicString(*varDecl->GetName()),
+            TypeId::Void(),
+            TypeId::Void(),
+            HypMethodFlags::MEMBER,
+            {});
+
+        methods.PushBack(method);
+    }
+
+    // @TODO: static members
+
+    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     // Assert(m_typeObject != nullptr);
     // chunk->Append(m_typeObject->Build(visitor, mod));
 
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    // if (m_symbolType->GetId() != -1) {
-    //     chunk->Append(BytecodeUtil::Make<Comment>("Load class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
-
-    //     // already built, we can just load it from the static table
-    //     auto instrLoadStatic = BytecodeUtil::Make<StorageOperation>();
-    //     instrLoadStatic->GetBuilder().Load(rp).Static().ByIndex(m_symbolType->GetId());
-    //     chunk->Append(std::move(instrLoadStatic));
-
-    //     return chunk;
-    // }
 
     chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
 
@@ -567,11 +572,10 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
         auto instrType = BytecodeUtil::Make<BuildableType>();
         instrType->reg = objReg;
         instrType->name = m_symbolType->GetName();
-
-        for (const SymbolTypeMember& mem : m_symbolType->GetMembers())
-        {
-            instrType->members.PushBack(mem.name);
-        }
+        instrType->fields = std::move(fields);
+        instrType->methods = std::move(methods);
+        instrType->constants = std::move(constants);
+        instrType->properties = std::move(properties);
 
         chunk->Append(std::move(instrType));
     }
@@ -683,12 +687,6 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
 void AstTypeExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
     Assert(m_isVisited);
-
-    // Assert(m_typeObject != nullptr);
-    // m_typeObject->Optimize(visitor, mod);
-
-    //    Assert(m_prototypeExpr != nullptr);
-    //    m_prototypeExpr->Optimize(visitor, mod);
 
     Assert(m_typeRef != nullptr);
     m_typeRef->Optimize(visitor, mod);

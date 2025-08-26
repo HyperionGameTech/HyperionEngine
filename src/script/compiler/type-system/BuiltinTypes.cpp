@@ -9,7 +9,6 @@
 #include <script/compiler/ast/AstUnsignedInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 

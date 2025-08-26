@@ -8,7 +8,6 @@
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/ast/AstString.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
@@ -150,16 +149,6 @@ void Builtins::Visit(AstVisitor* visitor)
                 typePtr,
                 typePtr->GetDefaultValue() });
         }
-
-        // RC<AstTypeObject> typeObject(new AstTypeObject(
-        //     typePtr,
-        //     typePtr->GetBaseType(),
-        //     BUILTIN_SOURCE_LOCATION));
-
-        // // push it so that it can be visited, and registered
-        // visitor->GetAstIterator()->Push(typeObject);
-
-        // typePtr->SetTypeObject(typeObject);
 
         // add it to the global scope
         Scope& scope = m_unit->GetGlobalModule()->m_scopes.Top();

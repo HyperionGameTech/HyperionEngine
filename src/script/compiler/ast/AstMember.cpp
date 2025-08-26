@@ -3,7 +3,6 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -242,44 +241,19 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(m_target->Build(visitor, mod));
     }
 
-    if (m_foundIndex == ~0u)
-    {
-        // no exact index of member found, have to load from hash.
-        const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
+    // no exact index of member found, have to load from hash.
+    const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
-        switch (m_accessMode)
-        {
-        case ACCESS_MODE_LOAD:
-            chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
-            break;
-        case ACCESS_MODE_STORE:
-            chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
-            break;
-        default:
-            Assert(false, "unknown access mode");
-        }
-    }
-    else
+    switch (m_accessMode)
     {
-        switch (m_accessMode)
-        {
-        case ACCESS_MODE_LOAD:
-            // just load the data member.
-            chunk->Append(Compiler::LoadMemberAtIndex(
-                visitor,
-                mod,
-                m_foundIndex));
-            break;
-        case ACCESS_MODE_STORE:
-            // we are in storing mode, so store to LAST item in the member expr.
-            chunk->Append(Compiler::StoreMemberAtIndex(
-                visitor,
-                mod,
-                m_foundIndex));
-            break;
-        default:
-            Assert(false, "unknown access mode");
-        }
+    case ACCESS_MODE_LOAD:
+        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
+        break;
+    case ACCESS_MODE_STORE:
+        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
+        break;
+    default:
+        Assert(false, "unknown access mode");
     }
 
     switch (m_accessMode)

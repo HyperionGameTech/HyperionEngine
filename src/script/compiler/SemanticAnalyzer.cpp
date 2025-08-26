@@ -12,8 +12,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "ast/AstTypeObject.hpp"
-
 namespace hyperion::compiler {
 
 void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(

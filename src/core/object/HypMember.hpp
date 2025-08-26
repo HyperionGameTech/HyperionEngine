@@ -20,6 +20,8 @@ struct HypMember
 {
     Variant<HypProperty, HypMethod, HypField, HypConstant> value;
 
+    HypMember() = default;
+
     HypMember(HypProperty&& property)
         : value(std::move(property))
     {
@@ -43,8 +45,8 @@ struct HypMember
     HypMember(const HypMember& other) = delete;
     HypMember& operator=(const HypMember& other) = delete;
 
-    HypMember(HypMember&& other) noexcept = delete;
-    HypMember& operator=(HypMember&& other) noexcept = delete;
+    HypMember(HypMember&& other) noexcept = default;
+    HypMember& operator=(HypMember&& other) noexcept = default;
 
     ~HypMember() = default;
 };

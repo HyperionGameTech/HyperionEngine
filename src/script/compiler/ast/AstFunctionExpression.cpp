@@ -4,7 +4,6 @@
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
@@ -303,12 +302,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (functionType != BuiltinTypes::UNDEFINED)
     {
-//        const int currentSymbolTypeId = functionType->GetId();
-//        Assert(currentSymbolTypeId != -1);
-
-        // const RC<AstTypeObject> currentTypeObject = functionType->GetTypeObject().Lock();
-        // Assert(currentTypeObject != nullptr);
-
         const SymbolTypeFlags currentFlags = functionType->GetFlags();
 
         functionType = SymbolType::GenericInstance(
@@ -316,9 +309,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             GenericInstanceTypeInfo {
                 genericParamTypes });
 
-        // Reuse the same ID
-//        functionType->SetId(currentSymbolTypeId);
-        // functionType->SetTypeObject(currentTypeObject);
         functionType->SetFlags(currentFlags);
     }
 
@@ -374,7 +364,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (closureHeldType != BuiltinTypes::UNDEFINED)
         {
-//            Assert(closureHeldType->GetId() != -1);
+            //            Assert(closureHeldType->GetId() != -1);
             // Assert(closureHeldType->GetTypeObject().Lock() != nullptr);
         }
 

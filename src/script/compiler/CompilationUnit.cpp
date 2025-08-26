@@ -4,7 +4,6 @@
 #include <script/compiler/emit/NamesPair.hpp>
 #include <script/compiler/builtins/Builtins.hpp>
 #include <script/compiler/Configuration.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 

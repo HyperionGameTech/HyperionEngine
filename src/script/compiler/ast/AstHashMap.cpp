@@ -5,7 +5,6 @@
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/AstVisitor.hpp>

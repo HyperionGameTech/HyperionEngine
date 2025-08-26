@@ -11,7 +11,6 @@
 namespace hyperion::compiler {
 
 class AstVariableDeclaration;
-class AstTypeObject;
 
 using AstTemplateExpressionFlags = uint32;
 
@@ -84,8 +83,6 @@ private:
     // set while analyzing
     SymbolTypeRef m_symbolType;
     RC<AstBlock> m_block;
-    RC<AstTypeObject> m_nativeDummyTypeObject;
-    Array<RC<AstTypeObject>> m_genericParamTypeObjects;
     bool m_isVisited = false;
 
     RC<AstTemplateExpression> CloneImpl() const
@@ -100,4 +97,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

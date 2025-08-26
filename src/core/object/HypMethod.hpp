@@ -104,7 +104,7 @@ struct InitHypMethodParams_Tuple<ReturnType, ThisType, Tuple<ArgTypes...>>
 
 #pragma endregion InitHypMethodParams
 
-enum class HypMethodFlags : uint32
+enum class HypMethodFlags : uint8
 {
     NONE = 0x0,
     STATIC = 0x1,
@@ -154,6 +154,15 @@ public:
           m_returnTypeId(TypeId::Void()),
           m_targetTypeId(TypeId::Void()),
           m_flags(HypMethodFlags::NONE),
+          m_attributes(attributes)
+    {
+    }
+
+    HypMethod(Name name, TypeId returnTypeId, TypeId targetTypeId, EnumFlags<HypMethodFlags> flags, Span<const HypClassAttribute> attributes = {})
+        : m_name(name),
+          m_returnTypeId(returnTypeId),
+          m_targetTypeId(targetTypeId),
+          m_flags(flags),
           m_attributes(attributes)
     {
     }
