@@ -722,7 +722,7 @@ public:
 
     virtual HypObjectContainerBase* GetObjectContainer() const override
     {
-        static HypObjectContainer<T>& container = HypObjectPool::GetObjectContainerMap().GetOrCreate<T>();
+        static HypObjectContainer<T>& container = HypObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
         return &container;
     }
 

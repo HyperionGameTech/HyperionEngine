@@ -918,9 +918,9 @@ HypObjectContainerBase* DynamicHypClassInstance::GetObjectContainer() const
 #ifdef HYP_SCRIPT
     // get or create new container for dynamic type
     // HypScript can use HypObjectBase as the base type for all script objects
-    return &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, []() -> HypObjectContainerBase*
+    return &HypObjectPool::GetObjectContainerMap().GetOrCreate(this, [](const HypClass* thisHypClass) -> HypObjectContainerBase*
         {
-            return new HypObjectContainer<HypObjectBase>();
+            return new HypObjectContainer<HypObjectBase>(thisHypClass);
         });
 #endif
 

@@ -52,7 +52,6 @@ public:
 
             ubyte* base = reinterpret_cast<ubyte*>(buffer.Data());
 
-            // Try first-fit in freeRanges
             for (SizeType i = 0; i < freeRanges.Size(); ++i)
             {
                 Range r = freeRanges[i];
@@ -69,9 +68,8 @@ public:
                 const SizeType allocEnd = payloadOffset + size;
                 const SizeType allocSize = allocEnd - allocStart;
 
-                // write header (unaligned-safe): copy small header directly immediately before payload
                 AllocHeader hdrTmp { this, allocSize };
-                std::memcpy(base + headerOffset, &hdrTmp, headerSize);
+                Memory::MemCpy(base + headerOffset, &hdrTmp, headerSize);
 
                 // adjust freeRanges
                 if (allocStart == r.offset && allocSize == r.size)
@@ -171,7 +169,7 @@ public:
             // header sits before payload (allocation enforced alignment)
             const SizeType headerSize = sizeof(AllocHeader);
             AllocHeader hdrTmp;
-            std::memcpy(&hdrTmp, payload - headerSize, headerSize);
+            Memory::MemCpy(&hdrTmp, payload - headerSize, headerSize);
             if (hdrTmp.owner != this)
             {
                 return; // wrong owner or corrupted

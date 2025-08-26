@@ -61,16 +61,12 @@ public:
     virtual void Release(HypObjectHeader* header) = 0;
 
 protected:
-    HypObjectContainerBase(TypeId typeId, const HypClass* hypClass)
-        : m_typeId(typeId),
-          m_hypClass(hypClass)
-    {
-        HYP_CORE_ASSERT(typeId != TypeId::Void());
-        // HYP_CORE_ASSERT(hypClass != nullptr);
-    }
+    HypObjectContainerBase(TypeId typeId, const HypClass* hypClass);
 
     TypeId m_typeId;
     const HypClass* m_hypClass;
+    SizeType m_objectSize;
+    SizeType m_objectAlignment;
     IdGenerator m_idGenerator;
 };
 
@@ -263,8 +259,8 @@ class HypObjectContainer final : public HypObjectContainerBase
     static const Name s_poolName;
 
 public:
-    HypObjectContainer()
-        : HypObjectContainerBase(TypeId::ForType<T>(), T::Class())
+    HypObjectContainer(const HypClass* hypClass)
+        : HypObjectContainerBase(TypeId::ForType<T>(), hypClass)
     {
     }
 
@@ -288,9 +284,11 @@ public:
 
     HYP_NODISCARD HypObjectMemory* Allocate()
     {
+        AssertDebug(m_objectSize != 0 && m_objectAlignment != 0, "Object size and alignment must be set before allocating objects");
+
         Mutex::Guard guard(m_mutex);
 
-        HypObjectMemory* element = (HypObjectMemory*)m_pool.Allocate(sizeof(HypObjectMemory), alignof(HypObjectMemory));
+        HypObjectMemory* element = (HypObjectMemory*)m_pool.Allocate(m_objectSize, m_objectAlignment);
         element->index = m_idGenerator.Next() - 1;
         element->hypClass = m_hypClass;
         element->refCountStrong = 0;
@@ -360,7 +358,7 @@ public:
     {
         // Maps type Id to object container
         // Use a linked list so that references are never invalidated.
-        LinkedList<Pair<TypeId, HypObjectContainerBase*>> m_map;
+        LinkedList<Pair<const HypClass*, HypObjectContainerBase*>> m_map;
         Mutex m_mutex;
 
     public:
@@ -372,21 +370,21 @@ public:
         HYP_API ~ContainerMap();
 
         template <class T>
-        HypObjectContainer<T>& GetOrCreate()
+        HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), []() -> HypObjectContainerBase*
+            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(hypClass, [](const HypClass* hypClass) -> HypObjectContainerBase*
                 {
-                    return new HypObjectContainer<T>();
+                    return new HypObjectContainer<T>(hypClass);
                 }));
 
             return container;
         }
 
-        HYP_API HypObjectContainerBase& GetOrCreate(TypeId typeId, HypObjectContainerBase* (*createFn)(void));
+        HYP_API HypObjectContainerBase& GetOrCreate(const HypClass* hypClass, HypObjectContainerBase* (*createFn)(const HypClass* hypClass));
 
-        HYP_API HypObjectContainerBase& Get(TypeId typeId);
-        HYP_API HypObjectContainerBase* TryGet(TypeId typeId);
+        HYP_API HypObjectContainerBase& Get(const HypClass* hypClass);
+        HYP_API HypObjectContainerBase* TryGet(const HypClass* hypClass);
     };
 
     HYP_API static ContainerMap& GetObjectContainerMap();
