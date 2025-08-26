@@ -220,7 +220,7 @@ class alignas(8) Value
     friend class VM;
     friend class GC;
 
-    char m_internal[40];
+    char m_internal[32];
     GCIndex m_gcIndex;
 
 public:

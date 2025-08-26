@@ -73,7 +73,7 @@ struct VariantHelper<T, Ts...>
     static inline bool MoveAssign(TypeId typeId, void* dst, void* src)
     {
         HYP_CORE_ASSERT(typeId == thisTypeId);
-        
+
         if constexpr (std::is_move_assignable_v<T>)
         {
             *static_cast<NormalizedType<T>*>(dst) = std::move(*static_cast<NormalizedType<T>*>(src));
@@ -87,7 +87,7 @@ struct VariantHelper<T, Ts...>
     static inline bool MoveConstruct(TypeId typeId, void* dst, void* src)
     {
         HYP_CORE_ASSERT(typeId == thisTypeId);
-        
+
         if constexpr (std::is_move_assignable_v<T>)
         {
             Memory::Construct<NormalizedType<T>>(dst, std::move(*static_cast<NormalizedType<T>*>(src)));
@@ -525,8 +525,6 @@ protected:
     static constexpr SizeType maxSize = MathUtil::Max(sizeof(Types)...);
     static constexpr SizeType maxAlign = MathUtil::Max(alignof(Types)...);
 
-    int m_currentIndex;
-
     struct alignas(maxAlign) Storage
     {
         alignas(maxAlign) ubyte dataBuffer[maxSize];
@@ -541,6 +539,8 @@ protected:
             return static_cast<const void*>(&dataBuffer[0]);
         }
     } m_storage;
+
+    int m_currentIndex;
 
     HYP_FORCE_INLINE constexpr TypeId CurrentTypeId() const
     {

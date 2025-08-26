@@ -9,7 +9,7 @@ namespace hyperion::serialization {
 FBOMObjectType::FBOMObjectType(const HypClass* hypClass)
     : FBOMType(
           hypClass->GetName().LookupString(),
-          hypClass->GetSize(),
+          SizeType(-1),
           hypClass->GetTypeId(),
           FBOMTypeFlags::CONTAINER,
           hypClass->GetParent() ? FBOMObjectType(hypClass->GetParent()) : FBOMBaseObjectType())

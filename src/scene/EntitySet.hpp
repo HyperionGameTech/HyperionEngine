@@ -212,11 +212,6 @@ public:
         const HypClass* hypClass = header->hypClass;
         Assert(hypClass != nullptr);
 
-        // Get pointer from ID
-        HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(hypClass);
-        HYP_CORE_ASSERT(container != nullptr,
-            "Container is not initialized for type! Possibly using an id created without pointing to a valid object");
-
         const auto entityElementIt = m_elements.FindIf([entity](const Element& element)
             {
                 return static_cast<HypObjectBase*>(element.template GetElement<0>()) == entity;

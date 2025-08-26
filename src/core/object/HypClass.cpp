@@ -862,6 +862,8 @@ bool HypClass::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& 
 DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
+    m_objectContainer = nullptr;
+
     if (classPtr != nullptr)
     {
         SetManagedClass(classPtr->RefCountedPtrFromThis());
@@ -882,8 +884,25 @@ DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const
 DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
-    m_size = sizeof(HypObjectBase);
-    m_alignment = alignof(HypObjectBase);
+    m_parent = parentClass;
+    
+    if (m_parent)
+    {
+        m_size = parentClass->GetSize();
+        m_alignment = parentClass->GetAlignment();
+
+        m_objectContainer = nullptr; // get at call time
+    }
+    else
+    {
+        m_size = sizeof(HypObjectBase);
+        m_alignment = alignof(HypObjectBase);
+
+        m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const HypClass* thisHypClass) -> HypObjectContainerBase*
+            {
+                return new HypObjectContainer<HypObjectBase>(thisHypClass);
+            });
+    }
 }
 #endif
 
@@ -908,23 +927,7 @@ HypObjectContainerBase* DynamicHypClassInstance::GetObjectContainer() const
         return m_parent->GetObjectContainer();
     }
 
-#ifdef HYP_DOTNET
-    if (GetManagedClass() != nullptr) // it is a .NET class
-    {
-        return nullptr; // no container for .NET managed-only types
-    }
-#endif
-
-#ifdef HYP_SCRIPT
-    // get or create new container for dynamic type
-    // HypScript can use HypObjectBase as the base type for all script objects
-    return &HypObjectPool::GetObjectContainerMap().GetOrCreate(this, [](const HypClass* thisHypClass) -> HypObjectContainerBase*
-        {
-            return new HypObjectContainer<HypObjectBase>(thisHypClass);
-        });
-#endif
-
-    return nullptr;
+    return m_objectContainer;
 }
 
 HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
@@ -1068,10 +1071,10 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     Assert(container != nullptr);
     Assert(container->GetObjectTypeId() == m_typeId);
 
-    HypObjectMemory<HypObjectBase>* header = container->Allocate();
+    HypObjectHeader* header = container->Allocate();
     header->hypClass = this;
 
-    HypObjectBase* ptr = header->storage.GetPointer();
+    HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
     new (ptr) HypObjectBase();
 
     ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), HYP_SCRIPT_OBJECT);

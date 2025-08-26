@@ -55,6 +55,16 @@ public:
         return m_hypClass;
     }
 
+    HYP_FORCE_INLINE SizeType GetObjectSize() const
+    {
+        return m_objectSize;
+    }
+
+    HYP_FORCE_INLINE SizeType GetObjectAlignment() const
+    {
+        return m_objectAlignment;
+    }
+
     virtual HypObjectBase* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
 
@@ -262,6 +272,15 @@ public:
     HypObjectContainer(const HypClass* hypClass)
         : HypObjectContainerBase(TypeId::ForType<T>(), hypClass)
     {
+        // sizeof(T) can be different from HypClass::m_size if T is a subclass of the class described by hypClass
+        // and does not have its own HypClass.
+
+        // also, the size/alignment could be larger than T, if we use a base class in place of T and reserve
+        // extra memory per object for some reason (e.g. script objects)
+
+        // in any case, ensure that the size/alignment is at least that of T
+        m_objectSize = MathUtil::Max(m_objectSize, sizeof(T));
+        m_objectAlignment = MathUtil::Max(m_objectAlignment, alignof(T));
     }
 
     HypObjectContainer(const HypObjectContainer& other) = delete;
@@ -282,21 +301,27 @@ public:
         }
     }
 
-    HYP_NODISCARD HypObjectMemory* Allocate()
+    HYP_NODISCARD HypObjectHeader* Allocate()
     {
         AssertDebug(m_objectSize != 0 && m_objectAlignment != 0, "Object size and alignment must be set before allocating objects");
+        AssertDebug(m_objectSize >= sizeof(T), "Object size must be at least the size of T");
+        AssertDebug(m_objectAlignment >= alignof(T), "Object alignment must be at least the alignment of T");
+
+        // allocation would be the header size + object size, aligned to the object alignment
+        const SizeType allocationSize = ByteUtil::AlignAs(sizeof(HypObjectHeader), m_objectAlignment) + m_objectSize;
 
         Mutex::Guard guard(m_mutex);
 
-        HypObjectMemory* element = (HypObjectMemory*)m_pool.Allocate(m_objectSize, m_objectAlignment);
-        element->index = m_idGenerator.Next() - 1;
-        element->hypClass = m_hypClass;
-        element->refCountStrong = 0;
-        element->refCountWeak = 0;
+        // we align the object internal to the header, so only need to align the header itself
+        HypObjectHeader* header = (HypObjectHeader*)m_pool.Allocate(allocationSize, alignof(HypObjectHeader));
+        header->index = m_idGenerator.Next() - 1;
+        header->hypClass = m_hypClass;
+        header->refCountStrong = 0;
+        header->refCountWeak = 0;
 
-        m_headers.Emplace(element->index, (HypObjectHeader*)element);
+        m_headers.Emplace(header->index, header);
 
-        return element;
+        return header;
     }
 
     virtual HypObjectBase* GetObjectPointer(HypObjectHeader* ptr) override
@@ -358,7 +383,7 @@ public:
     {
         // Maps type Id to object container
         // Use a linked list so that references are never invalidated.
-        LinkedList<Pair<const HypClass*, HypObjectContainerBase*>> m_map;
+        LinkedList<Pair<TypeId, HypObjectContainerBase*>> m_map;
         Mutex m_mutex;
 
     public:
@@ -373,7 +398,7 @@ public:
         HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(hypClass, [](const HypClass* hypClass) -> HypObjectContainerBase*
+            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), hypClass, [](const HypClass* hypClass) -> HypObjectContainerBase*
                 {
                     return new HypObjectContainer<T>(hypClass);
                 }));
@@ -381,10 +406,13 @@ public:
             return container;
         }
 
-        HYP_API HypObjectContainerBase& GetOrCreate(const HypClass* hypClass, HypObjectContainerBase* (*createFn)(const HypClass* hypClass));
+        HYP_API HypObjectContainerBase& GetOrCreate(
+            TypeId typeId,
+            const HypClass* hypClass,
+            HypObjectContainerBase* (*createFn)(const HypClass* hypClass));
 
-        HYP_API HypObjectContainerBase& Get(const HypClass* hypClass);
-        HYP_API HypObjectContainerBase* TryGet(const HypClass* hypClass);
+        HYP_API HypObjectContainerBase& Get(TypeId typeId);
+        HYP_API HypObjectContainerBase* TryGet(TypeId typeId);
     };
 
     HYP_API static ContainerMap& GetObjectContainerMap();

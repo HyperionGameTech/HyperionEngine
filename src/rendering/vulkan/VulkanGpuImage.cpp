@@ -181,6 +181,7 @@ RendererResult VulkanGpuImage::Create()
     return Create(RS_UNDEFINED);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanGpuImage::Create(ResourceState initialState)
 {
     if (IsCreated())
@@ -192,7 +193,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (!m_isHandleOwned)
     {
-        HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE, "If is_handle_owned is set to false, the image handle must not be VK_NULL_HANDLE.");
+        HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE, "If m_isHandleOwned is false, the image handle must not be VK_NULL_HANDLE.");
 
         HYPERION_RETURN_OK;
     }
@@ -332,6 +333,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     HYPERION_RETURN_OK;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
 {
@@ -362,7 +364,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         {
             return HYP_MAKE_ERROR(RendererError, "Cannot resize non-owned image");
         }
-        
+
         // destroy and recreate
         if (m_allocation != VK_NULL_HANDLE)
         {

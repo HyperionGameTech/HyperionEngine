@@ -373,6 +373,8 @@ class HYP_API HypClass
 {
 public:
     friend struct HypClassRegistrationBase;
+    friend class HypObjectPool;
+    friend class HypObjectContainerBase;
 
     HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass& other) = delete;
@@ -391,6 +393,16 @@ public:
     virtual HypObjectContainerBase* GetObjectContainer() const
     {
         return nullptr;
+    }
+
+    HYP_FORCE_INLINE SizeType GetSize() const
+    {
+        return m_size;
+    }
+
+    HYP_FORCE_INLINE SizeType GetAlignment() const
+    {
+        return m_alignment;
     }
 
     virtual HypClassAllocationMethod GetAllocationMethod() const = 0;
@@ -435,16 +447,6 @@ public:
      *  \param other The HypClass to check this against
      *  \return True if this HypClass is derived from or equal to the given HypClass, false otherwise. */
     bool IsDerivedFrom(const HypClass* other) const;
-
-    HYP_FORCE_INLINE SizeType GetSize() const
-    {
-        return m_size;
-    }
-
-    HYP_FORCE_INLINE SizeType GetAlignment() const
-    {
-        return m_alignment;
-    }
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
@@ -707,10 +709,13 @@ public:
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members)
-        : HypClass(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
+        : HypClass(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members),
+          m_objectContainer(nullptr)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
+
+        m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
     }
 
     virtual ~HypClassInstance() = default;
@@ -722,8 +727,7 @@ public:
 
     virtual HypObjectContainerBase* GetObjectContainer() const override
     {
-        static HypObjectContainer<T>& container = HypObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
-        return &container;
+        return m_objectContainer;
     }
 
     virtual HypClassAllocationMethod GetAllocationMethod() const override
@@ -902,6 +906,9 @@ protected:
             HYP_NOT_IMPLEMENTED();
         }
     }
+
+protected:
+    HypObjectContainer<T>* m_objectContainer;
 };
 
 /*! \brief a runtime created HypClass instance, for use in scripts or external code such as .NET or HypScript */
@@ -947,6 +954,8 @@ protected:
     virtual bool CreateInstance_Internal(HypData& out) const override;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
+
+    HypObjectContainerBase* m_objectContainer;
 };
 
 } // namespace hyperion

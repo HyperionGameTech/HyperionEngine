@@ -64,7 +64,7 @@ struct Handle final : HandleBase
     {
         if (id.IsValid())
         {
-            HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(GetClass(id.GetTypeId()));
+            HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(id.GetTypeId());
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an Id for a type that doesn't have a container.
@@ -373,7 +373,7 @@ struct WeakHandle final
     {
         if (id.IsValid())
         {
-            HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(GetClass(id.GetTypeId()));
+            HypObjectContainerBase* container = HypObjectPool::GetObjectContainerMap().TryGet(id.GetTypeId());
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an Id for a type that doesn't have a container.
@@ -894,10 +894,9 @@ template <class T, class... Args>
 inline Handle<T> CreateObject(Args&&... args)
 {
     HypObjectContainer<T>& container = HypObjectPool::GetObjectContainerMap().GetOrCreate<T>(T::Class());
-    HypObjectMemory<T>* header = container.Allocate();
+    HypObjectHeader* header = container.Allocate();
 
-    T* ptr = header->storage.GetPointer();
-
+    T* ptr = (T*)HypObjectHeader::GetObjectPointer(header);
     Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
 
     Handle<T> handle;

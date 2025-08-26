@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/utilities/TypeId.hpp>
+#include <core/utilities/ByteUtil.hpp>
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/debug/Debug.hpp>
@@ -11,6 +12,7 @@
 #include <core/Types.hpp>
 
 #include <type_traits>
+#include <new>
 
 namespace hyperion {
 
@@ -23,14 +25,6 @@ namespace memory {
 
 template <class T>
 class UniquePtr;
-
-template <class T>
-static inline void* Any_CopyConstruct(void* src)
-{
-    static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible to use copyable Any type");
-
-    return new T(*static_cast<T*>(src));
-}
 
 class AnyBase
 {
@@ -45,25 +39,52 @@ class Any final : public AnyBase
 {
     using DeleteFunction = std::add_pointer_t<void(void*)>;
 
+    struct Block
+    {
+        TypeId typeId;
+        void* objectPtr;
+        DeleteFunction objectDtor; // may be nullptr for inline-owned objects
+        DeleteFunction dtor;       // deletes the whole block (and object if owned)
+    };
+
+    template <class T>
+    static void BlockDeleter(void* block)
+    {
+        constexpr SizeType kAlign = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
+        Block* hdr = static_cast<Block*>(block);
+        static_cast<T*>(hdr->objectPtr)->~T();
+        ::operator delete(block, std::align_val_t(kAlign));
+    }
+
+    static void ExternalBlockDeleter(void* block)
+    {
+        Block* hdr = static_cast<Block*>(block);
+        if (hdr->objectPtr && hdr->objectDtor)
+        {
+            hdr->objectDtor(hdr->objectPtr);
+        }
+        ::operator delete(block, std::align_val_t(alignof(Block)));
+    }
+
 public:
     // UniquePtr is a friend class
     template <class T>
     friend class memory::UniquePtr;
 
     Any()
-        : m_typeId(TypeId::ForType<void>()),
-          m_ptr(nullptr),
-          m_dtor(nullptr)
+        : m_block(nullptr)
     {
     }
 
-    /*! \brief Construct an Any by taking ownership of \ref{ptr}. The object pointed to will be deleted when the Any is destructed. */
+    /*! \brief Construct an Any that takes ownership of the given pointer. */
     template <class T>
     explicit Any(T* ptr)
-        : m_typeId(TypeId::ForType<NormalizedType<T>>()),
-          m_ptr(ptr),
-          m_dtor(&Memory::Delete<NormalizedType<T>>)
+        : m_block(nullptr)
     {
+        if (ptr != nullptr)
+        {
+            Reset(ptr);
+        }
     }
 
     /*! \brief Construct a new T into the Any, without needing to use any move or copy constructors. */
@@ -82,37 +103,34 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     Any(T&& value) noexcept
-        : m_typeId(TypeId::ForType<NormalizedType<T>>()),
-          m_ptr(new NormalizedType<T>(std::forward<NormalizedType<T>>(value))),
-          m_dtor(&Memory::Delete<NormalizedType<T>>)
+        : m_block(nullptr)
     {
+        using U = NormalizedType<T>;
+        Emplace<U>(std::forward<T>(value));
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     Any& operator=(T&& value) noexcept
     {
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
+        using U = NormalizedType<T>;
+        const TypeId newTypeId = TypeId::ForType<U>();
 
-        if constexpr (std::is_move_assignable_v<NormalizedType<T>>)
+        if constexpr (std::is_move_assignable_v<U>)
         {
-            if (m_typeId == newTypeId)
+            if (GetTypeId() == newTypeId)
             {
-                // types are same, call move assignment operator
-                *static_cast<NormalizedType<T>*>(m_ptr) = std::forward<T>(value);
-
+                *static_cast<U*>(GetPointer()) = std::forward<T>(value);
                 return *this;
             }
         }
 
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = newTypeId;
-        m_ptr = new NormalizedType<T>(std::forward<T>(value));
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
-
+        // allocate new block and construct
+        Emplace<U>(std::forward<T>(value));
         return *this;
     }
 
@@ -120,13 +138,9 @@ public:
     Any& operator=(const Any& other) = delete;
 
     Any(Any&& other) noexcept
-        : m_typeId(std::move(other.m_typeId)),
-          m_ptr(other.m_ptr),
-          m_dtor(other.m_dtor)
+        : m_block(other.m_block)
     {
-        other.m_typeId = TypeId::ForType<void>();
-        other.m_ptr = nullptr;
-        other.m_dtor = nullptr;
+        other.m_block = nullptr;
     }
 
     Any& operator=(Any&& other) noexcept
@@ -138,16 +152,11 @@ public:
 
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = other.m_typeId;
-        m_ptr = other.m_ptr;
-        m_dtor = other.m_dtor;
-
-        other.m_typeId = TypeId::ForType<void>();
-        other.m_ptr = nullptr;
-        other.m_dtor = nullptr;
+        m_block = other.m_block;
+        other.m_block = nullptr;
 
         return *this;
     }
@@ -156,7 +165,7 @@ public:
     {
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
     }
 
@@ -168,25 +177,25 @@ public:
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE void* GetPointer()
     {
-        return m_ptr;
+        return HasValue() ? reinterpret_cast<Block*>(m_block)->objectPtr : nullptr;
     }
 
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE const void* GetPointer() const
     {
-        return m_ptr;
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->objectPtr : nullptr;
     }
 
     /*! \brief Returns true if the Any has a value. */
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return m_ptr != nullptr;
+        return m_block != nullptr;
     }
 
     /*! \brief Returns the TypeId of the held object. */
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return m_typeId;
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeId : TypeId::ForType<void>();
     }
 
     /*! \brief Returns true if the held object is of type T.
@@ -195,17 +204,18 @@ public:
     HYP_FORCE_INLINE bool Is() const
     {
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
-
-        return m_typeId == typeId
-            || IsA(GetClass(typeId), m_ptr, m_typeId);
+        const void* ptr = GetPointer();
+        const TypeId held = GetTypeId();
+        return held == typeId || IsA(GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns true if the held object is of type \ref{typeId}.
      *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {
-        return m_typeId == typeId
-            || IsA(GetClass(typeId), m_ptr, m_typeId);
+        const void* ptr = GetPointer();
+        const TypeId held = GetTypeId();
+        return held == typeId || IsA(GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
@@ -213,9 +223,9 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE T& Get() const
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(m_typeId == requestedTypeId, "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(GetTypeId() == requestedTypeId, "Held type not equal to requested type!");
 
-        return *static_cast<NormalizedType<T>*>(m_ptr);
+        return *static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
     }
 
     /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
@@ -224,9 +234,9 @@ public:
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
 
-        if (m_typeId == requestedTypeId)
+        if (GetTypeId() == requestedTypeId)
         {
-            return static_cast<NormalizedType<T>*>(m_ptr);
+            return static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
         }
 
         return nullptr;
@@ -235,63 +245,51 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(const T& value)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = new NormalizedType<T>(value);
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
+        Emplace<U>(value);
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(T&& value)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = new NormalizedType<T>(std::move(value));
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
+        Emplace<U>(std::move(value));
     }
 
     /*! \brief Construct a new pointer into the Any. Any current value will be destroyed. */
     template <class T, class... Args>
     T& Emplace(Args&&... args)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = new NormalizedType<T>(std::forward<Args>(args)...);
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
+        constexpr SizeType align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
+        constexpr SizeType headerSize = sizeof(Block);
+        constexpr SizeType objAlign = alignof(U);
+        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        const SizeType totalSize = objOffset + sizeof(U);
 
-        return *static_cast<NormalizedType<T>*>(m_ptr);
-    }
+        void* raw = ::operator new(totalSize, std::align_val_t(align));
+        char* base = static_cast<char*>(raw);
+        Block* hdr = new (base) Block { TypeId::ForType<U>(), nullptr, nullptr, &Any::BlockDeleter<U> };
+        U* obj = ::new (base + objOffset) U(std::forward<Args>(args)...);
+        hdr->objectPtr = obj;
 
-    /*! \brief Drop ownership of the object, giving it to the caller.
-        Make sure to use delete! */
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE T* Release()
-    {
-        if constexpr (!std::is_void_v<T>)
-        {
-            const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-            HYP_CORE_ASSERT(m_typeId == requestedTypeId, "Held type not equal to requested type!");
-        }
-
-        T* ptr = static_cast<T*>(m_ptr);
-
-        m_typeId = TypeId::ForType<void>();
-        m_ptr = nullptr;
-        m_dtor = nullptr;
-
-        return ptr;
+        m_block = hdr;
+        return *obj;
     }
 
     /*! \brief Takes ownership of {ptr}, resetting the current value held in the Any.
@@ -300,21 +298,21 @@ public:
     template <class T>
     HYP_FORCE_INLINE void Reset(T* ptr)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
-
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = ptr;
 
         if (ptr)
         {
-            m_dtor = &Memory::Delete<NormalizedType<T>>;
+            void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
+            Block* hdr = new (raw) Block { TypeId::ForType<U>(), ptr, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
+            m_block = hdr;
         }
         else
         {
-            m_dtor = nullptr;
+            m_block = nullptr;
         }
     }
 
@@ -323,12 +321,10 @@ public:
     {
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<void>();
-        m_ptr = nullptr;
-        m_dtor = nullptr;
+        m_block = nullptr;
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -339,45 +335,93 @@ public:
     /*! \brief Returns the held object as a reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef()
     {
-        return AnyRef(m_typeId, m_ptr);
+        return AnyRef(GetTypeId(), GetPointer());
     }
 
     /*! \brief Returns the held object as a const reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE ConstAnyRef ToRef() const
     {
-        return ConstAnyRef(m_typeId, m_ptr);
+        return ConstAnyRef(GetTypeId(), GetPointer());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator AnyRef()
     {
-        return AnyRef(m_typeId, m_ptr);
+        return AnyRef(GetTypeId(), GetPointer());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator ConstAnyRef() const
     {
-        return ConstAnyRef(m_typeId, m_ptr);
+        return ConstAnyRef(GetTypeId(), GetPointer());
     }
 
     static Any FromVoidPointer(TypeId typeId, void* ptr, DeleteFunction dtor)
     {
         Any result;
-        result.m_typeId = typeId;
-        result.m_ptr = ptr;
-        result.m_dtor = dtor;
-
+        if (ptr)
+        {
+            void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
+            Block* hdr = new (raw) Block { typeId, ptr, dtor, &Any::ExternalBlockDeleter };
+            result.m_block = hdr;
+        }
         return result;
     }
 
 protected:
-    TypeId m_typeId;
-    void* m_ptr;
-    DeleteFunction m_dtor;
+    void* m_block;
 };
 
 class CopyableAny final : public AnyBase
 {
-    using CopyConstructor = std::add_pointer_t<void*(void*)>;
+    using CopyConstructor = std::add_pointer_t<void*(const void*)>;
     using DeleteFunction = std::add_pointer_t<void(void*)>;
+
+    struct Block
+    {
+        TypeId typeId;
+        void* objectPtr;
+        CopyConstructor copyCtor;  // nullptr if not copyable (eg external without known T)
+        DeleteFunction objectDtor; // may be nullptr for inline-owned objects
+        DeleteFunction dtor;       // deletes the whole block
+    };
+
+    template <class T>
+    static void* BlockCopyConstruct(const void* block)
+    {
+        const Block* src = static_cast<const Block*>(block);
+        const T& val = *static_cast<const T*>(src->objectPtr);
+
+        constexpr SizeType align = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
+        constexpr SizeType headerSize = sizeof(Block);
+        constexpr SizeType objAlign = alignof(T);
+        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        const SizeType totalSize = objOffset + sizeof(T);
+
+        void* raw = ::operator new(totalSize, std::align_val_t(align));
+        char* base = static_cast<char*>(raw);
+        Block* hdr = new (base) Block { TypeId::ForType<T>(), nullptr, &CopyableAny::BlockCopyConstruct<T>, nullptr, &CopyableAny::BlockDeleter<T> };
+        T* obj = ::new (base + objOffset) T(val);
+        hdr->objectPtr = obj;
+        return hdr;
+    }
+
+    template <class T>
+    static void BlockDeleter(void* block)
+    {
+        constexpr SizeType kAlign = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
+        Block* hdr = static_cast<Block*>(block);
+        static_cast<T*>(hdr->objectPtr)->~T();
+        ::operator delete(block, std::align_val_t(kAlign));
+    }
+
+    static void ExternalBlockDeleter(void* block)
+    {
+        Block* hdr = static_cast<Block*>(block);
+        if (hdr->objectPtr && hdr->objectDtor)
+        {
+            hdr->objectDtor(hdr->objectPtr);
+        }
+        ::operator delete(block, std::align_val_t(alignof(Block)));
+    }
 
 public:
     // UniquePtr is a friend class
@@ -385,10 +429,7 @@ public:
     friend class memory::UniquePtr;
 
     CopyableAny()
-        : m_typeId(TypeId::ForType<void>()),
-          m_ptr(nullptr),
-          m_copyCtor(nullptr),
-          m_dtor(nullptr)
+        : m_block(nullptr)
     {
     }
 
@@ -408,86 +449,76 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny(const T& value)
-        : m_typeId(TypeId::ForType<NormalizedType<T>>()),
-          m_ptr(new NormalizedType<T>(value)),
-          m_copyCtor(&Any_CopyConstruct<NormalizedType<T>>),
-          m_dtor(&Memory::Delete<NormalizedType<T>>)
+        : m_block(nullptr)
     {
+        using U = NormalizedType<T>;
+        Emplace<U>(value);
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny& operator=(const T& value)
     {
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
+        using U = NormalizedType<T>;
+        const TypeId newTypeId = TypeId::ForType<U>();
 
-        if constexpr (std::is_copy_assignable_v<NormalizedType<T>>)
+        if constexpr (std::is_copy_assignable_v<U>)
         {
-            if (m_typeId == newTypeId)
+            if (GetTypeId() == newTypeId)
             {
-                // types are same, call copy assignment operator.
-                *static_cast<T*>(m_ptr) = value;
-
+                *static_cast<U*>(GetPointer()) = value;
                 return *this;
             }
         }
 
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = newTypeId;
-        m_ptr = new NormalizedType<T>(value);
-        m_copyCtor = &Any_CopyConstruct<NormalizedType<T>>;
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
-
+        Emplace<U>(value);
         return *this;
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny(T&& value) noexcept
-        : m_typeId(TypeId::ForType<NormalizedType<T>>()),
-          m_ptr(new NormalizedType<T>(std::forward<NormalizedType<T>>(value))),
-          m_copyCtor(&Any_CopyConstruct<NormalizedType<T>>),
-          m_dtor(&Memory::Delete<NormalizedType<T>>)
+        : m_block(nullptr)
     {
+        using U = NormalizedType<T>;
+        Emplace<U>(std::forward<T>(value));
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny& operator=(T&& value) noexcept
     {
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
+        using U = NormalizedType<T>;
+        const TypeId newTypeId = TypeId::ForType<U>();
 
-        if constexpr (std::is_move_assignable_v<NormalizedType<T>>)
+        if constexpr (std::is_move_assignable_v<U>)
         {
-            if (m_typeId == newTypeId)
+            if (GetTypeId() == newTypeId)
             {
-                // types are same, call move assignment operator
-                *static_cast<NormalizedType<T>*>(m_ptr) = std::move(value);
-
+                *static_cast<U*>(GetPointer()) = std::move(value);
                 return *this;
             }
         }
 
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = newTypeId;
-        m_ptr = new NormalizedType<T>(std::move(value));
-        m_copyCtor = &Any_CopyConstruct<NormalizedType<NormalizedType<T>>>;
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
-
+        Emplace<U>(std::move(value));
         return *this;
     }
 
     CopyableAny(const CopyableAny& other)
-        : m_typeId(other.m_typeId),
-          m_ptr(other.HasValue() ? other.m_copyCtor(other.m_ptr) : nullptr),
-          m_copyCtor(other.m_copyCtor),
-          m_dtor(other.m_dtor)
+        : m_block(nullptr)
     {
+        if (other.HasValue())
+        {
+            const Block* ob = reinterpret_cast<const Block*>(other.m_block);
+            m_block = ob->copyCtor ? ob->copyCtor(other.m_block) : nullptr;
+        }
     }
 
     CopyableAny& operator=(const CopyableAny& other)
@@ -499,27 +530,26 @@ public:
 
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = other.m_typeId;
-        m_ptr = other.HasValue() ? other.m_copyCtor(other.m_ptr) : nullptr;
-        m_copyCtor = other.m_copyCtor;
-        m_dtor = other.m_dtor;
+        if (other.HasValue())
+        {
+            const Block* ob = reinterpret_cast<const Block*>(other.m_block);
+            m_block = ob->copyCtor ? ob->copyCtor(other.m_block) : nullptr;
+        }
+        else
+        {
+            m_block = nullptr;
+        }
 
         return *this;
     }
 
     CopyableAny(CopyableAny&& other) noexcept
-        : m_typeId(std::move(other.m_typeId)),
-          m_ptr(other.m_ptr),
-          m_copyCtor(other.m_copyCtor),
-          m_dtor(other.m_dtor)
+        : m_block(other.m_block)
     {
-        other.m_typeId = TypeId::ForType<void>();
-        other.m_ptr = nullptr;
-        other.m_copyCtor = nullptr;
-        other.m_dtor = nullptr;
+        other.m_block = nullptr;
     }
 
     CopyableAny& operator=(CopyableAny&& other) noexcept
@@ -531,18 +561,11 @@ public:
 
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = other.m_typeId;
-        m_ptr = other.m_ptr;
-        m_copyCtor = other.m_copyCtor;
-        m_dtor = other.m_dtor;
-
-        other.m_typeId = TypeId::ForType<void>();
-        other.m_ptr = nullptr;
-        other.m_copyCtor = nullptr;
-        other.m_dtor = nullptr;
+        m_block = other.m_block;
+        other.m_block = nullptr;
 
         return *this;
     }
@@ -551,7 +574,7 @@ public:
     {
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
     }
 
@@ -563,25 +586,25 @@ public:
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE void* GetPointer()
     {
-        return m_ptr;
+        return HasValue() ? reinterpret_cast<Block*>(m_block)->objectPtr : nullptr;
     }
 
     /*! \brief Get a raw pointer to the held object. */
     HYP_FORCE_INLINE const void* GetPointer() const
     {
-        return m_ptr;
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->objectPtr : nullptr;
     }
 
     /*! \brief Returns true if the Any has a value. */
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return m_ptr != nullptr;
+        return m_block != nullptr;
     }
 
     /*! \brief Returns the TypeId of the held object. */
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return m_typeId;
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeId : TypeId::ForType<void>();
     }
 
     /*! \brief Returns true if the held object is of type T.
@@ -590,17 +613,18 @@ public:
     HYP_FORCE_INLINE bool Is() const
     {
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
-
-        return m_typeId == typeId
-            || IsA(GetClass(typeId), m_ptr, m_typeId);
+        const void* ptr = GetPointer();
+        const TypeId held = GetTypeId();
+        return held == typeId || IsA(GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns true if the held object is of type \ref{typeId}.
      *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {
-        return m_typeId == typeId
-            || IsA(GetClass(typeId), m_ptr, m_typeId);
+        const void* ptr = GetPointer();
+        const TypeId held = GetTypeId();
+        return held == typeId || IsA(GetClass(typeId), ptr, held);
     }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
@@ -608,9 +632,9 @@ public:
     HYP_FORCE_INLINE T& Get() const
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(m_typeId == requestedTypeId, "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(GetTypeId() == requestedTypeId, "Held type not equal to requested type!");
 
-        return *static_cast<NormalizedType<T>*>(m_ptr);
+        return *static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
     }
 
     /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
@@ -619,9 +643,9 @@ public:
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
 
-        if (m_typeId == requestedTypeId)
+        if (GetTypeId() == requestedTypeId)
         {
-            return static_cast<NormalizedType<T>*>(m_ptr);
+            return static_cast<NormalizedType<T>*>(reinterpret_cast<Block*>(m_block)->objectPtr);
         }
 
         return nullptr;
@@ -630,67 +654,51 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(const T& value)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = new NormalizedType<T>(value);
-        m_copyCtor = &Any_CopyConstruct<NormalizedType<T>>;
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
+        Emplace<U>(value);
     }
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(T&& value)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = new NormalizedType<T>(std::move(value));
-        m_copyCtor = &Any_CopyConstruct<NormalizedType<T>>;
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
+        Emplace<U>(std::move(value));
     }
 
     /*! \brief Construct a new pointer into the Any. Any current value will be destroyed. */
     template <class T, class... Args>
     T& Emplace(Args&&... args)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = new NormalizedType<T>(std::forward<Args>(args)...);
-        m_copyCtor = &Any_CopyConstruct<NormalizedType<T>>;
-        m_dtor = &Memory::Delete<NormalizedType<T>>;
+        constexpr SizeType align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
+        constexpr SizeType headerSize = sizeof(Block);
+        constexpr SizeType objAlign = alignof(U);
+        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        const SizeType totalSize = objOffset + sizeof(U);
 
-        return *static_cast<NormalizedType<T>*>(m_ptr);
-    }
+        void* raw = ::operator new(totalSize, std::align_val_t(align));
+        char* base = static_cast<char*>(raw);
+        Block* hdr = new (base) Block { TypeId::ForType<U>(), nullptr, &CopyableAny::BlockCopyConstruct<U>, nullptr, &CopyableAny::BlockDeleter<U> };
+        U* obj = ::new (base + objOffset) U(std::forward<Args>(args)...);
+        hdr->objectPtr = obj;
 
-    /*! \brief Drop ownership of the object, giving it to the caller.
-        Make sure to use delete! */
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE T* Release()
-    {
-        if constexpr (!std::is_void_v<T>)
-        {
-            const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-            HYP_CORE_ASSERT(m_typeId == requestedTypeId, "Held type not equal to requested type!");
-        }
-
-        T* ptr = static_cast<T*>(m_ptr);
-
-        m_typeId = TypeId::ForType<void>();
-        m_ptr = nullptr;
-        m_copyCtor = nullptr;
-        m_dtor = nullptr;
-
-        return ptr;
+        m_block = hdr;
+        return *obj;
     }
 
     /*! \brief Takes ownership of {ptr}, resetting the current value held in the Any.
@@ -699,23 +707,21 @@ public:
     template <class T>
     HYP_FORCE_INLINE void Reset(T* ptr)
     {
+        using U = NormalizedType<T>;
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
-
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
-        m_ptr = ptr;
 
         if (ptr)
         {
-            m_copyCtor = &Any_CopyConstruct<NormalizedType<T>>;
-            m_dtor = &Memory::Delete<NormalizedType<T>>;
+            void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
+            Block* hdr = new (raw) Block { TypeId::ForType<U>(), ptr, &CopyableAny::BlockCopyConstruct<U>, &Memory::Delete<U>, &CopyableAny::ExternalBlockDeleter };
+            m_block = hdr;
         }
         else
         {
-            m_copyCtor = nullptr;
-            m_dtor = nullptr;
+            m_block = nullptr;
         }
     }
 
@@ -724,13 +730,10 @@ public:
     {
         if (HasValue())
         {
-            m_dtor(m_ptr);
+            reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        m_typeId = TypeId::ForType<void>();
-        m_ptr = nullptr;
-        m_copyCtor = nullptr;
-        m_dtor = nullptr;
+        m_block = nullptr;
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -741,30 +744,27 @@ public:
     /*! \brief Returns the held object as a reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef()
     {
-        return AnyRef(m_typeId, m_ptr);
+        return AnyRef(GetTypeId(), GetPointer());
     }
 
     /*! \brief Returns the held object as a const reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE ConstAnyRef ToRef() const
     {
-        return ConstAnyRef(m_typeId, m_ptr);
+        return ConstAnyRef(GetTypeId(), GetPointer());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator AnyRef()
     {
-        return AnyRef(m_typeId, m_ptr);
+        return AnyRef(GetTypeId(), GetPointer());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator ConstAnyRef() const
     {
-        return ConstAnyRef(m_typeId, m_ptr);
+        return ConstAnyRef(GetTypeId(), GetPointer());
     }
 
 protected:
-    TypeId m_typeId;
-    void* m_ptr;
-    CopyConstructor m_copyCtor;
-    DeleteFunction m_dtor;
+    void* m_block;
 };
 
 } // namespace memory

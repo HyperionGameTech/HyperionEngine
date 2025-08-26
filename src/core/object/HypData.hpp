@@ -3089,6 +3089,6 @@ struct HypDataGetter_Tuple<ReturnType, T, Tuple<ConvertibleFrom...>>
 
 #pragma endregion HypDataGetter implementation
 
-static_assert(sizeof(HypData) == 40, "sizeof(HypData) must match C# struct size");
+static_assert(sizeof(HypData) == 32, "sizeof(HypData) != 32 bytes");
 
 } // namespace hyperion

@@ -18,8 +18,6 @@ HYP_API void ReleaseHypObject(HypObjectHeader* header)
     hypClass->GetObjectContainer()->Release(header);
 }
 
-static HypObjectPool::ContainerMap g_objectContainerMap {};
-
 HypObjectPool::ContainerMap::~ContainerMap()
 {
     for (auto& it : m_map)
@@ -34,18 +32,22 @@ HypObjectPool::ContainerMap::~ContainerMap()
 
 HypObjectPool::ContainerMap& HypObjectPool::GetObjectContainerMap()
 {
-    return g_objectContainerMap;
+    static HypObjectPool::ContainerMap s_objectContainerMap;
+
+    return s_objectContainerMap;
 }
 
-HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(const HypClass* hypClass, HypObjectContainerBase* (*createFn)(const HypClass* hypClass))
+HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const HypClass* hypClass, HypObjectContainerBase* (*createFn)(const HypClass* hypClass))
 {
     HYP_CORE_ASSERT(hypClass != nullptr);
+    HYP_CORE_ASSERT(hypClass->GetTypeId() != TypeId::Void());
+    HYP_CORE_ASSERT(hypClass->GetSize() != 0 && hypClass->GetAlignment() != 0);
 
     Mutex::Guard guard(m_mutex);
 
-    auto it = m_map.FindIf([hypClass](const auto& element)
+    auto it = m_map.FindIf([typeId](const auto& element)
         {
-            return element.first == hypClass;
+            return element.first == typeId;
         });
 
     if (it != m_map.End())
@@ -63,29 +65,30 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(const HypClass*
     HypObjectContainerBase* container = createFn(hypClass);
     HYP_CORE_ASSERT(container != nullptr);
 
-    const TypeId typeId = hypClass->GetTypeId();
-    HYP_CORE_ASSERT(typeId != TypeId::Void());
-
     container->m_typeId = typeId;
     container->m_hypClass = hypClass;
 
-    return *m_map.EmplaceBack(hypClass, container).second;
+    auto& insertResult = *m_map.EmplaceBack(typeId, container).second;
+
+    DebugLog(LogType::Info, "Created object container for HypClass: %s (TypeId: %u) in map %p\tMap size: %u\tthread: %u\n", *hypClass->GetName(), typeId.Value(), &m_map,
+        m_map.Size(),
+        Threads::CurrentThreadId().GetValue());
+
+    return insertResult;
 }
 
-HypObjectContainerBase& HypObjectPool::ContainerMap::Get(const HypClass* hypClass)
+HypObjectContainerBase& HypObjectPool::ContainerMap::Get(TypeId typeId)
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
-
     Mutex::Guard guard(m_mutex);
 
-    const auto it = m_map.FindIf([hypClass](const auto& element)
+    const auto it = m_map.FindIf([typeId](const auto& element)
         {
-            return element.first == hypClass;
+            return element.first == typeId;
         });
 
     if (it == m_map.End())
     {
-        HYP_FAIL("No object container for HypClass: %s", *hypClass->GetName());
+        HYP_FAIL("No object container for HypClass: %s", LookupTypeName(typeId));
     }
 
     HYP_CORE_ASSERT(it->second != nullptr);
@@ -93,19 +96,18 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::Get(const HypClass* hypClas
     return *it->second;
 }
 
-HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(const HypClass* hypClass)
+HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
-
     Mutex::Guard guard(m_mutex);
 
-    const auto it = m_map.FindIf([hypClass](const auto& element)
+    const auto it = m_map.FindIf([typeId](const auto& element)
         {
-            return element.first == hypClass;
+            return element.first == typeId;
         });
 
     if (it == m_map.End())
     {
+        HYP_BREAKPOINT;
         return nullptr;
     }
 

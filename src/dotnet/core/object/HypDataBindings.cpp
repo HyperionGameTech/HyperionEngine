@@ -448,16 +448,16 @@ extern "C"
             return false;
         }
 
-        if (size != hypClass->GetSize())
+        const HypStruct* hypStruct = dynamic_cast<const HypStruct*>(hypClass);
+        Assert(hypStruct != nullptr);
+        
+        if (size != hypStruct->GetSize())
         {
             HYP_LOG(Object, Error, "Given a buffer size of {} but HypClass {} has a size of {}",
-                size, hypClass->GetName(), hypClass->GetSize());
+                size, hypClass->GetName(), hypStruct->GetSize());
 
             return false;
         }
-
-        const HypStruct* hypStruct = dynamic_cast<const HypStruct*>(hypClass);
-        Assert(hypStruct != nullptr);
 
         return hypStruct->ToHypData(ByteView(reinterpret_cast<ubyte*>(objectPtr), size), *hypData);
     }
