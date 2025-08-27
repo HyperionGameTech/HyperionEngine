@@ -31,11 +31,13 @@ SymbolType::SymbolType(
     SymbolTypeClass typeClass,
     const SymbolTypeRef& base,
     const RC<AstExpression>& defaultValue,
-    const Array<SymbolTypeMember>& members)
+    const Array<SymbolTypeMember>& members,
+    const Array<SymbolTypeMember>& staticMembers)
     : m_name(name),
       m_typeClass(typeClass),
       m_defaultValue(defaultValue),
       m_members(members),
+      m_staticMembers(staticMembers),
       m_base(base),
       m_id(-1),
       m_flags(SYMBOL_TYPE_FLAGS_NONE)
@@ -686,60 +688,29 @@ SymbolTypeRef SymbolType::Primitive(
         TYPE_BUILTIN,
         BuiltinTypes::PRIMITIVE_TYPE,
         defaultValue,
-        {}));
-}
-
-SymbolTypeRef SymbolType::Primitive(
-    const String& name,
-    const RC<AstExpression>& defaultValue,
-    const SymbolTypeRef& base)
-{
-    return SymbolTypeRef(new SymbolType(
-        name,
-        TYPE_BUILTIN,
-        base,
-        defaultValue,
-        {}));
+        {}, {}));
 }
 
 SymbolTypeRef SymbolType::Object(
     const String& name,
-    const Array<SymbolTypeMember>& members)
-{
-    SymbolTypeRef symbolType(new SymbolType(
-        name,
-        TYPE_USER_DEFINED,
-        BuiltinTypes::OBJECT,
-        nullptr,
-        members));
-
-    // symbolType->SetDefaultValue(RC<AstObject>(
-    //     new AstObject(symbolType, SourceLocation::eof)
-    // ));
-
-    return symbolType;
-}
-
-SymbolTypeRef SymbolType::Object(const String& name,
+    const SymbolTypeRef& base,
     const Array<SymbolTypeMember>& members,
-    const SymbolTypeRef& base)
+    const Array<SymbolTypeMember>& staticMembers)
 {
     SymbolTypeRef symbolType(new SymbolType(
         name,
         TYPE_USER_DEFINED,
         base,
         nullptr,
-        members));
-
-    // symbolType->SetDefaultValue(RC<AstObject>(
-    //     new AstObject(symbolType, SourceLocation::eof)
-    // ));
+        members,
+        staticMembers));
 
     return symbolType;
 }
 
 SymbolTypeRef SymbolType::Generic(const String& name,
     const Array<SymbolTypeMember>& members,
+    const Array<SymbolTypeMember>& staticMembers,
     const GenericTypeInfo& info,
     const SymbolTypeRef& base)
 {
@@ -748,7 +719,8 @@ SymbolTypeRef SymbolType::Generic(const String& name,
         TYPE_GENERIC,
         base,
         nullptr,
-        members));
+        members,
+        staticMembers));
 
     res->m_genericInfo = info;
 
@@ -758,6 +730,7 @@ SymbolTypeRef SymbolType::Generic(const String& name,
 SymbolTypeRef SymbolType::Generic(const String& name,
     const RC<AstExpression>& defaultValue,
     const Array<SymbolTypeMember>& members,
+    const Array<SymbolTypeMember>& staticMembers,
     const GenericTypeInfo& info,
     const SymbolTypeRef& base)
 {
@@ -766,7 +739,8 @@ SymbolTypeRef SymbolType::Generic(const String& name,
         TYPE_GENERIC,
         base,
         defaultValue,
-        members));
+        members,
+        staticMembers));
 
     res->m_genericInfo = info;
 
@@ -871,8 +845,7 @@ String SymbolType::ToString(bool includeParameterNames) const
 
 SymbolTypeRef SymbolType::GenericInstance(
     const SymbolTypeRef& base,
-    const GenericInstanceTypeInfo& info,
-    const Array<SymbolTypeMember>& members)
+    const GenericInstanceTypeInfo& info)
 {
     Assert(info.m_genericArgs.Size() >= 1,
         "Generic Instances must have at least 1 argument (@return is the first argument and must always be present)");
@@ -883,15 +856,10 @@ SymbolTypeRef SymbolType::GenericInstance(
     const String name = base->GetName();
 
     Array<SymbolTypeMember> allMembers;
-    allMembers.Reserve(base->GetMembers().Size() + members.Size());
+    allMembers.Reserve(base->GetMembers().Size());
 
-    for (const SymbolTypeMember& member : members)
-    {
-        allMembers.PushBack(SymbolTypeMember {
-            member.name,
-            member.type,
-            CloneAstNode(member.expr) });
-    }
+    Array<SymbolTypeMember> allStaticMembers;
+    allStaticMembers.Reserve(base->GetStaticMembers().Size());
 
     SymbolTypeRef currentBase = base;
 
@@ -917,6 +885,26 @@ SymbolTypeRef SymbolType::GenericInstance(
                 CloneAstNode(member.expr) });
         }
 
+        for (const SymbolTypeMember& staticMember : currentBase->GetStaticMembers())
+        {
+            const auto overridenStaticMemberIt = allStaticMembers.FindIf([&staticMember](const auto& otherMember)
+                {
+                    return otherMember.name == staticMember.name;
+                });
+
+            if (overridenStaticMemberIt != allStaticMembers.End())
+            {
+                // if member is overriden, skip it
+                continue;
+            }
+
+            // push copy (clone assignment value)
+            allStaticMembers.PushBack(SymbolTypeMember {
+                staticMember.name,
+                staticMember.type,
+                CloneAstNode(staticMember.expr) });
+        }
+
         currentBase = currentBase->GetBaseType();
     }
 
@@ -925,40 +913,30 @@ SymbolTypeRef SymbolType::GenericInstance(
         TYPE_GENERIC_INSTANCE,
         base,
         nullptr,
-        allMembers));
+        allMembers,
+        allStaticMembers));
 
-    auto defaultValue = base->GetDefaultValue();
-
+    RC<AstExpression> defaultValue = CloneAstNode(base->GetDefaultValue());
     res->SetDefaultValue(defaultValue);
+
     res->SetFlags(base->GetFlags());
     res->m_genericInstanceInfo = info;
 
     return res;
 }
 
-SymbolTypeRef SymbolType::GenericInstance(
-    const SymbolTypeRef& base,
-    const GenericInstanceTypeInfo& info)
-{
-    return GenericInstance(base, info, {});
-}
-
 SymbolTypeRef SymbolType::GenericParameter(
     const String& name,
     const SymbolTypeRef& base)
 {
-    SymbolTypeRef res(new SymbolType(
-        name,
-        TYPE_GENERIC_PARAMETER,
-        base));
-
-    return res;
+    return SymbolTypeRef(new SymbolType(name, TYPE_GENERIC_PARAMETER, base));
 }
 
 SymbolTypeRef SymbolType::Extend(
     const String& name,
     const SymbolTypeRef& base,
-    const Array<SymbolTypeMember>& members)
+    const Array<SymbolTypeMember>& members,
+    const Array<SymbolTypeMember>& staticMembers)
 {
     Assert(base != nullptr);
 
@@ -969,11 +947,8 @@ SymbolTypeRef SymbolType::Extend(
             : base->GetTypeClass(),
         base,
         base->GetDefaultValue(),
-        members));
-
-    // symbolType->SetDefaultValue(RC<AstObject>(
-    //     new AstObject(symbolType, SourceLocation::eof)
-    // ));
+        members,
+        staticMembers));
 
     symbolType->m_genericInfo = base->m_genericInfo;
     symbolType->m_genericInstanceInfo = base->m_genericInstanceInfo;
@@ -983,9 +958,7 @@ SymbolTypeRef SymbolType::Extend(
     return symbolType;
 }
 
-SymbolTypeRef SymbolType::TypePromotion(
-    const SymbolTypeRef& lptr,
-    const SymbolTypeRef& rptr)
+SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolTypeRef& rptr)
 {
     if (lptr == nullptr || rptr == nullptr)
     {
@@ -1126,10 +1099,7 @@ SymbolTypeRef SymbolType::SubstituteGenericParams(
             newGenericTypes.PushBack(newArg);
         }
 
-        return SymbolType::GenericInstance(
-            baseType,
-            GenericInstanceTypeInfo {
-                newGenericTypes });
+        return SymbolType::GenericInstance(baseType, GenericInstanceTypeInfo { newGenericTypes });
     }
     }
 

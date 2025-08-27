@@ -124,19 +124,11 @@ public:
         const String& name,
         const RC<AstExpression>& defaultValue);
 
-    static SymbolTypeRef Primitive(
-        const String& name,
-        const RC<AstExpression>& defaultValue,
-        const SymbolTypeRef& base);
-
     static SymbolTypeRef Object(
         const String& name,
-        const Array<SymbolTypeMember>& members);
-
-    static SymbolTypeRef Object(
-        const String& name,
+        const SymbolTypeRef& base,
         const Array<SymbolTypeMember>& members,
-        const SymbolTypeRef& base);
+        const Array<SymbolTypeMember>& staticMembers);
 
     /** A generic type template. Members may have the type class TYPE_GENERIC_PARAMETER.
         They will be substituted when an instance of the generic type is created.
@@ -144,6 +136,7 @@ public:
     static SymbolTypeRef Generic(
         const String& name,
         const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers,
         const GenericTypeInfo& info,
         const SymbolTypeRef& base);
 
@@ -151,13 +144,9 @@ public:
         const String& name,
         const RC<AstExpression>& defaultValue,
         const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers,
         const GenericTypeInfo& info,
         const SymbolTypeRef& base);
-
-    static SymbolTypeRef GenericInstance(
-        const SymbolTypeRef& base,
-        const GenericInstanceTypeInfo& info,
-        const Array<SymbolTypeMember>& members);
 
     static SymbolTypeRef GenericInstance(
         const SymbolTypeRef& base,
@@ -170,7 +159,8 @@ public:
     static SymbolTypeRef Extend(
         const String& name,
         const SymbolTypeRef& base,
-        const Array<SymbolTypeMember>& members);
+        const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers);
 
     static SymbolTypeRef TypePromotion(
         const SymbolTypeRef& lptr,
@@ -198,22 +188,25 @@ public:
         SymbolTypeClass typeClass,
         const SymbolTypeRef& base,
         const RC<AstExpression>& defaultValue,
-        const Array<SymbolTypeMember>& members);
+        const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers);
 
     SymbolType(const SymbolType& other) = delete;
     SymbolType& operator=(const SymbolType& other) = delete;
-    SymbolType(SymbolType&& other) = delete;
-    SymbolType& operator=(SymbolType&& other) = delete;
-    ~SymbolType() = default;
+    SymbolType(SymbolType&& other) noexcept = delete;
+    SymbolType& operator=(SymbolType&& other) noexcept = delete;
+    ~SymbolType() override = default;
 
     const String& GetName() const
     {
         return m_name;
     }
+
     SymbolTypeClass GetTypeClass() const
     {
         return m_typeClass;
     }
+
     const SymbolTypeRef& GetBaseType() const
     {
         return m_base;
@@ -239,6 +232,16 @@ public:
         return m_members;
     }
 
+    Array<SymbolTypeMember>& GetStaticMembers()
+    {
+        return m_staticMembers;
+    }
+
+    const Array<SymbolTypeMember>& GetStaticMembers() const
+    {
+        return m_staticMembers;
+    }
+
     void SetMembers(const Array<SymbolTypeMember>& members)
     {
         m_members = members;
@@ -253,6 +256,7 @@ public:
     {
         return m_aliasInfo;
     }
+
     const AliasTypeInfo& GetAliasInfo() const
     {
         return m_aliasInfo;
@@ -262,6 +266,7 @@ public:
     {
         return m_functionInfo;
     }
+
     const FunctionTypeInfo& GetFunctionInfo() const
     {
         return m_functionInfo;
@@ -271,6 +276,7 @@ public:
     {
         return m_genericInfo;
     }
+
     const GenericTypeInfo& GetGenericInfo() const
     {
         return m_genericInfo;
@@ -280,6 +286,7 @@ public:
     {
         return m_genericInstanceInfo;
     }
+
     const GenericInstanceTypeInfo& GetGenericInstanceInfo() const
     {
         return m_genericInstanceInfo;
@@ -307,10 +314,12 @@ public:
     {
         return m_flags;
     }
+
     SymbolTypeFlags& GetFlags()
     {
         return m_flags;
     }
+
     void SetFlags(SymbolTypeFlags flags)
     {
         m_flags = flags;
@@ -416,6 +425,7 @@ private:
     String m_name;
     RC<AstExpression> m_defaultValue;
     Array<SymbolTypeMember> m_members;
+    Array<SymbolTypeMember> m_staticMembers;
 
     // type that this type is based off of
     SymbolTypeRef m_base;

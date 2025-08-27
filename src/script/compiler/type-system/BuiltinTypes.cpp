@@ -18,137 +18,122 @@ const SymbolTypeTrait BuiltinTypeTraits::variadic = {
     "@variadic"
 };
 
-const SymbolTypeRef BuiltinTypes::PRIMITIVE_TYPE = SymbolType::Primitive(
-    "<primitive-type>",
+const SymbolTypeRef BuiltinTypes::PRIMITIVE_TYPE = SymbolTypeRef(new SymbolType(
+    "<primitive>",
+    TYPE_BUILTIN,
     nullptr,
-    nullptr);
+    nullptr,
+    {}, {}));
 
-const SymbolTypeRef BuiltinTypes::UNDEFINED = SymbolType::Primitive(
-    "<error-type>",
-    RC<AstUndefined>(new AstUndefined(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+const SymbolTypeRef BuiltinTypes::UNDEFINED = SymbolTypeRef(new SymbolType(
+    "<error>",
+    TYPE_BUILTIN,
+    nullptr,
+    nullptr,
+    {}, {}));
 
-const SymbolTypeRef BuiltinTypes::ANY = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::ANY = SymbolTypeRef(new SymbolType(
     "Any",
-    RC<AstNil>(new AstNil(SourceLocation::eof)),
-    nullptr);
+    TYPE_BUILTIN,
+    nullptr,
+    nullptr,
+    {}, {}));
 
-const SymbolTypeRef BuiltinTypes::PLACEHOLDER = SymbolType::Primitive(
-    "<placeholder-type>",
-    RC<AstNil>(new AstNil(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+const SymbolTypeRef BuiltinTypes::PLACEHOLDER = SymbolTypeRef(new SymbolType(
+    "<placeholder>",
+    TYPE_BUILTIN,
+    nullptr,
+    nullptr,
+    {}, {}));
 
 const SymbolTypeRef BuiltinTypes::VOID_TYPE = SymbolType::Primitive(
     "void",
-    RC<AstUndefined>(new AstUndefined(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+    RC<AstUndefined>(new AstUndefined(SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::OBJECT = SymbolType::Primitive(
-    "Object",
-    nullptr,
-    BuiltinTypes::PRIMITIVE_TYPE);
+    "object",
+    nullptr);
 
 const SymbolTypeRef BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
     "Class",
     BuiltinTypes::OBJECT,
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "$proto",
-            BuiltinTypes::ANY,
-            RC<AstNil>(new AstNil(SourceLocation::eof)) },
-        SymbolTypeMember {
-            "base",
+    {},
+    { SymbolTypeMember {
+        "base",
+        BuiltinTypes::OBJECT,
+        RC<AstTypeRef>(new AstTypeRef(
             BuiltinTypes::OBJECT,
-            RC<AstTypeRef>(new AstTypeRef(
-                BuiltinTypes::OBJECT,
-                SourceLocation::eof)) } });
+            SourceLocation::eof)) } });
 
 // Enum type is a generic class type similar to Array<T>.
 // e.g. Enum<uint>
 const SymbolTypeRef BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
     "Enum",
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "base",
+    {},
+    { SymbolTypeMember {
+        "base",
+        BuiltinTypes::OBJECT,
+        RC<AstTypeRef>(new AstTypeRef(
             BuiltinTypes::OBJECT,
-            RC<AstTypeRef>(new AstTypeRef(
-                BuiltinTypes::OBJECT,
-                SourceLocation::eof)) } },
+            SourceLocation::eof)) } },
     GenericTypeInfo { 1 },
     BuiltinTypes::OBJECT);
 
 const SymbolTypeRef BuiltinTypes::INT = SymbolType::Primitive(
     "int",
-    RC<AstInteger>(new AstInteger(0, SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+    RC<AstInteger>(new AstInteger(0, SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::UNSIGNED_INT = SymbolType::Primitive(
     "uint",
-    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::FLOAT = SymbolType::Primitive(
     "float",
-    RC<AstFloat>(new AstFloat(0.0, SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+    RC<AstFloat>(new AstFloat(0.0, SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::BOOLEAN = SymbolType::Primitive(
     "bool",
-    RC<AstFalse>(new AstFalse(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+    RC<AstFalse>(new AstFalse(SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::STRING = SymbolType::Extend(
-    "String",
+    "string",
     BuiltinTypes::CLASS_TYPE,
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "$proto",
-            SymbolType::Primitive(
-                "EmptyStringLiteral", nullptr),
-            RC<AstString>(new AstString("", SourceLocation::eof)) },
-        SymbolTypeMember {
-            "base",
+    {},
+    { SymbolTypeMember {
+        "base",
+        BuiltinTypes::CLASS_TYPE,
+        RC<AstTypeRef>(new AstTypeRef(
             BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeRef>(new AstTypeRef(
-                BuiltinTypes::CLASS_TYPE,
-                SourceLocation::eof)),
-        } });
+            SourceLocation::eof)),
+    } });
 
 const SymbolTypeRef BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
-    "<null-type>",
-    RC<AstNil>(new AstNil(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE);
+    "<null>",
+    RC<AstNil>(new AstNil(SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::MODULE_INFO = SymbolType::Object(
     "ModuleInfo",
-    { SymbolTypeMember {
-          "id",
-          BuiltinTypes::INT,
-          BuiltinTypes::INT->GetDefaultValue() },
-        SymbolTypeMember {
-            "name",
-            BuiltinTypes::STRING,
-            BuiltinTypes::STRING->GetDefaultValue() } });
+    BuiltinTypes::OBJECT,
+    {
+        SymbolTypeMember { "id", BuiltinTypes::INT, BuiltinTypes::INT->GetDefaultValue() },
+        SymbolTypeMember { "name", BuiltinTypes::STRING, BuiltinTypes::STRING->GetDefaultValue() },
+    },
+    {});
 
 const SymbolTypeRef BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
-    "generic",
-    Array<SymbolTypeMember> {
-        SymbolTypeMember {
-            "$proto",
-            SymbolType::Primitive(
-                "GenericInstance", nullptr),
-            nullptr },
-        SymbolTypeMember {
-            "base",
+    "<generic>",
+    {},
+    { SymbolTypeMember {
+        "base",
+        BuiltinTypes::CLASS_TYPE,
+        RC<AstTypeRef>(new AstTypeRef(
             BuiltinTypes::CLASS_TYPE,
-            RC<AstTypeRef>(new AstTypeRef(
-                BuiltinTypes::CLASS_TYPE,
-                SourceLocation::eof)) } },
+            SourceLocation::eof)) } },
     GenericTypeInfo { -1 },
     BuiltinTypes::CLASS_TYPE);
 
 const SymbolTypeRef BuiltinTypes::FUNCTION_BASE = SymbolType::Primitive(
     "FunctionBase",
-    nullptr,
-    BuiltinTypes::PRIMITIVE_TYPE);
+    nullptr);
+
 } // namespace hyperion::compiler

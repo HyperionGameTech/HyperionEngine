@@ -110,10 +110,10 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             break;
         }
 
-        { // Check for members on the object's prototype
+        {
             uint32 fieldIndex = ~0u;
 
-            if (m_targetType->FindPrototypeMember(m_fieldName, member, fieldIndex))
+            if (m_targetType->FindMember(m_fieldName, member, fieldIndex))
             {
                 // only set m_foundIndex if found in first level.
                 // for members from base objects,
@@ -141,42 +141,42 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
     Assert(m_targetType != nullptr);
 
-    // Look for members on the object itself (static members)
-    if (fieldType == nullptr)
-    {
-        const AstExpression* valueOf = m_target->GetDeepValueOf();
-        Assert(valueOf != nullptr);
+    // // Look for members on the object itself (static members)
+    // if (fieldType == nullptr)
+    // {
+    //     const AstExpression* valueOf = m_target->GetDeepValueOf();
+    //     Assert(valueOf != nullptr);
 
-        if (SymbolTypeRef heldType = valueOf->GetHeldType())
-        {
-            if (heldType->IsAnyType())
-            {
-                fieldType = BuiltinTypes::ANY;
-            }
-            else if (heldType->IsPlaceholderType() || heldType->IsGenericParameter())
-            {
-                fieldType = BuiltinTypes::PLACEHOLDER;
-            }
-            else
-            {
-                uint32 fieldIndex = ~0u;
-                uint32 depth = 0;
+    //     if (SymbolTypeRef heldType = valueOf->GetHeldType())
+    //     {
+    //         if (heldType->IsAnyType())
+    //         {
+    //             fieldType = BuiltinTypes::ANY;
+    //         }
+    //         else if (heldType->IsPlaceholderType() || heldType->IsGenericParameter())
+    //         {
+    //             fieldType = BuiltinTypes::PLACEHOLDER;
+    //         }
+    //         else
+    //         {
+    //             uint32 fieldIndex = ~0u;
+    //             uint32 depth = 0;
 
-                if (heldType->FindMemberDeep(m_fieldName, member, fieldIndex, depth))
-                {
-                    // only set m_foundIndex if found in first level.
-                    // for members from base objects,
-                    // we load based on hash.
-                    if (depth == 0)
-                    {
-                        m_foundIndex = fieldIndex;
-                    }
+    //             if (heldType->FindMemberDeep(m_fieldName, member, fieldIndex, depth))
+    //             {
+    //                 // only set m_foundIndex if found in first level.
+    //                 // for members from base objects,
+    //                 // we load based on hash.
+    //                 if (depth == 0)
+    //                 {
+    //                     m_foundIndex = fieldIndex;
+    //                 }
 
-                    fieldType = member.type;
-                }
-            }
-        }
-    }
+    //                 fieldType = member.type;
+    //             }
+    //         }
+    //     }
+    // }
 
     if (fieldType != nullptr)
     {

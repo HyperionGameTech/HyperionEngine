@@ -103,11 +103,6 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
     // Create scope
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
 
-    SymbolTypeRef prototypeType = SymbolType::Object(
-        "$$" + m_name + "Prototype",
-        {},
-        BuiltinTypes::OBJECT);
-
     SymbolTypeRef baseType = m_baseType;
 
     if (m_baseSpecification != nullptr)
@@ -145,13 +140,14 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
             m_symbolType = SymbolType::Extend(
                 m_name,
                 baseType,
-                {});
+                {}, {});
         }
         else
         {
             m_symbolType = SymbolType::Object(
                 m_name,
-                {});
+                BuiltinTypes::OBJECT,
+                {}, {});
         }
 
         if (m_isProxyClass)
@@ -163,87 +159,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
         }
-
-        // special names
-        bool protoFound = false;
-        bool baseFound = false;
-        bool nameFound = false;
-
-        for (const auto& mem : m_staticMembers)
-        {
-            Assert(mem != nullptr);
-
-            if (mem->GetName() == "$proto")
-            {
-                protoFound = true;
-                hasCustomProto = true;
-            }
-            else if (mem->GetName() == "base")
-            {
-                baseFound = true;
-            }
-            else if (mem->GetName() == "name")
-            {
-                nameFound = true;
-            }
-        }
-
-        if (!protoFound)
-        { // no custom '$proto' member, add default.
-            m_symbolType->AddMember(SymbolTypeMember {
-                "$proto",
-                prototypeType,
-                RC<AstTypeRef>(new AstTypeRef(
-                    prototypeType,
-                    m_location)) });
-        }
-
-        if (!baseFound)
-        { // no custom 'base' member, add default
-            m_symbolType->AddMember(SymbolTypeMember {
-                "base",
-                BuiltinTypes::CLASS_TYPE,
-                RC<AstTypeRef>(new AstTypeRef(
-                    baseType,
-                    m_location)) });
-        }
-
-        if (!nameFound)
-        { // no custom 'name' member, add default
-            m_symbolType->AddMember(SymbolTypeMember {
-                "name",
-                BuiltinTypes::STRING,
-                RC<AstString>(new AstString(
-                    m_name,
-                    m_location)) });
-        }
-
-        if (hasCustomProto)
-        {
-            m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
-        }
     }
-
-    // m_symbolType->SetTypeObject(m_typeObject);
-
-    // Add the symbol type to the identifier table so that it can be used within the type definition.
-    // scope->GetIdentifierTable().AddSymbolType(m_symbolType);
-
-    // if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG)) { // add symbol type to be usable within members
-    //     SymbolTypeRef placeholderType = m_symbolType;
-
-    //     // If the type is generic, we need to use a placeholder type
-    //     // so that we can use the type within the type definition, without having to
-    //     // instantiate it first.
-    //     // if (m_symbolType->IsGeneric()) {
-    //         placeholderType = SymbolType::Alias(
-    //             m_symbolType->GetName(),
-    //             { BuiltinTypes::PLACEHOLDER }
-    //         );
-    //     // }
-
-    //     scope->GetIdentifierTable().AddSymbolType(placeholderType);
-    // }
 
     { // add type aliases to be usable within members
         scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
@@ -296,7 +212,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
 
                 Assert(mem->GetIdentifier() != nullptr);
 
-                prototypeType->AddMember(SymbolTypeMember {
+                m_symbolType->AddMember(SymbolTypeMember {
                     mem->GetName(),
                     mem->GetIdentifier()->GetSymbolType(),
                     mem->GetRealAssignment() });
@@ -337,7 +253,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
                     constructorMember = member;
                 }
 
-                prototypeType->AddMember(std::move(member));
+                m_symbolType->AddMember(std::move(member));
             }
         }
     }

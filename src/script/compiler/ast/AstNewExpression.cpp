@@ -48,7 +48,6 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(valueOf != nullptr);
 
     m_instanceType = BuiltinTypes::UNDEFINED;
-    m_prototypeType = BuiltinTypes::UNDEFINED;
 
     SymbolTypeRef exprType = valueOf->GetExprType();
     Assert(exprType != nullptr);
@@ -58,24 +57,12 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         m_instanceType = heldType->GetUnaliased();
         m_objectValue = m_proto->GetDefaultValue(); // may be nullptr
-        m_prototypeType = m_proto->GetPrototypeType();
     }
     else
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_not_a_type,
-            m_location,
-            exprType->ToString()));
-
-        return;
-    }
-
-    if (m_prototypeType == nullptr)
-    {
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_type_missing_prototype,
             m_location,
             exprType->ToString()));
 
@@ -97,9 +84,9 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
         static constexpr const char* constructMethodName = "$construct";
         static constexpr const char* tempVarName = "__$tempNewTarget";
 
-        const bool isAny = m_prototypeType->IsAnyType();
-        const bool isPlaceholder = m_prototypeType->IsPlaceholderType();
-        const bool hasConstructMember = m_prototypeType->FindMember(constructMethodName) != nullptr;
+        const bool isAny = m_instanceType->IsAnyType();
+        const bool isPlaceholder = m_instanceType->IsPlaceholderType();
+        const bool hasConstructMember = m_instanceType->FindMember(constructMethodName) != nullptr;
 
         if (isAny || isPlaceholder || hasConstructMember)
         {
@@ -177,13 +164,13 @@ UniquePtr<Buildable> AstNewExpression::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    Assert(m_prototypeType != nullptr);
+    Assert(m_instanceType != nullptr);
 
 #if HYP_SCRIPT_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE
     // does not currently work in templates
     // e.g `new X` where `X` is `String` as a template argument, attempts to
     // construct the object rather than baking in
-    if (m_objectValue != nullptr && m_prototypeType->GetTypeClass() == TYPE_BUILTIN)
+    if (m_objectValue != nullptr && m_instanceType->GetTypeClass() == TYPE_BUILTIN)
     {
         chunk->Append(m_objectValue->Build(visitor, mod));
     }

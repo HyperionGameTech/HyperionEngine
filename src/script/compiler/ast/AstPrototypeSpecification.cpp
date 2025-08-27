@@ -63,58 +63,8 @@ void AstPrototypeSpecification::Visit(AstVisitor* visitor, Module* mod)
     }
 
     m_symbolType = heldType;
-    FindPrototypeType(heldType);
-
-    // m_symbolType = BuiltinTypes::UNDEFINED;
-    // m_prototypeType = BuiltinTypes::UNDEFINED;
-
-    // if (heldType->IsAnyType()) {
-    //     // it is a dynamic type
-    //     m_symbolType = BuiltinTypes::ANY;
-    //     m_prototypeType = BuiltinTypes::ANY;
-    //     m_defaultValue = BuiltinTypes::ANY->GetDefaultValue();
-
-    //     return;
-    // }
-
-    // if (heldType->IsPlaceholderType()) {
-    //     m_symbolType = BuiltinTypes::PLACEHOLDER;
-    //     m_prototypeType = BuiltinTypes::PLACEHOLDER;
-    //     m_defaultValue = BuiltinTypes::PLACEHOLDER->GetDefaultValue();
-
-    //     return;
-    // }
-
-    // if (FindPrototypeType(heldType)) {
-    //     m_symbolType = heldType;
-    // } else {
-    //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-    //         LEVEL_ERROR,
-    //         Msg_type_missing_prototype,
-    //         m_location,
-    //         heldType->ToString()
-    //     ));
-    // }
-
-    // if (foundSymbolType != heldType && foundSymbolType != nullptr) {
-    //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-    //         LEVEL_ERROR,
-    //         Msg_type_missing_prototype,
-    //         m_location,
-    //         exprType->ToString() + " (expanded: " + foundSymbolType->ToString() + ")"
-    //     ));
-    // } else {
-    //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-    //         LEVEL_ERROR,
-    //         Msg_type_missing_prototype,
-    //         m_location,
-    //         exprType->ToString()
-    //     ));
-    // }
-    // }
 
     Assert(m_symbolType != nullptr);
-    // Assert(m_prototypeType != nullptr);
 }
 
 UniquePtr<Buildable> AstPrototypeSpecification::Build(AstVisitor* visitor, Module* mod)
@@ -127,37 +77,6 @@ void AstPrototypeSpecification::Optimize(AstVisitor* visitor, Module* mod)
 {
     Assert(m_expr != nullptr);
     m_expr->Optimize(visitor, mod);
-}
-
-bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypeRef& symbolType)
-{
-    if (symbolType->GetTypeClass() == TYPE_BUILTIN || symbolType->IsGenericParameter())
-    {
-        m_prototypeType = symbolType;
-        m_prototypeType = m_prototypeType->GetUnaliased();
-
-        m_defaultValue = symbolType->GetDefaultValue();
-
-        return true;
-    }
-
-    SymbolTypeMember protoMember;
-
-    if (symbolType->FindMember("$proto", protoMember))
-    {
-        m_prototypeType = protoMember.type;
-        Assert(m_prototypeType != nullptr);
-        m_prototypeType = m_prototypeType->GetUnaliased();
-
-        if (m_prototypeType->GetTypeClass() == TYPE_BUILTIN)
-        {
-            m_defaultValue = protoMember.expr;
-        }
-
-        return true;
-    }
-
-    return false;
 }
 
 RC<AstStatement> AstPrototypeSpecification::Clone() const

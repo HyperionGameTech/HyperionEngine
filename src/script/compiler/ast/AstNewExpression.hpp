@@ -50,7 +50,6 @@ private:
     /** Set while analyzing */
     RC<AstExpression> m_objectValue;
     SymbolTypeRef m_instanceType;
-    SymbolTypeRef m_prototypeType;
     RC<AstBlock> m_constructorBlock; // create a block to store temporary vars
     RC<AstExpression> m_constructorCall;
 
@@ -65,4 +64,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

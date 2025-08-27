@@ -20,10 +20,6 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    const SymbolTypeRef& GetPrototypeType() const
-    {
-        return m_prototypeType;
-    }
     const RC<AstExpression>& GetDefaultValue() const
     {
         return m_defaultValue;
@@ -53,13 +49,10 @@ public:
     }
 
 protected:
-    bool FindPrototypeType(const SymbolTypeRef& symbolType);
-
     RC<AstExpression> m_expr;
 
     /** Set while analyzing */
     SymbolTypeRef m_symbolType;
-    SymbolTypeRef m_prototypeType;
     RC<AstExpression> m_defaultValue;
 
 private:
@@ -72,4 +65,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-
