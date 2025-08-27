@@ -47,7 +47,7 @@ Builtins::Builtins(CompilationUnit* unit)
                         RC<AstTrue>(new AstTrue(BUILTIN_SOURCE_LOCATION)),
                         IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_TRAIT,
                         BUILTIN_SOURCE_LOCATION)) },
-                true, // proxy class, so we can use Map<K, V>.length() like {}.length()
+                true, // proxy class
                 BUILTIN_SOURCE_LOCATION)),
             { RC<AstParameter>(new AstParameter(
                 "T",
@@ -76,7 +76,7 @@ Builtins::Builtins(CompilationUnit* unit)
                 {},
                 {},
                 {},
-                true, // proxy class, so we can use Map<K, V>.length() like {}.length()
+                true, // proxy class
                 BUILTIN_SOURCE_LOCATION)),
             { RC<AstParameter>(new AstParameter(
                   "@return",

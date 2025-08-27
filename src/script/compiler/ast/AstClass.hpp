@@ -5,10 +5,6 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 
-#include <string>
-#include <memory>
-#include <vector>
-
 namespace hyperion::compiler {
 
 class AstClass : public AstExpression

@@ -459,10 +459,10 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     }
 
     // the label to jump to the very end
-    LabelId endLabel = contextGuard->NewLabel();
+    LabelId endLabel = contextGuard->NewLabel(NAME("AfterFunctionBody"));
     chunk->TakeOwnershipOfLabel(endLabel);
 
-    LabelId funcAddr = contextGuard->NewLabel();
+    LabelId funcAddr = contextGuard->NewLabel(NAME("FunctionBody"));
     chunk->TakeOwnershipOfLabel(funcAddr);
 
     // jump to end as to not execute the function body
@@ -471,7 +471,6 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     // store the function address before the function body
     chunk->Append(BytecodeUtil::Make<LabelMarker>(funcAddr));
 
-    // TODO add optimization to avoid duplicating the function body
     // Build the function
     chunk->Append(BuildFunctionBody(visitor, mod));
 
@@ -482,7 +481,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     // get register index
     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    auto func = BytecodeUtil::Make<BuildableFunction>();
+    auto func = BytecodeUtil::Make<ScriptFunction>();
     func->labelId = funcAddr;
     func->reg = rp;
     func->nargs = nargs;

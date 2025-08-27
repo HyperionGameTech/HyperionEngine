@@ -53,7 +53,7 @@ void AstTemplateExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(!m_isVisited);
     m_isVisited = true;
 
-    m_symbolType = BuiltinTypes::UNDEFINED;
+    m_symbolType = BuiltinTypes::PLACEHOLDER;
 
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
@@ -172,8 +172,7 @@ void AstTemplateExpression::Visit(AstVisitor* visitor, Module* mod)
         exprReturnType = BuiltinTypes::PLACEHOLDER;
     }
 
-    genericParamTypes.PushBack({ "@return",
-        exprReturnType });
+    genericParamTypes.PushBack({ "@return", exprReturnType });
 
     Assert(m_genericParams.Size() == paramSymbolTypes.Size());
 
@@ -186,9 +185,7 @@ void AstTemplateExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (defaultValue == nullptr)
         {
-            defaultValue = RC<AstTypeRef>(new AstTypeRef(
-                paramSymbolType,
-                SourceLocation::eof));
+            defaultValue = RC<AstTypeRef>(new AstTypeRef(paramSymbolType, m_location));
         }
 
         genericParamTypes.PushBack(GenericInstanceTypeInfo::Arg {
@@ -199,8 +196,7 @@ void AstTemplateExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_symbolType = SymbolType::GenericInstance(
         BuiltinTypes::GENERIC_VARIABLE_TYPE,
-        GenericInstanceTypeInfo {
-            genericParamTypes });
+        GenericInstanceTypeInfo { genericParamTypes });
 
     Assert(m_symbolType != nullptr);
 
@@ -283,7 +279,7 @@ SymbolTypeRef AstTemplateExpression::GetHeldType() const
     Assert(m_isVisited);
     Assert(m_expr != nullptr);
 
-    return m_expr->GetHeldType();
+    return BuiltinTypes::PLACEHOLDER;
 }
 
 const AstExpression* AstTemplateExpression::GetValueOf() const

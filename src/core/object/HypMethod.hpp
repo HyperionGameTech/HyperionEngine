@@ -24,10 +24,15 @@ namespace hyperion {
 class HypClass;
 
 #ifdef HYP_SCRIPT
+namespace vm {
 enum class Script_FunctionAddress : uint32;
 #ifndef INVALID_FUNCTION_ADDRESS
 #define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
 #endif
+} // namespace vm
+
+using vm::Script_FunctionAddress;
+
 #endif
 
 struct HypMethodParameter

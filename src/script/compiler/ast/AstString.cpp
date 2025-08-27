@@ -22,7 +22,7 @@ UniquePtr<Buildable> AstString::Build(AstVisitor* visitor, Module* mod)
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    auto instrString = BytecodeUtil::Make<BuildableString>();
+    auto instrString = BytecodeUtil::Make<ConstString>();
     instrString->reg = rp;
     instrString->value = m_value;
 

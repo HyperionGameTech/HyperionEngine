@@ -11,19 +11,7 @@
 #include <core/containers/String.hpp>
 #include <core/utilities/TypeId.hpp>
 
-#include <vector>
-#include <ostream>
-#include <cstring>
-#include <cstdint>
-#include <iostream>
-
-namespace hyperion {
-class HypField;
-class HypMethod;
-class HypConstant;
-class HypProperty;
-class IHypMember;
-} // namespace hyperion
+#include <core/object/HypClassAttribute.hpp>
 
 namespace hyperion::compiler {
 
@@ -304,37 +292,56 @@ struct LoadClass final : public Buildable
     virtual ~LoadClass() = default;
 };
 
-struct BuildableTryCatch final : public Buildable
+struct TryCatchInfo final : public Buildable
 {
     LabelId catchLabelId;
 };
 
-struct BuildableFunction final : public Buildable
+struct ScriptFunction final : public Buildable
 {
     RegIndex reg;
     LabelId labelId;
-    uint8_t nargs;
-    uint8_t flags;
+    uint8 nargs;
+    uint8 flags;
 };
 
-struct BuildableType final : public Buildable
+struct ClassTable final : public Buildable
 {
+    struct MemberInfo
+    {
+        String name;
+        TypeId typeId;
+        HypClassAttributeSet attrs;
+        uint16 stackOffset = UINT16_MAX;
+        bool isStatic : 1 = false;
+    };
+
+    struct FieldInfo : MemberInfo
+    {
+        TypeId targetTypeId;
+        uint32 offset = 0;
+        uint32 size = 0;
+    };
+
+    struct MethodInfo : MemberInfo
+    {
+        TypeId targetTypeId;
+    };
+
     RegIndex reg;
     String name;
-    Array<HypField*> fields;
-    Array<HypMethod*> methods;
-    Array<HypConstant*> constants;
-    Array<HypProperty*> properties;
+    Array<FieldInfo> fields;
+    Array<MethodInfo> methods;
 
-    virtual ~BuildableType();
+    ~ClassTable() override = default;
 };
 
-struct BuildableString final : public Buildable
+struct ConstString final : public Buildable
 {
     RegIndex reg;
     String value;
 
-    virtual ~BuildableString() = default;
+    virtual ~ConstString() = default;
 };
 
 struct BinOp final : public Instruction

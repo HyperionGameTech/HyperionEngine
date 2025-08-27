@@ -32,18 +32,15 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    const AstExpression* valueOf = m_expr->GetDeepValueOf();
-    Assert(valueOf != nullptr);
+    SymbolTypeRef heldType = m_expr->GetHeldType();
 
-    SymbolTypeRef heldType = valueOf->GetHeldType();
-
-    if (heldType == nullptr)
+    if (!heldType)
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_not_a_type,
             m_location,
-            valueOf->GetExprType()->ToString()));
+            m_expr->GetExprType()->ToString()));
 
         return;
     }
@@ -54,7 +51,7 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(heldType->GetGenericInstanceInfo().m_genericArgs.Size() == 1);
 
-        auto enumUnderlyingType = heldType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
+        SymbolTypeRef enumUnderlyingType = heldType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
         Assert(enumUnderlyingType != nullptr);
         enumUnderlyingType = enumUnderlyingType->GetUnaliased();
 

@@ -287,13 +287,13 @@ UniquePtr<Buildable> AstHashMap::Build(AstVisitor* visitor, Module* mod)
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
     { // load class from stack back into register
-        auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-        instrLoadOffset->GetBuilder()
+        auto storageOperation = BytecodeUtil::Make<StorageOperation>();
+        storageOperation->GetBuilder()
             .Load(rp)
             .Local()
             .ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - classStackLocation);
 
-        chunk->Append(std::move(instrLoadOffset));
+        chunk->Append(std::move(storageOperation));
     }
 
     { // load member `from` from array type expr

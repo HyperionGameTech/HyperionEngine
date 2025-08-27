@@ -599,7 +599,7 @@ public:
         thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(VMString(str)), false);
     }
 
-    HYP_FORCE_INLINE void LoadAddr(BCRegister reg, BCAddress addr)
+    HYP_FORCE_INLINE void LoadAddr(BCRegister reg, Script_FunctionAddress addr)
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::ADDRESS;
@@ -608,11 +608,7 @@ public:
         thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(vmData), false);
     }
 
-    HYP_FORCE_INLINE void LoadFunc(
-        BCRegister reg,
-        BCAddress addr,
-        uint8 nargs,
-        uint8 flags)
+    HYP_FORCE_INLINE void LoadFunc(BCRegister reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::FUNCTION;
@@ -1320,8 +1316,19 @@ public:
                     ubyte flags;
                     bs->Read(&flags);
 
-                    Script_FunctionAddress functionAddress;
-                    bs->Read(&functionAddress);
+                    uint16 stackOffset;
+                    bs->Read(&stackOffset);
+
+                    // load function info from stack address
+                    Assert(stackOffset <= thread->GetStack().GetStackPointer(), "Stack offset out of bounds!");
+                    Value& funcValue = thread->GetStack()[thread->GetStack().GetStackPointer() - stackOffset];
+
+                    Script_VMData* funcVmData = funcValue.GetVMData();
+                    Assert(funcVmData != nullptr);
+                    Assert(funcVmData->type == Script_VMData::FUNCTION);
+
+                    Script_FunctionAddress functionAddress = funcVmData->func.m_addr;
+                    Assert(functionAddress != INVALID_FUNCTION_ADDRESS);
 
                     // Create method
                     members.PushBack(HypMember(HypMethod(
@@ -1329,36 +1336,13 @@ public:
                         TypeId(memberTypeIdValue),
                         TypeId(targetTypeIdValue),
                         functionAddress,
-                        flags,
-                        attrs.ToSpan())));
-
-                    break;
-                }
-                case HypMemberType::TYPE_PROPERTY:
-                {
-                    members.PushBack(HypMember(HypProperty(
-                        CreateNameFromDynamicString(memberNameStr),
-                        TypeId(memberTypeIdValue),
-                        attrs.ToSpan())));
-
-                    break;
-                }
-                case HypMemberType::TYPE_CONSTANT:
-                {
-                    // constant writes value size
-                    uint32 valueSize;
-                    bs->Read(&valueSize);
-
-                    members.PushBack(HypMember(HypConstant(
-                        CreateNameFromDynamicString(memberNameStr),
-                        TypeId(memberTypeIdValue),
-                        valueSize,
+                        HypMethodFlags(flags),
                         attrs.ToSpan())));
 
                     break;
                 }
                 default:
-                    HYP_UNREACHABLE();
+                    HYP_NOT_IMPLEMENTED();
                     break;
                 }
 

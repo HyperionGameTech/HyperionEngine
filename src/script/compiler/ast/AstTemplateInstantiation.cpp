@@ -354,7 +354,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
             nullptr,
             RC<AstTypeRef>(new AstTypeRef(
                 heldType,
-                SourceLocation::eof)),
+                arg->GetLocation())),
             IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
             arg->GetLocation()));
 

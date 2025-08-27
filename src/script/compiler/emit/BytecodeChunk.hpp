@@ -17,6 +17,7 @@ namespace hyperion::compiler {
 struct BytecodeChunk final : public Buildable
 {
     Array<LabelId> labels;
+    Array<UniquePtr<Buildable>> buildables;
 
     BytecodeChunk();
     BytecodeChunk(const BytecodeChunk& other) = delete;
@@ -34,9 +35,6 @@ struct BytecodeChunk final : public Buildable
     {
         labels.PushBack(labelId);
     }
-
-    Array<UniquePtr<Buildable>> buildables;
 };
 
 } // namespace hyperion::compiler
-

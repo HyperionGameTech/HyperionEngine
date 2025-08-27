@@ -46,7 +46,7 @@ UniquePtr<Buildable> AstTryCatch::Build(AstVisitor* visitor, Module* mod)
     chunk->TakeOwnershipOfLabel(catchLabel);
 
     { // send the instruction to enter the try-block
-        auto instrBeginTry = BytecodeUtil::Make<BuildableTryCatch>();
+        auto instrBeginTry = BytecodeUtil::Make<TryCatchInfo>();
         instrBeginTry->catchLabelId = catchLabel;
         chunk->Append(std::move(instrBeginTry));
     }

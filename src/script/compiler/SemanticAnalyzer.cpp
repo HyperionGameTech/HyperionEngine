@@ -492,7 +492,7 @@ Optional<SymbolTypeFunctionSignature> SemanticAnalyzer::Helpers::SubstituteFunct
 
                         Assert(
                             SizeType(foundIndex) < substitutionResults.Size(),
-                            "Index out of bounds: %llu >= %llu",
+                            "Index out of bounds: {} >= {}",
                             foundIndex,
                             substitutionResults.Size());
 
@@ -563,7 +563,7 @@ Optional<SymbolTypeFunctionSignature> SemanticAnalyzer::Helpers::SubstituteFunct
 
                         Assert(
                             SizeType(foundIndex) < substitutionResults.Size(),
-                            "Index out of bounds: %llu >= %llu",
+                            "Index out of bounds: {} >= {}",
                             foundIndex,
                             substitutionResults.Size());
 
@@ -576,9 +576,10 @@ Optional<SymbolTypeFunctionSignature> SemanticAnalyzer::Helpers::SubstituteFunct
                     }
                     else if (foundIndex != SizeType(-1))
                     {
+                        DebugLog(LogType::Debug, "Found index : %d, results size: %u\n", foundIndex, substitutionResults.Size());
                         Assert(
                             SizeType(foundIndex) < substitutionResults.Size(),
-                            "Index out of bounds: %llu >= %llu",
+                            "Index out of bounds: {} >= {}",
                             foundIndex,
                             substitutionResults.Size());
 

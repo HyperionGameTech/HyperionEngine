@@ -32,10 +32,10 @@ public:
     virtual void Visit(ConstBool*) = 0;
     virtual void Visit(ConstNull*) = 0;
     virtual void Visit(LoadClass*) = 0;
-    virtual void Visit(BuildableTryCatch*) = 0;
-    virtual void Visit(BuildableFunction*) = 0;
-    virtual void Visit(BuildableType*) = 0;
-    virtual void Visit(BuildableString*) = 0;
+    virtual void Visit(TryCatchInfo*) = 0;
+    virtual void Visit(ScriptFunction*) = 0;
+    virtual void Visit(ClassTable*) = 0;
+    virtual void Visit(ConstString*) = 0;
     virtual void Visit(StorageOperation*) = 0;
     virtual void Visit(Comment*) = 0;
     virtual void Visit(SymbolExport*) = 0;

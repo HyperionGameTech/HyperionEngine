@@ -80,19 +80,19 @@ void BuildableVisitor::Visit(Buildable* buildable)
     {
         Visit(node);
     }
-    else if (auto* node = dynamic_cast<BuildableTryCatch*>(buildable))
+    else if (auto* node = dynamic_cast<TryCatchInfo*>(buildable))
     {
         Visit(node);
     }
-    else if (auto* node = dynamic_cast<BuildableFunction*>(buildable))
+    else if (auto* node = dynamic_cast<ScriptFunction*>(buildable))
     {
         Visit(node);
     }
-    else if (auto* node = dynamic_cast<BuildableType*>(buildable))
+    else if (auto* node = dynamic_cast<ClassTable*>(buildable))
     {
         Visit(node);
     }
-    else if (auto* node = dynamic_cast<BuildableString*>(buildable))
+    else if (auto* node = dynamic_cast<ConstString*>(buildable))
     {
         Visit(node);
     }

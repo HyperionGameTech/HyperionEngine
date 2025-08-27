@@ -11,29 +11,6 @@
 
 namespace hyperion::compiler {
 
-BuildableType::~BuildableType()
-{
-    for (HypField* field : fields)
-    {
-        delete field;
-    }
-
-    for (HypMethod* method : methods)
-    {
-        delete method;
-    }
-
-    for (HypConstant* constant : constants)
-    {
-        delete constant;
-    }
-
-    for (HypProperty* property : properties)
-    {
-        delete property;
-    }
-}
-
 CodeGenerator::CodeGenerator(BuildParams& buildParams)
     : buildParams(buildParams)
 {
@@ -256,13 +233,13 @@ void CodeGenerator::Visit(LoadClass* node)
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->nameHash), sizeof(node->nameHash));
 }
 
-void CodeGenerator::Visit(BuildableTryCatch* node)
+void CodeGenerator::Visit(TryCatchInfo* node)
 {
     m_ibs.Put(Instructions::BEGIN_TRY);
     m_ibs.AddFixup(node->catchLabelId, buildParams.blockOffset);
 }
 
-void CodeGenerator::Visit(BuildableFunction* node)
+void CodeGenerator::Visit(ScriptFunction* node)
 {
     // TODO: make it store and load statically
     m_ibs.Put(Instructions::LOAD_FUNC);
@@ -272,9 +249,8 @@ void CodeGenerator::Visit(BuildableFunction* node)
     m_ibs.Put(node->flags);
 }
 
-void CodeGenerator::Visit(BuildableType* node)
+void CodeGenerator::Visit(ClassTable* node)
 {
-    // TODO: make it store and load statically
     m_ibs.Put(Instructions::BEGIN_CLASS);
     m_ibs.Put(node->reg);
 
@@ -296,22 +272,21 @@ void CodeGenerator::Visit(BuildableType* node)
             uint16 size = (uint16)members.Size();
             m_ibs.Put(reinterpret_cast<ubyte*>(&size), sizeof(size));
 
-            for (const auto& member : members)
+            for (const ClassTable::MemberInfo& member : members)
             {
-                const char* nameStr = member->GetName().LookupString();
-                Assert(nameStr != nullptr, "Invalid member name");
+                const String& nameStr = member.name;
 
-                uint16 nameLen = (uint16)String(nameStr).Size();
+                uint16 nameLen = (uint16)nameStr.Size();
                 Assert(nameLen > 0, "Invalid member name length");
 
                 m_ibs.Put(reinterpret_cast<ubyte*>(&nameLen), sizeof(nameLen));
-                m_ibs.Put(reinterpret_cast<const ubyte*>(nameStr), nameLen);
+                m_ibs.Put(reinterpret_cast<const ubyte*>(nameStr.Data()), nameLen);
 
                 // write attrs
-                uint16 numAttrs = (uint16)member->GetAttributes().Size();
+                uint16 numAttrs = (uint16)member.attrs.Size();
                 m_ibs.Put(reinterpret_cast<ubyte*>(&numAttrs), sizeof(numAttrs));
 
-                for (const HypClassAttribute& attr : member->GetAttributes())
+                for (const HypClassAttribute& attr : member.attrs)
                 {
                     const char* attrStr = attr.name.LookupString();
                     Assert(attrStr != nullptr, "Invalid attribute name");
@@ -358,55 +333,62 @@ void CodeGenerator::Visit(BuildableType* node)
                 }
 
                 // write type id
-                TypeId::ValueType typeIdValue = member->GetTypeId().Value();
+                TypeId::ValueType typeIdValue = member.typeId.Value();
                 m_ibs.Put(reinterpret_cast<ubyte*>(&typeIdValue), sizeof(typeIdValue));
 
                 // field writes target type id, offset, size
                 if (memberType == HypMemberType::TYPE_FIELD)
                 {
-                    HypField* field = reinterpret_cast<HypField*>(member);
+                    const ClassTable::FieldInfo& fieldInfo = static_cast<const ClassTable::FieldInfo&>(member);
 
-                    TypeId::ValueType targetTypeIdValue = field->GetTargetTypeId().Value();
+                    TypeId::ValueType targetTypeIdValue = fieldInfo.targetTypeId.Value();
                     m_ibs.Put(reinterpret_cast<ubyte*>(&targetTypeIdValue), sizeof(targetTypeIdValue));
 
-                    uint32 offset = field->GetOffset();
+                    uint32 offset = fieldInfo.offset;
                     m_ibs.Put(reinterpret_cast<ubyte*>(&offset), sizeof(offset));
 
-                    uint32 size = field->GetSize();
+                    uint32 size = fieldInfo.size;
                     m_ibs.Put(reinterpret_cast<ubyte*>(&size), sizeof(size));
                 }
                 else if (memberType == HypMemberType::TYPE_METHOD)
                 {
-                    HypMethod* method = reinterpret_cast<HypMethod*>(member);
+                    const ClassTable::MethodInfo& methodInfo = static_cast<const ClassTable::MethodInfo&>(member);
 
-                    TypeId::ValueType targetTypeIdValue = method->GetTargetTypeId().Value();
+                    TypeId::ValueType targetTypeIdValue = methodInfo.targetTypeId.Value();
                     m_ibs.Put(reinterpret_cast<ubyte*>(&targetTypeIdValue), sizeof(targetTypeIdValue));
 
-                    EnumFlags<HypMethodFlags> flags = method->GetFlags();
-                    uint8 flagsAsU8 = uint8(flags);
-                    m_ibs.Put(flagsAsU8);
-                }
-                else if (memberType == HypMemberType::TYPE_CONSTANT)
-                {
-                    HypConstant* constant = reinterpret_cast<HypConstant*>(member);
+                    uint8 flags = 0;
 
-                    // constant size
-                    uint32 size = constant->GetSize();
-                    m_ibs.Put(reinterpret_cast<ubyte*>(&size), sizeof(size));
+                    if (methodInfo.isStatic)
+                    {
+                        flags |= (uint8)HypMethodFlags::STATIC;
+                    }
+                    else
+                    {
+                        flags |= (uint8)HypMethodFlags::MEMBER;
+                    }
+
+                    m_ibs.Put(flags);
+
+                    // put stack offset
+                    Assert(methodInfo.stackOffset != UINT16_MAX, "Method stack offset not set");
+                    m_ibs.Put(reinterpret_cast<const ubyte*>(&methodInfo.stackOffset), sizeof(methodInfo.stackOffset));
+                }
+                else
+                {
+                    HYP_NOT_IMPLEMENTED();
                 }
             }
         }
     };
 
-    writeMembers(node->constants, HypMemberType::TYPE_CONSTANT);
-    writeMembers(node->properties, HypMemberType::TYPE_PROPERTY);
     writeMembers(node->fields, HypMemberType::TYPE_FIELD);
     writeMembers(node->methods, HypMemberType::TYPE_METHOD);
 
     m_ibs.Put(Instructions::END_CLASS);
 }
 
-void CodeGenerator::Visit(BuildableString* node)
+void CodeGenerator::Visit(ConstString* node)
 {
     const uint32 len = uint32(node->value.Size());
 

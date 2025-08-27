@@ -53,7 +53,6 @@ void InternalByteStream::Bake(const BuildParams& buildParams)
 
         LabelPosition labelPosition = it->position;
         Assert(labelPosition != LabelPosition(-1), "Label position not set!");
-        // labelPosition += fixup.offset;
 
         const SizeType fixupPosition = fixup.position;
 

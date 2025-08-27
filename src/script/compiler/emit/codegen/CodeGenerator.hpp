@@ -49,10 +49,10 @@ public:
     virtual void Visit(ConstBool*);
     virtual void Visit(ConstNull*);
     virtual void Visit(LoadClass*);
-    virtual void Visit(BuildableTryCatch*);
-    virtual void Visit(BuildableFunction*);
-    virtual void Visit(BuildableType*);
-    virtual void Visit(BuildableString*);
+    virtual void Visit(TryCatchInfo*);
+    virtual void Visit(ScriptFunction*);
+    virtual void Visit(ClassTable*);
+    virtual void Visit(ConstString*);
     virtual void Visit(StorageOperation*);
     virtual void Visit(Comment*);
     virtual void Visit(SymbolExport*);
