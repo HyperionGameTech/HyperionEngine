@@ -28,6 +28,7 @@ namespace Hyperion
         }
     }
 
+    public delegate IntPtr CopyDynamicHypStructDelegate(IntPtr ptr);
     public delegate void DestructDynamicHypStructDelegate(IntPtr ptr);
 
     public class DynamicHypStruct : IDisposable
@@ -39,6 +40,7 @@ namespace Hyperion
 
         private HypClass hypClass;
         private Type type;
+        private GCHandle? copyFunctionHandle;
         private GCHandle? destructFunctionHandle;
         private bool ownsHypClass;
 
@@ -66,12 +68,20 @@ namespace Hyperion
                 typeIdCache[typeId] = this;
             }
 
+            CopyDynamicHypStructDelegate copyFunction = GetCopyFunction(type);
+            copyFunctionHandle = GCHandle.Alloc(copyFunction);
+
             DestructDynamicHypStructDelegate destructFunction = GetDestructFunction(type);
             destructFunctionHandle = GCHandle.Alloc(destructFunction);
 
             Logger.Log(LogType.Debug, "Creating dynamic HypStruct for type: " + type.Name);
 
-            IntPtr hypClassPtr = HypStruct_CreateDynamicHypStruct(ref typeId, type.Name, (uint)Marshal.SizeOf(type), Marshal.GetFunctionPointerForDelegate(destructFunction));
+            IntPtr hypClassPtr = HypStruct_CreateDynamicHypStruct(
+                ref typeId,
+                type.Name,
+                (uint)Marshal.SizeOf(type),
+                Marshal.GetFunctionPointerForDelegate(copyFunction),
+                Marshal.GetFunctionPointerForDelegate(destructFunction));
 
             if (hypClassPtr == IntPtr.Zero)
             {
@@ -187,8 +197,31 @@ namespace Hyperion
             };
         }
 
+        public static unsafe CopyDynamicHypStructDelegate GetCopyFunction(Type type)
+        {
+            return (ptr) =>
+            {
+                IntPtr newPtr = Marshal.AllocHGlobal(Marshal.SizeOf(type));
+
+                if (newPtr == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to allocate memory for copy of dynamic HypStruct");
+                }
+
+                // Copy memory
+                Buffer.MemoryCopy((void*)ptr, (void*)newPtr, Marshal.SizeOf(type), Marshal.SizeOf(type));
+
+                return newPtr;
+            };
+        }
+
         [DllImport("hyperion", EntryPoint = "HypStruct_CreateDynamicHypStruct")]
-        private static extern IntPtr HypStruct_CreateDynamicHypStruct([In] ref TypeId typeId, [MarshalAs(UnmanagedType.LPStr)] string typeName, uint size, IntPtr destructFunction);
+        private static extern IntPtr HypStruct_CreateDynamicHypStruct(
+            [In] ref TypeId typeId,
+            [MarshalAs(UnmanagedType.LPStr)] string typeName,
+            uint size,
+            IntPtr copyFunction,
+            IntPtr destructFunction);
 
         [DllImport("hyperion", EntryPoint = "HypStruct_DestroyDynamicHypStruct")]
         private static extern void HypStruct_DestroyDynamicHypStruct([In] IntPtr hypClassPtr);

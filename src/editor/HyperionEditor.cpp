@@ -134,7 +134,7 @@ void HyperionEditor::Init()
         String str;
         str = "class Base {}; \n"
             "class MyClass : Base {\n"
-            "    blah: int = 5;\n"
+            "    blah: string = \"hello\";\n"
             "    func x(a: int, b: int) { return a + b; };\n"
             "};\n"
             "ins : MyClass = new MyClass();\n"
@@ -142,7 +142,7 @@ void HyperionEditor::Init()
             "foobar : Function<> -> float = (){\n"
                 "return 5 as float;\n"
             "};\n"
-              "export func x(a: float, ref b: int) {\nb := 2;\nmodValue(b, () => 9);\nreturn ins.blah as float;\n};";
+              "export func x(a: float, ref b: int) {\nb := 2;\nmodValue(b, () => 9);\nreturn ins.blah;\n};";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

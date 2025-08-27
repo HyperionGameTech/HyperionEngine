@@ -81,8 +81,8 @@ public:
     CommandLineArgumentDefinitions();
     CommandLineArgumentDefinitions(const Array<CommandLineArgumentDefinition>& definitions);
 
-    CommandLineArgumentDefinitions(const CommandLineArgumentDefinitions& other) = delete;
-    CommandLineArgumentDefinitions& operator=(const CommandLineArgumentDefinitions& other) = delete;
+    CommandLineArgumentDefinitions(const CommandLineArgumentDefinitions& other);
+    CommandLineArgumentDefinitions& operator=(const CommandLineArgumentDefinitions& other);
 
     CommandLineArgumentDefinitions(CommandLineArgumentDefinitions&& other) noexcept = default;
     CommandLineArgumentDefinitions& operator=(CommandLineArgumentDefinitions&& other) noexcept = default;

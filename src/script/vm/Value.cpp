@@ -112,19 +112,33 @@ Value::Value(const Script_VMData& vmData)
     new (m_internal) HypData(userData);
 }
 
+Value::Value(const Value& other)
+    : m_gcIndex(INVALID_GC_INDEX)
+{
+    new (m_internal) HypData(*other.GetHypData());
+}
+
 Value::Value(Value&& other) noexcept
     : m_gcIndex(INVALID_GC_INDEX)
 {
-    Assert(other.m_gcIndex == INVALID_GC_INDEX); // should not be moved if it is tracked by the GC
     new (m_internal) HypData(std::move(*other.GetHypData()));
+}
+
+Value& Value::operator=(const Value& other)
+{
+    if (this != &other)
+    {
+        GetHypData()->~HypData();
+        new (m_internal) HypData(*other.GetHypData());
+    }
+
+    return *this;
 }
 
 Value& Value::operator=(Value&& other) noexcept
 {
     if (this != &other)
     {
-        Assert(m_gcIndex == INVALID_GC_INDEX && other.m_gcIndex == INVALID_GC_INDEX); // should not be assigned to if it is tracked by the GC
-
         GetHypData()->~HypData();
         new (m_internal) HypData(std::move(*other.GetHypData()));
     }

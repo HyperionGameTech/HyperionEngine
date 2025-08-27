@@ -17,9 +17,11 @@ class VMArray
 {
 public:
     explicit VMArray(SizeType size = 0);
-    VMArray(VMArray&& other) noexcept;
-    VMArray& operator=(VMArray&& other) noexcept;
-    ~VMArray();
+    VMArray(const VMArray& other) = default;
+    VMArray& operator=(const VMArray& other) = default;
+    VMArray(VMArray&& other) noexcept = default;
+    VMArray& operator=(VMArray&& other) noexcept = default;
+    ~VMArray() = default;
 
     bool operator==(const VMArray& other) const
     {
@@ -58,8 +60,6 @@ public:
 
     void Resize(SizeType newSize);
     void Push(Value&& value);
-    void PushMany(SizeType n, Value* values);
-    void PushMany(SizeType n, Value** values);
     void Pop();
 
     void GetRepresentation(
@@ -78,4 +78,3 @@ private:
 
 } // namespace vm
 } // namespace hyperion
-

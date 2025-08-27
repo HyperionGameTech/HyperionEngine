@@ -32,7 +32,7 @@ class AnyRefBase
 public:
     friend class AnyBase;
     friend class Any;
-    friend class CopyableAny;
+    friend class Any;
 
     AnyRefBase(TypeId typeId, PointerType ptr)
         : m_typeId(typeId),
@@ -181,7 +181,7 @@ class AnyRef : public AnyRefBase
 public:
     friend class AnyBase;
     friend class Any;
-    friend class CopyableAny;
+    friend class Any;
 
     AnyRef()
         : AnyRefBase(TypeId::ForType<void>(), nullptr)
@@ -307,7 +307,7 @@ class ConstAnyRef : public AnyRefBase
 public:
     friend class AnyBase;
     friend class Any;
-    friend class CopyableAny;
+    friend class Any;
 
     ConstAnyRef()
         : AnyRefBase(TypeId::ForType<void>(), nullptr)

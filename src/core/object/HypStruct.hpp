@@ -94,7 +94,7 @@ public:
     }
 
     virtual ~HypStructInstance() override = default;
-    
+
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override
     {
@@ -297,6 +297,73 @@ protected:
             HYP_NOT_IMPLEMENTED();
         }
     }
+};
+
+using DynamicHypStructInstance_CopyFunction = void* (*)(const void*);
+using DynamicHypStructInstance_DestructFunction = void (*)(void*);
+
+class DynamicHypStructInstance final : public HypStruct
+{
+public:
+    DynamicHypStructInstance(
+        TypeId typeId,
+        Name name,
+        uint32 size,
+        Span<const HypClassAttribute> attributes,
+        EnumFlags<HypClassFlags> flags,
+        Span<HypMember> members,
+        DynamicHypStructInstance_CopyFunction copyFunction,
+        DynamicHypStructInstance_DestructFunction destructFunction);
+
+    virtual ~DynamicHypStructInstance() override;
+
+#ifdef HYP_DOTNET
+    virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override;
+#endif
+
+    virtual bool CanCreateInstance() const override
+    {
+        return true;
+    }
+
+    virtual bool ToHypData(ByteView memory, HypData& out) const override;
+
+    virtual FBOMResult SerializeStruct(ConstAnyRef in, FBOMObject& out) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+protected:
+    virtual void PostLoad_Internal(void* objectPtr) const override
+    {
+    }
+
+    virtual bool CreateInstance_Internal(HypData& out) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+
+        return false;
+    }
+
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+
+        return false;
+    }
+
+    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    DynamicHypStructInstance_CopyFunction m_copyFunction;
+    DynamicHypStructInstance_DestructFunction m_destructFunction;
 };
 
 } // namespace hyperion

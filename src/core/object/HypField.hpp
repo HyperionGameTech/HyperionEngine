@@ -65,7 +65,7 @@ public:
             const uintptr_t memberAddress = baseAddress + offset;
             HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
 
-            return HypData(reinterpret_cast<const HypData*>(memberAddress)->ToRef());
+            return *reinterpret_cast<const HypData*>(memberAddress);
         };
     }
 

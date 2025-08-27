@@ -230,10 +230,10 @@ public:
     explicit Value(Number number);
     explicit Value(const Script_VMData& vmData);
 
-    Value(const Value& other) = delete;
+    Value(const Value& other);
     Value(Value&& other) noexcept;
 
-    Value& operator=(const Value& other) = delete;
+    Value& operator=(const Value& other);
     Value& operator=(Value&& other) noexcept;
 
     ~Value();

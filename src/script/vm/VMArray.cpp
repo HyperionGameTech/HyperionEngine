@@ -14,25 +14,6 @@ VMArray::VMArray(SizeType size)
     m_internalArray.Resize(size);
 }
 
-VMArray::VMArray(VMArray&& other) noexcept
-    : m_internalArray(std::move(other.m_internalArray))
-{
-}
-
-VMArray& VMArray::operator=(VMArray&& other) noexcept
-{
-    if (&other == this)
-    {
-        return *this;
-    }
-
-    m_internalArray = std::move(other.m_internalArray);
-
-    return *this;
-}
-
-VMArray::~VMArray() = default;
-
 void VMArray::Resize(SizeType newSize)
 {
     m_internalArray.Resize(newSize);
@@ -41,27 +22,6 @@ void VMArray::Resize(SizeType newSize)
 void VMArray::Push(Value&& value)
 {
     m_internalArray.PushBack(std::move(value));
-}
-
-void VMArray::PushMany(SizeType n, Value* values)
-{
-    m_internalArray.Reserve(m_internalArray.Size() + n);
-
-    for (SizeType i = 0; i < n; i++)
-    {
-        m_internalArray.PushBack(std::move(values[i]));
-    }
-}
-
-void VMArray::PushMany(SizeType n, Value** values)
-{
-    m_internalArray.Reserve(m_internalArray.Size() + n);
-
-    for (SizeType i = 0; i < n; i++)
-    {
-        Assert(values[i] != nullptr);
-        m_internalArray.PushBack(std::move(*values[i]));
-    }
 }
 
 void VMArray::Pop()

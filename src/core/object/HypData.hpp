@@ -163,8 +163,24 @@ struct HypData
         HypDataHelper<NormalizedType<T>> {}.Set(*this, std::forward<T>(value));
     }
 
-    HypData(const HypData& other) = delete;
-    HypData& operator=(const HypData& other) = delete;
+    HypData(const HypData& other)
+        : value(other.value),
+          serializeFunction(other.serializeFunction)
+    {
+    }
+
+    HypData& operator=(const HypData& other)
+    {
+        if (&other == this)
+        {
+            return *this;
+        }
+
+        value = other.value;
+        serializeFunction = other.serializeFunction;
+
+        return *this;
+    }
 
     HypData(HypData&& other) noexcept
         : value(std::move(other.value)),

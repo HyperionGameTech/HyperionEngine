@@ -245,6 +245,35 @@ CommandLineArgumentDefinitions::CommandLineArgumentDefinitions(const Array<Comma
 {
 }
 
+CommandLineArgumentDefinitions::CommandLineArgumentDefinitions(const CommandLineArgumentDefinitions& other)
+    : m_impl(MakePimpl<CommandLineArgumentDefinitionsImpl>(other.m_impl ? *other.m_impl : CommandLineArgumentDefinitionsImpl()))
+{
+}
+
+CommandLineArgumentDefinitions& CommandLineArgumentDefinitions::operator=(const CommandLineArgumentDefinitions& other)
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    if (other.m_impl)
+    {
+        if (!m_impl)
+        {
+            m_impl = MakePimpl<CommandLineArgumentDefinitionsImpl>();
+        }
+
+        *m_impl = *other.m_impl;
+    }
+    else
+    {
+        m_impl.Reset();
+    }
+
+    return *this;
+}
+
 CommandLineArgumentDefinitions::~CommandLineArgumentDefinitions()
 {
     m_impl.Reset();
