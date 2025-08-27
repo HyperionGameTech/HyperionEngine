@@ -14,7 +14,7 @@
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -35,7 +35,7 @@ Builtins::Builtins(CompilationUnit* unit)
         "varargs",
         nullptr,
         RC<AstTemplateExpression>(new AstTemplateExpression(
-            RC<AstTypeExpression>(new AstTypeExpression(
+            RC<AstClass>(new AstClass(
                 "varargs",
                 SymbolTypeRef(nullptr),
                 {},
@@ -51,7 +51,7 @@ Builtins::Builtins(CompilationUnit* unit)
                 BUILTIN_SOURCE_LOCATION)),
             { RC<AstParameter>(new AstParameter(
                 "T",
-                RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(
                         BuiltinTypes::CLASS_TYPE,
                         BUILTIN_SOURCE_LOCATION)),
@@ -70,7 +70,7 @@ Builtins::Builtins(CompilationUnit* unit)
         "Function",
         nullptr,
         RC<AstTemplateExpression>(new AstTemplateExpression(
-            RC<AstTypeExpression>(new AstTypeExpression(
+            RC<AstClass>(new AstClass(
                 "Function",
                 BuiltinTypes::FUNCTION_BASE,
                 {},
@@ -80,7 +80,7 @@ Builtins::Builtins(CompilationUnit* unit)
                 BUILTIN_SOURCE_LOCATION)),
             { RC<AstParameter>(new AstParameter(
                   "@return",
-                  RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                  RC<AstTypeSpecifier>(new AstTypeSpecifier(
                       RC<AstTypeRef>(new AstTypeRef(
                           BuiltinTypes::CLASS_TYPE,
                           BUILTIN_SOURCE_LOCATION)),
@@ -93,7 +93,7 @@ Builtins::Builtins(CompilationUnit* unit)
 
                 RC<AstParameter>(new AstParameter(
                     "Args",
-                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
                         RC<AstTypeRef>(new AstTypeRef(
                             BuiltinTypes::CLASS_TYPE,
                             BUILTIN_SOURCE_LOCATION)),

@@ -6,7 +6,7 @@
 #include <script/compiler/TokenStream.hpp>
 #include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/ast/AstNil.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
@@ -140,7 +140,7 @@ RC<AstExpression> Context::ParseTypeExpression(const String& typeString)
 
     Parser parser(&astIterator, &tokenStream, &compilationUnit);
 
-    RC<AstPrototypeSpecification> typeSpec = parser.ParsePrototypeSpecification();
+    RC<AstTypeSpecifier> typeSpec = parser.ParseTypeSpecifier();
 
     Assert(!compilationUnit.GetErrorList().HasFatalErrors(),
         "Failed to parse type expression: {}", typeString.Data());
@@ -186,14 +186,14 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
     {
         IdentifierFlagBits identifierFlags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;
 
-        RC<AstPrototypeSpecification> typeSpec =
+        RC<AstTypeSpecifier> typeSpec =
             ParseTypeExpression(global.symbol.type.typeString)
-                .Cast<AstPrototypeSpecification>();
+                .Cast<AstTypeSpecifier>();
         Assert(typeSpec != nullptr);
 
         RC<AstExpression> expr(new AstAsExpression(
             RC<AstNil>(new AstNil(SourceLocation::eof)),
-            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+            RC<AstTypeSpecifier>(new AstTypeSpecifier(
                 RC<AstTypeRef>(
                     new AstTypeRef(BuiltinTypes::ANY, SourceLocation::eof)),
                 SourceLocation::eof)),
@@ -245,16 +245,16 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
             {
                 const Symbol& symbol = (*memberArray.second)[i];
 
-                RC<AstPrototypeSpecification> typeSpec =
+                RC<AstTypeSpecifier> typeSpec =
                     ParseTypeExpression(symbol.type.typeString)
-                        .Cast<AstPrototypeSpecification>();
+                        .Cast<AstTypeSpecifier>();
                 Assert(typeSpec != nullptr);
 
                 (*memberArray.first)[i].Reset(new AstVariableDeclaration(
                     symbol.name, typeSpec,
                     RC<AstAsExpression>(new AstAsExpression(
                         RC<AstNil>(new AstNil(SourceLocation::eof)),
-                        RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                        RC<AstTypeSpecifier>(new AstTypeSpecifier(
                             RC<AstTypeRef>(
                                 new AstTypeRef(BuiltinTypes::ANY, SourceLocation::eof)),
                             SourceLocation::eof)),
@@ -264,7 +264,7 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
         }
 
         classDefinition.expr.Reset(
-            new AstTypeExpression(
+            new AstClass(
                 classDefinition.name,
                 SymbolTypeRef(nullptr),
                 members,

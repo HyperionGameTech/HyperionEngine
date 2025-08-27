@@ -1,8 +1,8 @@
 #pragma once
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <core/containers/String.hpp>
 
 #include <string>
@@ -33,7 +33,7 @@ public:
     AstEnumExpression(
         const String& name,
         const Array<EnumEntry>& entries,
-        const RC<AstPrototypeSpecification>& underlyingType,
+        const RC<AstTypeSpecifier>& underlyingType,
         const SourceLocation& location);
     virtual ~AstEnumExpression() = default;
 
@@ -80,8 +80,8 @@ public:
 protected:
     String m_name;
     Array<EnumEntry> m_entries;
-    RC<AstPrototypeSpecification> m_underlyingType;
-    RC<AstTypeExpression> m_expr;
+    RC<AstTypeSpecifier> m_underlyingType;
+    RC<AstClass> m_expr;
 
     RC<AstEnumExpression> CloneImpl() const
     {
@@ -94,4 +94,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

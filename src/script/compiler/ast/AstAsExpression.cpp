@@ -1,6 +1,6 @@
 #include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
@@ -24,7 +24,7 @@ namespace hyperion::compiler {
 
 AstAsExpression::AstAsExpression(
     const RC<AstExpression>& target,
-    const RC<AstPrototypeSpecification>& typeSpecification,
+    const RC<AstTypeSpecifier>& typeSpecification,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_target(target),

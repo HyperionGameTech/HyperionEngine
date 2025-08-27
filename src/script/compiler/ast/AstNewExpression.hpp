@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <string>
@@ -15,7 +15,7 @@ class AstNewExpression : public AstExpression
 {
 public:
     AstNewExpression(
-        const RC<AstPrototypeSpecification>& proto,
+        const RC<AstTypeSpecifier>& proto,
         const RC<AstArgumentList>& argList,
         bool enableConstructorCall,
         const SourceLocation& location);
@@ -43,7 +43,7 @@ public:
     }
 
 private:
-    RC<AstPrototypeSpecification> m_proto;
+    RC<AstTypeSpecifier> m_proto;
     RC<AstArgumentList> m_argList;
     bool m_enableConstructorCall;
 

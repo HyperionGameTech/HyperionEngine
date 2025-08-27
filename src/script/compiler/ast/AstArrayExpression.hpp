@@ -4,7 +4,7 @@
 
 namespace hyperion::compiler {
 
-class AstPrototypeSpecification;
+class AstTypeSpecifier;
 
 class AstArrayExpression : public AstExpression
 {
@@ -48,7 +48,7 @@ protected:
     Array<RC<AstExpression>> m_replacedMembers;
     SymbolTypeRef m_heldType;
     SymbolTypeRef m_exprType;
-    RC<AstPrototypeSpecification> m_arrayTypeExpr;
+    RC<AstTypeSpecifier> m_arrayTypeExpr;
     RC<AstExpression> m_arrayFromCall;
 
     RC<AstArrayExpression> CloneImpl() const

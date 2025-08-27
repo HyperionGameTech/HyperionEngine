@@ -9,7 +9,7 @@ namespace hyperion::compiler {
 
 AstTypeAlias::AstTypeAlias(
     const String& name,
-    const RC<AstPrototypeSpecification>& aliasee,
+    const RC<AstTypeSpecifier>& aliasee,
     const SourceLocation& location)
     : AstStatement(location),
       m_name(name),

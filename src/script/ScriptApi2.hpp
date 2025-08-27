@@ -11,7 +11,7 @@
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 
 #include <script/vm/Value.hpp>
@@ -207,4 +207,3 @@ private:
 
 } // namespace scriptapi2
 } // namespace hyperion
-

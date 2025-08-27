@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <string>
@@ -26,12 +26,12 @@ public:
     AstTemplateExpression(
         const RC<AstExpression>& expr,
         const Array<RC<AstParameter>>& genericParams,
-        const RC<AstPrototypeSpecification>& returnTypeSpecification,
+        const RC<AstTypeSpecifier>& returnTypeSpecification,
         const SourceLocation& location);
     AstTemplateExpression(
         const RC<AstExpression>& expr,
         const Array<RC<AstParameter>>& genericParams,
-        const RC<AstPrototypeSpecification>& returnTypeSpecification,
+        const RC<AstTypeSpecifier>& returnTypeSpecification,
         AstTemplateExpressionFlags flags,
         const SourceLocation& location);
     virtual ~AstTemplateExpression() override = default;
@@ -77,7 +77,7 @@ public:
 private:
     RC<AstExpression> m_expr;
     Array<RC<AstParameter>> m_genericParams;
-    RC<AstPrototypeSpecification> m_returnTypeSpecification;
+    RC<AstTypeSpecifier> m_returnTypeSpecification;
     AstTemplateExpressionFlags m_flags;
 
     // set while analyzing

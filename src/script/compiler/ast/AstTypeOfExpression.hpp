@@ -3,7 +3,7 @@
 #include <string>
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
@@ -13,7 +13,7 @@ namespace hyperion::compiler {
 
 class AstTypeRef;
 
-class AstTypeOfExpression : public AstPrototypeSpecification
+class AstTypeOfExpression : public AstTypeSpecifier
 {
 public:
     AstTypeOfExpression(

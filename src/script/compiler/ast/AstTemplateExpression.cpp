@@ -1,6 +1,6 @@
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
@@ -23,7 +23,7 @@ namespace hyperion::compiler {
 AstTemplateExpression::AstTemplateExpression(
     const RC<AstExpression>& expr,
     const Array<RC<AstParameter>>& genericParams,
-    const RC<AstPrototypeSpecification>& returnTypeSpecification,
+    const RC<AstTypeSpecifier>& returnTypeSpecification,
     AstTemplateExpressionFlags flags,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -37,7 +37,7 @@ AstTemplateExpression::AstTemplateExpression(
 AstTemplateExpression::AstTemplateExpression(
     const RC<AstExpression>& expr,
     const Array<RC<AstParameter>>& genericParams,
-    const RC<AstPrototypeSpecification>& returnTypeSpecification,
+    const RC<AstTypeSpecifier>& returnTypeSpecification,
     const SourceLocation& location)
     : AstTemplateExpression(
           expr,

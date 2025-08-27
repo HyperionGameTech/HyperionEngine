@@ -19,7 +19,7 @@ namespace hyperion::compiler {
 AstEnumExpression::AstEnumExpression(
     const String& name,
     const Array<EnumEntry>& entries,
-    const RC<AstPrototypeSpecification>& underlyingType,
+    const RC<AstTypeSpecifier>& underlyingType,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_name(name),
@@ -34,7 +34,7 @@ void AstEnumExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_underlyingType == nullptr)
     {
-        m_underlyingType.Reset(new AstPrototypeSpecification(
+        m_underlyingType.Reset(new AstTypeSpecifier(
             RC<AstVariable>(new AstVariable(
                 BuiltinTypes::INT->GetName(),
                 m_location)),
@@ -101,7 +101,7 @@ void AstEnumExpression::Visit(AstVisitor* visitor, Module* mod)
         underlyingType = heldType->GetUnaliased();
     }
 
-    m_expr.Reset(new AstTypeExpression(
+    m_expr.Reset(new AstClass(
         m_name,
         nullptr,
         {},

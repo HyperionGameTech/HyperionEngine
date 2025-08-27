@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/Tribool.hpp>
 
 namespace hyperion::compiler {
@@ -11,7 +11,7 @@ class AstAsExpression : public AstExpression
 public:
     AstAsExpression(
         const RC<AstExpression>& target,
-        const RC<AstPrototypeSpecification>& typeSpecification,
+        const RC<AstTypeSpecifier>& typeSpecification,
         const SourceLocation& location);
 
     virtual ~AstAsExpression() = default;
@@ -37,7 +37,7 @@ public:
 
 protected:
     RC<AstExpression> m_target;
-    RC<AstPrototypeSpecification> m_typeSpecification;
+    RC<AstTypeSpecifier> m_typeSpecification;
 
     // set while analyzing
     RC<AstExpression> m_dynamicTypeExpr;
@@ -54,4 +54,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstAsExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -103,7 +103,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
                 // replace with a cast to the held type
                 replacedMember.Reset(new AstAsExpression(
                     replacedMember,
-                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
                         RC<AstTypeRef>(new AstTypeRef(
                             m_heldType,
                             member->GetLocation())),
@@ -146,7 +146,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     //     m_location
     // ));
 
-    m_arrayTypeExpr.Reset(new AstPrototypeSpecification(
+    m_arrayTypeExpr.Reset(new AstTypeSpecifier(
         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             RC<AstVariable>(new AstVariable(
                 "Array",

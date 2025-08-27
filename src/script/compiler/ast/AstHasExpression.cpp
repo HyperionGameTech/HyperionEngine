@@ -1,6 +1,6 @@
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Configuration.hpp>
@@ -51,7 +51,7 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
         targetType = ident->GetExprType();
         m_hasSideEffects = ident->MayHaveSideEffects();
     }
-    else if (auto* typeSpec = dynamic_cast<AstPrototypeSpecification*>(m_target.Get()))
+    else if (auto* typeSpec = dynamic_cast<AstTypeSpecifier*>(m_target.Get()))
     {
         targetType = typeSpec->GetHeldType();
     }

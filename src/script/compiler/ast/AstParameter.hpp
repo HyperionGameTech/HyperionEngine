@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/compiler/ast/AstDeclaration.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <core/containers/String.hpp>
 
@@ -12,7 +12,7 @@ class AstParameter : public AstDeclaration
 public:
     AstParameter(
         const String& name,
-        const RC<AstPrototypeSpecification>& typeSpec,
+        const RC<AstTypeSpecifier>& typeSpec,
         const RC<AstExpression>& defaultParam,
         bool isVariadic,
         bool isConst,
@@ -60,12 +60,12 @@ public:
     }
 
     // used by AstTemplateExpression
-    const RC<AstPrototypeSpecification>& GetPrototypeSpecification() const
+    const RC<AstTypeSpecifier>& GetTypeSpecifier() const
     {
         return m_typeSpec;
     }
 
-    void SetPrototypeSpecification(const RC<AstPrototypeSpecification>& typeSpec)
+    void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
     {
         m_typeSpec = typeSpec;
     }
@@ -86,7 +86,7 @@ public:
     }
 
 private:
-    RC<AstPrototypeSpecification> m_typeSpec;
+    RC<AstTypeSpecifier> m_typeSpec;
     RC<AstExpression> m_defaultParam;
     bool m_isVariadic;
     bool m_isConst;
@@ -111,4 +111,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

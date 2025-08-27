@@ -17,7 +17,7 @@ namespace hyperion::compiler {
 AstTypeOfExpression::AstTypeOfExpression(
     const RC<AstExpression>& expr,
     const SourceLocation& location)
-    : AstPrototypeSpecification(expr, location)
+    : AstTypeSpecifier(expr, location)
 {
 }
 
@@ -70,7 +70,7 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
 UniquePtr<Buildable> AstTypeOfExpression::Build(AstVisitor* visitor, Module* mod)
 {
     auto chunk = BytecodeUtil::Make<BytecodeChunk>();
-    chunk->Append(AstPrototypeSpecification::Build(visitor, mod));
+    chunk->Append(AstTypeSpecifier::Build(visitor, mod));
 
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     Assert(m_typeRef != nullptr);
@@ -86,7 +86,7 @@ UniquePtr<Buildable> AstTypeOfExpression::Build(AstVisitor* visitor, Module* mod
 
 void AstTypeOfExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
-    AstPrototypeSpecification::Optimize(visitor, mod);
+    AstTypeSpecifier::Optimize(visitor, mod);
 
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     Assert(m_typeRef != nullptr);

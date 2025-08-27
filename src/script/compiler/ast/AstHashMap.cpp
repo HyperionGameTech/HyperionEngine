@@ -1,7 +1,7 @@
 #include <script/compiler/ast/AstHashMap.hpp>
 #include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
@@ -144,7 +144,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
                 // Add cast
                 replacedKey.Reset(new AstAsExpression(
                     replacedKey,
-                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
                         RC<AstTypeRef>(new AstTypeRef(
                             m_keyType,
                             key->GetLocation())),
@@ -160,7 +160,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
                 // Add cast
                 replacedValue.Reset(new AstAsExpression(
                     replacedValue,
-                    RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
                         RC<AstTypeRef>(new AstTypeRef(
                             m_valueType,
                             value->GetLocation())),
@@ -171,7 +171,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // @TODO: Cache generic instance types
-    m_mapTypeExpr.Reset(new AstPrototypeSpecification(
+    m_mapTypeExpr.Reset(new AstTypeSpecifier(
         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             RC<AstVariable>(new AstVariable(
                 "Map",

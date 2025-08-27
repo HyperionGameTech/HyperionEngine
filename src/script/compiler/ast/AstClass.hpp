@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 
@@ -11,19 +11,19 @@
 
 namespace hyperion::compiler {
 
-class AstTypeExpression : public AstExpression
+class AstClass : public AstExpression
 {
 public:
-    AstTypeExpression(
+    AstClass(
         const String& name,
-        const RC<AstPrototypeSpecification>& baseSpecification,
+        const RC<AstTypeSpecifier>& baseSpec,
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
         bool isProxyClass,
         const SourceLocation& location);
 
-    AstTypeExpression(
+    AstClass(
         const String& name,
         const SymbolTypeRef& baseType,
         const Array<RC<AstVariableDeclaration>>& dataMembers,
@@ -32,9 +32,9 @@ public:
         bool isProxyClass,
         const SourceLocation& location);
 
-    AstTypeExpression(
+    AstClass(
         const String& name,
-        const RC<AstPrototypeSpecification>& baseSpecification,
+        const RC<AstTypeSpecifier>& baseSpec,
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
@@ -42,7 +42,7 @@ public:
         bool isProxyClass,
         const SourceLocation& location);
 
-    virtual ~AstTypeExpression() override = default;
+    virtual ~AstClass() override = default;
 
     /** enable setting to that variable declarations can change the type name */
     void SetName(const String& name)
@@ -110,9 +110,9 @@ public:
 
     virtual HashCode GetHashCode() const override
     {
-        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTypeExpression>());
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstClass>());
         hc.Add(m_name);
-        hc.Add(m_baseSpecification ? m_baseSpecification->GetHashCode() : HashCode());
+        hc.Add(m_baseSpec ? m_baseSpec->GetHashCode() : HashCode());
 
         for (auto& member : m_dataMembers)
         {
@@ -141,7 +141,7 @@ public:
 
 protected:
     String m_name;
-    RC<AstPrototypeSpecification> m_baseSpecification;
+    RC<AstTypeSpecifier> m_baseSpec;
     SymbolTypeRef m_baseType;
     Array<RC<AstVariableDeclaration>> m_dataMembers;
     Array<RC<AstVariableDeclaration>> m_functionMembers;
@@ -157,11 +157,11 @@ protected:
     bool m_isUninstantiatedGeneric;
     bool m_isVisited;
 
-    RC<AstTypeExpression> CloneImpl() const
+    RC<AstClass> CloneImpl() const
     {
         if (m_baseType != nullptr)
         {
-            return RC<AstTypeExpression>(new AstTypeExpression(
+            return RC<AstClass>(new AstClass(
                 m_name,
                 m_baseType,
                 CloneAllAstNodes(m_dataMembers),
@@ -171,9 +171,9 @@ protected:
                 m_location));
         }
 
-        return RC<AstTypeExpression>(new AstTypeExpression(
+        return RC<AstClass>(new AstClass(
             m_name,
-            CloneAstNode(m_baseSpecification),
+            CloneAstNode(m_baseSpec),
             CloneAllAstNodes(m_dataMembers),
             CloneAllAstNodes(m_functionMembers),
             CloneAllAstNodes(m_staticMembers),

@@ -1,6 +1,6 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -24,7 +24,7 @@ namespace hyperion::compiler {
 
 AstVariableDeclaration::AstVariableDeclaration(
     const String& name,
-    const RC<AstPrototypeSpecification>& proto,
+    const RC<AstTypeSpecifier>& proto,
     const RC<AstExpression>& assignment,
     IdentifierFlagBits flags,
     const SourceLocation& location)
@@ -181,7 +181,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         // if the variable has been assigned to an anonymous type,
         // rename the type to be the name of this variable
-        if (AstTypeExpression* asTypeExpr = dynamic_cast<AstTypeExpression*>(m_realAssignment.Get()))
+        if (AstClass* asTypeExpr = dynamic_cast<AstClass*>(m_realAssignment.Get()))
         {
             asTypeExpr->SetName(m_name);
         }

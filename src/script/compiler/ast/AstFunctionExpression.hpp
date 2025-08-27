@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <core/containers/String.hpp>
 
@@ -12,14 +12,14 @@
 
 namespace hyperion::compiler {
 
-class AstTypeExpression;
+class AstClass;
 
 class AstFunctionExpression : public AstExpression
 {
 public:
     AstFunctionExpression(
         const Array<RC<AstParameter>>& parameters,
-        const RC<AstPrototypeSpecification>& returnTypeSpecification,
+        const RC<AstTypeSpecifier>& returnTypeSpecification,
         const RC<AstBlock>& block,
         const SourceLocation& location);
 
@@ -73,14 +73,14 @@ public:
 
 protected:
     Array<RC<AstParameter>> m_parameters;
-    RC<AstPrototypeSpecification> m_returnTypeSpecification;
+    RC<AstTypeSpecifier> m_returnTypeSpecification;
     RC<AstBlock> m_block;
 
     bool m_isClosure;
 
     RC<AstParameter> m_closureSelfParam;
-    RC<AstPrototypeSpecification> m_functionTypeExpr;
-    RC<AstTypeExpression> m_closureTypeExpr;
+    RC<AstTypeSpecifier> m_functionTypeExpr;
+    RC<AstClass> m_closureTypeExpr;
     RC<AstBlock> m_blockWithParameters;
 
     bool m_isConstructorDefinition;
@@ -104,4 +104,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

@@ -699,7 +699,7 @@ RC<AstExpression> Parser::ParseTerm(
     }
     else if (MatchKeyword(Keyword_class))
     {
-        expr = ParseTypeExpression();
+        expr = ParseClass();
     }
     else if (MatchKeyword(Keyword_enum))
     {
@@ -911,7 +911,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
         if (Match(TK_RIGHT_ARROW, true))
         {
             // parse return type, add as first argument
-            if (RC<AstPrototypeSpecification> returnType = ParsePrototypeSpecification())
+            if (RC<AstTypeSpecifier> returnType = ParseTypeSpecifier())
             {
                 RC<AstArgument> returnTypeArg(new AstArgument(
                     returnType,
@@ -1422,7 +1422,7 @@ RC<AstIsExpression> Parser::ParseIsExpression(RC<AstExpression> target)
 {
     if (Token token = ExpectKeyword(Keyword_is, true))
     {
-        if (auto typeExpression = ParsePrototypeSpecification())
+        if (auto typeExpression = ParseTypeSpecifier())
         {
             return RC<AstIsExpression>(new AstIsExpression(
                 target,
@@ -1438,7 +1438,7 @@ RC<AstAsExpression> Parser::ParseAsExpression(RC<AstExpression> target)
 {
     if (Token token = ExpectKeyword(Keyword_as, true))
     {
-        if (auto typeExpression = ParsePrototypeSpecification())
+        if (auto typeExpression = ParseTypeSpecifier())
         {
             return RC<AstAsExpression>(new AstAsExpression(
                 target,
@@ -1454,7 +1454,7 @@ RC<AstNewExpression> Parser::ParseNewExpression()
 {
     if (Token token = ExpectKeyword(Keyword_new, true))
     {
-        if (auto proto = ParsePrototypeSpecification())
+        if (auto proto = ParseTypeSpecifier())
         {
             RC<AstArgumentList> argList;
 
@@ -1993,7 +1993,7 @@ RC<AstExpression> Parser::ParseExpression(
     return nullptr;
 }
 
-RC<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
+RC<AstTypeSpecifier> Parser::ParseTypeSpecifier()
 {
     const SourceLocation location = CurrentLocation();
 
@@ -2028,9 +2028,7 @@ RC<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
             }
         }
 
-        return RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-            term,
-            location));
+        return RC<AstTypeSpecifier>(new AstTypeSpecifier(term, location));
     }
 
     return nullptr;
@@ -2140,7 +2138,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
             templateExprLocation = lt.GetLocation();
         }
 
-        RC<AstPrototypeSpecification> proto;
+        RC<AstTypeSpecifier> proto;
         RC<AstExpression> assignment;
 
         bool requiresAssignmentOperator = true;
@@ -2148,7 +2146,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         if (Match(TK_COLON, true))
         {
             // read object type
-            proto = ParsePrototypeSpecification();
+            proto = ParseTypeSpecifier();
         }
         else if (Match(TK_DEFINE, true))
         {
@@ -2239,7 +2237,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 
         return RC<AstVariableDeclaration>(new AstVariableDeclaration(
             identifier.GetValue(),
-            nullptr, // prototype specification
+            nullptr, // type specifier
             assignment,
             flags,
             location));
@@ -2272,12 +2270,12 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
             }
         }
 
-        RC<AstPrototypeSpecification> typeSpec;
+        RC<AstTypeSpecifier> typeSpec;
 
         if (Match(TK_RIGHT_ARROW, true))
         {
             // read return type for functions
-            typeSpec = ParsePrototypeSpecification();
+            typeSpec = ParseTypeSpecifier();
         }
 
         RC<AstBlock> block;
@@ -2479,13 +2477,13 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
 
         if ((token = ExpectIdentifier(true, true)))
         {
-            RC<AstPrototypeSpecification> typeSpec;
+            RC<AstTypeSpecifier> typeSpec;
             RC<AstExpression> defaultParam;
 
             // check if parameter type has been declared
             if (Match(TK_COLON, true))
             {
-                typeSpec = ParsePrototypeSpecification();
+                typeSpec = ParseTypeSpecifier();
             }
 
             if (foundVariadic)
@@ -2582,7 +2580,7 @@ RC<AstStatement> Parser::ParseTypeDefinition()
             // check type alias
             if (MatchOperator("=", true))
             {
-                if (auto aliasee = ParsePrototypeSpecification())
+                if (auto aliasee = ParseTypeSpecifier())
                 {
                     return RC<AstTypeAlias>(new AstTypeAlias(
                         identifier.GetValue(),
@@ -2596,7 +2594,7 @@ RC<AstStatement> Parser::ParseTypeDefinition()
             }
             else
             {
-                assignment = ParseTypeExpression(false, false, isProxyClass, identifier.GetValue());
+                assignment = ParseClass(false, false, isProxyClass, identifier.GetValue());
 
                 // It is a class, add the class flag so it can hoist properly
                 flags |= IdentifierFlags::FLAG_CLASS;
@@ -2629,7 +2627,7 @@ RC<AstStatement> Parser::ParseTypeDefinition()
     return nullptr;
 }
 
-RC<AstTypeExpression> Parser::ParseTypeExpression(
+RC<AstClass> Parser::ParseClass(
     bool requireKeyword,
     bool allowIdentifier,
     bool isProxyClass,
@@ -2650,11 +2648,11 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
         }
     }
 
-    RC<AstPrototypeSpecification> baseSpecification;
+    RC<AstTypeSpecifier> baseSpec;
 
     if (Match(TK_COLON, true))
     {
-        baseSpecification = ParsePrototypeSpecification();
+        baseSpec = ParseTypeSpecifier();
     }
 
     // for hoisting, so functions can use later declared members
@@ -2800,7 +2798,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
 
             if (isStatic)
             { // static member function
-                RC<AstPrototypeSpecification> selfTypeSpec(new AstPrototypeSpecification(
+                RC<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
                     RC<AstVariable>(new AstVariable(
                         BuiltinTypes::CLASS_TYPE->GetName(), // `self: Class` for static functions
                         location)),
@@ -2817,7 +2815,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
             }
             else
             { // instance member function
-                RC<AstPrototypeSpecification> selfTypeSpec(new AstPrototypeSpecification(
+                RC<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
                     RC<AstVariable>(new AstVariable(
                         typeName, // `self: Whatever` for instance functions
                         location)),
@@ -2858,7 +2856,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
 
             RC<AstVariableDeclaration> member(new AstVariableDeclaration(
                 identifier.GetValue(),
-                nullptr, // prototype specification
+                nullptr, // type specifier
                 assignment,
                 flags,
                 location));
@@ -2914,9 +2912,9 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
     allStatics.Concat(std::move(staticVariables));
     allStatics.Concat(std::move(staticFunctions));
 
-    return RC<AstTypeExpression>(new AstTypeExpression(
+    return RC<AstClass>(new AstClass(
         typeName,
-        baseSpecification,
+        baseSpec,
         memberVariables,
         memberFunctions,
         allStatics,
@@ -2945,7 +2943,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
 
             return RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 identifier.GetValue(),
-                nullptr, // prototype specification
+                nullptr, // type specifier
                 assignment,
                 IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_ENUM,
                 token.GetLocation()));
@@ -2975,12 +2973,12 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
         }
     }
 
-    RC<AstPrototypeSpecification> underlyingType;
+    RC<AstTypeSpecifier> underlyingType;
 
     if (Match(TK_COLON, true))
     {
         // underlying type
-        underlyingType = ParsePrototypeSpecification();
+        underlyingType = ParseTypeSpecifier();
     }
 
     SkipStatementTerminators();

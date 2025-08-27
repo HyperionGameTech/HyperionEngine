@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstDeclaration.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/Identifier.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
@@ -18,18 +18,18 @@ class AstVariableDeclaration : public AstDeclaration
 public:
     AstVariableDeclaration(
         const String& name,
-        const RC<AstPrototypeSpecification>& proto,
+        const RC<AstTypeSpecifier>& proto,
         const RC<AstExpression>& assignment,
         IdentifierFlagBits flags,
         const SourceLocation& location);
     virtual ~AstVariableDeclaration() = default;
 
-    const RC<AstPrototypeSpecification>& GetPrototypeSpecification() const
+    const RC<AstTypeSpecifier>& GetTypeSpecifier() const
     {
         return m_proto;
     }
 
-    void SetPrototypeSpecification(const RC<AstPrototypeSpecification>& proto)
+    void SetTypeSpecifier(const RC<AstTypeSpecifier>& proto)
     {
         m_proto = proto;
     }
@@ -107,7 +107,7 @@ public:
     }
 
 protected:
-    RC<AstPrototypeSpecification> m_proto;
+    RC<AstTypeSpecifier> m_proto;
     RC<AstExpression> m_assignment;
     IdentifierFlagBits m_flags;
 
@@ -128,4 +128,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

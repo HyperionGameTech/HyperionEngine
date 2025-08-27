@@ -13,7 +13,7 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstHashMap.hpp>
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
 #include <script/compiler/ast/AstStatement.hpp>
@@ -53,7 +53,7 @@
 #include <script/compiler/ast/AstForLoop.hpp>
 #include <script/compiler/ast/AstTryCatch.hpp>
 #include <script/compiler/ast/AstThrowExpression.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
@@ -137,7 +137,7 @@ public:
         bool overrideFatArrows = false,
         bool overrideAngleBrackets = false,
         bool overrideQuestionMark = false);
-    RC<AstPrototypeSpecification> ParsePrototypeSpecification();
+    RC<AstTypeSpecifier> ParseTypeSpecifier();
     RC<AstExpression> ParseAssignment();
     RC<AstVariableDeclaration> ParseVariableDeclaration(
         bool allowKeywordNames = false,
@@ -153,7 +153,7 @@ public:
     Array<RC<AstParameter>> ParseFunctionParameters();
     Array<RC<AstParameter>> ParseGenericParameters();
     RC<AstStatement> ParseTypeDefinition();
-    RC<AstTypeExpression> ParseTypeExpression(
+    RC<AstClass> ParseClass(
         bool requireKeyword = true,
         bool allowIdentifier = true,
         bool isProxyClass = false,
@@ -195,4 +195,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

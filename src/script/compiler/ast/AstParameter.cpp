@@ -1,5 +1,5 @@
 #include <script/compiler/ast/AstParameter.hpp>
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
@@ -17,7 +17,7 @@ namespace hyperion::compiler {
 
 AstParameter::AstParameter(
     const String& name,
-    const RC<AstPrototypeSpecification>& typeSpec,
+    const RC<AstTypeSpecifier>& typeSpec,
     const RC<AstExpression>& defaultParam,
     bool isVariadic,
     bool isConst,
@@ -87,7 +87,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     // if variadic, then change symbol type to `varargs<T>`
     if (m_isVariadic)
     {
-        m_varargsTypeSpec.Reset(new AstPrototypeSpecification(
+        m_varargsTypeSpec.Reset(new AstTypeSpecifier(
             RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 RC<AstVariable>(new AstVariable(
                     "varargs",

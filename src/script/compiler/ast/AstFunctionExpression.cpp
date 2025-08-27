@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -31,7 +31,7 @@ namespace hyperion::compiler {
 
 AstFunctionExpression::AstFunctionExpression(
     const Array<RC<AstParameter>>& parameters,
-    const RC<AstPrototypeSpecification>& returnTypeSpecification,
+    const RC<AstTypeSpecifier>& returnTypeSpecification,
     const RC<AstBlock>& block,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -279,7 +279,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             m_location)));
     }
 
-    RC<AstPrototypeSpecification> functionTypeSpec(new AstPrototypeSpecification(
+    RC<AstTypeSpecifier> functionTypeSpec(new AstTypeSpecifier(
         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             RC<AstVariable>(new AstVariable(
                 "Function",
@@ -327,13 +327,13 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // add $invoke to call this object
-        m_closureTypeExpr.Reset(new AstTypeExpression(
+        m_closureTypeExpr.Reset(new AstClass(
             "__closure",
             SymbolTypeRef(nullptr),
             {},
             { RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 "$invoke",
-                RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(
                         functionType,
                         m_location)),
@@ -367,7 +367,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             // Assert(closureHeldType->GetTypeObject().Lock() != nullptr);
         }
 
-        m_functionTypeExpr.Reset(new AstPrototypeSpecification(
+        m_functionTypeExpr.Reset(new AstTypeSpecifier(
             RC<AstTypeRef>(new AstTypeRef(
                 closureHeldType,
                 m_location)),

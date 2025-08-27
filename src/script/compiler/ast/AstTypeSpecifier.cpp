@@ -1,4 +1,4 @@
-#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
@@ -16,7 +16,7 @@
 
 namespace hyperion::compiler {
 
-AstPrototypeSpecification::AstPrototypeSpecification(
+AstTypeSpecifier::AstTypeSpecifier(
     const RC<AstExpression>& expr,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -24,7 +24,7 @@ AstPrototypeSpecification::AstPrototypeSpecification(
 {
 }
 
-void AstPrototypeSpecification::Visit(AstVisitor* visitor, Module* mod)
+void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
@@ -67,35 +67,35 @@ void AstPrototypeSpecification::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_symbolType != nullptr);
 }
 
-UniquePtr<Buildable> AstPrototypeSpecification::Build(AstVisitor* visitor, Module* mod)
+UniquePtr<Buildable> AstTypeSpecifier::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_expr != nullptr);
     return m_expr->Build(visitor, mod);
 }
 
-void AstPrototypeSpecification::Optimize(AstVisitor* visitor, Module* mod)
+void AstTypeSpecifier::Optimize(AstVisitor* visitor, Module* mod)
 {
     Assert(m_expr != nullptr);
     m_expr->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstPrototypeSpecification::Clone() const
+RC<AstStatement> AstTypeSpecifier::Clone() const
 {
     return CloneImpl();
 }
 
-Tribool AstPrototypeSpecification::IsTrue() const
+Tribool AstTypeSpecifier::IsTrue() const
 {
     return Tribool::True();
 }
 
-bool AstPrototypeSpecification::MayHaveSideEffects() const
+bool AstTypeSpecifier::MayHaveSideEffects() const
 {
     Assert(m_expr != nullptr);
     return m_expr->MayHaveSideEffects();
 }
 
-SymbolTypeRef AstPrototypeSpecification::GetExprType() const
+SymbolTypeRef AstTypeSpecifier::GetExprType() const
 {
     if (m_expr != nullptr)
     {
@@ -105,7 +105,7 @@ SymbolTypeRef AstPrototypeSpecification::GetExprType() const
     return nullptr;
 }
 
-const AstExpression* AstPrototypeSpecification::GetValueOf() const
+const AstExpression* AstTypeSpecifier::GetValueOf() const
 {
     if (m_expr != nullptr)
     {
@@ -115,7 +115,7 @@ const AstExpression* AstPrototypeSpecification::GetValueOf() const
     return AstExpression::GetValueOf();
 }
 
-const AstExpression* AstPrototypeSpecification::GetDeepValueOf() const
+const AstExpression* AstTypeSpecifier::GetDeepValueOf() const
 {
     if (m_expr != nullptr)
     {
@@ -125,7 +125,7 @@ const AstExpression* AstPrototypeSpecification::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-SymbolTypeRef AstPrototypeSpecification::GetHeldType() const
+SymbolTypeRef AstTypeSpecifier::GetHeldType() const
 {
     if (m_symbolType != nullptr)
     {

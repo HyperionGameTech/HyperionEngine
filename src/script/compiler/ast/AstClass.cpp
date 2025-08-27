@@ -1,4 +1,4 @@
-#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
@@ -29,9 +29,9 @@
 
 namespace hyperion::compiler {
 
-AstTypeExpression::AstTypeExpression(
+AstClass::AstClass(
     const String& name,
-    const RC<AstPrototypeSpecification>& baseSpecification,
+    const RC<AstTypeSpecifier>& baseSpec,
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
@@ -40,7 +40,7 @@ AstTypeExpression::AstTypeExpression(
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_name(name),
-      m_baseSpecification(baseSpecification),
+      m_baseSpec(baseSpec),
       m_dataMembers(dataMembers),
       m_functionMembers(functionMembers),
       m_staticMembers(staticMembers),
@@ -51,7 +51,7 @@ AstTypeExpression::AstTypeExpression(
 {
 }
 
-AstTypeExpression::AstTypeExpression(
+AstClass::AstClass(
     const String& name,
     const SymbolTypeRef& baseType,
     const Array<RC<AstVariableDeclaration>>& dataMembers,
@@ -59,7 +59,7 @@ AstTypeExpression::AstTypeExpression(
     const Array<RC<AstVariableDeclaration>>& staticMembers,
     bool isProxyClass,
     const SourceLocation& location)
-    : AstTypeExpression(
+    : AstClass(
           name,
           nullptr,
           dataMembers,
@@ -72,17 +72,17 @@ AstTypeExpression::AstTypeExpression(
     m_baseType = baseType;
 }
 
-AstTypeExpression::AstTypeExpression(
+AstClass::AstClass(
     const String& name,
-    const RC<AstPrototypeSpecification>& baseSpecification,
+    const RC<AstTypeSpecifier>& baseSpec,
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
     bool isProxyClass,
     const SourceLocation& location)
-    : AstTypeExpression(
+    : AstClass(
           name,
-          baseSpecification,
+          baseSpec,
           dataMembers,
           functionMembers,
           staticMembers,
@@ -92,7 +92,7 @@ AstTypeExpression::AstTypeExpression(
 {
 }
 
-void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
+void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
     Assert(!m_isVisited);
@@ -103,17 +103,15 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
     // Create scope
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
 
-    SymbolTypeRef baseType = m_baseType;
-
-    if (m_baseSpecification != nullptr)
+    if (m_baseSpec != nullptr)
     {
-        m_baseSpecification->Visit(visitor, mod);
+        m_baseSpec->Visit(visitor, mod);
 
-        Assert(m_baseSpecification->GetExprType() != nullptr);
+        Assert(m_baseSpec->GetExprType() != nullptr);
 
-        if (auto baseTypeInner = m_baseSpecification->GetHeldType())
+        if (SymbolTypeRef baseTypeInner = m_baseSpec->GetHeldType())
         {
-            baseType = baseTypeInner;
+            m_baseType = baseTypeInner;
         }
         else
         {
@@ -121,7 +119,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
                 LEVEL_ERROR,
                 Msg_not_a_type,
                 m_location,
-                m_baseSpecification->GetExprType()->ToString()));
+                m_baseSpec->GetExprType()->ToString()));
         }
     }
 
@@ -135,11 +133,11 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        if (baseType != nullptr)
+        if (m_baseType != nullptr)
         {
             m_symbolType = SymbolType::Extend(
                 m_name,
-                baseType,
+                m_baseType,
                 {}, {});
         }
         else
@@ -279,7 +277,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
         // Add `self: typeof SelfType`
         invokeParams.PushBack(RC<AstParameter>(new AstParameter(
             "self", // self: typeof SelfType
-            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+            RC<AstTypeSpecifier>(new AstTypeSpecifier(
                 RC<AstTypeRef>(new AstTypeRef(
                     BuiltinTypes::CLASS_TYPE,
                     m_location)),
@@ -321,7 +319,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
 
                     const bool isVariadic = paramType->IsVarArgsType() && i == params.Size() - 1;
 
-                    RC<AstPrototypeSpecification> paramTypeSpec(new AstPrototypeSpecification(
+                    RC<AstTypeSpecifier> paramTypeSpec(new AstTypeSpecifier(
                         RC<AstTypeRef>(new AstTypeRef(
                             paramType,
                             m_location)),
@@ -368,7 +366,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
         // `new Self($invokeArgs...)`
         invokeBlock->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
             RC<AstNewExpression>(new AstNewExpression(
-                RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(
                         m_symbolType,
                         m_location)),
@@ -382,7 +380,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
 
         RC<AstFunctionExpression> invokeExpr(new AstFunctionExpression(
             invokeParams,
-            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+            RC<AstTypeSpecifier>(new AstTypeSpecifier(
                 RC<AstTypeRef>(new AstTypeRef(
                     m_symbolType,
                     m_location)),
@@ -420,7 +418,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
     m_isVisited = true;
 }
 
-UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
+UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_symbolType != nullptr);
     //    Assert(m_symbolType->GetId() != -1);
@@ -481,7 +479,7 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
 
             HypField* field = new HypField(
                 CreateNameFromDynamicString(member.name),
-                TypeId::Void(),
+                TypeId::ForType<HypData>(),
                 TypeId::Void(),
                 fieldOffset,
                 sizeof(HypData),
@@ -639,7 +637,7 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
     return chunk;
 }
 
-void AstTypeExpression::Optimize(AstVisitor* visitor, Module* mod)
+void AstClass::Optimize(AstVisitor* visitor, Module* mod)
 {
     Assert(m_isVisited);
 
@@ -647,39 +645,39 @@ void AstTypeExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_typeRef->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstTypeExpression::Clone() const
+RC<AstStatement> AstClass::Clone() const
 {
     return CloneImpl();
 }
 
-bool AstTypeExpression::IsLiteral() const
+bool AstClass::IsLiteral() const
 {
     return false;
 }
 
-Tribool AstTypeExpression::IsTrue() const
+Tribool AstClass::IsTrue() const
 {
     return Tribool::True();
 }
 
-bool AstTypeExpression::MayHaveSideEffects() const
+bool AstClass::MayHaveSideEffects() const
 {
     return true;
 }
 
-SymbolTypeRef AstTypeExpression::GetExprType() const
+SymbolTypeRef AstClass::GetExprType() const
 {
     return BuiltinTypes::CLASS_TYPE;
 }
 
-SymbolTypeRef AstTypeExpression::GetHeldType() const
+SymbolTypeRef AstClass::GetHeldType() const
 {
     Assert(m_symbolType != nullptr);
 
     return m_symbolType;
 }
 
-const AstExpression* AstTypeExpression::GetValueOf() const
+const AstExpression* AstClass::GetValueOf() const
 {
     Assert(m_isVisited);
     Assert(m_typeRef != nullptr);
@@ -687,7 +685,7 @@ const AstExpression* AstTypeExpression::GetValueOf() const
     return m_typeRef->GetValueOf();
 }
 
-const AstExpression* AstTypeExpression::GetDeepValueOf() const
+const AstExpression* AstClass::GetDeepValueOf() const
 {
     Assert(m_isVisited);
     Assert(m_typeRef != nullptr);
@@ -695,7 +693,7 @@ const AstExpression* AstTypeExpression::GetDeepValueOf() const
     return m_typeRef->GetDeepValueOf();
 }
 
-const String& AstTypeExpression::GetName() const
+const String& AstClass::GetName() const
 {
     return m_name;
 }

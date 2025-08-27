@@ -8,13 +8,13 @@
 
 namespace hyperion::compiler {
 
-class AstPrototypeSpecification : public AstExpression
+class AstTypeSpecifier : public AstExpression
 {
 public:
-    AstPrototypeSpecification(
+    AstTypeSpecifier(
         const RC<AstExpression>& expr,
         const SourceLocation& location);
-    virtual ~AstPrototypeSpecification() = default;
+    virtual ~AstTypeSpecifier() = default;
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
@@ -42,7 +42,7 @@ public:
 
     virtual HashCode GetHashCode() const override
     {
-        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstPrototypeSpecification>());
+        HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstTypeSpecifier>());
         hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
 
         return hc;
@@ -56,9 +56,9 @@ protected:
     RC<AstExpression> m_defaultValue;
 
 private:
-    RC<AstPrototypeSpecification> CloneImpl() const
+    RC<AstTypeSpecifier> CloneImpl() const
     {
-        return RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        return RC<AstTypeSpecifier>(new AstTypeSpecifier(
             CloneAstNode(m_expr),
             m_location));
     }

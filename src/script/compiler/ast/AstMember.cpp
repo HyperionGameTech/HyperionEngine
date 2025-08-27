@@ -91,7 +91,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         if (isProxyClass)
         {
             // load the type by name
-            m_proxyExpr.Reset(new AstPrototypeSpecification(
+            m_proxyExpr.Reset(new AstTypeSpecifier(
                 RC<AstTypeRef>(new AstTypeRef(
                     m_targetType,
                     m_location)),

@@ -20,7 +20,7 @@
 namespace hyperion::compiler {
 
 AstNewExpression::AstNewExpression(
-    const RC<AstPrototypeSpecification>& proto,
+    const RC<AstTypeSpecifier>& proto,
     const RC<AstArgumentList>& argList,
     bool enableConstructorCall,
     const SourceLocation& location)
@@ -129,7 +129,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                     RC<AstMemberCallExpression>(new AstMemberCallExpression(
                         constructMethodName,
                         RC<AstNewExpression>(new AstNewExpression(
-                            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                            RC<AstTypeSpecifier>(new AstTypeSpecifier(
                                 RC<AstVariable>(new AstVariable(
                                     tempVarName,
                                     m_location)),

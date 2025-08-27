@@ -50,6 +50,23 @@ public:
           m_size(size),
           m_attributes(attributes)
     {
+        HYP_CORE_ASSERT(typeId == TypeId::ForType<HypData>(), "HypField typeId must be HypData");
+
+        m_getProc = [offset](const HypData& targetData) -> HypData
+        {
+            ConstAnyRef targetRef = targetData.ToRef();
+
+            HYP_CORE_ASSERT(targetRef.HasValue(), "Invalid target reference");
+            HYP_CORE_ASSERT(targetRef.GetTypeId() != TypeId::Void(), "Invalid target type");
+
+            const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(targetRef.GetPointer());
+            HYP_CORE_ASSERT(baseAddress != 0, "Invalid target base address");
+
+            const uintptr_t memberAddress = baseAddress + offset;
+            HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
+
+            return HypData(reinterpret_cast<const HypData*>(memberAddress)->ToRef());
+        };
     }
 
     template <class ThisType, class FieldType>

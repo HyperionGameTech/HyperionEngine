@@ -7,7 +7,7 @@
 
 namespace hyperion::compiler {
 
-class AstPrototypeSpecification;
+class AstTypeSpecifier;
 class AstBlock;
 
 class AstHashMap : public AstExpression
@@ -58,7 +58,7 @@ private:
     // set while analyzing
     Array<RC<AstExpression>> m_replacedKeys;
     Array<RC<AstExpression>> m_replacedValues;
-    RC<AstPrototypeSpecification> m_mapTypeExpr;
+    RC<AstTypeSpecifier> m_mapTypeExpr;
     RC<AstExpression> m_arrayExpr;
     SymbolTypeRef m_keyType;
     SymbolTypeRef m_valueType;
