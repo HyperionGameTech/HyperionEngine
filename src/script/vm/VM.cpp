@@ -632,15 +632,46 @@ public:
             const HypClass* hypClass = object.ptr->InstanceClass();
             Assert(hypClass != nullptr);
 
-            HypField* field = hypClass->GetField(WeakName(NameID(hash)));
-            if (!field)
+            IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
+            if (!member)
             {
                 vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
 
                 return;
             }
 
-            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
+            if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
+            {
+                HypField* field = static_cast<HypField*>(member);
+
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
+            }
+            else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
+            {
+                HypMethod* method = static_cast<HypMethod*>(member);
+
+                Script_VMData vmData;
+
+                if (method->IsScriptFunction())
+                {
+                    vmData.type = Script_VMData::FUNCTION;
+                    vmData.func.m_addr = method->GetScriptAddress();
+                }
+                else
+                {
+                    vmData.type = Script_VMData::NATIVE_FUNCTION;
+                    vmData.nativeFunc = [](sdk::Params params)
+                    {
+                        HYP_NOT_IMPLEMENTED(); // @TODO
+                    };
+                }
+
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(vmData), false);
+            }
+            else
+            {
+                vm->ThrowException(thread, Exception("Member is not a field or method"));
+            }
 
             return;
         }
@@ -1007,40 +1038,40 @@ public:
         thread->m_stack.m_sp -= n;
     }
 
-    HYP_FORCE_INLINE void Jmp(BCAddress addr)
+    HYP_FORCE_INLINE void Jmp(Script_FunctionAddress addr)
     {
-        bs->Seek(addr);
+        bs->Seek((uint32)addr);
     }
 
-    HYP_FORCE_INLINE void Je(BCAddress addr)
+    HYP_FORCE_INLINE void Je(Script_FunctionAddress addr)
     {
         if (thread->m_regs.m_flags & EQUAL)
         {
-            bs->Seek(addr);
+            bs->Seek((uint32)addr);
         }
     }
 
-    HYP_FORCE_INLINE void Jne(BCAddress addr)
+    HYP_FORCE_INLINE void Jne(Script_FunctionAddress addr)
     {
         if (!(thread->m_regs.m_flags & EQUAL))
         {
-            bs->Seek(addr);
+            bs->Seek((uint32)addr);
         }
     }
 
-    HYP_FORCE_INLINE void Jg(BCAddress addr)
+    HYP_FORCE_INLINE void Jg(Script_FunctionAddress addr)
     {
         if (thread->m_regs.m_flags & GREATER)
         {
-            bs->Seek(addr);
+            bs->Seek((uint32)addr);
         }
     }
 
-    HYP_FORCE_INLINE void Jge(BCAddress addr)
+    HYP_FORCE_INLINE void Jge(Script_FunctionAddress addr)
     {
         if (thread->m_regs.m_flags & (GREATER | EQUAL))
         {
-            bs->Seek(addr);
+            bs->Seek((uint32)addr);
         }
     }
 
@@ -1061,7 +1092,7 @@ public:
         auto& callInfo = vmData->call;
 
         // leave function and return to previous position
-        bs->Seek(callInfo.returnAddress);
+        bs->Seek((uint32)callInfo.returnAddress);
 
         // increase stack size by the amount required by the call
         thread->GetStack().m_sp += callInfo.varargsPush - 1;
@@ -1072,7 +1103,7 @@ public:
         thread->m_funcDepth--;
     }
 
-    HYP_FORCE_INLINE void BeginTry(BCAddress addr)
+    HYP_FORCE_INLINE void BeginTry(Script_FunctionAddress addr)
     {
         ++thread->m_exceptionState.m_tryCounter;
 
@@ -1279,30 +1310,25 @@ public:
                         size,
                         attrs.ToSpan())));
 
-                    DebugLog(
-                        LogType::Debug,
-                        "Added field %s to class %s, hash = %llu\n",
-                        memberNameStr,
-                        className.LookupString(),
-                        members.Back().value.Get<HypField>().GetName().Id());
-
                     break;
                 }
                 case HypMemberType::TYPE_METHOD:
                 {
-                    // method writes target typeid, flags (u8)
-
                     TypeId::ValueType targetTypeIdValue;
                     bs->Read(&targetTypeIdValue);
 
                     ubyte flags;
                     bs->Read(&flags);
 
+                    Script_FunctionAddress functionAddress;
+                    bs->Read(&functionAddress);
+
                     // Create method
                     members.PushBack(HypMember(HypMethod(
                         CreateNameFromDynamicString(memberNameStr),
                         TypeId(memberTypeIdValue),
                         TypeId(targetTypeIdValue),
+                        functionAddress,
                         flags,
                         attrs.ToSpan())));
 
@@ -2632,12 +2658,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
-        BCAddress addr;
+
+        Script_FunctionAddress addr;
         bs->Read(&addr);
 
-        handler.LoadAddr(
-            reg,
-            addr);
+        handler.LoadAddr(reg, addr);
 
         break;
     }
@@ -2645,18 +2670,17 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
-        BCAddress addr;
+
+        Script_FunctionAddress addr;
         bs->Read(&addr);
+
         uint8 nargs;
         bs->Read(&nargs);
+
         uint8 flags;
         bs->Read(&flags);
 
-        handler.LoadFunc(
-            reg,
-            addr,
-            nargs,
-            flags);
+        handler.LoadFunc(reg, addr, nargs, flags);
 
         break;
     }
@@ -2664,15 +2688,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
+
         uint64 hash;
         bs->Read(&hash);
 
-        handler.LoadMemHash(
-            dst,
-            src,
-            hash);
+        handler.LoadMemHash(dst, src, hash);
 
         break;
     }
@@ -2680,8 +2703,10 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dstReg;
         bs->Read(&dstReg);
+
         BCRegister srcReg;
         bs->Read(&srcReg);
+
         BCRegister indexReg;
         bs->Read(&indexReg);
 
@@ -2696,12 +2721,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
+
         uint16 offset;
         bs->Read(&offset);
 
-        handler.LoadOffsetRef(
-            reg,
-            offset);
+        handler.LoadOffsetRef(reg, offset);
 
         break;
     }
@@ -2709,12 +2733,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
+
         uint16 index;
         bs->Read(&index);
 
-        handler.LoadIndexRef(
-            reg,
-            index);
+        handler.LoadIndexRef(reg, index);
 
         break;
     }
@@ -2726,9 +2749,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         bs->Read(&dstReg);
         bs->Read(&srcReg);
 
-        handler.LoadRef(
-            dstReg,
-            srcReg);
+        handler.LoadRef(dstReg, srcReg);
 
         break;
     }
@@ -2740,9 +2761,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         bs->Read(&dstReg);
         bs->Read(&srcReg);
 
-        handler.LoadDeref(
-            dstReg,
-            srcReg);
+        handler.LoadDeref(dstReg, srcReg);
 
         break;
     }
@@ -2751,8 +2770,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.LoadNull(
-            reg);
+        handler.LoadNull(reg);
 
         break;
     }
@@ -2761,8 +2779,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.LoadTrue(
-            reg);
+        handler.LoadTrue(reg);
 
         break;
     }
@@ -2771,8 +2788,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.LoadFalse(
-            reg);
+        handler.LoadFalse(reg);
 
         break;
     }
@@ -2780,12 +2796,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
+
         uint64 nameHash;
         bs->Read(&nameHash);
 
-        handler.LoadClass(
-            reg,
-            nameHash);
+        handler.LoadClass(reg, nameHash);
 
         break;
     }
@@ -2793,12 +2808,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         uint16 offset;
         bs->Read(&offset);
+
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.MovOffset(
-            offset,
-            reg);
+        handler.MovOffset(offset, reg);
 
         break;
     }
@@ -2809,9 +2823,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.MovIndex(
-            index,
-            reg);
+        handler.MovIndex(index, reg);
 
         break;
     }
@@ -2819,12 +2831,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         uint16 index;
         bs->Read(&index);
+
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.MovStatic(
-            index,
-            reg);
+        handler.MovStatic(index, reg);
 
         break;
     }
@@ -2832,15 +2843,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         uint64 hash;
         bs->Read(&hash);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.MovMemHash(
-            dst,
-            hash,
-            src);
+        handler.MovMemHash(dst, hash, src);
 
         break;
     }
@@ -2848,15 +2858,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         uint32 index;
-        bs->Read(&index); // should be int64?
+        bs->Read(&index);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.MovArrayIdx(
-            dst,
-            index,
-            src);
+        handler.MovArrayIdx(dst, index, src);
 
         break;
     }
@@ -2864,15 +2873,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister indexReg;
         bs->Read(&indexReg);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.MovArrayIdxReg(
-            dst,
-            indexReg,
-            src);
+        handler.MovArrayIdxReg(dst, indexReg, src);
 
         break;
     }
@@ -2880,12 +2888,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.MovReg(
-            dst,
-            src);
+        handler.MovReg(dst, src);
 
         break;
     }
@@ -2893,15 +2900,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
+
         uint64 hash;
         bs->Read(&hash);
 
-        handler.HasMemHash(
-            dst,
-            src,
-            hash);
+        handler.HasMemHash(dst, src, hash);
 
         break;
     }
@@ -2910,8 +2916,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.Push(
-            reg);
+        handler.Push(reg);
 
         break;
     }
@@ -2925,12 +2930,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.PushArray(
-            dst,
-            src);
+        handler.PushArray(dst, src);
 
         break;
     }
@@ -2939,8 +2943,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         uint16 val;
         bs->Read(&val);
 
-        handler.AddSp(
-            val);
+        handler.AddSp(val);
 
         break;
     }
@@ -2949,59 +2952,52 @@ HYP_FORCE_INLINE static void HandleInstruction(
         uint16 val;
         bs->Read(&val);
 
-        handler.SubSp(
-            val);
+        handler.SubSp(val);
 
         break;
     }
     case JMP:
     {
-        // BCRegister reg; bs->Read(&reg);
-        BCAddress addr;
+        Script_FunctionAddress addr;
         bs->Read(&addr);
 
-        handler.Jmp(
-            addr);
+        handler.Jmp(addr);
 
         break;
     }
     case JE:
     {
-        BCAddress addr;
+        Script_FunctionAddress addr;
         bs->Read(&addr);
 
-        handler.Je(
-            addr);
+        handler.Je(addr);
 
         break;
     }
     case JNE:
     {
-        BCAddress addr;
+        Script_FunctionAddress addr;
         bs->Read(&addr);
 
-        handler.Jne(
-            addr);
+        handler.Jne(addr);
 
         break;
     }
     case JG:
     {
-        BCAddress addr;
+        Script_FunctionAddress addr;
         bs->Read(&addr);
 
-        handler.Jg(
-            addr);
+        handler.Jg(addr);
 
         break;
     }
     case JGE:
     {
-        BCAddress addr;
+        Script_FunctionAddress addr;
         bs->Read(&addr);
 
-        handler.Jge(
-            addr);
+        handler.Jge(addr);
 
         break;
     }
@@ -3009,12 +3005,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister reg;
         bs->Read(&reg);
+
         uint8 nargs;
         bs->Read(&nargs);
 
-        handler.Call(
-            reg,
-            nargs);
+        handler.Call(reg, nargs);
 
         break;
     }
@@ -3026,11 +3021,10 @@ HYP_FORCE_INLINE static void HandleInstruction(
     }
     case BEGIN_TRY:
     {
-        BCAddress catchAddress;
+        Script_FunctionAddress catchAddress;
         bs->Read(&catchAddress);
 
-        handler.BeginTry(
-            catchAddress);
+        handler.BeginTry(catchAddress);
 
         break;
     }
@@ -3044,12 +3038,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.New(
-            dst,
-            src);
+        handler.New(dst, src);
 
         break;
     }
@@ -3057,12 +3050,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         uint32 size;
         bs->Read(&size);
 
-        handler.NewArray(
-            dst,
-            size);
+        handler.NewArray(dst, size);
 
         break;
     }
@@ -3070,12 +3062,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
 
-        handler.Cmp(
-            lhsReg,
-            rhsReg);
+        handler.Cmp(lhsReg, rhsReg);
 
         break;
     }
@@ -3093,8 +3084,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.CmpZ(
-            reg);
+        handler.CmpZ(reg);
 
         break;
     }
@@ -3102,15 +3092,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Add(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Add(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3118,15 +3107,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Sub(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Sub(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3134,15 +3122,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Mul(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Mul(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3150,15 +3137,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Div(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Div(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3166,15 +3152,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Mod(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Mod(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3182,15 +3167,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.And(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.And(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3198,15 +3182,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Or(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Or(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3214,15 +3197,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Xor(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Xor(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3230,15 +3212,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Shl(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Shl(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3246,15 +3227,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister lhsReg;
         bs->Read(&lhsReg);
+
         BCRegister rhsReg;
         bs->Read(&rhsReg);
+
         BCRegister dstReg;
         bs->Read(&dstReg);
 
-        handler.Shr(
-            lhsReg,
-            rhsReg,
-            dstReg);
+        handler.Shr(lhsReg, rhsReg, dstReg);
 
         break;
     }
@@ -3263,8 +3243,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.Neg(
-            reg);
+        handler.Neg(reg);
 
         break;
     }
@@ -3273,8 +3252,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.Not(
-            reg);
+        handler.Not(reg);
 
         break;
     }
@@ -3283,8 +3261,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister reg;
         bs->Read(&reg);
 
-        handler.Throw(
-            reg);
+        handler.Throw(reg);
 
         break;
     }
@@ -3348,12 +3325,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastU8(
-            dst,
-            src);
+        handler.CastU8(dst, src);
 
         break;
     }
@@ -3361,12 +3337,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastU16(
-            dst,
-            src);
+        handler.CastU16(dst, src);
 
         break;
     }
@@ -3374,12 +3349,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastU32(
-            dst,
-            src);
+        handler.CastU32(dst, src);
 
         break;
     }
@@ -3387,12 +3361,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastU64(
-            dst,
-            src);
+        handler.CastU64(dst, src);
 
         break;
     }
@@ -3400,12 +3373,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastI8(
-            dst,
-            src);
+        handler.CastI8(dst, src);
 
         break;
     }
@@ -3413,12 +3385,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastI16(
-            dst,
-            src);
+        handler.CastI16(dst, src);
 
         break;
     }
@@ -3426,12 +3397,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastI32(
-            dst,
-            src);
+        handler.CastI32(dst, src);
 
         break;
     }
@@ -3439,12 +3409,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastI64(
-            dst,
-            src);
+        handler.CastI64(dst, src);
 
         break;
     }
@@ -3452,12 +3421,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastF32(
-            dst,
-            src);
+        handler.CastF32(dst, src);
 
         break;
     }
@@ -3465,12 +3433,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastF64(
-            dst,
-            src);
+        handler.CastF64(dst, src);
 
         break;
     }
@@ -3478,12 +3445,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastBool(
-            dst,
-            src);
+        handler.CastBool(dst, src);
 
         break;
     }
@@ -3491,12 +3457,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
     {
         BCRegister dst;
         bs->Read(&dst);
+
         BCRegister src;
         bs->Read(&src);
 
-        handler.CastDynamic(
-            dst,
-            src);
+        handler.CastDynamic(dst, src);
 
         break;
     }
@@ -3681,7 +3646,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             Script_VMData previousAddr;
             previousAddr.type = Script_VMData::FUNCTION_CALL;
             previousAddr.call.varargsPush = 0;
-            previousAddr.call.returnAddress = static_cast<BCAddress>(bs->Position());
+            previousAddr.call.returnAddress = (Script_FunctionAddress)bs->Position();
 
             if (vmData->func.m_flags & FunctionFlags::VARIADIC)
             {
@@ -3714,7 +3679,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             thread->GetStack().Push(ScriptApi_MakeValue(previousAddr));
 
             // seek to the new address
-            bs->Seek(vmData->func.m_addr);
+            bs->Seek((uint32)vmData->func.m_addr);
 
             // increase function depth
             thread->m_funcDepth++;
@@ -3762,10 +3727,7 @@ void VM::InvokeNow(BytecodeStream* bs, Value&& value, uint8 nargs)
         {
             bs->Read(&code);
 
-            HandleInstruction(
-                handler,
-                bs,
-                code);
+            HandleInstruction(handler, bs, code);
 
             if (handler.thread->GetExceptionState().HasExceptionOccurred())
             {
@@ -3850,7 +3812,7 @@ bool VM::HandleException(InstructionHandler* handler)
         Assert(topVmData && topVmData->type != Script_VMData::TRY_CATCH_INFO);
 
         // jump to the catch block
-        bs->Seek(topVmData->tryCatchInfo.catchAddress);
+        bs->Seek((uint32)topVmData->tryCatchInfo.catchAddress);
 
         // pop exception data from stack
         thread->m_stack.Pop();

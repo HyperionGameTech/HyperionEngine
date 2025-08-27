@@ -24,8 +24,14 @@ struct HypData;
 
 namespace vm {
 
-typedef uint32 BCAddress;
 typedef uint8 BCRegister;
+
+#ifdef HYP_SCRIPT
+enum class Script_FunctionAddress : uint32;
+#ifndef INVALID_FUNCTION_ADDRESS
+#define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
+#endif
+#endif
 
 struct Value;
 
@@ -171,7 +177,7 @@ struct alignas(8) Script_VMData
 
         struct
         {
-            BCAddress m_addr;
+            Script_FunctionAddress m_addr;
             uint8 m_nargs;
             uint8 m_flags;
         } func;
@@ -181,15 +187,15 @@ struct alignas(8) Script_VMData
 
         struct
         {
-            BCAddress returnAddress;
+            Script_FunctionAddress returnAddress;
             int32 varargsPush;
         } call;
 
-        BCAddress addr;
+        Script_FunctionAddress addr;
 
         struct
         {
-            BCAddress catchAddress;
+            Script_FunctionAddress catchAddress;
         } tryCatchInfo;
 
         struct

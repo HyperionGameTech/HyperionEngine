@@ -54,6 +54,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_no_substitution_for_generic_arg, "No substitution found for generic parameter %" },
     { Msg_enum_assignment_not_constant, "Assignment for enum member '%' is not a constant." },
     { Msg_generic_arg_may_not_have_side_effects, "Generic argument may not have side effects" },
+    { Msg_reserved_identifier, "'%' is a reserved identifier and may not be used" },
     { Msg_break_outside_loop, "'break' cannot be used outside of a loop or switch statement" },
     { Msg_continue_outside_loop, "'continue' cannot be used outside of a loop" },
     { Msg_multiple_return_types, "Function has more than one possible return type" },

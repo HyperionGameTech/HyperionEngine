@@ -67,6 +67,24 @@ public:
 
             return *reinterpret_cast<const HypData*>(memberAddress);
         };
+
+        m_setProc = [offset](HypData& targetData, const HypData& data) -> void
+        {
+            AnyRef targetRef = targetData.ToRef();
+
+            HYP_CORE_ASSERT(targetRef.HasValue(), "Invalid target reference");
+            HYP_CORE_ASSERT(targetRef.GetTypeId() != TypeId::Void(), "Invalid target type");
+
+            const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(targetRef.GetPointer());
+            HYP_CORE_ASSERT(baseAddress != 0, "Invalid target base address");
+
+            const uintptr_t memberAddress = baseAddress + offset;
+            HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
+
+            *reinterpret_cast<HypData*>(memberAddress) = data;
+        };
+
+        // @TODO: Serialize/Deserialize
     }
 
     template <class ThisType, class FieldType>

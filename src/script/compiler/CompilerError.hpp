@@ -70,6 +70,7 @@ enum ErrorMessage
     Msg_no_substitution_for_generic_arg,
     Msg_enum_assignment_not_constant,
     Msg_generic_arg_may_not_have_side_effects,
+    Msg_reserved_identifier,
 
     /* LOOPS */
     Msg_break_outside_loop,

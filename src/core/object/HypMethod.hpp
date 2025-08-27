@@ -23,6 +23,13 @@ namespace hyperion {
 
 class HypClass;
 
+#ifdef HYP_SCRIPT
+enum class Script_FunctionAddress : uint32;
+#ifndef INVALID_FUNCTION_ADDRESS
+#define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
+#endif
+#endif
+
 struct HypMethodParameter
 {
     TypeId typeId;
@@ -156,16 +163,22 @@ public:
           m_flags(HypMethodFlags::NONE),
           m_attributes(attributes)
     {
+#ifdef HYP_SCRIPT
+        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
+#endif
     }
 
-    HypMethod(Name name, TypeId returnTypeId, TypeId targetTypeId, EnumFlags<HypMethodFlags> flags, Span<const HypClassAttribute> attributes = {})
+#ifdef HYP_SCRIPT
+    HypMethod(Name name, TypeId returnTypeId, TypeId targetTypeId, Script_FunctionAddress scriptAddress, EnumFlags<HypMethodFlags> flags, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
           m_returnTypeId(returnTypeId),
           m_targetTypeId(targetTypeId),
+          m_scriptAddress(scriptAddress),
           m_flags(flags),
           m_attributes(attributes)
     {
     }
+#endif
 
     template <class ReturnType, class TargetType, class... ArgTypes>
     HypMethod(Name name, ReturnType (TargetType::*memFn)(ArgTypes...), Span<const HypClassAttribute> attributes = {})
@@ -190,6 +203,10 @@ public:
                   }
               })
     {
+#ifdef HYP_SCRIPT
+        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
+#endif
+
         m_returnTypeId = TypeId::ForType<NormalizedType<ReturnType>>();
         m_targetTypeId = TypeId::ForType<NormalizedType<TargetType>>();
 
@@ -284,6 +301,10 @@ public:
                   }
               })
     {
+#ifdef HYP_SCRIPT
+        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
+#endif
+
         m_returnTypeId = TypeId::ForType<NormalizedType<ReturnType>>();
         m_targetTypeId = TypeId::ForType<NormalizedType<TargetType>>();
 
@@ -376,6 +397,10 @@ public:
                   }
               })
     {
+#ifdef HYP_SCRIPT
+        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
+#endif
+
         m_returnTypeId = TypeId::ForType<NormalizedType<ReturnType>>();
         m_targetTypeId = TypeId::Void();
 
@@ -489,6 +514,18 @@ public:
         return m_proc(const_cast<HypData**>(args.Data()), args.Size());
     }
 
+#ifdef HYP_SCRIPT
+    HYP_FORCE_INLINE Script_FunctionAddress GetScriptAddress() const
+    {
+        return m_scriptAddress;
+    }
+
+    HYP_FORCE_INLINE bool IsScriptFunction() const
+    {
+        return m_scriptAddress != INVALID_FUNCTION_ADDRESS;
+    }
+#endif
+
 private:
     Name m_name;
     TypeId m_returnTypeId;
@@ -501,6 +538,10 @@ private:
 
     Proc<FBOMData(Span<HypData>, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
     Proc<void(FBOMLoadContext&, Span<HypData>, const FBOMData&)> m_deserializeProc;
+
+#ifdef HYP_SCRIPT
+    Script_FunctionAddress m_scriptAddress;
+#endif
 };
 
 #undef HYP_METHOD_MEMBER_FN_WRAPPER

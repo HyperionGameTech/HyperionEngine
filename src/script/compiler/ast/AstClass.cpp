@@ -3,9 +3,12 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
+#include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstMemberCallExpression.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -17,11 +20,6 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
-
-#include <core/object/HypField.hpp>
-#include <core/object/HypMethod.hpp>
-#include <core/object/HypConstant.hpp>
-#include <core/object/HypProperty.hpp>
 
 #include <core/utilities/Optional.hpp>
 
@@ -173,8 +171,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         ScopeGuard staticDataMembers(mod, SCOPE_TYPE_TYPE_DEFINITION, 0);
 
-        // Add a static $invoke method which will be used to invoke the constructor.
-
         for (const auto& mem : m_staticMembers)
         {
             Assert(mem != nullptr);
@@ -192,9 +188,35 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // ===== INSTANCE DATA MEMBERS =====
+    static const String s_reservedMemberNames[] = {
+        "$construct"
+    };
 
-    Optional<SymbolTypeMember> constructorMember;
+    for (const String& reserved : s_reservedMemberNames)
+    {
+        const Array<RC<AstVariableDeclaration>>* allMembers[] = {
+            &m_dataMembers,
+            &m_functionMembers,
+            &m_staticMembers
+        };
+
+        for (const Array<RC<AstVariableDeclaration>>* members : allMembers)
+        {
+            for (const RC<AstVariableDeclaration>& member : *members)
+            {
+                if (member != nullptr && member->GetName() == reserved)
+                {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_reserved_identifier,
+                        member->GetLocation(),
+                        member->GetName()));
+                }
+            }
+        }
+    }
+
+    // ===== INSTANCE DATA MEMBERS =====
 
     // open the scope for data members
     {
@@ -221,22 +243,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             if (mem != nullptr)
             {
-                // if name of the method matches that of the class, it is the constructor.
-                const bool isConstructorDefinition = mem->GetName() == m_name;
-
-                if (isConstructorDefinition)
-                {
-                    // ScopeGuard constructorDefinitionScope(mod, SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);
-
-                    mem->ApplyIdentifierFlags(FLAG_CONSTRUCTOR);
-                    mem->SetName("$construct");
-
-                    mem->Visit(visitor, mod);
-                }
-                else
-                {
-                    mem->Visit(visitor, mod);
-                }
+                mem->Visit(visitor, mod);
 
                 Assert(mem->GetIdentifier() != nullptr);
 
@@ -246,15 +253,117 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     mem->GetRealAssignment()
                 };
 
-                if (isConstructorDefinition)
-                {
-                    constructorMember = member;
-                }
-
                 m_symbolType->AddMember(std::move(member));
             }
         }
     }
+
+    // add a $construct member. It'll need to call the user-defined constructor (if any).
+    // user-defined constructor is a function member with the same name as the class
+    Optional<SymbolTypeMember> userDefinedConstructorMember;
+    for (const SymbolTypeMember& member : m_symbolType->GetMembers())
+    {
+        if (member.name == m_name)
+        {
+            userDefinedConstructorMember = member;
+            break;
+        }
+    }
+
+    SymbolTypeMember constructorMember;
+
+    // add constructor
+    Array<RC<AstParameter>> constructorParams;
+
+    // add `self: typeof SelfType` parameter
+    constructorParams.PushBack(RC<AstParameter>(new AstParameter(
+        "self",
+        RC<AstTypeSpecifier>(new AstTypeSpecifier(
+            RC<AstTypeRef>(new AstTypeRef(
+                m_symbolType,
+                m_location)),
+            m_location)),
+        nullptr,
+        false,
+        false,
+        false,
+        m_location)));
+
+    RC<AstBlock> constructorBody(new AstBlock(m_location));
+    // initialize data members to default values
+    for (const RC<AstVariableDeclaration>& dataMember : m_dataMembers)
+    {
+        Assert(dataMember != nullptr);
+
+        if (dataMember->GetRealAssignment() != nullptr)
+        {
+            RC<AstExpression> expr(new AstBinaryExpression(
+                RC<AstMember>(new AstMember(
+                    dataMember->GetName(),
+                    RC<AstVariable>(new AstVariable(
+                        "self",
+                        m_location)),
+                    m_location)),
+                CloneAstNode(dataMember->GetRealAssignment()),
+                Operator::FindBinaryOperator(Operators::OP_assign),
+                m_location));
+
+            constructorBody->AddChild(expr);
+        }
+    }
+
+    // If there is a user-defined constructor, call it with the parameters passed to this constructor
+    if (userDefinedConstructorMember.HasValue())
+    {
+        const SymbolTypeMember& userDefinedConstructorMemberRef = userDefinedConstructorMember.Get();
+        Assert(userDefinedConstructorMemberRef.type != nullptr);
+
+        Array<RC<AstArgument>> constructorArgs;
+        constructorArgs.Reserve(constructorParams.Size());
+
+        // Pass each parameter as an argument to the constructor
+        for (SizeType i = 0; i < constructorParams.Size(); i++)
+        {
+            const RC<AstParameter>& param = constructorParams[i];
+            Assert(param != nullptr);
+
+            constructorArgs.PushBack(RC<AstArgument>(new AstArgument(
+                RC<AstVariable>(new AstVariable(
+                    param->GetName(),
+                    m_location)),
+                false,
+                false,
+                param->IsRef(),
+                param->IsConst(),
+                param->GetName(),
+                m_location)));
+        }
+        constructorBody->AddChild(RC<AstExpression>(new AstMemberCallExpression(
+            userDefinedConstructorMemberRef.name,
+            RC<AstVariable>(new AstVariable("self", m_location)),
+            RC<AstArgumentList>(new AstArgumentList(constructorArgs, m_location)),
+            m_location)));
+    }
+
+    RC<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
+        constructorParams,
+        RC<AstTypeSpecifier>(new AstTypeSpecifier(
+            RC<AstTypeRef>(new AstTypeRef(
+                BuiltinTypes::ANY,
+                m_location)),
+            m_location)),
+        constructorBody,
+        m_location));
+
+    constructorExpr->Visit(visitor, mod);
+
+    constructorMember = SymbolTypeMember {
+        "$construct",
+        constructorExpr->GetExprType(),
+        CloneAstNode(constructorExpr)
+    };
+
+    m_symbolType->AddMember(constructorMember);
 
 #if HYP_SCRIPT_CALLABLE_CLASS_CONSTRUCTORS
     bool invokeFound = false;
@@ -407,6 +516,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
 #endif
 
+    /// @TODO: Make constructor set the default values of data members
+
     { // create a type ref for the symbol type
         m_typeRef.Reset(new AstTypeRef(
             m_symbolType,
@@ -465,8 +576,9 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         {
             HypMethod* method = new HypMethod(
                 CreateNameFromDynamicString(*member.name),
-                TypeId::Void(),
-                TypeId::Void(),
+                TypeId::ForType<HypData>(),
+                TypeId::ForType<HypObjectBase>(),
+                INVALID_FUNCTION_ADDRESS,
                 HypMethodFlags::MEMBER,
                 {});
 
@@ -480,7 +592,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
             HypField* field = new HypField(
                 CreateNameFromDynamicString(member.name),
                 TypeId::ForType<HypData>(),
-                TypeId::Void(),
+                TypeId::ForType<HypObjectBase>(),
                 fieldOffset,
                 sizeof(HypData),
                 {});
