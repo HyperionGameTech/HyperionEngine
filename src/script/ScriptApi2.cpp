@@ -264,8 +264,14 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
         }
 
         classDefinition.expr.Reset(
-            new AstTypeExpression(classDefinition.name, nullptr, members, {},
-                staticMembers, false, SourceLocation::eof));
+            new AstTypeExpression(
+                classDefinition.name,
+                SymbolTypeRef(nullptr),
+                members,
+                {},
+                staticMembers,
+                false,
+                SourceLocation::eof));
 
         IdentifierFlagBits identifierFlags =
             IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;

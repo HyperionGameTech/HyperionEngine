@@ -37,7 +37,7 @@ Builtins::Builtins(CompilationUnit* unit)
         RC<AstTemplateExpression>(new AstTemplateExpression(
             RC<AstTypeExpression>(new AstTypeExpression(
                 "varargs",
-                nullptr,
+                SymbolTypeRef(nullptr),
                 {},
                 {},
                 { // variadic trait
@@ -67,19 +67,19 @@ Builtins::Builtins(CompilationUnit* unit)
         BUILTIN_SOURCE_LOCATION)));
 
     m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-        "function",
+        "Function",
         nullptr,
         RC<AstTemplateExpression>(new AstTemplateExpression(
             RC<AstTypeExpression>(new AstTypeExpression(
-                "function",
-                nullptr,
+                "Function",
+                BuiltinTypes::FUNCTION_BASE,
                 {},
                 {},
                 {},
                 true, // proxy class, so we can use Map<K, V>.length() like {}.length()
                 BUILTIN_SOURCE_LOCATION)),
             { RC<AstParameter>(new AstParameter(
-                  "ReturnType",
+                  "@return",
                   RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
                       RC<AstTypeRef>(new AstTypeRef(
                           BuiltinTypes::CLASS_TYPE,
@@ -112,7 +112,6 @@ Builtins::Builtins(CompilationUnit* unit)
 void Builtins::Visit(AstVisitor* visitor)
 {
     Array<SymbolTypeRef> builtinTypes {
-        BuiltinTypes::PRIMITIVE_TYPE,
         BuiltinTypes::ANY,
         BuiltinTypes::OBJECT,
         BuiltinTypes::CLASS_TYPE,

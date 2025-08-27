@@ -29,7 +29,7 @@ const SymbolTypeRef BuiltinTypes::UNDEFINED = SymbolType::Primitive(
     BuiltinTypes::PRIMITIVE_TYPE);
 
 const SymbolTypeRef BuiltinTypes::ANY = SymbolType::Primitive(
-    "any",
+    "Any",
     RC<AstNil>(new AstNil(SourceLocation::eof)),
     nullptr);
 
@@ -147,4 +147,8 @@ const SymbolTypeRef BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
     GenericTypeInfo { -1 },
     BuiltinTypes::CLASS_TYPE);
 
+const SymbolTypeRef BuiltinTypes::FUNCTION_BASE = SymbolType::Primitive(
+    "FunctionBase",
+    nullptr,
+    BuiltinTypes::PRIMITIVE_TYPE);
 } // namespace hyperion::compiler

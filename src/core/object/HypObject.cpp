@@ -14,10 +14,12 @@
 #include <core/containers/Stack.hpp>
 
 #ifdef HYP_DOTNET
-#include <scripting/Script.hpp> // For SL_CSHARP
-
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>
+#endif
+
+#ifdef HYP_SCRIPT
+#include <scripting/Script.hpp>
 #endif
 
 namespace hyperion {
@@ -155,8 +157,35 @@ HypObjectBase::~HypObjectBase()
     HYP_CORE_ASSERT(m_header != nullptr);
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+
     if (m_scriptObjectResource)
     {
+#ifdef HYP_SCRIPT
+        // destruct all dynamic fields
+        if (m_scriptObjectResource->GetScriptLanguage() == SL_HYPSCRIPT && m_header->hypClass->IsDynamic())
+        {
+            const HypClass* hypClass = m_header->hypClass;
+
+            SizeType fieldOffset = sizeof(HypObjectBase);
+
+            while (hypClass != nullptr && hypClass->IsDynamic())
+            {
+                for (HypField* field : hypClass->GetFields())
+                {
+                    // align field offset
+                    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+
+                    HypData* fieldPtr = (HypData*)(uintptr_t(this) + fieldOffset);
+                    fieldPtr->~HypData();
+
+                    fieldOffset += sizeof(HypData);
+                }
+
+                hypClass = hypClass->GetParent();
+            }
+        }
+#endif
+
         FreeResource(m_scriptObjectResource);
         m_scriptObjectResource = nullptr;
     }

@@ -25,6 +25,15 @@ public:
 
     AstTypeExpression(
         const String& name,
+        const SymbolTypeRef& baseType,
+        const Array<RC<AstVariableDeclaration>>& dataMembers,
+        const Array<RC<AstVariableDeclaration>>& functionMembers,
+        const Array<RC<AstVariableDeclaration>>& staticMembers,
+        bool isProxyClass,
+        const SourceLocation& location);
+
+    AstTypeExpression(
+        const String& name,
         const RC<AstPrototypeSpecification>& baseSpecification,
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
@@ -133,6 +142,7 @@ public:
 protected:
     String m_name;
     RC<AstPrototypeSpecification> m_baseSpecification;
+    SymbolTypeRef m_baseType;
     Array<RC<AstVariableDeclaration>> m_dataMembers;
     Array<RC<AstVariableDeclaration>> m_functionMembers;
     Array<RC<AstVariableDeclaration>> m_staticMembers;
@@ -149,6 +159,18 @@ protected:
 
     RC<AstTypeExpression> CloneImpl() const
     {
+        if (m_baseType != nullptr)
+        {
+            return RC<AstTypeExpression>(new AstTypeExpression(
+                m_name,
+                m_baseType,
+                CloneAllAstNodes(m_dataMembers),
+                CloneAllAstNodes(m_functionMembers),
+                CloneAllAstNodes(m_staticMembers),
+                m_isProxyClass,
+                m_location));
+        }
+
         return RC<AstTypeExpression>(new AstTypeExpression(
             m_name,
             CloneAstNode(m_baseSpecification),

@@ -138,6 +138,17 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         m_returnType = BuiltinTypes::ANY;
         m_substitutedArgs = argsWithSelf; // NOTE: do not clone because we don't need to visit again.
     }
+    else if (!unaliased->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE))
+    {
+        // not a function type
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_function,
+            m_location,
+            targetType->ToString(true)));
+
+        return;
+    }
     else
     {
         Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(

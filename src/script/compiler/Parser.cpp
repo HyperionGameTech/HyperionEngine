@@ -905,12 +905,41 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
     Array<RC<AstArgument>> args;
 
+    auto parseFunctionReturnType = [&]() -> RC<AstArgument>
+    {
+        // right arrow for function return type is part of the generic args
+        if (Match(TK_RIGHT_ARROW, true))
+        {
+            // parse return type, add as first argument
+            if (RC<AstPrototypeSpecification> returnType = ParsePrototypeSpecification())
+            {
+                RC<AstArgument> returnTypeArg(new AstArgument(
+                    returnType,
+                    false,
+                    true,
+                    false,
+                    false,
+                    "@return",
+                    returnType->GetLocation()));
+
+                return returnTypeArg;
+            }
+        }
+
+        return nullptr;
+    };
+
     if (Token token = ExpectOperator("<", true))
     {
         bool breakout = false;
 
         if (MatchOperator(">", true))
         {
+            if (RC<AstArgument> returnTypeArg = parseFunctionReturnType())
+            {
+                args.PushFront(returnTypeArg);
+            }
+
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 target,
                 args,
@@ -974,10 +1003,13 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         if (!breakout && MatchOperator(">", true))
         {
+            if (RC<AstArgument> returnTypeArg = parseFunctionReturnType())
+            {
+                args.PushFront(returnTypeArg);
+            }
+
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                target,
-                args,
-                token.GetLocation()));
+                target, args, token.GetLocation()));
         }
 
         // no closing bracket found, revert to start.

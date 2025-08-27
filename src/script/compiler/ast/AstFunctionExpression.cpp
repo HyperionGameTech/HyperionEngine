@@ -235,8 +235,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     // set object type to be an instance of function
     Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
     genericParamTypes.Reserve(paramSymbolTypes.Size() + 1);
-    genericParamTypes.PushBack({ "@return",
-        m_returnType });
+    genericParamTypes.PushBack({ "@return", m_returnType });
 
     // perform checking to see if it should still be considered a closure
     if (m_isClosure)
@@ -283,7 +282,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     RC<AstPrototypeSpecification> functionTypeSpec(new AstPrototypeSpecification(
         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             RC<AstVariable>(new AstVariable(
-                "function",
+                "Function",
                 m_location)),
             genericParams,
             m_location)),
@@ -330,7 +329,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         // add $invoke to call this object
         m_closureTypeExpr.Reset(new AstTypeExpression(
             "__closure",
-            nullptr,
+            SymbolTypeRef(nullptr),
             {},
             { RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 "$invoke",

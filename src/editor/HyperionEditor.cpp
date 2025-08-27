@@ -108,18 +108,6 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    Pool poolTest;
-    void* vp = poolTest.Allocate(32, 16);
-    void* vp2 = poolTest.Allocate(64, 32);
-    void* vp3 = poolTest.Allocate(128, 64);
-    poolTest.Free(vp2);
-    void* vp4 = poolTest.Allocate(16, 8);
-    poolTest.Free(vp);
-    poolTest.Free(vp4);
-    poolTest.Free(vp3);
-
-    HYP_BREAKPOINT;
-
 #if 1
     //{ // script 1
     //    // temp
@@ -144,14 +132,17 @@ void HyperionEditor::Init()
     { // script 2
         // temp
         String str;
-        str = "class Node {}; \n"
-              "class MyClass : Node {\n"
-              "    blah: int = 5;\n"
-              "    func x(a: int, b: int) { return a + b; };\n"
-              "};\n"
-              "ins : MyClass = new MyClass();\n"
-              "func modValue(ref v: int) {\nv = 4483;\n};"
-              "export func x(a: float, ref b: int) {\nb2 := 2;\nmodValue(b2);\nreturn ins;\n};";
+        str = "class Base {}; \n"
+            "class MyClass : Base {\n"
+            "    blah: int = 5;\n"
+            "    func x(a: int, b: int) { return a + b; };\n"
+            "};\n"
+            "ins : MyClass = new MyClass();\n"
+            "func modValue(ref v: int, fun: Function<> -> int) {\nv = fun();\n};"
+            "foobar : Function<> -> float = (){\n"
+                "return ins.blah as float;\n"
+            "};\n"
+              "export func x(a: float, ref b: int) {\nb := 2;\nmodValue(b, () => 9);\nreturn foobar();\n};";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

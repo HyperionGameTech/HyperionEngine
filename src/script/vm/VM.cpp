@@ -635,9 +635,7 @@ public:
             HypField* field = hypClass->GetField(WeakName(NameID(hash)));
             if (!field)
             {
-                vm->ThrowException(
-                    thread,
-                    Exception::MemberNotFoundException(hash));
+                vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
 
                 return;
             }
@@ -829,9 +827,7 @@ public:
 
         if (!field)
         {
-            vm->ThrowException(
-                thread,
-                Exception::MemberNotFoundException(hash));
+            vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
             return;
         }
 
@@ -1141,7 +1137,7 @@ public:
         uint16 nameLen;
         bs->Read(&nameLen);
 
-        char* nameStr = (char*)StackAlloc(nameLen + 1);
+        char* nameStr = (char*)std::malloc(nameLen + 1);
         nameStr[nameLen] = '\0';
         bs->Read(nameStr, nameLen);
 
@@ -1151,6 +1147,7 @@ public:
 
         // Create a new class with the given name
         Name className = CreateNameFromDynamicString(nameStr);
+        std::free(nameStr);
 
         Array<HypMember> members;
         bool hitEnd = false;
@@ -1181,7 +1178,7 @@ public:
                 uint16 memberNameLen;
                 bs->Read(&memberNameLen);
 
-                char* memberNameStr = (char*)StackAlloc(memberNameLen + 1);
+                char* memberNameStr = (char*)std::malloc(memberNameLen + 1);
                 memberNameStr[memberNameLen] = '\0';
                 bs->Read(memberNameStr, memberNameLen);
 
@@ -1201,11 +1198,12 @@ public:
                     uint16 attrNameLen;
                     bs->Read(&attrNameLen);
 
-                    char* attrNameStr = (char*)StackAlloc(attrNameLen + 1);
+                    char* attrNameStr = (char*)std::malloc(attrNameLen + 1);
                     attrNameStr[attrNameLen] = '\0';
                     bs->Read(attrNameStr, attrNameLen);
 
                     attr.name = CreateNameFromDynamicString(attrNameStr);
+                    std::free(attrNameStr);
 
                     // Read attribute type
                     uint8 attrType;
@@ -1281,6 +1279,13 @@ public:
                         size,
                         attrs.ToSpan())));
 
+                    DebugLog(
+                        LogType::Debug,
+                        "Added field %s to class %s, hash = %llu\n",
+                        memberNameStr,
+                        className.LookupString(),
+                        members.Back().value.Get<HypField>().GetName().Id());
+
                     break;
                 }
                 case HypMemberType::TYPE_METHOD:
@@ -1330,6 +1335,8 @@ public:
                     HYP_UNREACHABLE();
                     break;
                 }
+
+                std::free(memberNameStr);
             }
         }
 
@@ -1358,7 +1365,6 @@ public:
         HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
         Value classValue = ScriptApi_MakeValue(AnyRef(static_cast<HypClass*>(newClass)));
-
         thread->m_regs[reg].AssignValue(std::move(classValue), false);
     }
 

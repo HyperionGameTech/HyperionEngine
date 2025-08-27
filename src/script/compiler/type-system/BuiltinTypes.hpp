@@ -31,12 +31,10 @@ struct BuiltinTypes
     static const SymbolTypeRef FLOAT;
     static const SymbolTypeRef BOOLEAN;
     static const SymbolTypeRef STRING;
-    static const SymbolTypeRef FUNCTION;
-    static const SymbolTypeRef HASH_MAP;
+    static const SymbolTypeRef FUNCTION_BASE;
     static const SymbolTypeRef NULL_TYPE;
     static const SymbolTypeRef MODULE_INFO;
     static const SymbolTypeRef GENERIC_VARIABLE_TYPE;
 };
 
 } // namespace hyperion::compiler
-

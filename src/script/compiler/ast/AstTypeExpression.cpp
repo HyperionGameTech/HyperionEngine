@@ -53,6 +53,27 @@ AstTypeExpression::AstTypeExpression(
 
 AstTypeExpression::AstTypeExpression(
     const String& name,
+    const SymbolTypeRef& baseType,
+    const Array<RC<AstVariableDeclaration>>& dataMembers,
+    const Array<RC<AstVariableDeclaration>>& functionMembers,
+    const Array<RC<AstVariableDeclaration>>& staticMembers,
+    bool isProxyClass,
+    const SourceLocation& location)
+    : AstTypeExpression(
+          name,
+          nullptr,
+          dataMembers,
+          functionMembers,
+          staticMembers,
+          nullptr,
+          isProxyClass,
+          location)
+{
+    m_baseType = baseType;
+}
+
+AstTypeExpression::AstTypeExpression(
+    const String& name,
     const RC<AstPrototypeSpecification>& baseSpecification,
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
@@ -87,7 +108,7 @@ void AstTypeExpression::Visit(AstVisitor* visitor, Module* mod)
         {},
         BuiltinTypes::OBJECT);
 
-    SymbolTypeRef baseType = nullptr;
+    SymbolTypeRef baseType = m_baseType;
 
     if (m_baseSpecification != nullptr)
     {
@@ -502,40 +523,58 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
     Array<HypConstant*> constants;
     Array<HypProperty*> properties;
 
-    // setup fields
-    for (const RC<AstVariableDeclaration>& varDecl : m_dataMembers)
+    SizeType fieldOffset = sizeof(HypObjectBase); // start after base object
+    const SizeType fieldAlignment = alignof(HypData);
+
+    // iterate through parent types and add up their fields to get offset
+    SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
+
+    while (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::OBJECT)
     {
-        Assert(varDecl != nullptr);
-        Assert(varDecl->GetIdentifier() != nullptr);
-        Assert(varDecl->GetIdentifier()->GetSymbolType() != nullptr);
+        for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
+        {
+            if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE))
+            {
+                // align field offset
+                fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+                fieldOffset += sizeof(HypData);
+            }
+        }
 
-        HypField* field = new HypField(
-            CreateNameFromDynamicString(*varDecl->GetName()),
-            TypeId::Void(),
-            TypeId::Void(),
-            0, // @TODO: Offset
-            0, // @TODO: size
-            {} // @TODO: attrs
-        );
-
-        fields.PushBack(field);
+        baseTypeRef = baseTypeRef->GetBaseType();
     }
 
-    // setup methods
-    for (const RC<AstVariableDeclaration>& varDecl : m_functionMembers)
+    // Add all fields from our class
+    for (const SymbolTypeMember& member : m_symbolType->GetMembers())
     {
-        Assert(varDecl != nullptr);
-        Assert(varDecl->GetIdentifier() != nullptr);
-        Assert(varDecl->GetIdentifier()->GetSymbolType() != nullptr);
+        if (member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // method
+        {
+            HypMethod* method = new HypMethod(
+                CreateNameFromDynamicString(*member.name),
+                TypeId::Void(),
+                TypeId::Void(),
+                HypMethodFlags::MEMBER,
+                {});
 
-        HypMethod* method = new HypMethod(
-            CreateNameFromDynamicString(*varDecl->GetName()),
-            TypeId::Void(),
-            TypeId::Void(),
-            HypMethodFlags::MEMBER,
-            {});
+            methods.PushBack(method);
+        }
+        else
+        {
+            // align field offset
+            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
 
-        methods.PushBack(method);
+            HypField* field = new HypField(
+                CreateNameFromDynamicString(member.name),
+                TypeId::Void(),
+                TypeId::Void(),
+                fieldOffset,
+                sizeof(HypData),
+                {});
+
+            fields.PushBack(field);
+
+            fieldOffset += sizeof(HypData);
+        }
     }
 
     // @TODO: static members
@@ -550,7 +589,7 @@ UniquePtr<Buildable> AstTypeExpression::Build(AstVisitor* visitor, Module* mod)
 
     chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
 
-    SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
+    baseTypeRef = m_symbolType->GetBaseType();
 
     if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::OBJECT)
     {

@@ -427,6 +427,8 @@ HypClass::~HypClass()
 
 void HypClass::Initialize()
 {
+    HYP_LOG(Object, Info, "Initializing HypClass \"{}\"", m_name);
+
     m_serializationMode = HypClassSerializationMode::DEFAULT;
 
     if (const HypClassAttributeValue& serializeAttribute = GetAttribute("serialize"))
@@ -476,9 +478,12 @@ void HypClass::Initialize()
         }
 
         HYP_CORE_ASSERT(m_parent != nullptr, "Invalid parent class: %s", m_parentName.LookupString());
-    }
 
-    HYP_LOG(Object, Info, "Initializing HypClass \"{}\"", m_name);
+        if (!IsDynamic())
+        {
+            HYP_CORE_ASSERT(!m_parent->IsDynamic(), "Non-dynamic HypClass cannot have a dynamic parent class!");
+        }
+    }
 
     // Build properties from `Property=` attributes on methods and fields
     Array<Pair<String, Array<IHypMember*>>> propertiesToBuild;
@@ -881,28 +886,77 @@ DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const
 #endif
 
 #ifdef HYP_SCRIPT
-DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+DynamicHypClassInstance::DynamicHypClassInstance(
+    TypeId typeId,
+    Name name,
+    const HypClass* parentClass,
+    Span<const HypClassAttribute> attributes,
+    EnumFlags<HypClassFlags> flags,
+    Span<HypMember> members)
     : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
     m_parent = parentClass;
-    
-    if (m_parent)
-    {
-        m_size = parentClass->GetSize();
-        m_alignment = parentClass->GetAlignment();
 
-        m_objectContainer = nullptr; // get at call time
-    }
-    else
-    {
-        m_size = sizeof(HypObjectBase);
-        m_alignment = alignof(HypObjectBase);
+    SizeType dynamicSize = sizeof(HypObjectBase);
+    SizeType dynamicAlignment = alignof(HypObjectBase);
 
-        m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const HypClass* thisHypClass) -> HypObjectContainerBase*
-            {
-                return new HypObjectContainer<HypObjectBase>(thisHypClass);
-            });
+    auto calculateDynamicHypClassSize = [](const HypClass* hypClass, SizeType& dynamicSize, SizeType& dynamicAlignment)
+    {
+        HYP_CORE_ASSERT(hypClass->IsDynamic());
+
+        for (const HypField* field : hypClass->GetFields())
+        {
+            // In dynamic classes for scripts, all fields are stored as HypData
+            const SizeType fieldSize = sizeof(HypData);
+            const SizeType fieldAlignment = alignof(HypData);
+
+            dynamicSize = ByteUtil::AlignAs(dynamicSize, fieldAlignment);
+
+            HYP_CORE_ASSERT(field != nullptr);
+            HYP_CORE_ASSERT(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: %s, class: %s), expected %llu, got %llu",
+                field->GetName().LookupString(), hypClass->GetName().LookupString(),
+                dynamicSize, field->GetOffset());
+
+            dynamicSize += fieldSize;
+
+            dynamicAlignment = MathUtil::Max(dynamicAlignment, fieldAlignment);
+        }
+    };
+
+    const HypClass* currentParent = m_parent;
+    Array<const HypClass*> dynamicParents;
+
+    while (currentParent != nullptr && currentParent->IsDynamic())
+    {
+        dynamicParents.PushBack(currentParent);
+
+        currentParent = currentParent->GetParent();
     }
+
+    if (currentParent && !currentParent->IsDynamic())
+    {
+        // add size of first non-dynamic parent class (ensure proper alignment)
+        dynamicSize = ByteUtil::AlignAs(dynamicSize, currentParent->GetAlignment());
+        dynamicSize += currentParent->GetSize();
+
+        dynamicAlignment = MathUtil::Max(dynamicAlignment, currentParent->GetAlignment());
+    }
+
+    for (SizeType i = dynamicParents.Size(); i > 0; --i)
+    {
+        calculateDynamicHypClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
+    }
+
+    calculateDynamicHypClassSize(this, dynamicSize, dynamicAlignment);
+
+    // if no fields, we must at least be the size of HypObjectBase
+    m_size = MathUtil::Max(sizeof(HypObjectBase), dynamicSize);
+    m_alignment = MathUtil::Max(alignof(HypObjectBase), dynamicAlignment);
+
+    m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const HypClass* thisHypClass) -> HypObjectContainerBase*
+        {
+            return new HypObjectContainer<HypObjectBase>(thisHypClass);
+        });
 }
 #endif
 
@@ -922,12 +976,17 @@ bool DynamicHypClassInstance::IsValid() const
 
 HypObjectContainerBase* DynamicHypClassInstance::GetObjectContainer() const
 {
+    if (m_objectContainer != nullptr)
+    {
+        return m_objectContainer;
+    }
+
     if (m_parent != nullptr)
     {
         return m_parent->GetObjectContainer();
     }
 
-    return m_objectContainer;
+    return nullptr;
 }
 
 HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
@@ -1059,17 +1118,36 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 #endif
 
 #ifdef HYP_SCRIPT
-    if (m_parent != nullptr)
-    {
-        return m_parent->CreateInstance(out);
-    }
-
-    PushGlobalContext(HypObjectInitializerContext { .hypClass = this, .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
-
     // get or create new container for dynamic type
     HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());
     Assert(container != nullptr);
     Assert(container->GetObjectTypeId() == m_typeId);
+
+    Array<const HypClass*> dynamicParents;
+    const HypClass* topParent = m_parent;
+
+    if (m_parent != nullptr)
+    {
+        while (topParent != nullptr)
+        {
+            if (!topParent->IsDynamic())
+            {
+                // stop after first non-dynamic parent class
+                HYP_FAIL("Non-dynamic parent class construction not yet implemented for dynamic class {}, Parent class: {}",
+                    GetName().LookupString(), topParent->GetName().LookupString());
+
+                HYP_NOT_IMPLEMENTED(); // non-dynamic parent class construction not yet implemented
+
+                break;
+            }
+
+            dynamicParents.PushBack(topParent);
+
+            topParent = topParent->GetParent();
+        }
+    }
+
+    PushGlobalContext(HypObjectInitializerContext { .hypClass = this, .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
     HypObjectHeader* header = container->Allocate();
     header->hypClass = this;
@@ -1077,10 +1155,37 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
     new (ptr) HypObjectBase();
 
+    // where to start writing fields
+    SizeType fieldOffset =
+        (topParent != nullptr && !topParent->IsDynamic() ? topParent->GetSize() : 0)
+        + sizeof(HypObjectBase);
+
+    for (SizeType i = dynamicParents.Size(); i > 0; i--)
+    {
+        const HypClass* dynamicParent = dynamicParents[i - 1];
+        HYP_CORE_ASSERT(dynamicParent->IsDynamic(), "Expected dynamic parent class");
+
+        const DynamicHypClassInstance* dynamicParentInstance = static_cast<const DynamicHypClassInstance*>(dynamicParent);
+
+        // Init all fields to HypData()
+        for (HypField* field : dynamicParentInstance->GetFields())
+        {
+            // align field offset
+            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+
+            HYP_CORE_ASSERT(fieldOffset + sizeof(HypData) <= m_size,
+                "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypData), m_size);
+
+            HypData* fieldPtr = (HypData*)(uintptr_t(ptr) + fieldOffset);
+            new (fieldPtr) HypData();
+
+            fieldOffset += sizeof(HypData);
+        }
+    }
+
     ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), HYP_SCRIPT_OBJECT);
     Assert(scriptObjectResource != nullptr);
     scriptObjectResource->IncRef();
-
     ptr->SetScriptObjectResource(scriptObjectResource);
 
     Handle<HypObjectBase> handle;
