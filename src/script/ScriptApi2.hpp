@@ -20,6 +20,7 @@
 namespace hyperion {
 
 class APIInstance;
+class HypMethod;
 
 namespace scriptapi2 {
 
@@ -56,13 +57,13 @@ struct Symbol
     Symbol(
         const String& name,
         const String& typeString,
-        Script_NativeFunction nativeFunction)
+        HypMethod* hypMethod)
         : name(name),
           type { typeString, nullptr }
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::NATIVE_FUNCTION;
-        vmData.nativeFunc = nativeFunction;
+        vmData.nativeFunc = hypMethod;
 
         value = Value(vmData);
     }
@@ -128,7 +129,7 @@ public:
     ClassBuilder& Method(
         String name,
         String typeString,
-        Script_NativeFunction fn);
+        HypMethod* hypMethod);
 
     ClassBuilder& StaticMember(
         String name,
@@ -138,7 +139,7 @@ public:
     ClassBuilder& StaticMethod(
         String name,
         String typeString,
-        Script_NativeFunction fn);
+        HypMethod* hypMethod);
 
     void Build();
 
@@ -180,13 +181,13 @@ public:
     Context& Global(
         String name,
         String typeString,
-        Script_NativeFunction fn);
+        HypMethod* hypMethod);
 
     Context& Global(
         String name,
         String genericParamsString,
         String typeString,
-        Script_NativeFunction fn);
+        HypMethod* hypMethod);
 
     void Visit(
         AstVisitor* visitor,

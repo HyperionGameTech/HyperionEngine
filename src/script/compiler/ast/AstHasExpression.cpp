@@ -147,7 +147,7 @@ UniquePtr<Buildable> AstHasExpression::Build(AstVisitor* visitor, Module* mod)
 
         { // compile in the instruction to check if it has the member
             auto instrHasMemHash = BytecodeUtil::Make<RawOperation<>>();
-            instrHasMemHash->opcode = HAS_MEM_HASH;
+            instrHasMemHash->opcode = CHECK_HAS_MEMBER;
             instrHasMemHash->Accept<uint8>(rp);
             instrHasMemHash->Accept<uint8>(rp);
             instrHasMemHash->Accept<uint64>(hash);

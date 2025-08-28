@@ -97,6 +97,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
                         m_symbolType,
                         m_location)),
                     m_location)) },
+                nullptr, // no function return type
                 m_location)),
             m_location));
 

@@ -21,6 +21,7 @@ namespace hyperion {
 class APIInstance;
 class AnyHandle;
 struct HypData;
+struct HypMethod;
 
 namespace vm {
 
@@ -182,7 +183,7 @@ struct alignas(8) Script_VMData
             uint8 m_flags;
         } func;
 
-        Script_NativeFunction nativeFunc;
+        HypMethod* nativeFunc;
         Script_UserData userData;
 
         struct

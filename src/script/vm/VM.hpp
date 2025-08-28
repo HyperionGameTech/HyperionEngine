@@ -221,8 +221,6 @@ public:
     VM& operator=(VM&& other) noexcept = delete;
     ~VM();
 
-    void PushNativeFunctionPtr(Script_NativeFunction ptr);
-
     void Invoke(
         InstructionHandler* handler,
         Value&& value,

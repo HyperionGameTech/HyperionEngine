@@ -156,6 +156,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
                     m_heldType,
                     m_location)),
                 m_location)) },
+            nullptr, // no function return type
             m_location)),
         m_location));
 

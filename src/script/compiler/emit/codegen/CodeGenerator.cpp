@@ -543,14 +543,14 @@ void CodeGenerator::Visit(StorageOperation* node)
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(Instructions::LOAD_MEM_HASH);
+                m_ibs.Put(Instructions::GET_MEMBER);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.hash), sizeof(node->op.b.objectData.member.hash));
 
                 break;
             case Operations::STORE:
-                m_ibs.Put(Instructions::MOV_MEM_HASH);
+                m_ibs.Put(Instructions::SET_MEMBER);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.hash), sizeof(node->op.b.objectData.member.hash));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));

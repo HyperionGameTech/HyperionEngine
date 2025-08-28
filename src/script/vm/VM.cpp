@@ -619,68 +619,6 @@ public:
         thread->m_regs[reg].AssignValue(ScriptApi_MakeValue(vmData), false);
     }
 
-    HYP_FORCE_INLINE void LoadMemHash(BCRegister dstReg, BCRegister srcReg, uint64 hash)
-    {
-        Value& src = *thread->m_regs[srcReg].Deref();
-
-        if (const AnyHandle& object = src.GetObject())
-        {
-            const HypClass* hypClass = object.ptr->InstanceClass();
-            Assert(hypClass != nullptr);
-
-            IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
-            if (!member)
-            {
-                vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
-
-                return;
-            }
-
-            if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
-            {
-                HypField* field = static_cast<HypField*>(member);
-
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
-            }
-            else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
-            {
-                HypMethod* method = static_cast<HypMethod*>(member);
-
-                Script_VMData vmData;
-
-                if (method->IsScriptFunction())
-                {
-                    Assert(method->GetParameters().Size() <= UINT8_MAX);
-
-                    vmData.type = Script_VMData::FUNCTION;
-                    vmData.func.m_addr = method->GetScriptAddress();
-                    vmData.func.m_nargs = (uint8)method->GetParameters().Size();
-                    vmData.func.m_flags = (uint8)method->GetFlags();
-                }
-                else
-                {
-                    vmData.type = Script_VMData::NATIVE_FUNCTION;
-                    vmData.nativeFunc = [](sdk::Params params)
-                    {
-                        HYP_NOT_IMPLEMENTED(); // @TODO
-                    };
-                }
-
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(vmData), false);
-            }
-            else
-            {
-                vm->ThrowException(thread, Exception("Member is not a field or method"));
-            }
-
-            return;
-        }
-
-        vm->ThrowException(
-            thread,
-            Exception("Cannot access member by hash: Not an VMObject"));
-    }
-
     HYP_FORCE_INLINE void LoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
@@ -838,33 +776,6 @@ public:
         value.AssignValue(std::move(thread->m_regs[reg]), false);
     }
 
-    HYP_FORCE_INLINE void MovMemHash(BCRegister dstReg, uint64 hash, BCRegister srcReg)
-    {
-        Value* pValue = thread->m_regs[dstReg].Deref();
-
-        const AnyHandle& object = pValue->GetObject();
-        if (!object)
-        {
-            vm->ThrowException(
-                thread,
-                Exception("Cannot assign member by hash: Not a VMObject"));
-            return;
-        }
-
-        const HypClass* hypClass = object.ptr->InstanceClass();
-        Assert(hypClass != nullptr);
-
-        HypField* field = hypClass->GetField(WeakName(NameID(hash)));
-
-        if (!field)
-        {
-            vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
-            return;
-        }
-
-        field->Set(*pValue->GetHypData(), *thread->m_regs[srcReg].GetHypData());
-    }
-
     HYP_FORCE_INLINE void MovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
     {
         Value& src = *thread->m_regs[dstReg].Deref();
@@ -962,12 +873,12 @@ public:
         vm->ThrowException(thread, Exception("Not an array!"));
     }
 
-    HYP_FORCE_INLINE void MovReg(BCRegister dstReg, BCRegister srcReg)
+    HYP_FORCE_INLINE void Mov(BCRegister dstReg, BCRegister srcReg)
     {
         thread->m_regs[dstReg] = std::move(thread->m_regs[srcReg]);
     }
 
-    HYP_FORCE_INLINE void HasMemHash(BCRegister dstReg, BCRegister srcReg, uint64 hash)
+    HYP_FORCE_INLINE void CheckHasMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
         Value& result = thread->m_regs[dstReg];
@@ -992,6 +903,90 @@ public:
         }
 
         result.AssignValue(ScriptApi_MakeValue(false), false);
+    }
+
+    HYP_FORCE_INLINE void SetMember(BCRegister dstReg, uint64 hash, BCRegister srcReg)
+    {
+        Value* pValue = thread->m_regs[dstReg].Deref();
+
+        const AnyHandle& object = pValue->GetObject();
+        if (!object)
+        {
+            vm->ThrowException(
+                thread,
+                Exception("Cannot assign member by hash: Not a VMObject"));
+            return;
+        }
+
+        const HypClass* hypClass = object.ptr->InstanceClass();
+        Assert(hypClass != nullptr);
+
+        HypField* field = hypClass->GetField(WeakName(NameID(hash)));
+
+        if (!field)
+        {
+            vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
+            return;
+        }
+
+        field->Set(*pValue->GetHypData(), *thread->m_regs[srcReg].GetHypData());
+    }
+
+    HYP_FORCE_INLINE void GetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
+    {
+        Value& src = *thread->m_regs[srcReg].Deref();
+
+        if (const AnyHandle& object = src.GetObject())
+        {
+            const HypClass* hypClass = object.ptr->InstanceClass();
+            Assert(hypClass != nullptr);
+
+            IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
+            if (!member)
+            {
+                vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
+
+                return;
+            }
+
+            if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
+            {
+                HypField* field = static_cast<HypField*>(member);
+
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
+            }
+            else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
+            {
+                HypMethod* method = static_cast<HypMethod*>(member);
+
+                Script_VMData vmData;
+
+                if (method->IsScriptFunction())
+                {
+                    Assert(method->GetParameters().Size() <= UINT8_MAX);
+
+                    vmData.type = Script_VMData::FUNCTION;
+                    vmData.func.m_addr = method->GetScriptAddress();
+                    vmData.func.m_nargs = (uint8)method->GetParameters().Size();
+                    vmData.func.m_flags = (uint8)method->GetFlags();
+                }
+                else
+                {
+                    vmData.type = Script_VMData::NATIVE_FUNCTION;
+                    vmData.nativeFunc = method;
+                }
+
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(vmData), false);
+            }
+            else
+            {
+                vm->ThrowException(thread, Exception("Member is not a field or method"));
+            }
+
+            return;
+        }
+
+        vm->ThrowException(thread, Exception("Cannot access member by hash: Not an VMObject"));
     }
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
@@ -2515,11 +2510,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
     switch (code)
     {
-    case STORE_STATIC_STRING: // fallthrough
-    case STORE_STATIC_ADDRESS:
-    case STORE_STATIC_FUNCTION:
-    case STORE_STATIC_TYPE:
-        HYP_NOT_IMPLEMENTED(); // removed
     case LOAD_I32:
     {
         BCRegister reg;
@@ -2689,21 +2679,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case LOAD_MEM_HASH:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        uint64 hash;
-        bs->Read(&hash);
-
-        handler.LoadMemHash(dst, src, hash);
-
-        break;
-    }
     case LOAD_ARRAYIDX:
     {
         BCRegister dstReg;
@@ -2844,21 +2819,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case MOV_MEM_HASH:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        uint64 hash;
-        bs->Read(&hash);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.MovMemHash(dst, hash, src);
-
-        break;
-    }
     case MOV_ARRAYIDX:
     {
         BCRegister dst;
@@ -2889,7 +2849,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case MOV_REG:
+    case MOV:
     {
         BCRegister dst;
         bs->Read(&dst);
@@ -2897,11 +2857,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister src;
         bs->Read(&src);
 
-        handler.MovReg(dst, src);
+        handler.Mov(dst, src);
 
         break;
     }
-    case HAS_MEM_HASH:
+    case CHECK_HAS_MEMBER:
     {
         BCRegister dst;
         bs->Read(&dst);
@@ -2912,7 +2872,37 @@ HYP_FORCE_INLINE static void HandleInstruction(
         uint64 hash;
         bs->Read(&hash);
 
-        handler.HasMemHash(dst, src, hash);
+        handler.CheckHasMember(dst, src, hash);
+
+        break;
+    }
+    case SET_MEMBER:
+    {
+        BCRegister dst;
+        bs->Read(&dst);
+
+        uint64 hash;
+        bs->Read(&hash);
+
+        BCRegister src;
+        bs->Read(&src);
+
+        handler.SetMember(dst, hash, src);
+
+        break;
+    }
+    case GET_MEMBER:
+    {
+        BCRegister dst;
+        bs->Read(&dst);
+
+        BCRegister src;
+        bs->Read(&src);
+
+        uint64 hash;
+        bs->Read(&hash);
+
+        handler.GetMember(dst, src, hash);
 
         break;
     }
@@ -3521,15 +3511,6 @@ void VM::ThrowException(Script_ExecutionThread* thread, const Exception& excepti
     }
 }
 
-void VM::PushNativeFunctionPtr(Script_NativeFunction ptr)
-{
-    Script_VMData vmData;
-    vmData.type = Script_VMData::NATIVE_FUNCTION;
-    vmData.nativeFunc = ptr;
-
-    GetMainThread()->m_stack.Push(ScriptApi_MakeValue(vmData));
-}
-
 void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
 {
     static const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
@@ -3546,27 +3527,13 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
     {
         if (deref.IsNativeFunction())
         {
-            Value** args = (Value**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(Value*));
+            HypData** argsHypData = (HypData**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(HypData*));
 
             int64 i = static_cast<int64>(thread->m_stack.GetStackPointer()) - 1;
             for (int j = nargs - 1; j >= 0 && i >= 0; i--, j--)
             {
-                args[j] = &thread->m_stack[i];
+                argsHypData[j] = thread->m_stack[i].GetHypData();
             }
-
-            sdk::Params params {
-                .apiInstance = m_apiInstance,
-                .args = args,
-                .nargs = nargs,
-
-                // context value (this VM instance), passed to native functions
-                .ctx = this,
-
-                // callback to set the return value for a native function
-                .setReturnValue = &ScriptApi_SetReturnValue,
-                // sets a script exception from a native function
-                .throwException = &ScriptApi_ThrowException
-            };
 
             // @TODO: Implement
             // disable auto gc so no collections happen during a native function
@@ -3576,7 +3543,10 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             Script_VMData* vmData = deref.GetVMData();
             Assert(vmData != nullptr && vmData->nativeFunc != nullptr);
 
-            vmData->nativeFunc(params);
+            HypData resultHypData = vmData->nativeFunc->Invoke(Span<HypData*>(argsHypData, nargs));
+
+            // set register 0 to the result
+            thread->GetRegisters()[0].AssignValue(ScriptApi_MakeValue(std::move(resultHypData)), false);
 
             // re-enable auto gc
             //            enableAutoGc = ENABLE_GC;

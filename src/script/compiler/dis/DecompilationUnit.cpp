@@ -35,111 +35,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case STORE_STATIC_STRING:
-    {
-        uint32 len;
-        bs.Read(&len);
-
-        char* str = new char[len + 1];
-        str[len] = '\0';
-        bs.Read(str, len);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "str ["
-                << "u32(" << len << "), "
-                << "\"" << str << "\""
-                << "]"
-                << std::endl;
-        }
-
-        delete[] str;
-
-        break;
-    }
-    case STORE_STATIC_ADDRESS:
-    {
-        uint32 val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os) << "addr [@(" << std::hex << val << std::dec << ")]" << std::endl;
-        }
-
-        break;
-    }
-    case STORE_STATIC_FUNCTION:
-    {
-        uint32 addr;
-        bs.Read(&addr);
-
-        uint8 nargs;
-        bs.Read(&nargs);
-
-        uint8 flags;
-        bs.Read(&flags);
-
-        if (os != nullptr)
-        {
-            (*os) << "function [@(" << std::hex << addr << std::dec << "), "
-                  << "u8(" << (int)nargs << ")], "
-                  << "u8(" << (int)flags << ")]"
-                  << std::endl;
-        }
-
-        break;
-    }
-    case STORE_STATIC_TYPE:
-    {
-        uint16 typeNameLen;
-        bs.Read(&typeNameLen);
-
-        Array<uint8> typeName;
-        typeName.Resize(typeNameLen + 1);
-        typeName[typeNameLen] = '\0';
-        bs.Read(&typeName[0], typeNameLen);
-
-        uint16 size;
-        bs.Read(&size);
-
-        Array<Array<uint8>> names;
-        names.Resize(size);
-
-        for (int i = 0; i < size; i++)
-        {
-            uint16 len;
-            bs.Read(&len);
-
-            names[i].Resize(len + 1);
-            names[i][len] = '\0';
-            bs.Read(&names[i][0], len);
-        }
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "type ["
-                << "str(" << typeName.Data() << "), "
-                << "u16(" << (int)size << "), ";
-
-            for (int i = 0; i < size; i++)
-            {
-                (*os) << "str(" << names[i].Data() << ")";
-                if (i != size - 1)
-                {
-                    (*os) << ", ";
-                }
-            }
-
-            (*os)
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case LOAD_I32:
     {
         uint8 reg;
@@ -391,7 +286,7 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_MEM_HASH:
+    case GET_MEMBER:
     {
         uint8 reg;
         bs.Read(&reg);
@@ -405,7 +300,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadMemHash ["
+                << "getMember ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
                 << "u64(" << hash << ")"
@@ -649,7 +544,7 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case MOV_MEM_HASH:
+    case SET_MEMBER:
     {
         uint8 reg;
         bs.Read(&reg);
@@ -663,7 +558,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movMemHash ["
+                << "setMember ["
                 << "%" << (int)reg << ", "
                 << "u64(" << hash << "), "
                 << "%" << (int)src
@@ -721,7 +616,7 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case MOV_REG:
+    case MOV:
     {
         uint8 dst;
         bs.Read(&dst);
@@ -732,7 +627,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movReg ["
+                << "mov ["
                 << "%" << (int)dst << ", "
                 << "%" << (int)src << ""
                 << "]"
@@ -741,7 +636,7 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case HAS_MEM_HASH:
+    case CHECK_HAS_MEMBER:
     {
         uint8 reg;
         bs.Read(&reg);
@@ -755,7 +650,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "hasMemHash ["
+                << "checkHasMember ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
                 << "u64(" << hash << ")"

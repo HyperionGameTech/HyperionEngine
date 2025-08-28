@@ -187,6 +187,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
                         m_valueType,
                         m_location)),
                     m_location)) },
+            nullptr, // no function return type
             m_location)),
         m_location));
 

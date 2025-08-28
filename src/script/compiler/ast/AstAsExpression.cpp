@@ -173,7 +173,7 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
 
     { // swap dst and src
         auto instrMovReg = BytecodeUtil::Make<RawOperation<>>();
-        instrMovReg->opcode = MOV_REG;
+        instrMovReg->opcode = MOV;
         instrMovReg->Accept<uint8>(srcRegister);
         instrMovReg->Accept<uint8>(dstRegister);
         chunk->Append(std::move(instrMovReg));

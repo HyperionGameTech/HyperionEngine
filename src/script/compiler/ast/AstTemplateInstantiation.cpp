@@ -21,8 +21,10 @@ namespace hyperion::compiler {
 AstTemplateInstantiation::AstTemplateInstantiation(
     const RC<AstExpression>& expr,
     const Array<RC<AstTypeSpecifier>>& genericArgs,
+    const RC<AstTypeSpecifier>& functionReturnType,
     const SourceLocation& location)
     : AstTypeSpecifier(expr, location),
+      m_functionReturnType(functionReturnType),
       m_genericArgs(genericArgs)
 {
 }
@@ -60,7 +62,17 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
     }
 
     Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
-    genericParamTypes.Reserve(m_genericArgs.Size());
+    genericParamTypes.Reserve(m_genericArgs.Size() + (m_functionReturnType ? 1 : 0));
+
+    if (m_functionReturnType)
+    {
+        m_functionReturnType->Visit(visitor, mod);
+
+        SymbolTypeRef returnType = m_functionReturnType->GetHeldType();
+        Assert(returnType != nullptr);
+
+        genericParamTypes.PushBack({ "@return", returnType });
+    }
 
     for (SizeType i = 0; i < m_genericArgs.Size(); i++)
     {
@@ -70,9 +82,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes.PushBack({ HYP_FORMAT("@arg{}", i), argType });
     }
 
-    SymbolTypeRef genericInstanceType = SymbolType::GenericInstance(
-        m_symbolType,
-        GenericInstanceTypeInfo { genericParamTypes });
+    SymbolTypeRef genericInstanceType = SymbolType::GenericInstance(m_symbolType, GenericInstanceTypeInfo { genericParamTypes });
 
     if (!genericInstanceType)
     {
@@ -86,10 +96,12 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    m_symbolType = SymbolType::SubstituteGenericParams(
-        m_symbolType,
-        BuiltinTypes::PLACEHOLDER,
-        genericInstanceType);
+    m_symbolType = genericInstanceType;
+
+    // m_symbolType = SymbolType::SubstituteGenericParams(
+    //     m_symbolType,
+    //     BuiltinTypes::PLACEHOLDER,
+    //     genericInstanceType);
 
     if (!m_symbolType)
     {

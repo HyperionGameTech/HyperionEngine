@@ -295,8 +295,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     SymbolTypeRef functionType = SymbolType::GenericInstance(
         BuiltinTypes::FUNCTION,
-        GenericInstanceTypeInfo {
-            genericParamTypes });
+        GenericInstanceTypeInfo { genericParamTypes });
 
     if (m_isClosure)
     {
@@ -509,7 +508,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
         // swap regs, so the closure object returned (put on register zero)
         auto instrMovReg = BytecodeUtil::Make<RawOperation<>>();
-        instrMovReg->opcode = MOV_REG;
+        instrMovReg->opcode = MOV;
         instrMovReg->Accept<uint8>(0);             // dst
         instrMovReg->Accept<uint8>(closureObjReg); // src
         chunk->Append(std::move(instrMovReg));

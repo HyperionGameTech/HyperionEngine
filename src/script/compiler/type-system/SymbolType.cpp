@@ -708,7 +708,8 @@ SymbolTypeRef SymbolType::Object(
     return symbolType;
 }
 
-SymbolTypeRef SymbolType::Generic(const String& name,
+SymbolTypeRef SymbolType::Generic(
+    const String& name,
     const Array<SymbolTypeMember>& members,
     const Array<SymbolTypeMember>& staticMembers,
     const GenericTypeInfo& info,
@@ -727,7 +728,8 @@ SymbolTypeRef SymbolType::Generic(const String& name,
     return res;
 }
 
-SymbolTypeRef SymbolType::Generic(const String& name,
+SymbolTypeRef SymbolType::Generic(
+    const String& name,
     const RC<AstExpression>& defaultValue,
     const Array<SymbolTypeMember>& members,
     const Array<SymbolTypeMember>& staticMembers,

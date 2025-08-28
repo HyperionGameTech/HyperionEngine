@@ -911,14 +911,10 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         if (MatchOperator(">", true))
         {
-            if (RC<AstTypeSpecifier> returnTypeArg = parseFunctionReturnType())
-            {
-                args.PushFront(returnTypeArg);
-            }
-
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 expr,
                 args,
+                parseFunctionReturnType(),
                 token.GetLocation()));
         }
 
@@ -972,14 +968,10 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         if (!breakout && MatchOperator(">", true))
         {
-            if (RC<AstTypeSpecifier> returnTypeArg = parseFunctionReturnType())
-            {
-                args.PushFront(returnTypeArg);
-            }
-
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
                 expr,
                 args,
+                parseFunctionReturnType(),
                 token.GetLocation()));
         }
 
@@ -2794,7 +2786,7 @@ RC<AstClass> Parser::ParseClass(
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseEnumDefinition()/// @TODO: Change to return AstEnum (same way PraseClassDefinition() return AstClass)
+RC<AstStatement> Parser::ParseEnumDefinition() /// @TODO: Change to return AstEnum (same way PraseClassDefinition() return AstClass)
 {
     if (Token token = ExpectKeyword(Keyword_enum, true))
     {

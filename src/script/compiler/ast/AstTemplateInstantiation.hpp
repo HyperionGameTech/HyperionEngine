@@ -17,6 +17,7 @@ public:
     AstTemplateInstantiation(
         const RC<AstExpression>& expr,
         const Array<RC<AstTypeSpecifier>>& genericArgs,
+        const RC<AstTypeSpecifier>& functionReturnType, // optional
         const SourceLocation& location);
     virtual ~AstTemplateInstantiation() = default;
 
@@ -28,14 +29,14 @@ public:
 
 private:
     Array<RC<AstTypeSpecifier>> m_genericArgs;
-
-    // SymbolTypeRef m_heldType;
+    RC<AstTypeSpecifier> m_functionReturnType; // optional
 
     RC<AstTemplateInstantiation> CloneImpl() const
     {
         return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_genericArgs),
+            CloneAstNode(m_functionReturnType),
             m_location));
     }
 };

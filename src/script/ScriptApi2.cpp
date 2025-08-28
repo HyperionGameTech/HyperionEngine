@@ -36,11 +36,11 @@ ClassBuilder& ClassBuilder::Member(String name, String typeString, HypData&& val
     return *this;
 }
 
-ClassBuilder& ClassBuilder::Method(String name, String typeString, Script_NativeFunction fn)
+ClassBuilder& ClassBuilder::Method(String name, String typeString, HypMethod* hypMethod)
 {
     Script_VMData vmData;
     vmData.type = Script_VMData::NATIVE_FUNCTION;
-    vmData.nativeFunc = fn;
+    vmData.nativeFunc = hypMethod;
 
     m_classDefinition.members.PushBack(Symbol { name, typeString, Value(vmData) });
 
@@ -54,11 +54,11 @@ ClassBuilder& ClassBuilder::StaticMember(String name, String typeString, HypData
     return *this;
 }
 
-ClassBuilder& ClassBuilder::StaticMethod(String name, String typeString, Script_NativeFunction fn)
+ClassBuilder& ClassBuilder::StaticMethod(String name, String typeString, HypMethod* hypMethod)
 {
     Script_VMData vmData;
     vmData.type = Script_VMData::NATIVE_FUNCTION;
-    vmData.nativeFunc = fn;
+    vmData.nativeFunc = hypMethod;
 
     m_classDefinition.staticMembers.PushBack(Symbol { name, typeString, Value(vmData) });
 
@@ -94,11 +94,11 @@ Context& Context::Global(String name, String genericParamsString, String typeStr
     return *this;
 }
 
-Context& Context::Global(String name, String typeString, Script_NativeFunction fn)
+Context& Context::Global(String name, String typeString, HypMethod* hypMethod)
 {
     Script_VMData vmData;
     vmData.type = Script_VMData::NATIVE_FUNCTION;
-    vmData.nativeFunc = fn;
+    vmData.nativeFunc = hypMethod;
 
     Mutex::Guard guard(m_mutex);
 
@@ -107,11 +107,11 @@ Context& Context::Global(String name, String typeString, Script_NativeFunction f
     return *this;
 }
 
-Context& Context::Global(String name, String genericParamsString, String typeString, Script_NativeFunction fn)
+Context& Context::Global(String name, String genericParamsString, String typeString, HypMethod* hypMethod)
 {
     Script_VMData vmData;
     vmData.type = Script_VMData::NATIVE_FUNCTION;
-    vmData.nativeFunc = fn;
+    vmData.nativeFunc = hypMethod;
 
     Mutex::Guard guard(m_mutex);
 

@@ -38,12 +38,6 @@ enum Instructions : hyperion::uint8
     /* No operation */
     NOP = 0x00, // nop
 
-    /* Store values in static memory */
-    STORE_STATIC_STRING,   // str      [u32 len, byte[len] str]
-    STORE_STATIC_ADDRESS,  // addr     [@ addr]
-    STORE_STATIC_FUNCTION, // function [@ addr, u8 nargs, u8 flags]
-    STORE_STATIC_TYPE,     // type     [u16 nameLen, byte[nameLen] name, u16 size, { u16 len, byte[len] memberName }[size]]
-
     /* Load a value into a register */
     LOAD_I32,        // loadI32          [% reg, i32 val]
     LOAD_I64,        // loadI64          [% reg, i64 val]
@@ -57,7 +51,6 @@ enum Instructions : hyperion::uint8
     LOAD_STRING,     // loadStr          [% reg, u32 len, byte[len] str]
     LOAD_ADDR,       // loadAddr         [% reg, @ addr]
     LOAD_FUNC,       // loadFunc         [% reg, @ addr, u8 nargs, u8 flags]
-    LOAD_MEM_HASH,   // loadMemHash      [% reg, % src, u64 hash]
     LOAD_ARRAYIDX,   // loadArrayidx     [% reg, % src, % idx]
     LOAD_OFFSET_REF, // loadOffsetRef   [% reg, u16 offset]
     LOAD_INDEX_REF,  // loadIndexRef    [% reg, u16 idx]
@@ -75,18 +68,25 @@ enum Instructions : hyperion::uint8
     MOV_INDEX, // movIndex    [u16 dst, % src]
     /* Copy register value to static index */
     MOV_STATIC, // movStatic   [u16 dst, % src]
-    /* Copy register value to object member (using hashcode) */
-    MOV_MEM_HASH, // movMemHash [% dstObj, u64 hash, % src]
     /* Copy register value to array index */
     MOV_ARRAYIDX, // movArrayidx [% dstArray, u32 dstIdx, %src]
     /* Copy register value to array index held in other register */
     MOV_ARRAYIDX_REG, // movArrayidxReg [% dstArray, % dstIdx, % src]
     /* Copy register value to another register */
-    MOV_REG, // movReg      [% dst, % src]
+    MOV, // mov      [% dst, % src]
     /* Check if the object in the register has a member with the hash,
         setting a boolean value in the dst register
     */
-    HAS_MEM_HASH, // hasMemHash [% dst, % src, u64 hash]
+
+    /* Object member operations */
+    /* Check if the object in %src has a member with the hash,
+       setting a boolean value in %dst
+    */
+    CHECK_HAS_MEMBER, // checkHasMember [% dst, % src, u64 hash]
+    /* Assign register value to object member (using hashcode) */
+    SET_MEMBER, // setMember [% dstObj, u64 hash, % src]
+    /* Get member value and store it in a register (using hashcode) */
+    GET_MEMBER, // getMember      [% reg, % src, u64 hash]
 
     /* Push a value from register to the stack */
     PUSH, // push [% src]

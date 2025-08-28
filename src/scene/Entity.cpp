@@ -41,7 +41,6 @@ Entity::~Entity()
     m_scene = nullptr;
     m_world = nullptr;
 
-    // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
     EntityManager* entityManager = GetEntityManager();
     if (entityManager == nullptr)
     {
@@ -62,6 +61,7 @@ Entity::~Entity()
     else
     {
         // If not on the correct thread, perform the removal asynchronously
+        // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
         Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), entityManagerWeak = MakeWeakRef(entityManager)]()
             {
                 Handle<EntityManager> entityManager = entityManagerWeak.Lock();

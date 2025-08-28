@@ -721,6 +721,14 @@ const char* Value::GetTypeString() const
     {
         return "bool";
     }
+    else if (typeId == TypeId::ForType<VMString>())
+    {
+        return "string";
+    }
+    else if (typeId == TypeId::ForType<VMArray>())
+    {
+        return "array";
+    }
     else if (const Script_VMData* vmData = GetVMData())
     {
         switch (vmData->type)
