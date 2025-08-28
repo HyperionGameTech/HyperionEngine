@@ -149,34 +149,13 @@ const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
     Array<SymbolTypeMember> {
         SymbolTypeMember {
             "operator[]",
-            SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE),
-            RC<AstFunctionExpression>(new AstFunctionExpression(
-                Array<RC<AstParameter>> {
-                    RC<AstParameter>(new AstParameter(
-                        "index",
-                        RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                            RC<AstTypeRef>(new AstTypeRef(
-                                BuiltinTypes::INT,
-                                SourceLocation::eof)),
-                            SourceLocation::eof)),
-                        nullptr,
-                        false, // variadic
-                        true,  // const
-                        false, // ref
-                        SourceLocation::eof)) },
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE),
-                        SourceLocation::eof)),
-                    SourceLocation::eof)),
-                nullptr,
-                SourceLocation::eof)) },
-    },
+            SymbolType::GenericInstance(
+                BuiltinTypes::FUNCTION,
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE) },
+                        { "index", BuiltinTypes::INT } } }) } },
     Array<SymbolTypeMember> {},
-    GenericTypeInfo {
-        1, /* T */
-        {
-            SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE) } },
+    GenericTypeInfo { 1, /* T */ { SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE) } },
     BuiltinTypes::CLASS_TYPE);
 
 } // namespace hyperion::compiler

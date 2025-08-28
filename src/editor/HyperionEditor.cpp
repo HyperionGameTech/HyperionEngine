@@ -142,7 +142,7 @@ void HyperionEditor::Init()
               "};\n"
               "ins : MyClass = new MyClass();\n"
               "func modValue(ref v: int, fun: Function<int> -> int) {\nv = fun(5);\n};"
-              "export func x(a: float, ref b: int) { return [1,2,3]; };";
+              "export func x(a: float, ref b: int) { i : int = [1,2,3][2]; };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

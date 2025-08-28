@@ -58,8 +58,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             m_location));
     }
 
-    // @TODO Right hand side of array should get passed to operator[] as an argument
-
     if (m_operatorOverloadingEnabled)
     {
         // Treat it the same as AstBinaryExpression does - look for operator[] or operator[]=
@@ -97,7 +95,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             argumentList, // use right hand side as arg
             m_location));
 
-        // check if target is an array
         if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
         {
             RC<AstCallExpression> callExpr(new AstCallExpression(
@@ -145,7 +142,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                 subExpr,
                 m_location));
         }
-        else if (targetType->FindPrototypeMemberDeep(overloadFunctionName))
+        else if (targetType->FindMemberDeep(overloadFunctionName) != nullptr)
         {
             m_overrideExpr = std::move(callOperatorOverloadExpr);
         }

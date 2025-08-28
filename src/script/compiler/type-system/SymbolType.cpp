@@ -320,7 +320,7 @@ bool SymbolType::TypeCompatible(
     return true;
 }
 
-const SymbolTypeRef SymbolType::FindMember(const String& name) const
+SymbolTypeRef SymbolType::FindMember(const String& name) const
 {
     for (const SymbolTypeMember& member : m_members)
     {
@@ -369,6 +369,20 @@ bool SymbolType::FindMember(const String& name, SymbolTypeMember& out, uint32& o
     return false;
 }
 
+SymbolTypeRef SymbolType::FindMemberDeep(const String& name) const
+{
+    SymbolTypeMember out;
+    uint32 outIndex;
+    uint32 outDepth;
+
+    if (FindMemberDeep(name, out, outIndex, outDepth))
+    {
+        return out.type;
+    }
+
+    return nullptr;
+}
+
 bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out) const
 {
     uint32 outIndex;
@@ -412,7 +426,7 @@ bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out, uint3
     return false;
 }
 
-const SymbolTypeRef SymbolType::FindPrototypeMember(const String& name) const
+SymbolTypeRef SymbolType::FindPrototypeMember(const String& name) const
 {
     if (SymbolTypeRef protoType = FindMember("$proto"))
     {

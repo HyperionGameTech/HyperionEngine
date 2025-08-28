@@ -346,14 +346,15 @@ public:
         return !operator==(other);
     }
 
-    const SymbolTypeRef FindMember(const String& name) const;
+    SymbolTypeRef FindMember(const String& name) const;
     bool FindMember(const String& name, SymbolTypeMember& out) const;
     bool FindMember(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
+    SymbolTypeRef FindMemberDeep(const String& name) const;
     bool FindMemberDeep(const String& name, SymbolTypeMember& out) const;
     bool FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
     bool FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const;
 
-    const SymbolTypeRef FindPrototypeMember(const String& name) const;
+    SymbolTypeRef FindPrototypeMember(const String& name) const;
     bool FindPrototypeMember(const String& name, SymbolTypeMember& out) const;
     bool FindPrototypeMember(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
     bool FindPrototypeMemberDeep(const String& name) const;
