@@ -9,6 +9,7 @@
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
+#include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -159,6 +160,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
+    // Register the type in the root scope
+    mod->m_scopes.Root().GetIdentifierTable().AddSymbolType(m_symbolType);
+
     { // add type aliases to be usable within members
         scope->GetIdentifierTable().AddSymbolType(SymbolType::Alias(
             "SelfType",
@@ -275,6 +279,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
         // add a $construct member. It'll need to call the user-defined constructor (if any).
         // user-defined constructor is a function member with the same name as the class
+
+        // @TODO: Call base class constructor if applicable
         Optional<SymbolTypeMember> userDefinedConstructorMember;
         for (const SymbolTypeMember& member : m_symbolType->GetMembers())
         {
@@ -353,10 +359,14 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     param->GetName(),
                     m_location)));
             }
-            constructorBody->AddChild(RC<AstExpression>(new AstMemberCallExpression(
-                userDefinedConstructorMemberRef.name,
-                RC<AstVariable>(new AstVariable("self", m_location)),
-                RC<AstArgumentList>(new AstArgumentList(constructorArgs, m_location)),
+
+            constructorBody->AddChild(RC<AstExpression>(new AstCallExpression(
+                RC<AstMember>(new AstMember(
+                    userDefinedConstructorMemberRef.name,
+                    RC<AstVariable>(new AstVariable("self", m_location)),
+                    m_location)),
+                constructorArgs,
+                false, /* insertSelf */
                 m_location)));
         }
 
@@ -368,14 +378,22 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         RC<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
             constructorParams,
             RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(
-                    m_symbolType,
+                RC<AstVariable>(new AstVariable(
+                    "SelfType",
                     m_location)),
                 m_location)),
             constructorBody,
             m_location));
 
-        constructorExpr->Visit(visitor, mod);
+        // add the constructor expression to the AST
+        RC<AstVariableDeclaration>& constructMemberDecl = m_functionMembers.EmplaceBack(new AstVariableDeclaration(
+            "$construct",
+            nullptr,
+            constructorExpr,
+            IdentifierFlags::FLAG_CONST,
+            m_location));
+
+        constructMemberDecl->Visit(visitor, mod);
 
         constructorMember = SymbolTypeMember {
             "$construct",
@@ -384,6 +402,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         };
 
         m_symbolType->AddMember(constructorMember);
+        constructorExpr.Reset(); // release ref
 
 #if HYP_SCRIPT_CALLABLE_CLASS_CONSTRUCTORS
         bool invokeFound = false;
@@ -575,35 +594,32 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     const int stackSizeBefore = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
     // Add all fields from our class
-    for (const SymbolTypeMember& member : m_symbolType->GetMembers())
+    for (const RC<AstVariableDeclaration>& decl : m_functionMembers)
     {
-        if (member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // method
+        ClassTable::MethodInfo methodInfo {};
+        methodInfo.name = decl->GetName();
+        methodInfo.typeId = TypeId::ForType<HypData>();
+        methodInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+
+        Assert(decl->GetRealAssignment() != nullptr);
+
+        auto methodExprChunk = decl->GetRealAssignment()->Build(visitor, mod);
+        Assert(methodExprChunk != nullptr);
+        chunk->Append(std::move(methodExprChunk));
+
+        // push the value to stack
         {
-            ClassTable::MethodInfo methodInfo {};
-            methodInfo.name = member.name;
-            methodInfo.typeId = TypeId::ForType<HypData>();
-            methodInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+            uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-            Assert(member.expr != nullptr);
+            auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+            instrPush->opcode = PUSH;
+            instrPush->Accept<uint8>(rp);
+            chunk->Append(std::move(instrPush));
 
-            auto methodExprChunk = member.expr->Build(visitor, mod);
-            Assert(methodExprChunk != nullptr);
-            chunk->Append(std::move(methodExprChunk));
-
-            // push the value to stack
-            {
-                uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-                auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-                instrPush->opcode = PUSH;
-                instrPush->Accept<uint8>(rp);
-                chunk->Append(std::move(instrPush));
-
-                visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-            }
-
-            methods.PushBack(methodInfo);
+            visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
         }
+
+        methods.PushBack(methodInfo);
     }
 
     // update all method infos with their stack locations:
@@ -611,7 +627,8 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     {
         for (SizeType i = 0; i < methods.Size(); i++)
         {
-            methods[i].stackOffset = uint16(int(stackSizeBefore + i));
+            const int stackOffset = int(stackSizeBefore + int(methods.Size()) - int(i));
+            methods[i].stackOffset = uint16(stackOffset);
         }
     }
 
@@ -629,7 +646,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     {
         for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
         {
-            if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // skip methods, they don't take up space on the instance
+            if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION)) // skip methods, they don't take up space on the instance
             {
                 // align field offset
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -643,7 +660,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // Add all fields from our class
     for (const SymbolTypeMember& member : m_symbolType->GetMembers())
     {
-        if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // skip methods, they are handled above
+        if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION)) // skip methods, they are handled above
         {
             // align field offset
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -663,9 +680,6 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
     // @TODO: static members
 
-    // Assert(m_typeObject != nullptr);
-    // chunk->Append(m_typeObject->Build(visitor, mod));
-
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
@@ -677,7 +691,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     {
         chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + baseTypeRef->GetName()));
 
-        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, HashCode::GetHashCode(baseTypeRef->GetName().Data()).Value()));
+        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(baseTypeRef->GetName())));
     }
     else
     {

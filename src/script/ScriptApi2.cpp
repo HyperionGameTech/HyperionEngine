@@ -7,7 +7,6 @@
 #include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstTypeSpecifier.hpp>
-#include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
@@ -199,23 +198,6 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
                 SourceLocation::eof)),
             SourceLocation::eof));
 
-        if (global.genericParamsString.HasValue())
-        {
-            const Array<RC<AstParameter>> genericParams =
-                ParseGenericParams(*global.genericParamsString);
-
-            if (genericParams.Any())
-            {
-                expr.Reset(new AstTemplateExpression(
-                    expr, genericParams, typeSpec,
-                    AST_TEMPLATE_EXPRESSION_FLAG_NATIVE, SourceLocation::eof));
-
-                identifierFlags |= IdentifierFlags::FLAG_GENERIC;
-
-                typeSpec.Reset(); // reset typeSpec so we don't double-visit it
-            }
-        }
-
         global.varDecl.Reset(
             new AstVariableDeclaration(global.symbol.name, typeSpec, expr,
                 identifierFlags, SourceLocation::eof));
@@ -275,21 +257,6 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
 
         IdentifierFlagBits identifierFlags =
             IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;
-
-        if (classDefinition.genericParamsString.HasValue())
-        {
-            const Array<RC<AstParameter>> genericParams =
-                ParseGenericParams(*classDefinition.genericParamsString);
-
-            if (genericParams.Any())
-            {
-                classDefinition.expr.Reset(new AstTemplateExpression(
-                    classDefinition.expr, genericParams, nullptr,
-                    AST_TEMPLATE_EXPRESSION_FLAG_NATIVE, SourceLocation::eof));
-
-                identifierFlags |= IdentifierFlags::FLAG_GENERIC;
-            }
-        }
 
         classDefinition.varDecl.Reset(new AstVariableDeclaration(
             classDefinition.name, nullptr, classDefinition.expr, identifierFlags,

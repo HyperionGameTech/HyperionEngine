@@ -132,8 +132,16 @@ const SymbolTypeRef BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
     GenericTypeInfo { -1 },
     BuiltinTypes::CLASS_TYPE);
 
-const SymbolTypeRef BuiltinTypes::FUNCTION_BASE = SymbolType::Primitive(
-    "FunctionBase",
-    nullptr);
+const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::Generic(
+    "Function",
+    Array<SymbolTypeMember> {},
+    Array<SymbolTypeMember> {},
+    GenericTypeInfo {
+        2, /* ReturnType, ParamTypes (variadic) */
+        {
+            SymbolType::GenericParameter("ReturnType", BuiltinTypes::CLASS_TYPE),
+            SymbolType::Generic("varargs", { SymbolTypeMember { "@variadic", BuiltinTypes::PLACEHOLDER } }, {}, GenericTypeInfo { -1 }, BuiltinTypes::PRIMITIVE_TYPE),
+        } },
+    BuiltinTypes::CLASS_TYPE);
 
 } // namespace hyperion::compiler

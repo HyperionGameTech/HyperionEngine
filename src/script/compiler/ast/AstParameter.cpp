@@ -92,15 +92,10 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstVariable>(new AstVariable(
                     "varargs",
                     m_location)),
-                { RC<AstArgument>(new AstArgument(
+                { RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(
                         m_symbolType,
                         m_location)),
-                    false,
-                    false,
-                    false,
-                    false,
-                    "T",
                     m_location)) },
                 m_location)),
             m_location));

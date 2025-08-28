@@ -43,7 +43,7 @@ public:
     static Exception LibraryFunctionLoadException(const char* funcName);
     static Exception DuplicateExportException();
     static Exception KeyNotFoundException(const char* key);
-    static Exception ClassNotFoundException(Name name);
+    static Exception ClassNotFoundException(const char* className);
 
 private:
     char* m_str;

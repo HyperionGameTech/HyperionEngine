@@ -133,16 +133,19 @@ void HyperionEditor::Init()
         // temp
         String str;
         str = "class Base {}; \n"
-            "class MyClass : Base {\n"
-            "    blah: string = \"hello\";\n"
-            "    func x(a: int, b: int) { return a + b; };\n"
-            "};\n"
-            "ins : MyClass = new MyClass();\n"
-            "func modValue(ref v: int, fun: Function<> -> int) {\nv = fun();\n};"
-            "foobar : Function<> -> float = (){\n"
-                "return 5 as float;\n"
-            "};\n"
-              "export func x(a: float, ref b: int) {\nb := 2;\nmodValue(b, () => 9);\nreturn ins.blah;\n};";
+              "class MyClass : Base {\n"
+              "    blah: string = \"hello\";\n"
+              "    func x(a: int, b: int) { return a + b; }\n"
+              "    func MyClass() {\n"
+              "        self.blah = \"test123\";\n"
+              "    }\n"
+              "};\n"
+              "ins : MyClass = new MyClass();\n"
+              "export func x(a: float, ref b: int) {\nb := 2;\nreturn ins.blah;\n};";
+        // "func modValue(ref v: int, fun: Function<> -> int) {\nv = fun();\n};"
+        // "foobar : Function<> -> float = (){\n"
+        //     "return 5 as float;\n"
+        // "};\n"
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

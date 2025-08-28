@@ -13,13 +13,15 @@
 
 #include <core/object/HypClassAttribute.hpp>
 
+namespace hyperion {
+enum class HypMethodFlags : uint8;
+} // namespace hyperion
+
 namespace hyperion::compiler {
 
 struct Instruction : public Buildable
 {
     Opcode opcode;
-
-    virtual ~Instruction() = default;
 };
 
 struct LabelMarker final : public Buildable
@@ -30,7 +32,6 @@ struct LabelMarker final : public Buildable
         : id(id)
     {
     }
-    virtual ~LabelMarker() = default;
 };
 
 struct Jump final : public Buildable
@@ -43,6 +44,7 @@ struct Jump final : public Buildable
         JG,
         JGE,
     } jumpClass;
+
     LabelId labelId;
 
     Jump() = default;
@@ -51,8 +53,6 @@ struct Jump final : public Buildable
           labelId(labelId)
     {
     }
-
-    virtual ~Jump() = default;
 };
 
 struct Comparison final : public Buildable
@@ -80,23 +80,19 @@ struct Comparison final : public Buildable
           regRhs(regRhs)
     {
     }
-
-    virtual ~Comparison() = default;
 };
 
 struct FunctionCall : public Buildable
 {
     RegIndex reg;
-    uint8_t nargs;
+    uint8 nargs;
 
     FunctionCall() = default;
-    FunctionCall(RegIndex reg, uint8_t nargs)
+    FunctionCall(RegIndex reg, uint8 nargs)
         : reg(reg),
           nargs(nargs)
     {
     }
-
-    virtual ~FunctionCall() = default;
 };
 
 struct Return : public Buildable
@@ -114,7 +110,6 @@ struct StoreLocal : public Buildable
         : reg(reg)
     {
     }
-    virtual ~StoreLocal() = default;
 };
 
 struct PopLocal : public Buildable
@@ -126,7 +121,6 @@ struct PopLocal : public Buildable
         : amt(amt)
     {
     }
-    virtual ~PopLocal() = default;
 };
 
 struct LoadRef : public Buildable
@@ -140,8 +134,6 @@ struct LoadRef : public Buildable
           src(src)
     {
     }
-
-    virtual ~LoadRef() = default;
 };
 
 struct LoadDeref : public Buildable
@@ -155,8 +147,6 @@ struct LoadDeref : public Buildable
           src(src)
     {
     }
-
-    virtual ~LoadDeref() = default;
 };
 
 struct ConstI32 : public Buildable
@@ -170,8 +160,6 @@ struct ConstI32 : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstI32() = default;
 };
 
 struct ConstI64 : public Buildable
@@ -185,8 +173,6 @@ struct ConstI64 : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstI64() = default;
 };
 
 struct ConstU32 : public Buildable
@@ -200,8 +186,6 @@ struct ConstU32 : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstU32() = default;
 };
 
 struct ConstU64 : public Buildable
@@ -215,8 +199,6 @@ struct ConstU64 : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstU64() = default;
 };
 
 struct ConstF32 : public Buildable
@@ -230,8 +212,6 @@ struct ConstF32 : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstF32() = default;
 };
 
 struct ConstF64 : public Buildable
@@ -245,8 +225,6 @@ struct ConstF64 : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstF64() = default;
 };
 
 struct ConstBool : public Buildable
@@ -260,8 +238,6 @@ struct ConstBool : public Buildable
           value(value)
     {
     }
-
-    virtual ~ConstBool() = default;
 };
 
 struct ConstNull : public Buildable
@@ -273,23 +249,19 @@ struct ConstNull : public Buildable
         : reg(reg)
     {
     }
-
-    virtual ~ConstNull() = default;
 };
 
 struct LoadClass final : public Buildable
 {
     RegIndex reg;
-    uint64 nameHash;
+    Name className;
 
     LoadClass() = default;
-    LoadClass(RegIndex reg, uint64 nameHash)
+    LoadClass(RegIndex reg, Name className)
         : reg(reg),
-          nameHash(nameHash)
+          className(className)
     {
     }
-
-    virtual ~LoadClass() = default;
 };
 
 struct TryCatchInfo final : public Buildable
@@ -299,10 +271,10 @@ struct TryCatchInfo final : public Buildable
 
 struct ScriptFunction final : public Buildable
 {
-    RegIndex reg;
-    LabelId labelId;
-    uint8 nargs;
-    uint8 flags;
+    RegIndex reg = RegIndex(-1);
+    LabelId labelId = LabelId(-1);
+    uint8 nargs = 0;
+    uint8 flags = 0;
 };
 
 struct ClassTable final : public Buildable
@@ -313,7 +285,6 @@ struct ClassTable final : public Buildable
         TypeId typeId;
         HypClassAttributeSet attrs;
         uint16 stackOffset = UINT16_MAX;
-        bool isStatic : 1 = false;
     };
 
     struct FieldInfo : MemberInfo
@@ -326,6 +297,7 @@ struct ClassTable final : public Buildable
     struct MethodInfo : MemberInfo
     {
         TypeId targetTypeId;
+        HypMethodFlags flags = (HypMethodFlags)0;
     };
 
     RegIndex reg;
@@ -341,16 +313,7 @@ struct ConstString final : public Buildable
     RegIndex reg;
     String value;
 
-    virtual ~ConstString() = default;
-};
-
-struct BinOp final : public Instruction
-{
-    RegIndex regLhs;
-    RegIndex regRhs;
-    RegIndex regDst;
-
-    virtual ~BinOp() = default;
+    ~ConstString() override = default;
 };
 
 struct Comment final : public Instruction
@@ -363,7 +326,7 @@ struct Comment final : public Instruction
     {
     }
     Comment(const Comment& other) = default;
-    virtual ~Comment() = default;
+    ~Comment() override = default;
 };
 
 struct SymbolExport final : public Instruction
@@ -378,7 +341,7 @@ struct SymbolExport final : public Instruction
     {
     }
     SymbolExport(const SymbolExport& other) = default;
-    virtual ~SymbolExport() = default;
+    ~SymbolExport() override = default;
 };
 
 struct CastOperation final : public Instruction
@@ -410,8 +373,6 @@ struct CastOperation final : public Instruction
           regSrc(regSrc)
     {
     }
-
-    virtual ~CastOperation() = default;
 };
 
 template <class... Args>

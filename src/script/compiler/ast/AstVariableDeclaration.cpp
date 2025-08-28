@@ -2,7 +2,6 @@
 #include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
-#include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Configuration.hpp>

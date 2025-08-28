@@ -44,8 +44,6 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_keyword_cannot_be_used_as_identifier, "Keyword '%' cannot be used as a name in this case" },
     { Msg_ambiguous_identifier, "Identifier '%' is ambiguous" },
     { Msg_invalid_constructor, "Invalid constructor" },
-    { Msg_return_invalid_in_constructor, "'return' statement invalid in constructor definition" },
-    { Msg_return_type_specification_invalid_on_constructor, "Return type specification invalid on constructor definition" },
     { Msg_expected_type_got_identifier, "'%' is an identifier, expected a type" },
     { Msg_missing_type_and_assignment, "No type or assignment has been provided for '%'" },
     { Msg_type_no_default_assignment, "Type '%' has no default assignment" },

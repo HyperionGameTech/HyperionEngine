@@ -176,26 +176,16 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             RC<AstVariable>(new AstVariable(
                 "Map",
                 m_location)),
-            { RC<AstArgument>(new AstArgument(
+            { RC<AstTypeSpecifier>(new AstTypeSpecifier(
                   RC<AstTypeRef>(new AstTypeRef(
                       m_keyType,
                       m_location)),
-                  false,
-                  false,
-                  false,
-                  false,
-                  "K",
                   m_location)),
 
-                RC<AstArgument>(new AstArgument(
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(
                         m_valueType,
                         m_location)),
-                    false,
-                    false,
-                    false,
-                    false,
-                    "V",
                     m_location)) },
             m_location)),
         m_location));

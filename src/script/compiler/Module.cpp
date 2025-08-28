@@ -237,14 +237,14 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(cons
     return PerformLookup<Variant<RC<Identifier>, SymbolTypeRef>>(
         [&name](TreeNode<Scope>* top) -> Variant<RC<Identifier>, SymbolTypeRef>
         {
-            if (SymbolTypeRef symbolType = top->Get().GetIdentifierTable().LookupSymbolType(name))
-            {
-                return Variant<RC<Identifier>, SymbolTypeRef>(symbolType);
-            }
-
             if (RC<Identifier> result = top->Get().GetIdentifierTable().LookUpIdentifier(name))
             {
                 return Variant<RC<Identifier>, SymbolTypeRef>(result);
+            }
+
+            if (SymbolTypeRef symbolType = top->Get().GetIdentifierTable().LookupSymbolType(name))
+            {
+                return Variant<RC<Identifier>, SymbolTypeRef>(symbolType);
             }
 
             return Variant<RC<Identifier>, SymbolTypeRef>();

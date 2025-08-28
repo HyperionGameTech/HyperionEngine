@@ -574,15 +574,15 @@ void DecompilationUnit::DecodeNext(
         uint8 reg;
         bs.Read(&reg);
 
-        uint64 name_hash;
-        bs.Read(&name_hash);
+        uint64 nameHash;
+        bs.Read(&nameHash);
 
         if (os != nullptr)
         {
             (*os)
                 << "loadClass ["
                 << "%" << (int)reg << ", "
-                << "u64(" << name_hash << ")"
+                << "u64(" << nameHash << ")"
                 << "]"
                 << std::endl;
         }
@@ -1069,21 +1069,25 @@ void DecompilationUnit::DecodeNext(
             if (os != nullptr)
             {
                 const char* memberTypeStr = "unknown";
+
                 switch (memberType)
                 {
-                case 0:
+                case (uint8)HypMemberType::TYPE_CONSTANT:
                     memberTypeStr = "constant";
-                    break; // HypMemberType::TYPE_CONSTANT
-                case 1:
+                    break;
+                case (uint8)HypMemberType::TYPE_PROPERTY:
                     memberTypeStr = "property";
-                    break; // HypMemberType::TYPE_PROPERTY
-                case 2:
+                    break;
+                case (uint8)HypMemberType::TYPE_FIELD:
                     memberTypeStr = "field";
-                    break; // HypMemberType::TYPE_FIELD
-                case 3:
+                    break;
+                case (uint8)HypMemberType::TYPE_METHOD:
                     memberTypeStr = "method";
-                    break; // HypMemberType::TYPE_METHOD
+                    break;
+                default:
+                    break;
                 }
+
                 (*os) << "\tmembers [type(" << memberTypeStr << "), count(" << memberCount << ")]" << std::endl;
             }
 
@@ -1213,10 +1217,13 @@ void DecompilationUnit::DecodeNext(
                     uint8 flags;
                     bs.Read(&flags);
 
+                    uint16 stackOffset;
+                    bs.Read(&stackOffset);
+
                     if (os != nullptr)
                     {
                         (*os) << "\t\t\tmethod [typeId(" << memberTypeIdValue << "), targetTypeId(" << targetTypeIdValue
-                              << "), flags(" << (int)flags << ")]" << std::endl;
+                              << "), flags(" << (int)flags << "), stackOffset(" << stackOffset << ")]" << std::endl;
                     }
                     break;
                 }

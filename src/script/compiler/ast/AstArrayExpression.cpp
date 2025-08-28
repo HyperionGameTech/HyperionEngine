@@ -151,15 +151,10 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
             RC<AstVariable>(new AstVariable(
                 "Array",
                 m_location)),
-            { RC<AstArgument>(new AstArgument(
+            { RC<AstTypeSpecifier>(new AstTypeSpecifier(
                 RC<AstTypeRef>(new AstTypeRef(
                     m_heldType,
                     m_location)),
-                false,
-                false,
-                false,
-                false,
-                "T",
                 m_location)) },
             m_location)),
         m_location));

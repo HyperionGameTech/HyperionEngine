@@ -230,7 +230,9 @@ void CodeGenerator::Visit(LoadClass* node)
 {
     m_ibs.Put(Instructions::LOAD_CLASS);
     m_ibs.Put(node->reg);
-    m_ibs.Put(reinterpret_cast<ubyte*>(&node->nameHash), sizeof(node->nameHash));
+
+    const uint64 nameHashValue = (uint64)node->className.hashCode;
+    m_ibs.Put(reinterpret_cast<const ubyte*>(&nameHashValue), sizeof(nameHashValue));
 }
 
 void CodeGenerator::Visit(TryCatchInfo* node)
@@ -357,17 +359,7 @@ void CodeGenerator::Visit(ClassTable* node)
                     TypeId::ValueType targetTypeIdValue = methodInfo.targetTypeId.Value();
                     m_ibs.Put(reinterpret_cast<ubyte*>(&targetTypeIdValue), sizeof(targetTypeIdValue));
 
-                    uint8 flags = 0;
-
-                    if (methodInfo.isStatic)
-                    {
-                        flags |= (uint8)HypMethodFlags::STATIC;
-                    }
-                    else
-                    {
-                        flags |= (uint8)HypMethodFlags::MEMBER;
-                    }
-
+                    uint8 flags = (uint8)methodInfo.flags;
                     m_ibs.Put(flags);
 
                     // put stack offset

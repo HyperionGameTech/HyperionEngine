@@ -9,7 +9,6 @@
 #include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
-#include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
@@ -29,84 +28,6 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 Builtins::Builtins(CompilationUnit* unit)
     : m_unit(unit)
 {
-    // Variadic args wrapper, to be used in the `function` type
-    // like: `function<ReturnType, varargs<T>>`
-    m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-        "varargs",
-        nullptr,
-        RC<AstTemplateExpression>(new AstTemplateExpression(
-            RC<AstClass>(new AstClass(
-                "varargs",
-                SymbolTypeRef(nullptr),
-                {},
-                {},
-                { // variadic trait
-                    RC<AstVariableDeclaration>(new AstVariableDeclaration(
-                        BuiltinTypeTraits::variadic.name,
-                        nullptr,
-                        RC<AstTrue>(new AstTrue(BUILTIN_SOURCE_LOCATION)),
-                        IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_TRAIT,
-                        BUILTIN_SOURCE_LOCATION)) },
-                true, // proxy class
-                BUILTIN_SOURCE_LOCATION)),
-            { RC<AstParameter>(new AstParameter(
-                "T",
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        BuiltinTypes::CLASS_TYPE,
-                        BUILTIN_SOURCE_LOCATION)),
-                    BUILTIN_SOURCE_LOCATION)),
-                nullptr,
-                false,
-                false,
-                false,
-                BUILTIN_SOURCE_LOCATION)) },
-            nullptr,
-            BUILTIN_SOURCE_LOCATION)),
-        IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC,
-        BUILTIN_SOURCE_LOCATION)));
-
-    m_vars.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-        "Function",
-        nullptr,
-        RC<AstTemplateExpression>(new AstTemplateExpression(
-            RC<AstClass>(new AstClass(
-                "Function",
-                BuiltinTypes::FUNCTION_BASE,
-                {},
-                {},
-                {},
-                true, // proxy class
-                BUILTIN_SOURCE_LOCATION)),
-            { RC<AstParameter>(new AstParameter(
-                  "@return",
-                  RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                      RC<AstTypeRef>(new AstTypeRef(
-                          BuiltinTypes::CLASS_TYPE,
-                          BUILTIN_SOURCE_LOCATION)),
-                      BUILTIN_SOURCE_LOCATION)),
-                  nullptr,
-                  false,
-                  false,
-                  false,
-                  BUILTIN_SOURCE_LOCATION)),
-
-                RC<AstParameter>(new AstParameter(
-                    "Args",
-                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                        RC<AstTypeRef>(new AstTypeRef(
-                            BuiltinTypes::CLASS_TYPE,
-                            BUILTIN_SOURCE_LOCATION)),
-                        BUILTIN_SOURCE_LOCATION)),
-                    nullptr,
-                    true, // variadic
-                    false,
-                    false,
-                    BUILTIN_SOURCE_LOCATION)) },
-            nullptr,
-            BUILTIN_SOURCE_LOCATION)),
-        IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC,
-        BUILTIN_SOURCE_LOCATION)));
 }
 
 void Builtins::Visit(AstVisitor* visitor)
@@ -121,7 +42,8 @@ void Builtins::Visit(AstVisitor* visitor)
         BuiltinTypes::UNSIGNED_INT,
         BuiltinTypes::FLOAT,
         BuiltinTypes::BOOLEAN,
-        BuiltinTypes::STRING
+        BuiltinTypes::STRING,
+        BuiltinTypes::FUNCTION
     };
 
     AstIterator ast;

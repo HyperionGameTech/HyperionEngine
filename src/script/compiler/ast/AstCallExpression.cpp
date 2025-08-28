@@ -138,7 +138,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         m_returnType = BuiltinTypes::ANY;
         m_substitutedArgs = argsWithSelf; // NOTE: do not clone because we don't need to visit again.
     }
-    else if (!unaliased->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE))
+    else if (!unaliased->IsOrHasBase(*BuiltinTypes::FUNCTION))
     {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

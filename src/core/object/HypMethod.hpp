@@ -120,7 +120,8 @@ enum class HypMethodFlags : uint8
 {
     NONE = 0x0,
     STATIC = 0x1,
-    MEMBER = 0x2
+    MEMBER = 0x2,
+    VARIADIC = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(HypMethodFlags)
@@ -486,6 +487,11 @@ public:
     virtual const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const override
     {
         return m_attributes.Get(key, defaultValue);
+    }
+
+    HYP_FORCE_INLINE Array<HypMethodParameter>& GetParameters()
+    {
+        return m_params;
     }
 
     HYP_FORCE_INLINE const Array<HypMethodParameter>& GetParameters() const

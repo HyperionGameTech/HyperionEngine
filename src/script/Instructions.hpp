@@ -64,7 +64,7 @@ enum Instructions : hyperion::uint8
     LOAD_NULL,       // loadNull         [% reg]
     LOAD_TRUE,       // loadTrue         [% reg]
     LOAD_FALSE,      // loadFalse        [% reg]
-    LOAD_CLASS,      // loadClass        [% reg, u64 nameHash] <-- TODO: Change to TypeId
+    LOAD_CLASS,      // loadClass        [% reg, u64 nameHash]
 
     REF,   // ref               [% reg, % src]
     DEREF, // deref             [% reg, % src]

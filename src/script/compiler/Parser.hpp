@@ -56,7 +56,6 @@
 #include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
-#include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 
 #include <string>
@@ -89,7 +88,6 @@ public:
         bool overrideQuestionMark = false);
     RC<AstExpression> ParseParentheses();
     RC<AstTemplateInstantiation> ParseTemplateInstantiation(RC<AstExpression> expr);
-    RC<AstExpression> ParseAngleBrackets(RC<AstExpression> target);
     RC<AstConstant> ParseIntegerLiteral();
     RC<AstFloat> ParseFloatLiteral();
     RC<AstString> ParseStringLiteral();
@@ -152,7 +150,7 @@ public:
     RC<AstTypeOfExpression> ParseTypeOfExpression();
     Array<RC<AstParameter>> ParseFunctionParameters();
     Array<RC<AstParameter>> ParseGenericParameters();
-    RC<AstStatement> ParseTypeDefinition();
+    RC<AstClass> ParseClassDefinition();
     RC<AstClass> ParseClass(
         bool requireKeyword = true,
         bool allowIdentifier = true,

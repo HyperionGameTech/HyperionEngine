@@ -650,8 +650,12 @@ public:
 
                 if (method->IsScriptFunction())
                 {
+                    Assert(method->GetParameters().Size() <= UINT8_MAX);
+
                     vmData.type = Script_VMData::FUNCTION;
                     vmData.func.m_addr = method->GetScriptAddress();
+                    vmData.func.m_nargs = (uint8)method->GetParameters().Size();
+                    vmData.func.m_flags = (uint8)method->GetFlags();
                 }
                 else
                 {
@@ -804,7 +808,7 @@ public:
         const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(name);
         if (!hypClass)
         {
-            vm->ThrowException(thread, Exception::ClassNotFoundException(name));
+            vm->ThrowException(thread, Exception::ClassNotFoundException(name.LookupString()));
 
             return;
         }
@@ -1313,7 +1317,7 @@ public:
                     TypeId::ValueType targetTypeIdValue;
                     bs->Read(&targetTypeIdValue);
 
-                    ubyte flags;
+                    uint8 flags;
                     bs->Read(&flags);
 
                     uint16 stackOffset;
@@ -1330,14 +1334,31 @@ public:
                     Script_FunctionAddress functionAddress = funcVmData->func.m_addr;
                     Assert(functionAddress != INVALID_FUNCTION_ADDRESS);
 
-                    // Create method
-                    members.PushBack(HypMember(HypMethod(
+                    HypMethod method(
                         CreateNameFromDynamicString(memberNameStr),
                         TypeId(memberTypeIdValue),
                         TypeId(targetTypeIdValue),
                         functionAddress,
                         HypMethodFlags(flags),
-                        attrs.ToSpan())));
+                        attrs.ToSpan());
+
+                    uint8 nargs = funcVmData->func.m_nargs;
+
+                    if (flags & (uint8)HypMethodFlags::VARIADIC)
+                    {
+                        AssertDebug(nargs > 0);
+
+                        --nargs;
+                    }
+
+                    method.GetParameters().Reserve(nargs);
+
+                    for (uint8 j = 0; j < nargs; j++)
+                    {
+                        method.GetParameters().PushBack(HypMethodParameter { TypeId::ForType<HypData>() });
+                    }
+
+                    members.PushBack(HypMember(std::move(method)));
 
                     break;
                 }
@@ -3616,12 +3637,12 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
         Script_VMData* vmData = deref.GetVMData();
         Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
 
-        if ((vmData->func.m_flags & FunctionFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
+        if ((vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
         {
             // if variadic, make sure the arg count is /at least/ what is required
             ThrowException(thread, Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
         }
-        else if (!(vmData->func.m_flags & FunctionFlags::VARIADIC) && vmData->func.m_nargs != nargs)
+        else if (!(vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC) && vmData->func.m_nargs != nargs)
         {
             ThrowException(thread, Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
         }
@@ -3632,7 +3653,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             previousAddr.call.varargsPush = 0;
             previousAddr.call.returnAddress = (Script_FunctionAddress)bs->Position();
 
-            if (vmData->func.m_flags & FunctionFlags::VARIADIC)
+            if (vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC)
             {
                 // for each argument that is over the expected size, we must pop it from
                 // the stack and add it to a new array.

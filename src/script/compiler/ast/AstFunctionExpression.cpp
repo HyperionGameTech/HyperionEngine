@@ -97,17 +97,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_returnTypeSpecification != nullptr)
     {
-        if (m_isConstructorDefinition)
-        {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_return_type_specification_invalid_on_constructor,
-                m_returnTypeSpecification->GetLocation()));
-        }
-        else
-        {
-            m_blockWithParameters->PrependChild(m_returnTypeSpecification);
-        }
+        m_blockWithParameters->PrependChild(m_returnTypeSpecification);
     }
 
     if (m_isConstructorDefinition)
@@ -262,54 +252,51 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes.PushBack(it);
     }
 
-    Array<RC<AstArgument>> genericParams;
-    genericParams.Reserve(genericParamTypes.Size());
+    // Array<RC<AstArgument>> genericParams;
+    // genericParams.Reserve(genericParamTypes.Size());
 
-    for (auto& it : genericParamTypes)
-    {
-        genericParams.PushBack(RC<AstArgument>(new AstArgument(
-            RC<AstTypeRef>(new AstTypeRef(
-                it.m_type,
-                m_location)),
-            false,
-            false,
-            false,
-            false,
-            it.m_name,
-            m_location)));
-    }
+    // for (auto& it : genericParamTypes)
+    // {
+    //     genericParams.PushBack(RC<AstArgument>(new AstArgument(
+    //         RC<AstTypeRef>(new AstTypeRef(
+    //             it.m_type,
+    //             m_location)),
+    //         false,
+    //         false,
+    //         false,
+    //         false,
+    //         it.m_name,
+    //         m_location)));
+    // }
 
-    RC<AstTypeSpecifier> functionTypeSpec(new AstTypeSpecifier(
-        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-            RC<AstVariable>(new AstVariable(
-                "Function",
-                m_location)),
-            genericParams,
-            m_location)),
-        m_location));
+    //    RC<AstTypeSpecifier> functionTypeSpec(new AstTypeSpecifier(
+    //        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+    //            RC<AstVariable>(new AstVariable(
+    //                "Function",
+    //                m_location)),
+    //            genericParamTypes,
+    //            m_location)),
+    //        m_location));
+    //
+    //    functionTypeSpec->Visit(visitor, mod);
+    //
+    //    SymbolTypeRef functionType = functionTypeSpec->GetHeldType();
+    //
+    //    if (functionType == nullptr)
+    //    {
+    //        functionType = BuiltinTypes::UNDEFINED;
+    //    }
+    //
+    //    functionType = functionType->GetUnaliased();
+    //
+    //    if (functionType != BuiltinTypes::UNDEFINED)
+    //    {
+    //        const SymbolTypeFlags currentFlags = functionType->GetFlags();
 
-    functionTypeSpec->Visit(visitor, mod);
-
-    SymbolTypeRef functionType = functionTypeSpec->GetHeldType();
-
-    if (functionType == nullptr)
-    {
-        functionType = BuiltinTypes::UNDEFINED;
-    }
-
-    functionType = functionType->GetUnaliased();
-
-    if (functionType != BuiltinTypes::UNDEFINED)
-    {
-        const SymbolTypeFlags currentFlags = functionType->GetFlags();
-
-        functionType = SymbolType::GenericInstance(
-            functionType,
-            GenericInstanceTypeInfo {
-                genericParamTypes });
-
-        functionType->SetFlags(currentFlags);
-    }
+    SymbolTypeRef functionType = SymbolType::GenericInstance(
+        BuiltinTypes::FUNCTION,
+        GenericInstanceTypeInfo {
+            genericParamTypes });
 
     if (m_isClosure)
     {
@@ -380,7 +367,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     else
     {
         m_symbolType = std::move(functionType);
-        m_functionTypeExpr = std::move(functionTypeSpec);
     }
 
     // we do +1 to account for closure self var.

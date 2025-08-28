@@ -455,7 +455,7 @@ RC<AstStatement> Parser::ParseStatement(
         }
         else if (MatchKeyword(Keyword_class, false) || MatchKeyword(Keyword_proxy, false))
         {
-            res = ParseTypeDefinition();
+            res = ParseClassDefinition();
         }
         else if (MatchKeyword(Keyword_enum, false))
         {
@@ -649,16 +649,7 @@ RC<AstExpression> Parser::ParseTerm(
         }
         else
         {
-            auto identifier = ParseIdentifier();
-
-            if (!overrideAngleBrackets && MatchOperator("<"))
-            {
-                expr = ParseAngleBrackets(identifier);
-            }
-            else
-            {
-                expr = std::move(identifier);
-            }
+            expr = ParseIdentifier();
         }
     }
     else if (Match(TK_DOUBLE_COLON))
@@ -696,14 +687,6 @@ RC<AstExpression> Parser::ParseTerm(
     else if (MatchKeyword(Keyword_typeof))
     {
         expr = ParseTypeOfExpression();
-    }
-    else if (MatchKeyword(Keyword_class))
-    {
-        expr = ParseClass();
-    }
-    else if (MatchKeyword(Keyword_enum))
-    {
-        expr = ParseEnumExpression();
     }
     else if (MatchKeyword(Keyword_throw))
     {
@@ -762,10 +745,6 @@ RC<AstExpression> Parser::ParseTerm(
         {
             expr = ParseArrayAccess(expr, overrideCommas, overrideFatArrows, overrideAngleBrackets, overrideSquareBrackets, overrideParentheses, overrideQuestionMark);
         }
-
-        // if (!overrideAngleBrackets && MatchOperator("<")) {
-        //     expr = ParseAngleBrackets(expr);
-        // }
 
         if (!overrideParentheses && Match(TK_OPEN_PARENTH))
         {
@@ -898,14 +877,20 @@ RC<AstExpression> Parser::ParseParentheses()
     return expr;
 }
 
-RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression> target)
+RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression> expr)
 {
+    if (!expr)
+    {
+        // not type spec
+        return nullptr;
+    }
+
     SourceLocation location = CurrentLocation();
     const SizeType beforePos = m_tokenStream->GetPosition();
 
-    Array<RC<AstArgument>> args;
+    Array<RC<AstTypeSpecifier>> args;
 
-    auto parseFunctionReturnType = [&]() -> RC<AstArgument>
+    auto parseFunctionReturnType = [&]() -> RC<AstTypeSpecifier>
     {
         // right arrow for function return type is part of the generic args
         if (Match(TK_RIGHT_ARROW, true))
@@ -913,16 +898,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
             // parse return type, add as first argument
             if (RC<AstTypeSpecifier> returnType = ParseTypeSpecifier())
             {
-                RC<AstArgument> returnTypeArg(new AstArgument(
-                    returnType,
-                    false,
-                    true,
-                    false,
-                    false,
-                    "@return",
-                    returnType->GetLocation()));
-
-                return returnTypeArg;
+                return returnType;
             }
         }
 
@@ -935,13 +911,13 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         if (MatchOperator(">", true))
         {
-            if (RC<AstArgument> returnTypeArg = parseFunctionReturnType())
+            if (RC<AstTypeSpecifier> returnTypeArg = parseFunctionReturnType())
             {
                 args.PushFront(returnTypeArg);
             }
 
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                target,
+                expr,
                 args,
                 token.GetLocation()));
         }
@@ -975,16 +951,9 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
                 }
             }
 
-            if (auto term = ParseExpression(true, false, false))
+            if (RC<AstTypeSpecifier> arg = ParseTypeSpecifier())
             { // override commas
-                args.PushBack(RC<AstArgument>(new AstArgument(
-                    term,
-                    isSplatArg,
-                    isNamedArg,
-                    false,
-                    false,
-                    argName,
-                    argLocation)));
+                args.PushBack(std::move(arg));
             }
             else
             {
@@ -1003,35 +972,19 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         if (!breakout && MatchOperator(">", true))
         {
-            if (RC<AstArgument> returnTypeArg = parseFunctionReturnType())
+            if (RC<AstTypeSpecifier> returnTypeArg = parseFunctionReturnType())
             {
                 args.PushFront(returnTypeArg);
             }
 
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                target, args, token.GetLocation()));
+                expr,
+                args,
+                token.GetLocation()));
         }
 
         // no closing bracket found, revert to start.
         m_tokenStream->SetPosition(beforePos);
-    }
-
-    return nullptr;
-}
-
-RC<AstExpression> Parser::ParseAngleBrackets(RC<AstExpression> target)
-{
-    SourceLocation location = CurrentLocation();
-
-    if (Token token = ExpectOperator("<", false))
-    {
-        if (auto templateInstantiation = ParseTemplateInstantiation(target))
-        {
-            return templateInstantiation;
-        }
-
-        // return as comparison expression
-        return ParseBinaryExpression(0, target);
     }
 
     return nullptr;
@@ -1261,16 +1214,7 @@ RC<AstModuleAccess> Parser::ParseModuleAccess()
         }
         else
         {
-            auto identifier = ParseIdentifier(true);
-
-            if (MatchOperator("<"))
-            {
-                expr = ParseAngleBrackets(identifier);
-            }
-            else
-            {
-                expr = std::move(identifier);
-            }
+            expr = ParseIdentifier(true);
         }
 
         if (expr != nullptr)
@@ -1329,15 +1273,6 @@ RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)
             ident.GetValue(),
             target,
             ident.GetLocation()));
-
-        // match template arguments
-        if (MatchOperator("<"))
-        {
-            if (auto templateInstantiation = ParseTemplateInstantiation(expr))
-            {
-                expr = std::move(templateInstantiation);
-            }
-        }
     }
 
     return expr;
@@ -2000,31 +1935,37 @@ RC<AstTypeSpecifier> Parser::ParseTypeSpecifier()
     if (auto term = ParseTerm(
             true,  // override commas
             true,  // override =>
-            false, // override <>
-            true,  // override []
+            true,  // override <>
+            false, // override []
             true   // override ()
             ))
     {
-        if (Token token = Match(TK_OPEN_BRACKET, true))
-        {
-            // array braces at the end of a type are syntactical sugar for `Array<T>`
-            term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                RC<AstVariable>(new AstVariable(
-                    "Array",
-                    token.GetLocation())),
-                { RC<AstArgument>(new AstArgument(
-                    term,
-                    false,
-                    false,
-                    false,
-                    false,
-                    "",
-                    term->GetLocation())) },
-                term->GetLocation()));
+        // if (Token token = Match(TK_OPEN_BRACKET, true))
+        // {
+        //     // array braces at the end of a type are syntactical sugar for `Array<T>`
+        //     term = RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+        //         RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        //             term,
+        //             term->GetLocation())),
+        //         { RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        //             RC<AstUnsignedInteger>(new AstUnsignedInteger(
+        //                 0,
+        //                 token.GetLocation())),
+        //             token.GetLocation())) },
+        //         term->GetLocation()));
 
-            if (!Expect(TK_CLOSE_BRACKET, true))
+        //     if (!Expect(TK_CLOSE_BRACKET, true))
+        //     {
+        //         return nullptr;
+        //     }
+        // }
+
+        // check for template instantiation
+        if (Token lt = MatchOperator("<", false))
+        {
+            if (RC<AstTemplateInstantiation> templateInstantiation = ParseTemplateInstantiation(term))
             {
-                return nullptr;
+                return templateInstantiation;
             }
         }
 
@@ -2155,17 +2096,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
         if (!requiresAssignmentOperator || MatchOperator("=", true))
         {
-            if ((assignment = ParseAssignment()))
-            {
-                if (flags & IdentifierFlags::FLAG_GENERIC)
-                {
-                    assignment = RC<AstTemplateExpression>(new AstTemplateExpression(
-                        assignment,
-                        templateExprParams,
-                        proto,
-                        assignment->GetLocation()));
-                }
-            }
+            assignment = ParseAssignment();
         }
 
         return RC<AstVariableDeclaration>(new AstVariableDeclaration(
@@ -2224,15 +2155,6 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
         if (assignment == nullptr)
         {
             return nullptr;
-        }
-
-        if (flags & IdentifierFlags::FLAG_GENERIC)
-        {
-            assignment = RC<AstTemplateExpression>(new AstTemplateExpression(
-                assignment,
-                genericParameters,
-                nullptr,
-                assignment->GetLocation()));
         }
 
         return RC<AstVariableDeclaration>(new AstVariableDeclaration(
@@ -2551,7 +2473,7 @@ Array<RC<AstParameter>> Parser::ParseGenericParameters()
     return templateExprParams;
 }
 
-RC<AstStatement> Parser::ParseTypeDefinition()
+RC<AstClass> Parser::ParseClassDefinition()
 {
     bool isProxyClass = false;
 
@@ -2577,50 +2499,7 @@ RC<AstStatement> Parser::ParseTypeDefinition()
                 genericParameters = ParseGenericParameters();
             }
 
-            // check type alias
-            if (MatchOperator("=", true))
-            {
-                if (auto aliasee = ParseTypeSpecifier())
-                {
-                    return RC<AstTypeAlias>(new AstTypeAlias(
-                        identifier.GetValue(),
-                        aliasee,
-                        identifier.GetLocation()));
-                }
-                else
-                {
-                    return nullptr;
-                }
-            }
-            else
-            {
-                assignment = ParseClass(false, false, isProxyClass, identifier.GetValue());
-
-                // It is a class, add the class flag so it can hoist properly
-                flags |= IdentifierFlags::FLAG_CLASS;
-            }
-
-            if (assignment == nullptr)
-            {
-                // could not parse type expr
-                return nullptr;
-            }
-
-            if (flags & IdentifierFlags::FLAG_GENERIC)
-            {
-                assignment = RC<AstTemplateExpression>(new AstTemplateExpression(
-                    assignment,
-                    genericParameters,
-                    nullptr,
-                    assignment->GetLocation()));
-            }
-
-            return RC<AstVariableDeclaration>(new AstVariableDeclaration(
-                identifier.GetValue(),
-                nullptr,
-                assignment,
-                flags,
-                token.GetLocation()));
+            return ParseClass(false, false, isProxyClass, identifier.GetValue());
         }
     }
 
@@ -2845,15 +2724,6 @@ RC<AstClass> Parser::ParseClass(
                 return nullptr;
             }
 
-            if (flags & IdentifierFlags::FLAG_GENERIC)
-            {
-                assignment = RC<AstTemplateExpression>(new AstTemplateExpression(
-                    assignment,
-                    genericParameters,
-                    nullptr,
-                    assignment->GetLocation()));
-            }
-
             RC<AstVariableDeclaration> member(new AstVariableDeclaration(
                 identifier.GetValue(),
                 nullptr, // type specifier
@@ -2924,7 +2794,7 @@ RC<AstClass> Parser::ParseClass(
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseEnumDefinition()
+RC<AstStatement> Parser::ParseEnumDefinition()/// @TODO: Change to return AstEnum (same way PraseClassDefinition() return AstClass)
 {
     if (Token token = ExpectKeyword(Keyword_enum, true))
     {
