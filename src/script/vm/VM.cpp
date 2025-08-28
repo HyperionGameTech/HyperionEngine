@@ -623,58 +623,49 @@ public:
     {
         Value& src = *thread->m_regs[srcReg].Deref();
 
-        struct
-        {
-            Number index;
-        } key;
+        Number key;
 
-        if (!thread->m_regs[indexReg].GetSignedOrUnsigned(&key.index))
+        if (!thread->m_regs[indexReg].GetSignedOrUnsigned(&key))
         {
-            vm->ThrowException(
-                thread,
-                Exception("Array index must be of type int or uint32"));
+            vm->ThrowException(thread, Exception("Array index must be an integral type"));
 
             return;
         }
 
         if (VMArray* array = src.GetArray())
         {
-            if (key.index.flags & Number::FLAG_SIGNED)
+            if (key.flags & Number::FLAG_SIGNED)
             {
-                if (static_cast<SizeType>(key.index.i) >= array->GetSize())
-                {
-                    vm->ThrowException(
-                        thread,
-                        Exception::OutOfBoundsException());
-                    return;
-                }
-
-                if (key.index.i < 0)
+                if (key.i < 0)
                 {
                     // wrap around (python style)
-                    key.index.i = (int64)(array->GetSize() + key.index.i);
-                    if (key.index.i < 0 || key.index.i >= array->GetSize())
+                    key.u = SizeType(array->GetSize() - SizeType(-key.i));
+                    if (key.u >= array->GetSize())
                     {
-                        vm->ThrowException(
-                            thread,
-                            Exception::OutOfBoundsException());
+                        vm->ThrowException(thread, Exception::OutOfBoundsException(key.u, array->GetSize()));
+
                         return;
                     }
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.index.i), vm->GetGC()), false);
-            }
-            else if (key.index.flags & Number::FLAG_UNSIGNED)
-            {
-                if (static_cast<SizeType>(key.index.u) >= array->GetSize())
+                if (SizeType(key.i) >= array->GetSize())
                 {
-                    vm->ThrowException(
-                        thread,
-                        Exception::OutOfBoundsException());
+                    vm->ThrowException(thread, Exception::OutOfBoundsException(SizeType(key.i), array->GetSize()));
                     return;
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.index.u), vm->GetGC()), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.i), vm->GetGC()), false);
+            }
+            else if (key.flags & Number::FLAG_UNSIGNED)
+            {
+                if (key.u >= array->GetSize())
+                {
+                    vm->ThrowException(thread, Exception::OutOfBoundsException(key.u, array->GetSize()));
+
+                    return;
+                }
+
+                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.u), vm->GetGC()), false);
             }
 
             return;
@@ -786,9 +777,8 @@ public:
         {
             if (index >= array->GetSize())
             {
-                vm->ThrowException(
-                    thread,
-                    Exception::OutOfBoundsException());
+                vm->ThrowException(thread, Exception::OutOfBoundsException(SizeType(index), array->GetSize()));
+
                 return;
             }
 
@@ -825,26 +815,24 @@ public:
             {
                 int64 indexValue = index.i;
 
-                if (static_cast<SizeType>(indexValue) >= array->GetSize())
-                {
-                    vm->ThrowException(
-                        thread,
-                        Exception::OutOfBoundsException());
-
-                    return;
-                }
-
                 if (indexValue < 0)
                 {
                     // wrap around (python style)
-                    indexValue = static_cast<int64>(array->GetSize() + static_cast<SizeType>(indexValue));
-                    if (indexValue < 0 || static_cast<SizeType>(indexValue >= array->GetSize()))
+                    SizeType uIndexValue = SizeType(array->GetSize() - SizeType(-indexValue));
+
+                    if (uIndexValue >= array->GetSize())
                     {
-                        vm->ThrowException(
-                            thread,
-                            Exception::OutOfBoundsException());
+                        vm->ThrowException(thread, Exception::OutOfBoundsException(uIndexValue, array->GetSize()));
+
                         return;
                     }
+                }
+
+                if (SizeType(indexValue) >= array->GetSize())
+                {
+                    vm->ThrowException(thread, Exception::OutOfBoundsException(SizeType(indexValue), array->GetSize()));
+
+                    return;
                 }
 
                 array->AtIndex(indexValue).AssignValue(ScriptApi_ShallowCopy(thread->m_regs[srcReg], vm->GetGC()), false);
@@ -854,11 +842,9 @@ public:
             { // unsigned
                 const uint64 indexValue = index.u;
 
-                if (static_cast<SizeType>(indexValue) >= array->GetSize())
+                if (SizeType(indexValue) >= array->GetSize())
                 {
-                    vm->ThrowException(
-                        thread,
-                        Exception::OutOfBoundsException());
+                    vm->ThrowException(thread, Exception::OutOfBoundsException(indexValue, array->GetSize()));
 
                     return;
                 }
@@ -912,9 +898,8 @@ public:
         const AnyHandle& object = pValue->GetObject();
         if (!object)
         {
-            vm->ThrowException(
-                thread,
-                Exception("Cannot assign member by hash: Not a VMObject"));
+            vm->ThrowException(thread, Exception::InvalidMemberAccessException(pValue));
+
             return;
         }
 
@@ -936,57 +921,59 @@ public:
     {
         Value& src = *thread->m_regs[srcReg].Deref();
 
-        if (const AnyHandle& object = src.GetObject())
+        const AnyHandle& object = src.GetObject();
+
+        if (!object)
         {
-            const HypClass* hypClass = object.ptr->InstanceClass();
-            Assert(hypClass != nullptr);
-
-            IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
-            if (!member)
-            {
-                vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
-
-                return;
-            }
-
-            if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
-            {
-                HypField* field = static_cast<HypField*>(member);
-
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
-            }
-            else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
-            {
-                HypMethod* method = static_cast<HypMethod*>(member);
-
-                Script_VMData vmData;
-
-                if (method->IsScriptFunction())
-                {
-                    Assert(method->GetParameters().Size() <= UINT8_MAX);
-
-                    vmData.type = Script_VMData::FUNCTION;
-                    vmData.func.m_addr = method->GetScriptAddress();
-                    vmData.func.m_nargs = (uint8)method->GetParameters().Size();
-                    vmData.func.m_flags = (uint8)method->GetFlags();
-                }
-                else
-                {
-                    vmData.type = Script_VMData::NATIVE_FUNCTION;
-                    vmData.nativeFunc = method;
-                }
-
-                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(vmData), false);
-            }
-            else
-            {
-                vm->ThrowException(thread, Exception("Member is not a field or method"));
-            }
+            vm->ThrowException(thread, Exception::InvalidMemberAccessException(&src));
 
             return;
         }
 
-        vm->ThrowException(thread, Exception("Cannot access member by hash: Not an VMObject"));
+        const HypClass* hypClass = object.ptr->InstanceClass();
+        Assert(hypClass != nullptr);
+
+        IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
+        if (!member)
+        {
+            vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
+
+            return;
+        }
+
+        if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
+        {
+            HypField* field = static_cast<HypField*>(member);
+
+            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
+        }
+        else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
+        {
+            HypMethod* method = static_cast<HypMethod*>(member);
+
+            Script_VMData vmData;
+
+            if (method->IsScriptFunction())
+            {
+                Assert(method->GetParameters().Size() <= UINT8_MAX);
+
+                vmData.type = Script_VMData::FUNCTION;
+                vmData.func.m_addr = method->GetScriptAddress();
+                vmData.func.m_nargs = (uint8)method->GetParameters().Size();
+                vmData.func.m_flags = (uint8)method->GetFlags();
+            }
+            else
+            {
+                vmData.type = Script_VMData::NATIVE_FUNCTION;
+                vmData.nativeFunc = method;
+            }
+
+            thread->m_regs[dstReg].AssignValue(ScriptApi_MakeValue(vmData), false);
+        }
+        else
+        {
+            vm->ThrowException(thread, Exception("Member is not a field or method"));
+        }
     }
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
@@ -1154,7 +1141,7 @@ public:
     HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32 size)
     {
         // assign register value to the allocated object
-        thread->m_regs[dst] = ScriptApi_MakeValue(VMArray());
+        thread->m_regs[dst] = ScriptApi_MakeValue(VMArray(size));
     }
 
     HYP_FORCE_INLINE void BeginClass(BCRegister reg)

@@ -147,36 +147,6 @@ RC<AstExpression> Context::ParseTypeExpression(const String& typeString)
     return typeSpec;
 }
 
-Array<RC<AstParameter>> Context::ParseGenericParams(const String& genericParamsString)
-{
-    AstIterator astIterator;
-
-    SourceFile sourceFile(SourceLocation::eof.GetFileName(),
-        genericParamsString.Size() + 1);
-
-    ByteBuffer temp(genericParamsString.Size() + 1,
-        genericParamsString.Data());
-    sourceFile.ReadIntoBuffer(temp);
-
-    // use the lexer and parser on this file buffer
-    TokenStream tokenStream(TokenStreamInfo { SourceLocation::eof.GetFileName() });
-
-    CompilationUnit compilationUnit;
-
-    Lexer lexer(SourceStream(&sourceFile), &tokenStream, &compilationUnit);
-    lexer.Analyze();
-
-    Parser parser(&astIterator, &tokenStream, &compilationUnit);
-
-    Array<RC<AstParameter>> genericParams = parser.ParseGenericParameters();
-
-    Assert(!compilationUnit.GetErrorList().HasFatalErrors(),
-        "Failed to parse generic parameters: {}",
-        genericParamsString.Data());
-
-    return genericParams;
-}
-
 void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
 {
     Mutex::Guard guard(m_mutex);
@@ -205,20 +175,21 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
         visitor->GetAstIterator()->Push(global.varDecl);
     }
 
-    for (ClassDefinition& classDefinition : m_classDefinitions)
+    for (ClassDefinition& it : m_classDefinitions)
     {
+#if 0
         Array<RC<AstVariableDeclaration>> members;
-        members.Resize(classDefinition.members.Size());
+        members.Resize(it.members.Size());
 
         Array<RC<AstVariableDeclaration>> staticMembers;
-        staticMembers.Resize(classDefinition.staticMembers.Size());
+        staticMembers.Resize(it.staticMembers.Size());
 
         FixedArray<Pair<Array<RC<AstVariableDeclaration>>*, Array<Symbol>*>, 2>
             memberArrays {
                 Pair<Array<RC<AstVariableDeclaration>>*, Array<Symbol>*> {
-                    &members, &classDefinition.members },
+                    &members, &it.members },
                 Pair<Array<RC<AstVariableDeclaration>>*, Array<Symbol>*> {
-                    &staticMembers, &classDefinition.staticMembers }
+                    &staticMembers, &it.staticMembers }
             };
 
         for (Pair<Array<RC<AstVariableDeclaration>>*, Array<Symbol>*>& memberArray : memberArrays)
@@ -245,9 +216,9 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
             }
         }
 
-        classDefinition.expr.Reset(
+        it.classDefinition.Reset(
             new AstClass(
-                classDefinition.name,
+                it.name,
                 SymbolTypeRef(nullptr),
                 members,
                 {},
@@ -255,14 +226,8 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
                 false,
                 SourceLocation::eof));
 
-        IdentifierFlagBits identifierFlags =
-            IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;
-
-        classDefinition.varDecl.Reset(new AstVariableDeclaration(
-            classDefinition.name, nullptr, classDefinition.expr, identifierFlags,
-            SourceLocation::eof));
-
-        visitor->GetAstIterator()->Push(classDefinition.varDecl);
+        visitor->GetAstIterator()->Push(it.classDefinition);
+#endif
     }
 }
 

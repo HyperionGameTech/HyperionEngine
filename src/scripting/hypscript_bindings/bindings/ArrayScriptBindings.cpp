@@ -22,6 +22,7 @@ static struct ArrayScriptBindings : ScriptBindingsBase
     virtual void Generate(scriptapi2::Context& context) override
     {
 #if 0
+        context.Class<VMArray>("Array", String("<T>")).Build();
         context.Class<VMArray>("Array", String("<T>"))
             .Method("$construct", "function< Array, any >", CxxCtor<VMArray>)
             .Method("length", "function< int, any >", CxxFn<int32, VMArray*, [](VMArray* array) -> int32

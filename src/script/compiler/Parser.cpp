@@ -2059,19 +2059,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
     if (!identifier.Empty())
     {
-        SourceLocation templateExprLocation = CurrentLocation();
-
-        Array<RC<AstParameter>> templateExprParams;
-
-        if (Token lt = MatchOperator("<", false))
-        {
-            flags |= IdentifierFlags::FLAG_GENERIC;
-
-            templateExprParams = ParseGenericParameters();
-            templateExprLocation = lt.GetLocation();
-        }
-
-        RC<AstTypeSpecifier> proto;
+        RC<AstTypeSpecifier> typeSpec;
         RC<AstExpression> assignment;
 
         bool requiresAssignmentOperator = true;
@@ -2079,7 +2067,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         if (Match(TK_COLON, true))
         {
             // read object type
-            proto = ParseTypeSpecifier();
+            typeSpec = ParseTypeSpecifier();
         }
         else if (Match(TK_DEFINE, true))
         {
@@ -2093,7 +2081,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
         return RC<AstVariableDeclaration>(new AstVariableDeclaration(
             identifier.GetValue(),
-            (flags & IdentifierFlags::FLAG_GENERIC) ? nullptr : proto,
+            typeSpec,
             assignment,
             flags,
             location));
@@ -2123,16 +2111,6 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 
     if (Token identifier = Expect(TK_IDENT, true))
     {
-        Array<RC<AstParameter>> genericParameters;
-
-        // check for generic
-        if (MatchOperator("<", false))
-        {
-            flags |= IdentifierFlags::FLAG_GENERIC;
-
-            genericParameters = ParseGenericParameters();
-        }
-
         RC<AstExpression> assignment;
         Array<RC<AstParameter>> params;
 
@@ -2447,24 +2425,6 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
     return parameters;
 }
 
-Array<RC<AstParameter>> Parser::ParseGenericParameters()
-{
-    Array<RC<AstParameter>> templateExprParams;
-
-    if (Token lt = ExpectOperator("<", true))
-    {
-        m_templateArgumentDepth++;
-
-        templateExprParams = ParseFunctionParameters();
-
-        ExpectOperator(">", true);
-
-        m_templateArgumentDepth--;
-    }
-
-    return templateExprParams;
-}
-
 RC<AstClass> Parser::ParseClassDefinition()
 {
     bool isProxyClass = false;
@@ -2478,19 +2438,6 @@ RC<AstClass> Parser::ParseClassDefinition()
     {
         if (Token identifier = ExpectIdentifier(false, true))
         {
-            IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST;
-
-            Array<RC<AstParameter>> genericParameters;
-            RC<AstExpression> assignment;
-
-            // check for generic
-            if (MatchOperator("<", false))
-            {
-                flags |= IdentifierFlags::FLAG_GENERIC;
-
-                genericParameters = ParseGenericParameters();
-            }
-
             return ParseClass(false, false, isProxyClass, identifier.GetValue());
         }
     }
@@ -2627,15 +2574,6 @@ RC<AstClass> Parser::ParseClass(
         // read generic params after identifier
 
         RC<AstExpression> assignment;
-        Array<RC<AstParameter>> genericParameters;
-
-        // check for generic
-        if (MatchOperator("<", false))
-        {
-            flags |= IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC;
-
-            genericParameters = ParseGenericParameters();
-        }
 
         if (currentAccessSpecifier == Keyword::ToString(Keyword_public).Get())
         {

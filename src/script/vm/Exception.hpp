@@ -7,6 +7,8 @@
 namespace hyperion {
 namespace vm {
 
+class Value;
+
 class Exception
 {
 public:
@@ -33,8 +35,9 @@ public:
     static Exception InvalidConstructorException();
     static Exception NullReferenceException();
     static Exception DivisionByZeroException();
-    static Exception OutOfBoundsException();
+    static Exception OutOfBoundsException(SizeType index, SizeType size);
     static Exception MemberNotFoundException(HashCode::ValueType hashCode);
+    static Exception InvalidMemberAccessException(Value* pValue);
     static Exception FileOpenException(const char* fileName);
     static Exception UnopenedFileWriteException();
     static Exception UnopenedFileReadException();

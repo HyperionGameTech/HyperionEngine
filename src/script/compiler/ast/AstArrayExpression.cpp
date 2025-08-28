@@ -189,17 +189,7 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    { // keep type obj in memory so we can do Array<T>.from(...), so push it to the stack
-        auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-        instrPush->opcode = PUSH;
-        instrPush->Accept<uint8>(rp);
-        chunk->Append(std::move(instrPush));
-    }
-
-    int classStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-
-    const bool hasSideEffects = true; // MayHaveSideEffects();
+    const bool hasSideEffects = MayHaveSideEffects();
     const uint32 arraySize = uint32(m_members.Size());
 
     { // add NEW_ARRAY instruction
@@ -212,18 +202,20 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
 
     const uint8 arrayReg = rp;
 
-    // move array to stack
+    int arrayStackLocation = -1;
+
+    if (hasSideEffects)
     {
+        // if the elements may have side effects, we need to keep the array on the stack instead of just in a register
+        arrayStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
         auto instrPush = BytecodeUtil::Make<RawOperation<>>();
         instrPush->opcode = PUSH;
         instrPush->Accept<uint8>(rp);
         chunk->Append(std::move(instrPush));
     }
-
-    int arrayStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-
-    if (!hasSideEffects)
+    else
     {
         // claim register for array
         visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
@@ -252,7 +244,7 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
             const int diff = stackSizeAfter - arrayStackLocation;
             Assert(diff == 1);
 
-            { // load array from stack back into register
+            { // load array from stack into a register
                 auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
                 instrLoadOffset->opcode = LOAD_OFFSET;
                 instrLoadOffset->Accept<uint8>(rp);
@@ -286,7 +278,20 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
         }
     }
 
-    if (!hasSideEffects)
+    if (hasSideEffects)
+    {
+        // move the array back into the first register we started with
+        auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
+        instrLoadOffset->opcode = LOAD_OFFSET;
+        instrLoadOffset->Accept<uint8>(arrayReg);
+        instrLoadOffset->Accept<uint16>(uint16(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - arrayStackLocation));
+        chunk->Append(std::move(instrLoadOffset));
+
+        // pop array from stack
+        chunk->Append(BytecodeUtil::Make<PopLocal>(1));
+        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+    }
+    else
     {
         // unclaim register for array
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
@@ -294,42 +299,33 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     }
 
-    { // load array type expr from stack back into register
-        auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-        instrLoadOffset->GetBuilder()
-            .Load(rp)
-            .Local()
-            .ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - classStackLocation);
+    // { // load array type expr from stack back into register
+    //     auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+    //     instrLoadOffset->GetBuilder()
+    //         .Load(rp)
+    //         .Local()
+    //         .ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - classStackLocation);
 
-        chunk->Append(std::move(instrLoadOffset));
-    }
+    //     chunk->Append(std::move(instrLoadOffset));
+    // }
 
-    { // load member `from` from array type expr
-        constexpr HashCode::ValueType fromHash = HashCode::GetHashCode("from").Value();
+    // { // load member `from` from array type expr
+    //     constexpr HashCode::ValueType fromHash = HashCode::GetHashCode("from").Value();
 
-        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, fromHash));
-    }
+    //     chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, fromHash));
+    // }
 
-    // Here array type and array should be the 2 items on the stack
-    // so we call `from`, and the array type class will be the first arg, and the array will be the second arg
+    // // Here array type and array should be the 2 items on the stack
+    // // so we call `from`, and the array type class will be the first arg, and the array will be the second arg
 
-    { // call the `from` method
-        chunk->Append(Compiler::BuildCall(
-            visitor,
-            mod,
-            nullptr, // no target -- handled above
-            uint8(2) // self, array
-            ));
-    }
-
-    // decrement stack size for array type expr
-    chunk->Append(BytecodeUtil::Make<PopLocal>(2));
-
-    // pop array and type from stack
-    for (uint32 i = 0; i < 2; i++)
-    {
-        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-    }
+    // { // call the `from` method
+    //     chunk->Append(Compiler::BuildCall(
+    //         visitor,
+    //         mod,
+    //         nullptr, // no target -- handled above
+    //         uint8(2) // self, array
+    //         ));
+    // }
 
     return chunk;
 }

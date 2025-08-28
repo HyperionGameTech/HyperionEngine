@@ -43,7 +43,8 @@ void Builtins::Visit(AstVisitor* visitor)
         BuiltinTypes::FLOAT,
         BuiltinTypes::BOOLEAN,
         BuiltinTypes::STRING,
-        BuiltinTypes::FUNCTION
+        BuiltinTypes::FUNCTION,
+        BuiltinTypes::ARRAY
     };
 
     AstIterator ast;

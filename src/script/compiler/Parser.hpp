@@ -149,7 +149,6 @@ public:
     RC<AstHashMap> ParseHashMap();
     RC<AstTypeOfExpression> ParseTypeOfExpression();
     Array<RC<AstParameter>> ParseFunctionParameters();
-    Array<RC<AstParameter>> ParseGenericParameters();
     RC<AstClass> ParseClassDefinition();
     RC<AstClass> ParseClass(
         bool requireKeyword = true,

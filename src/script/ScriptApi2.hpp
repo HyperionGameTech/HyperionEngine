@@ -98,8 +98,7 @@ struct ClassDefinition
     Array<Symbol> members;
     Array<Symbol> staticMembers;
 
-    RC<AstExpression> expr;
-    RC<AstVariableDeclaration> varDecl;
+    RC<AstClass> classDefinition;
 };
 
 struct GlobalDefinition
@@ -198,7 +197,6 @@ public:
         VM* vm);
 
 private:
-    static Array<RC<AstParameter>> ParseGenericParams(const String& genericParamsString);
     static RC<AstExpression> ParseTypeExpression(const String& typeString);
 
     Array<GlobalDefinition> m_globals;

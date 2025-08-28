@@ -1,7 +1,32 @@
 #include <script/vm/Exception.hpp>
+#include <script/vm/Value.hpp>
 
 namespace hyperion {
 namespace vm {
+
+template <class FormatStringType, class... Args>
+static inline Exception FormattedException(FormatStringType formatString, Args&&... args)
+{
+    char buffer[256];
+    int n = std::snprintf(buffer, HYP_ARRAY_SIZE(buffer), formatString.Data(), std::forward<Args>(args)...);
+
+    if (n >= HYP_ARRAY_SIZE(buffer))
+    {
+        // recreate buffer using dynamic allocation
+        const SizeType size = SizeType(n) + 1;
+
+        char* dynamicBuffer = (char*)std::malloc(size);
+        std::snprintf(dynamicBuffer, size, formatString.Data(), std::forward<Args>(args)...);
+
+        Exception exc(dynamicBuffer);
+
+        std::free(dynamicBuffer);
+
+        return exc;
+    }
+
+    return Exception(buffer);
+}
 
 Exception::Exception(const char* str)
 {
@@ -51,14 +76,10 @@ Exception Exception::InvalidComparisonException(
     const char* leftTypeStr,
     const char* rightTypeStr)
 {
-    char buffer[256];
-    std::snprintf(
-        buffer,
-        255,
-        "Cannot compare %s with %s",
+    return FormattedException(
+        HYP_STATIC_STRING("Invalid comparison between types %s and %s"),
         leftTypeStr,
         rightTypeStr);
-    return Exception(buffer);
 }
 
 Exception Exception::InvalidOperationException(
@@ -66,27 +87,19 @@ Exception Exception::InvalidOperationException(
     const char* leftTypeStr,
     const char* rightTypeStr)
 {
-    char buffer[256];
-    std::snprintf(
-        buffer,
-        255,
-        "Invalid operation (%s) on types %s and %s",
+    return FormattedException(
+        HYP_STATIC_STRING("Invalid operation (%s) between types %s and %s"),
         opName,
         leftTypeStr,
         rightTypeStr);
-    return Exception(buffer);
 }
 
 Exception Exception::InvalidOperationException(const char* opName, const char* typeStr)
 {
-    char buffer[256];
-    std::snprintf(
-        buffer,
-        255,
-        "Invalid operation (%s) on type %s",
+    return FormattedException(
+        HYP_STATIC_STRING("Invalid operation (%s) on type %s"),
         opName,
         typeStr);
-    return Exception(buffer);
 }
 
 Exception Exception::InvalidBitwiseArgument()
@@ -137,25 +150,33 @@ Exception Exception::DivisionByZeroException()
     return Exception("Division by zero");
 }
 
-Exception Exception::OutOfBoundsException()
+Exception Exception::OutOfBoundsException(SizeType index, SizeType size)
 {
-    return Exception("Index out of bounds of Array");
+    char buffer[256];
+    std::snprintf(buffer, 256, "Index out of array bounds! Index: %llu, size: %llu", index, size);
+
+    return Exception(buffer);
 }
 
 Exception Exception::MemberNotFoundException(HashCode::ValueType hashCode)
 {
-    char buffer[256];
-    std::snprintf(buffer, 256, "Member with hash code %llu not found", hashCode);
+    return FormattedException(
+        HYP_STATIC_STRING("Member with hash code %llu not found!"),
+        hashCode);
+}
 
-    return Exception(buffer);
+Exception Exception::InvalidMemberAccessException(Value* pValue)
+{
+    return FormattedException(
+        HYP_STATIC_STRING("Invalid member access on type `%s`!"),
+        pValue ? pValue->GetTypeString() : "<null>");
 }
 
 Exception Exception::FileOpenException(const char* fileName)
 {
-    char buffer[256];
-    std::sprintf(buffer, "Failed to open file `%s`", fileName);
-
-    return Exception(buffer);
+    return FormattedException(
+        HYP_STATIC_STRING("Failed to open file `%s`"),
+        fileName);
 }
 
 Exception Exception::UnopenedFileWriteException()
@@ -175,42 +196,35 @@ Exception Exception::UnopenedFileCloseException()
 
 Exception Exception::LibraryLoadException(const char* libName)
 {
-    char buffer[256];
-    std::snprintf(buffer, 256, "Failed to open library `%s`", libName);
-
-    return Exception(buffer);
+    return FormattedException(
+        HYP_STATIC_STRING("Failed to open library `%s`"),
+        libName);
 }
 
 Exception Exception::LibraryFunctionLoadException(const char* funcName)
 {
-    char buffer[256];
-    std::snprintf(buffer, 256, "Failed to open library function `%s`", funcName);
-
-    return Exception(buffer);
+    return FormattedException(
+        HYP_STATIC_STRING("Failed to load function `%s` from library"),
+        funcName);
 }
 
 Exception Exception::DuplicateExportException()
 {
-    char buffer[256];
-    std::snprintf(buffer, 256, "Duplicate exported symbol");
-
-    return Exception(buffer);
+    return Exception("Duplicate export");
 }
 
 Exception Exception::KeyNotFoundException(const char* key)
 {
-    char buffer[256];
-    std::snprintf(buffer, 256, "Key `%s` not found", key);
-
-    return Exception(buffer);
+    return FormattedException(
+        HYP_STATIC_STRING("Key `%s` not found"),
+        key ? key : "<null>");
 }
 
 Exception Exception::ClassNotFoundException(const char* className)
 {
-    char buffer[256];
-    std::snprintf(buffer, 256, "Class `%s` not found", className ? className : "<null>");
-
-    return Exception(buffer);
+    return FormattedException(
+        HYP_STATIC_STRING("Class `%s` not found"),
+        className ? className : "<null>");
 }
 
 } // namespace vm
