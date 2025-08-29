@@ -86,14 +86,16 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+        bool substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             visitor,
             mod,
             m_symbolType,
             argsWithSelf,
-            m_location);
+            m_location,
+            m_returnType,
+            m_substitutedArgs);
 
-        if (!substituted.HasValue())
+        if (!substituted)
         {
             m_returnType = BuiltinTypes::UNDEFINED;
 
@@ -107,17 +109,15 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
             return;
         }
 
-        Assert(substituted->returnType != nullptr);
-
-        m_returnType = substituted->returnType;
-
-        // change args to be newly ordered array
-        m_substitutedArgs = CloneAllAstNodes(substituted->params);
+        Assert(m_returnType != nullptr);
 
         // visit each argument (again, substituted)
         for (const RC<AstArgument>& arg : m_substitutedArgs)
         {
-            Assert(arg != nullptr);
+            if (!arg)
+            {
+                continue;
+            }
 
             arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
         }

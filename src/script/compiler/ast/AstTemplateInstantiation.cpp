@@ -34,7 +34,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
+    // ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
 
     for (auto& arg : m_genericArgs)
     {
@@ -47,7 +47,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     AstTypeSpecifier::Visit(visitor, mod);
 
-    if (!m_symbolType || !m_symbolType->IsGenericBaseType())
+    if (!m_symbolType || !m_symbolType->IsGenericInstanceType())
     {
         m_symbolType = BuiltinTypes::UNDEFINED;
 
@@ -82,7 +82,14 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes.PushBack({ HYP_FORMAT("@arg{}", i), argType });
     }
 
-    SymbolTypeRef genericInstanceType = SymbolType::GenericInstance(m_symbolType, GenericInstanceTypeInfo { genericParamTypes });
+    SymbolTypeRef genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+        visitor,
+        mod,
+        m_symbolType,
+        genericParamTypes,
+        m_location);
+
+    // SymbolType::GenericInstance(m_symbolType, GenericInstanceTypeInfo { genericParamTypes });
 
     if (!genericInstanceType)
     {

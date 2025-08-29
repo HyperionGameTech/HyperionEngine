@@ -89,11 +89,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                 protoHeldType = protoHeldType->GetUnaliased();
             }
 
-            if (protoExprType->IsPlaceholderType())
-            {
-                m_symbolType = BuiltinTypes::PLACEHOLDER;
-            }
-            else if (protoHeldType == nullptr)
+            if (protoHeldType == nullptr)
             {
                 // Add error that invalid type was specified.
 
@@ -133,26 +129,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     m_realAssignment = CloneAstNode(defaultValue);
                     // built-in assignment, turn off strict mode
                     isDefaultAssigned = true;
-                }
-                else if (m_symbolType->GetTypeClass() == TYPE_GENERIC)
-                {
-                    const bool noParametersRequired = m_symbolType->GetGenericInfo().m_numParameters == -1;
-
-                    if (!noParametersRequired)
-                    {
-                        // @TODO - idk. instantiate generic? it works for now, example being 'Function' type
-                    }
-                    else
-                    {
-                        // generic not yet instantiated; assignment does not fulfill enough to complete the type.
-                        // since there is no assignment to go by, we can't promote it
-                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                            LEVEL_ERROR,
-                            Msg_generic_parameters_missing,
-                            m_location,
-                            m_symbolType->ToString(),
-                            m_symbolType->GetGenericInfo().m_numParameters));
-                    }
                 }
                 else if (!m_symbolType->IsGenericParameter())
                 {

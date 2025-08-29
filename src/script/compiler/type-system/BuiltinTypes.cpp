@@ -70,14 +70,8 @@ const SymbolTypeRef BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
 const SymbolTypeRef BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
     "Enum",
     {},
-    { SymbolTypeMember {
-        "base",
-        BuiltinTypes::OBJECT,
-        RC<AstTypeRef>(new AstTypeRef(
-            BuiltinTypes::OBJECT,
-            SourceLocation::eof)) } },
-    GenericTypeInfo { 1 },
-    BuiltinTypes::OBJECT);
+    {},
+    GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
 const SymbolTypeRef BuiltinTypes::INT = SymbolType::Primitive(
     "int",
@@ -97,15 +91,9 @@ const SymbolTypeRef BuiltinTypes::BOOLEAN = SymbolType::Primitive(
 
 const SymbolTypeRef BuiltinTypes::STRING = SymbolType::Extend(
     "string",
-    BuiltinTypes::CLASS_TYPE,
+    BuiltinTypes::OBJECT,
     {},
-    { SymbolTypeMember {
-        "base",
-        BuiltinTypes::CLASS_TYPE,
-        RC<AstTypeRef>(new AstTypeRef(
-            BuiltinTypes::CLASS_TYPE,
-            SourceLocation::eof)),
-    } });
+    {});
 
 const SymbolTypeRef BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
     "<null>",
@@ -120,29 +108,20 @@ const SymbolTypeRef BuiltinTypes::MODULE_INFO = SymbolType::Object(
     },
     {});
 
-const SymbolTypeRef BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
-    "<generic>",
-    {},
-    { SymbolTypeMember {
-        "base",
-        BuiltinTypes::CLASS_TYPE,
-        RC<AstTypeRef>(new AstTypeRef(
-            BuiltinTypes::CLASS_TYPE,
-            SourceLocation::eof)) } },
-    GenericTypeInfo { -1 },
-    BuiltinTypes::CLASS_TYPE);
+const SymbolTypeRef BuiltinTypes::FUNCTION_BASE = SymbolType::Primitive(
+    "FunctionBase",
+    nullptr);
 
-const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::Generic(
+const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::GenericInstance(
     "Function",
+    BuiltinTypes::FUNCTION_BASE,
     Array<SymbolTypeMember> {},
     Array<SymbolTypeMember> {},
-    GenericTypeInfo {
-        2, /* ReturnType, ParamTypes (variadic) */
+    GenericInstanceTypeInfo {
         {
-            SymbolType::GenericParameter("ReturnType", BuiltinTypes::CLASS_TYPE),
-            SymbolType::Generic("varargs", { SymbolTypeMember { "@variadic", BuiltinTypes::PLACEHOLDER } }, {}, GenericTypeInfo { -1 }, BuiltinTypes::PRIMITIVE_TYPE),
-        } },
-    BuiltinTypes::CLASS_TYPE);
+            { "@return", SymbolType::GenericParameter("ReturnType") },
+            { "@args", SymbolType::Generic("ArgTypes", { SymbolTypeMember { "@variadic", BuiltinTypes::ANY } }, {}, GenericInstanceTypeInfo {}) },
+        } });
 
 const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
     "Array",
@@ -151,11 +130,12 @@ const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
             "operator[]",
             SymbolType::GenericInstance(
                 BuiltinTypes::FUNCTION,
+                {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE) },
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::INT } } }) } },
     Array<SymbolTypeMember> {},
-    GenericTypeInfo { 1, /* T */ { SymbolType::GenericParameter("T", BuiltinTypes::CLASS_TYPE) } },
-    BuiltinTypes::CLASS_TYPE);
+    GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
 } // namespace hyperion::compiler

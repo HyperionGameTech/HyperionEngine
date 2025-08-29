@@ -13,6 +13,7 @@
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Scope.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/SemanticAnalyzer.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -172,7 +173,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             else
             {
                 // deduce return type
-                if (m_returnType->IsAnyType() || m_returnType->IsPlaceholderType())
+                if (m_returnType->IsAnyType())
                 {
                     m_returnType = symbolType;
                 }
@@ -252,50 +253,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes.PushBack(it);
     }
 
-    // Array<RC<AstArgument>> genericParams;
-    // genericParams.Reserve(genericParamTypes.Size());
-
-    // for (auto& it : genericParamTypes)
-    // {
-    //     genericParams.PushBack(RC<AstArgument>(new AstArgument(
-    //         RC<AstTypeRef>(new AstTypeRef(
-    //             it.m_type,
-    //             m_location)),
-    //         false,
-    //         false,
-    //         false,
-    //         false,
-    //         it.m_name,
-    //         m_location)));
-    // }
-
-    //    RC<AstTypeSpecifier> functionTypeSpec(new AstTypeSpecifier(
-    //        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-    //            RC<AstVariable>(new AstVariable(
-    //                "Function",
-    //                m_location)),
-    //            genericParamTypes,
-    //            m_location)),
-    //        m_location));
-    //
-    //    functionTypeSpec->Visit(visitor, mod);
-    //
-    //    SymbolTypeRef functionType = functionTypeSpec->GetHeldType();
-    //
-    //    if (functionType == nullptr)
-    //    {
-    //        functionType = BuiltinTypes::UNDEFINED;
-    //    }
-    //
-    //    functionType = functionType->GetUnaliased();
-    //
-    //    if (functionType != BuiltinTypes::UNDEFINED)
-    //    {
-    //        const SymbolTypeFlags currentFlags = functionType->GetFlags();
-
-    SymbolTypeRef functionType = SymbolType::GenericInstance(
+    SymbolTypeRef functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+        visitor,
+        mod,
         BuiltinTypes::FUNCTION,
-        GenericInstanceTypeInfo { genericParamTypes });
+        genericParamTypes,
+        m_location);
 
     if (m_isClosure)
     {

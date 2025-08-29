@@ -89,7 +89,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     SymbolTypeRef type = m_target->GetExprType();
 
-    if (!type->IsAnyType() && !type->IsGenericParameter() && !type->IsPlaceholderType())
+    if (!type->IsAnyType() && !type->IsGenericParameter())
     {
         if (m_op->GetType() & BITWISE)
         {

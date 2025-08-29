@@ -441,11 +441,6 @@ bool AstVariable::IsLiteral() const
             return false;
         }
 
-        if (exprType->IsPlaceholderType())
-        {
-            return false;
-        }
-
         if (!(exprType->IsIntegral() || exprType->IsFloat()))
         {
             return false;

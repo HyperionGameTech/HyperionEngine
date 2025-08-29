@@ -17,7 +17,7 @@ class Module;
 
 struct SubstitutionResult
 {
-    RC<AstArgument> arg;
+    Variant<SymbolTypeRef, RC<AstArgument>> value;
     SizeType index = SizeType(-1);
 };
 
@@ -58,21 +58,7 @@ public:
             Module* mod,
             const SymbolTypeRef& inputType,
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
-            const Array<SubstitutionResult>& substitutionResults,
             const SourceLocation& location);
-
-        static Optional<SymbolTypeFunctionSignature> ExtractGenericArgs(
-            AstVisitor* visitor,
-            Module* mod,
-            const SymbolTypeRef& symbolType,
-            const Array<RC<AstArgument>>& args,
-            const SourceLocation& location,
-            Array<SubstitutionResult> (*fn)(
-                AstVisitor* visitor,
-                Module* mod,
-                const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
-                const Array<RC<AstArgument>>& args,
-                const SourceLocation& location));
 
         static void CheckArgTypeCompatible(
             AstVisitor* visitor,
@@ -80,12 +66,14 @@ public:
             const SymbolTypeRef& argType,
             const SymbolTypeRef& paramType);
 
-        static Optional<SymbolTypeFunctionSignature> SubstituteFunctionArgs(
+        static bool SubstituteFunctionArgs(
             AstVisitor* visitor,
             Module* mod,
             const SymbolTypeRef& symbolType,
             const Array<RC<AstArgument>>& args,
-            const SourceLocation& location);
+            const SourceLocation& location,
+            SymbolTypeRef& outReturnType,
+            Array<RC<AstArgument>>& outArgs);
 
         static void EnsureFunctionArgCompatibility(
             AstVisitor* visitor,
@@ -118,4 +106,3 @@ public:
 };
 
 } // namespace hyperion::compiler
-

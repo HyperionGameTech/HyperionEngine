@@ -138,7 +138,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         m_returnType = BuiltinTypes::ANY;
         m_substitutedArgs = argsWithSelf; // NOTE: do not clone because we don't need to visit again.
     }
-    else if (!unaliased->IsOrHasBase(*BuiltinTypes::FUNCTION))
+    else if (!unaliased->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE))
     {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -151,15 +151,19 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        Optional<SymbolTypeFunctionSignature> substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+        bool substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             visitor,
             mod,
             unaliased,
             argsWithSelf,
-            m_location);
+            m_location,
+            m_returnType,
+            m_substitutedArgs);
 
-        if (!substituted.HasValue())
+        if (!substituted)
         {
+            m_returnType = BuiltinTypes::UNDEFINED;
+
             // not a function type
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -170,15 +174,15 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
             return;
         }
 
-        Assert(substituted->returnType != nullptr);
-
-        m_returnType = substituted->returnType;
-
-        // change args to be newly ordered array
-        m_substitutedArgs = CloneAllAstNodes(substituted->params);
+        Assert(m_returnType != nullptr);
 
         for (const RC<AstArgument>& arg : m_substitutedArgs)
         {
+            if (!arg)
+            {
+                continue;
+            }
+
             arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
         }
 

@@ -128,7 +128,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
             m_overrideExpr = std::move(callExpr);
         }
-        else if (targetType->IsAnyType() || targetType->IsPlaceholderType())
+        else if (targetType->IsAnyType())
         {
             auto subExpr = Clone().CastUnsafe<AstArrayAccess>();
             subExpr->SetIsOperatorOverloadingEnabled(false); // don't look for operator[] again
@@ -316,11 +316,6 @@ SymbolTypeRef AstArrayAccess::GetExprType() const
     if (targetType->IsAnyType())
     {
         return BuiltinTypes::ANY;
-    }
-
-    if (targetType->IsPlaceholderType())
-    {
-        return BuiltinTypes::PLACEHOLDER;
     }
 
     return BuiltinTypes::ANY;

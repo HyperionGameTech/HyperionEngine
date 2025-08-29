@@ -129,6 +129,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         // Create a generic instance of the enum type
         m_symbolType = SymbolType::GenericInstance(
             BuiltinTypes::ENUM_TYPE,
+            {}, {},
             GenericInstanceTypeInfo {
                 { { "of", m_enumUnderlyingType } } });
     }
@@ -646,7 +647,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     {
         for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
         {
-            if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION)) // skip methods, they don't take up space on the instance
+            if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // skip methods, they don't take up space on the instance
             {
                 // align field offset
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -660,7 +661,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // Add all fields from our class
     for (const SymbolTypeMember& member : m_symbolType->GetMembers())
     {
-        if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION)) // skip methods, they are handled above
+        if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // skip methods, they are handled above
         {
             // align field offset
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));

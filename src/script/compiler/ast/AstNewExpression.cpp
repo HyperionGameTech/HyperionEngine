@@ -85,10 +85,9 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
         static constexpr const char* tempVarName = "__$tempNewTarget";
 
         const bool isAny = m_instanceType->IsAnyType();
-        const bool isPlaceholder = m_instanceType->IsPlaceholderType();
         const bool hasConstructMember = m_instanceType->FindMember(constructMethodName) != nullptr;
 
-        if (isAny || isPlaceholder || hasConstructMember)
+        if (isAny || hasConstructMember)
         {
             m_constructorBlock.Reset(new AstBlock(m_location));
 

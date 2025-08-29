@@ -79,13 +79,6 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             break;
         }
 
-        if (m_targetType->IsPlaceholderType() || m_targetType->IsGenericParameter())
-        {
-            fieldType = BuiltinTypes::PLACEHOLDER;
-
-            break;
-        }
-
         isProxyClass = m_targetType->IsProxyClass();
 
         if (isProxyClass)
@@ -183,27 +176,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         fieldType = fieldType->GetUnaliased();
         Assert(fieldType != nullptr);
 
-        if (m_enableGenericMemberSubstitution && fieldType->IsGenericExpressionType())
-        {
-            // @FIXME
-            // Cloning the member will unfortunately will break closure captures used
-            // in a member function, but it's the best we can do for now.
-            // it also will cause too many clones to be made, making a larger bytecode chunk.
-            m_overrideExpr = CloneAstNode(member.expr);
-            Assert(m_overrideExpr != nullptr, "member %s is generic but has no value", m_fieldName.Data());
-
-            m_overrideExpr->Visit(visitor, mod);
-
-            m_symbolType = m_overrideExpr->GetExprType();
-        }
-        else
-        {
-            m_symbolType = fieldType;
-        }
-
-        Assert(m_symbolType != nullptr);
-
-        m_symbolType = m_symbolType->GetUnaliased();
+        m_symbolType = fieldType->GetUnaliased();
     }
     else
     {

@@ -106,7 +106,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         // also, for proxy class that does not have the operator overloaded,
         // we build in the condition as well
         else if (
-            targetType->IsAnyType() || targetType->IsPlaceholderType()
+            targetType->IsAnyType()
             // targetType != BuiltinTypes::STRING // Special case for String class to override checking for members like operator== and operator+
             // && (targetType->IsAnyType() || targetType->IsClass())
         )

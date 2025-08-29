@@ -40,9 +40,9 @@ enum SymbolTypeClass
     TYPE_BUILTIN,
     TYPE_USER_DEFINED,
     TYPE_ALIAS,
-    TYPE_GENERIC,
     TYPE_GENERIC_INSTANCE,
-    TYPE_GENERIC_PARAMETER
+    TYPE_GENERIC_PARAMETER,
+    TYPE_PLACEHOLDER
 };
 
 using SymbolTypeFlags = uint32;
@@ -64,12 +64,6 @@ struct FunctionTypeInfo
 {
     Array<SymbolTypeRef> m_paramTypes;
     SymbolTypeRef m_returnType;
-};
-
-struct GenericTypeInfo
-{
-    int m_numParameters = 0; // -1 for variadic
-    Array<SymbolTypeRef> m_params;
 };
 
 struct GenericInstanceTypeInfo
@@ -120,6 +114,11 @@ public:
         const String& name,
         const AliasTypeInfo& info);
 
+    /*! \brief Defer resolution of this type until usage.
+     */
+    static SymbolTypeRef Placeholder(
+        const String& name);
+
     static SymbolTypeRef Primitive(
         const String& name,
         const RC<AstExpression>& defaultValue);
@@ -130,31 +129,27 @@ public:
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers);
 
-    /** A generic type template. Members may have the type class TYPE_GENERIC_PARAMETER.
-        They will be substituted when an instance of the generic type is created.
-    */
     static SymbolTypeRef Generic(
         const String& name,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
-        const GenericTypeInfo& info,
-        const SymbolTypeRef& base);
-
-    static SymbolTypeRef Generic(
-        const String& name,
-        const RC<AstExpression>& defaultValue,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers,
-        const GenericTypeInfo& info,
-        const SymbolTypeRef& base);
+        const GenericInstanceTypeInfo& info);
 
     static SymbolTypeRef GenericInstance(
         const SymbolTypeRef& base,
+        const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers,
+        const GenericInstanceTypeInfo& info);
+
+    static SymbolTypeRef GenericInstance(
+        const String& name,
+        const SymbolTypeRef& base,
+        const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
     static SymbolTypeRef GenericParameter(
-        const String& name,
-        const SymbolTypeRef& base);
+        const String& name);
 
     static SymbolTypeRef Extend(
         const String& name,
@@ -272,16 +267,6 @@ public:
         return m_functionInfo;
     }
 
-    GenericTypeInfo& GetGenericInfo()
-    {
-        return m_genericInfo;
-    }
-
-    const GenericTypeInfo& GetGenericInfo() const
-    {
-        return m_genericInfo;
-    }
-
     GenericInstanceTypeInfo& GetGenericInstanceInfo()
     {
         return m_genericInstanceInfo;
@@ -387,16 +372,8 @@ public:
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
     bool IsGenericParameter() const;
 
-    /*! \brief Is this type an uninstantiated generic type expression? (e.g. `Generic<T> -> List<T>`)
-        (Note: this is different from IsGenericType() which checks if this type is the underlying generic type)
-    */
-    bool IsGenericExpressionType() const;
-
     /*! \brief Is this type an instantiated generic type? (e.g. `List<int>`) */
     bool IsGenericInstanceType() const;
-
-    /*! \brief Is this type a Generic base type (e.g Array, Function, etc.) */
-    bool IsGenericBaseType() const;
 
     /*! \brief Is this type a primitive type? (e.g. int, float) */
     bool IsPrimitive() const;
@@ -435,8 +412,6 @@ private:
     AliasTypeInfo m_aliasInfo;
     // if this type is a function
     FunctionTypeInfo m_functionInfo;
-    // if this is a generic type
-    GenericTypeInfo m_genericInfo;
     // if this is a generic param
     GenericParameterTypeInfo m_genericParamInfo;
 

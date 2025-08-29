@@ -71,7 +71,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
             break;
         }
 
-        if (m_heldType->IsAnyType() || m_heldType->IsPlaceholderType())
+        if (m_heldType->IsAnyType())
         {
             // take first item found that is not `Any`
             m_heldType = it;

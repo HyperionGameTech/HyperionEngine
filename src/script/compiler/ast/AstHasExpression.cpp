@@ -64,7 +64,7 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
 
     Assert(targetType != nullptr);
 
-    if (targetType->IsAnyType() || targetType->IsPlaceholderType())
+    if (targetType->IsAnyType())
     {
         m_hasMember = TRI_INDETERMINATE;
     }

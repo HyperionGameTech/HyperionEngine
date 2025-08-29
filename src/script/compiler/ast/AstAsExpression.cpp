@@ -70,13 +70,6 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (heldType->IsPlaceholderType())
-    {
-        m_isType = TRI_INDETERMINATE;
-
-        return;
-    }
-
     if (targetType->TypeEqual(*heldType))
     {
         m_isType = TRI_TRUE;
