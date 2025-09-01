@@ -175,6 +175,7 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool SymbolType::TypeCompatible(
     const SymbolType& right,
     bool strictNumbers) const
@@ -352,6 +353,7 @@ bool SymbolType::TypeCompatible(
 
     return false;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 SymbolTypeRef SymbolType::FindMember(const String& name) const
 {

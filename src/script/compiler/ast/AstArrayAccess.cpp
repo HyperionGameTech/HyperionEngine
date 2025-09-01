@@ -38,6 +38,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     Assert(m_index != nullptr);
 
+    m_exprType = BuiltinTypes::UNDEFINED;
+
     m_target->Visit(visitor, mod);
     m_index->Visit(visitor, mod);
 
@@ -69,7 +71,14 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
         SymbolTypeRef elementType = targetType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
         Assert(elementType != nullptr);
-        elementType = elementType->GetUnaliased();
+
+        elementType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+            visitor,
+            mod,
+            elementType,
+            m_location);
+
+        m_exprType = elementType;
 
         SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
             visitor,
@@ -196,6 +205,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
             m_overrideExpr->Visit(visitor, mod);
 
+            m_exprType = m_overrideExpr->GetExprType();
+
             return;
         }
     }
@@ -321,6 +332,18 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
         // unclaim register for rhs
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
+
+        // move result from rhs register to the active register
+        const uint8 dstRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        if (dstRegister != rhsRegister)
+        {
+            auto instrMov = BytecodeUtil::Make<RawOperation<>>();
+            instrMov->opcode = MOV;
+            instrMov->Accept<uint8>(dstRegister);
+            instrMov->Accept<uint8>(rhsRegister);
+            chunk->Append(std::move(instrMov));
+        }
     }
     else
     {
@@ -384,28 +407,7 @@ bool AstArrayAccess::MayHaveSideEffects() const
 
 SymbolTypeRef AstArrayAccess::GetExprType() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->GetExprType();
-    }
-
-    if (m_rhs != nullptr)
-    {
-        return m_rhs->GetExprType();
-    }
-
-    Assert(m_target != nullptr);
-
-    SymbolTypeRef targetType = m_target->GetExprType();
-    Assert(targetType != nullptr);
-    targetType = targetType->GetUnaliased();
-
-    if (targetType->IsAnyType())
-    {
-        return BuiltinTypes::ANY;
-    }
-
-    return BuiltinTypes::ANY;
+    return m_exprType;
 }
 
 AstExpression* AstArrayAccess::GetTarget() const

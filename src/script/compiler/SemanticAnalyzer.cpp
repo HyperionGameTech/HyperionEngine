@@ -222,6 +222,8 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     case TYPE_PLACEHOLDER:
         HYP_FAIL("Should not encounter placeholder type here");
         return BuiltinTypes::UNDEFINED;
+    case TYPE_BUILTIN:
+        return targetType;
     case TYPE_GENERIC_PARAMETER:
     {
         targetType = mod->LookupSymbolType(targetType->GetName());

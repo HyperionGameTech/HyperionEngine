@@ -64,6 +64,7 @@ private:
 
     // set while analyzing
     RC<AstExpression> m_overrideExpr;
+    SymbolTypeRef m_exprType;
 
     RC<AstArrayAccess> CloneImpl() const
     {
@@ -77,4 +78,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-
