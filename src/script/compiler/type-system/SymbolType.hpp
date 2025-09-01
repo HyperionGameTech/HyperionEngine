@@ -52,7 +52,6 @@ enum SymbolTypeFlagsBits : SymbolTypeFlags
 {
     SYMBOL_TYPE_FLAGS_NONE = 0x0,
     SYMBOL_TYPE_FLAGS_PROXY = 0x1,
-    SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC = 0x2,
     SYMBOL_TYPE_FLAGS_NATIVE = 0x4
 };
 
@@ -362,7 +361,7 @@ public:
         is a base of this type. */
     bool HasBase(const SymbolType& baseType) const;
     /** Find the root aliasee. If not an alias, just returns itself */
-    SymbolTypeRef GetUnaliased();
+    SymbolTypeRef GetUnaliased() const;
 
     bool IsNumber() const;
     bool IsIntegral() const;

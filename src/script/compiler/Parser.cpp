@@ -2588,16 +2588,6 @@ RC<AstClass> Parser::ParseClass(
             flags |= IdentifierFlags::FLAG_ACCESS_PROTECTED;
         }
 
-        // do not require declaration keyword for data members.
-        // also, data members may be specifiers.
-        // note: a variable may be declared with ANY name if it enquoted
-
-        // if parentheses matched, it will be a function:
-        /* class Whatever {
-            doSomething() {
-            // ...
-            }
-        } */
         if (!isVariable && (isFunction || Match(TK_OPEN_PARENTH)))
         { // it is a member function
             Array<RC<AstParameter>> params;
@@ -2605,29 +2595,10 @@ RC<AstClass> Parser::ParseClass(
 #if HYP_SCRIPT_AUTO_SELF_INSERTION
             params.Reserve(1); // reserve at least 1 for 'self' parameter
 
-            if (isStatic)
-            { // static member function
+            if (!isStatic)
+            {
                 RC<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
-                    RC<AstVariable>(new AstVariable(
-                        BuiltinTypes::CLASS_TYPE->GetName(), // `self: Class` for static functions
-                        location)),
-                    location));
-
-                params.PushBack(RC<AstParameter>(new AstParameter(
-                    "self",
-                    selfTypeSpec,
-                    nullptr,
-                    false,
-                    false,
-                    false,
-                    location)));
-            }
-            else
-            { // instance member function
-                RC<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
-                    RC<AstVariable>(new AstVariable(
-                        typeName, // `self: Whatever` for instance functions
-                        location)),
+                    RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), location)),
                     location));
 
                 params.PushBack(RC<AstParameter>(new AstParameter(

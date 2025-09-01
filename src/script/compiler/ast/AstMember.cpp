@@ -50,7 +50,11 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
     m_targetType = m_target->GetExprType();
     Assert(m_targetType != nullptr);
 
-    m_targetType = m_targetType->GetUnaliased();
+    m_targetType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        visitor,
+        mod,
+        m_targetType,
+        m_location);
 
     if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG))
     {

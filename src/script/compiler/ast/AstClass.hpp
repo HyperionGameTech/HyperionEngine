@@ -150,7 +150,6 @@ protected:
     RC<AstTypeRef> m_typeRef;
     Array<RC<AstVariableDeclaration>> m_outsideMembers;
     Array<RC<AstVariableDeclaration>> m_combinedMembers;
-    bool m_isUninstantiatedGeneric;
     bool m_isVisited;
 
     RC<AstClass> CloneImpl() const

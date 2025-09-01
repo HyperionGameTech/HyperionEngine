@@ -51,6 +51,11 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
         return true;
     }
 
+    if (IsAlias() || other.IsAlias())
+    {
+        return GetUnaliased()->TypeEqual(*other.GetUnaliased());
+    }
+
     return GetHashCode() == other.GetHashCode();
 
     if (m_name != other.m_name)
@@ -585,7 +590,7 @@ bool SymbolType::HasBase(const SymbolType& baseType) const
     return false;
 }
 
-SymbolTypeRef SymbolType::GetUnaliased()
+SymbolTypeRef SymbolType::GetUnaliased() const
 {
     if (m_typeClass == TYPE_ALIAS)
     {
@@ -1143,6 +1148,18 @@ SymbolTypeRef SymbolType::SubstituteGenericParams(
 
 HashCode SymbolType::GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateNames) const
 {
+    if (IsAlias())
+    {
+        if (SymbolTypeRef aliasee = m_aliasInfo.m_aliasee.Lock())
+        {
+            return aliasee->GetHashCodeWithDuplicateRemoval(duplicateNames);
+        }
+        else
+        {
+            return HashCode();
+        }
+    }
+
     if (duplicateNames.Contains(m_name))
     {
         return HashCode();
@@ -1158,19 +1175,6 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateN
 
     switch (m_typeClass)
     {
-    case TYPE_BUILTIN:
-        break;
-    case TYPE_ALIAS:
-        if (auto aliasee = m_aliasInfo.m_aliasee.Lock())
-        {
-            hc.Add(aliasee->GetHashCodeWithDuplicateRemoval(duplicateNames));
-        }
-        else
-        {
-            hc.Add(HashCode());
-        }
-
-        break;
     case TYPE_GENERIC_INSTANCE:
         for (const auto& arg : m_genericInstanceInfo.m_genericArgs)
         {
@@ -1179,9 +1183,10 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateN
         }
 
         break;
+    case TYPE_BUILTIN: // fallthrough
     case TYPE_GENERIC_PARAMETER:
-        break;
     case TYPE_USER_DEFINED:
+    default:
         break;
     }
 
@@ -1195,6 +1200,18 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateN
         }
 
         hc.Add(member.type->GetHashCodeWithDuplicateRemoval(duplicateNames));
+    }
+
+    for (const SymbolTypeMember& staticMember : m_staticMembers)
+    {
+        hc.Add(staticMember.name);
+
+        if (!staticMember.type)
+        {
+            continue;
+        }
+
+        hc.Add(staticMember.type->GetHashCodeWithDuplicateRemoval(duplicateNames));
     }
 
     return hc;

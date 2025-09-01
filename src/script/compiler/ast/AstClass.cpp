@@ -49,7 +49,6 @@ AstClass::AstClass(
       m_staticMembers(staticMembers),
       m_enumUnderlyingType(enumUnderlyingType),
       m_isProxyClass(isProxyClass),
-      m_isUninstantiatedGeneric(false),
       m_isVisited(false)
 {
 }
@@ -99,8 +98,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
     Assert(!m_isVisited);
-
-    m_isUninstantiatedGeneric = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG);
 
     // Create scope
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ENUM_MEMBERS_FLAG : 0);
@@ -154,11 +151,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         if (m_isProxyClass)
         {
             m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
-        }
-
-        if (m_isUninstantiatedGeneric)
-        {
-            m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_UNINSTANTIATED_GENERIC;
         }
     }
 
@@ -294,7 +286,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
             "self",
             RC<AstTypeSpecifier>(new AstTypeSpecifier(
                 RC<AstTypeRef>(new AstTypeRef(
-                    BuiltinTypes::ANY,
+                    BuiltinTypes::ANY, // @TODO SelfType
                     m_location)),
                 m_location)),
             nullptr,

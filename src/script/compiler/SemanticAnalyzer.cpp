@@ -28,65 +28,51 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         return nullptr;
     }
 
-    if (!inputType->IsPlaceholderType())
+    SymbolTypeRef unaliasedInputType = inputType->GetUnaliased();
+    Assert(unaliasedInputType != nullptr);
+
+    if (!unaliasedInputType->IsPlaceholderType())
     {
         // Check if type has members, static members, or base types that need resolution
-        if (inputType->GetMembers().Any() || inputType->GetStaticMembers().Any() || inputType->GetBaseType())
+        if (unaliasedInputType->GetMembers().Any() || unaliasedInputType->GetStaticMembers().Any() || inputType->GetBaseType())
         {
-            bool changed = false;
-
-            SymbolTypeRef resolvedType = inputType->Clone();
-
-            if (inputType->GetBaseType())
+            if (unaliasedInputType->GetBaseType())
             {
                 SymbolTypeRef resolvedBaseType = ResolvePlaceholderType(visitor, mod, inputType->GetBaseType(), location);
-                if (resolvedBaseType != inputType->GetBaseType())
+                if (resolvedBaseType != unaliasedInputType->GetBaseType())
                 {
-                    resolvedType->SetBaseType(resolvedBaseType);
-
-                    changed = true;
+                    unaliasedInputType->SetBaseType(resolvedBaseType);
                 }
             }
 
-            for (SizeType memberIndex = 0; memberIndex < inputType->GetMembers().Size(); memberIndex++)
+            for (SizeType memberIndex = 0; memberIndex < unaliasedInputType->GetMembers().Size(); memberIndex++)
             {
-                const SymbolTypeMember& srcMember = inputType->GetMembers()[memberIndex];
+                const SymbolTypeMember& srcMember = unaliasedInputType->GetMembers()[memberIndex];
 
                 SymbolTypeRef resolvedMemberType = ResolvePlaceholderType(visitor, mod, srcMember.type, location);
                 if (srcMember.type != resolvedMemberType)
                 {
-                    resolvedType->GetMembers()[memberIndex] = { srcMember.name, resolvedMemberType, srcMember.expr };
-
-                    changed = true;
+                    unaliasedInputType->GetMembers()[memberIndex] = { srcMember.name, resolvedMemberType, srcMember.expr };
                 }
             }
 
-            for (SizeType memberIndex = 0; memberIndex < inputType->GetStaticMembers().Size(); memberIndex++)
+            for (SizeType memberIndex = 0; memberIndex < unaliasedInputType->GetStaticMembers().Size(); memberIndex++)
             {
-                const SymbolTypeMember& srcMember = inputType->GetStaticMembers()[memberIndex];
+                const SymbolTypeMember& srcMember = unaliasedInputType->GetStaticMembers()[memberIndex];
 
                 SymbolTypeRef resolvedMemberType = ResolvePlaceholderType(visitor, mod, srcMember.type, location);
                 if (srcMember.type != resolvedMemberType)
                 {
-                    resolvedType->GetStaticMembers()[memberIndex] = { srcMember.name, resolvedMemberType, srcMember.expr };
-
-                    changed = true;
+                    unaliasedInputType->GetStaticMembers()[memberIndex] = { srcMember.name, resolvedMemberType, srcMember.expr };
                 }
             }
-
-            if (!changed)
-            {
-                return inputType;
-            }
-
-            return resolvedType;
         }
 
-        return inputType;
+        return unaliasedInputType;
     }
 
     // Try to resolve placeholder type by looking it up in the module
-    SymbolTypeRef resolvedType = mod->LookupSymbolType(inputType->GetName());
+    SymbolTypeRef resolvedType = mod->LookupSymbolType(unaliasedInputType->GetName());
 
     if (resolvedType)
     {
@@ -102,7 +88,6 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
 
     return BuiltinTypes::UNDEFINED;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     AstVisitor* visitor,
@@ -141,6 +126,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
         resolvedArgType->ToString(),
         resolvedParamType->ToString()));
 }
+HYP_ENABLE_OPTIMIZATION;
 
 SizeType SemanticAnalyzer::Helpers::FindFreeSlot(
     SizeType currentIndex,
@@ -218,16 +204,18 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         return nullptr;
     }
 
-    ScopeGuard scope { mod, SCOPE_TYPE_NORMAL, 0 };
-
     SymbolTypeRef unaliasedInputType = inputType->GetUnaliased();
     Assert(unaliasedInputType != nullptr);
 
-    SymbolTypeRef resolvedInputType = ResolvePlaceholderType(visitor, mod, unaliasedInputType, location);
-    Assert(resolvedInputType != nullptr);
+    if (unaliasedInputType->IsPlaceholderType())
+    {
+        return ResolvePlaceholderType(visitor, mod, unaliasedInputType, location);
+    }
 
-    SymbolTypeRef targetType = resolvedInputType;
+    SymbolTypeRef targetType = unaliasedInputType;
     bool changed = false;
+
+    ScopeGuard scope { mod, SCOPE_TYPE_NORMAL, 0 };
 
     switch (targetType->GetTypeClass())
     {
@@ -367,7 +355,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         break;
     }
 
-    if (SymbolTypeRef baseType = resolvedInputType->GetBaseType())
+    if (SymbolTypeRef baseType = unaliasedInputType->GetBaseType())
     {
         SymbolTypeRef substitutedBaseType = SubstituteGenericParameters(visitor, mod, baseType, {}, location);
 
@@ -390,7 +378,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     }
 
     // members
-    for (const SymbolTypeMember& member : resolvedInputType->GetMembers())
+    for (const SymbolTypeMember& member : unaliasedInputType->GetMembers())
     {
         if (!changed)
         {
@@ -404,7 +392,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     }
 
     // static members
-    for (const SymbolTypeMember& member : resolvedInputType->GetStaticMembers())
+    for (const SymbolTypeMember& member : unaliasedInputType->GetStaticMembers())
     {
         if (!changed)
         {
@@ -417,7 +405,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             member.expr });
     }
 
-    return targetType;
+    return changed ? targetType : inputType;
 }
 HYP_ENABLE_OPTIMIZATION;
 
