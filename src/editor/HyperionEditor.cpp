@@ -135,17 +135,14 @@ void HyperionEditor::Init()
         str = "class Base {}; \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\";\n"
-              "    func x(a: int, b: MyClass) { return b; }\n"
+              "    func x(a: int) { return a * 100; }\n"
               "    func MyClass() {\n"
               "        self.blah = \"test123\";\n"
               "    }\n"
               "};\n"
               "ins : MyClass = new MyClass();\n"
-              "func getArray(ary: Array<int>) -> Array<int> { return ary; };\n"
-              "func calcTestIndex() -> int { return 0; };\n"
-              "func getTestNum(i: float) -> float { return i * 2; };\n"
-              "func modValue(ref v: int, fun: Function<int> -> int) {\nv : MyClass = ins;\n};"
-              "export func x(a: float, ref b: int) { i : Array = [1,2,3]; i[0] = 9123; return getArray(ary : [2])[0]; };";
+              "func getArrayElement(elementIndex : int = 5, ary: Array<int>) -> Array<int> { return ary[elementIndex]; };\n"
+              "export func x(a: float, ref b: int) { return ins.x(b); };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

@@ -107,7 +107,6 @@ enum ErrorMessage
     Msg_generic_parameter_redeclared,
     Msg_generic_expression_no_arguments_provided,
     Msg_generic_expression_must_be_const,
-    Msg_generic_expression_invalid_arguments,
     Msg_generic_expression_requires_assignment,
     Msg_generic_argument_must_be_literal,
     Msg_not_a_data_member,

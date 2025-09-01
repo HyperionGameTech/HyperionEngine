@@ -139,7 +139,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         paramSymbolTypes.PushBack(GenericInstanceTypeInfo::Arg {
             .m_name = param->GetName(),
             .m_type = param->GetIdentifier()->GetSymbolType(),
-            .m_defaultValue = param->GetDefaultValue(),
+            .m_defaultValue = CloneAstNode(param->GetDefaultValue()),
             .m_isRef = param->IsRef(),
             .m_isConst = param->IsConst() });
     }
@@ -256,6 +256,16 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         BuiltinTypes::FUNCTION,
         genericParamTypes,
         m_location);
+
+    // debug log all function args (name + has default value)
+    for (SizeType i = 0; i < functionType->GetGenericInstanceInfo().m_genericArgs.Size(); i++)
+    {
+        const GenericInstanceTypeInfo::Arg& argType = functionType->GetGenericInstanceInfo().m_genericArgs[i];
+        DebugLog(LogType::Debug, "Function arg %llu: name='%s', has_default=%s\n",
+            i,
+            argType.m_name.Data(),
+            argType.m_defaultValue != nullptr ? "true" : "false");
+    }
 
     if (m_isClosure)
     {

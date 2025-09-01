@@ -112,12 +112,6 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
             Assert(instanceArgType != nullptr);
             Assert(otherArgType != nullptr);
 
-            // DebugLog(LogType::Debug, "Compare generic instance args: %s == %s %llu %llu\n",
-            //     instanceArgType->ToString(true).Data(),
-            //     otherArgType->ToString(true).Data(),
-            //     instanceArgType->m_genericInstanceInfo.m_genericArgs.Size(),
-            //     otherArgType->m_genericInstanceInfo.m_genericArgs.Size());
-
             if (!instanceArgType->TypeEqual(*otherArgType))
             {
                 return false; // have to do this for now to prevent infinte recursion
@@ -1126,23 +1120,14 @@ SymbolTypeRef SymbolType::SubstituteGenericParams(
 
         for (const GenericInstanceTypeInfo::Arg& arg : lptr->GetGenericInstanceInfo().m_genericArgs)
         {
-            const SymbolTypeRef& argType = arg.m_type;
-            Assert(argType != nullptr);
-
-            GenericInstanceTypeInfo::Arg newArg;
+            GenericInstanceTypeInfo::Arg newArg {};
             newArg.m_name = arg.m_name;
-            newArg.m_defaultValue = arg.m_defaultValue;
+            newArg.m_defaultValue = CloneAstNode(arg.m_defaultValue);
+            newArg.m_type = SubstituteGenericParams(arg.m_type, placeholder, substitute);
+            newArg.m_isConst = arg.m_isConst;
+            newArg.m_isRef = arg.m_isRef;
 
-            // perform substitution
-            SymbolTypeRef argTypeSubstituted = SubstituteGenericParams(
-                argType,
-                placeholder,
-                substitute);
-
-            Assert(argTypeSubstituted != nullptr);
-            newArg.m_type = argTypeSubstituted;
-
-            newGenericTypes.PushBack(newArg);
+            newGenericTypes.PushBack(std::move(newArg));
         }
 
         return SymbolType::GenericInstance(

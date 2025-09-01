@@ -57,7 +57,7 @@ public:
             AstVisitor* visitor,
             Module* mod,
             const SymbolTypeRef& inputType,
-            const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
+            const Array<GenericInstanceTypeInfo::Arg>& inArgs,
             const SourceLocation& location);
 
         static SymbolTypeRef GenericPromotion(

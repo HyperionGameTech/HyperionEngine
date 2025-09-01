@@ -978,12 +978,6 @@ public:
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
     {
-        DebugLog(
-            LogType::Debug,
-            "Pushing register %u to stack (sp = %u), value = %s\n",
-            reg,
-            thread->m_stack.GetStackPointer(),
-            thread->m_regs[reg].ToString().GetData());
         // Move value from register to top of stack
         thread->m_stack.Push(ScriptApi_ShallowCopy(thread->m_regs[reg], vm->GetGC()));
     }

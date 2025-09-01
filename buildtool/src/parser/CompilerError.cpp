@@ -75,7 +75,6 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_generic_parameter_redeclared, "Generic parameter '%' already declared" },
     { Msg_generic_expression_must_be_const, "Generic '%' must be const" },
     { Msg_generic_expression_no_arguments_provided, "'%' is generic, which requires argument(s) provided within <> (may also be empty)" },
-    { Msg_generic_expression_invalid_arguments, "Generic expression requires arguments: '%'" },
     { Msg_generic_expression_requires_assignment, "'%' is missing assignment (all generics must have a value)" },
     { Msg_generic_argument_must_be_literal, "Generic argument is not resolvable at compile-time" },
     { Msg_not_a_data_member, "'%' not found in %" },

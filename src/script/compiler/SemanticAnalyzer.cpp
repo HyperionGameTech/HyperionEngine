@@ -187,7 +187,8 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
         {
             const String& genericArgName = genericArgs[i].m_name;
 
-            if (genericArgName == argInfo.name && usedIndices.Find(i) == usedIndices.End())
+            if (genericArgName == argInfo.name
+                && usedIndices.Find(i) == usedIndices.End())
             {
                 return i;
             }
@@ -204,11 +205,12 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
         numSuppliedArgs);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     AstVisitor* visitor,
     Module* mod,
     const SymbolTypeRef& inputType,
-    const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
+    const Array<GenericInstanceTypeInfo::Arg>& inArgs,
     const SourceLocation& location)
 {
     if (!inputType)
@@ -269,56 +271,50 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             ? genericInstanceInfo.m_genericArgs.Size() - 1
             : genericInstanceInfo.m_genericArgs.Size();
 
-        for (SizeType index = 0; index < genericArgs.Size(); index++)
+        for (SizeType index = 0; index < inArgs.Size(); index++)
         {
-            Assert(genericArgs[index].m_type != nullptr);
+            Assert(inArgs[index].m_type != nullptr);
 
             if (index >= numGenericArgs)
             {
                 break;
             }
 
-            DebugLog(LogType::Debug, "Binding generic parameter %s to type %s\n",
-                genericInstanceInfo.m_genericArgs[index].m_type->GetName().Data(),
-                genericArgs[index].m_type->ToString().Data());
-
             mod->m_scopes.Top().identifierTable.AddSymbolType(SymbolType::Alias(
                 genericInstanceInfo.m_genericArgs[index].m_type->GetName(),
-                AliasTypeInfo { genericArgs[index].m_type }));
+                AliasTypeInfo { inArgs[index].m_type }));
         }
 
         int numLeftoverArgs = int(genericInstanceInfo.m_genericArgs.Size());
 
         Array<GenericInstanceTypeInfo::Arg> resolvedArgs;
 
-        for (SizeType index = 0; index < genericArgs.Size(); index++, numLeftoverArgs--)
+        for (SizeType index = 0; index < inArgs.Size(); index++, numLeftoverArgs--)
         {
-            Assert(genericArgs[index].m_type != nullptr);
+            Assert(inArgs[index].m_type != nullptr);
 
             if (index >= numGenericArgs && varargType != nullptr)
             {
-                // it is variadic
-                resolvedArgs.PushBack({ HYP_FORMAT("arg{}", index),
-                    SubstituteGenericParameters(
-                        visitor,
-                        mod,
-                        genericArgs[index].m_type,
-                        {},
-                        location) });
+                GenericInstanceTypeInfo::Arg& resolvedArg = resolvedArgs.EmplaceBack();
+                resolvedArg = {};
+                resolvedArg.m_name = inArgs[index].m_name;
+                resolvedArg.m_type = SubstituteGenericParameters(visitor, mod, inArgs[index].m_type, {}, location);
+                resolvedArg.m_defaultValue = CloneAstNode(inArgs[index].m_defaultValue);
+                resolvedArg.m_isRef = inArgs[index].m_isRef;
+                resolvedArg.m_isConst = inArgs[index].m_isConst;
 
                 continue;
             }
 
             if (index < numGenericArgs)
             {
-                // not variadic, push and bind an alias type so that nested generics work
-                resolvedArgs.PushBack({ genericInstanceInfo.m_genericArgs[index].m_name,
-                    SubstituteGenericParameters(
-                        visitor,
-                        mod,
-                        genericArgs[index].m_type,
-                        {},
-                        location) });
+                GenericInstanceTypeInfo::Arg& resolvedArg = resolvedArgs.EmplaceBack();
+                resolvedArg = {};
+                resolvedArg.m_name = inArgs[index].m_name;
+                resolvedArg.m_type = SubstituteGenericParameters(visitor, mod, inArgs[index].m_type, {}, location);
+                resolvedArg.m_defaultValue = CloneAstNode(inArgs[index].m_defaultValue);
+                resolvedArg.m_isRef = inArgs[index].m_isRef;
+                resolvedArg.m_isConst = inArgs[index].m_isConst;
 
                 continue;
             }
@@ -328,13 +324,13 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 Msg_incorrect_number_of_arguments,
                 location,
                 genericInstanceInfo.m_genericArgs.Size(),
-                genericArgs.Size()));
+                inArgs.Size()));
         }
 
         if (numLeftoverArgs > 0)
         {
             // fill in remaining args with defaults
-            for (SizeType index = genericArgs.Size(); index < genericInstanceInfo.m_genericArgs.Size(); index++)
+            for (SizeType index = inArgs.Size(); index < genericInstanceInfo.m_genericArgs.Size(); index++)
             {
                 const GenericInstanceTypeInfo::Arg& genericArg = genericInstanceInfo.m_genericArgs[index];
 
@@ -346,13 +342,14 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                     break;
                 }
 
-                resolvedArgs.PushBack({ genericArg.m_name,
-                    SubstituteGenericParameters(
-                        visitor,
-                        mod,
-                        genericArg.m_type,
-                        {},
-                        location) });
+                GenericInstanceTypeInfo::Arg& resolvedArg = resolvedArgs.EmplaceBack();
+
+                resolvedArg = {};
+                resolvedArg.m_name = genericArg.m_name;
+                resolvedArg.m_defaultValue = CloneAstNode(genericArg.m_defaultValue);
+                resolvedArg.m_type = SubstituteGenericParameters(visitor, mod, genericArg.m_type, {}, location);
+                resolvedArg.m_isRef = genericArg.m_isRef;
+                resolvedArg.m_isConst = genericArg.m_isConst;
             }
         }
 
@@ -372,12 +369,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     if (SymbolTypeRef baseType = resolvedInputType->GetBaseType())
     {
-        SymbolTypeRef substitutedBaseType = SubstituteGenericParameters(
-            visitor,
-            mod,
-            baseType,
-            {},
-            location);
+        SymbolTypeRef substitutedBaseType = SubstituteGenericParameters(visitor, mod, baseType, {}, location);
 
         if (substitutedBaseType != baseType)
         {
@@ -407,12 +399,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         }
 
         targetType->GetMembers().PushBack({ member.name,
-            SubstituteGenericParameters(
-                visitor,
-                mod,
-                member.type,
-                {},
-                location),
+            SubstituteGenericParameters(visitor, mod, member.type, {}, location),
             member.expr });
     }
 
@@ -426,17 +413,13 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         }
 
         targetType->GetStaticMembers().PushBack({ member.name,
-            SubstituteGenericParameters(
-                visitor,
-                mod,
-                member.type,
-                {},
-                location),
+            SubstituteGenericParameters(visitor, mod, member.type, {}, location),
             member.expr });
     }
 
     return targetType;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 SymbolTypeRef SemanticAnalyzer::Helpers::GenericPromotion(
     AstVisitor* visitor,
@@ -601,26 +584,26 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
     SymbolTypeRef varargType = GetVarArgType(argTypesWithoutReturn);
 
-    const SizeType numGenericArgs = varargType != nullptr
+    const SizeType numArgs = varargType != nullptr
         ? argTypesWithoutReturn.Size() - 1
         : argTypesWithoutReturn.Size();
 
-    SizeType numGenericArgsWithoutDefaultAssigned = numGenericArgs;
+    SizeType numArgsNoDefaults = numArgs;
 
-    for (SizeType index = 0; index < numGenericArgs; ++index)
+    for (SizeType index = 0; index < numArgs; ++index)
     {
         if (argTypesWithoutReturn[index].m_defaultValue != nullptr)
         {
-            --numGenericArgsWithoutDefaultAssigned;
+            --numArgsNoDefaults;
         }
     }
 
     FlatSet<SizeType> usedIndices;
 
     Array<SubstitutionResult> substitutionResults;
-    substitutionResults.Resize(numGenericArgs);
+    substitutionResults.Resize(numArgs);
 
-    if (numGenericArgsWithoutDefaultAssigned <= args.Size())
+    if (numArgsNoDefaults <= args.Size())
     {
         struct ArgDataPair
         {
@@ -787,7 +770,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         // handle arguments that weren't passed in, but have default assignments.
         Array<SizeType> unusedIndices;
 
-        for (SizeType index = 0; index < numGenericArgs; ++index)
+        for (SizeType index = 0; index < numArgs; ++index)
         {
             if (!unusedIndices.Contains(index) && !usedIndices.Contains(index))
             {
@@ -864,7 +847,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 // not provided and no default value
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
-                    Msg_generic_expression_invalid_arguments,
+                    Msg_missing_argument,
                     location,
                     argTypesWithoutReturn[unusedIndex].m_name));
             }
@@ -880,7 +863,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 LEVEL_ERROR,
                 Msg_incorrect_number_of_arguments,
                 location,
-                numGenericArgsWithoutDefaultAssigned,
+                numArgsNoDefaults,
                 args.Size()));
         }
     }
@@ -891,7 +874,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             LEVEL_ERROR,
             Msg_incorrect_number_of_arguments,
             location,
-            numGenericArgsWithoutDefaultAssigned,
+            numArgsNoDefaults,
             args.Size()));
     }
 
