@@ -2,6 +2,7 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
+#include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -31,6 +32,8 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
 
     Assert(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
+
+    m_symbolType = BuiltinTypes::UNDEFINED;
 
     SymbolTypeRef heldType = m_expr->GetHeldType();
 

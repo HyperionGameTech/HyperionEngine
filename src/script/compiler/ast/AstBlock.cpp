@@ -31,7 +31,7 @@ AstBlock::AstBlock(const SourceLocation& location)
 void AstBlock::Visit(AstVisitor* visitor, Module* mod)
 {
     // open the new scope
-    mod->m_scopes.Open(Scope(m_scopeType, m_scopeFlags));
+    mod->m_scopes.Open(m_scopeType, m_scopeFlags);
     m_scope = &mod->m_scopes.Top();
 
     // visit all children in the block
@@ -45,7 +45,7 @@ void AstBlock::Visit(AstVisitor* visitor, Module* mod)
     m_lastIsReturn = m_children.Any() && (dynamic_cast<AstReturnStatement*>(m_children.Back().Get()) != nullptr);
 
     // store number of locals, so we can pop them from the stack later
-    m_numLocals = m_scope->GetIdentifierTable().CountUsedVariables();
+    m_numLocals = m_scope->identifierTable.CountUsedVariables();
 
     // go down to previous scope
     mod->m_scopes.Close();

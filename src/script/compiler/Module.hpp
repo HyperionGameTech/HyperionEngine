@@ -94,22 +94,28 @@ public:
     RC<Identifier> LookUpIdentifierDepth(const String& name, int depthLevel);
 
     /** Look up a symbol in this module by name */
-    SymbolTypeRef LookupSymbolType(const String& name);
+    SymbolTypeRef LookupSymbolType(const String& name, bool includePlaceholderTypes = true);
 
-    Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(const String& name);
+    Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(const String& name, bool includePlaceholderTypes = true);
 
     Optional<GenericInstanceCache::CachedObject> LookupGenericInstance(const GenericInstanceCache::Key& key);
 
     Tree<Scope> m_scopes;
 
-private:
     template <class T>
     T PerformLookup(
         Proc<T(TreeNode<Scope>*)>&& pred1,
         Proc<T(Module*)>&& pred2)
     {
-        TreeNode<Scope>* top = m_scopes.TopNode();
+        return PerformLookup<T>(m_scopes.TopNode(), std::move(pred1), std::move(pred2));
+    }
 
+    template <class T>
+    T PerformLookup(
+        TreeNode<Scope>* top,
+        Proc<T(TreeNode<Scope>*)>&& pred1,
+        Proc<T(Module*)>&& pred2)
+    {
         while (top)
         {
             if (auto result = pred1(top))
@@ -175,4 +181,3 @@ struct ScopeGuard : TreeNodeGuard<Scope>
 };
 
 } // namespace hyperion::compiler
-

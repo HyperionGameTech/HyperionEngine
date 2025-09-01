@@ -26,9 +26,9 @@ void AstContinueStatement::Visit(AstVisitor* visitor, Module* mod)
 
     while (top != nullptr)
     {
-        m_numPops += top->Get().GetIdentifierTable().CountUsedVariables();
+        m_numPops += top->Get().identifierTable.CountUsedVariables();
 
-        if (top->Get().GetScopeType() == SCOPE_TYPE_LOOP)
+        if (top->Get().scopeType == SCOPE_TYPE_LOOP)
         {
             inLoop = true;
 

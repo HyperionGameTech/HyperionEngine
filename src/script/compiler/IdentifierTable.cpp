@@ -5,18 +5,11 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <algorithm>
-
 namespace hyperion::compiler {
 
-IdentifierTable::IdentifierTable()
-    : m_identifierIndex(0)
-{
-}
-
-IdentifierTable::IdentifierTable(const IdentifierTable& other)
-    : m_identifierIndex(other.m_identifierIndex),
-      m_identifiers(other.m_identifiers)
+IdentifierTable::IdentifierTable(Scope* scope)
+    : identifierIndex(0),
+      scope(scope)
 {
 }
 
@@ -24,7 +17,7 @@ int IdentifierTable::CountUsedVariables() const
 {
     HashSet<int> usedVariables;
 
-    for (auto& ident : m_identifiers)
+    for (auto& ident : identifiers)
     {
         if (!Config::cullUnusedObjects || ident->GetUseCount() > 0)
         {
@@ -35,23 +28,21 @@ int IdentifierTable::CountUsedVariables() const
         }
     }
 
-    return usedVariables.Size();
+    return (int)usedVariables.Size();
 }
 
-RC<Identifier> IdentifierTable::AddAlias(const String& name, Identifier* aliasee)
+const RC<Identifier>& IdentifierTable::AddAlias(const String& name, Identifier* aliasee)
 {
     Assert(aliasee != nullptr);
 
-    m_identifiers.PushBack(RC<Identifier>(new Identifier(
+    return identifiers.PushBack(RC<Identifier>(new Identifier(
         name,
         aliasee->GetIndex(),
         aliasee->GetFlags() | FLAG_ALIAS,
         aliasee)));
-
-    return m_identifiers.Back();
 }
 
-RC<Identifier> IdentifierTable::AddIdentifier(
+const RC<Identifier>& IdentifierTable::AddIdentifier(
     const String& name,
     int flags,
     RC<AstExpression> currentValue,
@@ -59,7 +50,7 @@ RC<Identifier> IdentifierTable::AddIdentifier(
 {
     RC<Identifier> ident(new Identifier(
         name,
-        m_identifierIndex++,
+        identifierIndex++,
         flags));
 
     if (currentValue != nullptr)
@@ -77,9 +68,7 @@ RC<Identifier> IdentifierTable::AddIdentifier(
         ident->SetSymbolType(symbolType);
     }
 
-    m_identifiers.PushBack(ident);
-
-    return m_identifiers.Back();
+    return identifiers.PushBack(ident);
 }
 
 bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
@@ -94,14 +83,14 @@ bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
         return false;
     }
 
-    m_identifiers.PushBack(identifier);
+    identifiers.PushBack(identifier);
 
     return true;
 }
 
 RC<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
 {
-    for (auto& ident : m_identifiers)
+    for (auto& ident : identifiers)
     {
         if (ident != nullptr)
         {
@@ -115,22 +104,37 @@ RC<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
     return nullptr;
 }
 
-SymbolTypeRef IdentifierTable::LookupSymbolType(const String& name) const
+SymbolTypeRef IdentifierTable::LookupSymbolType(const String& name, bool includePlaceholderTypes) const
 {
-    for (auto& type : m_symbolTypes)
+    for (const SymbolTypeRef& symbolType : symbolTypes)
     {
-        if (type != nullptr && type->GetName() == name)
+        if (symbolType != nullptr && symbolType->GetName() == name)
         {
-            return type;
+            if (!includePlaceholderTypes && symbolType->IsPlaceholderType())
+            {
+                continue;
+            }
+            
+            return symbolType;
         }
     }
 
     return nullptr;
 }
 
-void IdentifierTable::AddSymbolType(const SymbolTypeRef& type)
+void IdentifierTable::AddSymbolType(const SymbolTypeRef& symbolType)
 {
-    m_symbolTypes.PushBack(type);
+    if (!symbolType)
+    {
+        return;
+    }
+
+    if (!symbolType->m_declScope)
+    {
+        symbolType->m_declScope = scope;
+    }
+
+    symbolTypes.PushBack(symbolType);
 }
 
 } // namespace hyperion::compiler

@@ -40,13 +40,13 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     else
     {
         // add identifier
-        m_identifier = scope.GetIdentifierTable().AddIdentifier(m_name);
+        m_identifier = scope.identifierTable.AddIdentifier(m_name);
 
         TreeNode<Scope>* top = mod->m_scopes.TopNode();
 
         while (top != nullptr)
         {
-            if (top->Get().GetScopeType() == SCOPE_TYPE_FUNCTION)
+            if (top->Get().scopeType == SCOPE_TYPE_FUNCTION)
             {
                 // set declared in function flag
                 m_identifier->GetFlags() |= FLAG_DECLARED_IN_FUNCTION;

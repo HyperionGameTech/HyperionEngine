@@ -49,7 +49,45 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     Assert(targetType != nullptr);
     targetType = targetType->GetUnaliased();
 
-    if (mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG))
+    // if (targetType->GetName() == "Array")
+    // {
+    //     // debug : log out the array held type
+    //     DebugLog(LogType::Debug, "Array held type: %s\n",
+    //         targetType->GetGenericInstanceInfo().m_genericArgs[0].m_type->ToString().Data());
+
+    //     // check operator[] and operator[]= types
+    //     for (const SymbolTypeMember& member : targetType->GetMembers())
+    //     {
+    //         DebugLog(LogType::Debug, "Array member: %s\n", member.name.Data());
+    //         DebugLog(LogType::Debug, "Array member type: %s\n", member.type->ToString().Data());
+    //         if (member.name == "operator[]")
+    //         {
+    //             const Array<GenericInstanceTypeInfo::Arg>& funcArgs = member.type->GetGenericInstanceInfo().m_genericArgs;
+    //             Assert(funcArgs.Size() >= 2);
+
+    //             // log out the argument and return types
+    //             DebugLog(LogType::Debug, "operator[] arg type: %s\n",
+    //                 funcArgs[1].m_type->ToString().Data());
+    //             DebugLog(LogType::Debug, "operator[] return type: %s\n",
+    //                 funcArgs[0].m_type->ToString().Data());
+    //         }
+
+    //         // if (member.name == "operator[]=")
+    //         // {
+    //         //     const Array<GenericInstanceTypeInfo::Arg>& funcArgs = member.type->GetGenericInstanceInfo().m_genericArgs;
+    //         //     Assert(funcArgs.Size() == 3);
+
+    //         //     // log out the argument and return types
+    //         //     DebugLog(LogType::Debug, "operator[]= args type: %s\n",
+    //         //         funcArgs[1].m_type->ToString().Data());
+    //         //     DebugLog(LogType::Debug, "operator[]= return type: %s\n",
+    //         //         funcArgs[0].m_type->ToString().Data());
+    //         // }
+    //         HYP_BREAKPOINT;
+    //     }
+    // }
+
+    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG))
     {
         // TODO: implement
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

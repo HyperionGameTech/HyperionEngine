@@ -29,10 +29,7 @@ AstMemberCallExpression::AstMemberCallExpression(
     const RC<AstExpression>& target,
     const RC<AstArgumentList>& arguments,
     const SourceLocation& location)
-    : AstMember(
-          fieldName,
-          target,
-          location),
+    : AstMember(fieldName, target, location),
       m_arguments(arguments)
 {
 }

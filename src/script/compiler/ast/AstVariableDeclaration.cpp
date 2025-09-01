@@ -50,7 +50,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
     if (IsGeneric())
     {
-        mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
+        mod->m_scopes.Open(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG);
     }
 
     if (m_proto != nullptr)
@@ -171,7 +171,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         if (IsConst())
         {
-            mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG));
+            mod->m_scopes.Open(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
 
             passByConstScope = true;
         }
@@ -182,7 +182,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             {
                 if (m_realAssignment->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)
                 {
-                    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG));
+                    mod->m_scopes.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
 
                     passByRefScope = true;
                 }

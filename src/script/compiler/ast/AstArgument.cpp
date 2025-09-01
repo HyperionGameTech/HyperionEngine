@@ -48,7 +48,7 @@ void AstArgument::Visit(AstVisitor* visitor, Module* mod)
 
     if (IsPassConst())
     {
-        mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG));
+        Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
 
         passConstScope = true;
     }
@@ -57,16 +57,14 @@ void AstArgument::Visit(AstVisitor* visitor, Module* mod)
     {
         if (m_expr->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)
         {
-            mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG));
+            Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
 
             passByRefScope = true;
         }
         else
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_cannot_create_reference,
-                m_location));
+                LEVEL_ERROR, Msg_cannot_create_reference, m_location));
         }
     }
 

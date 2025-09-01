@@ -18,6 +18,7 @@ namespace hyperion::compiler {
 class SymbolType;
 class AstExpression;
 class AstArgument;
+struct Scope;
 
 using SymbolTypeRef = RC<SymbolType>;
 using SymbolTypeWeakRef = Weak<SymbolType>;
@@ -109,6 +110,10 @@ struct SymbolTypeTrait
 
 class SymbolType : public EnableRefCountedPtrFromThis<SymbolType>
 {
+    friend class IdentifierTable;
+
+    SymbolType() = default;
+
 public:
     static SymbolTypeRef Alias(
         const String& name,
@@ -135,15 +140,22 @@ public:
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
+    static SymbolTypeRef Generic(
+        const String& name,
+        const SymbolTypeRef& baseType,
+        const Array<SymbolTypeMember>& members,
+        const Array<SymbolTypeMember>& staticMembers,
+        const GenericInstanceTypeInfo& info);
+
     static SymbolTypeRef GenericInstance(
-        const SymbolTypeRef& base,
+        const SymbolTypeRef& genericType,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
     static SymbolTypeRef GenericInstance(
         const String& name,
-        const SymbolTypeRef& base,
+        const SymbolTypeRef& genericType,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
@@ -207,6 +219,11 @@ public:
         return m_base;
     }
 
+    void SetBaseType(const SymbolTypeRef& base)
+    {
+        m_base = base;
+    }
+
     const RC<AstExpression>& GetDefaultValue() const
     {
         return m_defaultValue;
@@ -227,6 +244,11 @@ public:
         return m_members;
     }
 
+    void SetMembers(const Array<SymbolTypeMember>& members)
+    {
+        m_members = members;
+    }
+
     Array<SymbolTypeMember>& GetStaticMembers()
     {
         return m_staticMembers;
@@ -235,16 +257,6 @@ public:
     const Array<SymbolTypeMember>& GetStaticMembers() const
     {
         return m_staticMembers;
-    }
-
-    void SetMembers(const Array<SymbolTypeMember>& members)
-    {
-        m_members = members;
-    }
-
-    void AddMember(const SymbolTypeMember& member)
-    {
-        m_members.PushBack(member);
     }
 
     AliasTypeInfo& GetAliasInfo()
@@ -286,15 +298,6 @@ public:
         return m_genericParamInfo;
     }
 
-    int GetId() const
-    {
-        return m_id;
-    }
-    void SetId(int id)
-    {
-        m_id = id;
-    }
-
     SymbolTypeFlags GetFlags() const
     {
         return m_flags;
@@ -308,6 +311,16 @@ public:
     void SetFlags(SymbolTypeFlags flags)
     {
         m_flags = flags;
+    }
+
+    Scope* GetDeclScope() const
+    {
+        return m_declScope;
+    }
+
+    void SetDeclScope(Scope* scope)
+    {
+        m_declScope = scope;
     }
 
     String ToString(bool includeParameterNames = false) const;
@@ -393,6 +406,25 @@ public:
         return GetHashCodeWithDuplicateRemoval(duplicateNames);
     }
 
+    SymbolTypeRef Clone() const
+    {
+        SymbolTypeRef result = SymbolTypeRef(new SymbolType());
+        result->m_name = m_name;
+        result->m_typeClass = m_typeClass;
+        result->m_base = m_base;
+        result->m_defaultValue = m_defaultValue;
+        result->m_members = m_members;
+        result->m_staticMembers = m_staticMembers;
+        result->m_aliasInfo = m_aliasInfo;
+        result->m_functionInfo = m_functionInfo;
+        result->m_genericInstanceInfo = m_genericInstanceInfo;
+        result->m_genericParamInfo = m_genericParamInfo;
+        result->m_flags = m_flags;
+        result->m_declScope = nullptr; // do not copy scope
+
+        return result;
+    }
+
     // if this is an instance of a generic type
     SymbolTypeClass m_typeClass;
     GenericInstanceTypeInfo m_genericInstanceInfo;
@@ -415,8 +447,8 @@ private:
     // if this is a generic param
     GenericParameterTypeInfo m_genericParamInfo;
 
-    int m_id;
     SymbolTypeFlags m_flags;
+    Scope* m_declScope;
 };
 
 } // namespace hyperion::compiler

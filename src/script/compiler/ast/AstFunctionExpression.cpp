@@ -61,7 +61,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_isClosure)
     {
-        scopeFlags |= ScopeFunctionFlags::CLOSURE_FUNCTION_FLAG;
+        scopeFlags |= CLOSURE_FUNCTION_FLAG;
 
         // closures are objects with a method named '$invoke',
         // so we pass the '$functor' argument when it is called.
@@ -81,9 +81,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // // open the new scope for parameters
-    mod->m_scopes.Open(Scope(
-        SCOPE_TYPE_FUNCTION,
-        scopeFlags));
+    mod->m_scopes.Open(SCOPE_TYPE_FUNCTION, scopeFlags);
 
     if (m_isClosure)
     {
@@ -149,10 +147,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     const Scope* functionScope = &mod->m_scopes.Top(); // m_blockWithParameters->GetScope();
     Assert(functionScope != nullptr);
 
-    if (functionScope->GetReturnTypes().Any())
+    if (functionScope->returnTypes.Any())
     {
         // search through return types for ambiguities
-        for (const SymbolTypeRef& symbolType : functionScope->GetReturnTypes())
+        for (const SymbolTypeRef& symbolType : functionScope->returnTypes)
         {
             Assert(symbolType != nullptr);
 
@@ -202,7 +200,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     // create data members to copy closure parameters
     Array<SymbolTypeMember> closureObjMembers;
 
-    for (const auto& it : functionScope->GetClosureCaptures())
+    for (const auto& it : functionScope->closureCaptures)
     {
         const String& name = it.first;
         const RC<Identifier>& identifier = it.second;
@@ -254,8 +252,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     SymbolTypeRef functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
-        visitor,
-        mod,
+        visitor, mod,
         BuiltinTypes::FUNCTION,
         genericParamTypes,
         m_location);
@@ -264,7 +261,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         String closureName = "$$closure";
 
-        for (const auto& it : functionScope->GetClosureCaptures())
+        for (const auto& it : functionScope->closureCaptures)
         {
             const String& name = it.first;
             const RC<Identifier>& identifier = it.second;
@@ -309,12 +306,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef closureHeldType = m_closureTypeExpr->GetHeldType();
         Assert(closureHeldType != nullptr);
         closureHeldType = closureHeldType->GetUnaliased();
-
-        if (closureHeldType != BuiltinTypes::UNDEFINED)
-        {
-            //            Assert(closureHeldType->GetId() != -1);
-            // Assert(closureHeldType->GetTypeObject().Lock() != nullptr);
-        }
 
         m_functionTypeExpr.Reset(new AstTypeSpecifier(
             RC<AstTypeRef>(new AstTypeRef(

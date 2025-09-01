@@ -11,7 +11,7 @@ AstConstant::AstConstant(const SourceLocation& location)
 
 void AstConstant::Visit(AstVisitor* visitor, Module* mod)
 {
-    if (mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG))
+    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG))
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

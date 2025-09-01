@@ -214,7 +214,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
 
         for (auto& identifier : pulledInIdentifiers)
         {
-            if (!mod->m_scopes.Top().GetIdentifierTable().AddIdentifier(identifier))
+            if (!mod->m_scopes.Top().identifierTable.AddIdentifier(identifier))
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,

@@ -88,11 +88,6 @@ public:
         return m_builtins;
     }
 
-    /**
-        Allows a non-builtin type to be used
-    */
-    void RegisterType(const SymbolTypeRef& typePtr);
-
     /** Looks up the module with the name, taking scope into account.
         Modules with the name that are in the current module or any module
         above the current one will be considered.
@@ -119,4 +114,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

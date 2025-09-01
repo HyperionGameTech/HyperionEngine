@@ -53,28 +53,9 @@ void Builtins::Visit(AstVisitor* visitor)
     {
         Assert(typePtr != nullptr);
 
-        typePtr->SetId(-1); // TEMP; refactor this
-        // typePtr->SetTypeObject({});
-
-        Assert(typePtr->GetId() == -1);
-        // Assert(typePtr->GetTypeObject() == nullptr);
-
-        // add 'name' member here
-        typePtr->AddMember({ "name",
-            BuiltinTypes::STRING,
-            RC<AstString>(new AstString(typePtr->GetName(), BUILTIN_SOURCE_LOCATION)) });
-
-        // Add "$proto" so we can use isInstance to check if a value is an instance of a type
-        if (typePtr->IsPrimitive() && typePtr->GetDefaultValue() != nullptr)
-        {
-            typePtr->AddMember({ "$proto",
-                typePtr,
-                typePtr->GetDefaultValue() });
-        }
-
         // add it to the global scope
         Scope& scope = m_unit->GetGlobalModule()->m_scopes.Top();
-        scope.GetIdentifierTable().AddSymbolType(typePtr);
+        scope.identifierTable.AddSymbolType(typePtr);
     }
 
     for (auto& it : m_vars)

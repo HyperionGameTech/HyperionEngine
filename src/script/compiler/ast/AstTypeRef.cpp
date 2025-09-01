@@ -2,8 +2,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Configuration.hpp>
-#include <script/compiler/Compiler.hpp>
-#include <script/compiler/ast/AstNil.hpp>
+#include <script/compiler/SemanticAnalyzer.hpp>
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>

@@ -37,11 +37,11 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
 
     while (top != nullptr)
     {
-        if (top->Get().GetScopeType() == SCOPE_TYPE_FUNCTION)
+        if (top->Get().scopeType == SCOPE_TYPE_FUNCTION)
         {
             inFunction = true;
 
-            if (top->Get().GetScopeFlags() & CONSTRUCTOR_DEFINITION_FLAG)
+            if (top->Get().scopeFlags & CONSTRUCTOR_DEFINITION_FLAG)
             {
                 isConstructor = true;
             }
@@ -49,7 +49,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
             break;
         }
 
-        m_numPops += top->Get().GetIdentifierTable().CountUsedVariables();
+        m_numPops += top->Get().identifierTable.CountUsedVariables();
         top = top->m_parent;
     }
 
@@ -57,23 +57,19 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(top != nullptr);
 
-        if (m_expr != nullptr)
-        {
-            top->Get().AddReturnType(m_expr->GetExprType());
-        }
-        else
-        {
-            top->Get().AddReturnType(BuiltinTypes::VOID_TYPE);
-        }
+        const SymbolTypeRef& returnType = m_expr ? m_expr->GetExprType() : BuiltinTypes::VOID_TYPE;
+        Assert(returnType != nullptr);
+
+        top->Get().returnTypes.PushBack(returnType);
+
+        return;
     }
-    else
-    {
-        // error; 'return' not allowed outside of a function
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_return_outside_function,
-            m_location));
-    }
+
+    // error; 'return' not allowed outside of a function
+    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+        LEVEL_ERROR,
+        Msg_return_outside_function,
+        m_location));
 }
 
 UniquePtr<Buildable> AstReturnStatement::Build(AstVisitor* visitor, Module* mod)

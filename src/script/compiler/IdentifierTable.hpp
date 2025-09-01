@@ -6,30 +6,24 @@
 
 #include <core/containers/String.hpp>
 
-#include <string>
-#include <memory>
-#include <vector>
-
 namespace hyperion::compiler {
+
+class Scope;
 
 class IdentifierTable
 {
 public:
-    IdentifierTable();
-    IdentifierTable(const IdentifierTable& other);
+    explicit IdentifierTable(Scope* scope);
+    IdentifierTable(const IdentifierTable& other) = delete;
+    IdentifierTable& operator=(const IdentifierTable& other) = delete;
 
     int CountUsedVariables() const;
 
-    const Array<RC<Identifier>>& GetIdentifiers() const
-    {
-        return m_identifiers;
-    }
-
     /** Constructs an identifier with the given name, as an alias to the given identifier. */
-    RC<Identifier> AddAlias(const String& name, Identifier* aliasee);
+    const RC<Identifier>& AddAlias(const String& name, Identifier* aliasee);
 
     /** Constructs an identifier with the given name, and assigns an index to it. */
-    RC<Identifier> AddIdentifier(
+    const RC<Identifier>& AddIdentifier(
         const String& name,
         int flags = 0,
         RC<AstExpression> currentValue = nullptr,
@@ -41,18 +35,18 @@ public:
     RC<Identifier> LookUpIdentifier(const String& name);
 
     /** Look up symbol type by name */
-    SymbolTypeRef LookupSymbolType(const String& name) const;
+    SymbolTypeRef LookupSymbolType(const String& name, bool includePlaceholderTypes = true) const;
 
     void AddSymbolType(const SymbolTypeRef& type);
 
-private:
+    Scope* scope;
     /** To be incremented every time a new identifier is added */
-    int m_identifierIndex;
+    int identifierIndex;
     /** List of all identifiers in the table */
-    Array<RC<Identifier>> m_identifiers;
+    Array<RC<Identifier>> identifiers;
 
     /** All types that are defined in this identifier table */
-    Array<SymbolTypeRef> m_symbolTypes;
+    Array<SymbolTypeRef> symbolTypes;
 };
 
 } // namespace hyperion::compiler

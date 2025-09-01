@@ -60,8 +60,15 @@ public:
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
             const SourceLocation& location);
 
+        static SymbolTypeRef ResolvePlaceholderType(
+            AstVisitor* visitor,
+            Module* mod,
+            const SymbolTypeRef& inputType,
+            const SourceLocation& location);
+
         static void CheckArgTypeCompatible(
             AstVisitor* visitor,
+            Module* mod,
             const SourceLocation& location,
             const SymbolTypeRef& argType,
             const SymbolTypeRef& paramType);

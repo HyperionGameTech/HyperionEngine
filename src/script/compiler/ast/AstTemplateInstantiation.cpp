@@ -34,8 +34,6 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    // ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
-
     for (auto& arg : m_genericArgs)
     {
         Assert(arg != nullptr);
@@ -89,11 +87,9 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes,
         m_location);
 
-    // SymbolType::GenericInstance(m_symbolType, GenericInstanceTypeInfo { genericParamTypes });
-
     if (!genericInstanceType)
     {
-        m_symbolType = BuiltinTypes::UNDEFINED;
+        genericInstanceType = BuiltinTypes::UNDEFINED;
 
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -104,23 +100,10 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
     }
 
     m_symbolType = genericInstanceType;
+    Assert(m_symbolType != nullptr);
 
-    // m_symbolType = SymbolType::SubstituteGenericParams(
-    //     m_symbolType,
-    //     BuiltinTypes::PLACEHOLDER,
-    //     genericInstanceType);
-
-    if (!m_symbolType)
-    {
-        m_symbolType = BuiltinTypes::UNDEFINED;
-
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_internal_error,
-            m_location));
-
-        return;
-    }
+    DebugLog(LogType::Debug, "Instantiated generic type: %s\n", m_symbolType->ToString().Data());
+    DebugLog(LogType::Debug, "Num members: %zu\n", m_symbolType->GetMembers().Size());
 }
 
 UniquePtr<Buildable> AstTemplateInstantiation::Build(AstVisitor* visitor, Module* mod)

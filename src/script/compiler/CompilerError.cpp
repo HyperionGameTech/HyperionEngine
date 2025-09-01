@@ -51,6 +51,8 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_too_many_generic_args, "Too many generic arguments provided: % required, found %" },
     { Msg_too_few_generic_args, "Too few generic arguments provided: % required, found %" },
     { Msg_no_substitution_for_generic_arg, "No substitution found for generic parameter %" },
+    { Msg_placeholder_resolution_failed, "Could not resolve placeholder type '%'" },
+    { Msg_generic_parameter_resolution_failed, "Could not resolve generic parameter '%'" },
     { Msg_enum_assignment_not_constant, "Assignment for enum member '%' is not a constant." },
     { Msg_generic_arg_may_not_have_side_effects, "Generic argument may not have side effects" },
     { Msg_reserved_identifier, "'%' is a reserved identifier and may not be used" },

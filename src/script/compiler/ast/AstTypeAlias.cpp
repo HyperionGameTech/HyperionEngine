@@ -41,11 +41,10 @@ void AstTypeAlias::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        SymbolTypeRef aliasType = SymbolType::Alias(
-            m_name, { aliaseeType });
+        SymbolTypeRef aliasType = SymbolType::Alias(m_name, { aliaseeType });
 
         // add it
-        mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(aliasType);
+        mod->m_scopes.Top().identifierTable.AddSymbolType(aliasType);
     }
 }
 

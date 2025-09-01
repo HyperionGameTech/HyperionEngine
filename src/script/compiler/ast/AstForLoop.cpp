@@ -40,7 +40,7 @@ void AstForLoop::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // open scope for variable decl
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_LOOP, 0));
+    mod->m_scopes.Open(SCOPE_TYPE_LOOP);
 
     if (m_declPart != nullptr)
     {
@@ -50,12 +50,12 @@ void AstForLoop::Visit(AstVisitor* visitor, Module* mod)
     // visit the conditional
     m_conditionPart->Visit(visitor, mod);
 
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_LOOP, 0));
+    mod->m_scopes.Open(SCOPE_TYPE_LOOP);
 
     // visit the body
     m_block->Visit(visitor, mod);
 
-    m_numLocals = mod->m_scopes.Top().GetIdentifierTable().CountUsedVariables();
+    m_numLocals = mod->m_scopes.Top().identifierTable.CountUsedVariables();
 
     // close variable decl scope
     mod->m_scopes.Close();
@@ -65,7 +65,7 @@ void AstForLoop::Visit(AstVisitor* visitor, Module* mod)
         m_incrementPart->Visit(visitor, mod);
     }
 
-    m_numUsedInitializers = mod->m_scopes.Top().GetIdentifierTable().CountUsedVariables();
+    m_numUsedInitializers = mod->m_scopes.Top().identifierTable.CountUsedVariables();
 
     // close scope
     mod->m_scopes.Close();

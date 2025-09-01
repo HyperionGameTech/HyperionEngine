@@ -66,7 +66,7 @@ public:
         m_scopeType = scopeType;
     }
 
-    int GetScopeFlags() const
+    int scopeFlags() const
     {
         return m_scopeFlags;
     }
@@ -114,4 +114,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

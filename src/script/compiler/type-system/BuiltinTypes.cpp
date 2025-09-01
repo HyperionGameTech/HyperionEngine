@@ -112,7 +112,7 @@ const SymbolTypeRef BuiltinTypes::FUNCTION_BASE = SymbolType::Primitive(
     "FunctionBase",
     nullptr);
 
-const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::GenericInstance(
+const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::Generic(
     "Function",
     BuiltinTypes::FUNCTION_BASE,
     Array<SymbolTypeMember> {},
@@ -133,8 +133,18 @@ const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::INT } } }) } },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
+                        { "index", BuiltinTypes::INT } } }) },
+        SymbolTypeMember {
+            "operator[]=",
+            SymbolType::GenericInstance(
+                BuiltinTypes::FUNCTION,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::VOID_TYPE },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
+                        { "index", BuiltinTypes::INT },
+                        { "value", SymbolType::GenericParameter("T") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 

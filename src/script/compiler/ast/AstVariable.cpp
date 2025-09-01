@@ -49,7 +49,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         // is being referenced. if it is const, load the direct value held in the variable
         const bool isAlias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
         const bool isMixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
-        const bool isGeneric = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
         const bool isArgument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
         const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
         const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
@@ -82,8 +81,8 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            m_isInRefAssignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG);
-            m_isInConstAssignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::CONST_VARIABLE_FLAG);
+            m_isInRefAssignment = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
+            m_isInConstAssignment = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
 
             if (m_isInRefAssignment)
             {
@@ -94,21 +93,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
                         Msg_const_assigned_to_non_const_ref,
                         m_location,
                         m_name));
-                }
-            }
-
-            if (isGeneric)
-            {
-                if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION))
-                { //&& !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_ALIAS_DECLARATION)
-                    //     && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG)) {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_generic_expression_no_arguments_provided,
-                        m_location,
-                        m_name));
-
-                    return;
                 }
             }
 
@@ -127,7 +111,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
             // don't inline arguments.
             // can run into an issue with a param is const with default assignment,
             // where it would inline the default assignment instead of the passed in value
-            m_shouldInline = forceInline || (!isGeneric && isConst && !isArgument);
+            m_shouldInline = forceInline || (isConst && !isArgument);
 
             if (m_shouldInline)
             {
@@ -477,10 +461,9 @@ bool AstVariable::IsLiteral() const
         Assert(identUnaliased != nullptr);
 
         const bool isConst = identUnaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
-        const bool isGeneric = identUnaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
         const bool isArgument = identUnaliased->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
 
-        return !isArgument && (isConst || isGeneric);
+        return !isArgument && isConst;
     }
 
     return false;

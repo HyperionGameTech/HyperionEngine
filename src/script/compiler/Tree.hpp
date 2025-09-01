@@ -19,7 +19,7 @@ template <typename T>
 struct TreeNode;
 
 template <typename T>
-struct TreeNode
+struct alignas(T) TreeNode
 {
     template <class... Args>
     TreeNode(Args&&... args)
@@ -73,10 +73,28 @@ struct TreeNode
         return m_value.Get();
     }
 
+    bool HasParent(const T& value) const
+    {
+        TreeNode<T>* parent = m_parent;
+
+        while (parent)
+        {
+            if (parent->m_value.Get() == value)
+            {
+                return true;
+            }
+
+            parent = parent->m_parent;
+        }
+
+        return false;
+    }
+
+    ValueStorage<T> m_value;
     TreeNode<T>* m_parent = nullptr;
     Array<TreeNode<T>*, DynamicAllocator> m_siblings;
-    ValueStorage<T> m_value;
     uint32 m_depth = 0;
+    uint32 m_siblingIndex = 0;
 };
 
 template <typename T>
@@ -140,6 +158,7 @@ public:
     {
         return m_top;
     }
+
     const TreeNode<T>* TopNode() const
     {
         return m_top;
@@ -174,11 +193,12 @@ public:
     }
 
     template <class... Args>
-    void Open(Args&&... args)
+    T& Open(Args&&... args)
     {
         TreeNode<T>* node = new TreeNode<T>(std::forward<Args>(args)...);
         node->m_parent = m_top;
         node->m_depth = m_top ? m_top->m_depth + 1 : 0;
+        node->m_siblingIndex = m_top ? m_top->m_siblings.Size() : 0;
 
         if (m_top)
         {
@@ -190,6 +210,8 @@ public:
         }
 
         m_top = node;
+
+        return m_top->m_value.Get();
     }
 
     void Close()
@@ -215,6 +237,23 @@ public:
         }
 
         return nullptr;
+    }
+
+    /*! Get the TreeNode from a value pointer. */
+    static TreeNode<T>* GetTreeNodeFromValue(T* value)
+    {
+        if (!value)
+        {
+            return nullptr;
+        }
+
+        return reinterpret_cast<TreeNode<T>*>(
+            uintptr_t(value) - offsetof(TreeNode<T>, m_value));
+    }
+
+    static const TreeNode<T>* GetTreeNodeFromValue(const T* value)
+    {
+        return GetTreeNodeFromValue(const_cast<T*>(value));
     }
 
 private:
@@ -259,4 +298,3 @@ struct TreeNodeGuard
 };
 
 } // namespace hyperion::compiler
-

@@ -5,7 +5,6 @@
 #include <script/SourceLocation.hpp>
 
 #include <core/containers/HashMap.hpp>
-#include <core/containers/HashMap.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/utilities/Optional.hpp>
 
@@ -154,11 +153,7 @@ public:
 
         const uint32 id = m_nextId++;
 
-        m_cache.Insert(
-            std::move(key),
-            CachedObject {
-                id,
-                std::move(instantiatedExpr) });
+        m_cache.Insert(std::move(key), CachedObject { id, std::move(instantiatedExpr) });
 
         return id;
     }
@@ -174,11 +169,10 @@ enum ScopeType
     SCOPE_TYPE_FUNCTION,
     SCOPE_TYPE_TYPE_DEFINITION,
     SCOPE_TYPE_LOOP,
-    SCOPE_TYPE_GENERIC_INSTANTIATION,
     SCOPE_TYPE_ALIAS_DECLARATION
 };
 
-enum ScopeFunctionFlags : int
+enum ScopeFlags : int
 {
     CLOSURE_FUNCTION_FLAG = 0x2,
     GENERATOR_FUNCTION_FLAG = 0x4,
@@ -195,83 +189,28 @@ class Scope
 
 public:
     Scope();
-    Scope(ScopeType scopeType, int scopeFlags);
-    Scope(const Scope& other);
+    Scope(ScopeType scopeType, int scopeFlags = 0);
+    Scope(const Scope& other) = delete;
+    Scope& operator=(const Scope& other) = delete;
 
-    IdentifierTable& GetIdentifierTable()
+    Identifier* FindClosureCapture(const String& name)
     {
-        return m_identifierTable;
-    }
+        auto it = closureCaptures.Find(name);
 
-    const IdentifierTable& GetIdentifierTable() const
-    {
-        return m_identifierTable;
-    }
-
-    ScopeType GetScopeType() const
-    {
-        return m_scopeType;
-    }
-
-    void SetScopeType(ScopeType scopeType)
-    {
-        m_scopeType = scopeType;
-    }
-
-    int GetScopeFlags() const
-    {
-        return m_scopeFlags;
-    }
-
-    void SetScopeFlags(int flags)
-    {
-        m_scopeFlags = flags;
-    }
-
-    void AddReturnType(const SymbolTypeRef& type)
-    {
-        m_returnTypes.PushBack(type);
-    }
-
-    const Array<SymbolTypeRef>& GetReturnTypes() const
-    {
-        return m_returnTypes;
-    }
-
-    RC<Identifier> FindClosureCapture(const String& name)
-    {
-        auto it = m_closureCaptures.Find(name);
-
-        return it != m_closureCaptures.End() ? it->second : nullptr;
+        return it != closureCaptures.End() ? it->second : nullptr;
     }
 
     void AddClosureCapture(const String& name, const RC<Identifier>& ident)
     {
-        m_closureCaptures.Insert(name, ident);
+        closureCaptures.Insert(name, ident);
     }
 
-    const HashMap<String, RC<Identifier>>& GetClosureCaptures() const
-    {
-        return m_closureCaptures;
-    }
-
-    GenericInstanceCache& GetGenericInstanceCache()
-    {
-        return m_genericInstanceCache;
-    }
-
-    const GenericInstanceCache& GetGenericInstanceCache() const
-    {
-        return m_genericInstanceCache;
-    }
-
-private:
-    IdentifierTable m_identifierTable;
-    ScopeType m_scopeType;
-    int m_scopeFlags;
-    Array<SymbolTypeRef> m_returnTypes;
-    HashMap<String, RC<Identifier>> m_closureCaptures;
-    GenericInstanceCache m_genericInstanceCache;
+    IdentifierTable identifierTable;
+    ScopeType scopeType;
+    int scopeFlags;
+    Array<SymbolTypeRef> returnTypes;
+    HashMap<String, RC<Identifier>> closureCaptures;
+    GenericInstanceCache genericInstanceCache;
 };
 
 } // namespace hyperion::compiler

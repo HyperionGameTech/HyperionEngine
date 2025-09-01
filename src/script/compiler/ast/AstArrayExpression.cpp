@@ -11,6 +11,7 @@
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/SemanticAnalyzer.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -115,76 +116,53 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         replacedMember->Visit(visitor, mod);
     }
 
-    // Call Array<T>.from([ ... ])
-
-    // m_arrayFromCall.Reset(new AstCallExpression(
-    //     RC<AstMember>(new AstMember(
-    //         "from",
-    //         RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-    //             RC<AstVariable>(new AstVariable(
-    //                 "Array",
-    //                 m_location
-    //             )),
-    //             {
-    //                 RC<AstArgument>(new AstArgument(
-    //                     RC<AstTypeRef>(new AstTypeRef(
-    //                         m_heldType,
-    //                         m_location
-    //                     )),
-    //                     false,
-    //                     false,
-    //                     false,
-    //                     false,
-    //                     "T",
-    //                     m_location
-    //                 ))
-    //             },
-    //             m_location
-    //         )),
-    //         m_location
-    //     )),
-    //     m_location
-    // ));
-
-    m_arrayTypeExpr.Reset(new AstTypeSpecifier(
-        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-            RC<AstVariable>(new AstVariable(
-                "Array",
-                m_location)),
-            { RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(
-                    m_heldType,
-                    m_location)),
-                m_location)) },
-            nullptr, // no function return type
-            m_location)),
+    RC<AstTemplateInstantiation> templateInstantiation(new AstTemplateInstantiation(
+        RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::ARRAY, m_location)),
+        { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_heldType, m_location)), m_location)) },
+        nullptr, // no function return type
         m_location));
 
-    m_arrayTypeExpr->Visit(visitor, mod);
+    templateInstantiation->Visit(visitor, mod);
 
-    auto* arrayTypeExprValueOf = m_arrayTypeExpr->GetDeepValueOf();
-    Assert(arrayTypeExprValueOf != nullptr);
+    const SymbolTypeRef& arrayType = templateInstantiation->GetHeldType();
 
-    SymbolTypeRef arrayType = arrayTypeExprValueOf->GetHeldType();
-
-    if (arrayType == nullptr)
+    if (!arrayType)
     {
         // error already reported
         return;
     }
 
-    arrayType = arrayType->GetUnaliased();
-
-    // @TODO: Cache generic instance types
     m_exprType = arrayType;
+
+    DebugLog(
+        LogType::Debug,
+        "Array expression has type %s with held type %s\n",
+        m_exprType->ToString().Data(),
+        m_heldType->ToString().Data());
+
+    DebugLog(LogType::Debug, "num array members: %zu\n", m_exprType->GetMembers().Size());
+
+    for (const SymbolTypeMember& member : m_exprType->GetMembers())
+    {
+        DebugLog(LogType::Debug, "Array member: %s\n", member.name.Data());
+        DebugLog(LogType::Debug, "Array member type: %s\n", member.type->ToString().Data());
+        if (member.name == "operator[]")
+        {
+            const Array<GenericInstanceTypeInfo::Arg>& funcArgs = member.type->GetGenericInstanceInfo().m_genericArgs;
+            Assert(funcArgs.Size() >= 2);
+
+            // log out the argument and return types
+            DebugLog(LogType::Debug, "operator[] arg type: %s\n",
+                funcArgs[1].m_type->ToString().Data());
+            DebugLog(LogType::Debug, "operator[] return type: %s\n",
+                funcArgs[0].m_type->ToString().Data());
+        }
+    }
 }
 
 UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    Assert(m_arrayTypeExpr != nullptr);
-    chunk->Append(m_arrayTypeExpr->Build(visitor, mod));
 
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -332,11 +310,6 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
 
 void AstArrayExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_arrayTypeExpr != nullptr)
-    {
-        m_arrayTypeExpr->Optimize(visitor, mod);
-    }
-
     for (auto& member : m_replacedMembers)
     {
         if (member != nullptr)

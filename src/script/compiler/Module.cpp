@@ -84,7 +84,7 @@ bool Module::IsInScopeOfType(ScopeType scopeType) const
 
     while (top != nullptr)
     {
-        if (top->Get().GetScopeType() == scopeType)
+        if (top->Get().scopeType == scopeType)
         {
             return true;
         }
@@ -101,7 +101,7 @@ bool Module::IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags) const
 
     while (top != nullptr)
     {
-        if (top->Get().GetScopeType() == scopeType && bool(uint32(top->Get().GetScopeFlags()) & scopeFlags))
+        if (top->Get().scopeType == scopeType && (uint32(top->Get().scopeFlags) & scopeFlags) == scopeFlags)
         {
             return true;
         }
@@ -157,7 +157,7 @@ RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, 
 
     while (top != nullptr)
     {
-        if (RC<Identifier> result = top->Get().GetIdentifierTable().LookUpIdentifier(name))
+        if (RC<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
         {
             // a result was found
             return result;
@@ -209,7 +209,7 @@ RC<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
 
     for (int i = 0; top != nullptr && i < depthLevel; i++)
     {
-        if (RC<Identifier> result = top->Get().GetIdentifierTable().LookUpIdentifier(name))
+        if (RC<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
         {
             return result;
         }
@@ -220,38 +220,39 @@ RC<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
     return nullptr;
 }
 
-SymbolTypeRef Module::LookupSymbolType(const String& name)
+SymbolTypeRef Module::LookupSymbolType(const String& name, bool includePlaceholderTypes)
 {
     return PerformLookup<SymbolTypeRef>(
-        [&name](TreeNode<Scope>* top)
+        [&name, includePlaceholderTypes](TreeNode<Scope>* top)
         {
-            return top->Get().GetIdentifierTable().LookupSymbolType(name);
+            return top->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes);
         },
         [&name](Module* mod)
         {
             return mod->LookupSymbolType(name);
         });
 }
-Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(const String& name)
+
+Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(const String& name, bool includePlaceholderTypes)
 {
     return PerformLookup<Variant<RC<Identifier>, SymbolTypeRef>>(
-        [&name](TreeNode<Scope>* top) -> Variant<RC<Identifier>, SymbolTypeRef>
+        [&name, includePlaceholderTypes](TreeNode<Scope>* top) -> Variant<RC<Identifier>, SymbolTypeRef>
         {
-            if (RC<Identifier> result = top->Get().GetIdentifierTable().LookUpIdentifier(name))
+            if (RC<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
             {
                 return Variant<RC<Identifier>, SymbolTypeRef>(result);
             }
 
-            if (SymbolTypeRef symbolType = top->Get().GetIdentifierTable().LookupSymbolType(name))
+            if (SymbolTypeRef symbolType = top->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes))
             {
                 return Variant<RC<Identifier>, SymbolTypeRef>(symbolType);
             }
 
             return Variant<RC<Identifier>, SymbolTypeRef>();
         },
-        [&name](Module* mod) -> Variant<RC<Identifier>, SymbolTypeRef>
+        [&name, includePlaceholderTypes](Module* mod) -> Variant<RC<Identifier>, SymbolTypeRef>
         {
-            return mod->LookUpIdentifierOrSymbolType(name);
+            return mod->LookUpIdentifierOrSymbolType(name, includePlaceholderTypes);
         });
 }
 
@@ -260,7 +261,7 @@ Optional<GenericInstanceCache::CachedObject> Module::LookupGenericInstance(const
     return PerformLookup<Optional<GenericInstanceCache::CachedObject>>(
         [&key](TreeNode<Scope>* top)
         {
-            return top->Get().GetGenericInstanceCache().Lookup(key);
+            return top->Get().genericInstanceCache.Lookup(key);
         },
         [&key](Module* mod)
         {

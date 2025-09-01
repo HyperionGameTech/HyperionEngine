@@ -21,8 +21,8 @@ SymbolType::SymbolType(
       m_typeClass(typeClass),
       m_defaultValue(nullptr),
       m_base(base),
-      m_id(-1),
-      m_flags(SYMBOL_TYPE_FLAGS_NONE)
+      m_flags(SYMBOL_TYPE_FLAGS_NONE),
+      m_declScope(nullptr)
 {
 }
 
@@ -39,8 +39,8 @@ SymbolType::SymbolType(
       m_members(members),
       m_staticMembers(staticMembers),
       m_base(base),
-      m_id(-1),
-      m_flags(SYMBOL_TYPE_FLAGS_NONE)
+      m_flags(SYMBOL_TYPE_FLAGS_NONE),
+      m_declScope(nullptr)
 {
 }
 
@@ -190,6 +190,23 @@ bool SymbolType::TypeCompatible(
         return true;
     }
 
+    // check object inheritance (left is base of right)
+    if (IsObject() && right.IsObject())
+    {
+        SymbolTypeRef base = right.GetBaseType();
+        while (base != nullptr)
+        {
+            if (TypeEqual(*base))
+            {
+                return true;
+            }
+
+            base = base->GetBaseType();
+        }
+
+        return false;
+    }
+
     if (IsAnyType() || right.IsAnyType())
     {
         return true;
@@ -212,11 +229,11 @@ bool SymbolType::TypeCompatible(
         return IsNullableType();
     }
 
-    if (right.IsGenericParameter())
-    {
-        // no substitution yet, compatible
-        return true;
-    }
+    // if (IsGenericParameter() || right.IsGenericParameter())
+    // {
+    //     // no substitution yet, compatible
+    //     return true;
+    // }
 
     switch (m_typeClass)
     {
@@ -264,6 +281,58 @@ bool SymbolType::TypeCompatible(
                 }
             }
 
+            // check members
+            if (m_members.Size() != right.m_members.Size())
+            {
+                return false;
+            }
+
+            for (const SymbolTypeMember& leftMember : m_members)
+            {
+                const SymbolTypeRef& leftMemberType = leftMember.type;
+                Assert(leftMemberType != nullptr);
+
+                SymbolTypeMember rightMember;
+
+                if (!right.FindMember(leftMember.name, rightMember))
+                {
+                    return false;
+                }
+
+                Assert(rightMember.type != nullptr);
+
+                if (!rightMember.type->TypeEqual(*leftMemberType))
+                {
+                    return false;
+                }
+            }
+
+            // check static members
+            if (m_staticMembers.Size() != right.m_staticMembers.Size())
+            {
+                return false;
+            }
+
+            for (const SymbolTypeMember& leftMember : m_staticMembers)
+            {
+                const SymbolTypeRef& leftMemberType = leftMember.type;
+                Assert(leftMemberType != nullptr);
+
+                SymbolTypeMember rightMember;
+
+                if (!right.FindMember(leftMember.name, rightMember))
+                {
+                    return false;
+                }
+
+                Assert(rightMember.type != nullptr);
+
+                if (!rightMember.type->TypeEqual(*leftMemberType))
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
         else
@@ -273,13 +342,6 @@ bool SymbolType::TypeCompatible(
 
         break;
     }
-
-    case TYPE_GENERIC_PARAMETER:
-    {
-        // uninstantiated generic parameters are compatible with anything
-        return true;
-    }
-
     default:
         if (!strictNumbers && IsNumber() && right.IsNumber())
         {
@@ -289,7 +351,7 @@ bool SymbolType::TypeCompatible(
         return false;
     }
 
-    return true;
+    return false;
 }
 
 SymbolTypeRef SymbolType::FindMember(const String& name) const
@@ -647,7 +709,6 @@ SymbolTypeRef SymbolType::Alias(
             nullptr));
 
         res->m_aliasInfo = info;
-        res->SetId(sp->GetId());
 
         return res;
     }
@@ -802,17 +863,41 @@ SymbolTypeRef SymbolType::SymbolType::Generic(
         info);
 }
 
-SymbolTypeRef SymbolType::GenericInstance(
-    const SymbolTypeRef& base,
+SymbolTypeRef SymbolType::SymbolType::Generic(
+    const String& name,
+    const SymbolTypeRef& baseType,
     const Array<SymbolTypeMember>& members,
     const Array<SymbolTypeMember>& staticMembers,
     const GenericInstanceTypeInfo& info)
 {
-    Assert(base != nullptr);
+    SymbolTypeRef genericInstance = GenericInstance(
+        name,
+        nullptr,
+        members,
+        staticMembers,
+        info);
+
+    if (!genericInstance)
+    {
+        return nullptr;
+    }
+
+    genericInstance->SetBaseType(baseType);
+
+    return genericInstance;
+}
+
+SymbolTypeRef SymbolType::GenericInstance(
+    const SymbolTypeRef& genericType,
+    const Array<SymbolTypeMember>& members,
+    const Array<SymbolTypeMember>& staticMembers,
+    const GenericInstanceTypeInfo& info)
+{
+    Assert(genericType != nullptr && genericType->IsGenericInstanceType());
 
     return GenericInstance(
-        base->GetName(),
-        base,
+        genericType->GetName(),
+        genericType,
         members,
         staticMembers,
         info);
@@ -820,22 +905,23 @@ SymbolTypeRef SymbolType::GenericInstance(
 
 SymbolTypeRef SymbolType::GenericInstance(
     const String& name,
-    const SymbolTypeRef& base,
+    const SymbolTypeRef& genericType,
     const Array<SymbolTypeMember>& members,
     const Array<SymbolTypeMember>& staticMembers,
     const GenericInstanceTypeInfo& info)
 {
     Array<SymbolTypeMember> allMembers;
-    allMembers.Reserve((base ? base->GetMembers().Size() : 0) + members.Size());
+    allMembers.Reserve((genericType ? genericType->GetMembers().Size() : 0) + members.Size());
 
     Array<SymbolTypeMember> allStaticMembers;
-    allStaticMembers.Reserve((base ? base->GetStaticMembers().Size() : 0) + staticMembers.Size());
+    allStaticMembers.Reserve((genericType ? genericType->GetStaticMembers().Size() : 0) + staticMembers.Size());
 
-    SymbolTypeRef currentBase = base;
+    SymbolTypeRef baseType = genericType ? genericType->GetBaseType() : nullptr;
+    SymbolTypeRef currentTarget = genericType;
 
-    while (currentBase != nullptr)
+    while (currentTarget != nullptr)
     {
-        for (const SymbolTypeMember& member : currentBase->GetMembers())
+        for (const SymbolTypeMember& member : currentTarget->GetMembers())
         {
             const auto overridenMemberIt = allMembers.FindIf([&member](const auto& otherMember)
                 {
@@ -855,7 +941,7 @@ SymbolTypeRef SymbolType::GenericInstance(
                 CloneAstNode(member.expr) });
         }
 
-        for (const SymbolTypeMember& staticMember : currentBase->GetStaticMembers())
+        for (const SymbolTypeMember& staticMember : currentTarget->GetStaticMembers())
         {
             const auto overridenStaticMemberIt = allStaticMembers.FindIf([&staticMember](const auto& otherMember)
                 {
@@ -875,7 +961,7 @@ SymbolTypeRef SymbolType::GenericInstance(
                 CloneAstNode(staticMember.expr) });
         }
 
-        currentBase = currentBase->GetBaseType();
+        currentTarget = currentTarget->GetBaseType();
     }
 
     // add/override with members from this instance
@@ -927,15 +1013,14 @@ SymbolTypeRef SymbolType::GenericInstance(
     SymbolTypeRef res(new SymbolType(
         name,
         TYPE_GENERIC_INSTANCE,
-        base,
+        baseType,
         nullptr,
         allMembers,
         allStaticMembers));
 
-    RC<AstExpression> defaultValue = base ? CloneAstNode(base->GetDefaultValue()) : nullptr;
+    RC<AstExpression> defaultValue = genericType ? CloneAstNode(genericType->GetDefaultValue()) : nullptr;
     res->SetDefaultValue(defaultValue);
-
-    res->SetFlags(base ? base->GetFlags() : SYMBOL_TYPE_FLAGS_NONE);
+    res->SetFlags(genericType ? genericType->GetFlags() : SYMBOL_TYPE_FLAGS_NONE);
     res->m_genericInstanceInfo = info;
 
     return res;

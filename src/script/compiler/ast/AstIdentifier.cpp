@@ -61,7 +61,7 @@ void AstIdentifier::CheckInFunction(AstVisitor* visitor, Module* mod)
     {
         m_properties.m_depth++;
 
-        if (top->Get().GetScopeType() == SCOPE_TYPE_FUNCTION)
+        if (top->Get().scopeType == SCOPE_TYPE_FUNCTION)
         {
             m_properties.m_functionScope = &top->Get();
             m_properties.m_isInFunction = true;
