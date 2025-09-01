@@ -580,8 +580,8 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
                     chunk->Append(Compiler::LoadLeftAndStore(visitor, mod, info));
                     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-                    r0 = rp - 1;
-                    r1 = rp;
+                    r0 = rp;
+                    r1 = rp - 1;
                 }
                 else
                 {

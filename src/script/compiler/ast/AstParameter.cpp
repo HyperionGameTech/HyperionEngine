@@ -28,8 +28,7 @@ AstParameter::AstParameter(
       m_defaultParam(defaultParam),
       m_isVariadic(isVariadic),
       m_isConst(isConst),
-      m_isRef(isRef),
-      m_isGenericParam(false)
+      m_isRef(isRef)
 {
 }
 
@@ -151,16 +150,6 @@ UniquePtr<Buildable> AstParameter::Build(AstVisitor* visitor, Module* mod)
     const int stackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
     // set identifier stack location
     m_identifier->SetStackLocation(stackLocation);
-
-    if (IsGenericParam())
-    {
-        Assert(m_defaultParam != nullptr, "Generic params must be set to a default value");
-
-        chunk->Append(m_defaultParam->Build(visitor, mod));
-
-        uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-        chunk->Append(BytecodeUtil::Make<StoreLocal>(rp));
-    }
 
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 

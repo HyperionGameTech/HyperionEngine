@@ -173,10 +173,6 @@ public:
         const SymbolTypeRef& lptr,
         const SymbolTypeRef& rptr);
 
-    static SymbolTypeRef GenericPromotion(
-        const SymbolTypeRef& lptr,
-        const SymbolTypeRef& rptr);
-
     /** Substitute this or any generic parameters of this object which
         are the given generic type with the supplied substitution */
     static SymbolTypeRef SubstituteGenericParams(

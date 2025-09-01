@@ -1080,15 +1080,6 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
         // T + Any = Any
         return BuiltinTypes::ANY;
     }
-    else if (lptr->IsGenericParameter() || rptr->IsGenericParameter())
-    {
-        /* @TODO: Might be useful to use the base type of the generic. */
-        return BuiltinTypes::PLACEHOLDER;
-    }
-    else if (lptr->IsPlaceholderType() || rptr->IsPlaceholderType())
-    {
-        return BuiltinTypes::PLACEHOLDER;
-    }
     else if (lptr->IsNumber() && rptr->IsNumber())
     {
         if (lptr->IsFloat() || rptr->IsFloat())
@@ -1108,68 +1099,6 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
     // @TODO Check for common base
 
     return BuiltinTypes::UNDEFINED;
-}
-
-SymbolTypeRef SymbolType::GenericPromotion(
-    const SymbolTypeRef& lptr,
-    const SymbolTypeRef& rptr)
-{
-    Assert(lptr != nullptr);
-    Assert(rptr != nullptr);
-
-    switch (lptr->GetTypeClass())
-    {
-    case TYPE_GENERIC_INSTANCE:
-    {
-        // Allows Function to be promoted to Function<T...> if the arguments are compatible
-        if (rptr->GetTypeClass() == TYPE_GENERIC_INSTANCE)
-        {
-            SymbolTypeRef lbase = lptr->GetBaseType();
-            SymbolTypeRef rbase = rptr->GetBaseType();
-
-            if (!lbase || !rbase || lbase->TypeEqual(*rbase))
-            {
-                const GenericInstanceTypeInfo& linfo = lptr->GetGenericInstanceInfo();
-                const GenericInstanceTypeInfo& rinfo = rptr->GetGenericInstanceInfo();
-
-                if (linfo.m_genericArgs.Size() == rinfo.m_genericArgs.Size())
-                {
-                    Array<GenericInstanceTypeInfo::Arg> newGenericTypes;
-
-                    for (SizeType i = 0; i < linfo.m_genericArgs.Size(); i++)
-                    {
-                        const GenericInstanceTypeInfo::Arg& larg = linfo.m_genericArgs[i];
-                        const GenericInstanceTypeInfo::Arg& rarg = rinfo.m_genericArgs[i];
-
-                        GenericInstanceTypeInfo::Arg newArg;
-                        newArg.m_name = larg.m_name;
-                        newArg.m_defaultValue = larg.m_defaultValue;
-                        newArg.m_isConst = larg.m_isConst && rarg.m_isConst;
-                        newArg.m_isRef = larg.m_isRef && rarg.m_isRef;
-
-                        // perform type promotion
-                        SymbolTypeRef argTypePromoted = TypePromotion(larg.m_type, rarg.m_type);
-                        Assert(argTypePromoted != nullptr);
-                        newArg.m_type = argTypePromoted;
-
-                        newGenericTypes.PushBack(newArg);
-                    }
-
-                    return SymbolType::GenericInstance(
-                        lbase,
-                        lptr->GetMembers(),
-                        lptr->GetStaticMembers(),
-                        GenericInstanceTypeInfo { newGenericTypes });
-                }
-            }
-        }
-
-        break;
-    }
-    }
-
-    // no promotion
-    return lptr;
 }
 
 SymbolTypeRef SymbolType::SubstituteGenericParams(

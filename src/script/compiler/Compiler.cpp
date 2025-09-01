@@ -369,8 +369,8 @@ UniquePtr<Buildable> Compiler::BuildBinOp(
 
             auto rawOperation = BytecodeUtil::Make<RawOperation<>>();
             rawOperation->opcode = opcode;
-            rawOperation->Accept<uint8>(rp - 1); // lhs
-            rawOperation->Accept<uint8>(rp);     // rhs
+            rawOperation->Accept<uint8>(rp);     // lhs
+            rawOperation->Accept<uint8>(rp - 1); // rhs
             rawOperation->Accept<uint8>(rp - 1); // dst
 
             chunk->Append(std::move(rawOperation));

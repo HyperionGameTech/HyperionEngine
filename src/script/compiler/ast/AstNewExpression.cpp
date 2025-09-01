@@ -109,14 +109,18 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                 // to do this, we need to store a temporary variable holding the left hand side
                 // expression
 
-                RC<AstVariableDeclaration> lhsDecl(new AstVariableDeclaration(
+                RC<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
                     tempVarName,
                     nullptr,
-                    CloneAstNode(m_proto),
+                    RC<AstNewExpression>(new AstNewExpression(
+                        CloneAstNode(m_proto),
+                        nullptr, // no args
+                        false,   // do not enable constructor call
+                        m_location)),
                     IdentifierFlags::FLAG_CONST,
                     m_location));
 
-                m_constructorBlock->AddChild(lhsDecl);
+                m_constructorBlock->AddChild(tempVarDecl);
 
                 m_constructorCall.Reset(new AstTernaryExpression(
                     RC<AstHasExpression>(new AstHasExpression(
@@ -129,18 +133,14 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                         constructMethodName,
                         RC<AstNewExpression>(new AstNewExpression(
                             RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                                RC<AstVariable>(new AstVariable(
-                                    tempVarName,
-                                    m_location)),
+                                RC<AstVariable>(new AstVariable(tempVarName, m_location)),
                                 m_location)),
                             nullptr, // no args
                             false,   // do not enable constructor call
                             m_location)),
                         m_argList,
                         m_location)),
-                    RC<AstVariable>(new AstVariable(
-                        tempVarName,
-                        m_location)),
+                    RC<AstVariable>(new AstVariable(tempVarName, m_location)),
                     m_location));
             }
 
@@ -187,32 +187,6 @@ UniquePtr<Buildable> AstNewExpression::Build(AstVisitor* visitor, Module* mod)
         instrNew->Accept<uint8>(rp); // src (holds proto)
         chunk->Append(std::move(instrNew));
     }
-
-    // if (m_constructorCall != nullptr) {
-    //     chunk->Append(m_constructorCall->Build(visitor, mod));
-    // }
-
-    /*Assert(m_proto != nullptr);
-    chunk->Append(m_proto->Build(visitor, mod));
-
-    if (m_isDynamicType) {
-        // register holding the main object
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-        auto instrNew = BytecodeUtil::Make<RawOperation<>>();
-        instrNew->opcode = NEW;
-        instrNew->Accept<uint8_t>(rp); // dst (overwrite proto)
-        instrNew->Accept<uint8_t>(rp); // src (holds proto)
-        chunk->Append(std::move(instrNew));
-    } else {
-        if (m_constructorCall != nullptr) {
-            chunk->Append(m_constructorCall->Build(visitor, mod));
-        } else {
-            // build in the value
-            Assert(m_objectValue != nullptr);
-            chunk->Append(m_objectValue->Build(visitor, mod));
-        }
-    }*/
 
     return chunk;
 }

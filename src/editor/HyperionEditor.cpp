@@ -141,8 +141,11 @@ void HyperionEditor::Init()
               "    }\n"
               "};\n"
               "ins : MyClass = new MyClass();\n"
+              "func getArray(ary: Array<int>) -> Array<int> { return ary; };\n"
+              "func calcTestIndex() -> int { return 0; };\n"
+              "func getTestNum(i: float) -> float { return i * 2; };\n"
               "func modValue(ref v: int, fun: Function<int> -> int) {\nv : MyClass = ins;\n};"
-              "export func x(a: float, ref b: int) { i := [1,2,3]; i[0] = 2.5; };";
+              "export func x(a: float, ref b: int) { i : Array = [1,2,3]; i[0] = 9123; return getArray(ary : [2])[0]; };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

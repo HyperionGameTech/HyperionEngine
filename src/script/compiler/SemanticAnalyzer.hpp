@@ -60,6 +60,13 @@ public:
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs,
             const SourceLocation& location);
 
+        static SymbolTypeRef GenericPromotion(
+            AstVisitor* visitor,
+            Module* mod,
+            const SymbolTypeRef& lptr,
+            const SymbolTypeRef& rptr,
+            const SourceLocation& location);
+
         static SymbolTypeRef ResolvePlaceholderType(
             AstVisitor* visitor,
             Module* mod,
@@ -87,13 +94,6 @@ public:
             Module* mod,
             const SymbolTypeRef& symbolType,
             const Array<RC<AstArgument>>& args,
-            const SourceLocation& location);
-
-        static void EnsureLooseTypeAssignmentCompatibility(
-            AstVisitor* visitor,
-            Module* mod,
-            const SymbolTypeRef& symbolType,
-            const SymbolTypeRef& assignmentType,
             const SourceLocation& location);
 
         static void EnsureTypeAssignmentCompatibility(

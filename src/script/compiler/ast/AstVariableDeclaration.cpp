@@ -127,7 +127,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                 {
                     // Assign variable to the default value for the specified type.
                     m_realAssignment = CloneAstNode(defaultValue);
-                    // built-in assignment, turn off strict mode
                     isDefaultAssigned = true;
                 }
                 else if (!m_symbolType->IsGenericParameter())
@@ -221,15 +220,22 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
             if (hasUserSpecifiedType)
             {
-                if (!isDefaultAssigned)
-                { // default assigned is not typechecked
-                    SemanticAnalyzer::Helpers::EnsureLooseTypeAssignmentCompatibility(
-                        visitor,
-                        mod,
-                        m_symbolType,
-                        m_realAssignment->GetExprType(),
-                        m_realAssignment->GetLocation());
-                }
+                SymbolTypeRef symbolTypePromoted = SemanticAnalyzer::Helpers::GenericPromotion(
+                    visitor,
+                    mod,
+                    m_symbolType,
+                    m_realAssignment->GetExprType(),
+                    m_realAssignment->GetLocation());
+
+                Assert(symbolTypePromoted != nullptr);
+                m_symbolType = symbolTypePromoted->GetUnaliased();
+
+                SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
+                    visitor,
+                    mod,
+                    m_symbolType,
+                    m_realAssignment->GetExprType(),
+                    m_realAssignment->GetLocation());
             }
             else
             {

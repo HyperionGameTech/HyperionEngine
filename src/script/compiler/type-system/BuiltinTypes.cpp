@@ -123,8 +123,13 @@ const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::Generic(
             { "@args", SymbolType::Generic("ArgTypes", { SymbolTypeMember { "@variadic", BuiltinTypes::ANY } }, {}, GenericInstanceTypeInfo {}) },
         } });
 
+const SymbolTypeRef BuiltinTypes::ARRAY_BASE = SymbolType::Primitive(
+    "ArrayBase",
+    nullptr);
+
 const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
     "Array",
+    BuiltinTypes::ARRAY_BASE,
     Array<SymbolTypeMember> {
         SymbolTypeMember {
             "operator[]",

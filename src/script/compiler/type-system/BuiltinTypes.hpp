@@ -35,6 +35,7 @@ struct BuiltinTypes
     static const SymbolTypeRef FUNCTION;
     static const SymbolTypeRef NULL_TYPE;
     static const SymbolTypeRef MODULE_INFO;
+    static const SymbolTypeRef ARRAY_BASE; // non-generic array type
     static const SymbolTypeRef ARRAY;
 };
 

@@ -50,15 +50,6 @@ public:
         return m_isRef;
     }
 
-    bool IsGenericParam() const
-    {
-        return m_isGenericParam;
-    }
-    void SetIsGenericParam(bool isGenericParam)
-    {
-        m_isGenericParam = isGenericParam;
-    }
-
     // used by AstTemplateExpression
     const RC<AstTypeSpecifier>& GetTypeSpecifier() const
     {
@@ -80,7 +71,6 @@ public:
         hc.Add(m_isVariadic);
         hc.Add(m_isConst);
         hc.Add(m_isRef);
-        hc.Add(m_isGenericParam);
 
         return hc;
     }
@@ -91,7 +81,6 @@ private:
     bool m_isVariadic;
     bool m_isConst;
     bool m_isRef;
-    bool m_isGenericParam;
 
     // Set while analyzing
     SymbolTypeRef m_symbolType;

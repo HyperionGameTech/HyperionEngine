@@ -438,6 +438,57 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     return targetType;
 }
 
+SymbolTypeRef SemanticAnalyzer::Helpers::GenericPromotion(
+    AstVisitor* visitor,
+    Module* mod,
+    const SymbolTypeRef& lptr,
+    const SymbolTypeRef& rptr,
+    const SourceLocation& location)
+{
+    Assert(lptr != nullptr);
+    Assert(rptr != nullptr);
+
+    SymbolTypeRef lptrUnalias = lptr->GetUnaliased();
+    SymbolTypeRef rptrUnalias = rptr->GetUnaliased();
+
+    switch (lptrUnalias->GetTypeClass())
+    {
+    case TYPE_GENERIC_INSTANCE:
+    {
+        // Allows Function to be promoted to Function<T...> if the arguments are compatible
+        if (rptrUnalias->GetTypeClass() == TYPE_GENERIC_INSTANCE)
+        {
+            SymbolTypeRef lbase = lptrUnalias->GetBaseType();
+            SymbolTypeRef rbase = rptrUnalias->GetBaseType();
+
+            if (lbase && rbase && lbase->TypeEqual(*rbase))
+            {
+                // they have the same base, use the generic args of rptr to substitute
+                const Array<GenericInstanceTypeInfo::Arg>& rGenericArgs = rptrUnalias->GetGenericInstanceInfo().m_genericArgs;
+                SymbolTypeRef promoted = SubstituteGenericParameters(
+                    visitor,
+                    mod,
+                    lptrUnalias,
+                    rGenericArgs,
+                    location);
+
+                if (promoted && promoted->TypeCompatible(*rptrUnalias, true))
+                {
+                    return promoted->GetUnaliased();
+                }
+
+                return lptr;
+            }
+        }
+
+        break;
+    }
+    }
+
+    // no promotion
+    return lptr;
+}
+
 SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstanceTypeInfo::Arg>& genericArgs)
 {
     if (genericArgs.Empty())
@@ -526,6 +577,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor* visitor, Module* mod,
     const SymbolTypeRef& symbolType,
@@ -534,29 +586,30 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     SymbolTypeRef& outReturnType,
     Array<RC<AstArgument>>& outArgs)
 {
-    const Array<GenericInstanceTypeInfo::Arg>& genericArgs = symbolType->GetGenericInstanceInfo().m_genericArgs;
+    const Array<GenericInstanceTypeInfo::Arg>& argTypes = symbolType->GetGenericInstanceInfo().m_genericArgs;
 
-    if (genericArgs.Empty())
+    if (argTypes.Empty())
     {
         return false;
     }
 
+    const Array<GenericInstanceTypeInfo::Arg> argTypesWithoutReturn(argTypes.Begin() + 1, argTypes.End());
+
     // make sure the return type exists
-    Assert(genericArgs[0].m_type != nullptr);
+    outReturnType = argTypes[0].m_type;
+    Assert(outReturnType != nullptr);
 
-    const Array<GenericInstanceTypeInfo::Arg> genericArgsWithoutReturn(genericArgs.Begin() + 1, genericArgs.End());
-
-    SymbolTypeRef varargType = GetVarArgType(genericArgsWithoutReturn);
+    SymbolTypeRef varargType = GetVarArgType(argTypesWithoutReturn);
 
     const SizeType numGenericArgs = varargType != nullptr
-        ? genericArgsWithoutReturn.Size() - 1
-        : genericArgsWithoutReturn.Size();
+        ? argTypesWithoutReturn.Size() - 1
+        : argTypesWithoutReturn.Size();
 
     SizeType numGenericArgsWithoutDefaultAssigned = numGenericArgs;
 
     for (SizeType index = 0; index < numGenericArgs; ++index)
     {
-        if (genericArgsWithoutReturn[index].m_defaultValue != nullptr)
+        if (argTypesWithoutReturn[index].m_defaultValue != nullptr)
         {
             --numGenericArgsWithoutDefaultAssigned;
         }
@@ -601,7 +654,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 i,
                 arg.argInfo,
                 usedIndices,
-                genericArgsWithoutReturn);
+                argTypesWithoutReturn);
 
             if (foundIndex != SizeType(-1))
             {
@@ -623,8 +676,8 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     foundIndex,
                     substitutionResults.Size());
 
-                arg.argument->SetIsPassByRef(genericArgsWithoutReturn[foundIndex].m_isRef);
-                arg.argument->SetIsPassConst(genericArgsWithoutReturn[foundIndex].m_isConst);
+                arg.argument->SetIsPassByRef(argTypesWithoutReturn[foundIndex].m_isRef);
+                arg.argument->SetIsPassConst(argTypesWithoutReturn[foundIndex].m_isConst);
 
                 substitutionResults[foundIndex].value = arg.argument;
                 substitutionResults[foundIndex].index = foundIndex;
@@ -650,10 +703,10 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 i,
                 arg.argInfo,
                 usedIndices,
-                genericArgsWithoutReturn,
+                argTypesWithoutReturn,
                 varargType != nullptr);
 
-            if (varargType != nullptr && ((i + namedArgs.Size())) >= genericArgsWithoutReturn.Size() - 1)
+            if (varargType != nullptr && ((i + namedArgs.Size())) >= argTypesWithoutReturn.Size() - 1)
             {
                 // in varargs... check against vararg base type
                 // CheckArgTypeCompatible(
@@ -664,12 +717,12 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 // );
 
                 // check should not be neccessary but added just in case
-                const bool isRef = genericArgsWithoutReturn.Size() != 0
-                    ? genericArgsWithoutReturn[genericArgsWithoutReturn.Size() - 1].m_isRef
+                const bool isRef = argTypesWithoutReturn.Size() != 0
+                    ? argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isRef
                     : false;
 
-                const bool isConst = genericArgsWithoutReturn.Size() != 0
-                    ? genericArgsWithoutReturn[genericArgsWithoutReturn.Size() - 1].m_isConst
+                const bool isConst = argTypesWithoutReturn.Size() != 0
+                    ? argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isConst
                     : false;
 
                 arg.argument->SetIsPassByRef(isRef);
@@ -707,9 +760,9 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 // store used index
                 usedIndices.Insert(foundIndex);
 
-                const GenericInstanceTypeInfo::Arg& param = (foundIndex < genericArgsWithoutReturn.Size())
-                    ? genericArgsWithoutReturn[foundIndex]
-                    : genericArgsWithoutReturn.Back();
+                const GenericInstanceTypeInfo::Arg& param = (foundIndex < argTypesWithoutReturn.Size())
+                    ? argTypesWithoutReturn[foundIndex]
+                    : argTypesWithoutReturn.Back();
 
                 arg.argument->SetIsPassByRef(param.m_isRef);
                 arg.argument->SetIsPassConst(param.m_isConst);
@@ -726,7 +779,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     LEVEL_ERROR,
                     Msg_incorrect_number_of_arguments,
                     location,
-                    genericArgsWithoutReturn.Size(),
+                    argTypesWithoutReturn.Size(),
                     args.Size()));
             }
         }
@@ -748,11 +801,11 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         {
             const SizeType unusedIndex = *it;
 
-            Assert(unusedIndex < genericArgsWithoutReturn.Size());
+            Assert(unusedIndex < argTypesWithoutReturn.Size());
 
-            const bool hasDefaultValue = genericArgsWithoutReturn[unusedIndex].m_defaultValue != nullptr;
-            const bool isRef = genericArgsWithoutReturn[unusedIndex].m_isRef;
-            const bool isConst = genericArgsWithoutReturn[unusedIndex].m_isConst;
+            const bool hasDefaultValue = argTypesWithoutReturn[unusedIndex].m_defaultValue != nullptr;
+            const bool isRef = argTypesWithoutReturn[unusedIndex].m_isRef;
+            const bool isConst = argTypesWithoutReturn[unusedIndex].m_isConst;
 
             RC<AstArgument> substitutedArg;
 
@@ -761,7 +814,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
                 if (hasDefaultValue)
                 {
-                    expr = CloneAstNode(genericArgsWithoutReturn[unusedIndex].m_defaultValue);
+                    expr = CloneAstNode(argTypesWithoutReturn[unusedIndex].m_defaultValue);
                 }
                 else
                 {
@@ -774,7 +827,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     true,
                     isRef,
                     isConst,
-                    genericArgsWithoutReturn[unusedIndex].m_name,
+                    argTypesWithoutReturn[unusedIndex].m_name,
                     location));
             }
 
@@ -792,7 +845,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 unusedIndexCounter,
                 argInfo,
                 usedIndices,
-                genericArgsWithoutReturn);
+                argTypesWithoutReturn);
 
             if (foundIndex == SizeType(-1))
             {
@@ -813,7 +866,7 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     LEVEL_ERROR,
                     Msg_generic_expression_invalid_arguments,
                     location,
-                    genericArgsWithoutReturn[unusedIndex].m_name));
+                    argTypesWithoutReturn[unusedIndex].m_name));
             }
 
             ++unusedIndexCounter;
@@ -842,16 +895,6 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             args.Size()));
     }
 
-    // replace generics used within the return type.
-    outReturnType = SubstituteGenericParameters(
-        visitor,
-        mod,
-        genericArgsWithoutReturn[0].m_type,
-        genericArgsWithoutReturn,
-        location);
-
-    Assert(outReturnType != nullptr);
-
     outArgs.Resize(substitutionResults.Size());
 
     for (const auto& substitutionResult : substitutionResults)
@@ -866,38 +909,11 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         Assert(substitutionResult.value.Is<RC<AstArgument>>());
 
         outArgs[substitutionResult.index] = CloneAstNode(substitutionResult.value.Get<RC<AstArgument>>());
-        Assert(outArgs[substitutionResult.index] != nullptr);
     }
 
     return true;
 }
-
-void SemanticAnalyzer::Helpers::EnsureLooseTypeAssignmentCompatibility(
-    AstVisitor* visitor,
-    Module* mod,
-    const SymbolTypeRef& symbolType,
-    const SymbolTypeRef& assignmentType,
-    const SourceLocation& location)
-{
-    Assert(symbolType != nullptr);
-    Assert(assignmentType != nullptr);
-
-    SymbolTypeRef symbolTypeUnaliased = symbolType->GetUnaliased();
-    SymbolTypeRef assignmentTypeUnaliased = assignmentType->GetUnaliased();
-
-    // symbolType should be the user-specified type
-    SymbolTypeRef symbolTypePromoted = SymbolType::GenericPromotion(symbolTypeUnaliased, assignmentTypeUnaliased);
-    Assert(symbolTypePromoted != nullptr);
-
-    SymbolTypeRef comparisonType = symbolTypeUnaliased;
-
-    SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
-        visitor,
-        mod,
-        comparisonType,
-        assignmentTypeUnaliased,
-        location);
-}
+HYP_ENABLE_OPTIMIZATION;
 
 void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     AstVisitor* visitor,

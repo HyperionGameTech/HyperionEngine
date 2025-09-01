@@ -91,11 +91,11 @@ UniquePtr<Buildable> AstForLoop::Build(AstVisitor* visitor, Module* mod)
         LabelId topLabel = contextGuard->NewLabel(HYP_NAME(LoopTopLabel));
         chunk->TakeOwnershipOfLabel(topLabel);
 
-        // the label to jump to the end to BREAK
+        // the label to jump to the end for BREAK
         LabelId breakLabel = contextGuard->NewLabel(HYP_NAME(LoopBreakLabel));
         chunk->TakeOwnershipOfLabel(breakLabel);
 
-        // the label to for 'continue' statement
+        // the label to jump to on CONTINUE
         LabelId continueLabel = contextGuard->NewLabel(HYP_NAME(LoopContinueLabel));
         chunk->TakeOwnershipOfLabel(continueLabel);
 

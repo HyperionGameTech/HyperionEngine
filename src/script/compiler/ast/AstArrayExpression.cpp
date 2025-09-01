@@ -133,31 +133,6 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     m_exprType = arrayType;
-
-    DebugLog(
-        LogType::Debug,
-        "Array expression has type %s with held type %s\n",
-        m_exprType->ToString().Data(),
-        m_heldType->ToString().Data());
-
-    DebugLog(LogType::Debug, "num array members: %zu\n", m_exprType->GetMembers().Size());
-
-    for (const SymbolTypeMember& member : m_exprType->GetMembers())
-    {
-        DebugLog(LogType::Debug, "Array member: %s\n", member.name.Data());
-        DebugLog(LogType::Debug, "Array member type: %s\n", member.type->ToString().Data());
-        if (member.name == "operator[]")
-        {
-            const Array<GenericInstanceTypeInfo::Arg>& funcArgs = member.type->GetGenericInstanceInfo().m_genericArgs;
-            Assert(funcArgs.Size() >= 2);
-
-            // log out the argument and return types
-            DebugLog(LogType::Debug, "operator[] arg type: %s\n",
-                funcArgs[1].m_type->ToString().Data());
-            DebugLog(LogType::Debug, "operator[] return type: %s\n",
-                funcArgs[0].m_type->ToString().Data());
-        }
-    }
 }
 
 UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
