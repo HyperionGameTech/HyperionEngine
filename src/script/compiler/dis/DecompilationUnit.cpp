@@ -30,7 +30,7 @@ void DecompilationUnit::DecodeNext(
     {
         if (os != nullptr)
         {
-            (*os) << "nop" << std::endl;
+            (*os) << "NOP" << std::endl;
         }
 
         break;
@@ -46,7 +46,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "load_i32 ["
+                << "LOAD_I32 ["
                 << "%" << (int)reg << ", "
                 << "i32(" << val << ")"
                 << "]"
@@ -66,7 +66,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "load_i64 ["
+                << "LOAD_I64 ["
                 << "%" << (int)reg << ", "
                 << "i64(" << val << ")"
                 << "]"
@@ -86,7 +86,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "load_u32 ["
+                << "LOAD_U32 ["
                 << "%" << (int)reg << ", "
                 << "u32(" << val << ")"
                 << "]"
@@ -106,7 +106,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "load_u64 ["
+                << "LOAD_U64 ["
                 << "%" << (int)reg << ", "
                 << "u64(" << val << ")"
                 << "]"
@@ -126,7 +126,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "load_f32 ["
+                << "LOAD_F32 ["
                 << "%" << (int)reg << ", "
                 << "f32(" << val << ")"
                 << "]"
@@ -146,7 +146,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "load_f64 ["
+                << "LOAD_F64 ["
                 << "%" << (int)reg << ", "
                 << "f64(" << val << ")"
                 << "]"
@@ -166,7 +166,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadOffset ["
+                << "LOAD_OFFSET ["
                 << "%" << (int)reg << ", "
                                       "$(sp-"
                 << offset << ")"
@@ -187,7 +187,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadIndex ["
+                << "LOAD_INDEX ["
                 << "%" << (int)reg << ", "
                                       "u16("
                 << idx << ")"
@@ -208,7 +208,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadStatic ["
+                << "LOAD_STATIC ["
                 << "%" << (int)reg << ", "
                 << "#" << index
                 << "]"
@@ -234,7 +234,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadStr ["
+                << "LOAD_STRING ["
                 << "%" << (int)reg << ", "
                 << "u32(" << len << "), "
                 << "\"" << str << "\""
@@ -256,7 +256,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            (*os) << "loadAddr [%" << (int)reg << ", @(" << std::hex << val << std::dec << ")]" << std::endl;
+            (*os) << "LOAD_ADDR [%" << (int)reg << ", @(" << std::hex << val << std::dec << ")]" << std::endl;
         }
 
         break;
@@ -277,7 +277,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            (*os) << "loadFunc [%" << (int)reg
+            (*os) << "LOAD_FUNC [%" << (int)reg
                   << ", @(" << std::hex << addr << std::dec << "), "
                   << "u8(" << (int)nargs << ")], "
                   << "u8(" << (int)flags << ")]"
@@ -300,7 +300,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "getMember ["
+                << "GET_MEMBER ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
                 << "u64(" << hash << ")"
@@ -324,7 +324,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadArrayidx ["
+                << "LOAD_ARRAYIDX ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
                 << "%" << (int)idx << ")"
@@ -345,7 +345,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadOffsetRef ["
+                << "LOAD_OFFSET_REF ["
                 << "%" << (int)reg << ", "
                                       "$(sp-"
                 << offset << ")"
@@ -366,7 +366,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadIndexRef ["
+                << "LOAD_INDEX_REF ["
                 << "%" << (int)reg << ", "
                                       "u16("
                 << idx << ")"
@@ -387,7 +387,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "ref ["
+                << "REF ["
                 << "%" << (int)dstReg << ", "
                 << "%" << (int)srcReg
                 << "]"
@@ -407,7 +407,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "deref ["
+                << "DEREF ["
                 << "%" << (int)dstReg << ", "
                 << "%" << (int)srcReg
                 << "]"
@@ -424,7 +424,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadNull ["
+                << "LOAD_NULL ["
                 << "%" << (int)reg
                 << "]"
                 << std::endl;
@@ -440,7 +440,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadTrue ["
+                << "LOAD_TRUE ["
                 << "%" << (int)reg
                 << "]"
                 << std::endl;
@@ -456,7 +456,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadFalse ["
+                << "LOAD_FALSE ["
                 << "%" << (int)reg
                 << "]"
                 << std::endl;
@@ -475,7 +475,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "loadClass ["
+                << "LOAD_CLASS ["
                 << "%" << (int)reg << ", "
                 << "u64(" << nameHash << ")"
                 << "]"
@@ -495,7 +495,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movOffset ["
+                << "MOV_OFFSET ["
                 << "$(sp-" << dst << "), "
                 << "%" << (int)src
                 << "]"
@@ -515,7 +515,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movIndex ["
+                << "MOV_INDEX ["
                 << "u16(" << dst << "), "
                 << "%" << (int)src
                 << "]"
@@ -535,7 +535,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movStatic ["
+                << "MOV_STATIC ["
                 << "#" << dst << ", "
                 << "%" << (int)src
                 << "]"
@@ -582,7 +582,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movArrayidx ["
+                << "MOV_ARRAYIDX ["
                 << "%" << (int)reg << ", "
                 << "u32(" << (int)idx << "), "
                 << "%" << (int)src << ""
@@ -606,7 +606,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "movArrayidxReg ["
+                << "MOV_ARRAYIDX_REG ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)idx << ", "
                 << "%" << (int)src << ""
@@ -627,7 +627,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "mov ["
+                << "MOV ["
                 << "%" << (int)dst << ", "
                 << "%" << (int)src << ""
                 << "]"
@@ -650,7 +650,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "checkHasMember ["
+                << "CHECK_HAS_MEMBER ["
                 << "%" << (int)reg << ", "
                 << "%" << (int)src << ", "
                 << "u64(" << hash << ")"
@@ -668,7 +668,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "push ["
+                << "PUSH ["
                 << "%" << (int)src
                 << "]"
                 << std::endl;
@@ -681,7 +681,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "pop"
+                << "POP"
                 << std::endl;
         }
 
@@ -698,7 +698,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "pushArray ["
+                << "PUSH_ARRAY ["
                 << "% " << (int)dst << ", "
                 << "% " << (int)src
                 << "]" << std::endl;
@@ -714,7 +714,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "addSp ["
+                << "ADD_SP ["
                 << "u16(" << val << ")"
                 << "]"
                 << std::endl;
@@ -730,7 +730,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "subSp ["
+                << "SUB_SP ["
                 << "u16(" << val << ")"
                 << "]"
                 << std::endl;
@@ -747,7 +747,7 @@ void DecompilationUnit::DecodeNext(
         {
 
             (*os)
-                << "jmp ["
+                << "JMP ["
                 << "@(" << std::hex << addr << std::dec << ")"
                 << "]"
                 << std::endl;
@@ -763,7 +763,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "je ["
+                << "JE ["
                 << "@(" << std::hex << addr << std::dec << ")"
                 << "]"
                 << std::endl;
@@ -779,7 +779,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "jne ["
+                << "JNE ["
                 << "@(" << std::hex << addr << std::dec << ")"
                 << "]"
                 << std::endl;
@@ -795,7 +795,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "jg ["
+                << "JG ["
                 << "@(" << std::hex << addr << std::dec << ")"
                 << "]"
                 << std::endl;
@@ -811,7 +811,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "jge ["
+                << "JGE ["
                 << "@(" << std::hex << addr << std::dec << ")"
                 << "]"
                 << std::endl;
@@ -830,7 +830,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "call ["
+                << "CALL ["
                 << "%" << (int)func << ", "
                 << "u8(" << (int)argc << ")"
                 << "]"
@@ -844,7 +844,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "ret"
+                << "RET"
                 << std::endl;
         }
 
@@ -858,7 +858,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "beginTry ["
+                << "BEGIN_TRY ["
                 << "@(" << std::hex << addr << std::dec << ")"
                 << "]"
                 << std::endl;
@@ -870,7 +870,7 @@ void DecompilationUnit::DecodeNext(
     {
         if (os != nullptr)
         {
-            (*os) << "endTry" << std::endl;
+            (*os) << "END_TRY" << std::endl;
         }
 
         break;
@@ -886,7 +886,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "new ["
+                << "NEW ["
                 << "%" << (int)dst << ", "
                 << "%" << (int)type
                 << "]"
@@ -906,7 +906,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "newArray ["
+                << "NEW_ARRAY ["
                 << "%" << (int)dst << ", "
                 << "u32(" << (int)size << ")"
                 << "]"
@@ -937,7 +937,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            (*os) << "beginClass [%" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << "), u8(" << (int)flags
+            (*os) << "BEGIN_CLASS [%" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << "), u8(" << (int)flags
                   << ")]" << std::endl;
         }
 
@@ -953,7 +953,7 @@ void DecompilationUnit::DecodeNext(
             {
                 if (os != nullptr)
                 {
-                    (*os) << "endClass" << std::endl;
+                    (*os) << "END_CLASS" << std::endl;
                 }
                 hitEnd = true;
                 break;
@@ -1176,7 +1176,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cmp ["
+                << "CMP ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs
                 << "]"
@@ -1193,7 +1193,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cmpz ["
+                << "CMPZ ["
                 << "%" << (int)lhs
                 << "]"
                 << std::endl;
@@ -1215,7 +1215,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "add ["
+                << "ADD ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1239,7 +1239,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "sub ["
+                << "SUB ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1263,7 +1263,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "mul ["
+                << "MUL ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1287,7 +1287,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "div ["
+                << "DIV ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1311,7 +1311,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "mod ["
+                << "MOD ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1335,7 +1335,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "and ["
+                << "AND ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1359,7 +1359,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "or ["
+                << "OR ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1383,7 +1383,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "xor ["
+                << "XOR ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1407,7 +1407,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "shl ["
+                << "SHL ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1432,7 +1432,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "shr ["
+                << "SHR ["
                 << "%" << (int)lhs << ", "
                 << "%" << (int)rhs << ", "
                 << "%" << (int)dst
@@ -1450,7 +1450,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "neg ["
+                << "NEG ["
                 << "%" << (int)reg
                 << "]"
                 << std::endl;
@@ -1466,7 +1466,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "throw ["
+                << "THROW ["
                 << "% " << (int)reg
                 << "]"
                 << std::endl;
@@ -1482,7 +1482,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "tracemap ["
+                << "TRACEMAP ["
                 << "u32(" << len << ")"
                 << "]"
                 << std::endl;
@@ -1523,7 +1523,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "export ["
+                << "EXPORT ["
                 << "%" << (int)reg << ", "
                 << "u64(" << hash << ")"
                 << "]"
@@ -1543,7 +1543,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_u8 ["
+                << "CAST_U8 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1563,7 +1563,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_u16 ["
+                << "CAST_U16 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1583,7 +1583,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_u32 ["
+                << "CAST_U32 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1603,7 +1603,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_u64 ["
+                << "CAST_U64 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1623,7 +1623,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_i8 ["
+                << "CAST_I8 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1643,7 +1643,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_i16 ["
+                << "CAST_I16 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1663,7 +1663,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_i32 ["
+                << "CAST_I32 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1683,7 +1683,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_i64 ["
+                << "CAST_I64 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1703,7 +1703,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_f32 ["
+                << "CAST_F32 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1723,7 +1723,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "cast_f64 ["
+                << "CAST_F64 ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1743,7 +1743,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "castBool ["
+                << "CAST_BOOL ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1763,7 +1763,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "castDynamic ["
+                << "CAST_DYNAMIC ["
                 << "%" << (int)regDst << ", "
                 << "%" << (int)regSrc
                 << "]"
@@ -1777,7 +1777,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "exit"
+                << "EXIT"
                 << std::endl;
         }
 
