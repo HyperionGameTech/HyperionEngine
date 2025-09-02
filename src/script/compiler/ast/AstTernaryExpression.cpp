@@ -18,7 +18,7 @@ AstTernaryExpression::AstTernaryExpression(
     const RC<AstExpression>& left,
     const RC<AstExpression>& right,
     const SourceLocation& location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
+    : AstExpression(location, ACCESS_MODE_LOAD | ((right && left) ? (left->GetAccessOptions() & right->GetAccessOptions()) : 0)),
       m_conditional(conditional),
       m_left(left),
       m_right(right)
@@ -222,6 +222,15 @@ bool AstTernaryExpression::IsLiteral() const
     }
 
     return m_right->IsLiteral();
+}
+
+bool AstTernaryExpression::IsMutable() const
+{
+    Assert(m_conditional != nullptr);
+    Assert(m_left != nullptr);
+    Assert(m_right != nullptr);
+
+    return m_left->IsMutable() && m_right->IsMutable();
 }
 
 const AstExpression* AstTernaryExpression::GetValueOf() const

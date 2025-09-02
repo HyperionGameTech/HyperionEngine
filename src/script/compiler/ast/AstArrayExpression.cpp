@@ -332,4 +332,9 @@ SymbolTypeRef AstArrayExpression::GetExprType() const
     return m_exprType;
 }
 
+bool AstArrayExpression::IsMutable() const
+{
+    return true;
+}
+
 } // namespace hyperion::compiler

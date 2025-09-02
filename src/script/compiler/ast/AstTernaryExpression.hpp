@@ -29,6 +29,7 @@ public:
     virtual SymbolTypeRef GetExprType() const override;
 
     virtual bool IsLiteral() const override;
+    virtual bool IsMutable() const override;
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
 
@@ -60,4 +61,3 @@ private:
 
 } // namespace compiler
 } // namespace hyperion
-

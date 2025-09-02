@@ -242,6 +242,9 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
     case ACCESS_MODE_STORE:
         chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_fieldName));
         break;
+    default:
+        HYP_UNREACHABLE();
+        break;
     }
 
     return chunk;

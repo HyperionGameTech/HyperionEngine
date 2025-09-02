@@ -1282,7 +1282,7 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(
     if (Token token = Expect(TK_OPEN_BRACKET, true))
     {
         RC<AstExpression> expr;
-        RC<AstExpression> rhs;
+        // RC<AstExpression> rhs;
 
         if (Match(TK_CLOSE_BRACKET, true))
         {
@@ -1320,7 +1320,6 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(
             return RC<AstArrayAccess>(new AstArrayAccess(
                 target,
                 expr,
-                rhs,
                 true, // allow operator overloading for []
                 token.GetLocation()));
         }

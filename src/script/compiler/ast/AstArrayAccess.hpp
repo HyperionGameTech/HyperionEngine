@@ -15,7 +15,6 @@ public:
     AstArrayAccess(
         const RC<AstExpression>& target,
         const RC<AstExpression>& index,
-        const RC<AstExpression>& rhs,
         bool operatorOverloadingEnabled,
         const SourceLocation& location);
     virtual ~AstArrayAccess() = default;
@@ -50,7 +49,6 @@ public:
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstArrayAccess>());
         hc.Add(m_target ? m_target->GetHashCode() : HashCode());
         hc.Add(m_index ? m_index->GetHashCode() : HashCode());
-        hc.Add(m_rhs ? m_rhs->GetHashCode() : HashCode());
         hc.Add(m_operatorOverloadingEnabled);
 
         return hc;
@@ -59,7 +57,6 @@ public:
 private:
     RC<AstExpression> m_target;
     RC<AstExpression> m_index;
-    RC<AstExpression> m_rhs;
     bool m_operatorOverloadingEnabled;
 
     // set while analyzing
@@ -71,7 +68,6 @@ private:
         return RC<AstArrayAccess>(new AstArrayAccess(
             CloneAstNode(m_target),
             CloneAstNode(m_index),
-            CloneAstNode(m_rhs),
             m_operatorOverloadingEnabled,
             m_location));
     }

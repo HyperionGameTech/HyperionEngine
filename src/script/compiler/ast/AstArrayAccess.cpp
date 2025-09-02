@@ -22,13 +22,11 @@ namespace hyperion::compiler {
 AstArrayAccess::AstArrayAccess(
     const RC<AstExpression>& target,
     const RC<AstExpression>& index,
-    const RC<AstExpression>& rhs,
     bool operatorOverloadingEnabled,
     const SourceLocation& location)
-    : AstExpression(location, ACCESS_MODE_LOAD | (rhs != nullptr ? ACCESS_MODE_STORE : 0)),
+    : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_target(target),
       m_index(index),
-      m_rhs(rhs),
       m_operatorOverloadingEnabled(operatorOverloadingEnabled)
 {
 }
@@ -42,11 +40,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
     m_target->Visit(visitor, mod);
     m_index->Visit(visitor, mod);
-
-    if (m_rhs != nullptr)
-    {
-        m_rhs->Visit(visitor, mod);
-    }
 
     SymbolTypeRef targetType = m_target->GetExprType();
     Assert(targetType != nullptr);
@@ -87,17 +80,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             m_index->GetExprType(),
             BuiltinTypes::INT);
 
-        if (m_rhs != nullptr)
-        {
-            // assigning to array index
-            SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
-                visitor,
-                mod,
-                m_location,
-                m_rhs->GetExprType(),
-                elementType);
-        }
-
         return;
     }
 
@@ -109,9 +91,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     if (m_operatorOverloadingEnabled)
     {
         // Treat it the same as AstBinaryExpression does - look for operator[] or operator[]=
-        const String overloadFunctionName = m_rhs != nullptr
-            ? "operator[]="
-            : "operator[]";
+        static const String overloadFunctionName = "operator[]";
 
         RC<AstArgumentList> argumentList(new AstArgumentList(
             { RC<AstArgument>(new AstArgument(
@@ -124,24 +104,14 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                 m_location)) },
             m_location));
 
-        // add right hand side as argument if it exists
-        if (m_rhs != nullptr)
-        {
-            argumentList->GetArguments().PushBack(RC<AstArgument>(new AstArgument(
-                CloneAstNode(m_rhs),
-                false,
-                false,
-                false,
-                false,
-                "value",
-                m_location)));
-        }
-
-        RC<AstExpression> callOperatorOverloadExpr(new AstMemberCallExpression(
+        RC<AstMemberCallExpression> operatorOverloadMemberCall(new AstMemberCallExpression(
             overloadFunctionName,
             CloneAstNode(m_target),
             argumentList, // use right hand side as arg
             m_location));
+
+        operatorOverloadMemberCall->SetAccessMode(GetAccessMode());
+        operatorOverloadMemberCall->SetExpressionFlags(GetExpressionFlags());
 
         if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
         {
@@ -161,18 +131,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                 true,
                 m_location));
 
-            // add right hand side as argument if it exists
-            if (m_rhs != nullptr)
-            {
-                callExpr->GetArguments().PushBack(RC<AstArgument>(new AstArgument(
-                    CloneAstNode(m_rhs),
-                    false,
-                    false,
-                    false,
-                    false,
-                    "value",
-                    m_location)));
-            }
+            callExpr->SetAccessMode(GetAccessMode());
+            callExpr->SetExpressionFlags(GetExpressionFlags());
 
             m_overrideExpr = std::move(callExpr);
         }
@@ -182,16 +142,18 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             // and conditionally call the operator overload if it exists
             RC<AstArrayAccess> subExpr = Clone().CastUnsafe<AstArrayAccess>();
             subExpr->SetIsOperatorOverloadingEnabled(false); // don't look for operator[] again
+            subExpr->SetAccessMode(GetAccessMode());
+            subExpr->SetExpressionFlags(GetExpressionFlags());
 
             m_overrideExpr.Reset(new AstTernaryExpression(
                 RC<AstHasExpression>(new AstHasExpression(CloneAstNode(m_target), overloadFunctionName, m_location)),
-                callOperatorOverloadExpr,
+                operatorOverloadMemberCall,
                 subExpr,
                 m_location));
         }
         else if (targetType->FindMemberDeep(overloadFunctionName) != nullptr)
         {
-            m_overrideExpr = std::move(callOperatorOverloadExpr);
+            m_overrideExpr = std::move(operatorOverloadMemberCall);
         }
         else
         {
@@ -205,9 +167,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
         if (m_overrideExpr != nullptr)
         {
-            m_overrideExpr->SetAccessMode(GetAccessMode());
-            m_overrideExpr->SetExpressionFlags(GetExpressionFlags());
-
             m_overrideExpr->Visit(visitor, mod);
 
             m_exprType = m_overrideExpr->GetExprType();
@@ -221,6 +180,7 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
 {
     if (m_overrideExpr != nullptr)
     {
+        m_overrideExpr->SetAccessMode(GetAccessMode());
         return m_overrideExpr->Build(visitor, mod);
     }
 
@@ -235,11 +195,9 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
     uint8 rhsRegister = uint8(-1);
     int rhsStackLocation = -1;
 
-    if (m_rhs != nullptr)
+    if (m_accessMode == ACCESS_MODE_STORE)
     {
         rhsRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-        chunk->Append(m_rhs->Build(visitor, mod));
 
         if (targetSideEffects || indexSideEffects)
         {
@@ -293,7 +251,7 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         r1 = currentRegister - 1;
     }
 
-    if (m_rhs != nullptr)
+    if (m_accessMode == ACCESS_MODE_STORE)
     {
         if (targetSideEffects || indexSideEffects)
         {
@@ -350,7 +308,7 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
             chunk->Append(std::move(instrMov));
         }
     }
-    else
+    else if (m_accessMode == ACCESS_MODE_LOAD)
     {
         // unclaim register for array
         const uint8 dstRegister = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
@@ -362,6 +320,10 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         instr->Accept<uint8>(r1);          // index
 
         chunk->Append(std::move(instr));
+    }
+    else
+    {
+        HYP_UNREACHABLE();
     }
 
     return chunk;
@@ -406,7 +368,6 @@ bool AstArrayAccess::MayHaveSideEffects() const
     }
 
     return m_target->MayHaveSideEffects() || m_index->MayHaveSideEffects()
-        || (m_rhs != nullptr && m_rhs->MayHaveSideEffects())
         || m_accessMode == ACCESS_MODE_STORE;
 }
 
@@ -459,11 +420,6 @@ const AstExpression* AstArrayAccess::GetValueOf() const
         return m_overrideExpr->GetValueOf();
     }
 
-    if (m_rhs != nullptr)
-    {
-        return m_rhs->GetValueOf();
-    }
-
     return AstExpression::GetValueOf();
 }
 
@@ -472,11 +428,6 @@ const AstExpression* AstArrayAccess::GetDeepValueOf() const
     if (m_overrideExpr != nullptr)
     {
         return m_overrideExpr->GetDeepValueOf();
-    }
-
-    if (m_rhs != nullptr)
-    {
-        return m_rhs->GetDeepValueOf();
     }
 
     return AstExpression::GetDeepValueOf();
