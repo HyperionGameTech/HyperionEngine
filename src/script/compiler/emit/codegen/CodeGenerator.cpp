@@ -580,8 +580,8 @@ void CodeGenerator::Visit(StorageOperation* node)
 
             case Operations::STORE:
             {
-                // Use unified move instruction
-                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_ARRAYIDX);
+                // Use unified move instruction - store to array index
+                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_TO_ARRAYIDX);
 
                 m_ibs.Put(Instructions::MOV_UNIFIED);
                 m_ibs.Put(subcmd);

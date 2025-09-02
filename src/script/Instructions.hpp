@@ -222,18 +222,19 @@ enum LoadSourceType : hyperion::uint8
 
 enum MoveDstType : hyperion::uint8
 {
-    MDST_OFFSET = 0x00,  // Stack offset
-    MDST_INDEX = 0x01,   // Stack index
-    MDST_STATIC = 0x02,  // Static storage
-    MDST_REGISTER = 0x03 // Register
+    MDST_OFFSET = 0x00,   // Stack offset
+    MDST_INDEX = 0x01,    // Stack index
+    MDST_STATIC = 0x02,   // Static storage
+    MDST_REGISTER = 0x03  // Register
 };
 
 enum MoveSrcType : hyperion::uint8
 {
     MSRC_REGISTER = 0x00,     // Register
-    MSRC_ARRAYIDX = 0x01,     // Array index (immediate)
-    MSRC_ARRAYIDX_REG = 0x02, // Array index (register)
+    MSRC_ARRAYIDX = 0x01,     // Array index (immediate) - load FROM array
+    MSRC_ARRAYIDX_REG = 0x02, // Array index (register) - load FROM array
     MSRC_MEMBER = 0x03,       // Object member
+    MSRC_TO_ARRAYIDX = 0x04   // Store TO array index (register source)
     // Reserved slots for future use
 };
 

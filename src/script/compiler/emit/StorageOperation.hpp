@@ -61,7 +61,7 @@ struct StorageOperation : public Buildable
                 union
                 {
                     RegIndex reg;
-                    uint8 index;
+                    uint32 index;
                     uint64 hash;
                 } member;
             } objectData;

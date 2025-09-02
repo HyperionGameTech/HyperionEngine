@@ -297,6 +297,18 @@ void DecompilationUnit::DecodeNext(
                     *os << "%r" << (int)objReg << ".member@" << std::hex << hash << std::dec << ", %r" << (int)srcReg;
                 }
                 break;
+
+                case MSRC_TO_ARRAYIDX:
+                {
+                    uint8 arrayReg;
+                    bs.Read(&arrayReg);
+                    uint32 index;
+                    bs.Read(&index);
+                    uint8 srcReg;
+                    bs.Read(&srcReg);
+                    *os << "%r" << (int)arrayReg << "[" << index << "], %r" << (int)srcReg;
+                }
+                break;
                 }
                 break;
             }

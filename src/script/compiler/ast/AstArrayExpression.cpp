@@ -198,19 +198,14 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
             Assert(diff == 1);
 
             { // load array from stack into a register
-                auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
-                instrLoadOffset->opcode = LOAD_OFFSET;
-                instrLoadOffset->Accept<uint8>(rp);
-                instrLoadOffset->Accept<uint16>(uint16(diff));
+                auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+                instrLoadOffset->GetBuilder().Load(rp).Local().ByOffset(diff);
                 chunk->Append(std::move(instrLoadOffset));
             }
 
             { // send to the array
-                auto instrMovArrayIdx = BytecodeUtil::Make<RawOperation<>>();
-                instrMovArrayIdx->opcode = MOV_ARRAYIDX;
-                instrMovArrayIdx->Accept<uint8>(rp);
-                instrMovArrayIdx->Accept<uint32>(uint32(index));
-                instrMovArrayIdx->Accept<uint8>(rp - 1);
+                auto instrMovArrayIdx = BytecodeUtil::Make<StorageOperation>();
+                instrMovArrayIdx->GetBuilder().Store(rp - 1).Array(rp).ByIndex(uint32(index));
                 chunk->Append(std::move(instrMovArrayIdx));
             }
 
@@ -222,11 +217,8 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
         else
         {
             // send to the array
-            auto instrMovArrayIdx = BytecodeUtil::Make<RawOperation<>>();
-            instrMovArrayIdx->opcode = MOV_ARRAYIDX;
-            instrMovArrayIdx->Accept<uint8>(rp - 1);
-            instrMovArrayIdx->Accept<uint32>(uint32(index));
-            instrMovArrayIdx->Accept<uint8>(rp);
+            auto instrMovArrayIdx = BytecodeUtil::Make<StorageOperation>();
+            instrMovArrayIdx->GetBuilder().Store(rp).Array(rp - 1).ByIndex(uint32(index));
             chunk->Append(std::move(instrMovArrayIdx));
         }
     }
@@ -234,10 +226,8 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
     if (hasSideEffects)
     {
         // move the array back into the first register we started with
-        auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
-        instrLoadOffset->opcode = LOAD_OFFSET;
-        instrLoadOffset->Accept<uint8>(arrayReg);
-        instrLoadOffset->Accept<uint16>(uint16(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - arrayStackLocation));
+        auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+        instrLoadOffset->GetBuilder().Load(arrayReg).Local().ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - arrayStackLocation);
         chunk->Append(std::move(instrLoadOffset));
 
         // pop array from stack

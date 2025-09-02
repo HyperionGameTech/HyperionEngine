@@ -2648,7 +2648,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         {
             Script_FunctionAddress addr;
             bs->Read(&addr);
-            
+
             handler.LoadAddr(reg, addr);
         }
         break;
@@ -2743,6 +2743,18 @@ HYP_FORCE_INLINE static void HandleInstruction(
                 BCRegister srcReg;
                 bs->Read(&srcReg);
                 handler.SetField(objReg, hash, srcReg);
+            }
+            break;
+
+            case MSRC_TO_ARRAYIDX:
+            {
+                BCRegister arrayReg;
+                bs->Read(&arrayReg);
+                uint32 index;
+                bs->Read(&index);
+                BCRegister srcReg;
+                bs->Read(&srcReg);
+                handler.MovArrayIdx(arrayReg, index, srcReg);
             }
             break;
             }
