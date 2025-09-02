@@ -79,8 +79,7 @@ protected:
     bool m_isClosure;
 
     RC<AstParameter> m_closureSelfParam;
-    RC<AstTypeSpecifier> m_functionTypeExpr;
-    RC<AstClass> m_closureTypeExpr;
+    RC<AstBlock> m_closureBlock;
     RC<AstBlock> m_blockWithParameters;
 
     bool m_isConstructorDefinition;

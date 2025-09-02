@@ -670,7 +670,10 @@ bool SymbolType::IsNullType() const
 
 bool SymbolType::IsNullableType() const
 {
-    return IsOrHasBase(*BuiltinTypes::OBJECT);
+    return IsOrHasBase(*BuiltinTypes::OBJECT)
+        || IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)
+        || IsOrHasBase(*BuiltinTypes::ARRAY_BASE)
+        || IsOrHasBase(*BuiltinTypes::STRING);
 }
 
 bool SymbolType::IsVarArgsType() const

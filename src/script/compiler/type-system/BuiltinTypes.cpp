@@ -33,7 +33,7 @@ const SymbolTypeRef BuiltinTypes::UNDEFINED = SymbolTypeRef(new SymbolType(
     {}, {}));
 
 const SymbolTypeRef BuiltinTypes::ANY = SymbolTypeRef(new SymbolType(
-    "Any",
+    "any",
     TYPE_BUILTIN,
     nullptr,
     nullptr,

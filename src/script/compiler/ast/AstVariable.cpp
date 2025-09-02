@@ -68,8 +68,8 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         }
 #endif
 
-        if (false)
-        { // isMember) { // temporarily disabled; allows for self.<variable name> to be used without prefixing with 'self.'
+        if (isMember) // add 'self' prefix for member access
+        {
             m_selfMemberAccess.Reset(new AstMember(
                 m_name,
                 RC<AstVariable>(new AstVariable(
@@ -155,7 +155,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
 
                 // if the variable is declared in a function, and is not a generic substitution,
                 // we add it to the closure capture list.
-                if ((flags & FLAG_DECLARED_IN_FUNCTION) && !(flags & FLAG_GENERIC_SUBSTITUTION))
+                if ((flags & FLAG_DECLARED_IN_FUNCTION))
                 {
                     // lookup the variable by depth to make sure it was declared in the current function
                     if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth()))

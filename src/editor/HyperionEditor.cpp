@@ -138,12 +138,12 @@ void HyperionEditor::Init()
               "    jet := 9;\n"
               "    func x(a: int) { return a * self.jet; }\n"
               "    func MyClass() {\n"
-              "        self.blah = \"test123\";\n"
+              "        self.jet = 10;\n"
               "    }\n"
               "};\n"
-              "ins : MyClass = new MyClass();\n"
-              "func getArrayElement(elementIndex : int = 5, ary: Array<int>) { return ary[elementIndex]; };\n"
-              "export func x(a: float, ref b: int) { return ins.x(b) + getArrayElement(ary : [9,5], elementIndex : 0); };";
+              "ins : any = new MyClass();\n"
+              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1,2,3]) { return func() { return ary; }; };\n"
+              "export func x(a: float, ref b: int) { f := getArrayElement();\nreturn f; };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

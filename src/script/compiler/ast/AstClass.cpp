@@ -285,9 +285,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         constructorParams.PushBack(RC<AstParameter>(new AstParameter(
             "self",
             RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(
-                    BuiltinTypes::ANY, // @TODO SelfType
-                    m_location)),
+                RC<AstTypeRef>(new AstTypeRef(/*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY, m_location)),
                 m_location)),
             nullptr,
             false,
@@ -306,9 +304,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstExpression> expr(new AstBinaryExpression(
                     RC<AstMember>(new AstMember(
                         dataMember->GetName(),
-                        RC<AstVariable>(new AstVariable(
-                            "self",
-                            m_location)),
+                        RC<AstVariable>(new AstVariable("self", m_location)),
                         m_location)),
                     CloneAstNode(dataMember->GetRealAssignment()),
                     Operator::FindBinaryOperator(Operators::OP_assign),
@@ -574,12 +570,12 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // so it can set up the class properly.
     Array<ClassTable::MethodInfo> methods;
 
-    // stack size before building static members / methods and having to set their values
-    const int stackSizeBefore = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
     // Add all fields from our class
-    for (const RC<AstVariableDeclaration>& decl : m_functionMembers)
+    for (SizeType functionMemberIndex = 0; functionMemberIndex < m_functionMembers.Size(); functionMemberIndex++)
     {
+        const RC<AstVariableDeclaration>& decl = m_functionMembers[functionMemberIndex];
+        Assert(decl != nullptr);
+
         ClassTable::MethodInfo methodInfo {};
         methodInfo.name = decl->GetName();
         methodInfo.typeId = TypeId::ForType<HypData>();
@@ -599,21 +595,12 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
             instrPush->opcode = PUSH;
             instrPush->Accept<uint8>(rp);
             chunk->Append(std::move(instrPush));
-
-            visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
         }
 
+        methodInfo.stackOffset = uint16(m_functionMembers.Size() - functionMemberIndex); // reverse order because stack
+
+        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
         methods.PushBack(methodInfo);
-    }
-
-    // update all method infos with their stack locations:
-    if (methods.Any())
-    {
-        for (SizeType i = 0; i < methods.Size(); i++)
-        {
-            const int stackOffset = int(stackSizeBefore + int(methods.Size()) - int(i));
-            methods[i].stackOffset = uint16(stackOffset);
-        }
     }
 
     // store each method on the stack
@@ -679,6 +666,8 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     }
     else
     {
+        chunk->Append(BytecodeUtil::Make<Comment>("Base type: <None>"));
+
         chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
     }
 
@@ -697,12 +686,17 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(std::move(instrType));
     }
 
-    if (visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() != stackSizeBefore)
+    // pop anything we pushed for methods
+    const int numFunctionMembers = int(m_functionMembers.Size());
+
+    if (numFunctionMembers > 0)
     {
-        // pop anything we pushed for methods
-        const int toPop = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - stackSizeBefore;
-        visitor->GetCompilationUnit()->GetInstructionStream().SetStackSize(stackSizeBefore);
-        chunk->Append(Compiler::PopStack(visitor, toPop));
+        for (int i = 0; i < numFunctionMembers; i++)
+        {
+            visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+        }
+
+        chunk->Append(Compiler::PopStack(visitor, numFunctionMembers));
     }
 
 #if 0 // come back to this

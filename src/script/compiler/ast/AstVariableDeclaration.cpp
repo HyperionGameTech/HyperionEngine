@@ -243,7 +243,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (noDefaultAssignment)
+        if (noDefaultAssignment && !(m_flags & IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -317,7 +317,7 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
 
     Assert(m_realAssignment != nullptr);
 
-    if (!Config::cullUnusedObjects || m_identifier->GetUseCount() > 0 || (m_flags & IdentifierFlags::FLAG_NATIVE))
+    if (!Config::cullUnusedObjects || m_identifier->GetUseCount() > 0 || (m_flags & (IdentifierFlags::FLAG_NATIVE | IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER)))
     {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
@@ -351,7 +351,7 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
         }
         else
         {
-            chunk->Append(BytecodeUtil::Make<Comment>(" Native variable `" + m_name + "` will be replaced at runtime"));
+            chunk->Append(BytecodeUtil::Make<Comment>(" Placeholder `" + m_name + "` will be replaced at runtime"));
             { // add instruction increase stack pointer by 1
                 auto instrAddSp = BytecodeUtil::Make<RawOperation<>>();
                 instrAddSp->opcode = ADD_SP;

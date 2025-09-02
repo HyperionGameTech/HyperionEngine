@@ -33,7 +33,8 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_CLASS = 0x8000,
     FLAG_FUNCTION = 0x10000,
     FLAG_NATIVE = 0x20000,
-    FLAG_TRAIT = 0x40000
+    FLAG_TRAIT = 0x40000,
+    FLAG_CLOSURE_PLACEHOLDER = 0x80000
 };
 
 class Identifier

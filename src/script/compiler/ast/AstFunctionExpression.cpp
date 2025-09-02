@@ -2,6 +2,9 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
+#include <script/compiler/ast/AstNewExpression.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstClass.hpp>
@@ -19,6 +22,7 @@
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
+#include <script/compiler/emit/StorageOperation.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -205,6 +209,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         const String& name = it.first;
         const RC<Identifier>& identifier = it.second;
 
+        DebugLog(LogType::Debug, "Closure captures variable '%s'\n", name.Data());
+
         Assert(identifier != nullptr);
         Assert(identifier->GetSymbolType() != nullptr);
 
@@ -257,73 +263,81 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes,
         m_location);
 
-    // debug log all function args (name + has default value)
-    for (SizeType i = 0; i < functionType->GetGenericInstanceInfo().m_genericArgs.Size(); i++)
-    {
-        const GenericInstanceTypeInfo::Arg& argType = functionType->GetGenericInstanceInfo().m_genericArgs[i];
-        DebugLog(LogType::Debug, "Function arg %llu: name='%s', has_default=%s\n",
-            i,
-            argType.m_name.Data(),
-            argType.m_defaultValue != nullptr ? "true" : "false");
-    }
-
     if (m_isClosure)
     {
-        String closureName = "$$closure";
-
-        for (const auto& it : functionScope->closureCaptures)
-        {
-            const String& name = it.first;
-            const RC<Identifier>& identifier = it.second;
-
-            Assert(identifier != nullptr);
-            Assert(identifier->GetSymbolType() != nullptr);
-
-            closureName += "$" + name;
-        }
-
         // add $invoke to call this object
-        m_closureTypeExpr.Reset(new AstClass(
+        RC<AstClass> closureClass(new AstClass(
             "__closure",
             SymbolTypeRef(nullptr),
             {},
             { RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 "$invoke",
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        functionType,
-                        m_location)),
+                    RC<AstTypeRef>(new AstTypeRef(functionType, m_location)),
                     m_location)),
-                RC<AstNil>(new AstNil(m_location)), // placeholder; set to function type later
-                IdentifierFlags::FLAG_CONST,
+                RC<AstNil>(new AstNil(m_location)), // no initial value
+                IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER,
                 m_location)) },
             {},
             false, // not proxy class
             m_location));
 
+        /// ISSUE: Causing endless loop because constructor is a function itself and is creating endless closures.
+        // we need to instead pass in the closure members when we create the closure object in the bytecode.
         for (const SymbolTypeMember& member : closureObjMembers)
         {
-            m_closureTypeExpr->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+            closureClass->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 member.name,
-                nullptr,
-                member.expr,
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                    RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::ANY, m_location)),
+                    m_location)),
+                RC<AstNil>(new AstNil(m_location)), // placeholder; set later
                 IdentifierFlags::FLAG_NONE,
                 m_location)));
         }
 
-        m_closureTypeExpr->Visit(visitor, mod);
+        m_closureBlock.Reset(new AstBlock(m_location));
 
-        SymbolTypeRef closureHeldType = m_closureTypeExpr->GetHeldType();
-        Assert(closureHeldType != nullptr);
-        closureHeldType = closureHeldType->GetUnaliased();
-
-        m_functionTypeExpr.Reset(new AstTypeSpecifier(
-            RC<AstTypeRef>(new AstTypeRef(
-                closureHeldType,
+        // create new instance of closure class
+        RC<AstVariableDeclaration> closureInstanceDecl(new AstVariableDeclaration(
+            "$__closure_instance",
+            nullptr,
+            RC<AstNewExpression>(new AstNewExpression(
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(closureClass, m_location)),
+                nullptr, // no constructor args
+                false,   // enable constructor call
                 m_location)),
+            IdentifierFlags::FLAG_NONE,
             m_location));
 
-        m_functionTypeExpr->Visit(visitor, mod);
+        m_closureBlock->AddChild(closureInstanceDecl);
+
+        // init each member of the closure object
+        for (const SymbolTypeMember& member : closureObjMembers)
+        {
+            // $__closure_instance.<member> = <value>;
+            m_closureBlock->AddChild(RC<AstBinaryExpression>(new AstBinaryExpression(
+                RC<AstMember>(new AstMember(
+                    member.name,
+                    RC<AstVariable>(new AstVariable(
+                        "$__closure_instance",
+                        m_location)),
+                    m_location)),
+                CloneAstNode(member.expr),
+                Operator::FindBinaryOperator(Operators::OP_assign),
+                m_location)));
+        }
+
+        // return the closure instance as the value of this expression
+        m_closureBlock->AddChild(RC<AstVariable>(new AstVariable(
+            "$__closure_instance",
+            m_location)));
+
+        m_closureBlock->Visit(visitor, mod);
+
+        SymbolTypeRef closureHeldType = closureClass->GetHeldType();
+        Assert(closureHeldType != nullptr);
+        closureHeldType = closureHeldType->GetUnaliased();
 
         m_symbolType = std::move(closureHeldType);
     }
@@ -355,16 +369,6 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         INSTRUCTION_STREAM_CONTEXT_DEFAULT);
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    if (m_closureTypeExpr != nullptr)
-    {
-        chunk->Append(m_closureTypeExpr->Build(visitor, mod));
-    }
-
-    if (m_functionTypeExpr != nullptr && !m_isClosure)
-    {
-        chunk->Append(m_functionTypeExpr->Build(visitor, mod));
-    }
 
     if (m_isClosure && m_closureSelfParam != nullptr)
     {
@@ -402,9 +406,20 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         }
     }
 
+    UniquePtr<BytecodeChunk> closureChunk;
+
     if (m_isClosure)
     {
+        Assert(m_closureBlock != nullptr);
+
         flags |= FunctionFlags::CLOSURE;
+
+        closureChunk = BytecodeUtil::Make<BytecodeChunk>();
+
+        // load closure object into register
+        closureChunk->Append(BytecodeUtil::Make<Comment>("Begin closure object initialization"));
+        closureChunk->Append(m_closureBlock->Build(visitor, mod));
+        closureChunk->Append(BytecodeUtil::Make<Comment>("End closure object initialization"));
     }
 
     // the label to jump to the very end
@@ -426,56 +441,55 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     // set the label's position to after the block
     chunk->Append(BytecodeUtil::Make<LabelMarker>(endLabel));
 
-    // store local variable
-    // get register index
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    auto func = BytecodeUtil::Make<ScriptFunction>();
-    func->labelId = funcAddr;
-    func->reg = rp;
-    func->nargs = nargs;
-    func->flags = flags;
-    chunk->Append(std::move(func));
-
     if (m_isClosure)
     {
-        Assert(m_functionTypeExpr != nullptr);
+        Assert(closureChunk != nullptr);
+        chunk->Append(std::move(closureChunk));
 
-        const uint8 funcExprReg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-        // increase reg usage for closure object to hold it while we move this function expr as a member
+        // inc register usage for the closure object
+        uint8 closureRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        const uint8 closureObjReg = rp;
+        const uint8 functionRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        // load __closure into register
-        chunk->Append(BytecodeUtil::Make<Comment>("Load __closure object"));
-        chunk->Append(m_functionTypeExpr->Build(visitor, mod));
-
-        // set $proto.$invoke to the function object
-
-        // load $proto
-        chunk->Append(BytecodeUtil::Make<Comment>("Load $proto"));
-        const HashCode::ValueType protoHash = HashCode::GetHashCode("$proto").Value();
-        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, protoHash));
+        { // set the function object into a register
+            auto func = BytecodeUtil::Make<ScriptFunction>();
+            func->labelId = funcAddr;
+            func->reg = functionRegister;
+            func->nargs = nargs;
+            func->flags = flags;
+            chunk->Append(std::move(func));
+        }
 
         // store into $invoke
-        chunk->Append(BytecodeUtil::Make<Comment>("Store $invoke"));
+        chunk->Append(BytecodeUtil::Make<Comment>("Store $invoke member of closure object"));
         const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
-        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, invokeHash));
 
+        {
+            auto instrMovMemHash = BytecodeUtil::Make<StorageOperation>();
+            instrMovMemHash->GetBuilder()
+                .Store(functionRegister)
+                .Member(closureRegister)
+                .ByHash(invokeHash);
+
+            chunk->Append(std::move(instrMovMemHash));
+        }
+
+        // dec register usage for closure object
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
+    }
+    else
+    {
+        // store local variable
+        // get register index
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        // ASSERT_MSG(rp == 0, "Register position should be 0 to return closure object");
-
-        // swap regs, so the closure object returned (put on register zero)
-        auto instrMovReg = BytecodeUtil::Make<RawOperation<>>();
-        instrMovReg->opcode = MOV;
-        instrMovReg->Accept<uint8>(0);             // dst
-        instrMovReg->Accept<uint8>(closureObjReg); // src
-        chunk->Append(std::move(instrMovReg));
+        auto func = BytecodeUtil::Make<ScriptFunction>();
+        func->labelId = funcAddr;
+        func->reg = rp;
+        func->nargs = nargs;
+        func->flags = flags;
+        chunk->Append(std::move(func));
     }
 
     return chunk;
@@ -515,14 +529,9 @@ UniquePtr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor* visito
 
 void AstFunctionExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_closureTypeExpr != nullptr)
+    if (m_closureBlock != nullptr)
     {
-        m_closureTypeExpr->Optimize(visitor, mod);
-    }
-
-    if (m_functionTypeExpr != nullptr)
-    {
-        m_functionTypeExpr->Optimize(visitor, mod);
+        m_closureBlock->Optimize(visitor, mod);
     }
 
     for (auto& param : m_parameters)
@@ -557,14 +566,6 @@ bool AstFunctionExpression::MayHaveSideEffects() const
 
 SymbolTypeRef AstFunctionExpression::GetExprType() const
 {
-    if (m_isClosure && m_closureTypeExpr != nullptr)
-    {
-        SymbolTypeRef heldType = m_closureTypeExpr->GetHeldType();
-        Assert(heldType != nullptr);
-
-        return heldType->GetUnaliased();
-    }
-
     return m_symbolType;
 }
 

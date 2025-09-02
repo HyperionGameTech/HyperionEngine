@@ -66,7 +66,7 @@ public:
         m_scopeType = scopeType;
     }
 
-    int scopeFlags() const
+    int ScopeFlags() const
     {
         return m_scopeFlags;
     }
