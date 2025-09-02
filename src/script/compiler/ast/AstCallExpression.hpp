@@ -45,6 +45,8 @@ public:
     virtual SymbolTypeRef GetExprType() const override;
     virtual AstExpression* GetTarget() const override;
 
+    virtual String ToString() const override;
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstCallExpression>());
@@ -82,4 +84,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

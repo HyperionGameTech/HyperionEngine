@@ -9,6 +9,8 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <limits>
 #include <cmath>
 
@@ -278,6 +280,11 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
     default:
         return nullptr;
     }
+}
+
+String AstFloat::ToString() const
+{
+    return HYP_FORMAT("{}", m_value);
 }
 
 } // namespace hyperion::compiler

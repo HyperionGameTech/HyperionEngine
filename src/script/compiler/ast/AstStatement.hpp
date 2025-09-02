@@ -58,6 +58,12 @@ public:
         return unnamed;
     }
 
+    // For bytecode debugging - converts the AST node to a readable string representation
+    virtual String ToString() const
+    {
+        return GetName();
+    }
+
     virtual RC<AstStatement> Clone() const = 0;
 
 protected:
@@ -110,4 +116,3 @@ CloneAllAstNodes(const Array<T*>& stmts)
 }
 
 } // namespace hyperion::compiler
-

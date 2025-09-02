@@ -37,6 +37,11 @@ public:
         return hc;
     }
 
+    virtual String ToString() const override
+    {
+        return "\"" + m_value + "\"";
+    }
+
 private:
     String m_value;
 
@@ -52,4 +57,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

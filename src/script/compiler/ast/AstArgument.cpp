@@ -156,4 +156,25 @@ const String& AstArgument::GetName() const
     return m_name;
 }
 
+String AstArgument::ToString() const
+{
+    String result;
+
+    if (m_isPassConst)
+        result += "const ";
+    if (m_isPassByRef)
+        result += "ref ";
+    if (m_isSplat)
+        result += "...";
+
+    if (m_isNamed && !m_name.Empty())
+    {
+        result += m_name + ": ";
+    }
+
+    result += m_expr ? m_expr->ToString() : "<null>";
+
+    return result;
+}
+
 } // namespace hyperion::compiler

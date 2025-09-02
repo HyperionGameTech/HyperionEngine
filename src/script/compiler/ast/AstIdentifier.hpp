@@ -111,6 +111,11 @@ public:
         return AstExpression::GetHashCode().Add(TypeName<AstIdentifier>()).Add(m_name);
     }
 
+    virtual String ToString() const override
+    {
+        return m_name;
+    }
+
 protected:
     String m_name;
 

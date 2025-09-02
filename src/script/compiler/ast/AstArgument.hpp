@@ -77,6 +77,8 @@ public:
     virtual const AstExpression* GetDeepValueOf() const override;
     virtual const String& GetName() const override;
 
+    virtual String ToString() const override;
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstArgument>());

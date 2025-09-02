@@ -30,6 +30,8 @@ public:
     virtual const AstExpression* GetDeepValueOf() const override;
     virtual AstExpression* GetTarget() const override;
 
+    virtual String ToString() const override;
+
 protected:
     RC<AstArgumentList> m_arguments;
 
@@ -48,4 +50,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

@@ -28,6 +28,8 @@ public:
 
     virtual RC<AstStatement> Clone() const override;
 
+    virtual String ToString() const override;
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;
@@ -64,4 +66,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

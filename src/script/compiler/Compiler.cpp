@@ -25,6 +25,8 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Building function arguments - total count: " + String::ToString(args.Size())));
+
     // push a copy of each argument to the stack (in reverse order)
     for (SizeType index = args.Size(); index > 0; index--)
     {
@@ -33,8 +35,11 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
 
         if (arg->IsPlaceholderArgument())
         {
+            chunk->Append(BytecodeUtil::Make<Comment>("Skipping placeholder argument at index " + String::ToString(index - 1)));
             continue;
         }
+
+        chunk->Append(BytecodeUtil::Make<Comment>("Processing argument " + String::ToString(index - 1) + ": " + (arg ? arg->ToString() : "<null>")));
 
         // build in current module (not mod)
         chunk->Append(arg->Build(visitor, visitor->GetCompilationUnit()->GetCurrentModule()));
@@ -42,6 +47,7 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
         // get active register
         const uint8 activeRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
+        chunk->Append(BytecodeUtil::Make<Comment>("Pushing argument to stack from register " + String::ToString(activeRegister)));
         // now that it's loaded into the register, make a copy
         // add instruction to store on stack
         auto instrPush = BytecodeUtil::Make<RawOperation<>>();
@@ -68,6 +74,10 @@ UniquePtr<Buildable> Compiler::BuildArgumentsEnd(
         return nullptr;
     }
 
+    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    chunk->Append(BytecodeUtil::Make<Comment>("Cleaning up " + String::ToString(numArgs) + " function arguments from stack"));
+
     // the reason we decrement the compiler's record of the stack size directly after
     // is because the function body will actually handle the management of the stack size,
     // so that the parameters are actually local variables to the function body.
@@ -78,7 +88,9 @@ UniquePtr<Buildable> Compiler::BuildArgumentsEnd(
     }
 
     // pop arguments from stack
-    return Compiler::PopStack(visitor, numArgs);
+    chunk->Append(Compiler::PopStack(visitor, numArgs));
+
+    return chunk;
 }
 
 UniquePtr<Buildable> Compiler::BuildCall(

@@ -267,6 +267,8 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Binary expression: " + ToString()));
+
     Compiler::ExprInfo info {
         m_left.Get(),
         m_right.Get()
@@ -881,5 +883,14 @@ RC<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaration(AstVisitor*
 }
 
 #endif
+
+String AstBinaryExpression::ToString() const
+{
+    String leftStr = m_left ? m_left->ToString() : "<null>";
+    String rightStr = m_right ? m_right->ToString() : "<null>";
+    String opStr = m_op ? m_op->LookupStringValue() : "<null>";
+
+    return "(" + leftStr + " " + opStr + " " + rightStr + ")";
+}
 
 } // namespace hyperion::compiler

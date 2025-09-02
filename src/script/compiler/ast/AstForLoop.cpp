@@ -81,10 +81,13 @@ UniquePtr<Buildable> AstForLoop::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Begin for loop: " + ToString()));
+
     int conditionIsTrue = m_conditionPart->IsTrue();
 
     if (conditionIsTrue == -1)
     {
+        chunk->Append(BytecodeUtil::Make<Comment>("Runtime condition evaluation for for loop"));
         // the condition cannot be determined at compile time
         uint8 rp;
 
@@ -105,33 +108,41 @@ UniquePtr<Buildable> AstForLoop::Build(AstVisitor* visitor, Module* mod)
         // initializers
         if (m_declPart != nullptr)
         {
+            chunk->Append(BytecodeUtil::Make<Comment>("Executing for loop initializer"));
             chunk->Append(m_declPart->Build(visitor, mod));
         }
 
         // where to jump up to
+        chunk->Append(BytecodeUtil::Make<Comment>("Loop condition evaluation point"));
         chunk->Append(BytecodeUtil::Make<LabelMarker>(topLabel));
 
         // build the conditional
+        chunk->Append(BytecodeUtil::Make<Comment>("Evaluating for loop condition"));
         chunk->Append(m_conditionPart->Build(visitor, mod));
 
         // compare the conditional to 0
         chunk->Append(BytecodeUtil::Make<Comparison>(Comparison::CMPZ, rp));
 
         // break away if the condition is false (equal to zero)
+        chunk->Append(BytecodeUtil::Make<Comment>("Break from loop if condition is false"));
         chunk->Append(BytecodeUtil::Make<Jump>(Jump::JE, breakLabel));
 
         // enter the block
+        chunk->Append(BytecodeUtil::Make<Comment>("Executing for loop body"));
         chunk->Append(m_block->Build(visitor, mod));
 
         // where 'continue' jumps to
+        chunk->Append(BytecodeUtil::Make<Comment>("Continue target - execute increment expression"));
         chunk->Append(BytecodeUtil::Make<LabelMarker>(continueLabel));
 
         if (m_incrementPart != nullptr)
         {
+            chunk->Append(BytecodeUtil::Make<Comment>("Executing for loop increment"));
             chunk->Append(m_incrementPart->Build(visitor, mod));
         }
 
         // pop all local variables off the stack
+        chunk->Append(BytecodeUtil::Make<Comment>("Cleaning up " + String::ToString(m_numLocals) + " local variables"));
         for (int i = 0; i < m_numLocals; i++)
         {
             visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
@@ -140,10 +151,12 @@ UniquePtr<Buildable> AstForLoop::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(Compiler::PopStack(visitor, m_numLocals));
 
         // jump back to top here
+        chunk->Append(BytecodeUtil::Make<Comment>("Jump back to condition evaluation"));
         chunk->Append(BytecodeUtil::Make<Jump>(Jump::JMP, topLabel));
 
         // set the label's position to after the block,
         // so we can skip it if the condition is false
+        chunk->Append(BytecodeUtil::Make<Comment>("Break target - exit for loop"));
         chunk->Append(BytecodeUtil::Make<LabelMarker>(breakLabel));
 
         // pop all initializers off the stack
@@ -279,6 +292,31 @@ void AstForLoop::Optimize(AstVisitor* visitor, Module* mod)
 RC<AstStatement> AstForLoop::Clone() const
 {
     return CloneImpl();
+}
+
+String AstForLoop::ToString() const
+{
+    String result = "for (";
+
+    if (m_declPart)
+    {
+        result += m_declPart->ToString();
+    }
+    result += "; ";
+
+    if (m_conditionPart)
+    {
+        result += m_conditionPart->ToString();
+    }
+    result += "; ";
+
+    if (m_incrementPart)
+    {
+        result += m_incrementPart->ToString();
+    }
+    result += ") { ... }";
+
+    return result;
 }
 
 } // namespace hyperion::compiler

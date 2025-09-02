@@ -26,6 +26,11 @@ public:
         return AstConstant::GetHashCode().Add(TypeName<AstFalse>());
     }
 
+    virtual String ToString() const override
+    {
+        return "false";
+    }
+
 private:
     RC<AstFalse> CloneImpl() const
     {
@@ -35,4 +40,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

@@ -219,6 +219,8 @@ UniquePtr<Buildable> AstCallExpression::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Begin function call: " + ToString()));
+
     uint16 numArgsToPop = 0;
 
     // build arguments
@@ -238,6 +240,8 @@ UniquePtr<Buildable> AstCallExpression::Build(AstVisitor* visitor, Module* mod)
         visitor,
         mod,
         numArgsToPop));
+
+    chunk->Append(BytecodeUtil::Make<Comment>("End function call: " + ToString()));
 
     return chunk;
 }
@@ -308,6 +312,22 @@ AstExpression* AstCallExpression::GetTarget() const
     }
 
     return AstExpression::GetTarget();
+}
+
+String AstCallExpression::ToString() const
+{
+    String result = (m_expr ? m_expr->ToString() : "<null>") + "(";
+
+    for (SizeType i = 0; i < m_args.Size(); ++i)
+    {
+        if (i > 0)
+            result += ", ";
+        const auto& arg = m_args[i];
+        result += arg ? arg->ToString() : "<null>";
+    }
+
+    result += ")";
+    return result;
 }
 
 } // namespace hyperion::compiler

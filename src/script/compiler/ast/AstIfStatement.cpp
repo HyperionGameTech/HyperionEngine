@@ -44,10 +44,13 @@ UniquePtr<Buildable> AstIfStatement::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Begin if statement: " + ToString()));
+
     int conditionIsTrue = m_conditional->IsTrue();
 
     if (conditionIsTrue == -1)
     {
+        chunk->Append(BytecodeUtil::Make<Comment>("Runtime condition evaluation"));
         // the condition cannot be determined at compile time
         chunk->Append(Compiler::CreateConditional(
             visitor,
@@ -58,22 +61,27 @@ UniquePtr<Buildable> AstIfStatement::Build(AstVisitor* visitor, Module* mod)
     }
     else if (conditionIsTrue)
     {
+        chunk->Append(BytecodeUtil::Make<Comment>("Compile-time condition determined to be TRUE"));
         // the condition has been determined to be true
         if (m_conditional->MayHaveSideEffects())
         {
+            chunk->Append(BytecodeUtil::Make<Comment>("Evaluating condition for side effects"));
             // if there is a possibility of side effects,
             // build the conditional into the binary
             chunk->Append(m_conditional->Build(visitor, mod));
         }
+        chunk->Append(BytecodeUtil::Make<Comment>("Executing then-block"));
         // enter the block
         chunk->Append(m_block->Build(visitor, mod));
         // do not accept the else-block
     }
     else
     {
+        chunk->Append(BytecodeUtil::Make<Comment>("Compile-time condition determined to be FALSE"));
         // the condition has been determined to be false
         if (m_conditional->MayHaveSideEffects())
         {
+            chunk->Append(BytecodeUtil::Make<Comment>("Evaluating condition for side effects"));
             // if there is a possibility of side effects,
             // build the conditional into the binary
             chunk->Append(m_conditional->Build(visitor, mod));
@@ -81,9 +89,12 @@ UniquePtr<Buildable> AstIfStatement::Build(AstVisitor* visitor, Module* mod)
         // only visit the else-block (if it exists)
         if (m_elseBlock != nullptr)
         {
+            chunk->Append(BytecodeUtil::Make<Comment>("Executing else-block"));
             chunk->Append(m_elseBlock->Build(visitor, mod));
         }
     }
+
+    chunk->Append(BytecodeUtil::Make<Comment>("End if statement"));
 
     return chunk;
 }
@@ -104,6 +115,20 @@ void AstIfStatement::Optimize(AstVisitor* visitor, Module* mod)
 RC<AstStatement> AstIfStatement::Clone() const
 {
     return CloneImpl();
+}
+
+String AstIfStatement::ToString() const
+{
+    String result = "if (" + (m_conditional ? m_conditional->ToString() : "<null>") + ")";
+    if (m_elseBlock)
+    {
+        result += " { ... } else { ... }";
+    }
+    else
+    {
+        result += " { ... }";
+    }
+    return result;
 }
 
 } // namespace hyperion::compiler

@@ -29,6 +29,8 @@ public:
 
     virtual RC<AstStatement> Clone() const override;
 
+    virtual String ToString() const override;
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstDeclaration::GetHashCode().Add(TypeName<AstFunctionDefinition>());
@@ -51,4 +53,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

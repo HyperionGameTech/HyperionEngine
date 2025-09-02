@@ -148,6 +148,8 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Begin member call: " + ToString()));
+
     // now we have to call the function. we pop the first arg from
     // m_substituted args because we have already pushed self to stack
     m_substitutedArgs.PopFront();
@@ -164,12 +166,14 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
             numArgsToPop));
     }
 
+    chunk->Append(BytecodeUtil::Make<Comment>("Loading target object for method call"));
     Assert(m_target != nullptr);
     chunk->Append(m_target->Build(visitor, mod));
 
     { // push self arg to stack lastly as it is the first arg and we push in reverse order
         const uint8 selfArgRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
+        chunk->Append(BytecodeUtil::Make<Comment>("Pushing 'self' argument to stack (register " + String::ToString(selfArgRegister) + ")"));
         auto instrPush = BytecodeUtil::Make<RawOperation<>>();
         instrPush->opcode = PUSH;
         instrPush->Accept<uint8>(selfArgRegister);
@@ -180,7 +184,7 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
 
     const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName + " (method call)"));
+    chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName + " (method call) - hash: " + String::ToString(hash)));
 
     chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
 
@@ -196,6 +200,8 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
         mod,
         numArgsToPop + 1 // pops self off stack as well
         ));
+
+    chunk->Append(BytecodeUtil::Make<Comment>("End member call: " + ToString()));
 
     return chunk;
 }
@@ -271,6 +277,25 @@ AstExpression* AstMemberCallExpression::GetTarget() const
     }
 
     return AstExpression::GetTarget();
+}
+
+String AstMemberCallExpression::ToString() const
+{
+    String result = (m_target ? m_target->ToString() : "<null>") + "." + m_fieldName + "(";
+
+    if (m_arguments && !m_arguments->GetArguments().Empty())
+    {
+        for (SizeType i = 0; i < m_arguments->GetArguments().Size(); ++i)
+        {
+            if (i > 0)
+                result += ", ";
+            const auto& arg = m_arguments->GetArguments()[i];
+            result += arg ? arg->ToString() : "<null>";
+        }
+    }
+
+    result += ")";
+    return result;
 }
 
 } // namespace hyperion::compiler

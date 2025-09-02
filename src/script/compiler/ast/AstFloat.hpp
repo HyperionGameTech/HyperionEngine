@@ -31,6 +31,8 @@ public:
         return hc;
     }
 
+    virtual String ToString() const override;
+
 private:
     float m_value;
 
@@ -43,4 +45,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-
