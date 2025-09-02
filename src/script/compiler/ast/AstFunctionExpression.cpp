@@ -39,10 +39,26 @@ AstFunctionExpression::AstFunctionExpression(
     const RC<AstTypeSpecifier>& returnTypeSpecification,
     const RC<AstBlock>& block,
     const SourceLocation& location)
+    : AstFunctionExpression(
+          parameters,
+          returnTypeSpecification,
+          block,
+          /* enableClosure */ true,
+          location)
+{
+}
+
+AstFunctionExpression::AstFunctionExpression(
+    const Array<RC<AstParameter>>& parameters,
+    const RC<AstTypeSpecifier>& returnTypeSpecification,
+    const RC<AstBlock>& block,
+    bool enableClosure,
+    const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_parameters(parameters),
       m_returnTypeSpecification(returnTypeSpecification),
       m_block(block),
+      m_enableClosure(enableClosure),
       m_isClosure(false),
       m_isConstructorDefinition(false),
       m_returnType(BuiltinTypes::ANY),
@@ -58,13 +74,13 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_blockWithParameters = CloneAstNode(m_block);
 
-    m_isClosure = true;
     m_isConstructorDefinition = GetExpressionFlags() & EXPR_FLAGS_CONSTRUCTOR_DEFINITION;
 
     int scopeFlags = 0;
 
-    if (m_isClosure)
+    if (m_enableClosure)
     {
+        m_isClosure = true;
         scopeFlags |= CLOSURE_FUNCTION_FLAG;
 
         // closures are objects with a method named '$invoke',
@@ -265,9 +281,18 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_isClosure)
     {
+        Array<RC<AstParameter>> closureParams;
+        closureParams.Reserve(m_parameters.Size() + 1);
+        closureParams.PushBack(CloneAstNode(m_closureSelfParam));
+
+        for (const auto& it : m_parameters)
+        {
+            closureParams.PushBack(CloneAstNode(it));
+        }
+
         // add $invoke to call this object
         RC<AstClass> closureClass(new AstClass(
-            "__closure",
+            visitor->GetCompilationUnit()->GetAnonClassName(),
             SymbolTypeRef(nullptr),
             {},
             { RC<AstVariableDeclaration>(new AstVariableDeclaration(
@@ -275,7 +300,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(functionType, m_location)),
                     m_location)),
-                RC<AstNil>(new AstNil(m_location)), // no initial value
+                RC<AstFunctionExpression>(new AstFunctionExpression(
+                    closureParams,
+                    CloneAstNode(m_returnTypeSpecification),
+                    CloneAstNode(m_block),
+                    false, // do not enable closure
+                    m_location)),
                 IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER,
                 m_location)) },
             {},
@@ -340,18 +370,13 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         closureHeldType = closureHeldType->GetUnaliased();
 
         m_symbolType = std::move(closureHeldType);
-    }
-    else
-    {
-        m_symbolType = std::move(functionType);
+
+        return;
     }
 
-    // we do +1 to account for closure self var.
-    const SizeType numArguments = m_isClosure
-        ? m_parameters.Size() + 1
-        : m_parameters.Size();
+    m_symbolType = std::move(functionType);
 
-    if (numArguments > MathUtil::MaxSafeValue<uint8>())
+    if (m_parameters.Size() > MathUtil::MaxSafeValue<uint8>())
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -362,13 +387,25 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* mod)
 {
+    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    if (m_isClosure)
+    {
+        Assert(m_closureBlock != nullptr);
+
+        // load closure object into register
+        chunk->Append(BytecodeUtil::Make<Comment>("Begin closure object initialization"));
+        chunk->Append(m_closureBlock->Build(visitor, mod));
+        chunk->Append(BytecodeUtil::Make<Comment>("End closure object initialization"));
+
+        return chunk;
+    }
+
     Assert(m_blockWithParameters != nullptr);
 
     InstructionStreamContextGuard contextGuard(
         &visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree(),
         INSTRUCTION_STREAM_CONTEXT_DEFAULT);
-
-    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (m_isClosure && m_closureSelfParam != nullptr)
     {
@@ -406,22 +443,6 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         }
     }
 
-    UniquePtr<BytecodeChunk> closureChunk;
-
-    if (m_isClosure)
-    {
-        Assert(m_closureBlock != nullptr);
-
-        flags |= FunctionFlags::CLOSURE;
-
-        closureChunk = BytecodeUtil::Make<BytecodeChunk>();
-
-        // load closure object into register
-        closureChunk->Append(BytecodeUtil::Make<Comment>("Begin closure object initialization"));
-        closureChunk->Append(m_closureBlock->Build(visitor, mod));
-        closureChunk->Append(BytecodeUtil::Make<Comment>("End closure object initialization"));
-    }
-
     // the label to jump to the very end
     LabelId endLabel = contextGuard->NewLabel(NAME("AfterFunctionBody"));
     chunk->TakeOwnershipOfLabel(endLabel);
@@ -441,6 +462,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     // set the label's position to after the block
     chunk->Append(BytecodeUtil::Make<LabelMarker>(endLabel));
 
+#if 0
     if (m_isClosure)
     {
         Assert(closureChunk != nullptr);
@@ -480,17 +502,18 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     }
     else
     {
-        // store local variable
-        // get register index
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+#endif
+    // store local variable
+    // get register index
+    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        auto func = BytecodeUtil::Make<ScriptFunction>();
-        func->labelId = funcAddr;
-        func->reg = rp;
-        func->nargs = nargs;
-        func->flags = flags;
-        chunk->Append(std::move(func));
-    }
+    auto func = BytecodeUtil::Make<ScriptFunction>();
+    func->labelId = funcAddr;
+    func->reg = rp;
+    func->nargs = nargs;
+    func->flags = flags;
+    chunk->Append(std::move(func));
+    // }
 
     return chunk;
 }
@@ -532,6 +555,8 @@ void AstFunctionExpression::Optimize(AstVisitor* visitor, Module* mod)
     if (m_closureBlock != nullptr)
     {
         m_closureBlock->Optimize(visitor, mod);
+
+        return;
     }
 
     for (auto& param : m_parameters)

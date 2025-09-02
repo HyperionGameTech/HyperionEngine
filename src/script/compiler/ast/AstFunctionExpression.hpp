@@ -23,6 +23,13 @@ public:
         const RC<AstBlock>& block,
         const SourceLocation& location);
 
+    AstFunctionExpression(
+        const Array<RC<AstParameter>>& parameters,
+        const RC<AstTypeSpecifier>& returnTypeSpecification,
+        const RC<AstBlock>& block,
+        bool enableClosure,
+        const SourceLocation& location);
+
     virtual ~AstFunctionExpression() override = default;
 
     bool IsConstructorDefinition() const
@@ -76,6 +83,7 @@ protected:
     RC<AstTypeSpecifier> m_returnTypeSpecification;
     RC<AstBlock> m_block;
 
+    bool m_enableClosure;
     bool m_isClosure;
 
     RC<AstParameter> m_closureSelfParam;

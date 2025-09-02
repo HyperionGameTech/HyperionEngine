@@ -867,6 +867,8 @@ bool HypClass::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& 
 DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
+    m_refCount = 0;
+
     m_objectContainer = nullptr;
 
     if (classPtr != nullptr)
@@ -895,6 +897,8 @@ DynamicHypClassInstance::DynamicHypClassInstance(
     Span<HypMember> members)
     : HypClass(typeId, name, -1, 0, Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
 {
+    m_refCount = 0;
+
     m_parent = parentClass;
 
     SizeType dynamicSize = sizeof(HypObjectBase);
@@ -962,6 +966,7 @@ DynamicHypClassInstance::DynamicHypClassInstance(
 
 DynamicHypClassInstance::~DynamicHypClassInstance()
 {
+    Assert(AtomicAdd(&m_refCount, 0) <= 0, "DynamicHypClassInstance destroyed while still being referenced!");
 }
 
 bool DynamicHypClassInstance::IsValid() const
@@ -1269,6 +1274,19 @@ void DynamicHypClassInstance::SetConstant(uint32 index, HypConstant* constant)
 
     m_constants[index] = constant;
     m_constantsByName[constant->GetName()] = constant;
+}
+
+void DynamicHypClassInstance::AddRef()
+{
+    AtomicIncrement(&m_refCount);
+}
+
+void DynamicHypClassInstance::Release()
+{
+    if (AtomicDecrement(&m_refCount) <= 0)
+    {
+        delete this;
+    }
 }
 
 #pragma endregion DynamicHypClassInstance

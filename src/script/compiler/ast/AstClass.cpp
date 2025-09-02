@@ -39,7 +39,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
     const SymbolTypeRef& enumUnderlyingType,
-    bool isProxyClass,
+    EnumFlags<ClassFlags> classFlags,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_name(name),
@@ -48,7 +48,7 @@ AstClass::AstClass(
       m_functionMembers(functionMembers),
       m_staticMembers(staticMembers),
       m_enumUnderlyingType(enumUnderlyingType),
-      m_isProxyClass(isProxyClass),
+      m_classFlags(classFlags),
       m_isVisited(false)
 {
 }
@@ -59,7 +59,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    bool isProxyClass,
+    EnumFlags<ClassFlags> classFlags,
     const SourceLocation& location)
     : AstClass(
           name,
@@ -68,7 +68,7 @@ AstClass::AstClass(
           functionMembers,
           staticMembers,
           nullptr,
-          isProxyClass,
+          classFlags,
           location)
 {
     m_baseType = baseType;
@@ -80,7 +80,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    bool isProxyClass,
+    EnumFlags<ClassFlags> classFlags,
     const SourceLocation& location)
     : AstClass(
           name,
@@ -89,7 +89,7 @@ AstClass::AstClass(
           functionMembers,
           staticMembers,
           nullptr,
-          isProxyClass,
+          classFlags,
           location)
 {
 }
@@ -124,6 +124,11 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     if (IsEnum())
     {
+        if (!m_enumUnderlyingType.IsValid())
+        {
+            m_enumUnderlyingType = BuiltinTypes::INT;
+        }
+
         // Create a generic instance of the enum type
         m_symbolType = SymbolType::GenericInstance(
             BuiltinTypes::ENUM_TYPE,
@@ -148,7 +153,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 {}, {});
         }
 
-        if (m_isProxyClass)
+        if (IsProxyClass())
         {
             m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
         }
@@ -186,7 +191,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    if (m_isProxyClass)
+    if (IsProxyClass())
     {
         // Proxy classes cannot have data members or function members
         if (!m_dataMembers.Empty())
@@ -554,7 +559,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     Assert(m_symbolType != nullptr);
     Assert(m_isVisited);
 
-    if (m_isProxyClass)
+    if (IsProxyClass())
     {
         return nullptr; // nothing to build for proxy classes
     }

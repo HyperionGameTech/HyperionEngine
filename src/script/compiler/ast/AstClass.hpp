@@ -5,6 +5,22 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
 
+#include <core/utilities/EnumFlags.hpp>
+
+namespace hyperion {
+
+enum ClassFlags : uint8
+{
+    CLASS_FLAG_NONE = 0x0,
+    CLASS_FLAG_IS_PROXY = 0x1,
+    CLASS_FLAG_IS_ENUM = 0x2,
+    CLASS_FLAG_ANONYMOUS = 0x4
+};
+
+HYP_MAKE_ENUM_FLAGS(ClassFlags);
+
+} // namespace hyperion
+
 namespace hyperion::compiler {
 
 class AstClass : public AstExpression
@@ -16,7 +32,7 @@ public:
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
-        bool isProxyClass,
+        EnumFlags<ClassFlags> classFlags,
         const SourceLocation& location);
 
     AstClass(
@@ -25,7 +41,7 @@ public:
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
-        bool isProxyClass,
+        EnumFlags<ClassFlags> classFlags,
         const SourceLocation& location);
 
     AstClass(
@@ -35,7 +51,7 @@ public:
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
         const SymbolTypeRef& enumUnderlyingType,
-        bool isProxyClass,
+        EnumFlags<ClassFlags> classFlags,
         const SourceLocation& location);
 
     virtual ~AstClass() override = default;
@@ -78,12 +94,17 @@ public:
 
     bool IsEnum() const
     {
-        return m_enumUnderlyingType != nullptr;
+        return m_flags[CLASS_FLAG_IS_ENUM];
     }
 
     bool IsProxyClass() const
     {
-        return m_isProxyClass;
+        return m_flags[CLASS_FLAG_IS_PROXY];
+    }
+
+    bool IsAnonymous() const
+    {
+        return m_flags[CLASS_FLAG_ANONYMOUS];
     }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -130,7 +151,7 @@ public:
             hc.Add(m_enumUnderlyingType->GetHashCode());
         }
 
-        hc.Add(m_isProxyClass);
+        hc.Add(m_flags);
 
         return hc;
     }
@@ -143,7 +164,7 @@ protected:
     Array<RC<AstVariableDeclaration>> m_functionMembers;
     Array<RC<AstVariableDeclaration>> m_staticMembers;
     SymbolTypeRef m_enumUnderlyingType;
-    bool m_isProxyClass;
+    EnumFlags<ClassFlags> m_flags;
 
     SymbolTypeRef m_symbolType;
 
@@ -162,7 +183,7 @@ protected:
                 CloneAllAstNodes(m_dataMembers),
                 CloneAllAstNodes(m_functionMembers),
                 CloneAllAstNodes(m_staticMembers),
-                m_isProxyClass,
+                m_flags,
                 m_location));
         }
 
@@ -173,7 +194,7 @@ protected:
             CloneAllAstNodes(m_functionMembers),
             CloneAllAstNodes(m_staticMembers),
             m_enumUnderlyingType,
-            m_isProxyClass,
+            m_flags,
             m_location));
     }
 };

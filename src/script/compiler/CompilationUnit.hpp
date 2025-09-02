@@ -10,10 +10,11 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
 
-#include <memory>
+#include <core/utilities/IdGenerator.hpp>
 
 namespace hyperion::compiler {
 
@@ -48,6 +49,7 @@ public:
     {
         return m_errorList;
     }
+
     const ErrorList& GetErrorList() const
     {
         return m_errorList;
@@ -88,6 +90,11 @@ public:
         return m_builtins;
     }
 
+    String GetAnonClassName()
+    {
+        return String("@AnonClass") + String::ToString(m_anonClassIdGenerator.Next());
+    }
+
     /** Looks up the module with the name, taking scope into account.
         Modules with the name that are in the current module or any module
         above the current one will be considered.
@@ -108,6 +115,8 @@ private:
     AstNodeBuilder m_astNodeBuilder;
     Array<SymbolTypeRef> m_registeredTypes;
     Builtins m_builtins;
+
+    IdGenerator m_anonClassIdGenerator;
 
     // the global module
     RC<Module> m_globalModule;

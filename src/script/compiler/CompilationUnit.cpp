@@ -3,7 +3,6 @@
 #include <script/compiler/emit/StaticObject.hpp>
 #include <script/compiler/emit/NamesPair.hpp>
 #include <script/compiler/builtins/Builtins.hpp>
-#include <script/compiler/Configuration.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 

@@ -914,6 +914,8 @@ protected:
 /*! \brief a runtime created HypClass instance, for use in scripts or external code such as .NET or HypScript */
 class DynamicHypClassInstance final : public HypClass
 {
+    friend struct HypClassRef;
+
 public:
 #ifdef HYP_DOTNET
     DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
@@ -955,7 +957,137 @@ protected:
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
 
+    void AddRef();
+    void Release();
+
     HypObjectContainerBase* m_objectContainer;
+
+    volatile int32 m_refCount;
+};
+
+struct HypClassRef
+{
+    const HypClass* hypClass;
+
+    HYP_FORCE_INLINE HypClassRef()
+        : hypClass(nullptr)
+    {
+    }
+
+    HYP_FORCE_INLINE HypClassRef(const HypClass* hypClass, int initialRefCount = 1)
+        : hypClass(hypClass)
+    {
+        if (hypClass && hypClass->IsDynamic() && initialRefCount > 0)
+        {
+            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+        }
+    }
+
+    HYP_FORCE_INLINE HypClassRef(const HypClassRef& other)
+        : hypClass(other.hypClass)
+    {
+        if (hypClass)
+        {
+            if (hypClass->IsDynamic())
+            {
+                const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+            }
+        }
+    }
+
+    HYP_FORCE_INLINE HypClassRef& operator=(const HypClassRef& other)
+    {
+        if (this == &other || hypClass == other.hypClass)
+        {
+            return *this;
+        }
+
+        if (hypClass && hypClass->IsDynamic())
+        {
+            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+        }
+
+        hypClass = other.hypClass;
+
+        if (hypClass && hypClass->IsDynamic())
+        {
+            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+        }
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE HypClassRef(HypClassRef&& other) noexcept
+        : hypClass(other.hypClass)
+    {
+        other.hypClass = nullptr;
+    }
+
+    HYP_FORCE_INLINE HypClassRef& operator=(HypClassRef&& other) noexcept
+    {
+        if (this == &other || hypClass == other.hypClass)
+        {
+            return *this;
+        }
+
+        if (hypClass && hypClass->IsDynamic())
+        {
+            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+        }
+
+        hypClass = other.hypClass;
+        other.hypClass = nullptr;
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE ~HypClassRef()
+    {
+        if (hypClass && hypClass->IsDynamic())
+        {
+            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+        }
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return hypClass != nullptr;
+    }
+
+    HYP_FORCE_INLINE const HypClass* operator->() const
+    {
+        return hypClass;
+    }
+
+    HYP_FORCE_INLINE const HypClass& operator*() const
+    {
+        return *hypClass;
+    }
+
+    HYP_FORCE_INLINE operator const HypClass*() const
+    {
+        return hypClass;
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return IsValid();
+    }
+
+    HYP_FORCE_INLINE bool operator==(const HypClassRef& other) const
+    {
+        return hypClass == other.hypClass;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const HypClassRef& other) const
+    {
+        return hypClass != other.hypClass;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const HypClassRef& other) const
+    {
+        return hypClass < other.hypClass;
+    }
 };
 
 } // namespace hyperion
