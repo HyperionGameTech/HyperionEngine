@@ -59,7 +59,7 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_arguments != nullptr)
     {
-        for (auto& arg : m_arguments->GetArguments())
+        for (const RC<AstArgument>& arg : m_arguments->GetArguments())
         {
             argsWithSelf.PushBack(arg);
         }
@@ -69,6 +69,11 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
     for (const RC<AstArgument>& arg : argsWithSelf)
     {
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
 
         // note, visit in current module rather than module access
         // this is used so that we can call functions from separate modules,
@@ -111,7 +116,9 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
         // visit each argument (again, substituted)
         for (const RC<AstArgument>& arg : m_substitutedArgs)
         {
-            if (!arg)
+            Assert(arg != nullptr);
+
+            if (arg->IsPlaceholderArgument())
             {
                 continue;
             }
@@ -166,13 +173,16 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
     // increment stack size for 'self' var
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
+    uint16 numArgsToPop = 0;
+
     if (m_substitutedArgs.Any())
     {
         // build arguments
         chunk->Append(Compiler::BuildArgumentsStart(
             visitor,
             mod,
-            m_substitutedArgs));
+            m_substitutedArgs,
+            numArgsToPop));
 
         int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -192,14 +202,14 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
     chunk->Append(Compiler::BuildCall(
         visitor,
         mod,
-        nullptr,                            // no target -- handled above
-        uint8(m_substitutedArgs.Size() + 1) // call w/ self as first arg
+        nullptr,         // no target -- handled above
+        numArgsToPop + 1 // +1 for self
         ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,
         mod,
-        m_substitutedArgs.Size() + 1 // pops self off stack as well
+        numArgsToPop + 1 // pops self off stack as well
         ));
 
     return chunk;
@@ -209,9 +219,14 @@ void AstMemberCallExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
     AstMember::Optimize(visitor, mod);
 
-    for (auto& arg : m_substitutedArgs)
+    for (const RC<AstArgument>& arg : m_substitutedArgs)
     {
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
 
         arg->Optimize(visitor, mod);
     }

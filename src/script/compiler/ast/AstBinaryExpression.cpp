@@ -32,7 +32,7 @@ AstBinaryExpression::AstBinaryExpression(
       m_left(left),
       m_right(right),
       m_op(op),
-      m_operatorOverloadingEnabled(true)
+      m_enableOverrideExpr(true)
 {
 }
 
@@ -50,15 +50,20 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 #endif
-    
+
+    if (m_op->ModifiesValue())
+    {
+        m_left->SetAccessMode(AccessMode::ACCESS_MODE_STORE);
+    }
+
     m_left->Visit(visitor, mod);
 
     // operator overloading
-    if (m_operatorOverloadingEnabled)
+    if (m_enableOverrideExpr)
     {
         if (m_op->ModifiesValue() && m_op->GetOperatorType() != OP_assign)
         {
-            // change a += b into a = a + b
+            // transform a += b into a = a + b if not a number type
             const Operator* nonAssignmentOp = Operator::GetNonAssignmentVariant(m_op);
             Assert(nonAssignmentOp != nullptr);
 
@@ -73,9 +78,10 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                         m_location)),
                     Operator::FindBinaryOperator(Operators::OP_assign),
                     m_location));
-                subBinExpr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
 
-                m_operatorOverload = std::move(subBinExpr);
+                subBinExpr->SetEnableOverrideExpr(false);
+
+                m_overrideExpr = std::move(subBinExpr);
             }
         }
         else if (m_op->SupportsOverloading())
@@ -109,7 +115,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
             if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
             {
-                m_operatorOverload.Reset(new AstCallExpression(
+                m_overrideExpr.Reset(new AstCallExpression(
                     RC<AstMember>(new AstMember(
                         overloadFunctionName,
                         CloneAstNode(m_left),
@@ -132,9 +138,9 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             else if (targetType->IsAnyType())
             {
                 RC<AstBinaryExpression> subBinExpr = Clone().CastUnsafe<AstBinaryExpression>();
-                subBinExpr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
+                subBinExpr->SetEnableOverrideExpr(false);
 
-                m_operatorOverload.Reset(new AstTernaryExpression(
+                m_overrideExpr.Reset(new AstTernaryExpression(
                     RC<AstHasExpression>(new AstHasExpression(
                         CloneAstNode(m_left),
                         overloadFunctionName,
@@ -145,15 +151,15 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             }
             else if (targetType->FindMemberDeep(overloadFunctionName))
             {
-                m_operatorOverload = callOperatorOverloadExpr;
+                m_overrideExpr = callOperatorOverloadExpr;
             }
         }
 
-        if (m_operatorOverload != nullptr)
+        if (m_overrideExpr != nullptr)
         {
-            m_operatorOverload->SetAccessMode(GetAccessMode());
-            m_operatorOverload->SetExpressionFlags(GetExpressionFlags());
-            m_operatorOverload->Visit(visitor, mod);
+            m_overrideExpr->SetAccessMode(GetAccessMode());
+            m_overrideExpr->SetExpressionFlags(GetExpressionFlags());
+            m_overrideExpr->Visit(visitor, mod);
 
             return;
         }
@@ -201,9 +207,6 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_op->ModifiesValue())
     {
-        // should have been handled by operator overloading above
-        Assert(m_op->GetOperatorType() == Operators::OP_assign);
-
         SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
             visitor,
             mod,
@@ -246,9 +249,9 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod)
 {
-    if (m_operatorOverload != nullptr)
+    if (m_overrideExpr != nullptr)
     {
-        return m_operatorOverload->Build(visitor, mod);
+        return m_overrideExpr->Build(visitor, mod);
     }
 
 #if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
@@ -702,11 +705,10 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
 
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        if (m_left->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)
-        {
-            m_left->SetAccessMode(AccessMode::ACCESS_MODE_STORE);
-            chunk->Append(m_left->Build(visitor, mod));
-        }
+        Assert(m_left->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE);
+
+        m_left->SetAccessMode(AccessMode::ACCESS_MODE_STORE);
+        chunk->Append(m_left->Build(visitor, mod));
 
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
     }
@@ -716,9 +718,9 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
 
 void AstBinaryExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_operatorOverload != nullptr)
+    if (m_overrideExpr != nullptr)
     {
-        m_operatorOverload->Optimize(visitor, mod);
+        m_overrideExpr->Optimize(visitor, mod);
 
         return;
     }
@@ -782,9 +784,9 @@ Tribool AstBinaryExpression::IsTrue() const
 
 bool AstBinaryExpression::MayHaveSideEffects() const
 {
-    if (m_operatorOverload != nullptr)
+    if (m_overrideExpr != nullptr)
     {
-        return m_operatorOverload->MayHaveSideEffects();
+        return m_overrideExpr->MayHaveSideEffects();
     }
 
     bool leftSideEffects = m_left->MayHaveSideEffects();
@@ -805,9 +807,9 @@ bool AstBinaryExpression::MayHaveSideEffects() const
 
 SymbolTypeRef AstBinaryExpression::GetExprType() const
 {
-    if (m_operatorOverload != nullptr)
+    if (m_overrideExpr != nullptr)
     {
-        return m_operatorOverload->GetExprType();
+        return m_overrideExpr->GetExprType();
     }
 
     Assert(m_op != nullptr);

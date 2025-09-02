@@ -33,7 +33,8 @@ void AstTernaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_conditional->Visit(visitor, mod);
 
-    // TEMPORARY HACK UNTIL SOMETHING LIKE `AstCompileTimeTernary` exists.
+    m_left->SetAccessMode(GetAccessMode());
+    m_right->SetAccessMode(GetAccessMode());
 
     if (m_conditional->IsTrue() != TRI_FALSE)
     {

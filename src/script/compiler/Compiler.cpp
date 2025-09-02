@@ -18,32 +18,41 @@ namespace hyperion::compiler {
 UniquePtr<Buildable> Compiler::BuildArgumentsStart(
     AstVisitor* visitor,
     Module* mod,
-    const Array<RC<AstArgument>>& args)
+    const Array<RC<AstArgument>>& args,
+    uint16& outNumArgs)
 {
+    outNumArgs = 0;
+
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    uint8 rp;
-
-    // push a copy of each argument to the stack
-    for (auto& arg : args)
+    // push a copy of each argument to the stack (in reverse order)
+    for (SizeType index = args.Size(); index > 0; index--)
     {
+        const RC<AstArgument>& arg = args[index - 1];
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
 
         // build in current module (not mod)
         chunk->Append(arg->Build(visitor, visitor->GetCompilationUnit()->GetCurrentModule()));
 
         // get active register
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        const uint8 activeRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         // now that it's loaded into the register, make a copy
         // add instruction to store on stack
         auto instrPush = BytecodeUtil::Make<RawOperation<>>();
         instrPush->opcode = PUSH;
-        instrPush->Accept<uint8>(rp);
+        instrPush->Accept<uint8>(activeRegister);
         chunk->Append(std::move(instrPush));
 
         // increment stack size
         visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+        ++outNumArgs;
     }
 
     return chunk;
@@ -52,27 +61,34 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
 UniquePtr<Buildable> Compiler::BuildArgumentsEnd(
     AstVisitor* visitor,
     Module* mod,
-    uint8 nargs)
+    uint16 numArgs)
 {
+    if (numArgs == 0)
+    {
+        return nullptr;
+    }
+
     // the reason we decrement the compiler's record of the stack size directly after
     // is because the function body will actually handle the management of the stack size,
     // so that the parameters are actually local variables to the function body.
-    for (uint8 i = 0; i < nargs; i++)
+    for (uint16 i = 0; i < numArgs; i++)
     {
         // increment stack size
         visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
     }
 
     // pop arguments from stack
-    return Compiler::PopStack(visitor, nargs);
+    return Compiler::PopStack(visitor, numArgs);
 }
 
 UniquePtr<Buildable> Compiler::BuildCall(
     AstVisitor* visitor,
     Module* mod,
     const RC<AstExpression>& target,
-    uint8 nargs)
+    uint16 numArgs)
 {
+    Assert(numArgs <= UINT8_MAX);
+
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     // if no target provided, do not build it in
@@ -87,7 +103,7 @@ UniquePtr<Buildable> Compiler::BuildCall(
     auto instrCall = BytecodeUtil::Make<RawOperation<>>();
     instrCall->opcode = CALL;
     instrCall->Accept<uint8>(rp);
-    instrCall->Accept<uint8>(nargs);
+    instrCall->Accept<uint8>(numArgs);
     chunk->Append(std::move(instrCall));
 
     return chunk;

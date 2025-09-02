@@ -30,6 +30,7 @@ public:
     {
         return m_isSplat;
     }
+
     bool IsNamed() const
     {
         return m_isNamed;
@@ -39,6 +40,7 @@ public:
     {
         return m_isPassConst;
     }
+
     void SetIsPassConst(bool isPassConst)
     {
         m_isPassConst = isPassConst;
@@ -48,9 +50,15 @@ public:
     {
         return m_isPassByRef;
     }
+
     void SetIsPassByRef(bool isPassByRef)
     {
         m_isPassByRef = isPassByRef;
+    }
+
+    bool IsPlaceholderArgument() const
+    {
+        return m_expr == nullptr;
     }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -106,4 +114,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

@@ -109,12 +109,18 @@ public:
     {
         return m_registerCounter;
     }
+    
     uint8 IncRegisterUsage()
     {
+        Assert(m_registerCounter < UINT8_MAX);
+        
         return ++m_registerCounter;
     }
+    
     uint8 DecRegisterUsage()
     {
+        Assert(m_registerCounter > 0);
+        
         return --m_registerCounter;
     }
 

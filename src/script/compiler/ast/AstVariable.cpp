@@ -271,12 +271,12 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
         {
             if (m_accessMode == ACCESS_MODE_LOAD)
             {
+                chunk->Append(BytecodeUtil::Make<Comment>("Load variable " + m_name));
+
                 // load stack value at offset value into register
                 auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
                 instrLoadOffset->GetBuilder().Load(rp, m_isInRefAssignment && !isRef).Local().ByOffset(offset);
                 chunk->Append(std::move(instrLoadOffset));
-
-                chunk->Append(BytecodeUtil::Make<Comment>("Load variable " + m_name));
 
                 if (isRef && !m_isInRefAssignment)
                 {
@@ -300,12 +300,12 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
             // load globally, rather than from offset.
             if (m_accessMode == ACCESS_MODE_LOAD)
             {
+                chunk->Append(BytecodeUtil::Make<Comment>("Load variable " + m_name));
+
                 // load stack value at index into register
                 auto instrLoadIndex = BytecodeUtil::Make<StorageOperation>();
                 instrLoadIndex->GetBuilder().Load(rp, m_isInRefAssignment && !isRef).Local().ByIndex(stackLocation);
                 chunk->Append(std::move(instrLoadIndex));
-
-                chunk->Append(BytecodeUtil::Make<Comment>("Load variable " + m_name));
 
                 if (isRef && !m_isInRefAssignment)
                 {

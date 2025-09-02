@@ -127,6 +127,11 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(arg != nullptr);
 
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
+
         // note, visit in current module rather than module access
         // this is used so that we can call functions from separate modules,
         // yet still pass variables from the local module.
@@ -178,7 +183,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
         for (const RC<AstArgument>& arg : m_substitutedArgs)
         {
-            if (!arg)
+            if (!arg || arg->IsPlaceholderArgument())
             {
                 continue;
             }
@@ -214,32 +219,25 @@ UniquePtr<Buildable> AstCallExpression::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
+    uint16 numArgsToPop = 0;
+
     // build arguments
     chunk->Append(Compiler::BuildArgumentsStart(
         visitor,
         mod,
-        m_substitutedArgs));
-
-    const int stackSizeBefore = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        m_substitutedArgs,
+        numArgsToPop));
 
     chunk->Append(Compiler::BuildCall(
         visitor,
         mod,
         m_expr,
-        uint8(m_substitutedArgs.Size())));
-
-    const int stackSizeNow = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
-    Assert(
-        stackSizeNow == stackSizeBefore,
-        "Stack size mismatch detected! Internal record of stack does not match. (%d != %d)",
-        stackSizeNow,
-        stackSizeBefore);
+        numArgsToPop));
 
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,
         mod,
-        m_substitutedArgs.Size()));
+        numArgsToPop));
 
     return chunk;
 }

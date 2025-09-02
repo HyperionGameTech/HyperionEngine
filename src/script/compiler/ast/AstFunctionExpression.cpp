@@ -407,28 +407,26 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         &visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree(),
         INSTRUCTION_STREAM_CONTEXT_DEFAULT);
 
+    uint16 numArgs = 0;
+
+    // build params in reverse order
+    for (SizeType index = m_parameters.Size(); index > 0; index--, numArgs++)
+    {
+        Assert(m_parameters[index - 1] != nullptr);
+
+        chunk->Append(m_parameters[index - 1]->Build(visitor, mod));
+    }
+
     if (m_isClosure && m_closureSelfParam != nullptr)
     {
         chunk->Append(m_closureSelfParam->Build(visitor, mod));
-    }
 
-    for (SizeType index = 0; index < m_parameters.Size(); index++)
-    {
-        Assert(m_parameters[index] != nullptr);
-        chunk->Append(m_parameters[index]->Build(visitor, mod));
+        numArgs++;
     }
 
     uint8 rp;
 
     Assert(m_parameters.Size() + (m_isClosure ? 1 : 0) <= MathUtil::MaxSafeValue<uint8>());
-
-    // the properties of this function
-    uint8 nargs = uint8(m_parameters.Size());
-
-    if (m_isClosure)
-    {
-        nargs++; // make room for the closure self object
-    }
 
     uint8 flags = FunctionFlags::NONE;
 
@@ -462,58 +460,18 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     // set the label's position to after the block
     chunk->Append(BytecodeUtil::Make<LabelMarker>(endLabel));
 
-#if 0
-    if (m_isClosure)
-    {
-        Assert(closureChunk != nullptr);
-        chunk->Append(std::move(closureChunk));
-
-        // inc register usage for the closure object
-        uint8 closureRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-        visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
-
-        const uint8 functionRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-        { // set the function object into a register
-            auto func = BytecodeUtil::Make<ScriptFunction>();
-            func->labelId = funcAddr;
-            func->reg = functionRegister;
-            func->nargs = nargs;
-            func->flags = flags;
-            chunk->Append(std::move(func));
-        }
-
-        // store into $invoke
-        chunk->Append(BytecodeUtil::Make<Comment>("Store $invoke member of closure object"));
-        const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
-
-        {
-            auto instrMovMemHash = BytecodeUtil::Make<StorageOperation>();
-            instrMovMemHash->GetBuilder()
-                .Store(functionRegister)
-                .Member(closureRegister)
-                .ByHash(invokeHash);
-
-            chunk->Append(std::move(instrMovMemHash));
-        }
-
-        // dec register usage for closure object
-        visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
-    }
-    else
-    {
-#endif
     // store local variable
     // get register index
     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
+    Assert(numArgs <= UINT8_MAX);
+
     auto func = BytecodeUtil::Make<ScriptFunction>();
     func->labelId = funcAddr;
     func->reg = rp;
-    func->nargs = nargs;
+    func->nargs = (uint8)numArgs;
     func->flags = flags;
     chunk->Append(std::move(func));
-    // }
 
     return chunk;
 }

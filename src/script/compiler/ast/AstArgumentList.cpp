@@ -27,6 +27,12 @@ void AstArgumentList::Visit(AstVisitor* visitor, Module* mod)
     for (const RC<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
+
         arg->Visit(visitor, mod);
     }
 }
@@ -41,6 +47,12 @@ UniquePtr<Buildable> AstArgumentList::Build(AstVisitor* visitor, Module* mod)
     for (const RC<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
+
         chunk->Append(arg->Build(visitor, mod));
     }
 
@@ -55,6 +67,12 @@ void AstArgumentList::Optimize(AstVisitor* visitor, Module* mod)
     for (const RC<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
+
         arg->Optimize(visitor, mod);
     }
 }
@@ -74,6 +92,11 @@ bool AstArgumentList::MayHaveSideEffects() const
     for (const RC<AstArgument>& arg : m_args)
     {
         Assert(arg != nullptr);
+
+        if (arg->IsPlaceholderArgument())
+        {
+            continue;
+        }
 
         if (arg->MayHaveSideEffects())
         {

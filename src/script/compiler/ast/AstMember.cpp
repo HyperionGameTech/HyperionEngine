@@ -231,7 +231,8 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
         break;
     default:
-        Assert(false, "unknown access mode");
+        HYP_UNREACHABLE();
+        break;
     }
 
     switch (m_accessMode)

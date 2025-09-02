@@ -51,6 +51,7 @@ void AstBlock::Visit(AstVisitor* visitor, Module* mod)
     mod->m_scopes.Close();
 }
 
+HYP_DISABLE_OPTIMIZATION;
 UniquePtr<Buildable> AstBlock::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
@@ -64,32 +65,21 @@ UniquePtr<Buildable> AstBlock::Build(AstVisitor* visitor, Module* mod)
         chunk->Append(stmt->Build(visitor, mod));
     }
 
-    // how many times to pop the stack
-    SizeType popTimes = 0;
-
-    // pop all local variables off the stack
-    for (int i = 0; i < m_numLocals; i++)
-    {
-        if (!m_lastIsReturn)
-        {
-            popTimes++;
-        }
-
-        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-    }
-
     const int stackSizeNow = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    const int stackSizeDiff = stackSizeNow - stackSizeBefore;
+    
+    Assert(stackSizeDiff >= 0);
 
-    Assert(
-        stackSizeNow == stackSizeBefore,
-        "Stack size mismatch detected! Internal record of stack does not match. (%d != %d)",
-        stackSizeNow,
-        stackSizeBefore);
-
-    chunk->Append(Compiler::PopStack(visitor, popTimes));
+    if (stackSizeDiff > 0)
+    {
+        visitor->GetCompilationUnit()->GetInstructionStream().SetStackSize(stackSizeBefore);
+        
+        chunk->Append(Compiler::PopStack(visitor, stackSizeNow - stackSizeBefore));
+    }
 
     return chunk;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void AstBlock::Optimize(AstVisitor* visitor, Module* mod)
 {

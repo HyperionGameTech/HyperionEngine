@@ -101,9 +101,6 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     m_symbolType = genericInstanceType;
     Assert(m_symbolType != nullptr);
-
-    DebugLog(LogType::Debug, "Instantiated generic type: %s\n", m_symbolType->ToString().Data());
-    DebugLog(LogType::Debug, "Num members: %zu\n", m_symbolType->GetMembers().Size());
 }
 
 UniquePtr<Buildable> AstTemplateInstantiation::Build(AstVisitor* visitor, Module* mod)

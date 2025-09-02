@@ -156,6 +156,7 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
             //  - do binary op
             //  - return value from original register
 
+            /// @FIXME: Issues with array access.
             Assert(m_target != nullptr);
             chunk->Append(m_target->Build(visitor, mod));
 

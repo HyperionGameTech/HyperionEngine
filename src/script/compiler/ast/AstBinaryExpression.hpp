@@ -25,13 +25,9 @@ public:
         return m_right;
     }
 
-    bool IsOperatorOverloadingEnabled() const
+    void SetEnableOverrideExpr(bool enable)
     {
-        return m_operatorOverloadingEnabled;
-    }
-    void SetIsOperatorOverloadingEnabled(bool operatorOverloadingEnabled)
-    {
-        m_operatorOverloadingEnabled = operatorOverloadingEnabled;
+        m_enableOverrideExpr = enable;
     }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -59,8 +55,8 @@ private:
     RC<AstExpression> m_right;
     const Operator* m_op;
 
-    RC<AstExpression> m_operatorOverload;
-    bool m_operatorOverloadingEnabled;
+    RC<AstExpression> m_overrideExpr;
+    bool m_enableOverrideExpr;
 
 #if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     // if the expression is lazy declaration
@@ -80,4 +76,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-
