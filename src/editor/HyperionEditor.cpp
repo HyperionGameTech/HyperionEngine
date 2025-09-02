@@ -147,7 +147,7 @@ void HyperionEditor::Init()
               "ins : any = new MyClass();\n"
               "testArray2 : Array<int> = [9,9,343.0 as int];\n"
               "testArray2[0]++;\n"
-              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1.343 as int,2,3], obj: any) { return func() { obj.blah = \"123\";\nreturn testArray2; }; };\n"
+              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1.343 as int,2,3], obj: any) { return func() { obj.blah = \"123\";\ntestArray2[1] = testArray2[2];\nreturn testArray2; }; };\n"
               "export func x(a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));

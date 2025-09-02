@@ -336,7 +336,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            *os << "cast_unified ";
+            *os << "CAST ";
 
             switch (castType)
             {
@@ -405,7 +405,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_I32 ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "i32(" << val << ")"
                 << "]"
                 << std::endl;
@@ -425,7 +425,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_I64 ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "i64(" << val << ")"
                 << "]"
                 << std::endl;
@@ -445,7 +445,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_U32 ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u32(" << val << ")"
                 << "]"
                 << std::endl;
@@ -465,7 +465,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_U64 ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u64(" << val << ")"
                 << "]"
                 << std::endl;
@@ -485,7 +485,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_F32 ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "f32(" << val << ")"
                 << "]"
                 << std::endl;
@@ -505,7 +505,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_F64 ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "f64(" << val << ")"
                 << "]"
                 << std::endl;
@@ -525,8 +525,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_OFFSET ["
-                << "%" << (int)reg << ", "
-                                      "$(sp-"
+                << "%r" << (int)reg << ", "
+                                       "$(sp-"
                 << offset << ")"
                 << "]"
                 << std::endl;
@@ -546,8 +546,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_INDEX ["
-                << "%" << (int)reg << ", "
-                                      "u16("
+                << "%r" << (int)reg << ", "
+                                       "u16("
                 << idx << ")"
                 << "]"
                 << std::endl;
@@ -567,7 +567,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_STATIC ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "#" << index
                 << "]"
                 << std::endl;
@@ -593,7 +593,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_STRING ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u32(" << len << "), "
                 << "\"" << str << "\""
                 << "]"
@@ -614,7 +614,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            (*os) << "LOAD_ADDR [%" << (int)reg << ", @(" << std::hex << val << std::dec << ")]" << std::endl;
+            (*os) << "LOAD_ADDR [%r" << (int)reg << ", @(" << std::hex << val << std::dec << ")]" << std::endl;
         }
 
         break;
@@ -635,7 +635,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            (*os) << "LOAD_FUNC [%" << (int)reg
+            (*os) << "LOAD_FUNC [%r" << (int)reg
                   << ", @(" << std::hex << addr << std::dec << "), "
                   << "u8(" << (int)nargs << ")], "
                   << "u8(" << (int)flags << ")]"
@@ -659,8 +659,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "GET_MEMBER ["
-                << "%" << (int)reg << ", "
-                << "%" << (int)src << ", "
+                << "%r" << (int)reg << ", "
+                << "%r" << (int)src << ", "
                 << "u64(" << hash << ")"
                 << "]"
                 << std::endl;
@@ -683,9 +683,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_ARRAYIDX ["
-                << "%" << (int)reg << ", "
-                << "%" << (int)src << ", "
-                << "%" << (int)idx << ")"
+                << "%r" << (int)reg << ", "
+                << "%r" << (int)src << ", "
+                << "%r" << (int)idx << ")"
                 << "]"
                 << std::endl;
         }
@@ -704,8 +704,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_OFFSET_REF ["
-                << "%" << (int)reg << ", "
-                                      "$(sp-"
+                << "%r" << (int)reg << ", "
+                                       "$(sp-"
                 << offset << ")"
                 << "]"
                 << std::endl;
@@ -725,8 +725,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_INDEX_REF ["
-                << "%" << (int)reg << ", "
-                                      "u16("
+                << "%r" << (int)reg << ", "
+                                       "u16("
                 << idx << ")"
                 << "]"
                 << std::endl;
@@ -746,8 +746,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "REF ["
-                << "%" << (int)dstReg << ", "
-                << "%" << (int)srcReg
+                << "%r" << (int)dstReg << ", "
+                << "%r" << (int)srcReg
                 << "]"
                 << std::endl;
         }
@@ -766,8 +766,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "DEREF ["
-                << "%" << (int)dstReg << ", "
-                << "%" << (int)srcReg
+                << "%r" << (int)dstReg << ", "
+                << "%r" << (int)srcReg
                 << "]"
                 << std::endl;
         }
@@ -783,7 +783,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_NULL ["
-                << "%" << (int)reg
+                << "%r" << (int)reg
                 << "]"
                 << std::endl;
         }
@@ -799,7 +799,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_TRUE ["
-                << "%" << (int)reg
+                << "%r" << (int)reg
                 << "]"
                 << std::endl;
         }
@@ -815,7 +815,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_FALSE ["
-                << "%" << (int)reg
+                << "%r" << (int)reg
                 << "]"
                 << std::endl;
         }
@@ -834,7 +834,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "LOAD_CLASS ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u64(" << nameHash << ")"
                 << "]"
                 << std::endl;
@@ -855,7 +855,7 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "MOV_OFFSET ["
                 << "$(sp-" << dst << "), "
-                << "%" << (int)src
+                << "%r" << (int)src
                 << "]"
                 << std::endl;
         }
@@ -875,7 +875,7 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "MOV_INDEX ["
                 << "u16(" << dst << "), "
-                << "%" << (int)src
+                << "%r" << (int)src
                 << "]"
                 << std::endl;
         }
@@ -895,7 +895,7 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "MOV_STATIC ["
                 << "#" << dst << ", "
-                << "%" << (int)src
+                << "%r" << (int)src
                 << "]"
                 << std::endl;
         }
@@ -917,9 +917,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "SET_FIELD ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u64(" << hash << "), "
-                << "%" << (int)src
+                << "%r" << (int)src
                 << "]"
                 << std::endl;
         }
@@ -941,9 +941,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MOV_ARRAYIDX ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u32(" << (int)idx << "), "
-                << "%" << (int)src << ""
+                << "%r" << (int)src << ""
                 << "]"
                 << std::endl;
         }
@@ -965,9 +965,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MOV_ARRAYIDX_REG ["
-                << "%" << (int)reg << ", "
-                << "%" << (int)idx << ", "
-                << "%" << (int)src << ""
+                << "%r" << (int)reg << ", "
+                << "%r" << (int)idx << ", "
+                << "%r" << (int)src << ""
                 << "]"
                 << std::endl;
         }
@@ -986,8 +986,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MOV ["
-                << "%" << (int)dst << ", "
-                << "%" << (int)src << ""
+                << "%r" << (int)dst << ", "
+                << "%r" << (int)src << ""
                 << "]"
                 << std::endl;
         }
@@ -1009,8 +1009,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CHECK_HAS_MEMBER ["
-                << "%" << (int)reg << ", "
-                << "%" << (int)src << ", "
+                << "%r" << (int)reg << ", "
+                << "%r" << (int)src << ", "
                 << "u64(" << hash << ")"
                 << "]"
                 << std::endl;
@@ -1027,7 +1027,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "PUSH ["
-                << "%" << (int)src
+                << "%r" << (int)src
                 << "]"
                 << std::endl;
         }
@@ -1057,8 +1057,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "PUSH_ARRAY ["
-                << "% " << (int)dst << ", "
-                << "% " << (int)src
+                << "%r" << (int)dst << ", "
+                << "%r" << (int)src
                 << "]" << std::endl;
         }
 
@@ -1189,7 +1189,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CALL ["
-                << "%" << (int)func << ", "
+                << "%r" << (int)func << ", "
                 << "u8(" << (int)argc << ")"
                 << "]"
                 << std::endl;
@@ -1245,8 +1245,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "NEW ["
-                << "%" << (int)dst << ", "
-                << "%" << (int)type
+                << "%r" << (int)dst << ", "
+                << "%r" << (int)type
                 << "]"
                 << std::endl;
         }
@@ -1265,7 +1265,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "NEW_ARRAY ["
-                << "%" << (int)dst << ", "
+                << "%r" << (int)dst << ", "
                 << "u32(" << (int)size << ")"
                 << "]"
                 << std::endl;
@@ -1295,7 +1295,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr)
         {
-            (*os) << "BEGIN_CLASS [%" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << "), u8(" << (int)flags
+            (*os) << "BEGIN_CLASS [%r" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << "), u8(" << (int)flags
                   << ")]" << std::endl;
         }
 
@@ -1535,8 +1535,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CMP ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs
                 << "]"
                 << std::endl;
         }
@@ -1552,7 +1552,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CMPZ ["
-                << "%" << (int)lhs
+                << "%r" << (int)lhs
                 << "]"
                 << std::endl;
         }
@@ -1574,9 +1574,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "ADD ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1598,9 +1598,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "SUB ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1622,9 +1622,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MUL ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1646,9 +1646,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "DIV ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1670,9 +1670,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MOD ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1694,9 +1694,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "AND ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1718,9 +1718,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "OR ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1742,9 +1742,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "XOR ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1766,9 +1766,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "SHL ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1791,9 +1791,9 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "SHR ["
-                << "%" << (int)lhs << ", "
-                << "%" << (int)rhs << ", "
-                << "%" << (int)dst
+                << "%r" << (int)lhs << ", "
+                << "%r" << (int)rhs << ", "
+                << "%r" << (int)dst
                 << "]"
                 << std::endl;
         }
@@ -1809,7 +1809,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "NEG ["
-                << "%" << (int)reg
+                << "%r" << (int)reg
                 << "]"
                 << std::endl;
         }
@@ -1825,7 +1825,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "THROW ["
-                << "% " << (int)reg
+                << "%r" << (int)reg
                 << "]"
                 << std::endl;
         }
@@ -1882,7 +1882,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "EXPORT ["
-                << "%" << (int)reg << ", "
+                << "%r" << (int)reg << ", "
                 << "u64(" << hash << ")"
                 << "]"
                 << std::endl;
@@ -1902,8 +1902,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_U8 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -1922,8 +1922,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_U16 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -1942,8 +1942,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_U32 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -1962,8 +1962,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_U64 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -1982,8 +1982,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_I8 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2002,8 +2002,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_I16 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2022,8 +2022,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_I32 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2042,8 +2042,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_I64 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2062,8 +2062,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_F32 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2082,8 +2082,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_F64 ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2102,8 +2102,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_BOOL ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
@@ -2122,8 +2122,8 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "CAST_DYNAMIC ["
-                << "%" << (int)regDst << ", "
-                << "%" << (int)regSrc
+                << "%r" << (int)regDst << ", "
+                << "%r" << (int)regSrc
                 << "]"
                 << std::endl;
         }
