@@ -50,85 +50,103 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 #endif
-
+    
     m_left->Visit(visitor, mod);
 
     // operator overloading
-    if (m_operatorOverloadingEnabled && m_op->SupportsOverloading())
+    if (m_operatorOverloadingEnabled)
     {
-        // look for operator overloading
-        SymbolTypeRef targetType = m_left->GetExprType();
-        Assert(targetType != nullptr);
-
-        targetType = targetType->GetUnaliased();
-        Assert(targetType != nullptr);
-
-        const String operatorString = m_op->LookupStringValue();
-        const String overloadFunctionName = "operator" + operatorString;
-
-        RC<AstExpression> callOperatorOverloadExpr;
-
-        callOperatorOverloadExpr.Reset(new AstMemberCallExpression(
-            overloadFunctionName,
-            CloneAstNode(m_left),
-            RC<AstArgumentList>(new AstArgumentList(
-                { RC<AstArgument>(new AstArgument(
-                    CloneAstNode(m_right),
-                    false,
-                    false,
-                    false,
-                    false,
-                    "other",
-                    m_location)) },
-                m_location)), // use right hand side as arg
-            m_location));
-
-        if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
+        if (m_op->ModifiesValue() && m_op->GetOperatorType() != OP_assign)
         {
-            m_operatorOverload.Reset(new AstCallExpression(
-                RC<AstMember>(new AstMember(
-                    overloadFunctionName,
+            // change a += b into a = a + b
+            const Operator* nonAssignmentOp = Operator::GetNonAssignmentVariant(m_op);
+            Assert(nonAssignmentOp != nullptr);
+
+            if (nonAssignmentOp != m_op)
+            {
+                RC<AstBinaryExpression> subBinExpr(new AstBinaryExpression(
                     CloneAstNode(m_left),
-                    m_location)),
-                { RC<AstArgument>(new AstArgument(
-                    CloneAstNode(m_right),
-                    false,
-                    false,
-                    false,
-                    false,
-                    "other",
-                    m_location)) },
-                true,
-                m_location));
+                    RC<AstBinaryExpression>(new AstBinaryExpression(
+                        CloneAstNode(m_left),
+                        CloneAstNode(m_right),
+                        nonAssignmentOp,
+                        m_location)),
+                    Operator::FindBinaryOperator(Operators::OP_assign),
+                    m_location));
+                subBinExpr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
+
+                m_operatorOverload = std::move(subBinExpr);
+            }
         }
-
-        // for ANY type we conditionally build in a check
-        // also, for proxy class that does not have the operator overloaded,
-        // we build in the condition as well
-        else if (
-            targetType->IsAnyType()
-            // targetType != BuiltinTypes::STRING // Special case for String class to override checking for members like operator== and operator+
-            // && (targetType->IsAnyType() || targetType->IsClass())
-        )
+        else if (m_op->SupportsOverloading())
         {
-            RC<AstBinaryExpression> subBinExpr = Clone().CastUnsafe<AstBinaryExpression>();
-            subBinExpr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
+            // look for operator overloading
+            SymbolTypeRef targetType = m_left->GetExprType();
+            Assert(targetType != nullptr);
 
-            m_operatorOverload.Reset(new AstTernaryExpression(
-                RC<AstHasExpression>(new AstHasExpression(
-                    CloneAstNode(m_left),
-                    overloadFunctionName,
-                    m_location)),
-                callOperatorOverloadExpr,
-                subBinExpr,
+            targetType = targetType->GetUnaliased();
+            Assert(targetType != nullptr);
+
+            const String operatorString = m_op->LookupStringValue();
+            const String overloadFunctionName = "operator" + operatorString;
+
+            RC<AstExpression> callOperatorOverloadExpr;
+
+            callOperatorOverloadExpr.Reset(new AstMemberCallExpression(
+                overloadFunctionName,
+                CloneAstNode(m_left),
+                RC<AstArgumentList>(new AstArgumentList(
+                    { RC<AstArgument>(new AstArgument(
+                        CloneAstNode(m_right),
+                        false,
+                        false,
+                        false,
+                        false,
+                        "other",
+                        m_location)) },
+                    m_location)), // use right hand side as arg
                 m_location));
-        }
-        else if (targetType->FindPrototypeMemberDeep(overloadFunctionName))
-        {
-            // @TODO: This check currently won't hit for a class type,
-            // unless we add something like "final classes".
 
-            m_operatorOverload = callOperatorOverloadExpr;
+            if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
+            {
+                m_operatorOverload.Reset(new AstCallExpression(
+                    RC<AstMember>(new AstMember(
+                        overloadFunctionName,
+                        CloneAstNode(m_left),
+                        m_location)),
+                    { RC<AstArgument>(new AstArgument(
+                        CloneAstNode(m_right),
+                        false,
+                        false,
+                        false,
+                        false,
+                        "other",
+                        m_location)) },
+                    true,
+                    m_location));
+            }
+
+            // for ANY type we conditionally build in a check
+            // also, for proxy class that does not have the operator overloaded,
+            // we build in the condition as well
+            else if (targetType->IsAnyType())
+            {
+                RC<AstBinaryExpression> subBinExpr = Clone().CastUnsafe<AstBinaryExpression>();
+                subBinExpr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
+
+                m_operatorOverload.Reset(new AstTernaryExpression(
+                    RC<AstHasExpression>(new AstHasExpression(
+                        CloneAstNode(m_left),
+                        overloadFunctionName,
+                        m_location)),
+                    callOperatorOverloadExpr,
+                    subBinExpr,
+                    m_location));
+            }
+            else if (targetType->FindMemberDeep(overloadFunctionName))
+            {
+                m_operatorOverload = callOperatorOverloadExpr;
+            }
         }
 
         if (m_operatorOverload != nullptr)
@@ -143,7 +161,6 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     // not overloading an operator from this point on,
     // but still have to be aware of Any types.
-
     m_right->Visit(visitor, mod);
 
     SymbolTypeRef leftType = m_left->GetExprType();
@@ -170,7 +187,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // arithmetic operators are only for numbers
             visitor->AddErrorIfFalse(
-                (leftType->TypeCompatible(*BuiltinTypes::INT, false) || leftType->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) || leftType->TypeCompatible(*BuiltinTypes::FLOAT, false)) && (rightType->TypeCompatible(*BuiltinTypes::INT, false) || rightType->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) || rightType->TypeCompatible(*BuiltinTypes::FLOAT, false)),
+                (leftType->TypeCompatible(*BuiltinTypes::INT, false) || leftType->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) || leftType->TypeCompatible(*BuiltinTypes::FLOAT, false))
+                    && (rightType->TypeCompatible(*BuiltinTypes::INT, false) || rightType->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) | rightType->TypeCompatible(*BuiltinTypes::FLOAT, false)),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_arithmetic_operands_must_be_numbers,
@@ -183,6 +201,9 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_op->ModifiesValue())
     {
+        // should have been handled by operator overloading above
+        Assert(m_op->GetOperatorType() == Operators::OP_assign);
+
         SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
             visitor,
             mod,

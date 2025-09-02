@@ -4,7 +4,7 @@
 
 namespace hyperion::compiler {
 
-const HashMap<String, Operator*> Operator::binaryOperators = {
+const FlatMap<String, Operator*> Operator::binaryOperators = {
     { "+", new Operator(OP_add, 13, ARITHMETIC, false, true) },
     { "-", new Operator(OP_subtract, 13, ARITHMETIC, false, true) },
     { "*", new Operator(OP_multiply, 14, ARITHMETIC, false, true) },
@@ -31,18 +31,18 @@ const HashMap<String, Operator*> Operator::binaryOperators = {
     { ">=", new Operator(OP_greater_eql, 11, COMPARISON, false, true) },
 
     // Assignment operators
-    { "=", new Operator(OP_assign, 3, ASSIGNMENT, true, false) },
-    { "+=", new Operator(OP_add_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
-    { "-=", new Operator(OP_subtract_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
-    { "*=", new Operator(OP_multiply_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
-    { "/=", new Operator(OP_divide_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
-    { "%=", new Operator(OP_modulus_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
-    { "^=", new Operator(OP_bitwise_xor_assign, 3, ASSIGNMENT | BITWISE, true, true) },
-    { "&=", new Operator(OP_bitwise_and_assign, 3, ASSIGNMENT | BITWISE, true, true) },
-    { "|=", new Operator(OP_bitwise_or_assign, 3, ASSIGNMENT | BITWISE, true, true) },
+    { "=", new Operator(OP_assign, 3, ASSIGNMENT, true) },
+    { "+=", new Operator(OP_add_assign, 3, ASSIGNMENT | ARITHMETIC, true) },
+    { "-=", new Operator(OP_subtract_assign, 3, ASSIGNMENT | ARITHMETIC, true) },
+    { "*=", new Operator(OP_multiply_assign, 3, ASSIGNMENT | ARITHMETIC, true) },
+    { "/=", new Operator(OP_divide_assign, 3, ASSIGNMENT | ARITHMETIC, true) },
+    { "%=", new Operator(OP_modulus_assign, 3, ASSIGNMENT | ARITHMETIC, true) },
+    { "^=", new Operator(OP_bitwise_xor_assign, 3, ASSIGNMENT | BITWISE, true) },
+    { "&=", new Operator(OP_bitwise_and_assign, 3, ASSIGNMENT | BITWISE, true) },
+    { "|=", new Operator(OP_bitwise_or_assign, 3, ASSIGNMENT | BITWISE, true) },
 };
 
-const HashMap<String, Operator*> Operator::unaryOperators = {
+const FlatMap<String, Operator*> Operator::unaryOperators = {
     // Unary operators
     { "!", new Operator(OP_logical_not, 0, LOGICAL | PREFIX, false, true) },
     { "-", new Operator(OP_negative, 0, ARITHMETIC | PREFIX, false, true) },
@@ -119,6 +119,41 @@ const Operator* Operator::FindUnaryOperator(Operators op)
     }
 
     return nullptr;
+}
+
+const Operator* Operator::GetNonAssignmentVariant(const Operator* op)
+{
+    if (!op)
+    {
+        return nullptr;
+    }
+
+    if (!op->ModifiesValue())
+    {
+        return op;
+    }
+
+    switch (op->GetOperatorType())
+    {
+    case Operators::OP_add_assign:
+        return FindBinaryOperator(Operators::OP_add);
+    case Operators::OP_subtract_assign:
+        return FindBinaryOperator(Operators::OP_subtract);
+    case Operators::OP_multiply_assign:
+        return FindBinaryOperator(Operators::OP_multiply);
+    case Operators::OP_divide_assign:
+        return FindBinaryOperator(Operators::OP_divide);
+    case Operators::OP_modulus_assign:
+        return FindBinaryOperator(Operators::OP_modulus);
+    case Operators::OP_bitwise_and_assign:
+        return FindBinaryOperator(Operators::OP_bitwise_and);
+    case Operators::OP_bitwise_or_assign:
+        return FindBinaryOperator(Operators::OP_bitwise_or);
+    case Operators::OP_bitwise_xor_assign:
+        return FindBinaryOperator(Operators::OP_bitwise_xor);
+    default:
+        return op;
+    }
 }
 
 } // namespace hyperion::compiler

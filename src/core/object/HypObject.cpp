@@ -168,6 +168,11 @@ HypObjectBase::~HypObjectBase()
 
             SizeType fieldOffset = sizeof(HypObjectBase);
 
+            // `class` field
+            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
+            HypClassRef* classFieldPtr = (HypClassRef*)(uintptr_t(this) + fieldOffset);
+            fieldOffset += sizeof(HypClassRef);
+
             while (hypClass != nullptr && hypClass->IsDynamic())
             {
                 for (HypField* field : hypClass->GetFields())
@@ -183,6 +188,9 @@ HypObjectBase::~HypObjectBase()
 
                 hypClass = hypClass->GetParent();
             }
+
+            // destruct the `class` field last:
+            classFieldPtr->~HypClassRef();
         }
 #endif
 

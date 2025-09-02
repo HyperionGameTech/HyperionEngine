@@ -6,6 +6,7 @@
 
 #include <core/object/ObjId.hpp>
 #include <core/object/Handle.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
@@ -115,6 +116,7 @@ struct HypData
         bool,
         void*,
         ObjIdBase,
+        HypClassRef,
         AnyHandle,
         RC<void>,
         AnyRef,
@@ -133,6 +135,8 @@ struct HypData
 
         /*! All ObjId<T> are stored as ObjIdBase */
         || std::is_base_of_v<ObjIdBase, T>
+
+        || std::is_same_v<T, HypClassRef>
 
         /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
         || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle>
@@ -839,6 +843,54 @@ struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
     HYP_FORCE_INLINE void Set(HypData& hypData, const ObjId<T>& value) const
     {
         HypDataHelper<ObjIdBase>::Set(hypData, static_cast<const ObjIdBase&>(value));
+    }
+};
+
+template <>
+struct HypDataHelperDecl<HypClassRef>
+{
+};
+
+template <>
+struct HypDataHelper<HypClassRef>
+{
+    using StorageType = HypClassRef;
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const HypClassRef& value) const
+    {
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    HYP_FORCE_INLINE HypClassRef& Get(HypClassRef& value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE const HypClassRef& Get(const HypClassRef& value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const HypClassRef& value) const
+    {
+        hypData.Set_Internal(value);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, HypClassRef&& value) const
+    {
+        hypData.Set_Internal(std::move(value));
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Serialize(HypClassRef value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        return { FBOMResult::FBOM_ERR, "Cannot serialize HypClassRef!" };
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        return { FBOMResult::FBOM_ERR, "Cannot deserialize HypClassRef!" };
     }
 };
 

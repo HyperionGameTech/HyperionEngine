@@ -669,7 +669,8 @@ Token Lexer::ReadOperator()
     // location of the start of the hex number
     SourceLocation location = m_sourceLocation;
 
-    std::array<u32char, 2> ch;
+    FixedArray<u32char, 2> ch = { 0, 0 };
+
     int totalPosChange = 0;
     for (int i = 0; i < 2; i++)
     {
@@ -677,6 +678,7 @@ Token Lexer::ReadOperator()
         ch[i] = m_sourceStream.Next(posChange);
         totalPosChange += posChange;
     }
+
     // go back
     m_sourceStream.GoBack(totalPosChange);
 
@@ -686,19 +688,22 @@ Token Lexer::ReadOperator()
     String op_2 = op_1;
     op_2.Append(ch[1]);
 
-    if (Operator::IsUnaryOperator(op_2) || Operator::IsBinaryOperator(op_2))
+    if (op_2.Length() > op_1.Length() && (Operator::IsUnaryOperator(op_2) || Operator::IsBinaryOperator(op_2)))
     {
-        int pos_change_1 = 0, pos_change_2 = 0;
-        m_sourceStream.Next(pos_change_1);
-        m_sourceStream.Next(pos_change_2);
-        m_sourceLocation.GetColumn() += pos_change_1 + pos_change_2;
+        m_sourceStream.Next();
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn() += 2;
+
         return Token(TK_OPERATOR, op_2, location);
     }
-    else if (Operator::IsUnaryOperator(op_1) || Operator::IsBinaryOperator(op_1))
+
+    if (Operator::IsUnaryOperator(op_1) || Operator::IsBinaryOperator(op_1))
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn() += 1;
+
         return Token(TK_OPERATOR, op_1, location);
     }
 

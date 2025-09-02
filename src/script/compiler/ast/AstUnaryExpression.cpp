@@ -50,7 +50,7 @@ AstUnaryExpression::AstUnaryExpression(
 
 void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 {
-    // TODO: Overloading to match binop
+    // TODO: Operator overloading
 
     // use a bin op for operators that modify their argument
     if (m_op->ModifiesValue())

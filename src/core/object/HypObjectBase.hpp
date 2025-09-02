@@ -37,8 +37,6 @@ class HypClassInstance;
 template <class T>
 struct HypClassDefinition;
 
-enum class HypClassFlags : uint32;
-
 template <class T>
 struct Handle;
 

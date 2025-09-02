@@ -25,6 +25,7 @@
 
 #include <core/object/HypObject.hpp>
 #include <core/object/HypData.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/utilities/Optional.hpp>
 
@@ -39,7 +40,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
     const SymbolTypeRef& enumUnderlyingType,
-    EnumFlags<ClassFlags> classFlags,
+    EnumFlags<ClassFlags> flags,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_name(name),
@@ -48,7 +49,7 @@ AstClass::AstClass(
       m_functionMembers(functionMembers),
       m_staticMembers(staticMembers),
       m_enumUnderlyingType(enumUnderlyingType),
-      m_classFlags(classFlags),
+      m_flags(flags),
       m_isVisited(false)
 {
 }
@@ -59,7 +60,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    EnumFlags<ClassFlags> classFlags,
+    EnumFlags<ClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
           name,
@@ -68,7 +69,7 @@ AstClass::AstClass(
           functionMembers,
           staticMembers,
           nullptr,
-          classFlags,
+          flags,
           location)
 {
     m_baseType = baseType;
@@ -80,7 +81,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    EnumFlags<ClassFlags> classFlags,
+    EnumFlags<ClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
           name,
@@ -89,7 +90,7 @@ AstClass::AstClass(
           functionMembers,
           staticMembers,
           nullptr,
-          classFlags,
+          flags,
           location)
 {
 }
@@ -613,7 +614,10 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     Array<ClassTable::FieldInfo> fields;
 
     SizeType fieldOffset = sizeof(HypObjectBase); // start after base object
-    const SizeType fieldAlignment = alignof(HypData);
+
+    // reserve space for `class` field to hold reference to the class this object is an instance of
+    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
+    fieldOffset += sizeof(HypClassRef);
 
     // iterate through parent types and add up their fields to get offset
     SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
@@ -654,12 +658,12 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // @TODO: static members
+    // static members
 
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (m_isProxyClass ? " <Proxy>" : "")));
+    chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
 
     baseTypeRef = m_symbolType->GetBaseType();
 
@@ -687,6 +691,18 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         instrType->name = m_symbolType->GetName();
         instrType->fields = std::move(fields);
         instrType->methods = std::move(methods);
+
+        instrType->flags = HypClassFlags::DYNAMIC; // all classes defined in script are dynamic
+
+        if (m_flags & ClassFlags::CLASS_FLAG_ANONYMOUS)
+        {
+            instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::ANONYMOUS);
+        }
+
+        if (m_flags & ClassFlags::CLASS_FLAG_IS_ENUM)
+        {
+            instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::ENUM_TYPE);
+        }
 
         chunk->Append(std::move(instrType));
     }

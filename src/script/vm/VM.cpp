@@ -742,7 +742,7 @@ public:
             return;
         }
 
-        Value classValue = ScriptApi_MakeValue(HypData(AnyRef(const_cast<HypClass*>(hypClass))));
+        Value classValue = ScriptApi_MakeValue(HypData(HypClassRef(hypClass)));
 
         thread->m_regs[reg].AssignValue(std::move(classValue), false);
     }
@@ -1113,18 +1113,18 @@ public:
         // read value from register
         Value& classValue = *thread->m_regs[src].Deref();
 
-        const HypClass* hypClass = classValue.ToRef().TryGet<HypClass>();
-        Assert(hypClass != nullptr);
+        const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
+        Assert(classRef.IsValid());
 
         HypData hypData;
-        if (!hypClass->CreateInstance(hypData))
+        if (!classRef->CreateInstance(hypData))
         {
             vm->ThrowException(
                 thread,
                 Exception::InvalidOperationException(
                     "NEW",
                     "Could not create instance of type",
-                    hypClass->GetName().LookupString()));
+                    classRef->GetName().LookupString()));
 
             return;
         }
@@ -1148,13 +1148,16 @@ public:
         nameStr[nameLen] = '\0';
         bs->Read(nameStr, nameLen);
 
+        // Create a new class with the given name
+        Name className = CreateNameFromDynamicString(nameStr);
+        std::free(nameStr);
+
         // Read type id
         TypeId::ValueType typeIdValue;
         bs->Read(&typeIdValue);
 
-        // Create a new class with the given name
-        Name className = CreateNameFromDynamicString(nameStr);
-        std::free(nameStr);
+        uint8 flags;
+        bs->Read(&flags);
 
         Array<HypMember> members;
         bool hitEnd = false;
@@ -1356,23 +1359,26 @@ public:
 
         if (parentClassValue.IsValid())
         {
-            parentClass = parentClassValue.ToRef().TryGet<const HypClass>();
+            parentClass = parentClassValue.GetHypData()->Get<HypClassRef>();
             Assert(parentClass != nullptr);
         }
 
-        /// @TODO: Delete on GC
         DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
             TypeId(typeIdValue),
             className,
             parentClass,
-            Span<const HypClassAttribute>(), // @TODO: Class attributes
-            HypClassFlags::NONE,
+            Span<const HypClassAttribute>(), // @TODO
+            (HypClassFlags)flags,
             members.ToSpan());
 
         HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
-        Value classValue = ScriptApi_MakeValue(AnyRef(static_cast<HypClass*>(newClass)));
-        thread->m_regs[reg].AssignValue(std::move(classValue), false);
+        Value classValue = ScriptApi_MakeValue(HypClassRef(newClass));
+
+        // promote the class object to tracked GC memory so it doesn't instantly get destroyed
+        thread->m_regs[reg].AssignValue(
+            ScriptApi_MakeRef(classValue, vm->GetGC(), /* promoteToTrackedMemory */ true),
+            false);
     }
 
     HYP_FORCE_INLINE void Cmp(BCRegister lhsReg, BCRegister rhsReg)

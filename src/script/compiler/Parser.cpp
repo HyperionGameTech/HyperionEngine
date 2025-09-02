@@ -1297,23 +1297,23 @@ RC<AstArrayAccess> Parser::ParseArrayAccess(
             Expect(TK_CLOSE_BRACKET, true);
         }
 
-        // check for assignment operator
-        Token operatorToken = Token::EMPTY;
+        // // check for assignment operator
+        // Token operatorToken = Token::EMPTY;
 
-        if (Token operatorToken = Match(TK_OPERATOR))
-        {
-            if (Operator::IsBinaryOperator(operatorToken.GetValue(), OperatorType::ASSIGNMENT))
-            {
-                // eat the operator token
-                m_tokenStream->Next();
+        // if (Token operatorToken = Match(TK_OPERATOR))
+        // {
+        //     if (Operator::IsBinaryOperator(operatorToken.GetValue(), OperatorType::ASSIGNMENT))
+        //     {
+        //         // eat the operator token
+        //         m_tokenStream->Next();
 
-                rhs = ParseExpression(
-                    overrideCommas,
-                    overrideFatArrows,
-                    overrideAngleBrackets,
-                    overrideQuestionMark);
-            }
-        }
+        //         rhs = ParseExpression(
+        //             overrideCommas,
+        //             overrideFatArrows,
+        //             overrideAngleBrackets,
+        //             overrideQuestionMark);
+        //     }
+        // }
 
         if (expr != nullptr)
         {
@@ -1749,7 +1749,9 @@ RC<AstExpression> Parser::ParseBinaryExpression(
     {
         // get precedence
         const Operator* op = nullptr;
+
         int precedence = OperatorPrecedence(op);
+
         if (precedence < exprPrec)
         {
             return left;
@@ -1758,16 +1760,25 @@ RC<AstExpression> Parser::ParseBinaryExpression(
         // read the operator token
         Token token = Expect(TK_OPERATOR, true);
 
-        if (auto right = ParseTerm())
+        DebugLog(
+            LogType::Info,
+            "Operator: %s (prec %d, need %d)\n",
+            token.GetValue().Data(),
+            precedence,
+            exprPrec);
+
+        if (RC<AstExpression> right = ParseTerm())
         {
             // next part of expression's precedence
             const Operator* nextOp = nullptr;
 
             int nextPrec = OperatorPrecedence(nextOp);
+
             if (precedence < nextPrec)
             {
                 right = ParseBinaryExpression(precedence + 1, right);
-                if (right == nullptr)
+
+                if (!right)
                 {
                     return nullptr;
                 }
@@ -2427,18 +2438,18 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
 
 RC<AstClass> Parser::ParseClassDefinition()
 {
-    bool isProxyClass = false;
+    EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE;
 
     if (Token proxyToken = MatchKeyword(Keyword_proxy, true))
     {
-        isProxyClass = true;
+        classFlags |= ClassFlags::CLASS_FLAG_IS_PROXY;
     }
 
     if (Token token = ExpectKeyword(Keyword_class, true))
     {
         if (Token identifier = ExpectIdentifier(false, true))
         {
-            return ParseClass(false, false, isProxyClass, identifier.GetValue());
+            return ParseClass(false, false, classFlags, identifier.GetValue());
         }
     }
 
@@ -2448,7 +2459,7 @@ RC<AstClass> Parser::ParseClassDefinition()
 RC<AstClass> Parser::ParseClass(
     bool requireKeyword,
     bool allowIdentifier,
-    bool isProxyClass,
+    EnumFlags<ClassFlags> classFlags,
     String typeName)
 {
     const SourceLocation location = CurrentLocation();
@@ -2632,7 +2643,7 @@ RC<AstClass> Parser::ParseClass(
                 flags,
                 location));
 
-            if (isStatic || isProxyClass)
+            if (isStatic || (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY]))
             { // <--- all methods for proxy classes are static
                 staticFunctions.PushBack(std::move(member));
             }
@@ -2665,7 +2676,7 @@ RC<AstClass> Parser::ParseClass(
                 break;
             }
 
-            if (isProxyClass)
+            if (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])
             {
                 m_compilationUnit->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
@@ -2689,7 +2700,7 @@ RC<AstClass> Parser::ParseClass(
         memberVariables,
         memberFunctions,
         allStatics,
-        isProxyClass,
+        classFlags,
         location));
 
     return nullptr;

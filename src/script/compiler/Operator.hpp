@@ -2,7 +2,7 @@
 
 #include <core/Types.hpp>
 #include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
+#include <core/containers/FlatMap.hpp>
 #include <core/HashCode.hpp>
 
 namespace hyperion::compiler {
@@ -67,14 +67,14 @@ class Operator;
 class Operator
 {
 public:
-    static const HashMap<String, Operator*> binaryOperators;
-    static const HashMap<String, Operator*> unaryOperators;
+    static const FlatMap<String, Operator*> binaryOperators;
+    static const FlatMap<String, Operator*> unaryOperators;
 
     static inline bool IsBinaryOperator(const String& str, OperatorTypeBits matchBits = 0)
     {
         const auto it = binaryOperators.Find(str);
 
-        if (it == binaryOperators.end())
+        if (it == binaryOperators.End())
         {
             return false;
         }
@@ -91,7 +91,7 @@ public:
     {
         const auto it = binaryOperators.Find(str);
 
-        if (it == binaryOperators.end())
+        if (it == binaryOperators.End())
         {
             return false;
         }
@@ -105,7 +105,7 @@ public:
     {
         const auto it = binaryOperators.Find(str);
 
-        if (it == binaryOperators.end())
+        if (it == binaryOperators.End())
         {
             return false;
         }
@@ -131,7 +131,7 @@ public:
     {
         const auto it = unaryOperators.Find(str);
 
-        if (it == unaryOperators.end())
+        if (it == unaryOperators.End())
         {
             return false;
         }
@@ -148,7 +148,7 @@ public:
     {
         const auto it = unaryOperators.Find(str);
 
-        if (it == unaryOperators.end())
+        if (it == unaryOperators.End())
         {
             return false;
         }
@@ -162,7 +162,7 @@ public:
     {
         const auto it = unaryOperators.Find(str);
 
-        if (it == unaryOperators.end())
+        if (it == unaryOperators.End())
         {
             return false;
         }
@@ -186,6 +186,8 @@ public:
 
     static const Operator* FindBinaryOperator(Operators op);
     static const Operator* FindUnaryOperator(Operators op);
+
+    static const Operator* GetNonAssignmentVariant(const Operator* op);
 
 public:
     Operator(
@@ -250,4 +252,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

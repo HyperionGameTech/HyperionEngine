@@ -153,7 +153,7 @@ public:
     RC<AstClass> ParseClass(
         bool requireKeyword = true,
         bool allowIdentifier = true,
-        bool isProxyClass = false,
+        EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE,
         String typeName = "<Anonymous Type>");
     RC<AstStatement> ParseEnumDefinition();
     RC<AstEnumExpression> ParseEnumExpression(

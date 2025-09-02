@@ -9,7 +9,10 @@
 
 namespace hyperion {
 
-class HypEnum : public HypClass
+template <class T>
+struct HypEnumRegistration;
+
+class HypEnum : protected HypClass
 {
 public:
     HypEnum(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
@@ -28,7 +31,7 @@ public:
     {
         return HypClassAllocationMethod::NONE;
     }
-    
+
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override = 0;
 #endif
@@ -45,9 +48,12 @@ protected:
 };
 
 template <class T>
-class HypEnumInstance final : public HypEnum
+class HypEnumInstance final : protected HypEnum
 {
 public:
+    template <class U>
+    friend struct HypEnumRegistration;
+
     static HypEnumInstance& GetInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
         static HypEnumInstance instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
@@ -63,7 +69,7 @@ public:
     }
 
     virtual ~HypEnumInstance() override = default;
-    
+
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override
     {

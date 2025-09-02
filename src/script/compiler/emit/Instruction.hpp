@@ -15,6 +15,7 @@
 
 namespace hyperion {
 enum class HypMethodFlags : uint8;
+enum class HypClassFlags : uint8;
 } // namespace hyperion
 
 namespace hyperion::compiler {
@@ -304,6 +305,7 @@ struct ClassTable final : public Buildable
     String name;
     Array<FieldInfo> fields;
     Array<MethodInfo> methods;
+    HypClassFlags flags = (HypClassFlags)0;
 
     ~ClassTable() override = default;
 };

@@ -2,7 +2,6 @@
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypClass.hpp>
-#include <core/object/HypEnum.hpp>
 
 #include <core/threading/ThreadId.hpp>
 
@@ -92,7 +91,7 @@ const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
     return it->second;
 }
 
-const HypEnum* HypClassRegistry::GetEnum(TypeId typeId) const
+const HypClass* HypClassRegistry::GetEnum(TypeId typeId) const
 {
     const HypClass* hypClass = GetClass(typeId);
 
@@ -101,10 +100,10 @@ const HypEnum* HypClassRegistry::GetEnum(TypeId typeId) const
         return nullptr;
     }
 
-    return static_cast<const HypEnum*>(hypClass);
+    return hypClass;
 }
 
-const HypEnum* HypClassRegistry::GetEnum(WeakName typeName) const
+const HypClass* HypClassRegistry::GetEnum(WeakName typeName) const
 {
     const HypClass* hypClass = GetClass(typeName);
 
@@ -113,7 +112,7 @@ const HypEnum* HypClassRegistry::GetEnum(WeakName typeName) const
         return nullptr;
     }
 
-    return static_cast<const HypEnum*>(hypClass);
+    return hypClass;
 }
 
 void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
@@ -145,7 +144,7 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
     m_registeredClasses.Set(typeId, hypClass);
 }
 
-void HypClassRegistry::UnregisterClass(const HypClass* hypClass)
+bool HypClassRegistry::UnregisterClass(const HypClass* hypClass)
 {
     HYP_CORE_ASSERT(hypClass->GetTypeId().IsDynamicType(), "Cannot unregister class - must be a dynamic HypClass to unregister");
 
@@ -158,12 +157,14 @@ void HypClassRegistry::UnregisterClass(const HypClass* hypClass)
 
     if (it == m_dynamicClasses.End())
     {
-        return;
+        return false;
     }
 
     HYP_LOG(Object, Debug, "Unregister dynamic class {}", it->second->GetName());
 
     m_dynamicClasses.Erase(it);
+
+    return true;
 }
 
 void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass*)>& callback, bool includeDynamicClasses) const

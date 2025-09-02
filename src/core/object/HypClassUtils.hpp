@@ -119,8 +119,8 @@ struct HypEnumRegistration final : public HypClassRegistrationBase
     }
 };
 
-/*! \brief Iterate over the members of a HypEnum.
- *  \tparam EnumType The enum type to iterate over. The enum must have a HypEnum associated with it, otherwise this function will do nothing.
+/*! \brief Iterate over the members of an enum HypClass.
+ *  \tparam EnumType The enum type to iterate over. The enum must have a HypClass associated with it, otherwise this function will do nothing.
  *  \tparam Function The function type to call for each member.
  *  \param function The function to call for each member. The function should have the following signature:
  *  \code
@@ -155,9 +155,9 @@ void ForEachEnumMember(Function&& function)
     }
 }
 
-/*! \brief Find the name of an enum member for a given HypEnum, using the members' value.
- *  \tparam EnumType The enum type the member is a part of. The enum must have a HypEnum associated with it, otherwise this function will return an empty String.
- *  If the member is not found in the registered HypEnum, this function will return a default string (e.g "EnumType(value)").
+/*! \brief Find the name of an enum member for a given HypClass, using the members' value.
+ *  \tparam EnumType The enum type the member is a part of. The enum must have a HypClass associated with it, otherwise this function will return an empty String.
+ *  If the member is not found in the registered HypClass, this function will return a default string (e.g "EnumType(value)").
  *  \param value The string value of the enum member to find the name of, or EnumName(value) if the member is not found.
  */
 template <class EnumType, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
@@ -185,8 +185,8 @@ String EnumToString(EnumType value)
     return HYP_FORMAT("{}({})", TypeNameHelper<EnumType, true>::value.Data(), EnumUnderlyingType(value));
 }
 
-/*! \brief Get the value of an enum member for a given HypEnum dynamically, given the name of the enum member.
- *  \tparam EnumType The enum type the member is a part of. The enum must have a HypEnum associated with it, otherwise this function will do nothing.
+/*! \brief Get the value of an enum member for a given HypClass dynamically, given the name of the enum member.
+ *  \tparam EnumType The enum type the member is a part of. The enum must have a HypClass associated with it, otherwise this function will do nothing.
  *  \param name The name of the enum member to get the value of.
  *  \param errorValue The value to return if the member is not found.
  */

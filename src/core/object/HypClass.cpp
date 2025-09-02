@@ -37,12 +37,12 @@ const HypClass* GetClass(WeakName typeName)
     return HypClassRegistry::GetInstance().GetClass(typeName);
 }
 
-const HypEnum* GetEnum(TypeId typeId)
+const HypClass* GetEnum(TypeId typeId)
 {
     return HypClassRegistry::GetInstance().GetEnum(typeId);
 }
 
-const HypEnum* GetEnum(WeakName typeName)
+const HypClass* GetEnum(WeakName typeName)
 {
     return HypClassRegistry::GetInstance().GetEnum(typeName);
 }
@@ -937,14 +937,18 @@ DynamicHypClassInstance::DynamicHypClassInstance(
         currentParent = currentParent->GetParent();
     }
 
+    // add size of first non-dynamic parent class (ensuring proper alignment)
     if (currentParent && !currentParent->IsDynamic())
     {
-        // add size of first non-dynamic parent class (ensure proper alignment)
         dynamicSize = ByteUtil::AlignAs(dynamicSize, currentParent->GetAlignment());
         dynamicSize += currentParent->GetSize();
 
         dynamicAlignment = MathUtil::Max(dynamicAlignment, currentParent->GetAlignment());
     }
+
+    // add 'class' field space
+    dynamicSize = ByteUtil::AlignAs(dynamicSize, alignof(HypClassRef));
+    dynamicSize += sizeof(HypClassRef);
 
     for (SizeType i = dynamicParents.Size(); i > 0; --i)
     {
@@ -1165,6 +1169,15 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         (topParent != nullptr && !topParent->IsDynamic() ? topParent->GetSize() : 0)
         + sizeof(HypObjectBase);
 
+    // add 'class' field
+    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
+    HYP_CORE_ASSERT(fieldOffset + sizeof(HypClassRef) <= m_size,
+        "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypClassRef), m_size);
+
+    HypClassRef* classFieldPtr = (HypClassRef*)(uintptr_t(ptr) + fieldOffset);
+    new (classFieldPtr) HypClassRef(this);
+    fieldOffset += sizeof(HypClassRef);
+
     for (SizeType i = dynamicParents.Size(); i > 0; i--)
     {
         const HypClass* dynamicParent = dynamicParents[i - 1];
@@ -1188,9 +1201,22 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         }
     }
 
+    // our own class's fields lastly
+    for (HypField* field : GetFields())
+    {
+        // align field offset
+        fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+        HYP_CORE_ASSERT(fieldOffset + sizeof(HypData) <= m_size,
+            "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypData), m_size);
+
+        HypData* fieldPtr = (HypData*)(uintptr_t(ptr) + fieldOffset);
+        new (fieldPtr) HypData();
+
+        fieldOffset += sizeof(HypData);
+    }
+
     ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), HYP_SCRIPT_OBJECT);
     Assert(scriptObjectResource != nullptr);
-    scriptObjectResource->IncRef();
     ptr->SetScriptObjectResource(scriptObjectResource);
 
     Handle<HypObjectBase> handle;
@@ -1285,10 +1311,94 @@ void DynamicHypClassInstance::Release()
 {
     if (AtomicDecrement(&m_refCount) <= 0)
     {
+        if (!HypClassRegistry::GetInstance().UnregisterClass(this))
+        {
+            HYP_LOG(Object, Warning, "Failed to unregister dynamic HypClass \"{}\"", GetName());
+        }
+
         delete this;
     }
 }
 
 #pragma endregion DynamicHypClassInstance
+
+#pragma region HypClassRef
+
+HypClassRef::HypClassRef(const HypClass* hypClass, int initialRefCount)
+    : hypClass(hypClass)
+{
+    if (hypClass && hypClass->IsDynamic() && initialRefCount > 0)
+    {
+        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+    }
+}
+
+HypClassRef::HypClassRef(const HypClassRef& other)
+    : hypClass(other.hypClass)
+{
+    if (hypClass)
+    {
+        if (hypClass->IsDynamic())
+        {
+            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+        }
+    }
+}
+
+HypClassRef& HypClassRef::operator=(const HypClassRef& other)
+{
+    if (this == &other || hypClass == other.hypClass)
+    {
+        return *this;
+    }
+
+    if (hypClass && hypClass->IsDynamic())
+    {
+        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+    }
+
+    hypClass = other.hypClass;
+
+    if (hypClass && hypClass->IsDynamic())
+    {
+        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+    }
+
+    return *this;
+}
+
+HypClassRef::HypClassRef(HypClassRef&& other) noexcept
+    : hypClass(other.hypClass)
+{
+    other.hypClass = nullptr;
+}
+
+HypClassRef& HypClassRef::operator=(HypClassRef&& other) noexcept
+{
+    if (this == &other || hypClass == other.hypClass)
+    {
+        return *this;
+    }
+
+    if (hypClass && hypClass->IsDynamic())
+    {
+        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+    }
+
+    hypClass = other.hypClass;
+    other.hypClass = nullptr;
+
+    return *this;
+}
+
+HypClassRef::~HypClassRef()
+{
+    if (hypClass && hypClass->IsDynamic())
+    {
+        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+    }
+}
+
+#pragma endregion HypClassRef
 
 } // namespace hyperion

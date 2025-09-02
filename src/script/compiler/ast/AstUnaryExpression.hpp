@@ -44,7 +44,7 @@ private:
     // set while analyzing
     bool m_folded;
 
-    RC<AstBinaryExpression> m_binExpr; // internally use a binary expr for somethings (like ++ and -- operators)
+    RC<AstBinaryExpression> m_binExpr; // internally use a binary expr for some things (like ++ and -- operators)
 
     RC<AstUnaryExpression> CloneImpl() const
     {
@@ -57,4 +57,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

@@ -62,7 +62,9 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         return;
     }
 
-    if (!scriptComponent.scriptObjectResource || !scriptComponent.scriptObjectResource->GetManagedObject() || !scriptComponent.scriptObjectResource->GetManagedObject()->IsValid())
+    if (!scriptComponent.scriptObjectResource
+        || !scriptComponent.scriptObjectResource->GetManagedObject()
+        || !scriptComponent.scriptObjectResource->GetManagedObject()->IsValid())
     {
         FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
         scriptComponent.scriptObjectResource = nullptr;
@@ -161,7 +163,9 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         }
 #endif
 
-        if (!scriptComponent.scriptObjectResource || !scriptComponent.scriptObjectResource->GetManagedObject() || !scriptComponent.scriptObjectResource->GetManagedObject()->IsValid())
+        if (!scriptComponent.scriptObjectResource
+            || !scriptComponent.scriptObjectResource->GetManagedObject()
+            || !scriptComponent.scriptObjectResource->GetManagedObject()->IsValid())
         {
             HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptData->className, scriptData->assemblyPath);
 

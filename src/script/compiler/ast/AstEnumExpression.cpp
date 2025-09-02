@@ -108,7 +108,7 @@ void AstEnumExpression::Visit(AstVisitor* visitor, Module* mod)
         {},
         enumMembers,
         underlyingType,
-        false,
+        ClassFlags::CLASS_FLAG_IS_ENUM,
         m_location));
 
     m_expr->Visit(visitor, mod);

@@ -264,6 +264,9 @@ void CodeGenerator::Visit(ClassTable* node)
     TypeId::ValueType typeIdValue = TypeId::ForManagedType(*node->name).Value();
     m_ibs.Put(reinterpret_cast<ubyte*>(&typeIdValue), sizeof(typeIdValue));
 
+    uint8 flags = (uint8)node->flags;
+    m_ibs.Put(flags);
+
     // begin members. write member type (uint8) and count (uint16)
     auto writeMembers = [&](const auto& members, HypMemberType memberType)
     {

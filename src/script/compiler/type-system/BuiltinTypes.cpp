@@ -58,12 +58,7 @@ const SymbolTypeRef BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
     "Class",
     BuiltinTypes::OBJECT,
     {},
-    { SymbolTypeMember {
-        "base",
-        BuiltinTypes::OBJECT,
-        RC<AstTypeRef>(new AstTypeRef(
-            BuiltinTypes::OBJECT,
-            SourceLocation::eof)) } });
+    {});
 
 // Enum type is a generic class type similar to Array<T>.
 // e.g. Enum<uint>
@@ -89,11 +84,9 @@ const SymbolTypeRef BuiltinTypes::BOOLEAN = SymbolType::Primitive(
     "bool",
     RC<AstFalse>(new AstFalse(SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::STRING = SymbolType::Extend(
+const SymbolTypeRef BuiltinTypes::STRING = SymbolType::Primitive(
     "string",
-    BuiltinTypes::OBJECT,
-    {},
-    {});
+    RC<AstString>(new AstString("", SourceLocation::eof)));
 
 const SymbolTypeRef BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
     "<null>",

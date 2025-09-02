@@ -223,7 +223,7 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
                 members,
                 {},
                 staticMembers,
-                false,
+                ClassFlags::CLASS_FLAG_NONE,
                 SourceLocation::eof));
 
         visitor->GetAstIterator()->Push(it.classDefinition);

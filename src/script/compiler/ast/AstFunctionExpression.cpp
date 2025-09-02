@@ -309,7 +309,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER,
                 m_location)) },
             {},
-            false, // not proxy class
+            ClassFlags::CLASS_FLAG_ANONYMOUS,
             m_location));
 
         /// ISSUE: Causing endless loop because constructor is a function itself and is creating endless closures.

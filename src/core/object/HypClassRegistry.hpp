@@ -31,7 +31,6 @@ class Object;
 
 class HypClass;
 class HypClassAttribute;
-class HypEnum;
 struct HypMember;
 
 template <class T>
@@ -42,9 +41,6 @@ class HypClassInstance;
 
 template <class THypClassDefinition>
 class HypStructInstance;
-
-template <class THypClassDefinition>
-class HypEnumInstance;
 
 template <class T>
 struct Handle;
@@ -90,39 +86,39 @@ public:
      */
     const HypClass* GetClass(WeakName typeName) const;
 
-    /*! \brief Get the HypClass instance for the given type casted to HypEnum.
+    /*! \brief Get an enum HypClass instance associated with the given type.
      *
      *  \tparam T The type to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
      */
     template <class T>
-    HYP_FORCE_INLINE const HypEnumInstance<T>* GetEnum() const
+    HYP_FORCE_INLINE const HypClass* GetEnum() const
     {
         static_assert(std::is_enum_v<T>, "T must be an enum type to use GetEnum<T>()");
 
         static constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
-        return static_cast<const HypEnumInstance<T>*>(GetEnum(typeId));
+        return GetEnum(typeId);
     }
 
-    /*! \brief Get the HypClass instance for the given type casted to HypEnum.
+    /*! \brief Get an enum HypClass instance associated with the given name.
      *
      *  \param typeId The type to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
      */
-    const HypEnum* GetEnum(TypeId typeId) const;
+    const HypClass* GetEnum(TypeId typeId) const;
 
-    /*! \brief Get the HypClass instance for the given type casted to HypEnum.
+    /*! \brief Get an enum HypClass instance associated with the given name.
      *
      *  \param typeId The type to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
      */
-    const HypEnum* GetEnum(WeakName typeName) const;
+    const HypClass* GetEnum(WeakName typeName) const;
 
     void RegisterClass(TypeId typeId, HypClass* hypClass);
 
     // Only for Dynamic classes
-    void UnregisterClass(const HypClass* hypClass);
+    bool UnregisterClass(const HypClass* hypClass);
 
     void ForEachClass(const ProcRef<IterationResult(const HypClass*)>& callback, bool includeDynamicClasses = true) const;
 

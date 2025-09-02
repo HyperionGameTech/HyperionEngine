@@ -46,7 +46,7 @@ struct HypObjectMemory;
 
 class ScriptObjectResource;
 
-enum class HypClassFlags : uint32;
+enum class HypClassFlags : uint8;
 
 extern HYP_API const HypClass* GetClass(TypeId typeId);
 
@@ -211,6 +211,68 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
 
 template <class T>
 struct HypClassRegistration;
+
+/// HypClassRef - A strong reference to a HypClass.
+/// Reference counting only applies to dynamically created / destroyed HypClass objects (used with scripts).
+struct HypClassRef
+{
+    const HypClass* hypClass;
+
+    HYP_FORCE_INLINE HypClassRef()
+        : hypClass(nullptr)
+    {
+    }
+
+    HYP_API HypClassRef(const HypClass* hypClass, int initialRefCount = 1);
+
+    HYP_API HypClassRef(const HypClassRef& other);
+    HYP_API HypClassRef& operator=(const HypClassRef& other);
+
+    HYP_API HypClassRef(HypClassRef&& other) noexcept;
+    HYP_API HypClassRef& operator=(HypClassRef&& other) noexcept;
+
+    HYP_API ~HypClassRef();
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return hypClass != nullptr;
+    }
+
+    HYP_FORCE_INLINE const HypClass* operator->() const
+    {
+        return hypClass;
+    }
+
+    HYP_FORCE_INLINE const HypClass& operator*() const
+    {
+        return *hypClass;
+    }
+
+    HYP_FORCE_INLINE operator const HypClass*() const
+    {
+        return hypClass;
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return IsValid();
+    }
+
+    HYP_FORCE_INLINE bool operator==(const HypClassRef& other) const
+    {
+        return hypClass == other.hypClass;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const HypClassRef& other) const
+    {
+        return hypClass != other.hypClass;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const HypClassRef& other) const
+    {
+        return hypClass < other.hypClass;
+    }
+};
 
 /// Casts ///
 

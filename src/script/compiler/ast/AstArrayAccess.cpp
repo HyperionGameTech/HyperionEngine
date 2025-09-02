@@ -101,6 +101,11 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
+    if (targetType->IsAnyType())
+    {
+        m_exprType = BuiltinTypes::ANY;
+    }
+
     if (m_operatorOverloadingEnabled)
     {
         // Treat it the same as AstBinaryExpression does - look for operator[] or operator[]=

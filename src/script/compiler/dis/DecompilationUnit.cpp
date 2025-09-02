@@ -932,9 +932,13 @@ void DecompilationUnit::DecodeNext(
         TypeId::ValueType typeIdValue; // keep same type as VM
         bs.Read(&typeIdValue);
 
+        uint8 flags;
+        bs.Read(&flags);
+
         if (os != nullptr)
         {
-            (*os) << "beginClass [%" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << ")]" << std::endl;
+            (*os) << "beginClass [%" << (int)reg << ", str(" << nameStr << "), u64(" << typeIdValue << "), u8(" << (int)flags
+                  << ")]" << std::endl;
         }
 
         bool hitEnd = false;
