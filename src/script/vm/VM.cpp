@@ -1011,7 +1011,7 @@ public:
 
     HYP_FORCE_INLINE void SubSp(uint16 n)
     {
-        thread->m_stack.m_sp -= n;
+        thread->m_stack.Pop(n);
     }
 
     HYP_FORCE_INLINE void Jmp(Script_FunctionAddress addr)

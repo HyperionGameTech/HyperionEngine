@@ -148,30 +148,9 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    Assert(m_target != nullptr);
-    chunk->Append(m_target->Build(visitor, mod));
-
-    Assert(m_targetType != nullptr);
-
     // now we have to call the function. we pop the first arg from
     // m_substituted args because we have already pushed self to stack
     m_substitutedArgs.PopFront();
-
-    // location of 'self' var
-    const int targetStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
-    // use above as self arg so PUSH
-    uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    { // add instruction to store on stack
-        auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-        instrPush->opcode = PUSH;
-        instrPush->Accept<uint8>(rp);
-        chunk->Append(std::move(instrPush));
-    }
-
-    // increment stack size for 'self' var
-    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
     uint16 numArgsToPop = 0;
 
@@ -183,21 +162,27 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
             mod,
             m_substitutedArgs,
             numArgsToPop));
+    }
 
-        int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    Assert(m_target != nullptr);
+    chunk->Append(m_target->Build(visitor, mod));
 
-        // load our target from the stack into the current register (where we put it before)
-        auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-        instrLoadOffset->GetBuilder().Load(rp).Local().ByOffset(stackSize - targetStackLocation);
-        chunk->Append(std::move(instrLoadOffset));
+    { // push self arg to stack lastly as it is the first arg and we push in reverse order
+        const uint8 selfArgRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+        instrPush->opcode = PUSH;
+        instrPush->Accept<uint8>(selfArgRegister);
+        chunk->Append(std::move(instrPush));
+
+        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
     }
 
     const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
-    chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
+    chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName + " (method call)"));
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName));
+    chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
 
     chunk->Append(Compiler::BuildCall(
         visitor,

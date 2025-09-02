@@ -225,23 +225,12 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
     switch (m_accessMode)
     {
     case ACCESS_MODE_LOAD:
+        chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName));
         chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
         break;
     case ACCESS_MODE_STORE:
-        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
-        break;
-    default:
-        HYP_UNREACHABLE();
-        break;
-    }
-
-    switch (m_accessMode)
-    {
-    case ACCESS_MODE_LOAD:
-        chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName));
-        break;
-    case ACCESS_MODE_STORE:
         chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_fieldName));
+        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
         break;
     default:
         HYP_UNREACHABLE();
