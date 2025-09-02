@@ -304,6 +304,8 @@ public:
 
     bool GetBoolean(bool* out) const;
 
+    bool GetString(const VMString** out) const;
+
     const AnyHandle& GetObject() const;
     VMArray* GetArray() const;
 

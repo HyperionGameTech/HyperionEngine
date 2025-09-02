@@ -1759,13 +1759,6 @@ RC<AstExpression> Parser::ParseBinaryExpression(
         // read the operator token
         Token token = Expect(TK_OPERATOR, true);
 
-        DebugLog(
-            LogType::Info,
-            "Operator: %s (prec %d, need %d)\n",
-            token.GetValue().Data(),
-            precedence,
-            exprPrec);
-
         if (RC<AstExpression> right = ParseTerm())
         {
             // next part of expression's precedence

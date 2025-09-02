@@ -7,6 +7,7 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
+#include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Configuration.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -52,32 +53,36 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
 
     targetType = targetType->GetUnaliased();
 
-    auto* typeSpecificationValueOf = m_typeSpecification->GetDeepValueOf();
+    const AstExpression* typeSpecificationValueOf = m_typeSpecification->GetDeepValueOf();
     Assert(typeSpecificationValueOf != nullptr);
 
     SymbolTypeRef heldType = typeSpecificationValueOf->GetHeldType();
-    if (heldType == nullptr)
+    if (!heldType)
     {
         return; // should be caught by the type specification
     }
 
-    heldType = heldType->GetUnaliased();
+    m_resultType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        visitor,
+        mod,
+        heldType,
+        m_location);
 
-    if (heldType->IsAnyType())
+    if (m_resultType->IsAnyType())
     {
         m_isType = TRI_TRUE;
 
         return;
     }
 
-    if (targetType->TypeEqual(*heldType))
+    if (targetType->TypeEqual(*m_resultType))
     {
         m_isType = TRI_TRUE;
 
         return;
     }
 
-    if (!targetType->TypeCompatible(*heldType, false))
+    if (!targetType->TypeCompatible(*m_resultType, false))
     {
         // not compatible
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -85,7 +90,7 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
             Msg_incompatible_cast,
             m_location,
             targetType->ToString(),
-            heldType->ToString()));
+            m_resultType->ToString()));
 
         return;
     }
@@ -125,43 +130,40 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
 
     const uint8 dstRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    auto* valueOf = m_typeSpecification->GetDeepValueOf();
-    Assert(valueOf != nullptr);
+    Assert(m_resultType != nullptr);
 
-    SymbolTypeRef heldType = valueOf->GetHeldType();
-    Assert(heldType != nullptr);
-    heldType = heldType->GetUnaliased();
-
-    Assert(!heldType->IsAnyType());
-
-    if (heldType->IsSignedIntegral())
+    if (m_resultType->IsSignedIntegral())
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I32, dstRegister, srcRegister));
     }
-    else if (heldType->IsUnsignedIntegral())
+    else if (m_resultType->IsUnsignedIntegral())
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_U32, dstRegister, srcRegister));
     }
-    else if (heldType->IsFloat())
+    else if (m_resultType->IsFloat())
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_F32, dstRegister, srcRegister));
     }
-    else if (heldType->IsBoolean())
+    else if (m_resultType->IsBoolean())
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_BOOL, dstRegister, srcRegister));
     }
+    else if (m_resultType->IsOrHasBase(*BuiltinTypes::STRING))
+    {
+        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_STRING, dstRegister, srcRegister));
+    }
+    else if (m_resultType->IsObject())
+    {
+        // dynamic type needs to load the class into a register (reuse dstRegister)
+        const String className = m_resultType->GetName();
+
+        chunk->Append(BytecodeUtil::Make<LoadClass>(dstRegister, CreateNameFromDynamicString(className)));
+        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_DYNAMIC, dstRegister, srcRegister));
+    }
     else
     {
-        // dynamic type needs to load the type object into the dst register.
-        // if the type spec has side effects, it's already built in
-        if (!typeSpecBuilt)
-        {
-            chunk->Append(m_typeSpecification->Build(visitor, mod));
-
-            typeSpecBuilt = true;
-        }
-
-        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_DYNAMIC, dstRegister, srcRegister));
+        // type casting not implemented for this case
+        HYP_NOT_IMPLEMENTED();
     }
 
     { // swap dst and src

@@ -160,25 +160,6 @@ enum Instructions : hyperion::uint8
 
     /* Casting with sub-command */
     CAST_UNIFIED = 0x90, // [sub-cmd, dst, src]
-
-    /* Legacy cast instructions (DEPRECATED - use CAST_UNIFIED) */
-    CAST_U8,  // castU8  [% dst, % src]
-    CAST_U16, // castU16 [% dst, % src]
-    CAST_U32, // castU32 [% dst, % src]
-    CAST_U64, // castU64 [% dst, % src]
-
-    CAST_I8,  // castI8  [% dst, % src]
-    CAST_I16, // castI16 [% dst, % src]
-    CAST_I32, // castI32 [% dst, % src]
-    CAST_I64, // castI64 [% dst, % src]
-
-    CAST_F32, // castF32 [% dst, % src]
-    CAST_F64, // castF64 [% dst, % src]
-
-    CAST_BOOL, // castBool [% dst, % src]
-
-    CAST_DYNAMIC, // castDynamic [% dst, % src] - cast 'src' to dynamic type, the type is stored in the 'dst' register
-
     /* Signifies the end of the stream */
     EXIT = 0xFF
 };
@@ -255,8 +236,9 @@ enum CastType : hyperion::uint8
     CAST_TYPE_F32 = 0x08,
     CAST_TYPE_F64 = 0x09,
     CAST_TYPE_BOOL = 0x0A,
-    CAST_TYPE_DYNAMIC = 0x0B
-    // 4 reserved slots
+    CAST_TYPE_STRING = 0x0B,
+    CAST_TYPE_DYNAMIC = 0x0C
+    // 3 reserved slots
 };
 
 // Helper macros for creating sub-commands

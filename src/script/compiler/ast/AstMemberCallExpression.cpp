@@ -188,11 +188,13 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
 
     chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
 
+    // num args for call may be > numArgsToPop.
+    // (placeholder args don't count towards stack size and are handled outside of this node)
     chunk->Append(Compiler::BuildCall(
         visitor,
         mod,
-        nullptr,         // no target -- handled above
-        numArgsToPop + 1 // +1 for self
+        nullptr,                             // no target -- handled above
+        uint16(m_substitutedArgs.Size()) + 1 // +1 for self.
         ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(

@@ -41,6 +41,7 @@ protected:
 
     // set while analyzing
     RC<AstExpression> m_dynamicTypeExpr;
+    SymbolTypeRef m_resultType;
     Tribool m_isType;
 
 private:

@@ -28,6 +28,7 @@ public:
     static Exception InvalidOperationException(const char* opName,
         const char* leftTypeStr, const char* rightTypeStr);
     static Exception InvalidOperationException(const char* opName, const char* typeStr);
+    static Exception InvalidCastException(const char* fromTypeStr, const char* toTypeStr);
     static Exception InvalidBitwiseArgument();
     static Exception InvalidArgsException(int expected, int received, bool variadic = false);
     static Exception InvalidArgsException(const char* expectedStr, int received);

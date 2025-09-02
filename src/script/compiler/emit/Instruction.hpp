@@ -361,6 +361,7 @@ struct CastOperation final : public Instruction
         CAST_F32,
         CAST_F64,
         CAST_BOOL,
+        CAST_STRING,
         CAST_DYNAMIC
     };
 

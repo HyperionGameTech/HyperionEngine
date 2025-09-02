@@ -234,7 +234,7 @@ UniquePtr<Buildable> AstCallExpression::Build(AstVisitor* visitor, Module* mod)
         visitor,
         mod,
         m_expr,
-        numArgsToPop));
+        uint16(m_substitutedArgs.Size())));
 
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,

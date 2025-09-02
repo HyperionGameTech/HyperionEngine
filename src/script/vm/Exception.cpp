@@ -102,6 +102,14 @@ Exception Exception::InvalidOperationException(const char* opName, const char* t
         typeStr);
 }
 
+Exception Exception::InvalidCastException(const char* fromTypeStr, const char* toTypeStr)
+{
+    return FormattedException(
+        HYP_STATIC_STRING("Invalid cast: cannot cast from %s to %s"),
+        fromTypeStr,
+        toTypeStr);
+}
+
 Exception Exception::InvalidBitwiseArgument()
 {
     return Exception("Invalid argument to bitwise operation");

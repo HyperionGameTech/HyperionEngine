@@ -2019,11 +2019,7 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_U8",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "uint8"));
 
             return;
         }
@@ -2056,11 +2052,7 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_U16",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "uint16"));
 
             return;
         }
@@ -2092,11 +2084,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_U32",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "uint32"));
+
             return;
         }
 
@@ -2127,11 +2116,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_U64",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "uint64"));
+
             return;
         }
 
@@ -2161,11 +2147,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_I8",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "int8"));
+
             return;
         }
 
@@ -2195,11 +2178,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_I16",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "int16"));
+
             return;
         }
 
@@ -2229,11 +2209,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_I32",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "int32"));
+
             return;
         }
 
@@ -2263,11 +2240,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_I64",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "int64"));
+
             return;
         }
 
@@ -2298,11 +2272,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_F32",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "float32"));
+
             return;
         }
 
@@ -2333,11 +2304,8 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_F64",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "float64"));
+
             return;
         }
 
@@ -2390,102 +2358,53 @@ public:
         thread->m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void CastDynamic(BCRegister dst, BCRegister src) // come back to this
+    HYP_FORCE_INLINE void CastString(BCRegister dst, BCRegister src)
     {
-        HYP_NOT_IMPLEMENTED();
-#if 0
-        // load the VMObject from dst
+        // load value from register
         Value& value = *thread->m_regs[src].Deref();
 
-        // Ensure it is a VMObject
-        VMObject* classObjectPtr = value.GetObject();
+        const VMString* pString = nullptr;
 
-        if (!classObjectPtr)
+        if (!value.GetString(&pString))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_DYNAMIC",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), "string"));
 
             return;
         }
 
-        // load the target from src
-        Value& target = *thread->m_regs[src].Deref();
+        thread->m_regs[dst].AssignValue(ScriptApi_ShallowCopy(value, vm->GetGC()), false);
+    }
 
-        // Ensure it is a VMObject
-        VMObject* targetObjectPtr = target.GetObject();
+    HYP_FORCE_INLINE void CastDynamic(BCRegister dst, BCRegister src) // come back to this
+    {
+        // dst register holds HypClassRef object
+        Value& classValue = *thread->m_regs[dst].Deref();
 
-        if (!targetObjectPtr)
+        const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
+        Assert(classRef.IsValid());
+
+        // load value from register
+        Value& value = *thread->m_regs[src].Deref();
+
+        const AnyHandle& object = value.GetObject();
+        if (!object.IsValid())
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_DYNAMIC",
-                    target.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
 
             return;
         }
 
-        bool isInstance = false;
+        const HypClass* objClass = object.ptr->InstanceClass();
+        Assert(objClass);
 
-        // Check if the target is an instance of the type
-        Value* pBase = nullptr;
-
-        if (const Value& targetClassValue = targetObjectPtr->GetClassPointer(); targetClassValue.IsValid())
+        if (!objClass->IsDerivedFrom(classRef))
         {
-            constexpr uint32 maxDepth = 1024;
-            uint32 depth = 0;
-
-            VMObject* targetClassObject = targetClassValue.GetObject();
-
-            while (targetClassObject != nullptr && depth < maxDepth)
-            {
-                isInstance = (*targetClassObject == *classObjectPtr);
-
-                if (isInstance)
-                {
-                    break;
-                }
-
-                if (!(targetClassObject->LookupBasePointer(&pBase) && (targetClassObject = pBase->GetObject())))
-                {
-                    break;
-                }
-
-                depth++;
-            }
-
-            if (depth == maxDepth)
-            {
-                vm->ThrowException(
-                    thread,
-                    Exception::InvalidOperationException(
-                        "CAST_DYNAMIC",
-                        "Max depth reached"));
-
-                return;
-            }
-        }
-
-        // If it is not an instance, throw an exception
-        if (!isInstance)
-        {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "CAST_DYNAMIC",
-                    "Not an instance"));
+            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
 
             return;
         }
 
-        Assert(pBase != nullptr);
-
-        // Set the destination register to be the target
-        thread->m_regs[dst].AssignValue(ScriptApi_ShallowCopy(*pBase, vm->GetGC()), false);
-#endif
+        thread->m_regs[dst].AssignValue(ScriptApi_ShallowCopy(value, vm->GetGC()), false);
     }
 };
 
@@ -2814,9 +2733,14 @@ HYP_FORCE_INLINE static void HandleInstruction(
         case CAST_TYPE_BOOL:
             handler.CastBool(dstReg, srcReg);
             break;
+        case CAST_TYPE_STRING:
+            handler.CastString(dstReg, srcReg);
+            break;
         case CAST_TYPE_DYNAMIC:
             handler.CastDynamic(dstReg, srcReg);
             break;
+        default:
+            HYP_UNREACHABLE();
         }
 
         break;
@@ -3625,150 +3549,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
         bs->Read(&hash);
 
         handler.ExportSymbol(reg, hash);
-
-        break;
-    }
-    case CAST_U8:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastU8(dst, src);
-
-        break;
-    }
-    case CAST_U16:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastU16(dst, src);
-
-        break;
-    }
-    case CAST_U32:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastU32(dst, src);
-
-        break;
-    }
-    case CAST_U64:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastU64(dst, src);
-
-        break;
-    }
-    case CAST_I8:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastI8(dst, src);
-
-        break;
-    }
-    case CAST_I16:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastI16(dst, src);
-
-        break;
-    }
-    case CAST_I32:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastI32(dst, src);
-
-        break;
-    }
-    case CAST_I64:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastI64(dst, src);
-
-        break;
-    }
-    case CAST_F32:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastF32(dst, src);
-
-        break;
-    }
-    case CAST_F64:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastF64(dst, src);
-
-        break;
-    }
-    case CAST_BOOL:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastBool(dst, src);
-
-        break;
-    }
-    case CAST_DYNAMIC:
-    {
-        BCRegister dst;
-        bs->Read(&dst);
-
-        BCRegister src;
-        bs->Read(&src);
-
-        handler.CastDynamic(dst, src);
 
         break;
     }

@@ -575,6 +575,22 @@ bool Value::GetBoolean(bool* out) const
     return true;
 }
 
+bool Value::GetString(const VMString** out) const
+{
+    AssertDebug(out != nullptr);
+
+    const HypData& data = *GetHypData();
+
+    if (!data.Is<VMString>())
+    {
+        return false;
+    }
+
+    *out = &data.Get<VMString>();
+
+    return true;
+}
+
 const AnyHandle& Value::GetObject() const
 {
     const HypData& data = *GetHypData();
