@@ -256,17 +256,28 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(cons
         });
 }
 
-Optional<GenericInstanceCache::CachedObject> Module::LookupGenericInstance(const GenericInstanceCache::Key& key)
+SymbolTypeRef Module::LookupGenericInstance(const GenericInstanceCache::Key& cacheKey)
 {
-    return PerformLookup<Optional<GenericInstanceCache::CachedObject>>(
-        [&key](TreeNode<Scope>* top)
+    return PerformLookup<SymbolTypeRef>(
+        [&cacheKey](TreeNode<Scope>* top)
         {
-            return top->Get().genericInstanceCache.Lookup(key);
+            return top->Get().genericInstanceCache.Lookup(cacheKey);
         },
-        [&key](Module* mod)
+        [&cacheKey](Module* mod)
         {
-            return mod->LookupGenericInstance(key);
+            return mod->LookupGenericInstance(cacheKey);
         });
+}
+
+void Module::CacheGenericInstance(const GenericInstanceCache::Key& cacheKey, const SymbolTypeRef& type)
+{
+    // cache in this module at topmost scope
+    TreeNode<Scope>* top = m_scopes.TopNode();
+
+    if (top != nullptr)
+    {
+        top->Get().genericInstanceCache.Put(cacheKey, type);
+    }
 }
 
 } // namespace hyperion::compiler

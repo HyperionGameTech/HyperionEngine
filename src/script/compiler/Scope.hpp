@@ -21,146 +21,90 @@ namespace hyperion::compiler {
 */
 class GenericInstanceCache
 {
+
 public:
-    struct CachedObject
+    class Key
     {
-        uint32 id = 0;
-        RC<AstExpression> instantiatedExpr;
-
-        HYP_FORCE_INLINE bool operator==(const CachedObject& other) const
-        {
-            return id == other.id;
-        }
-
-        HYP_FORCE_INLINE bool operator!=(const CachedObject& other) const
-        {
-            return !(*this == other);
-        }
-    };
-
-    struct Key
-    {
-        RC<AstExpression> genericExpr; // the original generic expression
-        Array<HashCode> argHashCodes;  // hashcodes of AstArgument nodes
+        friend class GenericInstanceCache;
 
         Key() = default;
 
-        Key(
-            RC<AstExpression> genericExpr,
-            Array<HashCode> argHashCodes)
-            : genericExpr(std::move(genericExpr)),
-              argHashCodes(std::move(argHashCodes))
-        {
-            Assert(this->genericExpr != nullptr);
-        }
-
+    public:
         Key(const Key& other) = default;
         Key& operator=(const Key& other) = default;
         Key(Key&& other) noexcept = default;
         Key& operator=(Key&& other) noexcept = default;
         ~Key() = default;
 
-        bool IsValid() const
-        {
-            return genericExpr != nullptr;
-        }
-
         bool operator==(const Key& other) const
         {
-            if (!IsValid() || !other.IsValid())
-            {
-                return false;
-            }
+            return GetHashCode() == other.GetHashCode();
+        }
 
-            if (genericExpr != other.genericExpr)
-            {
-                return false;
-            }
+        bool operator!=(const Key& other) const
+        {
+            return !(*this == other);
+        }
 
-            if (argHashCodes.Size() != other.argHashCodes.Size())
-            {
-                return false;
-            }
-
-            for (SizeType i = 0; i < argHashCodes.Size(); i++)
-            {
-                if (argHashCodes[i] != other.argHashCodes[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
+        bool operator<(const Key& other) const
+        {
+            return GetHashCode() < other.GetHashCode();
         }
 
         HashCode GetHashCode() const
         {
-            HashCode hc;
+            HashCode hash;
+            hash.Add(uintptr_t(m_originalType));
+            hash.Add(m_genericArgsHashCode);
 
-            if (!IsValid())
-            {
-                return hc;
-            }
-
-            hc.Add(genericExpr->GetHashCode());
-
-            for (auto& argHashCode : argHashCodes)
-            {
-                hc.Add(argHashCode);
-            }
-
-            return hc;
+            return hash;
         }
+
+    private:
+        SymbolType* m_originalType;
+        HashCode m_genericArgsHashCode;
     };
 
-    GenericInstanceCache() = default;
-    GenericInstanceCache(const GenericInstanceCache& other) = default;
-    GenericInstanceCache& operator=(const GenericInstanceCache& other) = default;
-    GenericInstanceCache(GenericInstanceCache&& other) noexcept = default;
-    GenericInstanceCache& operator=(GenericInstanceCache&& other) noexcept = default;
-    ~GenericInstanceCache() = default;
-
-    /*! \brief Looks up a generic instance in the cache.
-        \details
-        If the generic instance is not found, an empty optional is returned.
-
-        \return The cached object, or an empty optional if the object is not
-    */
-    Optional<CachedObject> Lookup(const Key& key) const
+    static Key MakeKey(const SymbolTypeRef& originalType, const GenericInstanceTypeInfo& genericInstanceTypeInfo)
     {
-        auto it = m_cache.Find(key);
+        Key key;
+        key.m_originalType = originalType.Get();
+        key.m_genericArgsHashCode = genericInstanceTypeInfo.GetHashCode();
 
-        if (it == m_cache.End())
-        {
-            return {};
-        }
-
-        return it->second;
+        return key;
     }
 
-    /*! \brief Adds a generic instance to the cache.
-        \details
-        The generic expression must be a generic expression, and the
-        instantiated expression must be the result of instantiating the
-        generic expression with the given type arguments.
-
-        \return The ID of the cached object.
-    */
-    uint32 Add(Key key, RC<AstExpression> instantiatedExpr)
+    SymbolTypeRef Lookup(const Key& key) const
     {
-        Assert(key.genericExpr != nullptr);
-        Assert(instantiatedExpr != nullptr);
+        Mutex::Guard guard(m_mutex);
 
-        const uint32 id = m_nextId++;
+        auto it = m_cache.Find(key);
 
-        m_cache.Insert(std::move(key), CachedObject { id, std::move(instantiatedExpr) });
+        if (it != m_cache.End())
+        {
+            SymbolTypeRef type = it->second.Lock();
 
-        return id;
+            if (type.IsValid())
+            {
+                return type;
+            }
+        }
+
+        return SymbolTypeRef();
+    }
+
+    void Put(const Key& key, const SymbolTypeRef& type)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        m_cache.Set(key, type.ToWeak());
     }
 
 private:
-    uint32 m_nextId = 0;
-    HashMap<Key, CachedObject> m_cache;
+    using CacheMap = HashMap<Key, SymbolTypeWeakRef, HashTable_DynamicNodeAllocator<KeyValuePair<Key, SymbolTypeWeakRef>>>;
+
+    mutable Mutex m_mutex;
+    CacheMap m_cache;
 };
 
 enum ScopeType

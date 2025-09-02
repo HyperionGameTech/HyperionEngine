@@ -13,6 +13,34 @@
 
 namespace hyperion::compiler {
 
+#pragma region GenericInstanceTypeInfo
+
+HashCode GenericInstanceTypeInfo::Arg::GetHashCode() const
+{
+    HashCode hc;
+    hc.Add(m_name);
+    hc.Add(m_type ? m_type->GetHashCode() : HashCode());
+    hc.Add(m_defaultValue ? m_defaultValue->GetHashCode() : HashCode());
+    hc.Add(m_isRef);
+    hc.Add(m_isConst);
+
+    return hc;
+}
+
+HashCode GenericInstanceTypeInfo::GetHashCode() const
+{
+    HashCode hc;
+
+    for (const Arg& arg : m_genericArgs)
+    {
+        hc.Add(HashCode::GetHashCode(arg));
+    }
+
+    return hc;
+}
+
+#pragma endregion GenericInstanceTypeInfo
+
 SymbolType::SymbolType(
     const String& name,
     SymbolTypeClass typeClass,
@@ -1056,7 +1084,6 @@ SymbolTypeRef SymbolType::Extend(
 
     symbolType->m_genericInstanceInfo = base->m_genericInstanceInfo;
     symbolType->m_genericParamInfo = base->m_genericParamInfo;
-    symbolType->m_functionInfo = base->m_functionInfo;
 
     return symbolType;
 }

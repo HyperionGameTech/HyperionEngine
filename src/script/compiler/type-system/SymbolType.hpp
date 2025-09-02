@@ -36,9 +36,11 @@ struct SymbolTypeMember
     RC<AstExpression> expr;
 };
 
-enum SymbolTypeClass
+enum SymbolTypeClass : uint8
 {
-    TYPE_BUILTIN,
+    TYPE_INVALID = uint8(-1),
+
+    TYPE_BUILTIN = 0,
     TYPE_USER_DEFINED,
     TYPE_ALIAS,
     TYPE_GENERIC_INSTANCE,
@@ -75,9 +77,13 @@ struct GenericInstanceTypeInfo
         RC<AstExpression> m_defaultValue;
         bool m_isRef = false;
         bool m_isConst = false;
+
+        HashCode GetHashCode() const;
     };
 
     Array<Arg> m_genericArgs;
+
+    HashCode GetHashCode() const;
 };
 
 struct GenericParameterTypeInfo
@@ -111,9 +117,23 @@ class SymbolType : public EnableRefCountedPtrFromThis<SymbolType>
 {
     friend class IdentifierTable;
 
-    SymbolType() = default;
+    SymbolType()
+        : m_name("<temp>"),
+          m_typeClass(TYPE_INVALID),
+          m_base(nullptr),
+          m_defaultValue(nullptr),
+          m_flags(SYMBOL_TYPE_FLAGS_NONE),
+          m_declScope(nullptr)
+    {
+    }
 
 public:
+    /*! \brief Create a temporary type to be filled in later. */
+    static SymbolTypeRef Temp()
+    {
+        return RC<SymbolType>(new SymbolType());
+    }
+
     static SymbolTypeRef Alias(
         const String& name,
         const AliasTypeInfo& info);
@@ -264,16 +284,6 @@ public:
         return m_aliasInfo;
     }
 
-    FunctionTypeInfo& GetFunctionInfo()
-    {
-        return m_functionInfo;
-    }
-
-    const FunctionTypeInfo& GetFunctionInfo() const
-    {
-        return m_functionInfo;
-    }
-
     GenericInstanceTypeInfo& GetGenericInstanceInfo()
     {
         return m_genericInstanceInfo;
@@ -411,7 +421,6 @@ public:
         result->m_members = m_members;
         result->m_staticMembers = m_staticMembers;
         result->m_aliasInfo = m_aliasInfo;
-        result->m_functionInfo = m_functionInfo;
         result->m_genericInstanceInfo = m_genericInstanceInfo;
         result->m_genericParamInfo = m_genericParamInfo;
         result->m_flags = m_flags;
@@ -420,14 +429,41 @@ public:
         return result;
     }
 
-    // if this is an instance of a generic type
-    SymbolTypeClass m_typeClass;
-    GenericInstanceTypeInfo m_genericInstanceInfo;
+    /*! \brief Copy the contents of another SymbolType into this one, mutating it.
+        This is used when instantiating generic types to avoid having to re-cache
+        the new instance. */
+    void CopyMutate(SymbolType&& other)
+    {
+        m_name = std::move(other.m_name);
+        m_typeClass = other.m_typeClass;
+        m_base = std::move(other.m_base);
+        m_defaultValue = std::move(other.m_defaultValue);
+        m_members = std::move(other.m_members);
+        m_staticMembers = std::move(other.m_staticMembers);
+        m_aliasInfo = std::move(other.m_aliasInfo);
+        m_genericInstanceInfo = std::move(other.m_genericInstanceInfo);
+        m_genericParamInfo = std::move(other.m_genericParamInfo);
+        m_flags = other.m_flags;
+        m_declScope = nullptr; // do not copy scope
+
+        // invalidate other
+        other.m_typeClass = TYPE_INVALID;
+        other.m_base = nullptr;
+        other.m_defaultValue = nullptr;
+        other.m_members.Clear();
+        other.m_staticMembers.Clear();
+        other.m_aliasInfo = {};
+        other.m_genericInstanceInfo = {};
+        other.m_genericParamInfo = {};
+        other.m_flags = SYMBOL_TYPE_FLAGS_NONE;
+        other.m_declScope = nullptr;
+    }
 
 private:
     HashCode GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateNames) const;
 
     String m_name;
+    SymbolTypeClass m_typeClass;
     RC<AstExpression> m_defaultValue;
     Array<SymbolTypeMember> m_members;
     Array<SymbolTypeMember> m_staticMembers;
@@ -437,8 +473,8 @@ private:
 
     // if this is an alias of another type
     AliasTypeInfo m_aliasInfo;
-    // if this type is a function
-    FunctionTypeInfo m_functionInfo;
+    // if this is an instance of a generic type
+    GenericInstanceTypeInfo m_genericInstanceInfo;
     // if this is a generic param
     GenericParameterTypeInfo m_genericParamInfo;
 

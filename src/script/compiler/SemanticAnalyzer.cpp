@@ -213,6 +213,13 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     }
 
     SymbolTypeRef targetType = unaliasedInputType;
+
+    const GenericInstanceCache::Key cacheKey = GenericInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
+    if (SymbolTypeRef cachedType = mod->LookupGenericInstance(cacheKey))
+    {
+        return cachedType;
+    }
+
     bool changed = false;
 
     ScopeGuard scope { mod, SCOPE_TYPE_NORMAL, 0 };
@@ -242,16 +249,16 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         targetType = targetType->GetUnaliased();
         Assert(targetType != nullptr);
 
-        DebugLog(LogType::Debug, "Substituted generic parameter %s with type %s\n",
-            inputType->GetName().Data(),
-            targetType->ToString().Data());
-
         changed = true;
 
         break;
     }
     case TYPE_GENERIC_INSTANCE:
     {
+        // cache it now to avoid infinite recursion
+        SymbolTypeRef newType = SymbolType::Temp();
+        mod->CacheGenericInstance(cacheKey, newType);
+
         const GenericInstanceTypeInfo& genericInstanceInfo = targetType->GetGenericInstanceInfo();
 
         // resolve args in type
@@ -343,12 +350,17 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             }
         }
 
-        SymbolTypeRef substitutedType = SymbolType::GenericInstance(
+        SymbolTypeRef tmpGenericInstance = SymbolType::GenericInstance(
             targetType,
             {}, {},
             GenericInstanceTypeInfo { std::move(resolvedArgs) });
 
-        targetType = substitutedType;
+        // modify newType in place (we already cached it so we need to modify it)
+        newType->CopyMutate(std::move(*tmpGenericInstance));
+
+        tmpGenericInstance.Reset();
+
+        targetType = std::move(newType);
         changed = true;
 
         break;
