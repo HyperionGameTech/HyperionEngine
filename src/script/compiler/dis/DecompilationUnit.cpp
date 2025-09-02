@@ -544,7 +544,7 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case SET_MEMBER:
+    case SET_FIELD:
     {
         uint8 reg;
         bs.Read(&reg);
@@ -558,7 +558,7 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr)
         {
             (*os)
-                << "setMember ["
+                << "SET_FIELD ["
                 << "%" << (int)reg << ", "
                 << "u64(" << hash << "), "
                 << "%" << (int)src

@@ -84,7 +84,7 @@ enum Instructions : hyperion::uint8
     */
     CHECK_HAS_MEMBER, // checkHasMember [% dst, % src, u64 hash]
     /* Assign register value to object member (using hashcode) */
-    SET_MEMBER, // setMember [% dstObj, u64 hash, % src]
+    SET_FIELD, // SET_FIELD [% dstObj, u64 hash, % src]
     /* Get member value and store it in a register (using hashcode) */
     GET_MEMBER, // getMember      [% reg, % src, u64 hash]
 

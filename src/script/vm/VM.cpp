@@ -874,9 +874,9 @@ public:
             const HypClass* hypClass = object.ptr->InstanceClass();
             Assert(hypClass != nullptr);
 
-            HypField* field = hypClass->GetField(WeakName(NameID(hash)));
+            IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
 
-            if (field)
+            if (member)
             {
                 result.AssignValue(ScriptApi_MakeValue(true), false);
             }
@@ -891,7 +891,7 @@ public:
         result.AssignValue(ScriptApi_MakeValue(false), false);
     }
 
-    HYP_FORCE_INLINE void SetMember(BCRegister dstReg, uint64 hash, BCRegister srcReg)
+    HYP_FORCE_INLINE void SetField(BCRegister dstReg, uint64 hash, BCRegister srcReg)
     {
         Value* pValue = thread->m_regs[dstReg].Deref();
 
@@ -2863,7 +2863,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case SET_MEMBER:
+    case SET_FIELD:
     {
         BCRegister dst;
         bs->Read(&dst);
@@ -2874,7 +2874,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         BCRegister src;
         bs->Read(&src);
 
-        handler.SetMember(dst, hash, src);
+        handler.SetField(dst, hash, src);
 
         break;
     }

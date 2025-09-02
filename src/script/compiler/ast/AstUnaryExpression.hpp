@@ -6,6 +6,7 @@
 namespace hyperion::compiler {
 
 class AstBinaryExpression;
+class AstBlock;
 
 class AstUnaryExpression : public AstExpression
 {
@@ -44,7 +45,8 @@ private:
     // set while analyzing
     bool m_folded;
 
-    RC<AstBinaryExpression> m_binExpr; // internally use a binary expr for some things (like ++ and -- operators)
+    RC<AstBinaryExpression> m_binExpr; // for operators that modify their argument
+    RC<AstBlock> m_overrideBlock;      // for postfix ++/--
 
     RC<AstUnaryExpression> CloneImpl() const
     {

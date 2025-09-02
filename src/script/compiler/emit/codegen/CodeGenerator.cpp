@@ -553,7 +553,7 @@ void CodeGenerator::Visit(StorageOperation* node)
 
                 break;
             case Operations::STORE:
-                m_ibs.Put(Instructions::SET_MEMBER);
+                m_ibs.Put(Instructions::SET_FIELD);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.hash), sizeof(node->op.b.objectData.member.hash));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));

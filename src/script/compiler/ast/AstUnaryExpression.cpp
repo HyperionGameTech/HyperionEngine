@@ -1,6 +1,8 @@
 #include <script/compiler/ast/AstUnaryExpression.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/Operator.hpp>
@@ -74,13 +76,35 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
             Assert(false, "Unhandled operator type");
         }
 
-        m_binExpr.Reset(new AstBinaryExpression(
-            m_target,
-            expr,
-            binOp,
-            m_location));
+        m_overrideBlock.Reset(new AstBlock(m_location));
 
-        m_binExpr->Visit(visitor, mod);
+        static const String tempVarName = "$__tempPostfixOperand";
+
+        if (m_isPostfixVersion)
+        {
+            // need to preserve the original value as a temporary variable
+            RC<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
+                tempVarName,
+                nullptr,
+                CloneAstNode(m_target),
+                IdentifierFlags::FLAG_NONE,
+                m_location));
+
+            // add the variable declaration to the block so  it gets stored
+            m_overrideBlock->AddChild(tempVarDecl);
+        }
+
+        m_binExpr.Reset(new AstBinaryExpression(m_target, expr, binOp, m_location));
+
+        m_overrideBlock->AddChild(m_binExpr);
+
+        if (m_isPostfixVersion)
+        {
+            // return the temp variable
+            m_overrideBlock->AddChild(RC<AstVariable>(new AstVariable(tempVarName, m_location)));
+        }
+
+        m_overrideBlock->Visit(visitor, mod);
 
         return;
     }
@@ -145,35 +169,9 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    uint8 rp;
-
-    if (m_binExpr != nullptr)
+    if (m_overrideBlock != nullptr)
     {
-        if (m_isPostfixVersion)
-        {
-            // for postfix version:
-            //  - load var into register
-            //  - do binary op
-            //  - return value from original register
-
-            /// @FIXME: Issues with array access.
-            Assert(m_target != nullptr);
-            chunk->Append(m_target->Build(visitor, mod));
-
-            visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
-            rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-            chunk->Append(m_binExpr->Build(visitor, mod));
-
-            visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
-            rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-            return chunk;
-        }
-        else
-        {
-            return m_binExpr->Build(visitor, mod);
-        }
+        return m_overrideBlock->Build(visitor, mod);
     }
 
     Assert(m_target != nullptr);
@@ -181,7 +179,7 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
 
     if (!m_folded)
     {
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         if (m_op->GetType() & ARITHMETIC)
         {
@@ -248,9 +246,9 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
 
 void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_binExpr != nullptr)
+    if (m_overrideBlock != nullptr)
     {
-        m_binExpr->Optimize(visitor, mod);
+        m_overrideBlock->Optimize(visitor, mod);
 
         return;
     }

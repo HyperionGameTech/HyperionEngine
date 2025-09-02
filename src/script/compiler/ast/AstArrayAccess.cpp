@@ -125,9 +125,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             argumentList, // use right hand side as arg
             m_location));
 
-        operatorOverloadMemberCall->SetAccessMode(GetAccessMode());
-        operatorOverloadMemberCall->SetExpressionFlags(GetExpressionFlags());
-
         if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
         {
             RC<AstCallExpression> callExpr(new AstCallExpression(
@@ -158,9 +155,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                     m_location)));
             }
 
-            callExpr->SetAccessMode(GetAccessMode());
-            callExpr->SetExpressionFlags(GetExpressionFlags());
-
             m_overrideExpr = std::move(callExpr);
         }
         else if (targetType->IsAnyType())
@@ -169,8 +163,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             // and conditionally call the operator overload if it exists
             RC<AstArrayAccess> subExpr = Clone().CastUnsafe<AstArrayAccess>();
             subExpr->SetIsOperatorOverloadingEnabled(false); // don't look for operator[] again
-            subExpr->SetAccessMode(GetAccessMode());
-            subExpr->SetExpressionFlags(GetExpressionFlags());
 
             m_overrideExpr.Reset(new AstTernaryExpression(
                 RC<AstHasExpression>(new AstHasExpression(CloneAstNode(m_target), overloadFunctionName, m_location)),
@@ -194,8 +186,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
         if (m_overrideExpr != nullptr)
         {
-            m_overrideExpr->SetAccessMode(GetAccessMode());
-            m_overrideExpr->SetExpressionFlags(GetExpressionFlags());
             m_overrideExpr->Visit(visitor, mod);
 
             m_exprType = m_overrideExpr->GetExprType();
