@@ -2664,101 +2664,104 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         const uint8 dstType = GET_MOV_DSTTYPE(subcmd);
         const uint8 srcType = GET_MOV_SRCTYPE(subcmd);
+        const bool isArrayStore = GET_MOV_ARRAYSTORE(subcmd);
 
-        switch (dstType)
+        // Handle array store operations first
+        if (isArrayStore)
         {
-        case MDST_OFFSET:
-        {
-            uint16 offset;
-            bs->Read(&offset);
-            BCRegister srcReg;
-            bs->Read(&srcReg);
-            handler.MovOffset(offset, srcReg);
-        }
-        break;
-
-        case MDST_INDEX:
-        {
-            uint16 index;
+            BCRegister arrayReg;
+            bs->Read(&arrayReg);
+            uint32 index;
             bs->Read(&index);
             BCRegister srcReg;
             bs->Read(&srcReg);
-            handler.MovIndex(index, srcReg);
+            handler.MovArrayIdx(arrayReg, index, srcReg);
         }
-        break;
-
-        case MDST_STATIC:
+        else
         {
-            uint16 index;
-            bs->Read(&index);
-            BCRegister srcReg;
-            bs->Read(&srcReg);
-            handler.MovStatic(index, srcReg);
-        }
-        break;
-
-        case MDST_REGISTER:
-            switch (srcType)
+            switch (dstType)
             {
-            case MSRC_REGISTER:
+            case MDST_OFFSET:
             {
-                BCRegister dstReg;
-                bs->Read(&dstReg);
+                uint16 offset;
+                bs->Read(&offset);
                 BCRegister srcReg;
                 bs->Read(&srcReg);
-                handler.Mov(dstReg, srcReg);
+                handler.MovOffset(offset, srcReg);
             }
             break;
 
-            case MSRC_ARRAYIDX:
+            case MDST_INDEX:
             {
-                BCRegister arrayReg;
-                bs->Read(&arrayReg);
-                uint32 index;
+                uint16 index;
                 bs->Read(&index);
                 BCRegister srcReg;
                 bs->Read(&srcReg);
-                handler.MovArrayIdx(arrayReg, index, srcReg);
+                handler.MovIndex(index, srcReg);
             }
             break;
 
-            case MSRC_ARRAYIDX_REG:
+            case MDST_STATIC:
             {
-                BCRegister arrayReg;
-                bs->Read(&arrayReg);
-                BCRegister indexReg;
-                bs->Read(&indexReg);
-                BCRegister srcReg;
-                bs->Read(&srcReg);
-                handler.MovArrayIdxReg(arrayReg, indexReg, srcReg);
-            }
-            break;
-
-            case MSRC_MEMBER:
-            {
-                BCRegister objReg;
-                bs->Read(&objReg);
-                uint64 hash;
-                bs->Read(&hash);
-                BCRegister srcReg;
-                bs->Read(&srcReg);
-                handler.SetField(objReg, hash, srcReg);
-            }
-            break;
-
-            case MSRC_TO_ARRAYIDX:
-            {
-                BCRegister arrayReg;
-                bs->Read(&arrayReg);
-                uint32 index;
+                uint16 index;
                 bs->Read(&index);
                 BCRegister srcReg;
                 bs->Read(&srcReg);
-                handler.MovArrayIdx(arrayReg, index, srcReg);
+                handler.MovStatic(index, srcReg);
             }
             break;
+
+            case MDST_REGISTER:
+                switch (srcType)
+                {
+                case MSRC_REGISTER:
+                {
+                    BCRegister dstReg;
+                    bs->Read(&dstReg);
+                    BCRegister srcReg;
+                    bs->Read(&srcReg);
+                    handler.Mov(dstReg, srcReg);
+                }
+                break;
+
+                case MSRC_ARRAYIDX:
+                {
+                    BCRegister arrayReg;
+                    bs->Read(&arrayReg);
+                    uint32 index;
+                    bs->Read(&index);
+                    BCRegister srcReg;
+                    bs->Read(&srcReg);
+                    handler.MovArrayIdx(arrayReg, index, srcReg);
+                }
+                break;
+
+                case MSRC_ARRAYIDX_REG:
+                {
+                    BCRegister arrayReg;
+                    bs->Read(&arrayReg);
+                    BCRegister indexReg;
+                    bs->Read(&indexReg);
+                    BCRegister srcReg;
+                    bs->Read(&srcReg);
+                    handler.MovArrayIdxReg(arrayReg, indexReg, srcReg);
+                }
+                break;
+
+                case MSRC_MEMBER:
+                {
+                    BCRegister objReg;
+                    bs->Read(&objReg);
+                    uint64 hash;
+                    bs->Read(&hash);
+                    BCRegister srcReg;
+                    bs->Read(&srcReg);
+                    handler.SetField(objReg, hash, srcReg);
+                }
+                break;
+                }
+                break;
             }
-            break;
         }
 
         break;

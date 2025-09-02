@@ -218,23 +218,23 @@ enum LoadSourceType : hyperion::uint8
 // Move sub-command format (8 bits):
 // Bits 0-1: Destination type (2 bits = 4 types)
 // Bits 2-4: Source type (3 bits = 8 types)
-// Bits 5-7: Reserved
+// Bit 5: Array store flag (1 bit)
+// Bits 6-7: Reserved
 
 enum MoveDstType : hyperion::uint8
 {
-    MDST_OFFSET = 0x00,   // Stack offset
-    MDST_INDEX = 0x01,    // Stack index
-    MDST_STATIC = 0x02,   // Static storage
-    MDST_REGISTER = 0x03  // Register
+    MDST_OFFSET = 0x00,  // Stack offset
+    MDST_INDEX = 0x01,   // Stack index
+    MDST_STATIC = 0x02,  // Static storage
+    MDST_REGISTER = 0x03 // Register
 };
 
 enum MoveSrcType : hyperion::uint8
 {
     MSRC_REGISTER = 0x00,     // Register
-    MSRC_ARRAYIDX = 0x01,     // Array index (immediate) - load FROM array
-    MSRC_ARRAYIDX_REG = 0x02, // Array index (register) - load FROM array
-    MSRC_MEMBER = 0x03,       // Object member
-    MSRC_TO_ARRAYIDX = 0x04   // Store TO array index (register source)
+    MSRC_ARRAYIDX = 0x01,     // Array index (immediate)
+    MSRC_ARRAYIDX_REG = 0x02, // Array index (register)
+    MSRC_MEMBER = 0x03        // Object member
     // Reserved slots for future use
 };
 
@@ -266,6 +266,9 @@ enum CastType : hyperion::uint8
 #define MAKE_MOV_SUBCMD(dstType, srcType) \
     ((hyperion::uint8)((dstType) | ((srcType) << 2)))
 
+#define MAKE_MOV_ARRAYSTORE_SUBCMD(dstType, srcType) \
+    ((hyperion::uint8)((dstType) | ((srcType) << 2) | (1 << 5)))
+
 #define MAKE_CAST_SUBCMD(castType) \
     ((hyperion::uint8)(castType))
 
@@ -276,5 +279,6 @@ enum CastType : hyperion::uint8
 
 #define GET_MOV_DSTTYPE(subcmd) ((subcmd) & 0x03)
 #define GET_MOV_SRCTYPE(subcmd) (((subcmd) >> 2) & 0x07)
+#define GET_MOV_ARRAYSTORE(subcmd) (((subcmd) >> 5) & 0x01)
 
 #define GET_CAST_TYPE(subcmd) ((subcmd) & 0x0F)

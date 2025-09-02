@@ -212,105 +212,108 @@ void DecompilationUnit::DecodeNext(
 
         const uint8 dstType = GET_MOV_DSTTYPE(subcmd);
         const uint8 srcType = GET_MOV_SRCTYPE(subcmd);
+        const bool isArrayStore = GET_MOV_ARRAYSTORE(subcmd);
 
         if (os != nullptr)
         {
             *os << "MOV ";
 
-            switch (dstType)
+            // Handle array store operations first
+            if (isArrayStore)
             {
-            case MDST_OFFSET:
-            {
-                uint16 offset;
-                bs.Read(&offset);
-                uint8 srcReg;
-                bs.Read(&srcReg);
-                *os << "$" << offset << ", %r" << (int)srcReg;
-            }
-            break;
-
-            case MDST_INDEX:
-            {
-                uint16 index;
+                uint8 arrayReg;
+                bs.Read(&arrayReg);
+                uint32 index;
                 bs.Read(&index);
                 uint8 srcReg;
                 bs.Read(&srcReg);
-                *os << "#" << index << ", %r" << (int)srcReg;
+                *os << "%r" << (int)arrayReg << "[" << index << "], %r" << (int)srcReg;
             }
-            break;
-
-            case MDST_STATIC:
+            else
             {
-                uint16 index;
-                bs.Read(&index);
-                uint8 srcReg;
-                bs.Read(&srcReg);
-                *os << "static[" << index << "], %r" << (int)srcReg;
-            }
-            break;
-
-            case MDST_REGISTER:
-                switch (srcType)
+                switch (dstType)
                 {
-                case MSRC_REGISTER:
+                case MDST_OFFSET:
                 {
-                    uint8 dstReg;
-                    bs.Read(&dstReg);
+                    uint16 offset;
+                    bs.Read(&offset);
                     uint8 srcReg;
                     bs.Read(&srcReg);
-                    *os << "%r" << (int)dstReg << ", %r" << (int)srcReg;
+                    *os << "$" << offset << ", %r" << (int)srcReg;
                 }
                 break;
 
-                case MSRC_ARRAYIDX:
+                case MDST_INDEX:
                 {
-                    uint8 arrayReg;
-                    bs.Read(&arrayReg);
-                    uint32 index;
+                    uint16 index;
                     bs.Read(&index);
                     uint8 srcReg;
                     bs.Read(&srcReg);
-                    *os << "%r" << (int)arrayReg << "[" << index << "], %r" << (int)srcReg;
+                    *os << "#" << index << ", %r" << (int)srcReg;
                 }
                 break;
 
-                case MSRC_ARRAYIDX_REG:
+                case MDST_STATIC:
                 {
-                    uint8 arrayReg;
-                    bs.Read(&arrayReg);
-                    uint8 indexReg;
-                    bs.Read(&indexReg);
-                    uint8 srcReg;
-                    bs.Read(&srcReg);
-                    *os << "%r" << (int)arrayReg << "[%r" << (int)indexReg << "], %r" << (int)srcReg;
-                }
-                break;
-
-                case MSRC_MEMBER:
-                {
-                    uint8 objReg;
-                    bs.Read(&objReg);
-                    uint64 hash;
-                    bs.Read(&hash);
-                    uint8 srcReg;
-                    bs.Read(&srcReg);
-                    *os << "%r" << (int)objReg << ".member@" << std::hex << hash << std::dec << ", %r" << (int)srcReg;
-                }
-                break;
-
-                case MSRC_TO_ARRAYIDX:
-                {
-                    uint8 arrayReg;
-                    bs.Read(&arrayReg);
-                    uint32 index;
+                    uint16 index;
                     bs.Read(&index);
                     uint8 srcReg;
                     bs.Read(&srcReg);
-                    *os << "%r" << (int)arrayReg << "[" << index << "], %r" << (int)srcReg;
+                    *os << "static[" << index << "], %r" << (int)srcReg;
                 }
                 break;
+
+                case MDST_REGISTER:
+                    switch (srcType)
+                    {
+                    case MSRC_REGISTER:
+                    {
+                        uint8 dstReg;
+                        bs.Read(&dstReg);
+                        uint8 srcReg;
+                        bs.Read(&srcReg);
+                        *os << "%r" << (int)dstReg << ", %r" << (int)srcReg;
+                    }
+                    break;
+
+                    case MSRC_ARRAYIDX:
+                    {
+                        uint8 arrayReg;
+                        bs.Read(&arrayReg);
+                        uint32 index;
+                        bs.Read(&index);
+                        uint8 srcReg;
+                        bs.Read(&srcReg);
+                        *os << "%r" << (int)arrayReg << "[" << index << "], %r" << (int)srcReg;
+                    }
+                    break;
+
+                    case MSRC_ARRAYIDX_REG:
+                    {
+                        uint8 arrayReg;
+                        bs.Read(&arrayReg);
+                        uint8 indexReg;
+                        bs.Read(&indexReg);
+                        uint8 srcReg;
+                        bs.Read(&srcReg);
+                        *os << "%r" << (int)arrayReg << "[%r" << (int)indexReg << "], %r" << (int)srcReg;
+                    }
+                    break;
+
+                    case MSRC_MEMBER:
+                    {
+                        uint8 objReg;
+                        bs.Read(&objReg);
+                        uint64 hash;
+                        bs.Read(&hash);
+                        uint8 srcReg;
+                        bs.Read(&srcReg);
+                        *os << "%r" << (int)objReg << ".member@" << std::hex << hash << std::dec << ", %r" << (int)srcReg;
+                    }
+                    break;
+                    }
+                    break;
                 }
-                break;
             }
 
             *os << std::endl;
