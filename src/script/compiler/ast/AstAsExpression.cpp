@@ -165,8 +165,11 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
     }
 
     { // swap dst and src
+        constexpr uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_REGISTER);
+
         auto instrMovReg = BytecodeUtil::Make<RawOperation<>>();
-        instrMovReg->opcode = MOV;
+        instrMovReg->opcode = MOV_UNIFIED;
+        instrMovReg->Accept<uint8>(subcmd);
         instrMovReg->Accept<uint8>(srcRegister);
         instrMovReg->Accept<uint8>(dstRegister);
         chunk->Append(std::move(instrMovReg));

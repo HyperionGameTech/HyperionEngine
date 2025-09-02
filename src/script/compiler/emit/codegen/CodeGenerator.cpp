@@ -158,72 +158,114 @@ void CodeGenerator::Visit(PopLocal* node)
 
 void CodeGenerator::Visit(LoadRef* node)
 {
-    m_ibs.Put(Instructions::REF);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_OBJECT, 1, LSRC_REGISTER);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->dst);
     m_ibs.Put(node->src);
 }
 
 void CodeGenerator::Visit(LoadDeref* node)
 {
-    m_ibs.Put(Instructions::DEREF);
+    // Use new unified instruction format (deref is regular load from register)
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_OBJECT, 0, LSRC_REGISTER);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->dst);
     m_ibs.Put(node->src);
 }
 
 void CodeGenerator::Visit(ConstI32* node)
 {
-    m_ibs.Put(Instructions::LOAD_I32);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_I32, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->value), sizeof(node->value));
 }
 
 void CodeGenerator::Visit(ConstI64* node)
 {
-    m_ibs.Put(Instructions::LOAD_I64);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_I64, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->value), sizeof(node->value));
 }
 
 void CodeGenerator::Visit(ConstU32* node)
 {
-    m_ibs.Put(Instructions::LOAD_U32);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_U32, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->value), sizeof(node->value));
 }
 
 void CodeGenerator::Visit(ConstU64* node)
 {
-    m_ibs.Put(Instructions::LOAD_U64);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_U64, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->value), sizeof(node->value));
 }
 
 void CodeGenerator::Visit(ConstF32* node)
 {
-    m_ibs.Put(Instructions::LOAD_F32);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_F32, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->value), sizeof(node->value));
 }
 
 void CodeGenerator::Visit(ConstF64* node)
 {
-    m_ibs.Put(Instructions::LOAD_F64);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_F64, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
     m_ibs.Put(reinterpret_cast<ubyte*>(&node->value), sizeof(node->value));
 }
 
 void CodeGenerator::Visit(ConstBool* node)
 {
-    m_ibs.Put(node->value
-            ? Instructions::LOAD_TRUE
-            : Instructions::LOAD_FALSE);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_BOOL, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
+
+    uint8 boolValue = node->value ? 1 : 0;
+    m_ibs.Put(boolValue);
 }
 
 void CodeGenerator::Visit(ConstNull* node)
 {
-    m_ibs.Put(Instructions::LOAD_NULL);
+    // Use new unified instruction format
+    const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_OBJECT, 0, LSRC_IMMEDIATE);
+
+    m_ibs.Put(Instructions::LOAD_UNIFIED);
+    m_ibs.Put(subcmd);
     m_ibs.Put(node->reg);
+    // No additional data needed for null
 }
 
 void CodeGenerator::Visit(LoadClass* node)
@@ -405,46 +447,70 @@ void CodeGenerator::Visit(StorageOperation* node)
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(node->op.isRef ? Instructions::LOAD_OFFSET_REF : Instructions::LOAD_OFFSET);
+            {
+                // Use unified load instruction
+                const uint8 subcmd = MAKE_LOAD_SUBCMD(
+                    DTYPE_OBJECT,
+                    node->op.isRef,
+                    LSRC_OFFSET);
+
+                m_ibs.Put(Instructions::LOAD_UNIFIED);
+                m_ibs.Put(subcmd);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.offset), sizeof(node->op.b.offset));
-
-                break;
-            case Operations::STORE:
-                m_ibs.Put(Instructions::MOV_OFFSET);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.offset), sizeof(node->op.b.offset));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
-
-                break;
             }
+            break;
 
+            case Operations::STORE:
+            {
+                // Use unified move instruction
+                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_OFFSET, MSRC_REGISTER);
+
+                m_ibs.Put(Instructions::MOV_UNIFIED);
+                m_ibs.Put(subcmd);
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.offset), sizeof(node->op.b.offset));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
+            }
+            break;
+            }
             break;
 
         case Strategies::BY_INDEX:
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(node->op.isRef ? Instructions::LOAD_INDEX_REF : Instructions::LOAD_INDEX);
+            {
+                // Use unified load instruction
+                const uint8 subcmd = MAKE_LOAD_SUBCMD(
+                    DTYPE_OBJECT,
+                    node->op.isRef,
+                    LSRC_INDEX);
+
+                m_ibs.Put(Instructions::LOAD_UNIFIED);
+                m_ibs.Put(subcmd);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.index), sizeof(node->op.b.index));
-
-                break;
-            case Operations::STORE:
-                m_ibs.Put(Instructions::MOV_INDEX);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.index), sizeof(node->op.b.index));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
-
-                break;
             }
+            break;
 
+            case Operations::STORE:
+            {
+                // Use unified move instruction
+                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_INDEX, MSRC_REGISTER);
+
+                m_ibs.Put(Instructions::MOV_UNIFIED);
+                m_ibs.Put(subcmd);
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.index), sizeof(node->op.b.index));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
+            }
+            break;
+            }
             break;
 
         case Strategies::BY_HASH:
             Assert(false, "Not implemented");
-
             break;
         }
-
         break;
 
     case Methods::STATIC:
@@ -452,34 +518,41 @@ void CodeGenerator::Visit(StorageOperation* node)
         {
         case Strategies::BY_OFFSET:
             Assert(false, "Not implemented");
-
             break;
 
         case Strategies::BY_INDEX:
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(Instructions::LOAD_STATIC);
+            {
+                // Use unified load instruction
+                const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_OBJECT, 0, LSRC_STATIC);
+
+                m_ibs.Put(Instructions::LOAD_UNIFIED);
+                m_ibs.Put(subcmd);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.index), sizeof(node->op.b.index));
-
-                break;
-            case Operations::STORE:
-                m_ibs.Put(Instructions::MOV_STATIC);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.index), sizeof(node->op.b.index));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
-
-                break;
             }
+            break;
 
+            case Operations::STORE:
+            {
+                // Use unified move instruction
+                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_STATIC, MSRC_REGISTER);
+
+                m_ibs.Put(Instructions::MOV_UNIFIED);
+                m_ibs.Put(subcmd);
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.index), sizeof(node->op.b.index));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
+            }
+            break;
+            }
             break;
 
         case Strategies::BY_HASH:
             Assert(false, "Not implemented");
-
             break;
         }
-
         break;
 
     case Methods::ARRAY:
@@ -487,36 +560,43 @@ void CodeGenerator::Visit(StorageOperation* node)
         {
         case Strategies::BY_OFFSET:
             Assert(false, "Not implemented");
-
             break;
 
         case Strategies::BY_INDEX:
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(Instructions::LOAD_ARRAYIDX);
+            {
+                // Use unified load instruction
+                const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_OBJECT, 0, LSRC_ARRAYIDX);
+
+                m_ibs.Put(Instructions::LOAD_UNIFIED);
+                m_ibs.Put(subcmd);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.index), sizeof(node->op.b.objectData.member.index));
-
-                break;
-            case Operations::STORE:
-                m_ibs.Put(Instructions::MOV_ARRAYIDX);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.index), sizeof(node->op.b.objectData.member.index));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
-
-                break;
             }
+            break;
 
+            case Operations::STORE:
+            {
+                // Use unified move instruction
+                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_ARRAYIDX);
+
+                m_ibs.Put(Instructions::MOV_UNIFIED);
+                m_ibs.Put(subcmd);
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.index), sizeof(node->op.b.objectData.member.index));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
+            }
+            break;
+            }
             break;
 
         case Strategies::BY_HASH:
             Assert(false, "Not implemented");
-
             break;
         }
-
         break;
 
     case Methods::MEMBER:
@@ -524,7 +604,6 @@ void CodeGenerator::Visit(StorageOperation* node)
         {
         case Strategies::BY_OFFSET:
             Assert(false, "Not implemented");
-
             break;
 
         case Strategies::BY_INDEX:
@@ -532,38 +611,44 @@ void CodeGenerator::Visit(StorageOperation* node)
             {
             case Operations::LOAD:
                 Assert(false, "Not implemented");
-
                 break;
             case Operations::STORE:
                 Assert(false, "Not implemented");
-
                 break;
             }
-
             break;
 
         case Strategies::BY_HASH:
             switch (node->operation)
             {
             case Operations::LOAD:
-                m_ibs.Put(Instructions::GET_MEMBER);
+            {
+                // Use unified load instruction for member access
+                const uint8 subcmd = MAKE_LOAD_SUBCMD(DTYPE_OBJECT, 0, LSRC_MEMBER);
+
+                m_ibs.Put(Instructions::LOAD_UNIFIED);
+                m_ibs.Put(subcmd);
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
                 m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.hash), sizeof(node->op.b.objectData.member.hash));
-
-                break;
-            case Operations::STORE:
-                m_ibs.Put(Instructions::SET_FIELD);
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.hash), sizeof(node->op.b.objectData.member.hash));
-                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
-
-                break;
             }
+            break;
 
+            case Operations::STORE:
+            {
+                // Use unified move instruction for member assignment
+                const uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_MEMBER);
+
+                m_ibs.Put(Instructions::MOV_UNIFIED);
+                m_ibs.Put(subcmd);
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.reg), sizeof(node->op.b.objectData.reg));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.b.objectData.member.hash), sizeof(node->op.b.objectData.member.hash));
+                m_ibs.Put(reinterpret_cast<ubyte*>(&node->op.a.reg), sizeof(node->op.a.reg));
+            }
+            break;
+            }
             break;
         }
-
         break;
     }
 }
@@ -591,14 +676,13 @@ void CodeGenerator::Visit(SymbolExport* node)
 
 void CodeGenerator::Visit(CastOperation* node)
 {
-    const uint8 castInstruction = uint8(Instructions::CAST_U8) + uint8(node->type);
-    Assert(
-        castInstruction >= Instructions::CAST_U8 && castInstruction <= uint8(Instructions::CAST_DYNAMIC),
-        "Invalid cast type");
+    // Use new unified cast instruction
+    const uint8 subcmd = MAKE_CAST_SUBCMD(static_cast<CastType>(node->type));
 
-    m_ibs.Put(castInstruction);
-    m_ibs.Put(reinterpret_cast<ubyte*>(&node->regDst), sizeof(node->regDst));
-    m_ibs.Put(reinterpret_cast<ubyte*>(&node->regSrc), sizeof(node->regSrc));
+    m_ibs.Put(Instructions::CAST_UNIFIED);
+    m_ibs.Put(subcmd);
+    m_ibs.Put(node->regDst);
+    m_ibs.Put(node->regSrc);
 }
 
 void CodeGenerator::Visit(RawOperation<>* node)

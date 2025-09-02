@@ -38,7 +38,13 @@ enum Instructions : hyperion::uint8
     /* No operation */
     NOP = 0x00, // nop
 
-    /* Load a value into a register */
+    /* Unified load instruction with sub-command */
+    LOAD_UNIFIED = 0x10, // [sub-cmd, reg, operand...]
+
+    /* Unified move instruction with sub-command */
+    MOV_UNIFIED = 0x11, // [sub-cmd, dst, src]
+
+    /* Legacy load instructions (DEPRECATED - use LOAD_UNIFIED) */
     LOAD_I32,        // loadI32          [% reg, i32 val]
     LOAD_I64,        // loadI64          [% reg, i64 val]
     LOAD_U32,        // loadU32          [% reg, u32 val]
@@ -62,7 +68,7 @@ enum Instructions : hyperion::uint8
     REF,   // ref               [% reg, % src]
     DEREF, // deref             [% reg, % src]
 
-    /* Copy register value to stack offset */
+    /* Legacy move instructions (DEPRECATED - use MOV_UNIFIED) */
     MOV_OFFSET, // movOffset   [u16 dst, % src]
     /* Copy register value to stack index */
     MOV_INDEX, // movIndex    [u16 dst, % src]
@@ -152,7 +158,10 @@ enum Instructions : hyperion::uint8
     /* Export a symbol from register value by name */
     EXPORT, // export [% src, u32 len, byte[len] str]
 
-    /* Casts */
+    /* Casting with sub-command */
+    CAST_UNIFIED = 0x90, // [sub-cmd, dst, src]
+
+    /* Legacy cast instructions (DEPRECATED - use CAST_UNIFIED) */
     CAST_U8,  // castU8  [% dst, % src]
     CAST_U16, // castU16 [% dst, % src]
     CAST_U32, // castU32 [% dst, % src]
@@ -173,3 +182,98 @@ enum Instructions : hyperion::uint8
     /* Signifies the end of the stream */
     EXIT = 0xFF
 };
+
+// Sub-command definitions for unified instructions
+
+// Load sub-command format (8 bits):
+// Bits 0-2: Data type (3 bits = 8 types)
+// Bit 3: Reference flag (1 bit)
+// Bits 4-6: Source type (3 bits = 8 source types)
+// Bit 7: Extended flag (reserved)
+
+enum LoadDataType : hyperion::uint8
+{
+    DTYPE_I32 = 0x00,
+    DTYPE_I64 = 0x01,
+    DTYPE_U32 = 0x02,
+    DTYPE_U64 = 0x03,
+    DTYPE_F32 = 0x04,
+    DTYPE_F64 = 0x05,
+    DTYPE_BOOL = 0x06,
+    DTYPE_OBJECT = 0x07
+};
+
+enum LoadSourceType : hyperion::uint8
+{
+    LSRC_IMMEDIATE = 0x00, // Constant value follows
+    LSRC_OFFSET = 0x01,    // Stack offset (uint16)
+    LSRC_INDEX = 0x02,     // Stack index (uint16)
+    LSRC_STATIC = 0x03,    // Static storage (uint16)
+    LSRC_ARRAYIDX = 0x04,  // Array[index] (reg, reg)
+    LSRC_MEMBER = 0x05,    // Object.member (reg, hash64)
+    LSRC_REGISTER = 0x06,  // Another register (reg)
+    LSRC_ADDRESS = 0x07    // Memory address (uint32)
+};
+
+// Move sub-command format (8 bits):
+// Bits 0-1: Destination type (2 bits = 4 types)
+// Bits 2-4: Source type (3 bits = 8 types)
+// Bits 5-7: Reserved
+
+enum MoveDstType : hyperion::uint8
+{
+    MDST_OFFSET = 0x00,  // Stack offset
+    MDST_INDEX = 0x01,   // Stack index
+    MDST_STATIC = 0x02,  // Static storage
+    MDST_REGISTER = 0x03 // Register
+};
+
+enum MoveSrcType : hyperion::uint8
+{
+    MSRC_REGISTER = 0x00,     // Register
+    MSRC_ARRAYIDX = 0x01,     // Array index (immediate)
+    MSRC_ARRAYIDX_REG = 0x02, // Array index (register)
+    MSRC_MEMBER = 0x03,       // Object member
+    // Reserved slots for future use
+};
+
+// Cast sub-command format (8 bits):
+// Bits 0-3: Target type (4 bits = 16 types)
+// Bits 4-7: Reserved
+
+enum CastType : hyperion::uint8
+{
+    CAST_TYPE_U8 = 0x00,
+    CAST_TYPE_U16 = 0x01,
+    CAST_TYPE_U32 = 0x02,
+    CAST_TYPE_U64 = 0x03,
+    CAST_TYPE_I8 = 0x04,
+    CAST_TYPE_I16 = 0x05,
+    CAST_TYPE_I32 = 0x06,
+    CAST_TYPE_I64 = 0x07,
+    CAST_TYPE_F32 = 0x08,
+    CAST_TYPE_F64 = 0x09,
+    CAST_TYPE_BOOL = 0x0A,
+    CAST_TYPE_DYNAMIC = 0x0B
+    // 4 reserved slots
+};
+
+// Helper macros for creating sub-commands
+#define MAKE_LOAD_SUBCMD(dataType, isRef, srcType) \
+    ((hyperion::uint8)((dataType) | ((isRef) << 3) | ((srcType) << 4)))
+
+#define MAKE_MOV_SUBCMD(dstType, srcType) \
+    ((hyperion::uint8)((dstType) | ((srcType) << 2)))
+
+#define MAKE_CAST_SUBCMD(castType) \
+    ((hyperion::uint8)(castType))
+
+// Extract fields from sub-commands
+#define GET_LOAD_DTYPE(subcmd) ((subcmd) & 0x07)
+#define GET_LOAD_ISREF(subcmd) (((subcmd) >> 3) & 0x01)
+#define GET_LOAD_SRCTYPE(subcmd) (((subcmd) >> 4) & 0x07)
+
+#define GET_MOV_DSTTYPE(subcmd) ((subcmd) & 0x03)
+#define GET_MOV_SRCTYPE(subcmd) (((subcmd) >> 2) & 0x07)
+
+#define GET_CAST_TYPE(subcmd) ((subcmd) & 0x0F)

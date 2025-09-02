@@ -26,6 +26,349 @@ void DecompilationUnit::DecodeNext(
 
     switch (code)
     {
+    case LOAD_UNIFIED:
+    {
+        uint8 subcmd;
+        bs.Read(&subcmd);
+
+        uint8 reg;
+        bs.Read(&reg);
+
+        const uint8 dataType = GET_LOAD_DTYPE(subcmd);
+        const bool isRef = GET_LOAD_ISREF(subcmd);
+        const uint8 srcType = GET_LOAD_SRCTYPE(subcmd);
+
+        if (os != nullptr)
+        {
+            *os << "LOAD ";
+
+            // Print data type
+            switch (dataType)
+            {
+            case DTYPE_I32:
+                *os << "i32";
+                break;
+            case DTYPE_I64:
+                *os << "i64";
+                break;
+            case DTYPE_U32:
+                *os << "u32";
+                break;
+            case DTYPE_U64:
+                *os << "u64";
+                break;
+            case DTYPE_F32:
+                *os << "f32";
+                break;
+            case DTYPE_F64:
+                *os << "f64";
+                break;
+            case DTYPE_BOOL:
+                *os << "bool";
+                break;
+            case DTYPE_OBJECT:
+                *os << "obj";
+                break;
+            }
+
+            if (isRef)
+                *os << "_ref";
+
+            *os << " %r" << (int)reg;
+
+            // Print source type and operands
+            switch (srcType)
+            {
+            case LSRC_IMMEDIATE:
+                *os << ", ";
+                switch (dataType)
+                {
+                case DTYPE_I32:
+                {
+                    int32_t value;
+                    bs.Read(&value);
+                    *os << value;
+                }
+                break;
+                case DTYPE_I64:
+                {
+                    int64_t value;
+                    bs.Read(&value);
+                    *os << value;
+                }
+                break;
+                case DTYPE_U32:
+                {
+                    uint32 value;
+                    bs.Read(&value);
+                    *os << value;
+                }
+                break;
+                case DTYPE_U64:
+                {
+                    uint64 value;
+                    bs.Read(&value);
+                    *os << value;
+                }
+                break;
+                case DTYPE_F32:
+                {
+                    float value;
+                    bs.Read(&value);
+                    *os << value;
+                }
+                break;
+                case DTYPE_F64:
+                {
+                    double value;
+                    bs.Read(&value);
+                    *os << value;
+                }
+                break;
+                case DTYPE_BOOL:
+                {
+                    uint8 value;
+                    bs.Read(&value);
+                    *os << (value ? "true" : "false");
+                }
+                break;
+                case DTYPE_OBJECT:
+                    *os << "null";
+                    break;
+                }
+                break;
+
+            case LSRC_OFFSET:
+            {
+                uint16 offset;
+                bs.Read(&offset);
+                *os << ", $" << offset;
+            }
+            break;
+
+            case LSRC_INDEX:
+            {
+                uint16 index;
+                bs.Read(&index);
+                *os << ", #" << index;
+            }
+            break;
+
+            case LSRC_STATIC:
+            {
+                uint16 index;
+                bs.Read(&index);
+                *os << ", static[" << index << "]";
+            }
+            break;
+
+            case LSRC_ARRAYIDX:
+            {
+                uint8 arrayReg;
+                bs.Read(&arrayReg);
+                uint8 indexReg;
+                bs.Read(&indexReg);
+                *os << ", %r" << (int)arrayReg << "[%r" << (int)indexReg << "]";
+            }
+            break;
+
+            case LSRC_MEMBER:
+            {
+                uint8 objReg;
+                bs.Read(&objReg);
+                uint64 hash;
+                bs.Read(&hash);
+                *os << ", %r" << (int)objReg << ".member@" << std::hex << hash << std::dec;
+            }
+            break;
+
+            case LSRC_REGISTER:
+            {
+                uint8 srcReg;
+                bs.Read(&srcReg);
+                *os << ", %r" << (int)srcReg;
+            }
+            break;
+
+            case LSRC_ADDRESS:
+            {
+                uint32 addr;
+                bs.Read(&addr);
+                *os << ", @" << addr;
+            }
+            break;
+            }
+
+            *os << std::endl;
+        }
+
+        break;
+    }
+
+    case MOV_UNIFIED:
+    {
+        uint8 subcmd;
+        bs.Read(&subcmd);
+
+        const uint8 dstType = GET_MOV_DSTTYPE(subcmd);
+        const uint8 srcType = GET_MOV_SRCTYPE(subcmd);
+
+        if (os != nullptr)
+        {
+            *os << "MOV ";
+
+            switch (dstType)
+            {
+            case MDST_OFFSET:
+            {
+                uint16 offset;
+                bs.Read(&offset);
+                uint8 srcReg;
+                bs.Read(&srcReg);
+                *os << "$" << offset << ", %r" << (int)srcReg;
+            }
+            break;
+
+            case MDST_INDEX:
+            {
+                uint16 index;
+                bs.Read(&index);
+                uint8 srcReg;
+                bs.Read(&srcReg);
+                *os << "#" << index << ", %r" << (int)srcReg;
+            }
+            break;
+
+            case MDST_STATIC:
+            {
+                uint16 index;
+                bs.Read(&index);
+                uint8 srcReg;
+                bs.Read(&srcReg);
+                *os << "static[" << index << "], %r" << (int)srcReg;
+            }
+            break;
+
+            case MDST_REGISTER:
+                switch (srcType)
+                {
+                case MSRC_REGISTER:
+                {
+                    uint8 dstReg;
+                    bs.Read(&dstReg);
+                    uint8 srcReg;
+                    bs.Read(&srcReg);
+                    *os << "%r" << (int)dstReg << ", %r" << (int)srcReg;
+                }
+                break;
+
+                case MSRC_ARRAYIDX:
+                {
+                    uint8 arrayReg;
+                    bs.Read(&arrayReg);
+                    uint32 index;
+                    bs.Read(&index);
+                    uint8 srcReg;
+                    bs.Read(&srcReg);
+                    *os << "%r" << (int)arrayReg << "[" << index << "], %r" << (int)srcReg;
+                }
+                break;
+
+                case MSRC_ARRAYIDX_REG:
+                {
+                    uint8 arrayReg;
+                    bs.Read(&arrayReg);
+                    uint8 indexReg;
+                    bs.Read(&indexReg);
+                    uint8 srcReg;
+                    bs.Read(&srcReg);
+                    *os << "%r" << (int)arrayReg << "[%r" << (int)indexReg << "], %r" << (int)srcReg;
+                }
+                break;
+
+                case MSRC_MEMBER:
+                {
+                    uint8 objReg;
+                    bs.Read(&objReg);
+                    uint64 hash;
+                    bs.Read(&hash);
+                    uint8 srcReg;
+                    bs.Read(&srcReg);
+                    *os << "%r" << (int)objReg << ".member@" << std::hex << hash << std::dec << ", %r" << (int)srcReg;
+                }
+                break;
+                }
+                break;
+            }
+
+            *os << std::endl;
+        }
+
+        break;
+    }
+
+    case CAST_UNIFIED:
+    {
+        uint8 subcmd;
+        bs.Read(&subcmd);
+
+        uint8 dstReg;
+        bs.Read(&dstReg);
+        uint8 srcReg;
+        bs.Read(&srcReg);
+
+        const uint8 castType = GET_CAST_TYPE(subcmd);
+
+        if (os != nullptr)
+        {
+            *os << "cast_unified ";
+
+            switch (castType)
+            {
+            case CAST_TYPE_U8:
+                *os << "u8";
+                break;
+            case CAST_TYPE_U16:
+                *os << "u16";
+                break;
+            case CAST_TYPE_U32:
+                *os << "u32";
+                break;
+            case CAST_TYPE_U64:
+                *os << "u64";
+                break;
+            case CAST_TYPE_I8:
+                *os << "i8";
+                break;
+            case CAST_TYPE_I16:
+                *os << "i16";
+                break;
+            case CAST_TYPE_I32:
+                *os << "i32";
+                break;
+            case CAST_TYPE_I64:
+                *os << "i64";
+                break;
+            case CAST_TYPE_F32:
+                *os << "f32";
+                break;
+            case CAST_TYPE_F64:
+                *os << "f64";
+                break;
+            case CAST_TYPE_BOOL:
+                *os << "bool";
+                break;
+            case CAST_TYPE_DYNAMIC:
+                *os << "dynamic";
+                break;
+            }
+
+            *os << " %r" << (int)dstReg << ", %r" << (int)srcReg << std::endl;
+        }
+
+        break;
+    }
+
     case NOP:
     {
         if (os != nullptr)

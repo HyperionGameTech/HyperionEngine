@@ -2497,6 +2497,316 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
     switch (code)
     {
+    case LOAD_UNIFIED:
+    {
+        uint8 subcmd;
+        bs->Read(&subcmd);
+
+        BCRegister reg;
+        bs->Read(&reg);
+
+        const uint8 dataType = GET_LOAD_DTYPE(subcmd);
+        const bool isRef = GET_LOAD_ISREF(subcmd);
+        const uint8 srcType = GET_LOAD_SRCTYPE(subcmd);
+
+        switch (srcType)
+        {
+        case LSRC_IMMEDIATE:
+            switch (dataType)
+            {
+            case DTYPE_I32:
+            {
+                int32_t value;
+                bs->Read(&value);
+                handler.LoadI32(reg, value);
+            }
+            break;
+
+            case DTYPE_I64:
+            {
+                int64_t value;
+                bs->Read(&value);
+                handler.LoadI64(reg, value);
+            }
+            break;
+
+            case DTYPE_U32:
+            {
+                uint32 value;
+                bs->Read(&value);
+                handler.LoadU32(reg, value);
+            }
+            break;
+
+            case DTYPE_U64:
+            {
+                uint64 value;
+                bs->Read(&value);
+                handler.LoadU64(reg, value);
+            }
+            break;
+
+            case DTYPE_F32:
+            {
+                float value;
+                bs->Read(&value);
+                handler.LoadF32(reg, value);
+            }
+            break;
+
+            case DTYPE_F64:
+            {
+                double value;
+                bs->Read(&value);
+                handler.LoadF64(reg, value);
+            }
+            break;
+
+            case DTYPE_BOOL:
+            {
+                uint8 value;
+                bs->Read(&value);
+                if (value)
+                    handler.LoadTrue(reg);
+                else
+                    handler.LoadFalse(reg);
+            }
+            break;
+
+            case DTYPE_OBJECT:
+                // Load null for immediate object
+                handler.LoadNull(reg);
+                break;
+            }
+            break;
+
+        case LSRC_OFFSET:
+        {
+            uint16 offset;
+            bs->Read(&offset);
+
+            if (isRef)
+                handler.LoadOffsetRef(reg, offset);
+            else
+                handler.LoadOffset(reg, offset);
+        }
+        break;
+
+        case LSRC_INDEX:
+        {
+            uint16 index;
+            bs->Read(&index);
+
+            if (isRef)
+                handler.LoadIndexRef(reg, index);
+            else
+                handler.LoadIndex(reg, index);
+        }
+        break;
+
+        case LSRC_STATIC:
+        {
+            uint16 index;
+            bs->Read(&index);
+            handler.LoadStatic(reg, index);
+        }
+        break;
+
+        case LSRC_ARRAYIDX:
+        {
+            BCRegister arrayReg;
+            bs->Read(&arrayReg);
+            BCRegister indexReg;
+            bs->Read(&indexReg);
+            handler.LoadArrayIdx(reg, arrayReg, indexReg);
+        }
+        break;
+
+        case LSRC_MEMBER:
+        {
+            BCRegister objReg;
+            bs->Read(&objReg);
+            uint64 hash;
+            bs->Read(&hash);
+            handler.GetMember(reg, objReg, hash);
+        }
+        break;
+
+        case LSRC_REGISTER:
+        {
+            BCRegister srcReg;
+            bs->Read(&srcReg);
+
+            if (isRef)
+                handler.LoadRef(reg, srcReg);
+            else
+                handler.LoadDeref(reg, srcReg);
+        }
+        break;
+
+        case LSRC_ADDRESS:
+        {
+            Script_FunctionAddress addr;
+            bs->Read(&addr);
+            
+            handler.LoadAddr(reg, addr);
+        }
+        break;
+        }
+
+        break;
+    }
+
+    case MOV_UNIFIED:
+    {
+        uint8 subcmd;
+        bs->Read(&subcmd);
+
+        const uint8 dstType = GET_MOV_DSTTYPE(subcmd);
+        const uint8 srcType = GET_MOV_SRCTYPE(subcmd);
+
+        switch (dstType)
+        {
+        case MDST_OFFSET:
+        {
+            uint16 offset;
+            bs->Read(&offset);
+            BCRegister srcReg;
+            bs->Read(&srcReg);
+            handler.MovOffset(offset, srcReg);
+        }
+        break;
+
+        case MDST_INDEX:
+        {
+            uint16 index;
+            bs->Read(&index);
+            BCRegister srcReg;
+            bs->Read(&srcReg);
+            handler.MovIndex(index, srcReg);
+        }
+        break;
+
+        case MDST_STATIC:
+        {
+            uint16 index;
+            bs->Read(&index);
+            BCRegister srcReg;
+            bs->Read(&srcReg);
+            handler.MovStatic(index, srcReg);
+        }
+        break;
+
+        case MDST_REGISTER:
+            switch (srcType)
+            {
+            case MSRC_REGISTER:
+            {
+                BCRegister dstReg;
+                bs->Read(&dstReg);
+                BCRegister srcReg;
+                bs->Read(&srcReg);
+                handler.Mov(dstReg, srcReg);
+            }
+            break;
+
+            case MSRC_ARRAYIDX:
+            {
+                BCRegister arrayReg;
+                bs->Read(&arrayReg);
+                uint32 index;
+                bs->Read(&index);
+                BCRegister srcReg;
+                bs->Read(&srcReg);
+                handler.MovArrayIdx(arrayReg, index, srcReg);
+            }
+            break;
+
+            case MSRC_ARRAYIDX_REG:
+            {
+                BCRegister arrayReg;
+                bs->Read(&arrayReg);
+                BCRegister indexReg;
+                bs->Read(&indexReg);
+                BCRegister srcReg;
+                bs->Read(&srcReg);
+                handler.MovArrayIdxReg(arrayReg, indexReg, srcReg);
+            }
+            break;
+
+            case MSRC_MEMBER:
+            {
+                BCRegister objReg;
+                bs->Read(&objReg);
+                uint64 hash;
+                bs->Read(&hash);
+                BCRegister srcReg;
+                bs->Read(&srcReg);
+                handler.SetField(objReg, hash, srcReg);
+            }
+            break;
+            }
+            break;
+        }
+
+        break;
+    }
+
+    case CAST_UNIFIED:
+    {
+        uint8 subcmd;
+        bs->Read(&subcmd);
+
+        BCRegister dstReg;
+        bs->Read(&dstReg);
+        BCRegister srcReg;
+        bs->Read(&srcReg);
+
+        const uint8 castType = GET_CAST_TYPE(subcmd);
+
+        switch (castType)
+        {
+        case CAST_TYPE_U8:
+            handler.CastU8(dstReg, srcReg);
+            break;
+        case CAST_TYPE_U16:
+            handler.CastU16(dstReg, srcReg);
+            break;
+        case CAST_TYPE_U32:
+            handler.CastU32(dstReg, srcReg);
+            break;
+        case CAST_TYPE_U64:
+            handler.CastU64(dstReg, srcReg);
+            break;
+        case CAST_TYPE_I8:
+            handler.CastI8(dstReg, srcReg);
+            break;
+        case CAST_TYPE_I16:
+            handler.CastI16(dstReg, srcReg);
+            break;
+        case CAST_TYPE_I32:
+            handler.CastI32(dstReg, srcReg);
+            break;
+        case CAST_TYPE_I64:
+            handler.CastI64(dstReg, srcReg);
+            break;
+        case CAST_TYPE_F32:
+            handler.CastF32(dstReg, srcReg);
+            break;
+        case CAST_TYPE_F64:
+            handler.CastF64(dstReg, srcReg);
+            break;
+        case CAST_TYPE_BOOL:
+            handler.CastBool(dstReg, srcReg);
+            break;
+        case CAST_TYPE_DYNAMIC:
+            handler.CastDynamic(dstReg, srcReg);
+            break;
+        }
+
+        break;
+    }
+
     case LOAD_I32:
     {
         BCRegister reg;

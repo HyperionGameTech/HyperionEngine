@@ -328,10 +328,14 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
 
             if (dstRegister != rhsRegister)
             {
+                constexpr uint8 subcmd = MAKE_MOV_SUBCMD(MDST_REGISTER, MSRC_REGISTER);
+
                 auto instrMov = BytecodeUtil::Make<RawOperation<>>();
-                instrMov->opcode = MOV;
+                instrMov->opcode = MOV_UNIFIED;
+                instrMov->Accept<uint8>(subcmd);
                 instrMov->Accept<uint8>(dstRegister);
                 instrMov->Accept<uint8>(rhsRegister);
+
                 chunk->Append(std::move(instrMov));
             }
         }
