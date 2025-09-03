@@ -408,12 +408,19 @@ struct RawOperation final : public Instruction
         }
     }
 
-    template <typename T>
-    void Accept(const T& t)
+    void Accept(ConstByteView byteView)
+    {
+        const SizeType previousSize = data.Size();
+        data.Resize(previousSize + byteView.Size());
+        Memory::MemCpy(data.Data() + previousSize, byteView.Data(), byteView.Size());
+    }
+
+    template <typename T, typename = std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>>
+    void Accept(T value)
     {
         const SizeType previousSize = data.Size();
         data.Resize(previousSize + sizeof(T));
-        Memory::MemCpy(data.Data() + previousSize, &t, sizeof(T));
+        Memory::MemCpy(data.Data() + previousSize, &value, sizeof(T));
     }
 };
 

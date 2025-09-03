@@ -19,7 +19,16 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
+#include <script/vm/VMArray.hpp>
+
 #include <script/Instructions.hpp>
+
+#include <core/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOMWriter.hpp>
+#include <core/serialization/fbom/FBOMData.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/containers/FlatSet.hpp>
@@ -145,17 +154,16 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
     const bool hasSideEffects = MayHaveSideEffects();
     const uint32 arraySize = uint32(m_members.Size());
 
+    const uint8 arrayReg = rp;
+    int arrayStackLocation = -1;
+
     { // add NEW_ARRAY instruction
         auto instrNewArray = BytecodeUtil::Make<RawOperation<>>();
         instrNewArray->opcode = NEW_ARRAY;
-        instrNewArray->Accept<uint8>(rp);
+        instrNewArray->Accept<uint8>(arrayReg);
         instrNewArray->Accept<uint32>(arraySize);
         chunk->Append(std::move(instrNewArray));
     }
-
-    const uint8 arrayReg = rp;
-
-    int arrayStackLocation = -1;
 
     if (hasSideEffects)
     {
@@ -241,34 +249,6 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
         // get active register
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     }
-
-    // { // load array type expr from stack back into register
-    //     auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-    //     instrLoadOffset->GetBuilder()
-    //         .Load(rp)
-    //         .Local()
-    //         .ByOffset(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - classStackLocation);
-
-    //     chunk->Append(std::move(instrLoadOffset));
-    // }
-
-    // { // load member `from` from array type expr
-    //     constexpr HashCode::ValueType fromHash = HashCode::GetHashCode("from").Value();
-
-    //     chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, fromHash));
-    // }
-
-    // // Here array type and array should be the 2 items on the stack
-    // // so we call `from`, and the array type class will be the first arg, and the array will be the second arg
-
-    // { // call the `from` method
-    //     chunk->Append(Compiler::BuildCall(
-    //         visitor,
-    //         mod,
-    //         nullptr, // no target -- handled above
-    //         uint8(2) // self, array
-    //         ));
-    // }
 
     return chunk;
 }

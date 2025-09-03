@@ -14,6 +14,12 @@
 #include <core/object/HypMethod.hpp>
 #include <core/object/HypClassRegistry.hpp>
 
+#include <core/io/BufferedByteReader.hpp>
+
+#include <core/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOMReader.hpp>
+#include <core/serialization/fbom/FBOMLoadContext.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
@@ -2742,85 +2748,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-
-    case LOAD_I32:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        int32_t i32;
-        bs->Read(&i32);
-
-        handler.LoadI32(
-            reg,
-            i32);
-
-        break;
-    }
-    case LOAD_I64:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        int64_t i64;
-        bs->Read(&i64);
-
-        handler.LoadI64(
-            reg,
-            i64);
-
-        break;
-    }
-    case LOAD_U32:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        uint32 u32;
-        bs->Read(&u32);
-
-        handler.LoadU32(
-            reg,
-            u32);
-
-        break;
-    }
-    case LOAD_U64:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        uint64_t u64;
-        bs->Read(&u64);
-
-        handler.LoadU64(
-            reg,
-            u64);
-
-        break;
-    }
-    case LOAD_F32:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        float f32;
-        bs->Read(&f32);
-
-        handler.LoadF32(
-            reg,
-            f32);
-
-        break;
-    }
-    case LOAD_F64:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        double f64;
-        bs->Read(&f64);
-
-        handler.LoadF64(
-            reg,
-            f64);
-
-        break;
-    }
     case LOAD_OFFSET:
     {
         BCRegister reg;
@@ -2831,32 +2758,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
         handler.LoadOffset(
             reg,
             offset);
-
-        break;
-    }
-    case LOAD_INDEX:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        uint16 index;
-        bs->Read(&index);
-
-        handler.LoadIndex(
-            reg,
-            index);
-
-        break;
-    }
-    case LOAD_STATIC:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-        uint16 index;
-        bs->Read(&index);
-
-        handler.LoadStatic(
-            reg,
-            index);
 
         break;
     }
@@ -2879,36 +2780,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
             str);
 
         delete[] str;
-
-        break;
-    }
-    case LOAD_ADDR:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-
-        Script_FunctionAddress addr;
-        bs->Read(&addr);
-
-        handler.LoadAddr(reg, addr);
-
-        break;
-    }
-    case LOAD_FUNC:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-
-        Script_FunctionAddress addr;
-        bs->Read(&addr);
-
-        uint8 nargs;
-        bs->Read(&nargs);
-
-        uint8 flags;
-        bs->Read(&flags);
-
-        handler.LoadFunc(reg, addr, nargs, flags);
 
         break;
     }
@@ -2942,15 +2813,33 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case LOAD_INDEX_REF:
+    case LOAD_FUNC:
     {
         BCRegister reg;
         bs->Read(&reg);
 
-        uint16 index;
-        bs->Read(&index);
+        Script_FunctionAddress addr;
+        bs->Read(&addr);
 
-        handler.LoadIndexRef(reg, index);
+        uint8 nargs;
+        bs->Read(&nargs);
+
+        uint8 flags;
+        bs->Read(&flags);
+
+        handler.LoadFunc(reg, addr, nargs, flags);
+
+        break;
+    }
+    case LOAD_CLASS:
+    {
+        BCRegister reg;
+        bs->Read(&reg);
+
+        uint64 nameHash;
+        bs->Read(&nameHash);
+
+        handler.LoadClass(reg, nameHash);
 
         break;
     }
@@ -2975,45 +2864,6 @@ HYP_FORCE_INLINE static void HandleInstruction(
         bs->Read(&srcReg);
 
         handler.LoadDeref(dstReg, srcReg);
-
-        break;
-    }
-    case LOAD_NULL:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-
-        handler.LoadNull(reg);
-
-        break;
-    }
-    case LOAD_TRUE:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-
-        handler.LoadTrue(reg);
-
-        break;
-    }
-    case LOAD_FALSE:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-
-        handler.LoadFalse(reg);
-
-        break;
-    }
-    case LOAD_CLASS:
-    {
-        BCRegister reg;
-        bs->Read(&reg);
-
-        uint64 nameHash;
-        bs->Read(&nameHash);
-
-        handler.LoadClass(reg, nameHash);
 
         break;
     }
@@ -3526,6 +3376,36 @@ HYP_FORCE_INLINE static void HandleInstruction(
         }
 
         handler.vm->m_tracemap.Set(stringmap, linemap);
+
+        break;
+    }
+    case BINDATA:
+    {
+        BCRegister reg;
+        bs->Read(&reg);
+
+        uint32 len;
+        bs->Read(&len);
+
+        ByteBuffer buffer(len, /* zeroize */ false);
+        bs->Read(buffer.Data(), len);
+
+        FBOMReader reader { FBOMReaderConfig {} };
+        FBOMLoadContext ctx;
+
+        MemoryBufferedReaderSource source { buffer };
+        BufferedReader bufferedReader { &source };
+
+        HypData result;
+        if (FBOMResult err = reader.Deserialize(ctx, bufferedReader, result))
+        {
+            // throw exception for invalid data:
+            handler.vm->ThrowException(handler.thread, Exception(err.message.Data()));
+
+            break;
+        }
+
+        handler.thread->m_regs[reg] = ScriptApi_MakeValue(std::move(result));
 
         break;
     }

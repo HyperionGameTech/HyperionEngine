@@ -1,10 +1,17 @@
 #include <script/compiler/dis/DecompilationUnit.hpp>
 #include <script/Instructions.hpp>
-#include <core/containers/Array.hpp>
-#include <core/Types.hpp>
+
+#include <core/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOMReader.hpp>
+#include <core/serialization/fbom/FBOMLoadContext.hpp>
+
+#include <core/io/BufferedByteReader.hpp>
 
 #include <core/object/HypClassAttribute.hpp>
 #include <core/object/HypMemberFwd.hpp>
+
+#include <core/containers/Array.hpp>
+#include <core/Types.hpp>
 
 #include <sstream>
 #include <cstdio>
@@ -396,126 +403,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_I32:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        int32_t val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_I32 ["
-                << "%r" << (int)reg << ", "
-                << "i32(" << val << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_I64:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        int64_t val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_I64 ["
-                << "%r" << (int)reg << ", "
-                << "i64(" << val << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_U32:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint32 val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_U32 ["
-                << "%r" << (int)reg << ", "
-                << "u32(" << val << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_U64:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint64 val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_U64 ["
-                << "%r" << (int)reg << ", "
-                << "u64(" << val << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_F32:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        float val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_F32 ["
-                << "%r" << (int)reg << ", "
-                << "f32(" << val << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_F64:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        double val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_F64 ["
-                << "%r" << (int)reg << ", "
-                << "f64(" << val << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case LOAD_OFFSET:
     {
         uint8 reg;
@@ -531,47 +418,6 @@ void DecompilationUnit::DecodeNext(
                 << "%r" << (int)reg << ", "
                                        "$(sp-"
                 << offset << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_INDEX:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint16 idx;
-        bs.Read(&idx);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_INDEX ["
-                << "%r" << (int)reg << ", "
-                                       "u16("
-                << idx << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_STATIC:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint16 index;
-        bs.Read(&index);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_STATIC ["
-                << "%r" << (int)reg << ", "
-                << "#" << index
                 << "]"
                 << std::endl;
         }
@@ -604,46 +450,6 @@ void DecompilationUnit::DecodeNext(
         }
 
         delete[] str;
-
-        break;
-    }
-    case LOAD_ADDR:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint32 val;
-        bs.Read(&val);
-
-        if (os != nullptr)
-        {
-            (*os) << "LOAD_ADDR [%r" << (int)reg << ", @(" << std::hex << val << std::dec << ")]" << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_FUNC:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint32 addr;
-        bs.Read(&addr);
-
-        uint8 nargs;
-        bs.Read(&nargs);
-
-        uint8 flags;
-        bs.Read(&flags);
-
-        if (os != nullptr)
-        {
-            (*os) << "LOAD_FUNC [%r" << (int)reg
-                  << ", @(" << std::hex << addr << std::dec << "), "
-                  << "u8(" << (int)nargs << ")], "
-                  << "u8(" << (int)flags << ")]"
-                  << std::endl;
-        }
 
         break;
     }
@@ -716,21 +522,45 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_INDEX_REF:
+    case LOAD_FUNC:
     {
         uint8 reg;
         bs.Read(&reg);
 
-        uint16 idx;
-        bs.Read(&idx);
+        uint32 addr;
+        bs.Read(&addr);
+
+        uint8 nargs;
+        bs.Read(&nargs);
+
+        uint8 flags;
+        bs.Read(&flags);
+
+        if (os != nullptr)
+        {
+            (*os) << "LOAD_FUNC [%r" << (int)reg
+                  << ", @(" << std::hex << addr << std::dec << "), "
+                  << "u8(" << (int)nargs << ")], "
+                  << "u8(" << (int)flags << ")]"
+                  << std::endl;
+        }
+
+        break;
+    }
+    case LOAD_CLASS:
+    {
+        uint8 reg;
+        bs.Read(&reg);
+
+        uint64 nameHash;
+        bs.Read(&nameHash);
 
         if (os != nullptr)
         {
             (*os)
-                << "LOAD_INDEX_REF ["
+                << "LOAD_CLASS ["
                 << "%r" << (int)reg << ", "
-                                       "u16("
-                << idx << ")"
+                << "u64(" << nameHash << ")"
                 << "]"
                 << std::endl;
         }
@@ -771,74 +601,6 @@ void DecompilationUnit::DecodeNext(
                 << "DEREF ["
                 << "%r" << (int)dstReg << ", "
                 << "%r" << (int)srcReg
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_NULL:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_NULL ["
-                << "%r" << (int)reg
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_TRUE:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_TRUE ["
-                << "%r" << (int)reg
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_FALSE:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_FALSE ["
-                << "%r" << (int)reg
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case LOAD_CLASS:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint64 nameHash;
-        bs.Read(&nameHash);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "LOAD_CLASS ["
-                << "%r" << (int)reg << ", "
-                << "u64(" << nameHash << ")"
                 << "]"
                 << std::endl;
         }
@@ -1847,6 +1609,50 @@ void DecompilationUnit::DecodeNext(
                 << "u32(" << len << ")"
                 << "]"
                 << std::endl;
+        }
+
+        break;
+    }
+    case BINDATA:
+    {
+        uint8 dstReg;
+        bs.Read(&dstReg);
+
+        uint32 len;
+        bs.Read(&len);
+
+        ByteBuffer buffer(len);
+        bs.Read(buffer.Data(), len);
+
+        if (os != nullptr)
+        {
+
+            (*os)
+                << "BINDATA ["
+                << "%r" << (int)dstReg << ", "
+                << "u32(" << len << "), "
+                << "data(";
+
+            // try deserializing the data:
+            FBOMReader reader { FBOMReaderConfig {} };
+            FBOMLoadContext ctx;
+
+            MemoryBufferedReaderSource source { buffer };
+            BufferedReader br { &source };
+
+            FBOMData data;
+            if (FBOMResult err = reader.ReadData(ctx, &br, data))
+            {
+                // deserialization failed, just print raw data
+                (*os) << "\t; warning: failed to deserialize binary data: " << err.message << std::endl;
+            }
+            else
+            {
+                // write data
+                (*os) << "\t" << data.ToString(/* deep */ true);
+            }
+
+            (*os) << ")]" << std::endl;
         }
 
         break;

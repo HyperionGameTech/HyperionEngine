@@ -159,6 +159,7 @@ void HyperionEditor::Init()
               "testArray2[0]++\n"
               "ref testRef = testArray2\n"
               "testRef = [4,3,2,1]\n"
+              "testMap := { foo: \"bar\" }\n"
               "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testMap; }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 

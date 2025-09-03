@@ -45,25 +45,13 @@ enum Instructions : hyperion::uint8
     MOV_UNIFIED = 0x11, // [sub-cmd, dst, src]
 
     /* Legacy load instructions (DEPRECATED - use LOAD_UNIFIED) */
-    LOAD_I32,        // loadI32          [% reg, i32 val]
-    LOAD_I64,        // loadI64          [% reg, i64 val]
-    LOAD_U32,        // loadU32          [% reg, u32 val]
-    LOAD_U64,        // loadU64          [% reg, u64 val]
-    LOAD_F32,        // loadF32          [% reg, f32 val]
-    LOAD_F64,        // loadF64          [% reg, f64 val]
     LOAD_OFFSET,     // loadOffset       [% reg, u16 offset]
-    LOAD_INDEX,      // loadIndex        [% reg, u16 idx]
-    LOAD_STATIC,     // loadStatic       [% reg, u16 idx]
     LOAD_STRING,     // loadStr          [% reg, u32 len, byte[len] str]
-    LOAD_ADDR,       // loadAddr         [% reg, @ addr]
-    LOAD_FUNC,       // loadFunc         [% reg, @ addr, u8 nargs, u8 flags]
     LOAD_ARRAYIDX,   // loadArrayidx     [% reg, % src, % idx]
     LOAD_OFFSET_REF, // loadOffsetRef   [% reg, u16 offset]
-    LOAD_INDEX_REF,  // loadIndexRef    [% reg, u16 idx]
-    LOAD_NULL,       // loadNull         [% reg]
-    LOAD_TRUE,       // loadTrue         [% reg]
-    LOAD_FALSE,      // loadFalse        [% reg]
-    LOAD_CLASS,      // loadClass        [% reg, u64 nameHash]
+
+    LOAD_FUNC,  // loadFunc         [% reg, @ addr, u8 nargs, u8 flags]
+    LOAD_CLASS, // loadClass        [% reg, u64 nameHash]
 
     REF,   // ref               [% reg, % src]
     DEREF, // deref             [% reg, % src]
@@ -152,6 +140,9 @@ enum Instructions : hyperion::uint8
 
     /* Binary to source trace map functionality */
     TRACEMAP, // tracemap [u32 length]
+
+    /* Data blob, uses FBOM serialization/deserialization utils */
+    BINDATA, // [% dst, u32 len, byte[len] data]
 
     /* Comment (for debugging) */
     REM, // rem [u32 len, byte[len] str]
