@@ -58,6 +58,7 @@ enum ErrorMessage
     Msg_ambiguous_identifier,
     Msg_invalid_constructor,
     Msg_return_invalid_in_constructor,
+    Msg_invalid_typename,
     Msg_expected_type_got_identifier,
     Msg_missing_type_and_assignment,
     Msg_type_no_default_assignment,

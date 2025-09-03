@@ -128,10 +128,11 @@ Token Lexer::NextToken()
     {
         for (int i = 0; i < 2; i++)
         {
-            int posChange = 0;
-            m_sourceStream.Next(posChange);
-            m_sourceLocation.GetColumn() += posChange;
+            m_sourceStream.Next();
+
+            m_sourceLocation.GetColumn()++;
         }
+
         return Token(TK_RIGHT_ARROW, "->", location);
     }
     else if (ch[0] == '+' || ch[0] == '-' || ch[0] == '*' || ch[0] == '/' || ch[0] == '%' || ch[0] == '^' || ch[0] == '&' || ch[0] == '|' || ch[0] == '<' || ch[0] == '>' || ch[0] == '=' || ch[0] == '!' || ch[0] == '~')
@@ -140,16 +141,18 @@ Token Lexer::NextToken()
     }
     else if (ch[0] == ',')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_COMMA, ",", location);
     }
     else if (ch[0] == ';')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_SEMICOLON, ";", location);
     }
     else if (ch[0] == ':')
@@ -158,25 +161,28 @@ Token Lexer::NextToken()
         {
             for (int i = 0; i < 2; i++)
             {
-                int posChange = 0;
-                m_sourceStream.Next(posChange);
-                m_sourceLocation.GetColumn() += posChange;
+                m_sourceStream.Next();
+
+                m_sourceLocation.GetColumn()++;
             }
+
             return Token(TK_DOUBLE_COLON, "::", location);
         }
         else
         {
-            int posChange = 0;
-            m_sourceStream.Next(posChange);
-            m_sourceLocation.GetColumn() += posChange;
+            m_sourceStream.Next();
+
+            m_sourceLocation.GetColumn()++;
+
             return Token(TK_COLON, ":", location);
         }
     }
     else if (ch[0] == '?')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_QUESTION_MARK, "?", location);
     }
     else if (ch[0] == '.')
@@ -185,76 +191,81 @@ Token Lexer::NextToken()
         {
             for (int i = 0; i < 3; i++)
             {
-                int posChange = 0;
-                m_sourceStream.Next(posChange);
-                m_sourceLocation.GetColumn() += posChange;
+                m_sourceStream.Next();
+
+                m_sourceLocation.GetColumn()++;
             }
+
             return Token(TK_ELLIPSIS, "...", location);
         }
         else
         {
-            int posChange = 0;
-            m_sourceStream.Next(posChange);
-            m_sourceLocation.GetColumn() += posChange;
+            m_sourceStream.Next();
+
+            m_sourceLocation.GetColumn()++;
+
             return Token(TK_DOT, ".", location);
         }
     }
     else if (ch[0] == '(')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_OPEN_PARENTH, "(", location);
     }
     else if (ch[0] == ')')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_CLOSE_PARENTH, ")", location);
     }
     else if (ch[0] == '[')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_OPEN_BRACKET, "[", location);
     }
     else if (ch[0] == ']')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_CLOSE_BRACKET, "]", location);
     }
     else if (ch[0] == '{')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_OPEN_BRACE, "{", location);
     }
     else if (ch[0] == '}')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_CLOSE_BRACE, "}", location);
     }
     else
     {
-        int posChange = 0;
-        utf::u32char bad_token = m_sourceStream.Next(posChange);
-        utf::u8char bad_token_str[sizeof(bad_token)] = { '\0' };
-        utf::Char32to8(bad_token, bad_token_str);
+        u32char badTokenU32 = m_sourceStream.Next();
 
         m_compilationUnit->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_unexpected_token,
             location,
-            String(bad_token_str)));
+            String(&badTokenU32, &badTokenU32 + 1)));
 
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceLocation.GetColumn()++;
 
         return Token::EMPTY;
     }
@@ -267,9 +278,8 @@ u32char Lexer::ReadEscapeCode()
 
     if (HasNext())
     {
-        int posChange = 0;
-        u32char esc = m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        u32char esc = m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
 
         // TODO: add support for unicode escapes
         switch (esc)
@@ -307,14 +317,13 @@ Token Lexer::ReadStringLiteral()
     SourceLocation location = m_sourceLocation;
 
     String value;
-    int posChange = 0;
 
-    u32char delim = m_sourceStream.Next(posChange);
-    m_sourceLocation.GetColumn() += posChange;
+    u32char delim = m_sourceStream.Next();
+    m_sourceLocation.GetColumn()++;
 
     // the character as utf-32
-    u32char ch = m_sourceStream.Next(posChange);
-    m_sourceLocation.GetColumn() += posChange;
+    u32char ch = m_sourceStream.Next();
+    m_sourceLocation.GetColumn()++;
 
     while (ch != delim)
     {
@@ -349,8 +358,8 @@ Token Lexer::ReadStringLiteral()
             value.Append(utf::asUtf8Char(ch));
         }
 
-        ch = m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        ch = m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
     }
 
     return Token(TK_STRING, value, location);
@@ -371,24 +380,26 @@ Token Lexer::ReadNumberLiteral()
     {
         tokenClass = TK_FLOAT;
         value = "0.";
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+
+        m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
     }
 
-    Token::Flags token_flags;
-    Memory::MemSet(token_flags, 0, sizeof(token_flags));
+    Token::Flags tokenFlags;
+    Memory::MemSet(tokenFlags, 0, sizeof(tokenFlags));
 
     u32char ch = m_sourceStream.Peek();
 
-    bool has_exponent = false;
+    bool hasExponent = false;
 
     while (m_sourceStream.HasNext() && utf32Isdigit(ch))
     {
         int posChange = 0;
-        u32char next_ch = m_sourceStream.Next(posChange);
-        value.Append(utf::asUtf8Char(next_ch));
-        m_sourceLocation.GetColumn() += posChange;
+
+        u32char nextChar = m_sourceStream.Next();
+        value.Append(utf::asUtf8Char(nextChar));
+
+        m_sourceLocation.GetColumn()++;
 
         if (tokenClass != TK_FLOAT)
         {
@@ -408,7 +419,8 @@ Token Lexer::ReadNumberLiteral()
                         // type is a float because of '.' and not an identifier after
                         tokenClass = TK_FLOAT;
                         value.Append(utf::asUtf8Char(ch));
-                        m_sourceLocation.GetColumn() += posChange;
+
+                        m_sourceLocation.GetColumn()++;
                     }
                     else
                     {
@@ -423,16 +435,17 @@ Token Lexer::ReadNumberLiteral()
         {
             u32char ch = m_sourceStream.Peek();
 
-            if (!has_exponent && (ch == (u32char)'e' || ch == (u32char)'E'))
+            if (!hasExponent && (ch == (u32char)'e' || ch == (u32char)'E'))
             {
-                has_exponent = true;
+                hasExponent = true;
 
                 tokenClass = TK_FLOAT;
                 value.Append(utf::asUtf8Char(ch));
 
                 int posChange = 0;
                 m_sourceStream.Next(posChange);
-                m_sourceLocation.GetColumn() += posChange;
+
+                m_sourceLocation.GetColumn()++;
 
                 ch = m_sourceStream.Peek();
 
@@ -443,9 +456,8 @@ Token Lexer::ReadNumberLiteral()
 
                     int posChange = 0;
                     m_sourceStream.Next(posChange);
-                    m_sourceLocation.GetColumn() += posChange;
 
-                    m_sourceLocation.GetColumn() += posChange;
+                    m_sourceLocation.GetColumn() += 2;
                 }
             }
         }
@@ -458,7 +470,7 @@ Token Lexer::ReadNumberLiteral()
     case 'u':
     case 'f':
     case 'i':
-        token_flags[0] = (char)ch;
+        tokenFlags[0] = (char)ch;
 
         if (m_sourceStream.HasNext())
         {
@@ -469,7 +481,7 @@ Token Lexer::ReadNumberLiteral()
         break;
     }
 
-    return Token(tokenClass, value, token_flags, location);
+    return Token(tokenClass, value, tokenFlags, location);
 }
 
 Token Lexer::ReadHexNumberLiteral()
@@ -488,31 +500,33 @@ Token Lexer::ReadHexNumberLiteral()
             break;
         }
 
-        int posChange = 0;
-        u32char next_ch = m_sourceStream.Next(posChange);
-        value.Append(utf::asUtf8Char(next_ch));
-        m_sourceLocation.GetColumn() += posChange;
+        u32char nextChar = m_sourceStream.Next();
+        value.Append(utf::asUtf8Char(nextChar));
+
+        m_sourceLocation.GetColumn()++;
     }
 
-    Token::Flags token_flags;
-    Memory::MemSet(token_flags, 0, sizeof(token_flags));
+    Token::Flags tokenFlags;
+    Memory::MemSet(tokenFlags, 0, sizeof(tokenFlags));
 
     u32char ch = m_sourceStream.Peek();
 
     while (m_sourceStream.HasNext() && utf32Isxdigit(ch))
     {
-        int posChange = 0;
-        u32char next_ch = m_sourceStream.Next(posChange);
-        value.Append(utf::asUtf8Char(next_ch));
-        m_sourceLocation.GetColumn() += posChange;
+        u32char nextChar = m_sourceStream.Next();
+
+        value.Append(utf::asUtf8Char(nextChar));
+
+        m_sourceLocation.GetColumn()++;
+
         ch = m_sourceStream.Peek();
     }
 
-    switch ((char)ch)
+    switch (ch)
     {
     case 'u':
     case 'i':
-        token_flags[0] = (char)ch;
+        tokenFlags[0] = (char)ch;
 
         if (m_sourceStream.HasNext())
         {
@@ -527,7 +541,7 @@ Token Lexer::ReadHexNumberLiteral()
     std::stringstream ss;
     ss << num;
 
-    return Token(TK_INTEGER, value, token_flags, location);
+    return Token(TK_INTEGER, value, tokenFlags, location);
 }
 
 Token Lexer::ReadLineComment()
@@ -537,17 +551,17 @@ Token Lexer::ReadLineComment()
     // read '//'
     for (int i = 0; i < 2; i++)
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
     }
 
     // read until newline or EOF is reached
     while (m_sourceStream.HasNext() && m_sourceStream.Peek() != '\n')
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
     }
 
     return Token::EMPTY;
@@ -560,19 +574,21 @@ Token Lexer::ReadBlockComment()
     // read '/*'
     for (int i = 0; i < 2; i++)
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
     }
 
     u32char previous = 0;
+
     while (HasNext())
     {
         if (m_sourceStream.Peek() == (u32char)'/' && previous == (u32char)'*')
         {
-            int posChange = 0;
-            m_sourceStream.Next(posChange);
-            m_sourceLocation.GetColumn() += posChange;
+            m_sourceStream.Next();
+
+            m_sourceLocation.GetColumn()++;
+
             break;
         }
         else if (m_sourceStream.Peek() == (u32char)'\n')
@@ -581,9 +597,10 @@ Token Lexer::ReadBlockComment()
             m_sourceLocation.GetColumn() = 0;
             m_sourceLocation.GetLine()++;
         }
-        int posChange = 0;
-        previous = m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+
+        previous = m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
     }
 
     return Token::EMPTY;
@@ -598,25 +615,28 @@ Token Lexer::ReadDocumentation()
     // read '/**'
     for (int i = 0; i < 3; i++)
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
     }
 
     u32char previous = 0;
+
     while (HasNext())
     {
         if (m_sourceStream.Peek() == (u32char)'/' && previous == (u32char)'*')
         {
-            int posChange = 0;
-            m_sourceStream.Next(posChange);
-            m_sourceLocation.GetColumn() += posChange;
+            m_sourceStream.Next();
+
+            m_sourceLocation.GetColumn()++;
+
             break;
         }
         else
         {
             utf::u8char ch[4] = { '\0' };
             utf::Char32to8(m_sourceStream.Peek(), ch);
+
             // append value
             value += reinterpret_cast<const String::CharType*>(ch);
 
@@ -627,9 +647,10 @@ Token Lexer::ReadDocumentation()
                 m_sourceLocation.GetLine()++;
             }
         }
-        int posChange = 0;
-        previous = m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+
+        previous = m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
     }
 
     return Token::EMPTY;
@@ -642,34 +663,36 @@ Token Lexer::ReadOperator()
 
     FixedArray<u32char, 2> ch;
 
-    int total_pos_change = 0;
+    int totalPosChange = 0;
 
     for (int i = 0; i < 2; i++)
     {
         int posChange = 0;
         ch[i] = m_sourceStream.Next(posChange);
-        total_pos_change += posChange;
+        totalPosChange += posChange;
     }
 
     // go back
-    m_sourceStream.GoBack(total_pos_change);
+    m_sourceStream.GoBack(totalPosChange);
 
     String op_1 = utf::asUtf8Char(ch[0]);
     String op_2 = op_1 + utf::asUtf8Char(ch[1]);
 
     if (Operator::IsUnaryOperator(op_2) || Operator::IsBinaryOperator(op_2))
     {
-        int pos_change_1 = 0, pos_change_2 = 0;
-        m_sourceStream.Next(pos_change_1);
-        m_sourceStream.Next(pos_change_2);
-        m_sourceLocation.GetColumn() += pos_change_1 + pos_change_2;
+        m_sourceStream.Next();
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn() += 2;
+
         return Token(TK_OPERATOR, op_2, location);
     }
     else if (Operator::IsUnaryOperator(op_1) || Operator::IsBinaryOperator(op_1))
     {
-        int posChange = 0;
-        m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        m_sourceStream.Next();
+
+        m_sourceLocation.GetColumn()++;
+
         return Token(TK_OPERATOR, op_1, location);
     }
 
@@ -688,18 +711,21 @@ Token Lexer::ReadIdentifier()
 
     while (utf32Isdigit(ch) || utf32Isalpha(ch) || ch == '_' || ch == '$')
     {
-        int posChange = 0;
-        ch = m_sourceStream.Next(posChange);
-        m_sourceLocation.GetColumn() += posChange;
+        ch = m_sourceStream.Next();
+
         // append the raw bytes
         value.Append(utf::asUtf8Char(ch));
+
         // set ch to be the next character in the buffer
         ch = m_sourceStream.Peek();
+
+        m_sourceLocation.GetColumn()++;
 
         // if (ch == ':') {
         //     int posChange = 0;
         //     ch = m_sourceStream.Next(posChange);
-        //     m_sourceLocation.GetColumn() += posChange;
+
+        //     m_sourceLocation.GetColumn()++;
 
         //     return Token(TK_LABEL, value, location);
         // }
@@ -731,21 +757,21 @@ Token Lexer::ReadIdentifier()
                     break;
                 }
 
-                int char_pos_change = 0;
-                m_sourceStream.Next(char_pos_change);
-                m_sourceLocation.GetColumn() += char_pos_change;
+                int charPosChange = 0;
+                m_sourceStream.Next(charPosChange);
 
-                posChange += char_pos_change;
+                posChange += charPosChange;
             }
 
             if (isOperator)
             {
+                m_sourceLocation.GetColumn() += len;
+
                 return Token(TK_IDENT, "operator" + op, location);
             }
 
             // rewind
             m_sourceStream.GoBack(posChange);
-            m_sourceLocation.GetColumn() -= posChange;
         }
 
         if (Token operatorToken = ReadOperator())
@@ -801,11 +827,12 @@ bool Lexer::SkipWhitespace()
         {
             m_sourceLocation.GetLine()++;
             m_sourceLocation.GetColumn() = 0;
+
             hadNewline = true;
         }
         else
         {
-            m_sourceLocation.GetColumn() += posChange;
+            m_sourceLocation.GetColumn()++;
         }
     }
 
