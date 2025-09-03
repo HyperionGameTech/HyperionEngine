@@ -19,4 +19,12 @@ bool AstVisitor::AddErrorIfFalse(bool expr, const CompilerError& error)
     return true;
 }
 
+void AstVisitor::ReportInternalError(const SourceLocation& location)
+{
+    m_compilationUnit->GetErrorList().AddError(CompilerError(
+        LEVEL_ERROR,
+        Msg_internal_error,
+        location));
+}
+
 } // namespace hyperion::compiler

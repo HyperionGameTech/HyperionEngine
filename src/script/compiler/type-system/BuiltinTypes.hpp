@@ -37,6 +37,8 @@ struct BuiltinTypes
     static const SymbolTypeRef MODULE_INFO;
     static const SymbolTypeRef ARRAY_BASE; // non-generic array type
     static const SymbolTypeRef ARRAY;
+    static const SymbolTypeRef MAP_BASE; // non-generic map type
+    static const SymbolTypeRef MAP;
 };
 
 } // namespace hyperion::compiler

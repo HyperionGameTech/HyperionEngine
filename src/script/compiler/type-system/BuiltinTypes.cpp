@@ -139,11 +139,43 @@ const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
                 BuiltinTypes::FUNCTION,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::VOID_TYPE },
+                    { { "@return", SymbolType::GenericParameter("T") },
                         { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
                         { "index", BuiltinTypes::INT },
                         { "value", SymbolType::GenericParameter("T") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
+
+const SymbolTypeRef BuiltinTypes::MAP_BASE = SymbolType::Primitive(
+    "MapBase",
+    nullptr);
+
+const SymbolTypeRef BuiltinTypes::MAP = SymbolType::Generic(
+    "Map",
+    BuiltinTypes::MAP_BASE,
+    Array<SymbolTypeMember> {
+        SymbolTypeMember {
+            "operator[]",
+            SymbolType::GenericInstance(
+                BuiltinTypes::FUNCTION,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("V") },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
+                        { "key", SymbolType::GenericParameter("K") } } }) },
+        SymbolTypeMember {
+            "operator[]=",
+            SymbolType::GenericInstance(
+                BuiltinTypes::FUNCTION,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("V") },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
+                        { "key", SymbolType::GenericParameter("K") },
+                        { "value", SymbolType::GenericParameter("V") } } }) } },
+    Array<SymbolTypeMember> {},
+    GenericInstanceTypeInfo {
+        { { "key", SymbolType::GenericParameter("K") },
+            { "value", SymbolType::GenericParameter("V") } } });
 
 } // namespace hyperion::compiler

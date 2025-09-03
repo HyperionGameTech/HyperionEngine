@@ -147,19 +147,20 @@ void HyperionEditor::Init()
               "       return jet;\n"
               "    }\n"
               "    operator[]=(i: int, val: any) {\n"
-              "       jet = val;\nreturn 123;\n"
+              "       jet = val\n"
+              "       return 123\n"
               "    }\n"
               "    ToString() {\n"
-              "       return \"blahfdhfdhdh\";\n"
+              "       return \"blahfdhfdhdh\"\n"
               "    }\n"
               "};\n"
               "ins : any = new MyClass();\n"
-              "testArray2 : Array<int> = [9,9,34];\n"
-              "testArray2[0]++;\n"
-              "ref testRef = testArray2;\n"
-              "testRef = [4,3,2,1];\n"
-              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return func() { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testArray2; }; };\n"
-              "export func x(a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
+              "testArray2 : Array<int> = [9,9,34]\n"
+              "testArray2[0]++\n"
+              "ref testRef = testArray2\n"
+              "testRef = [4,3,2,1]\n"
+              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testMap; }; };\n"
+              "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 

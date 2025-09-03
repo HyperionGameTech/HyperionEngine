@@ -171,38 +171,20 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // @TODO: Cache generic instance types
-    m_mapTypeExpr.Reset(new AstTypeSpecifier(
-        RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-            RC<AstVariable>(new AstVariable(
-                "Map",
-                m_location)),
-            { RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                  RC<AstTypeRef>(new AstTypeRef(
-                      m_keyType,
-                      m_location)),
-                  m_location)),
-
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        m_valueType,
-                        m_location)),
-                    m_location)) },
-            nullptr, // no function return type
-            m_location)),
+    m_mapTypeExpr.Reset(new AstTemplateInstantiation(
+        RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::MAP, m_location)), m_location)),
+        { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_keyType, m_location)), m_location)),
+            RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_valueType, m_location)), m_location)) },
+        nullptr, // no function return type
         m_location));
 
     m_mapTypeExpr->Visit(visitor, mod);
 
     SymbolTypeRef mapType = m_mapTypeExpr->GetHeldType();
 
-    if (mapType == nullptr)
+    if (!mapType)
     {
-        // add error
-
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_internal_error,
-            m_location));
+        visitor->ReportInternalError(m_location);
 
         return;
     }

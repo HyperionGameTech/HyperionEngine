@@ -1602,15 +1602,7 @@ RC<AstStatement> Parser::ParseForLoop()
 
         if (!Match(TK_SEMICOLON))
         {
-            if ((declPart = ParseStatement(false, false)))
-            { // do not eat ';'
-              // if (!Match(TK_SEMICOLON)) {
-              //     m_tokenStream->SetPosition(positionBefore);
-
-                //     return ParseForEachLoop();
-                // }
-            }
-            else
+            if (!(declPart = ParseStatement(false, false)))
             {
                 return nullptr;
             }

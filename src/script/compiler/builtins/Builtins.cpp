@@ -44,7 +44,8 @@ void Builtins::Visit(AstVisitor* visitor)
         BuiltinTypes::BOOLEAN,
         BuiltinTypes::STRING,
         BuiltinTypes::FUNCTION,
-        BuiltinTypes::ARRAY
+        BuiltinTypes::ARRAY,
+        BuiltinTypes::MAP
     };
 
     AstIterator ast;

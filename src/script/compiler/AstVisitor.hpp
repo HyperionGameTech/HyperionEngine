@@ -26,6 +26,7 @@ public:
 
     /** If expr is false, the given error is added to the error list. */
     bool AddErrorIfFalse(bool expr, const CompilerError& error);
+    void ReportInternalError(const SourceLocation& location);
 
 protected:
     AstIterator* m_astIterator;
@@ -33,4 +34,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-
