@@ -42,6 +42,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_ambiguous_identifier, "Identifier '%' is ambiguous" },
     { Msg_invalid_constructor, "Invalid constructor" },
     { Msg_return_invalid_in_constructor, "'return' statement invalid in constructor definition" },
+    { Msg_extern_cannot_have_assignment, "An extern variable or function cannot have an assignment" },
     { Msg_invalid_typename, "Expected a valid type specification" },
     { Msg_expected_type_got_identifier, "'%' is an identifier, expected a type" },
     { Msg_missing_type_and_assignment, "No type or assignment has been provided for '%'" },

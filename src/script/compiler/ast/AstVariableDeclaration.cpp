@@ -317,15 +317,15 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
 
     Assert(m_realAssignment != nullptr);
 
-    if (!Config::cullUnusedObjects || m_identifier->GetUseCount() > 0 || (m_flags & (IdentifierFlags::FLAG_NATIVE | IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER)))
+    if (!Config::cullUnusedObjects || m_identifier->GetUseCount() > 0 || (m_flags & (IdentifierFlags::FLAG_EXTERN | IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER)))
     {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
 
-        // If the variable is native, it does not need to be built,
+        // If the variable is extern, it does not need to be built,
         // as it will be replaced with a native function ptr or
         // vm::Value object.
-        if (!(m_flags & IdentifierFlags::FLAG_NATIVE))
+        if (!(m_flags & IdentifierFlags::FLAG_EXTERN))
         {
             // if the type specification has side effects, compile it in
             if (m_proto != nullptr && m_proto->MayHaveSideEffects())

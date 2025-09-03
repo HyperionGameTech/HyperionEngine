@@ -1,16 +1,10 @@
 #pragma once
 
-#include <script/compiler/ast/AstFunctionDefinition.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <core/containers/String.hpp>
-
-#include <string>
-#include <memory>
-#include <vector>
-#include <utility>
 
 namespace hyperion::compiler {
 
@@ -73,4 +67,3 @@ private:
 };
 
 } // namespace hyperion::compiler
-

@@ -153,7 +153,7 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
 
     for (GlobalDefinition& global : m_globals)
     {
-        IdentifierFlagBits identifierFlags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_NATIVE;
+        IdentifierFlagBits identifierFlags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_EXTERN;
 
         RC<AstTypeSpecifier> typeSpec =
             ParseTypeExpression(global.symbol.type.typeString)
@@ -212,7 +212,7 @@ void Context::Visit(AstVisitor* visitor, CompilationUnit* compilationUnit)
                                 new AstTypeRef(BuiltinTypes::ANY, SourceLocation::eof)),
                             SourceLocation::eof)),
                         SourceLocation::eof)),
-                    IdentifierFlags::FLAG_NATIVE, SourceLocation::eof));
+                    IdentifierFlags::FLAG_EXTERN, SourceLocation::eof));
             }
         }
 

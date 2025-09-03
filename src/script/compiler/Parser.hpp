@@ -9,7 +9,6 @@
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
 #include <script/compiler/ast/AstDirective.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstFunctionDefinition.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstHashMap.hpp>
@@ -144,6 +143,7 @@ public:
     RC<AstStatement> ParseFunctionDefinition(bool requireKeyword = true);
     RC<AstFunctionExpression> ParseFunctionExpression(
         bool requireKeyword = true,
+        bool parseBody = true,
         Array<RC<AstParameter>> params = {});
     RC<AstArrayExpression> ParseArrayExpression();
     RC<AstHashMap> ParseHashMap();

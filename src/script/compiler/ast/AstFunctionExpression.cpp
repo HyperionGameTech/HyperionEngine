@@ -70,7 +70,14 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
-    Assert(m_block != nullptr);
+
+    if (!m_block)
+    {
+        // extern functions not yet implemented
+        visitor->ReportInternalError(m_location);
+
+        return;
+    }
 
     m_blockWithParameters = CloneAstNode(m_block);
 
@@ -114,23 +121,33 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_parameters[index]->Visit(visitor, mod);
     }
 
-    if (m_returnTypeSpecification != nullptr)
+    if (m_blockWithParameters != nullptr)
     {
-        m_blockWithParameters->PrependChild(m_returnTypeSpecification);
-    }
+        if (m_returnTypeSpecification != nullptr)
+        {
+            m_blockWithParameters->PrependChild(m_returnTypeSpecification);
+        }
 
-    if (m_isConstructorDefinition)
+        if (m_isConstructorDefinition)
+        {
+            // add implicit 'return self' at the end
+            m_blockWithParameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
+                RC<AstVariable>(new AstVariable(
+                    "self",
+                    m_blockWithParameters->GetLocation())),
+                m_blockWithParameters->GetLocation())));
+        }
+
+        // visit the function body
+        m_blockWithParameters->Visit(visitor, mod);
+    }
+    else
     {
-        // add implicit 'return self' at the end
-        m_blockWithParameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
-            RC<AstVariable>(new AstVariable(
-                "self",
-                m_blockWithParameters->GetLocation())),
-            m_blockWithParameters->GetLocation())));
+        if (m_returnTypeSpecification != nullptr)
+        {
+            m_returnTypeSpecification->Visit(visitor, mod);
+        }
     }
-
-    // visit the function body
-    m_blockWithParameters->Visit(visitor, mod);
 
     if (m_returnTypeSpecification != nullptr)
     {
@@ -164,57 +181,75 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             .m_isConst = param->IsConst() });
     }
 
-    Scope* functionScope = &mod->m_scopes.Top(); // m_blockWithParameters->GetScope();
+    Scope* functionScope = &mod->m_scopes.Top();
     Assert(functionScope != nullptr);
 
-    if (functionScope->returnTypes.Any())
+    if (m_blockWithParameters != nullptr)
     {
-        // search through return types for ambiguities
-        for (const SymbolTypeRef& symbolType : functionScope->returnTypes)
+        if (functionScope->returnTypes.Any())
         {
-            Assert(symbolType != nullptr);
+            // search through return types for ambiguities
+            for (const SymbolTypeRef& symbolType : functionScope->returnTypes)
+            {
+                Assert(symbolType != nullptr);
 
-            if (m_returnTypeSpecification != nullptr)
-            {
-                // strict mode, because user specifically stated the intended return type
-                if (!m_returnType->TypeCompatible(*symbolType, true))
+                if (m_returnTypeSpecification != nullptr)
                 {
-                    // error; does not match what user specified
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_mismatched_return_type,
-                        GetLocation(),
-                        m_returnType->ToString(),
-                        symbolType->ToString()));
-                }
-            }
-            else
-            {
-                // deduce return type
-                if (m_returnType->IsAnyType())
-                {
-                    m_returnType = symbolType;
-                }
-                else if (m_returnType->TypeCompatible(*symbolType, false))
-                {
-                    m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
+                    // strict mode, because user specifically stated the intended return type
+                    if (!m_returnType->TypeCompatible(*symbolType, true))
+                    {
+                        // error; does not match what user specified
+                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_mismatched_return_type,
+                            GetLocation(),
+                            m_returnType->ToString(),
+                            symbolType->ToString()));
+                    }
                 }
                 else
                 {
-                    // error; more than one possible deduced return type.
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_multiple_return_types,
-                        GetLocation()));
+                    // deduce return type
+                    if (m_returnType->IsAnyType())
+                    {
+                        m_returnType = symbolType;
+                    }
+                    else if (m_returnType->TypeCompatible(*symbolType, false))
+                    {
+                        m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
+                    }
+                    else
+                    {
+                        // error; more than one possible deduced return type.
+                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_multiple_return_types,
+                            GetLocation()));
 
-                    break;
+                        break;
+                    }
                 }
             }
+        }
+        else
+        {
+            m_returnType = BuiltinTypes::VOID_TYPE;
         }
     }
     else
     {
-        m_returnType = BuiltinTypes::VOID_TYPE;
+        m_returnType = m_returnTypeSpecification != nullptr
+            ? m_returnTypeSpecification->GetHeldType()
+            : BuiltinTypes::ANY;
+
+        if (m_returnType)
+        {
+            m_returnType = m_returnType->GetUnaliased();
+        }
+        else
+        {
+            m_returnType = BuiltinTypes::UNDEFINED;
+        }
     }
 
     // create data members to copy closure parameters
@@ -374,6 +409,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* mod)
 {
+    if (!m_blockWithParameters)
+    {
+        // extern function declaration
+        return nullptr;
+    }
+
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (m_isClosure)
@@ -387,8 +428,6 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
         return chunk;
     }
-
-    Assert(m_blockWithParameters != nullptr);
 
     InstructionStreamContextGuard contextGuard(
         &visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree(),

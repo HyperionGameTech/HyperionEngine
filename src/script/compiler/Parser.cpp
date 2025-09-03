@@ -437,13 +437,14 @@ RC<AstStatement> Parser::ParseStatement(
             res = ParseExportStatement();
         }
         else if (MatchKeyword(Keyword_const, false)
-            || MatchKeyword(Keyword_ref, false))
+            || MatchKeyword(Keyword_ref, false)
+            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1)))
         {
             res = ParseVariableDeclaration();
         }
-        else if (MatchKeyword(Keyword_func, false))
+        else if (MatchKeyword(Keyword_func, false) || (MatchKeyword(Keyword_extern, false) && MatchKeywordAhead(Keyword_func, 1)))
         {
-            if (MatchAhead(TK_IDENT, 1))
+            if (MatchAhead(TK_IDENT, 1) || (MatchKeyword(Keyword_extern, false) && MatchAhead(TK_IDENT, 2)))
             {
                 res = ParseFunctionDefinition();
             }
@@ -452,7 +453,9 @@ RC<AstStatement> Parser::ParseStatement(
                 res = ParseFunctionExpression();
             }
         }
-        else if (MatchKeyword(Keyword_class, false) || MatchKeyword(Keyword_proxy, false))
+        else if (MatchKeyword(Keyword_class, false)
+            || (MatchKeyword(Keyword_proxy, false) && MatchKeywordAhead(Keyword_class, 1))
+            || (MatchKeyword(Keyword_extern, false) && MatchKeywordAhead(Keyword_class, 1)))
         {
             res = ParseClassDefinition();
         }
@@ -798,7 +801,10 @@ RC<AstExpression> Parser::ParseParentheses()
                 Expect(TK_CLOSE_PARENTH, true);
             }
 
-            expr = ParseFunctionExpression(false, params);
+            expr = ParseFunctionExpression(
+                false, /* requireKeyword */
+                true,  /* parseBody */
+                params);
         }
         else
         {
@@ -848,7 +854,10 @@ RC<AstExpression> Parser::ParseParentheses()
                 }
 
                 // parse function parameters
-                expr = ParseFunctionExpression(false, params);
+                expr = ParseFunctionExpression(
+                    false, /* requireKeyword */
+                    true,  /* parseBody */
+                    params);
             }
             else
             {
@@ -867,7 +876,10 @@ RC<AstExpression> Parser::ParseParentheses()
                         Expect(TK_CLOSE_PARENTH, true);
                     }
 
-                    expr = ParseFunctionExpression(false, params);
+                    expr = ParseFunctionExpression(
+                        false, /* requireKeyword */
+                        true,  /* parseBody */
+                        params);
                 }
             }
         }
@@ -1986,9 +1998,10 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 {
     const SourceLocation location = CurrentLocation();
 
-    static const Keywords prefixKeywords[] = {
-        Keyword_const,
-        Keyword_ref
+    static const HashMap<Keywords, IdentifierFlags> s_prefixKeywordMap = {
+        { Keyword_extern, IdentifierFlags::FLAG_EXTERN },
+        { Keyword_const, IdentifierFlags::FLAG_CONST },
+        { Keyword_ref, IdentifierFlags::FLAG_REF }
     };
 
     HashSet<Keywords> usedSpecifiers;
@@ -1997,13 +2010,18 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     {
         bool foundKeyword = false;
 
-        for (const Keywords& keyword : prefixKeywords)
+        for (const auto& it : s_prefixKeywordMap)
         {
+            const Keywords keyword = it.first;
+            const IdentifierFlags flag = it.second;
+
             if (MatchKeyword(keyword, true))
             {
                 if (usedSpecifiers.Find(keyword) == usedSpecifiers.End())
                 {
                     usedSpecifiers.Insert(keyword);
+
+                    flags |= flag;
 
                     foundKeyword = true;
 
@@ -2026,15 +2044,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         }
     }
 
-    if (usedSpecifiers.Find(Keyword_const) != usedSpecifiers.End())
-    {
-        flags |= IdentifierFlags::FLAG_CONST;
-    }
-
-    if (usedSpecifiers.Find(Keyword_ref) != usedSpecifiers.End())
-    {
-        flags |= IdentifierFlags::FLAG_REF;
-    }
+    const bool isExtern = (flags & IdentifierFlags::FLAG_EXTERN) != 0;
 
     Token identifier = Token::EMPTY;
 
@@ -2055,7 +2065,8 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         RC<AstTypeSpecifier> typeSpec;
         RC<AstExpression> assignment;
 
-        bool requiresAssignmentOperator = true;
+        // if extern, we can't assign it
+        bool requiresAssignmentOperator = !isExtern;
 
         if (Match(TK_COLON, true))
         {
@@ -2069,6 +2080,14 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
         if (!requiresAssignmentOperator || MatchOperator("=", true))
         {
+            if (isExtern)
+            {
+                m_compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_extern_cannot_have_assignment,
+                    CurrentLocation()));
+            }
+
             assignment = ParseAssignment();
         }
 
@@ -2087,7 +2106,13 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 {
     const SourceLocation location = CurrentLocation();
 
-    IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_FUNCTION;
+    IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST
+        | IdentifierFlags::FLAG_FUNCTION;
+
+    if (MatchKeyword(Keyword_extern, true))
+    {
+        flags |= IdentifierFlags::FLAG_EXTERN;
+    }
 
     if (requireKeyword)
     {
@@ -2113,9 +2138,12 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
             Expect(TK_CLOSE_PARENTH, true);
         }
 
-        assignment = ParseFunctionExpression(false, params);
+        assignment = ParseFunctionExpression(
+            false,                                   /* requireKeyword */
+            !(flags & IdentifierFlags::FLAG_EXTERN), /* parseBody - externs have no body */
+            params);
 
-        if (assignment == nullptr)
+        if (!assignment)
         {
             return nullptr;
         }
@@ -2133,6 +2161,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 
 RC<AstFunctionExpression> Parser::ParseFunctionExpression(
     bool requireKeyword,
+    bool parseBody,
     Array<RC<AstParameter>> params)
 {
     const Token token = requireKeyword
@@ -2161,6 +2190,15 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
         {
             // read return type for functions
             typeSpec = ParseTypeSpecifier();
+        }
+
+        if (!parseBody)
+        {
+            return RC<AstFunctionExpression>(new AstFunctionExpression(
+                params,
+                typeSpec,
+                nullptr, // no body
+                location));
         }
 
         RC<AstBlock> block;
@@ -2422,7 +2460,11 @@ RC<AstClass> Parser::ParseClassDefinition()
 {
     EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE;
 
-    if (Token proxyToken = MatchKeyword(Keyword_proxy, true))
+    if (Token externToken = MatchKeyword(Keyword_extern, true))
+    {
+        classFlags |= ClassFlags::CLASS_FLAG_EXTERN;
+    }
+    else if (Token proxyToken = MatchKeyword(Keyword_proxy, true))
     {
         classFlags |= ClassFlags::CLASS_FLAG_IS_PROXY;
     }
@@ -2606,7 +2648,10 @@ RC<AstClass> Parser::ParseClass(
                 Expect(TK_CLOSE_PARENTH, true);
             }
 
-            assignment = ParseFunctionExpression(false, params);
+            assignment = ParseFunctionExpression(
+                false, /* requireKeyword */
+                true,  /* parseBody */
+                params);
 
             if (assignment == nullptr)
             {
