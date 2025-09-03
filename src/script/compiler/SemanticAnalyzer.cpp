@@ -36,10 +36,10 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         // Check if type has members, static members, or base types that need resolution
         if (unaliasedInputType->GetMembers().Any() || unaliasedInputType->GetStaticMembers().Any() || inputType->GetBaseType())
         {
-            if (unaliasedInputType->GetBaseType())
+            if (SymbolTypeRef baseType = unaliasedInputType->GetBaseType())
             {
-                SymbolTypeRef resolvedBaseType = ResolvePlaceholderType(visitor, mod, inputType->GetBaseType(), location);
-                if (resolvedBaseType != unaliasedInputType->GetBaseType())
+                SymbolTypeRef resolvedBaseType = ResolvePlaceholderType(visitor, mod, baseType, location);
+                if (resolvedBaseType != baseType)
                 {
                     unaliasedInputType->SetBaseType(resolvedBaseType);
                 }
@@ -356,7 +356,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             GenericInstanceTypeInfo { std::move(resolvedArgs) });
 
         // modify newType in place (we already cached it so we need to modify it)
-        newType->CopyMutate(std::move(*tmpGenericInstance));
+        newType->CopyMutate(*tmpGenericInstance);
 
         tmpGenericInstance.Reset();
 

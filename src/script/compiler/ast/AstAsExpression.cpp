@@ -53,10 +53,8 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
 
     targetType = targetType->GetUnaliased();
 
-    const AstExpression* typeSpecificationValueOf = m_typeSpecification->GetDeepValueOf();
-    Assert(typeSpecificationValueOf != nullptr);
+    SymbolTypeRef heldType = m_typeSpecification->GetHeldType();
 
-    SymbolTypeRef heldType = typeSpecificationValueOf->GetHeldType();
     if (!heldType)
     {
         return; // should be caught by the type specification
@@ -163,6 +161,26 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
     else
     {
         // type casting not implemented for this case
+        DebugLog(
+            LogType::Error,
+            "AstAsExpression::Build: Type casting not implemented for type '%s'\n",
+            m_resultType->ToString().Data());
+
+        // log type chain
+        {
+            SymbolTypeRef type = m_resultType;
+            while (type != nullptr)
+            {
+                DebugLog(
+                    LogType::Error,
+                    "    Type: %s (class %d)\n",
+                    type->ToString().Data(),
+                    static_cast<int>(type->GetTypeClass()));
+
+                type = type->GetBaseType();
+            }
+        }
+
         HYP_NOT_IMPLEMENTED();
     }
 

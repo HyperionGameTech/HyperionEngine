@@ -581,7 +581,7 @@ bool Value::GetString(const VMString** out) const
 
     const HypData& data = *GetHypData();
 
-    if (!data.Is<VMString>())
+    if (!data.Is<VMString>(true))
     {
         return false;
     }

@@ -164,7 +164,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             .m_isConst = param->IsConst() });
     }
 
-    const Scope* functionScope = &mod->m_scopes.Top(); // m_blockWithParameters->GetScope();
+    Scope* functionScope = &mod->m_scopes.Top(); // m_blockWithParameters->GetScope();
     Assert(functionScope != nullptr);
 
     if (functionScope->returnTypes.Any())
@@ -230,18 +230,16 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(identifier != nullptr);
         Assert(identifier->GetSymbolType() != nullptr);
 
-        RC<AstExpression> currentValue(new AstVariable(
-            name,
-            m_location));
-
         closureObjMembers.PushBack(SymbolTypeMember {
             identifier->GetName(),
             identifier->GetSymbolType(),
-            currentValue });
+            RC<AstVariable>(new AstVariable(name, m_location)) });
     }
 
     // close parameter scope
     mod->m_scopes.Close();
+
+    SymbolTypeRef closureSelfType = SymbolType::Temp();
 
     // set object type to be an instance of function
     Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
@@ -258,7 +256,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             genericParamTypes.PushBack(GenericInstanceTypeInfo::Arg {
                 m_closureSelfParam->GetName(),
-                BuiltinTypes::ANY,
+                closureSelfType,
                 nullptr });
         }
         else
@@ -291,7 +289,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // add $invoke to call this object
-        RC<AstClass> closureClass(new AstClass(
+        RC<AstClass> closureClassDecl(new AstClass(
             visitor->GetCompilationUnit()->GetAnonClassName(),
             SymbolTypeRef(nullptr),
             {},
@@ -312,17 +310,15 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             ClassFlags::CLASS_FLAG_ANONYMOUS,
             m_location));
 
-        /// ISSUE: Causing endless loop because constructor is a function itself and is creating endless closures.
-        // we need to instead pass in the closure members when we create the closure object in the bytecode.
         for (const SymbolTypeMember& member : closureObjMembers)
         {
-            closureClass->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
+            closureClassDecl->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 member.name,
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::ANY, m_location)),
+                    RC<AstTypeRef>(new AstTypeRef(member.type, m_location)),
                     m_location)),
                 RC<AstNil>(new AstNil(m_location)), // placeholder; set later
-                IdentifierFlags::FLAG_NONE,
+                IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER,
                 m_location)));
         }
 
@@ -333,7 +329,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             "$__closure_instance",
             nullptr,
             RC<AstNewExpression>(new AstNewExpression(
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(closureClass, m_location)),
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(closureClassDecl, m_location)),
                 nullptr, // no constructor args
                 false,   // enable constructor call
                 m_location)),
@@ -349,9 +345,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             m_closureBlock->AddChild(RC<AstBinaryExpression>(new AstBinaryExpression(
                 RC<AstMember>(new AstMember(
                     member.name,
-                    RC<AstVariable>(new AstVariable(
-                        "$__closure_instance",
-                        m_location)),
+                    RC<AstVariable>(new AstVariable("$__closure_instance", m_location)),
                     m_location)),
                 CloneAstNode(member.expr),
                 Operator::FindBinaryOperator(Operators::OP_assign),
@@ -359,17 +353,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // return the closure instance as the value of this expression
-        m_closureBlock->AddChild(RC<AstVariable>(new AstVariable(
-            "$__closure_instance",
-            m_location)));
-
+        m_closureBlock->AddChild(RC<AstVariable>(new AstVariable("$__closure_instance", m_location)));
         m_closureBlock->Visit(visitor, mod);
 
-        SymbolTypeRef closureHeldType = closureClass->GetHeldType();
-        Assert(closureHeldType != nullptr);
-        closureHeldType = closureHeldType->GetUnaliased();
+        closureSelfType->CopyMutate(*closureClassDecl->GetHeldType());
 
-        m_symbolType = std::move(closureHeldType);
+        m_symbolType = std::move(closureSelfType);
 
         return;
     }

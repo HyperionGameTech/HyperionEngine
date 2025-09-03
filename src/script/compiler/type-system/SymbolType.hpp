@@ -236,7 +236,7 @@ public:
 
     void SetBaseType(const SymbolTypeRef& base)
     {
-        m_base = base;
+        m_base = base ? base->GetUnaliased() : nullptr;
     }
 
     const RC<AstExpression>& GetDefaultValue() const
@@ -432,7 +432,7 @@ public:
     /*! \brief Copy the contents of another SymbolType into this one, mutating it.
         This is used when instantiating generic types to avoid having to re-cache
         the new instance. */
-    void CopyMutate(SymbolType&& other)
+    void CopyMutate(const SymbolType& other)
     {
         m_name = std::move(other.m_name);
         m_typeClass = other.m_typeClass;
@@ -445,18 +445,6 @@ public:
         m_genericParamInfo = std::move(other.m_genericParamInfo);
         m_flags = other.m_flags;
         m_declScope = nullptr; // do not copy scope
-
-        // invalidate other
-        other.m_typeClass = TYPE_INVALID;
-        other.m_base = nullptr;
-        other.m_defaultValue = nullptr;
-        other.m_members.Clear();
-        other.m_staticMembers.Clear();
-        other.m_aliasInfo = {};
-        other.m_genericInstanceInfo = {};
-        other.m_genericParamInfo = {};
-        other.m_flags = SYMBOL_TYPE_FLAGS_NONE;
-        other.m_declScope = nullptr;
     }
 
 private:

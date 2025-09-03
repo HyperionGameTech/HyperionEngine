@@ -61,7 +61,7 @@ VMString::~VMString() = default;
 
 VMString VMString::Concat(const VMString& a, const VMString& b)
 {
-    return a.GetString() + b.GetString();
+    return VMString(a.GetString() + b.GetString());
 }
 
 } // namespace vm

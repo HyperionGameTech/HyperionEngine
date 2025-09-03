@@ -15,19 +15,27 @@ public:
     static VMString Concat(const VMString& a, const VMString& b);
 
 public:
-    VMString(const char* str);
+    explicit VMString(const char* str);
     VMString(const char* str, int maxLen);
-    VMString(const String& str);
-    VMString(String&& str);
+    explicit VMString(const String& str);
+    explicit VMString(String&& str);
+
     VMString(const VMString& other);
     VMString& operator=(const VMString& other);
+
     VMString(VMString&& other) noexcept;
     VMString& operator=(VMString&& other) noexcept;
+
     ~VMString();
 
     bool operator==(const VMString& other) const
     {
         return m_str == other.m_str;
+    }
+
+    bool operator!=(const VMString& other) const
+    {
+        return m_str != other.m_str;
     }
 
     const char* GetData() const
@@ -45,11 +53,6 @@ public:
         return m_str;
     }
 
-    explicit operator String() const
-    {
-        return m_str;
-    }
-
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         return m_str.GetHashCode();
@@ -61,4 +64,3 @@ private:
 
 } // namespace vm
 } // namespace hyperion
-

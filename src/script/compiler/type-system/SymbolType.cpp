@@ -48,7 +48,7 @@ SymbolType::SymbolType(
     : m_name(name),
       m_typeClass(typeClass),
       m_defaultValue(nullptr),
-      m_base(base),
+      m_base(base ? base->GetUnaliased() : nullptr),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr)
 {
@@ -66,7 +66,7 @@ SymbolType::SymbolType(
       m_defaultValue(defaultValue),
       m_members(members),
       m_staticMembers(staticMembers),
-      m_base(base),
+      m_base(base ? base->GetUnaliased() : nullptr),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr)
 {

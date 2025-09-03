@@ -2645,37 +2645,37 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
                 case MSRC_ARRAYIDX:
                 {
-                    BCRegister arrayReg;
-                    bs->Read(&arrayReg);
+                    BCRegister dstReg;
+                    bs->Read(&dstReg);
                     uint32 index;
                     bs->Read(&index);
                     BCRegister srcReg;
                     bs->Read(&srcReg);
-                    handler.MovArrayIdx(arrayReg, index, srcReg);
+                    handler.MovArrayIdx(dstReg, index, srcReg);
                 }
                 break;
 
                 case MSRC_ARRAYIDX_REG:
                 {
-                    BCRegister arrayReg;
-                    bs->Read(&arrayReg);
+                    BCRegister dstReg;
+                    bs->Read(&dstReg);
                     BCRegister indexReg;
                     bs->Read(&indexReg);
                     BCRegister srcReg;
                     bs->Read(&srcReg);
-                    handler.MovArrayIdxReg(arrayReg, indexReg, srcReg);
+                    handler.MovArrayIdxReg(dstReg, indexReg, srcReg);
                 }
                 break;
 
                 case MSRC_MEMBER:
                 {
-                    BCRegister objReg;
-                    bs->Read(&objReg);
+                    BCRegister dstReg;
+                    bs->Read(&dstReg);
                     uint64 hash;
                     bs->Read(&hash);
                     BCRegister srcReg;
                     bs->Read(&srcReg);
-                    handler.SetField(objReg, hash, srcReg);
+                    handler.SetField(dstReg, hash, srcReg);
                 }
                 break;
                 }
