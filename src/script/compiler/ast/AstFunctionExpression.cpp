@@ -71,14 +71,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    if (!m_block)
-    {
-        // extern functions not yet implemented
-        visitor->ReportInternalError(m_location);
-
-        return;
-    }
-
     m_blockWithParameters = CloneAstNode(m_block);
 
     m_isConstructorDefinition = GetExpressionFlags() & EXPR_FLAGS_CONSTRUCTOR_DEFINITION;

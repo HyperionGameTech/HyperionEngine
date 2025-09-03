@@ -23,6 +23,8 @@ namespace hyperion {
 
 class HypClass;
 
+extern HYP_API const char* LookupTypeName(TypeId typeId);
+
 #ifdef HYP_SCRIPT
 namespace vm {
 enum class Script_FunctionAddress : uint32;
@@ -51,11 +53,10 @@ HYP_FORCE_INLINE decltype(auto) CallHypMethod_Impl(FunctionType fn, HypData** ar
 
         if (!condition)
         {
-            HYP_FAIL("Invalid argument at index %zu: Expected %s (TypeId: %u), Got TypeId %u",
+            HYP_FAIL("Invalid argument at index {}: Expected {}, Got {}",
                 Index,
                 TypeName<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>().Data(),
-                TypeId::ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>().Value(),
-                args[Index]->GetTypeId().Value());
+                LookupTypeName(args[Index]->GetTypeId()));
         }
 
         return condition;

@@ -15,7 +15,7 @@ class AstNewExpression : public AstExpression
 {
 public:
     AstNewExpression(
-        const RC<AstTypeSpecifier>& proto,
+        const RC<AstTypeSpecifier>& typeSpec,
         const RC<AstArgumentList>& argList,
         bool enableConstructorCall,
         const SourceLocation& location);
@@ -35,7 +35,7 @@ public:
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstNewExpression>());
-        hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
+        hc.Add(m_typeSpec ? m_typeSpec->GetHashCode() : HashCode());
         hc.Add(m_argList ? m_argList->GetHashCode() : HashCode());
         hc.Add(m_enableConstructorCall);
 
@@ -43,7 +43,7 @@ public:
     }
 
 private:
-    RC<AstTypeSpecifier> m_proto;
+    RC<AstTypeSpecifier> m_typeSpec;
     RC<AstArgumentList> m_argList;
     bool m_enableConstructorCall;
 
@@ -56,7 +56,7 @@ private:
     RC<AstNewExpression> CloneImpl() const
     {
         return RC<AstNewExpression>(new AstNewExpression(
-            CloneAstNode(m_proto),
+            CloneAstNode(m_typeSpec),
             CloneAstNode(m_argList),
             m_enableConstructorCall,
             m_location));

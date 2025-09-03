@@ -20,12 +20,12 @@
 namespace hyperion::compiler {
 
 AstNewExpression::AstNewExpression(
-    const RC<AstTypeSpecifier>& proto,
+    const RC<AstTypeSpecifier>& typeSpec,
     const RC<AstArgumentList>& argList,
     bool enableConstructorCall,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
-      m_proto(proto),
+      m_typeSpec(typeSpec),
       m_argList(argList),
       m_enableConstructorCall(enableConstructorCall)
 {
@@ -36,15 +36,15 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    Assert(m_proto != nullptr);
-    m_proto->Visit(visitor, mod);
+    Assert(m_typeSpec != nullptr);
+    m_typeSpec->Visit(visitor, mod);
 
     if (m_argList != nullptr)
     {
         Assert(m_enableConstructorCall, "Args provided for non-constructor call new expr");
     }
 
-    auto* valueOf = m_proto->GetDeepValueOf();
+    auto* valueOf = m_typeSpec->GetDeepValueOf();
     Assert(valueOf != nullptr);
 
     m_instanceType = BuiltinTypes::UNDEFINED;
@@ -56,7 +56,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     if (SymbolTypeRef heldType = valueOf->GetHeldType())
     {
         m_instanceType = heldType->GetUnaliased();
-        m_objectValue = m_proto->GetDefaultValue(); // may be nullptr
+        m_objectValue = m_typeSpec->GetDefaultValue(); // may be nullptr
     }
     else
     {
@@ -69,15 +69,16 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    // if (m_instanceType != nullptr && m_instanceType->IsProxyClass()) {
-    //     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-    //         LEVEL_ERROR,
-    //         Msg_proxy_class_cannot_be_constructed,
-    //         m_location
-    //     ));
+    if (!m_instanceType->IsObject())
+    {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_cannot_instantiate_non_object,
+            m_location,
+            m_instanceType->ToString()));
 
-    //     return;
-    // }
+        return;
+    }
 
     if (m_enableConstructorCall)
     {
@@ -96,7 +97,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                 m_constructorCall.Reset(new AstMemberCallExpression(
                     constructMethodName,
                     RC<AstNewExpression>(new AstNewExpression(
-                        CloneAstNode(m_proto),
+                        CloneAstNode(m_typeSpec),
                         nullptr, // no args
                         false,   // do not enable constructor call
                         m_location)),
@@ -113,7 +114,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                     tempVarName,
                     nullptr,
                     RC<AstNewExpression>(new AstNewExpression(
-                        CloneAstNode(m_proto),
+                        CloneAstNode(m_typeSpec),
                         nullptr, // no args
                         false,   // do not enable constructor call
                         m_location)),
@@ -124,9 +125,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
 
                 m_constructorCall.Reset(new AstTernaryExpression(
                     RC<AstHasExpression>(new AstHasExpression(
-                        RC<AstVariable>(new AstVariable(
-                            tempVarName,
-                            m_location)),
+                        RC<AstVariable>(new AstVariable(tempVarName, m_location)),
                         constructMethodName,
                         m_location)),
                     RC<AstMemberCallExpression>(new AstMemberCallExpression(
@@ -164,29 +163,20 @@ UniquePtr<Buildable> AstNewExpression::Build(AstVisitor* visitor, Module* mod)
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     Assert(m_instanceType != nullptr);
+    Assert(m_typeSpec != nullptr);
 
-#if HYP_SCRIPT_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE
-    // does not currently work in templates
-    // e.g `new X` where `X` is `String` as a template argument, attempts to
-    // construct the object rather than baking in
-    if (m_objectValue != nullptr && m_instanceType->GetTypeClass() == TYPE_BUILTIN)
-    {
-        chunk->Append(m_objectValue->Build(visitor, mod));
-    }
-    else
-#endif
-    {
-        Assert(m_proto != nullptr);
-        chunk->Append(m_proto->Build(visitor, mod));
+    chunk->Append(m_typeSpec->Build(visitor, mod));
 
-        uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        auto instrNew = BytecodeUtil::Make<RawOperation<>>();
-        instrNew->opcode = NEW;
-        instrNew->Accept<uint8>(rp); // dst (overwrite proto)
-        instrNew->Accept<uint8>(rp); // src (holds proto)
-        chunk->Append(std::move(instrNew));
-    }
+    // add LoadClass instruction here
+    chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(m_instanceType->GetName())));
+
+    auto instrNew = BytecodeUtil::Make<RawOperation<>>();
+    instrNew->opcode = NEW;
+    instrNew->Accept<uint8>(rp); // dst (overwrite typeSpec)
+    instrNew->Accept<uint8>(rp); // src (holds typeSpec)
+    chunk->Append(std::move(instrNew));
 
     return chunk;
 }
@@ -200,8 +190,8 @@ void AstNewExpression::Optimize(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    Assert(m_proto != nullptr);
-    m_proto->Optimize(visitor, mod);
+    Assert(m_typeSpec != nullptr);
+    m_typeSpec->Optimize(visitor, mod);
 
     if (m_objectValue != nullptr)
     {
@@ -248,10 +238,6 @@ SymbolTypeRef AstNewExpression::GetExprType() const
 
     Assert(m_instanceType != nullptr);
     return m_instanceType;
-    // Assert(m_typeExpr != nullptr);
-    // Assert(m_typeExpr->GetSpecifiedType() != nullptr);
-
-    // return m_typeExpr->GetSpecifiedType();
 }
 
 AstExpression* AstNewExpression::GetTarget() const

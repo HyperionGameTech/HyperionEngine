@@ -438,7 +438,7 @@ RC<AstStatement> Parser::ParseStatement(
         }
         else if (MatchKeyword(Keyword_const, false)
             || MatchKeyword(Keyword_ref, false)
-            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1)))
+            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1) && !MatchKeywordAhead(Keyword_class, 1)))
         {
             res = ParseVariableDeclaration();
         }
@@ -2649,8 +2649,8 @@ RC<AstClass> Parser::ParseClass(
             }
 
             assignment = ParseFunctionExpression(
-                false, /* requireKeyword */
-                true,  /* parseBody */
+                false,                                         /* requireKeyword */
+                !(classFlags & ClassFlags::CLASS_FLAG_EXTERN), /* parseBody - extern classes have no body in their methods */
                 params);
 
             if (assignment == nullptr)

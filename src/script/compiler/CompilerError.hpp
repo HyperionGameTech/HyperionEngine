@@ -114,7 +114,7 @@ enum ErrorMessage
     Msg_generic_argument_must_be_literal,
     Msg_not_a_data_member,
     Msg_not_a_constant_type,
-    Msg_type_missing_prototype,
+    Msg_cannot_instantiate_non_object,
     Msg_cannot_inline_variable,
 
     Msg_bitwise_operands_must_be_int,

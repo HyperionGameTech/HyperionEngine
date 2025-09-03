@@ -90,7 +90,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_generic_argument_must_be_literal, "Generic argument is not resolvable at compile-time" },
     { Msg_not_a_data_member, "'%' not found in %" },
     { Msg_not_a_constant_type, "% is not a constant. An exception will be thrown at runtime if this object is not a class." },
-    { Msg_type_missing_prototype, "Type % is missing '$proto' member." },
+    { Msg_cannot_instantiate_non_object, "Cannot use `new` with non-object type '%'" },
     { Msg_cannot_inline_variable, "Unable to inline variable which is marked as force inline" },
     { Msg_bitwise_operands_must_be_int, "Bitwise operands must both be 'int', got '%' and '%'" },
     { Msg_bitwise_operand_must_be_int, "Bitwise operand must be 'int', got '%'" },

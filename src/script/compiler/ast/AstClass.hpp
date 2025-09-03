@@ -108,6 +108,11 @@ public:
         return m_flags[CLASS_FLAG_ANONYMOUS];
     }
 
+    bool IsExternClass() const
+    {
+        return m_flags[CLASS_FLAG_EXTERN];
+    }
+
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;

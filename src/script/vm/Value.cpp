@@ -77,20 +77,49 @@ bool ValueDataToString(const HypData& data, VMString& outString)
         return true;
     }
 
-    // object type, check for ToString() method
-    if (data.Is<AnyHandle>())
+    // // object type, check for ToString() method
+    // if (data.Is<AnyHandle>())
+    // {
+    //     const AnyHandle& object = data.Get<AnyHandle>();
+
+    //     if (!object.IsValid())
+    //     {
+    //         outString = VMString(g_nullString);
+
+    //         return true;
+    //     }
+
+    //     const HypClass* hypClass = object.ptr->InstanceClass();
+    //     Assert(hypClass != nullptr);
+
+    //     return true;
+    // }
+
+    constexpr int maxArrayDepth = 2;
+
+    if (const VMArray* pArray = data.TryGet<VMArray>().TryGet())
     {
-        const AnyHandle& object = data.Get<AnyHandle>();
+        std::stringstream ss;
+        pArray->GetRepresentation(ss, false, maxArrayDepth);
 
-        if (!object.IsValid())
-        {
-            outString = VMString(g_nullString);
+        outString = VMString(ss.str().c_str());
 
-            return true;
-        }
+        return true;
+    }
 
-        const HypClass* hypClass = object.ptr->InstanceClass();
-        Assert(hypClass != nullptr);
+    if (const VMMap* pMap = data.TryGet<VMMap>().TryGet())
+    {
+        std::stringstream ss;
+        pMap->GetRepresentation(ss, false, maxArrayDepth);
+
+        outString = VMString(ss.str().c_str());
+
+        return true;
+    }
+
+    if (const HypClass* hypClass = GetClass(data.GetTypeId()))
+    {
+        const AnyHandle& object = data.Is<AnyHandle>() ? data.Get<AnyHandle>() : AnyHandle::empty;
 
         const HypMethod* toStringMethod = hypClass->GetMethod("ToString");
 
@@ -158,28 +187,6 @@ bool ValueDataToString(const HypData& data, VMString& outString)
         }
 
         outString = VMString(buf);
-
-        return true;
-    }
-
-    constexpr int maxArrayDepth = 2;
-
-    if (const VMArray* pArray = data.TryGet<VMArray>().TryGet())
-    {
-        std::stringstream ss;
-        pArray->GetRepresentation(ss, false, maxArrayDepth);
-
-        outString = VMString(ss.str().c_str());
-
-        return true;
-    }
-
-    if (const VMMap* pMap = data.TryGet<VMMap>().TryGet())
-    {
-        std::stringstream ss;
-        pMap->GetRepresentation(ss, false, maxArrayDepth);
-
-        outString = VMString(ss.str().c_str());
 
         return true;
     }
@@ -948,8 +955,10 @@ VMString Value::ToString() const
         return VMString(g_nullString);
     }
 
+    const HypData& hypData = *GetHypData();
+
     VMString result("<error>");
-    if (ValueDataToString(*GetHypData(), result))
+    if (ValueDataToString(hypData, result))
     {
         return result;
     }
@@ -982,7 +991,7 @@ VMString Value::ToString() const
         }
     }
 
-    return result;
+    return VMString(HYP_FORMAT("<{} @ {}>", LookupTypeName(hypData.GetTypeId()), hypData.ToRef().GetPointer()));
 }
 
 void Value::ToRepresentation(

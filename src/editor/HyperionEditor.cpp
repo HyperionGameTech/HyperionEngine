@@ -131,9 +131,21 @@ void HyperionEditor::Init()
     //}
     { // script 2
         String str;
+        str = "extern class UUID {\n"
+              "    ToString() -> string;\n"
+              "}\n"
+              "extern class Entity {\n"
+              "    GetUUID() -> UUID;\n"
+              "}\n"
+              "extern class Scene {\n"
+              "    AddEntity(entity: Entity) -> void;\n"
+              "}\n"
+              "newEntity : Entity = new Entity();\n"
+              "export x := (a, b) { return newEntity.GetUUID(); };";
+
+#if 0
         // vvvvv This is a test script vvvvv
-        str = "extern func NewMap(elems: any) -> Map<any, any>;\n"
-              "class Base {}; \n"
+        str = "class Base {} \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\";\n"
               "    jet : float = 1f;\n"
@@ -154,7 +166,7 @@ void HyperionEditor::Init()
               "    ToString() {\n"
               "       return \"blahfdhfdhdh\"\n"
               "    }\n"
-              "};\n"
+              "}\n"
               "ins : any = new MyClass();\n"
               "testArray2 : Array<int> = [9,9,34]\n"
               "testArray2[0]++\n"
@@ -162,6 +174,7 @@ void HyperionEditor::Init()
               "testRef = [4,3,2,1]\n"
               "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testRef; }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
+#endif
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
 
