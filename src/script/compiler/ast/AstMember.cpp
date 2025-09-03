@@ -32,7 +32,6 @@ AstMember::AstMember(
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_fieldName(fieldName),
       m_target(target),
-      m_symbolType(BuiltinTypes::UNDEFINED),
       m_foundIndex(~0u),
       m_enableGenericMemberSubstitution(true)
 {
@@ -40,6 +39,8 @@ AstMember::AstMember(
 
 void AstMember::Visit(AstVisitor* visitor, Module* mod)
 {
+    m_symbolType = BuiltinTypes::UNDEFINED;
+
     Assert(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
@@ -89,13 +90,8 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         if (isProxyClass)
         {
             // load the type by name
-            m_proxyExpr.Reset(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(
-                    m_targetType,
-                    m_location)),
-                m_location));
-
-            m_proxyExpr->Visit(visitor, mod);
+            m_typeSpec.Reset(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_targetType, m_location)), m_location));
+            m_typeSpec->Visit(visitor, mod);
 
             // if it is a proxy class,
             // convert thing.DoThing()
@@ -139,43 +135,6 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
     Assert(m_targetType != nullptr);
 
-    // // Look for members on the object itself (static members)
-    // if (fieldType == nullptr)
-    // {
-    //     const AstExpression* valueOf = m_target->GetDeepValueOf();
-    //     Assert(valueOf != nullptr);
-
-    //     if (SymbolTypeRef heldType = valueOf->GetHeldType())
-    //     {
-    //         if (heldType->IsAnyType())
-    //         {
-    //             fieldType = BuiltinTypes::ANY;
-    //         }
-    //         else if (heldType->IsPlaceholderType() || heldType->IsGenericParameter())
-    //         {
-    //             fieldType = BuiltinTypes::PLACEHOLDER;
-    //         }
-    //         else
-    //         {
-    //             uint32 fieldIndex = ~0u;
-    //             uint32 depth = 0;
-
-    //             if (heldType->FindMemberDeep(m_fieldName, member, fieldIndex, depth))
-    //             {
-    //                 // only set m_foundIndex if found in first level.
-    //                 // for members from base objects,
-    //                 // we load based on hash.
-    //                 if (depth == 0)
-    //                 {
-    //                     m_foundIndex = fieldIndex;
-    //                 }
-
-    //                 fieldType = member.type;
-    //             }
-    //         }
-    //     }
-    // }
-
     if (fieldType != nullptr)
     {
         fieldType = fieldType->GetUnaliased();
@@ -202,16 +161,16 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
         return m_overrideExpr->Build(visitor, mod);
     }
 
-    // if (m_proxyExpr != nullptr) {
-    //     m_proxyExpr->SetAccessMode(m_accessMode);
-    //     return m_proxyExpr->Build(visitor, mod);
+    // if (m_typeSpec != nullptr) {
+    //     m_typeSpec->SetAccessMode(m_accessMode);
+    //     return m_typeSpec->Build(visitor, mod);
     // }
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    if (m_proxyExpr != nullptr)
+    if (m_typeSpec != nullptr)
     {
-        chunk->Append(m_proxyExpr->Build(visitor, mod));
+        chunk->Append(m_typeSpec->Build(visitor, mod));
     }
     else
     {
@@ -249,9 +208,9 @@ void AstMember::Optimize(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (m_proxyExpr != nullptr)
+    if (m_typeSpec != nullptr)
     {
-        m_proxyExpr->Optimize(visitor, mod);
+        m_typeSpec->Optimize(visitor, mod);
 
         // return;
     }
@@ -276,8 +235,8 @@ Tribool AstMember::IsTrue() const
         return m_overrideExpr->IsTrue();
     }
 
-    // if (m_proxyExpr != nullptr) {
-    //     return m_proxyExpr->IsTrue();
+    // if (m_typeSpec != nullptr) {
+    //     return m_typeSpec->IsTrue();
     // }
 
     return Tribool::Indeterminate();
@@ -290,7 +249,7 @@ bool AstMember::MayHaveSideEffects() const
         return m_overrideExpr->MayHaveSideEffects();
     }
 
-    if (m_proxyExpr != nullptr && m_proxyExpr->MayHaveSideEffects())
+    if (m_typeSpec != nullptr && m_typeSpec->MayHaveSideEffects())
     {
         return true;
     }
@@ -303,16 +262,6 @@ bool AstMember::MayHaveSideEffects() const
 SymbolTypeRef AstMember::GetExprType() const
 {
     return m_symbolType;
-    // if (m_overrideExpr != nullptr) {
-    //     return m_overrideExpr->GetExprType();
-    // }
-    // // if (m_proxyExpr != nullptr) {
-    // //     return m_proxyExpr->GetExprType();
-    // // }
-
-    // Assert(m_symbolType != nullptr);
-
-    // return m_symbolType;
 }
 
 SymbolTypeRef AstMember::GetHeldType() const
@@ -332,8 +281,8 @@ const AstExpression* AstMember::GetValueOf() const
         return m_overrideExpr->GetValueOf();
     }
 
-    // if (m_proxyExpr != nullptr) {
-    //     return m_proxyExpr->GetValueOf();
+    // if (m_typeSpec != nullptr) {
+    //     return m_typeSpec->GetValueOf();
     // }
 
     return AstExpression::GetValueOf();
@@ -346,8 +295,8 @@ const AstExpression* AstMember::GetDeepValueOf() const
         return m_overrideExpr->GetDeepValueOf();
     }
 
-    // if (m_proxyExpr != nullptr) {
-    //     return m_proxyExpr->GetDeepValueOf();
+    // if (m_typeSpec != nullptr) {
+    //     return m_typeSpec->GetDeepValueOf();
     // }
 
     return AstExpression::GetDeepValueOf();
@@ -359,8 +308,8 @@ AstExpression* AstMember::GetTarget() const
     //     return m_overrideExpr->GetTarget();
     // }
 
-    // if (m_proxyExpr != nullptr) {
-    //     return m_proxyExpr->GetTarget();
+    // if (m_typeSpec != nullptr) {
+    //     return m_typeSpec->GetTarget();
     // }
 
     if (m_target != nullptr)
@@ -378,7 +327,7 @@ bool AstMember::IsMutable() const
         return m_overrideExpr->IsMutable();
     }
 
-    if (m_proxyExpr != nullptr && !m_proxyExpr->IsMutable())
+    if (m_typeSpec != nullptr && !m_typeSpec->IsMutable())
     {
         return false;
     }

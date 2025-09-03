@@ -5,6 +5,8 @@
 
 namespace hyperion::compiler {
 
+class AstTypeSpecifier;
+
 class AstMember : public AstExpression
 {
 public:
@@ -48,7 +50,7 @@ protected:
     SymbolTypeRef m_symbolType;
     SymbolTypeRef m_targetType;
     SymbolTypeRef m_heldType;
-    RC<AstExpression> m_proxyExpr;
+    RC<AstTypeSpecifier> m_typeSpec;
     RC<AstExpression> m_overrideExpr;
     uint32 m_foundIndex;
     bool m_enableGenericMemberSubstitution;
@@ -63,4 +65,3 @@ protected:
 };
 
 } // namespace hyperion::compiler
-

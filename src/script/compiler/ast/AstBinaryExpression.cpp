@@ -53,10 +53,28 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_op->ModifiesValue())
     {
+        visitor->AddErrorIfFalse(
+            m_left->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE,
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_cannot_modify_rvalue,
+                m_location));
+
         m_left->SetAccessMode(AccessMode::ACCESS_MODE_STORE);
     }
 
     m_left->Visit(visitor, mod);
+
+    // ensure we can modify the left hand side
+    if (m_op->ModifiesValue())
+    {
+        visitor->AddErrorIfFalse(
+            m_left->IsMutable(),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_expression_cannot_be_modified,
+                m_location));
+    }
 
     // operator overloading
     if (m_enableOverrideExpr)
@@ -154,15 +172,13 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 m_overrideExpr = callOperatorOverloadExpr;
             }
         }
+    }
 
-        if (m_overrideExpr != nullptr)
-        {
-            m_overrideExpr->SetAccessMode(GetAccessMode());
-            m_overrideExpr->SetExpressionFlags(GetExpressionFlags());
-            m_overrideExpr->Visit(visitor, mod);
+    if (m_overrideExpr != nullptr)
+    {
+        m_overrideExpr->Visit(visitor, mod);
 
-            return;
-        }
+        return;
     }
 
     // not overloading an operator from this point on,
@@ -213,24 +229,6 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             leftType,
             rightType,
             m_location);
-
-        // make sure we are not modifying a constant
-        if (!m_left->IsMutable())
-        {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_expression_cannot_be_modified,
-                m_location));
-        }
-
-        // make sure left hand side is suitable for assignment
-        if (!(m_left->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE))
-        {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_cannot_modify_rvalue,
-                m_location));
-        }
     }
     else
     {

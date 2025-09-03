@@ -453,18 +453,6 @@ AstExpression* AstArrayAccess::GetTarget() const
 
 bool AstArrayAccess::IsMutable() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->IsMutable();
-    }
-
-    Assert(m_target != nullptr);
-
-    if (!m_target->IsMutable())
-    {
-        return false;
-    }
-
     return true;
 }
 

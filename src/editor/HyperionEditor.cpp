@@ -142,19 +142,18 @@ void HyperionEditor::Init()
               "    }\n"
               "    func operator[](i: int) {\n"
               "       for (j := 1; j < i; j++) {\n"
-              "           jet *= j;\n"
               "           if (jet > 10000.0) { break; }\n"
               "       }\n"
               "       return jet;\n"
               "    }\n"
               "    func operator[]=(i: int, val: any) {\n"
-              "       return blah;\n"
+              "       jet = val;\nreturn \"meow\";\n"
               "    }\n"
               "};\n"
               "ins : any = new MyClass();\n"
               "testArray2 : Array<int> = [9,9,34];\n"
               "testArray2[0]++;\n"
-              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return func() { obj.blah = \"foobarrz\";\ntestArray2[1] = testArray2[2];\nreturn (obj as MyClass)[20]; }; };\n"
+              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return func() { obj[20] = \"JET\";\ntestArray2[1] = testArray2[2];\nreturn obj[10]; }; };\n"
               "export func x(a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));

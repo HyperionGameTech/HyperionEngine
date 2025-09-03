@@ -16,7 +16,6 @@
 
 namespace hyperion::compiler {
 
-HYP_DISABLE_OPTIMIZATION;
 SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     AstVisitor* visitor,
     Module* mod,
@@ -126,7 +125,6 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
         resolvedArgType->ToString(),
         resolvedParamType->ToString()));
 }
-HYP_ENABLE_OPTIMIZATION;
 
 SizeType SemanticAnalyzer::Helpers::FindFreeSlot(
     SizeType currentIndex,
@@ -191,7 +189,6 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
         numSuppliedArgs);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     AstVisitor* visitor,
     Module* mod,
@@ -421,7 +418,6 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     return changed ? targetType : inputType;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 SymbolTypeRef SemanticAnalyzer::Helpers::GenericPromotion(
     AstVisitor* visitor,
@@ -527,7 +523,9 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
     for (SizeType index = 0; index < args.Size(); index++)
     {
-        if (!args[index])
+        const RC<AstArgument>& arg = args[index];
+        
+        if (!arg || arg->IsPlaceholderArgument())
         {
             continue;
         }
@@ -537,8 +535,8 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
             CheckArgTypeCompatible(
                 visitor,
                 mod,
-                args[index]->GetLocation(),
-                args[index]->GetExprType(),
+                arg->GetLocation(),
+                arg->GetExprType(),
                 varargType);
         }
         else if (index < numGenericArgs && genericArgsWithoutReturn[index].m_type != nullptr)
@@ -546,8 +544,8 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
             CheckArgTypeCompatible(
                 visitor,
                 mod,
-                args[index]->GetLocation(),
-                args[index]->GetExprType(),
+                arg->GetLocation(),
+                arg->GetExprType(),
                 genericArgsWithoutReturn[index].m_type);
         }
         else
@@ -562,7 +560,6 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor* visitor, Module* mod,
     const SymbolTypeRef& symbolType,
@@ -898,7 +895,6 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
     return true;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     AstVisitor* visitor,

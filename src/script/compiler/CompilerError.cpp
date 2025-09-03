@@ -12,7 +12,6 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_illegal_operator, "Illegal usage of operator '%'" },
     { Msg_invalid_operator_for_type, "Operator '%' is not valid for type '%'" },
     { Msg_cannot_overload_operator, "Operator '%' does not support overloading" },
-    { Msg_invalid_symbol_query, "Unknown symbol query '%'" },
     { Msg_expression_cannot_be_modified, "Expression cannot be modified" },
     { Msg_const_missing_assignment, "'%': const value missing assignment" },
     { Msg_ref_missing_assignment, "'%': ref value missing assignment" },

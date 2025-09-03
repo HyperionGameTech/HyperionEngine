@@ -225,8 +225,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         const String& name = it.first;
         const RC<Identifier>& identifier = it.second;
 
-        DebugLog(LogType::Debug, "Closure captures variable '%s'\n", name.Data());
-
         Assert(identifier != nullptr);
         Assert(identifier->GetSymbolType() != nullptr);
 
