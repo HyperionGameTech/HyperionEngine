@@ -5,8 +5,6 @@ const HashMap<String, Keywords> Keyword::keywordStrings = {
     { "module", Keyword_module },
     { "import", Keyword_import },
     { "export", Keyword_export },
-    { "use", Keyword_use },
-    { "var", Keyword_var },
     { "const", Keyword_const },
     { "static", Keyword_static },
     { "public", Keyword_public },

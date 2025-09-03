@@ -130,8 +130,8 @@ void HyperionEditor::Init()
     //    }
     //}
     { // script 2
-        // temp
         String str;
+        // vvvvv This is a test script vvvvv
         str = "class Base {}; \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\";\n"
@@ -147,13 +147,18 @@ void HyperionEditor::Init()
               "       return jet;\n"
               "    }\n"
               "    func operator[]=(i: int, val: any) {\n"
-              "       jet = val;\nreturn \"meow\";\n"
+              "       jet = val;\nreturn 123;\n"
+              "    }\n"
+              "    func ToString() {\n"
+              "       return \"blahfdhfdhdh\";\n"
               "    }\n"
               "};\n"
               "ins : any = new MyClass();\n"
               "testArray2 : Array<int> = [9,9,34];\n"
               "testArray2[0]++;\n"
-              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return func() { obj[20] = \"JET\";\ntestArray2[1] = testArray2[2];\nreturn obj[10]; }; };\n"
+              "ref testRef = testArray2;\n"
+              "testRef = [4,3,2,1];\n"
+              "func getArrayElement(elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return func() { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testArray2; }; };\n"
               "export func x(a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));

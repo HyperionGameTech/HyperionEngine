@@ -1,6 +1,5 @@
 #pragma once
 
-#include <script/vm/VMObject.hpp>
 #include <script/vm/VMArray.hpp>
 #include <script/vm/VMMap.hpp>
 #include <script/vm/VMString.hpp>
@@ -391,16 +390,12 @@ class VM;
 // struct Value;
 class InstructionHandler;
 class VMString;
-class VMObject;
 
 } // namespace vm
 
 using namespace compiler;
 
 class APIInstance;
-
-template <class T>
-constexpr bool isVmObjectType = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T>;
 
 #pragma region Script API Instance
 

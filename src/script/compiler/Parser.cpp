@@ -347,7 +347,7 @@ void Parser::Parse(bool expectModuleDecl)
             }
 
             // parse at top level, to allow for nested modules
-            if (auto stmt = ParseStatement(true))
+            if (RC<AstStatement> stmt = ParseStatement(true))
             {
                 moduleAst->AddChild(stmt);
             }
@@ -436,8 +436,7 @@ RC<AstStatement> Parser::ParseStatement(
         {
             res = ParseExportStatement();
         }
-        else if (MatchKeyword(Keyword_var, false)
-            || MatchKeyword(Keyword_const, false)
+        else if (MatchKeyword(Keyword_const, false)
             || MatchKeyword(Keyword_ref, false))
         {
             res = ParseVariableDeclaration();
@@ -805,7 +804,7 @@ RC<AstExpression> Parser::ParseParentheses()
         {
             bool foundFunctionToken = false;
 
-            if (MatchKeyword(Keyword_const) || MatchKeyword(Keyword_var))
+            if (MatchKeyword(Keyword_const))
             {
                 foundFunctionToken = true;
             }
@@ -1996,7 +1995,6 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     const SourceLocation location = CurrentLocation();
 
     static const Keywords prefixKeywords[] = {
-        Keyword_var,
         Keyword_const,
         Keyword_ref
     };
@@ -2525,11 +2523,6 @@ RC<AstClass> Parser::ParseClass(
         // will handle everything. put keywords that ParseVariableDeclaration()
         // does /not/ handle, above.
         const SizeType positionBefore = m_tokenStream->GetPosition();
-
-        if (MatchKeyword(Keyword_var, true))
-        {
-            isVariable = true;
-        }
 
         if (MatchKeyword(Keyword_ref, true))
         {

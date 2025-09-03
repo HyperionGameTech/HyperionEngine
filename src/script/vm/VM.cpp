@@ -1,7 +1,6 @@
 #include <script/vm/VM.hpp>
 #include <script/vm/Value.hpp>
 #include <script/vm/VMArray.hpp>
-#include <script/vm/VMObject.hpp>
 #include <script/vm/VMString.hpp>
 #include <script/vm/VMTypeInfo.hpp>
 #include <script/vm/GC.hpp>
@@ -395,6 +394,8 @@ vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrack
     return ScriptApi_MakeRef(refValue);
 }
 
+// #define HYP_SCRIPT_AUTO_REFERENCES
+
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
 vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 {
@@ -416,7 +417,11 @@ vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 
     // 'Any' is used internally by HypData for object that is heap-allocated,
     // and we use reference semantics for it rather than copying.
+#ifdef HYP_SCRIPT_AUTO_REFERENCES
     const bool shouldDoCopy = !hypData.Is<Any>();
+#else
+    constexpr bool shouldDoCopy = true;
+#endif
 
     if (shouldDoCopy)
     {
@@ -424,15 +429,7 @@ vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 
         Visit(hypData.value, [&newHypData](const auto& val)
             {
-                if constexpr (!std::is_base_of_v<AnyBase, NormalizedType<decltype(val)>>)
-                {
-                    newHypData.value.Set<NormalizedType<decltype(val)>>(val);
-                }
-                else
-                {
-                    // should never be hit; all of the types in the condition would be copy-constructible
-                    HYP_UNREACHABLE();
-                }
+                newHypData.value.Set<NormalizedType<decltype(val)>>(val);
             });
 
         newHypData.serializeFunction = hypData.serializeFunction;
