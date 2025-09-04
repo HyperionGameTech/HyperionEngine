@@ -189,7 +189,28 @@ const char* Name::LookupString() const
     return GetRegistry()->LookupStringForName(*this).Data();
 }
 
+String Name::ToString() const
+{
+    const char* str = LookupString();
+
+    if (str && str[0] != '\0')
+    {
+        return String(str);
+    }
+
+    return String(HYP_FORMAT("Name({})", hashCode));
+}
+
 #pragma endregion Name
+
+#pragma region WeakName
+
+String WeakName::ToString() const
+{
+    return Name(hashCode).ToString();
+}
+
+#pragma endregion WeakName
 
 Name CreateNameFromDynamicString(const ANSIString& str)
 {

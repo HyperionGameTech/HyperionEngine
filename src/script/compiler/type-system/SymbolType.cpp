@@ -203,13 +203,21 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
     return true;
 }
 
-HYP_DISABLE_OPTIMIZATION;
+#define ADD_INCOMPATIBILITY(type, details)                 \
+    if (outIncompatibilities != nullptr)                   \
+    {                                                      \
+        outIncompatibilities->PushBack({ type, details }); \
+    }
+
 bool SymbolType::TypeCompatible(
     const SymbolType& right,
-    bool strictNumbers) const
+    bool strictNumbers,
+    SymbolTypeIncompatibilities* outIncompatibilities) const
 {
     if (TypeEqual(*BuiltinTypes::UNDEFINED) || right.TypeEqual(*BuiltinTypes::UNDEFINED))
     {
+        ADD_INCOMPATIBILITY(IT_UNDEFINED_TYPE, "one of the types was the result of an errored expression");
+
         return false;
     }
 
@@ -232,6 +240,8 @@ bool SymbolType::TypeCompatible(
             base = base->GetBaseType();
         }
 
+        ADD_INCOMPATIBILITY(IT_BASE_MISMATCH, right.ToString(false) + " is not the same class as " + ToString(false) + ", nor is it a base class of it");
+
         return false;
     }
 
@@ -249,12 +259,26 @@ bool SymbolType::TypeCompatible(
 
     if (IsNullType())
     {
-        return right.IsNullableType();
+        if (!right.IsNullableType())
+        {
+            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "null is only compatible with nullable types");
+
+            return false;
+        }
+
+        return true;
     }
 
     if (right.IsNullType())
     {
-        return IsNullableType();
+        if (!IsNullableType())
+        {
+            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "null is only compatible with nullable types");
+
+            return false;
+        }
+
+        return true;
     }
 
     // if (IsGenericParameter() || right.IsGenericParameter())
@@ -263,6 +287,13 @@ bool SymbolType::TypeCompatible(
     //     return true;
     // }
 
+    if (m_typeClass != right.m_typeClass)
+    {
+        ADD_INCOMPATIBILITY(IT_TYPE_CLASS_MISMATCH, "type classes do not match");
+
+        return false;
+    }
+
     switch (m_typeClass)
     {
     case TYPE_ALIAS:
@@ -270,118 +301,117 @@ bool SymbolType::TypeCompatible(
         SymbolTypeRef sp = m_aliasInfo.m_aliasee.Lock();
         Assert(sp != nullptr);
 
-        return sp->TypeCompatible(right, strictNumbers);
+        return sp->TypeCompatible(right, strictNumbers, outIncompatibilities);
     }
     case TYPE_GENERIC_INSTANCE:
     {
-        SymbolTypeRef base = m_base;
-        Assert(base != nullptr);
-
-        if (right.m_typeClass == TYPE_GENERIC_INSTANCE)
+        // check all params
+        if (m_genericInstanceInfo.m_genericArgs.Size() != right.m_genericInstanceInfo.m_genericArgs.Size())
         {
-            // check for compatibility between instances
-            SymbolTypeRef otherBase = right.GetBaseType();
-            Assert(otherBase != nullptr);
+            ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "generic argument count does not match");
 
-            if (!base->TypeEqual(*otherBase))
-            {
-                return false;
-            }
-
-            // check all params
-            if (m_genericInstanceInfo.m_genericArgs.Size() != right.m_genericInstanceInfo.m_genericArgs.Size())
-            {
-                return false;
-            }
-
-            // check each substituted parameter
-            for (SizeType i = 0; i < m_genericInstanceInfo.m_genericArgs.Size(); i++)
-            {
-                const SymbolTypeRef& paramType = m_genericInstanceInfo.m_genericArgs[i].m_type;
-                const SymbolTypeRef& otherParamType = right.m_genericInstanceInfo.m_genericArgs[i].m_type;
-
-                Assert(paramType != nullptr);
-                Assert(otherParamType != nullptr);
-
-                if (!paramType->TypeEqual(*otherParamType))
-                {
-                    return false;
-                }
-            }
-
-            // check members
-            if (m_members.Size() != right.m_members.Size())
-            {
-                return false;
-            }
-
-            for (const SymbolTypeMember& leftMember : m_members)
-            {
-                const SymbolTypeRef& leftMemberType = leftMember.type;
-                Assert(leftMemberType != nullptr);
-
-                SymbolTypeMember rightMember;
-
-                if (!right.FindMember(leftMember.name, rightMember))
-                {
-                    return false;
-                }
-
-                Assert(rightMember.type != nullptr);
-
-                if (!rightMember.type->TypeEqual(*leftMemberType))
-                {
-                    return false;
-                }
-            }
-
-            // check static members
-            if (m_staticMembers.Size() != right.m_staticMembers.Size())
-            {
-                return false;
-            }
-
-            for (const SymbolTypeMember& leftMember : m_staticMembers)
-            {
-                const SymbolTypeRef& leftMemberType = leftMember.type;
-                Assert(leftMemberType != nullptr);
-
-                SymbolTypeMember rightMember;
-
-                if (!right.FindMember(leftMember.name, rightMember))
-                {
-                    return false;
-                }
-
-                Assert(rightMember.type != nullptr);
-
-                if (!rightMember.type->TypeEqual(*leftMemberType))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return false;
         }
-        else
+
+        // check each substituted parameter
+        for (SizeType i = 0; i < m_genericInstanceInfo.m_genericArgs.Size(); i++)
         {
+            const SymbolTypeRef& paramType = m_genericInstanceInfo.m_genericArgs[i].m_type;
+            const SymbolTypeRef& otherParamType = right.m_genericInstanceInfo.m_genericArgs[i].m_type;
+
+            Assert(paramType != nullptr);
+            Assert(otherParamType != nullptr);
+
+            if (!paramType->TypeEqual(*otherParamType))
+            {
+                ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "generic parameter types do not match: " + paramType->ToString(false) + " != " + otherParamType->ToString(false));
+
+                return false;
+            }
+        }
+
+        // check members
+        if (m_members.Size() != right.m_members.Size() && !outIncompatibilities)
+        {
+            // short circuit if sizes don't match (and we're not collecting incompatibilities)
+            return false;
+        }
+
+        for (const SymbolTypeMember& leftMember : m_members)
+        {
+            const SymbolTypeRef& leftMemberType = leftMember.type;
+            Assert(leftMemberType != nullptr);
+
+            SymbolTypeMember rightMember;
+
+            if (!right.FindMember(leftMember.name, rightMember))
+            {
+                ADD_INCOMPATIBILITY(IT_MEMBER_MISMATCH, "member '" + leftMember.name + "' not found in " + right.GetName());
+
+                return false;
+            }
+
+            Assert(rightMember.type != nullptr);
+
+            if (!rightMember.type->TypeEqual(*leftMemberType))
+            {
+                ADD_INCOMPATIBILITY(IT_MEMBER_MISMATCH, "member '" + leftMember.name + "' type mismatch: " + leftMemberType->ToString(false) + " != " + rightMember.type->ToString(false));
+
+                return false;
+            }
+        }
+
+        // check static members
+        if (m_staticMembers.Size() != right.m_staticMembers.Size() && !outIncompatibilities)
+        {
+            // short circuit if sizes don't match (and we're not collecting incompatibilities)
+            return false;
+        }
+
+        for (const SymbolTypeMember& leftMember : m_staticMembers)
+        {
+            const SymbolTypeRef& leftMemberType = leftMember.type;
+            Assert(leftMemberType != nullptr);
+
+            SymbolTypeMember rightMember;
+
+            if (!right.FindMember(leftMember.name, rightMember))
+            {
+                ADD_INCOMPATIBILITY(IT_STATIC_MEMBER_MISMATCH, "static member '" + leftMember.name + "' not found in " + right.GetName());
+
+                return false;
+            }
+
+            Assert(rightMember.type != nullptr);
+
+            if (!rightMember.type->TypeEqual(*leftMemberType))
+            {
+                ADD_INCOMPATIBILITY(IT_STATIC_MEMBER_MISMATCH, "static member '" + leftMember.name + "' type mismatch: " + leftMemberType->ToString(false) + " != " + rightMember.type->ToString(false));
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+    default:
+        if (IsNumber() && right.IsNumber())
+        {
+            if (!strictNumbers)
+            {
+                return true;
+            }
+
+            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "numeric types cannot be implicitly converted in this context");
+
             return false;
         }
 
         break;
     }
-    default:
-        if (!strictNumbers && IsNumber() && right.IsNumber())
-        {
-            return true;
-        }
-
-        return false;
-    }
 
     return false;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 SymbolTypeRef SymbolType::FindMember(const String& name) const
 {

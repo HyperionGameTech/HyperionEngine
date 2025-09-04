@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/containers/StaticString.hpp>
 #include <core/Defines.hpp>
+#include <core/containers/StaticString.hpp>
 
 #include <core/HashCode.hpp>
 
@@ -38,6 +38,8 @@ extern HYP_API Name CreateNameFromDynamicString(const ANSIString& str);
  *  Name name = CreateNameFromDynamicString("MyName");
  *  \endcode
  */
+
+HYP_STRUCT()
 struct Name
 {
     friend constexpr bool operator==(const Name& lhs, const Name& rhs);
@@ -116,15 +118,13 @@ struct Name
     HYP_FORCE_INLINE static constexpr Name Invalid()
     {
         return Name { 0 };
-    };
+    }
 
-    // template <class StaticStringType>
-    // HYP_NODISCARD
-    // HYP_FORCE_INLINE
-    // static constexpr Name FromStaticString(StaticStringType staticString)
-    //     { return Name { (CreateNameFromStaticString_WithLock<HashCode::GetHashCode(StaticString)>(StaticString.data).hashCode) }; }
+    HYP_METHOD()
+    HYP_API String ToString() const;
 };
 
+HYP_STRUCT()
 struct WeakName
 {
     friend constexpr bool operator==(const WeakName& lhs, const WeakName& rhs);
@@ -229,6 +229,9 @@ struct WeakName
     {
         return WeakName {};
     };
+
+    HYP_METHOD()
+    HYP_API String ToString() const;
 };
 
 constexpr bool operator==(const Name& lhs, const Name& rhs)

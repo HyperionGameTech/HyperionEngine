@@ -115,6 +115,7 @@ struct HypData
         double,
         bool,
         void*,
+        Name,
         ObjIdBase,
         HypClassRef,
         AnyHandle,
@@ -132,6 +133,9 @@ struct HypData
         || std::is_same_v<T, float> || std::is_same_v<T, double>
         || std::is_same_v<T, bool>
         || std::is_same_v<T, void*>
+
+        /*! Name is 32 bits and can be stored inline */
+        || std::is_same_v<T, Name>
 
         /*! All ObjId<T> are stored as ObjIdBase */
         || std::is_base_of_v<ObjIdBase, T>
@@ -1611,38 +1615,32 @@ struct HypDataHelperDecl<Name>
 };
 
 template <>
-struct HypDataHelper<Name> : HypDataHelper<Any>
+struct HypDataHelper<Name>
 {
-    using ConvertibleFrom = Tuple<ANSIString>;
+    using StorageType = Name;
+    using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const Any& value) const
+    HYP_FORCE_INLINE bool Is(const Name&) const
     {
-        return value.Is<Name>();
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+
+        return true;
     }
 
-    HYP_FORCE_INLINE Name Get(const Any& value) const
+    HYP_FORCE_INLINE constexpr Name& Get(Name& value) const
     {
-        return value.Get<Name>();
+        return value;
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, Name value) const
+    HYP_FORCE_INLINE constexpr const Name& Get(const Name& value) const
     {
-        HypDataHelper<Any>::Set(hypData, Any::Construct<Name>(value));
+        return value;
     }
 
-    HYP_FORCE_INLINE bool Is(const ANSIString& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const Name& value) const
     {
-        return true; // can convert from ANSIString to Name
-    }
-
-    HYP_FORCE_INLINE Name Get(const ANSIString& value) const
-    {
-        return CreateNameFromDynamicString(value);
-    }
-
-    HYP_FORCE_INLINE void Set(HypData& hypData, const ANSIString& value) const
-    {
-        HypDataHelper<Any>::Set(hypData, Any::Construct<Name>(CreateNameFromDynamicString(value)));
+        hypData.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const Name& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -1675,8 +1673,64 @@ struct HypDataHelperDecl<WeakName>
 };
 
 template <>
-struct HypDataHelper<WeakName> : HypDataHelper<Name>
+struct HypDataHelper<WeakName>
 {
+    using StorageType = Name;
+    using ConvertibleFrom = Tuple<Name>;
+
+    HYP_FORCE_INLINE constexpr bool Is(const WeakName&) const
+    {
+        return true;
+    }
+
+    HYP_FORCE_INLINE constexpr WeakName& Get(WeakName& value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE constexpr const WeakName& Get(const WeakName& value) const
+    {
+        return value;
+    }
+
+    HYP_FORCE_INLINE constexpr bool Is(const Name&) const
+    {
+        return true;
+    }
+
+    HYP_FORCE_INLINE WeakName& Get(Name& value) const
+    {
+        return *reinterpret_cast<WeakName*>(&value);
+    }
+
+    HYP_FORCE_INLINE const WeakName& Get(const Name& value) const
+    {
+        return *reinterpret_cast<const WeakName*>(&value);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const WeakName& value) const
+    {
+        hypData.Set_Internal(*reinterpret_cast<const Name*>(&value));
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Serialize(const WeakName& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        return HypDataHelper<Name>::Serialize(*reinterpret_cast<const Name*>(&value), outData, flags);
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        HypData nameData;
+
+        if (FBOMResult err = HypDataHelper<Name>::Deserialize(context, data, nameData))
+        {
+            return err;
+        }
+
+        out = HypData(WeakName(nameData.Get<Name>()));
+
+        return { FBOMResult::FBOM_OK };
+    }
 };
 
 template <class T, class AllocatorType>

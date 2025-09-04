@@ -139,8 +139,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         m_symbolType = SymbolType::GenericInstance(
             BuiltinTypes::ENUM_TYPE,
             {}, {},
-            GenericInstanceTypeInfo {
-                { { "of", m_enumUnderlyingType } } });
+            GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
     }
     else
     {
@@ -220,7 +219,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 Assert(mem->GetIdentifier() != nullptr);
                 SymbolTypeRef memType = mem->GetIdentifier()->GetSymbolType();
 
-                m_symbolType->GetMembers().PushBack(SymbolTypeMember {
+                m_symbolType->GetStaticMembers().PushBack(SymbolTypeMember {
                     memName,
                     memType,
                     mem->GetRealAssignment() });
@@ -549,10 +548,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
 
     { // create a type ref for the symbol type
-        m_typeRef.Reset(new AstTypeRef(
-            m_symbolType,
-            m_location));
-
+        m_typeRef.Reset(new AstTypeRef(m_symbolType, m_location));
         m_typeRef->Visit(visitor, mod);
     }
 

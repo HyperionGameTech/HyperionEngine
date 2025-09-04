@@ -57,6 +57,26 @@ enum SymbolTypeFlagsBits : SymbolTypeFlags
     SYMBOL_TYPE_FLAGS_NATIVE = 0x4
 };
 
+enum SymbolTypeIncompatibilityType : uint32
+{
+    IT_UNKNOWN = 1,
+    IT_TYPE_CLASS_MISMATCH,
+    IT_UNDEFINED_TYPE,
+    IT_NAME_MISMATCH,
+    IT_BASE_MISMATCH,
+    IT_MEMBER_MISMATCH,
+    IT_STATIC_MEMBER_MISMATCH,
+    IT_GENERIC_ARG_MISMATCH
+};
+
+struct SymbolTypeIncompatibility
+{
+    SymbolTypeIncompatibilityType type;
+    String details;
+};
+
+using SymbolTypeIncompatibilities = Array<SymbolTypeIncompatibility, DynamicAllocator>;
+
 struct AliasTypeInfo
 {
     SymbolTypeWeakRef m_aliasee;
@@ -336,9 +356,11 @@ public:
     }
 
     bool TypeEqual(const SymbolType& other) const;
+
     bool TypeCompatible(
         const SymbolType& other,
-        bool strictNumbers) const;
+        bool strictNumbers,
+        SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
     bool operator==(const SymbolType& other) const
     {

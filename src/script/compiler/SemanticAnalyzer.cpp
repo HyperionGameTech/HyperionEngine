@@ -98,10 +98,6 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     Assert(argType != nullptr);
     Assert(paramType != nullptr);
 
-    // make sure argument types are compatible
-    // use strict numbers so that floats cannot be passed as explicit ints
-    // @NOTE: do not add error for undefined, it causes too many unnecessary errors
-    //        that would've already been conveyed via 'not declared' errors
     if (argType == BuiltinTypes::UNDEFINED)
     {
         return;
@@ -113,17 +109,43 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     SymbolTypeRef resolvedArgType = ResolvePlaceholderType(visitor, mod, argType, location);
     Assert(resolvedArgType != nullptr);
 
-    if (resolvedParamType->TypeCompatible(*resolvedArgType, true))
+    SymbolTypeIncompatibilities incompatibilities;
+
+    if (resolvedParamType->TypeCompatible(*resolvedArgType, true, &incompatibilities))
     {
         return;
     }
 
-    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-        LEVEL_ERROR,
-        Msg_arg_type_incompatible,
-        location,
-        resolvedArgType->ToString(),
-        resolvedParamType->ToString()));
+    // log out both types members:
+    for (const SymbolTypeMember& member : resolvedParamType->GetMembers())
+    {
+        std::cout << "Param member: " << member.name << " : " << (member.type ? member.type->ToString() : "<null>") << std::endl;
+    }
+
+    for (const SymbolTypeMember& member : resolvedArgType->GetMembers())
+    {
+        std::cout << "Arg member: " << member.name << " : " << (member.type ? member.type->ToString() : "<null>") << std::endl;
+    }
+
+    if (incompatibilities.Any())
+    {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_arg_type_incompatible_more_info,
+            location,
+            resolvedArgType->ToString(),
+            resolvedParamType->ToString(),
+            "\n * " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n * ")));
+    }
+    else
+    {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_arg_type_incompatible,
+            location,
+            resolvedArgType->ToString(),
+            resolvedParamType->ToString()));
+    }
 }
 
 SizeType SemanticAnalyzer::Helpers::FindFreeSlot(
@@ -212,9 +234,13 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     SymbolTypeRef targetType = unaliasedInputType;
 
     const GenericInstanceCache::Key cacheKey = GenericInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
-    if (SymbolTypeRef cachedType = mod->LookupGenericInstance(cacheKey))
+
+    if (targetType->IsGenericInstanceType())
     {
-        return cachedType;
+        if (SymbolTypeRef cachedType = mod->LookupGenericInstance(cacheKey))
+        {
+            return cachedType;
+        }
     }
 
     bool changed = false;
@@ -358,6 +384,9 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         tmpGenericInstance.Reset();
 
         targetType = std::move(newType);
+
+        // set changed to true so we don't attempt to clone targetType below.
+        // we need to operate on the modified newType as it is what's in the cache
         changed = true;
 
         break;
@@ -382,38 +411,54 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         }
     }
 
-    if (changed)
+    // handle members
+    for (SizeType memberIndex = 0; memberIndex < unaliasedInputType->GetMembers().Size(); memberIndex++)
     {
-        targetType->GetMembers().Clear();
-        targetType->GetStaticMembers().Clear();
-    }
+        Assert(memberIndex < targetType->GetMembers().Size());
 
-    // members
-    for (const SymbolTypeMember& member : unaliasedInputType->GetMembers())
-    {
+        const SymbolTypeMember& member = targetType->GetMembers()[memberIndex];
+        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, member.type, {}, location);
+
+        if (substitutedMemberType == member.type)
+        {
+            // no change, skip
+            continue;
+        }
+
         if (!changed)
         {
             targetType = targetType->Clone();
             changed = true;
         }
 
-        targetType->GetMembers().PushBack({ member.name,
-            SubstituteGenericParameters(visitor, mod, member.type, {}, location),
-            member.expr });
+        SymbolTypeMember& newMember = targetType->GetMembers()[memberIndex];
+        newMember.type = substitutedMemberType;
+        newMember.expr = CloneAstNode(member.expr);
     }
 
-    // static members
-    for (const SymbolTypeMember& member : unaliasedInputType->GetStaticMembers())
+    // handle static members
+    for (SizeType memberIndex = 0; memberIndex < unaliasedInputType->GetStaticMembers().Size(); memberIndex++)
     {
+        Assert(memberIndex < targetType->GetStaticMembers().Size());
+
+        const SymbolTypeMember& member = targetType->GetStaticMembers()[memberIndex];
+        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, member.type, {}, location);
+
+        if (substitutedMemberType == member.type)
+        {
+            // no change, skip
+            continue;
+        }
+
         if (!changed)
         {
             targetType = targetType->Clone();
             changed = true;
         }
 
-        targetType->GetStaticMembers().PushBack({ member.name,
-            SubstituteGenericParameters(visitor, mod, member.type, {}, location),
-            member.expr });
+        SymbolTypeMember& newMember = targetType->GetStaticMembers()[memberIndex];
+        newMember.type = substitutedMemberType;
+        newMember.expr = CloneAstNode(member.expr);
     }
 
     return changed ? targetType : inputType;
@@ -524,7 +569,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     for (SizeType index = 0; index < args.Size(); index++)
     {
         const RC<AstArgument>& arg = args[index];
-        
+
         if (!arg || arg->IsPlaceholderArgument())
         {
             continue;
@@ -912,25 +957,29 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     SymbolTypeRef assignmentTypeUnaliased = ResolvePlaceholderType(visitor, mod, assignmentType->GetUnaliased(), location);
     Assert(assignmentTypeUnaliased != nullptr);
 
-    if (!symbolTypeUnaliased->TypeCompatible(*assignmentTypeUnaliased, true))
+    SymbolTypeIncompatibilities incompatibilities;
+
+    if (!symbolTypeUnaliased->TypeCompatible(*assignmentTypeUnaliased, true, &incompatibilities))
     {
-        CompilerError error(
-            LEVEL_ERROR,
-            Msg_mismatched_types_assignment,
-            location,
-            assignmentTypeUnaliased->ToString(),
-            symbolTypeUnaliased->ToString());
-
-        if (assignmentTypeUnaliased->IsAnyType())
+        if (incompatibilities.Any())
         {
-            error = CompilerError(
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
-                Msg_implicit_any_mismatch,
+                Msg_mismatched_types_assignment_more_info,
                 location,
-                symbolTypeUnaliased->ToString());
+                assignmentTypeUnaliased->ToString(),
+                symbolTypeUnaliased->ToString(),
+                "\n * " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n * ")));
         }
-
-        visitor->GetCompilationUnit()->GetErrorList().AddError(error);
+        else
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_mismatched_types_assignment,
+                location,
+                assignmentTypeUnaliased->ToString(),
+                symbolTypeUnaliased->ToString()));
+        }
     }
 }
 

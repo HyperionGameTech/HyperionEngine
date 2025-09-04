@@ -3499,9 +3499,9 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
             HypData** argsHypData = (HypData**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(HypData*));
 
             int64 i = static_cast<int64>(thread->m_stack.GetStackPointer()) - 1;
-            for (int j = nargs - 1; j >= 0 && i >= 0; i--, j--)
+            for (int argIndex = 0; argIndex < nargs && i >= 0; i--, argIndex++)
             {
-                argsHypData[j] = thread->m_stack[i].GetHypData();
+                argsHypData[argIndex] = thread->m_stack[i].GetHypData();
             }
 
             // @TODO: Implement
@@ -3522,56 +3522,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
 
             return;
         }
-        else if (const AnyHandle& object = deref.GetObject()) // functor object
-        {
-            HYP_NOT_IMPLEMENTED(); // come back to this
-#if 0
-            // Lookup $invoke member
-            const HypClass* hypClass = object.ptr->InstanceClass();
-            Assert(hypClass != nullptr);
-
-            IHypMember* member = hypClass->GetMember(WeakName("$invoke"));
-
-            if (member != nullptr)
-            {
-                const int64 sp = int64(thread->m_stack.GetStackPointer());
-                const int64 argsStart = sp - nargs;
-
-                if (nargs > 0)
-                {
-                    // shift over by 1 -- and insert 'self' to start of args
-                    // make a copy of last item to not overwrite it
-                    thread->m_stack.Push(std::move(thread->m_stack[sp - 1]));
-
-                    for (SizeType i = argsStart; i < sp - 1; i++)
-                    {
-                        thread->m_stack[i + 1].AssignValue(std::move(thread->m_stack[i]), false);
-                    }
-
-                    // set 'self' object to start of args
-                    thread->m_stack[argsStart].AssignValue(ScriptApi_ShallowCopy(deref, GetGC()), false);
-                }
-                else
-                {
-                    thread->m_stack.Push(ScriptApi_ShallowCopy(deref, GetGC()));
-                }
-
-                Invoke(handler, ScriptApi_ShallowCopy(member->value, GetGC()), nargs + 1);
-
-                Value& top = thread->m_stack.Top(); // shouldn't need to deref - should directly hold stack frame
-
-                Script_VMData* topVmData = top.GetVMData();
-                Assert(topVmData != nullptr && topVmData->type == Script_VMData::FUNCTION_CALL);
-
-                // bookkeeping to remove the closure object
-                // normally, arguments are popped after the call is returned,
-                // rather than within the body
-                topVmData->call.varargsPush--;
-
-                return;
-            }
-#endif
-        }
+        
         // non-native function here
         Script_VMData* vmData = deref.GetVMData();
         Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
