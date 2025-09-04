@@ -209,20 +209,31 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             ScopeGuard staticDataMembers(mod, SCOPE_TYPE_TYPE_DEFINITION, 0);
 
-            for (const auto& mem : m_staticMembers)
+            for (const RC<AstVariableDeclaration>& decl : m_staticMembers)
             {
-                Assert(mem != nullptr);
-                mem->Visit(visitor, mod);
+                if (!decl)
+                {
+                    continue;
+                }
 
-                String memName = mem->GetName();
+                if (IsExternClass())
+                {
+                    decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
+                }
 
-                Assert(mem->GetIdentifier() != nullptr);
-                SymbolTypeRef memType = mem->GetIdentifier()->GetSymbolType();
+                decl->Visit(visitor, mod);
+
+                const String& memberName = decl->GetName();
+
+                Assert(decl->GetIdentifier() != nullptr);
+
+                SymbolTypeRef memberType = decl->GetIdentifier()->GetSymbolType();
+                Assert(memberType != nullptr);
 
                 m_symbolType->GetStaticMembers().PushBack(SymbolTypeMember {
-                    memName,
-                    memType,
-                    mem->GetRealAssignment() });
+                    memberName,
+                    memberType,
+                    decl->GetRealAssignment() });
             }
         }
 
@@ -234,37 +245,61 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
             // Do data members first so we can use them all in functions.
 
-            for (const RC<AstVariableDeclaration>& mem : m_dataMembers)
+            for (const RC<AstVariableDeclaration>& decl : m_dataMembers)
             {
-                if (mem != nullptr)
+                if (!decl)
                 {
-                    mem->Visit(visitor, mod);
-
-                    Assert(mem->GetIdentifier() != nullptr);
-
-                    m_symbolType->GetMembers().PushBack(SymbolTypeMember {
-                        mem->GetName(),
-                        mem->GetIdentifier()->GetSymbolType(),
-                        mem->GetRealAssignment() });
+                    continue;
                 }
+
+                if (IsExternClass())
+                {
+                    decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
+                }
+
+                decl->Visit(visitor, mod);
+
+                const String& memberName = decl->GetName();
+
+                Assert(decl->GetIdentifier() != nullptr);
+
+                SymbolTypeRef memberType = decl->GetIdentifier()->GetSymbolType();
+                Assert(memberType != nullptr);
+
+                m_symbolType->GetMembers().PushBack(SymbolTypeMember {
+                    memberName,
+                    memberType,
+                    decl->GetRealAssignment() });
             }
 
-            for (const RC<AstVariableDeclaration>& mem : m_functionMembers)
+            for (const RC<AstVariableDeclaration>& decl : m_functionMembers)
             {
-                if (mem != nullptr)
+                if (!decl)
                 {
-                    mem->Visit(visitor, mod);
-
-                    Assert(mem->GetIdentifier() != nullptr);
-
-                    SymbolTypeMember member {
-                        mem->GetName(),
-                        mem->GetIdentifier()->GetSymbolType(),
-                        mem->GetRealAssignment()
-                    };
-
-                    m_symbolType->GetMembers().PushBack(std::move(member));
+                    continue;
                 }
+
+                if (IsExternClass())
+                {
+                    decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
+                }
+
+                decl->Visit(visitor, mod);
+
+                const String& memberName = decl->GetName();
+
+                Assert(decl->GetIdentifier() != nullptr);
+
+                SymbolTypeRef memberType = decl->GetIdentifier()->GetSymbolType();
+                Assert(memberType != nullptr);
+
+                SymbolTypeMember member {
+                    memberName,
+                    memberType,
+                    decl->GetRealAssignment()
+                };
+
+                m_symbolType->GetMembers().PushBack(std::move(member));
             }
         }
 

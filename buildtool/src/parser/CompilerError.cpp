@@ -44,7 +44,6 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_invalid_constructor, "Invalid constructor" },
     { Msg_expected_type_got_identifier, "'%' is an identifier, expected a type" },
     { Msg_missing_type_and_assignment, "No type or assignment has been provided for '%'" },
-    { Msg_type_no_default_assignment, "Type '%' has no default assignment" },
     { Msg_break_outside_loop, "'break' cannot be used outside of a loop or switch statement" },
     { Msg_continue_outside_loop, "'continue' cannot be used outside of a loop" },
     { Msg_multiple_return_types, "Function has more than one possible return type" },

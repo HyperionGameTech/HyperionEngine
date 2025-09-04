@@ -48,11 +48,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         m_realAssignment = m_assignment;
     }
 
-    if (IsGeneric())
-    {
-        mod->m_scopes.Open(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG);
-    }
-
     if (m_proto != nullptr)
     {
         m_proto->Visit(visitor, mod);
@@ -243,7 +238,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (noDefaultAssignment && !(m_flags & IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER))
+        if (noDefaultAssignment && !(m_flags & (IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER | IdentifierFlags::FLAG_EXTERN)))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -263,12 +258,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         {
             mod->m_scopes.Close();
         }
-    }
-
-    if (IsGeneric())
-    {
-        // close template param scope
-        mod->m_scopes.Close();
     }
 
     if (IsConst())
@@ -322,9 +311,6 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
 
-        // If the variable is extern, it does not need to be built,
-        // as it will be replaced with a native function ptr or
-        // vm::Value object.
         if (!(m_flags & IdentifierFlags::FLAG_EXTERN))
         {
             // if the type specification has side effects, compile it in

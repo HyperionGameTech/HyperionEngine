@@ -259,12 +259,12 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
     else
     {
 #endif
-        int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-        int stackLocation = m_properties.GetIdentifier()->GetStackLocation();
+        const int stackSize = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        const int stackLocation = m_properties.GetIdentifier()->GetStackLocation();
 
         Assert(stackLocation != -1, "Variable %s has invalid stack location stored; maybe the AstVariableDeclaration was not built?", m_name.Data());
 
-        int offset = stackSize - stackLocation;
+        const int offset = stackSize - stackLocation;
 
         // get active register
         uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();

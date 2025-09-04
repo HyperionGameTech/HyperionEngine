@@ -53,13 +53,10 @@ public:
     {
         return m_flags & IdentifierFlags::FLAG_CONST;
     }
+
     bool IsRef() const
     {
         return m_flags & IdentifierFlags::FLAG_REF;
-    }
-    bool IsGeneric() const
-    {
-        return m_flags & IdentifierFlags::FLAG_GENERIC;
     }
 
     IdentifierFlagBits GetIdentifierFlags() const
