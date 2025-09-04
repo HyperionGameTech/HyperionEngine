@@ -148,16 +148,16 @@ void HyperionEditor::Init()
               "extern class Entity : Node {\n"
               "    GetUUID() -> UUID;\n"
               "    GetWorldTranslation() -> Vec3f;\n"
-              "    SetWorldTranslation(translation : Vec3f = new Vec3f()) -> void;\n"
+              "    SetWorldTranslation(translation : Vec3f) -> void;\n"
               "}\n"
               "extern class Scene {\n"
               "    AddEntity(entity: Entity) -> void;\n"
               "}\n"
               "testVec3 := new Vec3f();\n"
               "testVec3.x = 9.0f;\n"
-              "newEntity : Entity = new Entity();\n"
-              "newEntity.SetWorldTranslation(testVec3);\n"
-              "export x := (a, b) { return newEntity.GetWorldTranslation(); };";
+              "entity := new Entity();\n"
+              "entity.SetWorldTranslation(testVec3);\n"
+              "export x := (a, b) { return entity.GetWorldTranslation().x; };";
 
 #if 0
         // vvvvv This is a test script vvvvv

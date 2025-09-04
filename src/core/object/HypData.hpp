@@ -2415,12 +2415,7 @@ struct HypDataHelper<math::Vec2<T>> : HypDataHelper<Any>
         return value.Is<math::Vec2<T>>();
     }
 
-    HYP_FORCE_INLINE math::Vec2<T>& Get(Any& value) const
-    {
-        return value.Get<math::Vec2<T>>();
-    }
-
-    HYP_FORCE_INLINE const math::Vec2<T>& Get(const Any& value) const
+    HYP_FORCE_INLINE math::Vec2<T>& Get(const Any& value) const
     {
         return value.Get<math::Vec2<T>>();
     }
@@ -2469,12 +2464,7 @@ struct HypDataHelper<math::Vec3<T>> : HypDataHelper<Any>
         return value.Is<math::Vec3<T>>();
     }
 
-    HYP_FORCE_INLINE math::Vec3<T>& Get(Any& value) const
-    {
-        return value.Get<math::Vec3<T>>();
-    }
-
-    HYP_FORCE_INLINE const math::Vec3<T>& Get(const Any& value) const
+    HYP_FORCE_INLINE math::Vec3<T>& Get(const Any& value) const
     {
         return value.Get<math::Vec3<T>>();
     }
@@ -2525,12 +2515,7 @@ struct HypDataHelper<math::Vec4<T>> : HypDataHelper<Any>
         return value.Is<math::Vec4<T>>();
     }
 
-    HYP_FORCE_INLINE math::Vec4<T>& Get(Any& value) const
-    {
-        return value.Get<math::Vec4<T>>();
-    }
-
-    HYP_FORCE_INLINE const math::Vec4<T>& Get(const Any& value) const
+    HYP_FORCE_INLINE math::Vec4<T>& Get(const Any& value) const
     {
         return value.Get<math::Vec4<T>>();
     }
@@ -2581,12 +2566,7 @@ struct HypDataHelper<Matrix3> : HypDataHelper<Any>
         return value.Is<Matrix3>();
     }
 
-    HYP_FORCE_INLINE Matrix3& Get(Any& value) const
-    {
-        return value.Get<Matrix3>();
-    }
-
-    HYP_FORCE_INLINE const Matrix3& Get(const Any& value) const
+    HYP_FORCE_INLINE Matrix3& Get(const Any& value) const
     {
         return value.Get<Matrix3>();
     }
@@ -2637,12 +2617,7 @@ struct HypDataHelper<Matrix4> : HypDataHelper<Any>
         return value.Is<Matrix4>();
     }
 
-    HYP_FORCE_INLINE Matrix4& Get(Any& value) const
-    {
-        return value.Get<Matrix4>();
-    }
-
-    HYP_FORCE_INLINE const Matrix4& Get(const Any& value) const
+    HYP_FORCE_INLINE Matrix4& Get(const Any& value) const
     {
         return value.Get<Matrix4>();
     }
@@ -2693,12 +2668,7 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
         return value.Is<Quaternion>();
     }
 
-    HYP_FORCE_INLINE Quaternion& Get(Any& value) const
-    {
-        return value.Get<Quaternion>();
-    }
-
-    HYP_FORCE_INLINE const Quaternion& Get(const Any& value) const
+    HYP_FORCE_INLINE Quaternion& Get(const Any& value) const
     {
         return value.Get<Quaternion>();
     }
@@ -2828,7 +2798,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         return value.Is<Variant<Types...>>();
     }
 
-    HYP_FORCE_INLINE Variant<Types...>& Get(Any& value) const
+    HYP_FORCE_INLINE Variant<Types...>& Get(Any& value) const // temp
     {
         return value.Get<Variant<Types...>>();
     }

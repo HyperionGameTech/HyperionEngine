@@ -571,7 +571,7 @@ public:
 
         // read value from stack at (sp - offset)
         // into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_ShallowCopy(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC()), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16 index)
@@ -585,7 +585,7 @@ public:
             stackMemory.GetStackPointer());
 
         // read value from stack at the index into the the register
-        thread->m_regs[reg].AssignValue(ScriptApi_ShallowCopy(stackMemory[index], vm->GetGC()), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16 index)
@@ -594,7 +594,7 @@ public:
         // at the index into the the register
         Value& value = vm->m_staticMemory[index];
 
-        thread->m_regs[reg].AssignValue(ScriptApi_ShallowCopy(value, vm->GetGC()), false);
+        thread->m_regs[reg].AssignValue(ScriptApi_MakeRef(value, vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
@@ -657,7 +657,7 @@ public:
                     return;
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.i), vm->GetGC()), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(array->AtIndex(key.i), vm->GetGC(), false), false);
             }
             else if (key.flags & Number::FLAG_UNSIGNED)
             {
@@ -668,7 +668,7 @@ public:
                     return;
                 }
 
-                thread->m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(array->AtIndex(key.u), vm->GetGC()), false);
+                thread->m_regs[dstReg].AssignValue(ScriptApi_MakeRef(array->AtIndex(key.u), vm->GetGC(), false), false);
             }
 
             return;
@@ -872,11 +872,19 @@ public:
         Value& src = *thread->m_regs[srcReg].Deref();
         Value& result = thread->m_regs[dstReg];
 
+        const HypClass* hypClass = nullptr;
+
         if (const AnyHandle& object = src.GetObject())
         {
-            const HypClass* hypClass = object.ptr->InstanceClass();
-            Assert(hypClass != nullptr);
+            hypClass = object.ptr->InstanceClass();
+        }
+        else
+        {
+            hypClass = GetClass(src.GetHypData()->GetTypeId());
+        }
 
+        if (hypClass != nullptr)
+        {
             IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
 
             if (member)
@@ -898,43 +906,62 @@ public:
     {
         Value* pValue = thread->m_regs[dstReg].Deref();
 
-        const AnyHandle& object = pValue->GetObject();
-        if (!object)
+        const HypClass* hypClass = nullptr;
+
+        if (const AnyHandle& object = pValue->GetObject())
+        {
+            hypClass = object.ptr->InstanceClass();
+        }
+        else
+        {
+            hypClass = GetClass(pValue->GetHypData()->GetTypeId());
+        }
+
+        if (!hypClass)
         {
             vm->ThrowException(thread, Exception::InvalidMemberAccessException(pValue));
 
             return;
         }
 
-        const HypClass* hypClass = object.ptr->InstanceClass();
-        Assert(hypClass != nullptr);
-
         HypField* field = hypClass->GetField(WeakName(NameID(hash)));
 
         if (!field)
         {
             vm->ThrowException(thread, Exception::MemberNotFoundException(hash));
+
             return;
         }
 
         field->Set(*pValue->GetHypData(), *thread->m_regs[srcReg].GetHypData());
+
+        // DEBUG TEST: Get the field, create a new Value, log it to string
+
+        Value fieldValue = ScriptApi_MakeValue(field->Get(*pValue->GetHypData()));
+        DebugLog(LogType::Info, "Set field '%s' to value: %s\n", field->GetName().LookupString(), fieldValue.ToString().GetData());
     }
 
     HYP_FORCE_INLINE void GetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Value& src = *thread->m_regs[srcReg].Deref();
 
-        const AnyHandle& object = src.GetObject();
+        const HypClass* hypClass = nullptr;
 
-        if (!object)
+        if (const AnyHandle& object = src.GetObject())
+        {
+            hypClass = object.ptr->InstanceClass();
+        }
+        else
+        {
+            hypClass = GetClass(src.GetHypData()->GetTypeId());
+        }
+
+        if (!hypClass)
         {
             vm->ThrowException(thread, Exception::InvalidMemberAccessException(&src));
 
             return;
         }
-
-        const HypClass* hypClass = object.ptr->InstanceClass();
-        Assert(hypClass != nullptr);
 
         IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
         if (!member)
@@ -2389,18 +2416,18 @@ public:
         // load value from register
         Value& value = *thread->m_regs[src].Deref();
 
-        const AnyHandle& object = value.GetObject();
-        if (!object.IsValid())
-        {
-            vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
+        const HypClass* hypClass = nullptr;
 
-            return;
+        if (const AnyHandle& object = value.GetObject())
+        {
+            hypClass = object.ptr->InstanceClass();
+        }
+        else
+        {
+            hypClass = GetClass(value.GetHypData()->GetTypeId());
         }
 
-        const HypClass* objClass = object.ptr->InstanceClass();
-        Assert(objClass);
-
-        if (!objClass->IsDerivedFrom(classRef))
+        if (!hypClass || !hypClass->IsDerivedFrom(classRef))
         {
             vm->ThrowException(thread, Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
 
@@ -3522,7 +3549,7 @@ void VM::Invoke(InstructionHandler* handler, Value&& value, uint8 nargs)
 
             return;
         }
-        
+
         // non-native function here
         Script_VMData* vmData = deref.GetVMData();
         Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);

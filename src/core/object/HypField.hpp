@@ -29,7 +29,7 @@ namespace hyperion {
 
 class HypClass;
 
-class HypField : public IHypMember
+class HypField final : public IHypMember
 {
 public:
     HypField(const Span<const HypClassAttribute>& attributes = {})
@@ -42,6 +42,7 @@ public:
     {
     }
 
+    /*! \brief Script object (HypObjectBase) overload */
     HypField(Name name, TypeId typeId, TypeId targetTypeId, uint32 offset, uint32 size, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
           m_typeId(typeId),
@@ -104,12 +105,12 @@ public:
             }
             else
             {
-                ConstAnyRef targetRef = targetData.ToRef();
+                HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
 
-                HYP_CORE_ASSERT(targetRef.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetRef.GetTypeId().Value());
+                decltype(auto) target = targetData.Get<ThisType>();
 
-                return HypData(static_cast<const ThisType*>(targetRef.GetPointer())->*member);
+                return HypData(target.*member);
             }
         };
 
@@ -121,12 +122,10 @@ public:
             }
             else
             {
-                AnyRef targetRef = targetData.ToRef();
+                HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
 
-                HYP_CORE_ASSERT(targetRef.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetRef.GetTypeId().Value());
-
-                ThisType* target = static_cast<ThisType*>(targetRef.GetPointer());
+                decltype(auto) target = targetData.Get<ThisType>();
 
                 if constexpr (std::is_array_v<NormalizedType<FieldType>>)
                 {
@@ -136,7 +135,7 @@ public:
                     {
                         for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
                         {
-                            (target->*member)[i] = NormalizedType<InnerType> {};
+                            (target.*member)[i] = NormalizedType<InnerType> {};
                         }
                     }
                     else
@@ -145,7 +144,7 @@ public:
 
                         for (SizeType i = 0; i < arrayValue.Size(); i++)
                         {
-                            (target->*member)[i] = arrayValue[i];
+                            (target.*member)[i] = arrayValue[i];
                         }
                     }
                 }
@@ -153,11 +152,11 @@ public:
                 {
                     if (data.IsNull())
                     {
-                        target->*member = NormalizedType<FieldType> {};
+                        target.*member = NormalizedType<FieldType> {};
                     }
                     else
                     {
-                        target->*member = data.Get<NormalizedType<FieldType>>();
+                        target.*member = data.Get<NormalizedType<FieldType>>();
                     }
                 }
             }
@@ -175,12 +174,12 @@ public:
                 }
                 else
                 {
-                    ConstAnyRef targetRef = targetData.ToRef();
+                    HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                        TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+                    
+                    decltype(auto) target = targetData.Get<ThisType>();
 
-                    HYP_CORE_ASSERT(targetRef.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                        TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetRef.GetTypeId().Value());
-
-                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(static_cast<const ThisType*>(targetRef.GetPointer())->*member, out, flags))
+                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, out, flags))
                     {
                         HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                     }
@@ -197,17 +196,10 @@ public:
                 }
                 else
                 {
-                    AnyRef targetRef = targetData.ToRef();
-
-                    if (!targetRef.HasValue())
-                    {
-                        return HYP_MAKE_ERROR(Error, "Invalid target reference");
-                    }
-
-                    if (!targetRef.Is<ThisType>())
+                    if (!targetData.Is<ThisType>())
                     {
                         return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeId: {}), but got TypeId: {}",
-                            TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetRef.GetTypeId().Value());
+                            TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
                     }
 
                     HypData value;
@@ -217,7 +209,7 @@ public:
                         return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                     }
 
-                    ThisType* target = static_cast<ThisType*>(targetRef.GetPointer());
+                    decltype(auto) target = targetData.Get<ThisType>();
 
                     if constexpr (std::is_array_v<NormalizedType<FieldType>>)
                     {
@@ -227,7 +219,7 @@ public:
                         {
                             for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
                             {
-                                (target->*member)[i] = NormalizedType<InnerType> {};
+                                (target.*member)[i] = NormalizedType<InnerType> {};
                             }
                         }
                         else
@@ -236,7 +228,7 @@ public:
 
                             for (SizeType i = 0; i < arrayValue.Size(); i++)
                             {
-                                (target->*member)[i] = arrayValue[i];
+                                (target.*member)[i] = arrayValue[i];
                             }
                         }
                     }
@@ -244,11 +236,11 @@ public:
                     {
                         if (value.IsNull())
                         {
-                            target->*member = NormalizedType<FieldType> {};
+                            target.*member = NormalizedType<FieldType> {};
                         }
                         else
                         {
-                            target->*member = value.Get<NormalizedType<FieldType>>();
+                            target.*member = value.Get<NormalizedType<FieldType>>();
                         }
                     }
                 }
