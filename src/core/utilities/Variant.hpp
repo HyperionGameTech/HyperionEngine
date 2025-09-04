@@ -431,7 +431,7 @@ public:
     }
 
     template <class T, typename = std::enable_if_t<std::is_copy_constructible_v<T>>>
-    void Set(const T& value)
+    T& Set(const T& value)
     {
         static_assert(Helper::template holdsType<T>, "Type is not valid for the variant");
 
@@ -449,10 +449,12 @@ public:
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
 
         HYP_CORE_ASSERT(constructResult);
+
+        return *static_cast<NormalizedType<T>*>(m_storage.GetPointer());
     }
 
     template <class T>
-    void Set(T&& value)
+    T& Set(T&& value)
     {
         static_assert(Helper::template holdsType<T>, "Type is not valid for the variant");
 
@@ -471,10 +473,12 @@ public:
 
         // Not a valid type for the variant
         HYP_CORE_ASSERT(constructResult);
+
+        return *static_cast<NormalizedType<T>*>(m_storage.GetPointer());
     }
 
     template <class T, class... Args>
-    void Emplace(Args&&... args)
+    T& Emplace(Args&&... args)
     {
         static_assert(Helper::template holdsType<T>, "Type is not valid for the variant");
 
@@ -493,6 +497,8 @@ public:
         Memory::Construct<NormalizedType<T>>(m_storage.GetPointer(), std::forward<Args>(args)...);
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
+
+        return *static_cast<NormalizedType<T>*>(m_storage.GetPointer());
     }
 
     /*! \brief Resets the Variant into an invalid state.
@@ -879,19 +885,19 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
     }
 
     template <class T, typename = std::enable_if_t<std::is_copy_constructible_v<T>>>
-    HYP_FORCE_INLINE void Set(const T& value)
+    HYP_FORCE_INLINE T& Set(const T& value)
     {
         m_holder.template Set<T>(value);
     }
 
     template <class T>
-    HYP_FORCE_INLINE void Set(T&& value)
+    HYP_FORCE_INLINE T& Set(T&& value)
     {
         return m_holder.template Set<T>(std::forward<T>(value));
     }
 
     template <class T, class... Args>
-    HYP_FORCE_INLINE void Emplace(Args&&... args)
+    HYP_FORCE_INLINE T& Emplace(Args&&... args)
     {
         return m_holder.template Emplace<T>(std::forward<Args>(args)...);
     }

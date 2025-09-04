@@ -9,6 +9,10 @@
 #include <dotnet/Object.hpp>
 #include <dotnet/Class.hpp>
 
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#endif
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Resource);
@@ -17,10 +21,12 @@ HYP_DECLARE_LOG_CHANNEL(Object);
 #pragma region ScriptObjectResource
 
 ScriptObjectResource::ScriptObjectResource(dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass)
-    : m_objectPtr(objectPtr),
-      m_managedClass(managedClass),
-      m_scriptLanguage(SL_CSHARP)
 {
+#ifdef HYP_DOTNET
+    ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
+    data.objectPtr = objectPtr;
+    data.managedClass = managedClass;
+#endif
 }
 
 ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass)
@@ -29,44 +35,49 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Cl
 }
 
 ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass)
-    : m_ptr(ptr),
-      m_objectPtr(objectPtr),
-      m_managedClass(managedClass),
-      m_scriptLanguage(SL_CSHARP)
+    : m_ptr(ptr)
 {
+#ifdef HYP_DOTNET
+    ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
+    data.objectPtr = objectPtr;
+    data.managedClass = managedClass;
+#endif
 }
 
 ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
-    : m_ptr(ptr),
-      m_objectPtr(nullptr),
-      m_managedClass(managedClass),
-      m_scriptLanguage(SL_CSHARP)
+    : m_ptr(ptr)
 {
-    if (m_ptr && m_managedClass)
+#ifdef HYP_DOTNET
+    ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
+    data.objectPtr = nullptr;
+    data.managedClass = managedClass;
+
+    if (m_ptr && managedClass)
     {
         void* address = m_ptr.GetPointer();
 
         if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
         {
-            m_objectPtr = new dotnet::Object(m_managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
+            data.objectPtr = new dotnet::Object(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
         }
         else
         {
-            HYP_LOG(Object, Debug, "Creating new managed object with class {}, reference will be incremented from C#", m_managedClass->GetName());
+            HYP_LOG(Object, Debug, "Creating new managed object with class {}, reference will be incremented from C#", managedClass->GetName());
 
-            m_objectPtr = m_managedClass->NewObject(m_ptr.GetClass(), address);
+            data.objectPtr = managedClass->NewObject(m_ptr.GetClass(), address);
         }
 
-        HYP_CORE_ASSERT(m_objectPtr != nullptr);
+        HYP_CORE_ASSERT(data.objectPtr != nullptr);
     }
+#endif
 }
 
 #ifdef HYP_SCRIPT
 
 ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, HypScriptObjectTag)
-    : m_ptr(ptr),
-      m_scriptLanguage(SL_HYPSCRIPT)
+    : m_ptr(ptr)
 {
+    ScriptObjectData_HypScript& data = m_scriptObjectData.Emplace<ScriptObjectData_HypScript>();
 }
 
 #endif
@@ -74,25 +85,53 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, HypScriptObjectTag)
 ScriptObjectResource::~ScriptObjectResource()
 {
 #ifdef HYP_DOTNET
-    if (m_scriptLanguage == SL_CSHARP && m_objectPtr)
+    ScriptObjectData_DotNet* dotNetData = GetScriptObjectData_DotNet();
+
+    if (dotNetData)
     {
-        delete m_objectPtr;
-        m_objectPtr = nullptr;
+        if (dotNetData->objectPtr)
+        {
+            delete dotNetData->objectPtr;
+            dotNetData->objectPtr = nullptr;
+        }
+
+        dotNetData->managedClass = nullptr;
     }
+
+#endif
+
+    m_scriptObjectData.Reset();
+}
+
+ScriptLanguage ScriptObjectResource::GetScriptLanguage() const
+{
+#if !defined(HYP_DOTNET) && !defined(HYP_SCRIPT)
+    return SL_INVALID;
+#else
+    ScriptLanguage lang = SL_INVALID;
+
+    Visit(m_scriptObjectData, [&lang](auto&& data)
+        {
+            lang = data.lang;
+        });
+
+    return lang;
 #endif
 }
 
 void ScriptObjectResource::Initialize()
 {
 #ifdef HYP_DOTNET
-    if (m_scriptLanguage == SL_CSHARP)
+    ScriptObjectData_DotNet* dotNetData = GetScriptObjectData_DotNet();
+
+    if (dotNetData != nullptr)
     {
-        if (!m_objectPtr)
+        if (!dotNetData->objectPtr)
         {
             return;
         }
 
-        if (m_objectPtr->SetKeepAlive(true))
+        if (dotNetData->objectPtr->SetKeepAlive(true))
         {
             return;
         }
@@ -101,7 +140,7 @@ void ScriptObjectResource::Initialize()
         {
             HYP_LOG(Object, Error, "Thread: {}\tManaged object could not be kept alive, it may have been garbage collected\n\tObject address: {}",
                 Threads::CurrentThreadId().GetName(),
-                (void*)m_objectPtr);
+                (void*)dotNetData->objectPtr);
 
             return;
         }
@@ -113,39 +152,53 @@ void ScriptObjectResource::Initialize()
         HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
             Threads::CurrentThreadId().GetName(),
             hypClass->GetName(), m_ptr.GetPointer(),
-            (void*)m_objectPtr);
+            (void*)dotNetData->objectPtr);
 
-        if (m_managedClass)
+        if (dotNetData->managedClass)
         {
-            dotnet::Object* newManagedObject = m_managedClass->NewObject(hypClass, m_ptr.GetPointer());
+            dotnet::Object* newManagedObject = dotNetData->managedClass->NewObject(hypClass, m_ptr.GetPointer());
 
             if (!newManagedObject)
             {
                 HYP_FAIL("Failed to recreate managed object for HypClass %s", hypClass->GetName().LookupString());
             }
 
-            delete m_objectPtr;
+            delete dotNetData->objectPtr;
 
-            m_objectPtr = newManagedObject;
+            // Set the new object pointer
+            dotNetData->objectPtr = newManagedObject;
         }
         else
         {
             HYP_FAIL("Failed to recreate managed object for HypClass %s", hypClass->GetName().LookupString());
         }
     }
+}
 #endif
 }
 
 void ScriptObjectResource::Destroy()
 {
 #ifdef HYP_DOTNET
-    if (m_scriptLanguage == SL_CSHARP && m_objectPtr)
-    {
-        const bool result = m_objectPtr->SetKeepAlive(false);
+    ScriptObjectData_DotNet* dotNetData = GetScriptObjectData_DotNet();
 
-        HYP_CORE_ASSERT(result);
+    if (dotNetData)
+    {
+        if (dotNetData->objectPtr)
+        {
+            const bool result = dotNetData->objectPtr->SetKeepAlive(false);
+
+            HYP_CORE_ASSERT(result);
+
+            delete dotNetData->objectPtr;
+            dotNetData->objectPtr = nullptr;
+        }
+
+        dotNetData->managedClass = nullptr;
     }
 #endif
+
+    m_scriptObjectData.Reset();
 }
 
 #pragma endregion ScriptObjectResource

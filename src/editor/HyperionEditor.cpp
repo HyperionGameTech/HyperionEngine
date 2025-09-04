@@ -108,7 +108,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 1
+#if 0
     //{ // script 1
     //    // temp
     //    String str;
@@ -230,10 +230,9 @@ void HyperionEditor::Init()
             HypScript::GetInstance().DestroyScript(scriptHandle);
         }
     }
-#endif
 
     HYP_BREAKPOINT;
-    // temp
+#endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 

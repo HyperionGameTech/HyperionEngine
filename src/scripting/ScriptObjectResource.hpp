@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <scripting/ScriptFwd.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/object/HypObjectFwd.hpp>
@@ -10,25 +12,45 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Variant.hpp>
 
 #include <core/Types.hpp>
 
 namespace hyperion {
 
-namespace dotnet {
-class Class;
-class Object;
-class Method;
-struct ObjectReference;
-} // namespace dotnet
-
-enum class ObjectFlags : uint32;
-enum ScriptLanguage : uint32;
-
 #ifdef HYP_SCRIPT
+
 enum HypScriptObjectTag
 {
     HYP_SCRIPT_OBJECT
+};
+#endif
+
+struct ScriptObjectData_Dummy final
+{
+private:
+    ScriptObjectData_Dummy() = default;
+
+public:
+    static constexpr ScriptLanguage lang = SL_INVALID;
+};
+
+#ifdef HYP_DOTNET
+struct ScriptObjectData_DotNet final
+{
+    static constexpr ScriptLanguage lang = SL_CSHARP;
+
+    dotnet::Object* objectPtr = nullptr;
+    RC<dotnet::Class> managedClass = nullptr;
+};
+#endif
+
+#ifdef HYP_SCRIPT
+struct ScriptObjectData_HypScript final
+{
+    static constexpr ScriptLanguage lang = SL_HYPSCRIPT;
+
+    ScriptHandle handle;
 };
 #endif
 
@@ -52,19 +74,30 @@ public:
 
     ~ScriptObjectResource();
 
-    HYP_FORCE_INLINE ScriptLanguage GetScriptLanguage() const
-    {
-        return m_scriptLanguage;
-    }
+    ScriptLanguage GetScriptLanguage() const;
 
     HYP_FORCE_INLINE dotnet::Object* GetManagedObject() const
     {
-        return m_objectPtr;
+#ifdef HYP_DOTNET
+        if (ScriptObjectData_DotNet* data = GetScriptObjectData_DotNet())
+        {
+            return data->objectPtr;
+        }
+#endif
+
+        return nullptr;
     }
 
     const RC<dotnet::Class> GetManagedClass() const
     {
-        return m_managedClass;
+#ifdef HYP_DOTNET
+        if (ScriptObjectData_DotNet* data = GetScriptObjectData_DotNet())
+        {
+            return data->managedClass;
+        }
+#endif
+
+        return nullptr;
     }
 
 protected:
@@ -73,10 +106,33 @@ protected:
 
     HypObjectPtr m_ptr;
 
-    ScriptLanguage m_scriptLanguage;
+    mutable Variant<
+#ifdef HYP_DOTNET
+        ScriptObjectData_DotNet,
+#endif
+#ifdef HYP_SCRIPT
+        ScriptObjectData_HypScript,
+#endif
+        ScriptObjectData_Dummy>
+        m_scriptObjectData;
 
-    dotnet::Object* m_objectPtr;
-    RC<dotnet::Class> m_managedClass;
+    ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
+    {
+#ifdef HYP_DOTNET
+        return m_scriptObjectData.Is<ScriptObjectData_DotNet>() ? &m_scriptObjectData.Get<ScriptObjectData_DotNet>() : nullptr;
+#else
+        return nullptr;
+#endif
+    }
+
+    ScriptObjectData_HypScript* GetScriptObjectData_HypScript() const
+    {
+#ifdef HYP_SCRIPT
+        return m_scriptObjectData.Is<ScriptObjectData_HypScript>() ? &m_scriptObjectData.Get<ScriptObjectData_HypScript>() : nullptr;
+#else
+        return nullptr;
+#endif
+    }
 };
 
 } // namespace hyperion

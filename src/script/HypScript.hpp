@@ -33,8 +33,8 @@ class HypScript;
     constexpr handleTypeName##Handle INVALID_##handleTypeNameCaps = handleTypeName##Handle(0);
 
 HYP_DEF_SCRIPT_API_HANDLE(Script, SCRIPT, uint32)
-HYP_DEF_SCRIPT_API_HANDLE(Function, FUNCTION, uint64)
-HYP_DEF_SCRIPT_API_HANDLE(Object, OBJECT, uint64)
+HYP_DEF_SCRIPT_API_HANDLE(Function, FUNCTION, uintptr_t)
+HYP_DEF_SCRIPT_API_HANDLE(Object, OBJECT, uintptr_t)
 
 #undef HYP_DEF_SCRIPT_API_HANDLE
 
@@ -115,43 +115,6 @@ public:
     }
 
     void ReadLastReturnValue(Value& outValue);
-
-#if 0
-    template <class RegisteredType, class T>
-    ValueHandle CreateInternedObject(const T& value)
-    {
-        const auto classNameIt = m_apiInstance.classBindings.classNames.Find<RegisteredType>();
-        Assert(classNameIt != m_apiInstance.classBindings.classNames.End(), "Class %s not registered!", TypeName<RegisteredType>().Data());
-
-        const auto prototypeIt = m_apiInstance.classBindings.classPrototypes.Find(classNameIt->second);
-        Assert(prototypeIt != m_apiInstance.classBindings.classPrototypes.End(), "Class %s not registered!", TypeName<RegisteredType>().Data());
-
-        vm::Value internValue;
-        {
-            vm::HeapValue* ptrResult = m_vm.GetState().HeapAlloc(m_vm.GetState().GetMainThread());
-            Assert(ptrResult != nullptr);
-
-            ptrResult->Assign(value);
-            ptrResult->Mark();
-            internValue = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptrResult });
-        }
-
-        vm::VMObject boxedValue(prototypeIt->second);
-        HYP_SCRIPT_SET_MEMBER(boxedValue, "__intern", internValue);
-
-        vm::Value finalValue;
-        {
-            vm::HeapValue* ptrResult = m_vm.GetState().HeapAlloc(m_vm.GetState().GetMainThread());
-            Assert(ptrResult != nullptr);
-
-            ptrResult->Assign(boxedValue);
-            ptrResult->Mark();
-            finalValue = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptrResult });
-        }
-
-        return { finalValue };
-    }
-#endif
 
 private:
     scriptapi2::Context m_context;
