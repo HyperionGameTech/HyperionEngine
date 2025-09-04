@@ -132,15 +132,22 @@ void HyperionEditor::Init()
     { // script 2
         String str;
         str = "extern class UUID {\n"
+              "    ToString() -> string;\n"
               "}\n"
-              "extern class Entity {\n"
+              "extern class Name {\n"
+              "    ToString() -> string;\n"
+              "}\n"
+              "extern class Node {\n"
+              "    GetName() -> Name;\n"
+              "}\n"
+              "extern class Entity : Node {\n"
               "    GetUUID() -> UUID;\n"
               "}\n"
               "extern class Scene {\n"
               "    AddEntity(entity: Entity) -> void;\n"
               "}\n"
               "newEntity : Entity = new Entity();\n"
-              "export x := (a, b) { return newEntity.GetUUID(); };";
+              "export x := (a, b) { return newEntity.GetName(); };";
 
 #if 0
         // vvvvv This is a test script vvvvv

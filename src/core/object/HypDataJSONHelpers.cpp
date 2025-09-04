@@ -497,7 +497,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
             return false;
         }
 
-        outHypData = HypData(UUID(ANSIStringView(*jsonString)));
+        outHypData = HypData(UUID(*jsonString));
 
         return true;
     }

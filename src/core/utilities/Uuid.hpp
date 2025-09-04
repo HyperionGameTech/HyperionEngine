@@ -34,7 +34,7 @@ struct UUID
     {
     }
 
-    HYP_API explicit UUID(const ANSIStringView& str);
+    HYP_API explicit UUID(const char* str);
 
     UUID(UUIDVersion version = UUIDVersion::UUIDv4);
 
@@ -69,7 +69,7 @@ struct UUID
     }
 
     HYP_METHOD()
-    HYP_API ANSIString ToString() const;
+    HYP_API String ToString() const;
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
