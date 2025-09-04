@@ -132,7 +132,6 @@ void HyperionEditor::Init()
     { // script 2
         String str;
         str = "extern class UUID {\n"
-              "    ToString() -> string;\n"
               "}\n"
               "extern class Entity {\n"
               "    GetUUID() -> UUID;\n"

@@ -119,8 +119,6 @@ bool ValueDataToString(const HypData& data, VMString& outString)
 
     if (const HypClass* hypClass = GetClass(data.GetTypeId()))
     {
-        const AnyHandle& object = data.Is<AnyHandle>() ? data.Get<AnyHandle>() : AnyHandle::empty;
-
         const HypMethod* toStringMethod = hypClass->GetMethod("ToString");
 
         if (toStringMethod != nullptr)
@@ -150,7 +148,12 @@ bool ValueDataToString(const HypData& data, VMString& outString)
 
         constexpr const char* objectFormatString = "<%s @ %p>";
 
-        int n = std::snprintf(buf, bufSize, objectFormatString, hypClass->GetName().LookupString(), object.ptr);
+        int n = std::snprintf(
+            buf,
+            bufSize,
+            objectFormatString,
+            hypClass->GetName().LookupString(),
+            data.ToRef().GetPointer());
 
         // if the class name is too long, dynamically allocate a larger buffer
         if (n < 0)
@@ -167,7 +170,12 @@ bool ValueDataToString(const HypData& data, VMString& outString)
             char* newBuf = static_cast<char*>(Memory::Allocate(newBufSize));
             Assert(newBuf != nullptr);
 
-            n = std::snprintf(newBuf, newBufSize, objectFormatString, hypClass->GetName().LookupString(), object.ptr);
+            n = std::snprintf(
+                newBuf,
+                newBufSize,
+                objectFormatString,
+                hypClass->GetName().LookupString(),
+                data.ToRef().GetPointer());
 
             if (n < 0 || static_cast<SizeType>(n) >= newBufSize)
             {

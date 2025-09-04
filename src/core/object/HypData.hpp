@@ -1278,7 +1278,7 @@ struct HypDataHelperDecl<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_sa
 template <class T>
 struct HypDataHelper<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
 {
-    using ConvertibleFrom = Tuple<AnyHandle, RC<void>, T>;
+    using ConvertibleFrom = Tuple<AnyHandle, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const AnyRef& value) const
     {
@@ -1293,11 +1293,6 @@ struct HypDataHelper<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v
     HYP_FORCE_INLINE bool Is(const RC<void>& value) const
     {
         return value.Is<T>();
-    }
-
-    HYP_FORCE_INLINE bool Is(T& value) const
-    {
-        return true;
     }
 
     HYP_FORCE_INLINE T* Get(const AnyRef& value) const
@@ -1319,11 +1314,6 @@ struct HypDataHelper<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v
         HYP_CORE_ASSERT(value.Is<T>());
 
         return value.CastUnsafe_Internal<T>();
-    }
-
-    HYP_FORCE_INLINE T* Get(T& value) const
-    {
-        return &value;
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T* value) const

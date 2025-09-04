@@ -153,11 +153,9 @@ struct HypMethodHelper<FunctionType, std::enable_if_t<!FunctionTraits<FunctionTy
 };
 
 #define HYP_METHOD_MEMBER_FN_WRAPPER(_mem_fn)                                                    \
-    [_mem_fn]<class... InnerArgTypes>(TargetType* target, InnerArgTypes&&... args) -> ReturnType \
+    [_mem_fn]<class... InnerArgTypes>(TargetType& target, InnerArgTypes&&... args) -> ReturnType \
     {                                                                                            \
-        HYP_CORE_ASSERT(target != nullptr);                                                      \
-                                                                                                 \
-        return (target->*_mem_fn)(std::forward<InnerArgTypes>(args)...);                         \
+        return (target.*_mem_fn)(std::forward<InnerArgTypes>(args)...);                          \
     }
 
 class HypMethod : public IHypMember
@@ -200,13 +198,13 @@ public:
 
                   if constexpr (std::is_void_v<ReturnType>)
                   {
-                      CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, args);
+                      CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args);
 
                       return HypData();
                   }
                   else
                   {
-                      return HypData(CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, args));
+                      return HypData(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args));
                   }
               })
     {
@@ -242,7 +240,7 @@ public:
                 {
                     FBOMData out;
 
-                    if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, argPtrs), out, flags))
+                    if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
                     {
                         HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                     }
@@ -274,7 +272,7 @@ public:
 
                     argPtrs[args.Size()] = &value;
 
-                    CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, argPtrs);
+                    CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
                 }
                 else
                 {
@@ -298,13 +296,13 @@ public:
 
                   if constexpr (std::is_void_v<ReturnType>)
                   {
-                      CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, args);
+                      CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args);
 
                       return HypData();
                   }
                   else
                   {
-                      return HypData(CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, args));
+                      return HypData(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, args));
                   }
               })
     {
@@ -340,7 +338,7 @@ public:
                 {
                     FBOMData out;
 
-                    if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, argPtrs), out, flags))
+                    if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
                     {
                         HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                     }
@@ -372,7 +370,7 @@ public:
 
                     argPtrs[args.Size()] = &value;
 
-                    CallHypMethod<decltype(fn), ReturnType, TargetType*, ArgTypes...>(fn, argPtrs);
+                    CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
                 }
                 else
                 {
