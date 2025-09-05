@@ -21,7 +21,7 @@ struct ScriptObjectData_DotNet;
 struct ScriptObjectData_HypScript;
 
 #ifdef HYP_SCRIPT
-enum class ScriptHandle : uintptr_t;
+struct Script_Instance;
 #endif
 
 HYP_ENUM()

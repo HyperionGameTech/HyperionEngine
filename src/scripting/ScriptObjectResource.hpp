@@ -23,7 +23,6 @@
 namespace hyperion {
 
 #ifdef HYP_SCRIPT
-
 enum HypScriptObjectTag
 {
     HYP_SCRIPT_OBJECT
@@ -54,7 +53,7 @@ struct ScriptObjectData_HypScript final
 {
     static constexpr ScriptLanguage lang = SL_HYPSCRIPT;
 
-    ObjectHandle objectHandle = INVALID_OBJECT;
+    Script_ObjectHandle objectHandle = INVALID_OBJECT;
 };
 #endif
 
@@ -67,7 +66,7 @@ public:
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(HypObjectPtr ptr, HypScriptObjectTag);
+    ScriptObjectResource(HypObjectPtr ptr, const Script_ObjectHandle& objectHandle, HypScriptObjectTag);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;

@@ -1127,6 +1127,8 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 #endif
 
 #ifdef HYP_SCRIPT
+    Script_ObjectHandle objectHandle = {}/* @TODO */;
+
     // get or create new container for dynamic type
     HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());
     Assert(container != nullptr);
@@ -1215,7 +1217,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         fieldOffset += sizeof(HypData);
     }
 
-    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), HYP_SCRIPT_OBJECT);
+    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), objectHandle, HYP_SCRIPT_OBJECT);
     Assert(scriptObjectResource != nullptr);
     ptr->SetScriptObjectResource(scriptObjectResource);
 

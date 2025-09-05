@@ -179,24 +179,24 @@ void HyperionEditor::Init()
         sourceFile.ReadIntoBuffer(byteBuffer);
 
         ErrorList errorList;
-        ScriptHandle scriptHandle = HypScript::GetInstance().Compile(sourceFile, errorList);
+        Script_Instance* instance = HypScript::GetInstance().Compile(sourceFile, errorList);
 
-        if (scriptHandle != INVALID_SCRIPT)
+        if (instance != nullptr)
         {
 
-            InstructionStream* is = HypScript::GetInstance().Decompile(scriptHandle, &std::cout);
+            InstructionStream* is = HypScript::GetInstance().Decompile(instance, &std::cout);
             delete is;
 
-            HypScript::GetInstance().Run(scriptHandle);
+            HypScript::GetInstance().Run(instance);
 
             // call function
-            FunctionHandle functionHandle;
+            Script_FunctionHandle functionHandle;
             if (HypScript::GetInstance().GetFunctionHandle("x", functionHandle))
             {
-                HypScript::GetInstance().CallFunction(scriptHandle, functionHandle, 5, 4);
+                HypScript::GetInstance().CallFunction(instance, functionHandle, 5, 4);
 
                 Value lastReturn;
-                HypScript::GetInstance().ReadLastReturnValue(scriptHandle, lastReturn);
+                HypScript::GetInstance().ReadLastReturnValue(instance, lastReturn);
 
                 if (lastReturn.IsValid())
                 {
@@ -208,7 +208,7 @@ void HyperionEditor::Init()
                 HYP_LOG(Editor, Error, "Failed to get function handle for 'x'!");
             }
 
-            HypScript::GetInstance().DestroyScript(scriptHandle);
+            HypScript::GetInstance().DestroyScript(instance);
         }
     }
 

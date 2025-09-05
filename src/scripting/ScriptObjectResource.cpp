@@ -74,10 +74,11 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Cl
 
 #ifdef HYP_SCRIPT
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, HypScriptObjectTag)
+ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const Script_ObjectHandle& objectHandle, HypScriptObjectTag)
     : m_ptr(ptr)
 {
     ScriptObjectData_HypScript& data = m_scriptObjectData.Emplace<ScriptObjectData_HypScript>();
+    data.objectHandle = objectHandle;
 }
 
 #endif

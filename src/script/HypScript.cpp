@@ -29,8 +29,6 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(HypScript);
 
-static IdGenerator g_scriptHandleGenerator;
-
 #pragma region Opaque Handles
 
 #pragma endregion Opaque Handles
@@ -49,13 +47,6 @@ HypScript::HypScript()
 
 HypScript::~HypScript()
 {
-    for (auto& pair : m_scripts)
-    {
-        delete pair.second;
-    }
-
-    m_scripts.Clear();
-
     delete m_vm;
 }
 
@@ -63,31 +54,21 @@ void HypScript::Initialize()
 {
 }
 
-void HypScript::DestroyScript(ScriptHandle scriptHandle)
+void HypScript::DestroyScript(Script_Instance* instance)
 {
-    if (scriptHandle == INVALID_SCRIPT)
+    if (!instance)
     {
         return;
     }
 
-    Mutex::Guard guard(m_mutex);
-
-    auto it = m_scripts.Find(scriptHandle);
-
-    if (it != m_scripts.End())
-    {
-        delete it->second;
-        m_scripts.Erase(it);
-    }
+    delete instance;
 }
 
-ScriptHandle HypScript::Compile(
-    SourceFile& sourceFile,
-    ErrorList& outErrorList)
+Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorList)
 {
     if (!sourceFile.IsValid())
     {
-        return INVALID_SCRIPT;
+        return nullptr;
     }
 
     SourceStream sourceStream(&sourceFile);
@@ -143,7 +124,7 @@ ScriptHandle HypScript::Compile(
         }
         else
         {
-            return INVALID_SCRIPT;
+            return nullptr;
         }
 
         BuildParams buildParams {};
@@ -152,85 +133,40 @@ ScriptHandle HypScript::Compile(
         codeGenerator.Visit(&bytecodeChunk);
         codeGenerator.Bake();
 
-        ScriptHandle scriptHandle = (ScriptHandle)g_scriptHandleGenerator.Next();
-
         Script_Instance* scriptInstance = new Script_Instance {
             BytecodeStream(codeGenerator.GetInternalByteStream().GetData())
         };
 
-        {
-            Mutex::Guard guard(m_mutex);
-            m_scripts.Insert({ scriptHandle, scriptInstance });
-        }
-
-        return scriptHandle;
+        return scriptInstance;
     }
 
-    return INVALID_SCRIPT;
+    return nullptr;
 }
 
-InstructionStream* HypScript::Decompile(ScriptHandle scriptHandle, std::ostream* os) const
+InstructionStream* HypScript::Decompile(Script_Instance* instance, std::ostream* os) const
 {
-    if (scriptHandle == INVALID_SCRIPT)
+    if (!instance)
     {
         return nullptr;
     }
 
-    Mutex::Guard guard(m_mutex);
-
-    auto it = m_scripts.Find(scriptHandle);
-
-    if (it == m_scripts.End())
-    {
-        return nullptr;
-    }
-
-    Script_Instance* scriptInstance = it->second;
-    Assert(scriptInstance != nullptr);
-
-    return DecompilationUnit().Decompile(scriptInstance->stream, os);
+    return DecompilationUnit().Decompile(instance->stream, os);
 }
 
-void HypScript::Run(ScriptHandle scriptHandle)
+void HypScript::Run(Script_Instance* instance)
 {
-    if (scriptHandle == INVALID_SCRIPT)
+    if (!instance)
     {
         return;
     }
 
-    Script_Instance* scriptInstance;
-
-    {
-        Mutex::Guard guard(m_mutex);
-        auto it = m_scripts.Find(scriptHandle);
-
-        if (it == m_scripts.End())
-        {
-            return;
-        }
-
-        scriptInstance = it->second;
-        Assert(scriptInstance != nullptr);
-    }
-
-    m_vm->Execute(scriptInstance);
+    m_vm->Execute(instance);
 }
 
-void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle functionHandle, Value* args, ArgCount numArgs)
+void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Value* args, ArgCount numArgs)
 {
-    Assert(scriptHandle != INVALID_SCRIPT);
+    Assert(instance != nullptr);
     Assert(functionHandle != INVALID_FUNCTION);
-
-    Script_Instance* scriptInstance;
-
-    {
-        Mutex::Guard guard(m_mutex);
-        auto it = m_scripts.Find(scriptHandle);
-        Assert(it != m_scripts.End());
-
-        scriptInstance = it->second;
-        Assert(scriptInstance != nullptr);
-    }
 
     if (numArgs != 0)
     {
@@ -238,7 +174,7 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
 
         for (ArgCount i = 0; i < numArgs; i++)
         {
-            scriptInstance->thread.m_stack.Push(std::move(args[i]));
+            instance->thread.m_stack.Push(std::move(args[i]));
         }
     }
 
@@ -248,33 +184,22 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
     vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = reinterpret_cast<Value*>(functionHandle);
 
-    m_vm->InvokeNow(scriptInstance, Value(vmData), numArgs);
+    m_vm->InvokeNow(instance, Value(vmData), numArgs);
 
     if (numArgs != 0)
     {
-        scriptInstance->thread.m_stack.Pop(numArgs);
+        instance->thread.m_stack.Pop(numArgs);
     }
 }
 
-void HypScript::ReadLastReturnValue(ScriptHandle scriptHandle, Value& outValue)
+void HypScript::ReadLastReturnValue(Script_Instance* instance, Value& outValue)
 {
-    Assert(scriptHandle != INVALID_SCRIPT);
+    Assert(instance != nullptr);
 
-    Script_Instance* scriptInstance;
-
-    {
-        Mutex::Guard guard(m_mutex);
-        auto it = m_scripts.Find(scriptHandle);
-        Assert(it != m_scripts.End());
-
-        scriptInstance = it->second;
-        Assert(scriptInstance != nullptr);
-    }
-
-    outValue = ScriptApi_ShallowCopy(scriptInstance->thread.m_regs[0], m_vm->GetGC());
+    outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_vm->GetGC());
 }
 
-bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)
+bool HypScript::GetMember(Script_ObjectHandle objectHandle, const char* memberName, Value*& outValue)
 {
     HYP_NOT_IMPLEMENTED();
 
@@ -305,7 +230,7 @@ bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Val
 #endif
 }
 
-bool HypScript::SetMember(ObjectHandle objectHandle, const char* memberName, Value&& value)
+bool HypScript::SetMember(Script_ObjectHandle objectHandle, const char* memberName, Value&& value)
 {
     HYP_NOT_IMPLEMENTED();
 #if 0
@@ -334,7 +259,7 @@ bool HypScript::SetMember(ObjectHandle objectHandle, const char* memberName, Val
 #endif
 }
 
-bool HypScript::GetFunctionHandle(const char* name, FunctionHandle& outFunctionHandle)
+bool HypScript::GetFunctionHandle(const char* name, Script_FunctionHandle& outFunctionHandle)
 {
     outFunctionHandle = INVALID_FUNCTION;
 
@@ -349,12 +274,12 @@ bool HypScript::GetFunctionHandle(const char* name, FunctionHandle& outFunctionH
         return false;
     }
 
-    outFunctionHandle = (FunctionHandle)((uintptr_t)pValue);
+    outFunctionHandle = (Script_FunctionHandle)((uintptr_t)pValue);
 
     return true;
 }
 
-bool HypScript::GetObjectHandle(const char* name, ObjectHandle& outObjectHandle)
+bool HypScript::GetObjectHandle(const char* name, Script_ObjectHandle& outObjectHandle)
 {
     outObjectHandle = INVALID_OBJECT;
 
@@ -376,7 +301,7 @@ bool HypScript::GetObjectHandle(const char* name, ObjectHandle& outObjectHandle)
         return false;
     }
 
-    outObjectHandle = (ObjectHandle)((uintptr_t)pRef);
+    outObjectHandle = (Script_ObjectHandle)((uintptr_t)pRef);
 
     return true;
 }

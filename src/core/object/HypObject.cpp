@@ -84,7 +84,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 #endif
 
 #ifdef HYP_SCRIPT
-            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, HYP_SCRIPT_OBJECT);
+            Script_ObjectHandle objectHandle = {} /* @TODO */;
+            
+            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, objectHandle, HYP_SCRIPT_OBJECT);
             Assert(scriptObjectResource != nullptr);
 
             target->SetScriptObjectResource(scriptObjectResource);
