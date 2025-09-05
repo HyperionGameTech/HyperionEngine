@@ -359,13 +359,13 @@ Script_Value ScriptApi_MakeValue(const Number& number)
 /*! \brief Use for loading into registers - does not promote to tracked memory */
 Script_Value ScriptApi_MakeRef(Script_Value& refValue)
 {
-    Script_Value* pValue = &refValue;
-
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = refValue.Deref();
 
     Assert(vmData.valueRef != nullptr);
+    Assert(!vmData.valueRef->IsRef(), "Cannot create a reference to a reference");
+    Assert(!vmData.valueRef->IsGarbage(), "Creating a reference to garbage value");
 
     return Script_Value(vmData);
 }
@@ -373,6 +373,11 @@ Script_Value ScriptApi_MakeRef(Script_Value& refValue)
 /*! \brief Use for loading into registers - promotes to tracked memory if needed */
 Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promoteToTrackedMemory)
 {
+    if (refValue.IsRef())
+    {
+        return refValue;
+    }
+
     if (promoteToTrackedMemory)
     {
         Assert(gc != nullptr);
@@ -408,16 +413,10 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
 {
     Script_Value* pValue = refValue.Deref();
 
-    if (pValue->IsRef())
-    {
-        // already a reference, make a new reference to the same value
-        return ScriptApi_MakeRef(*refValue.Deref());
-    }
-
     if (pValue->GetGCIndex() != INVALID_GC_INDEX)
     {
-        // already in tracked memory
-        return ScriptApi_MakeRef(refValue);
+        // already in tracked memory, make new reference
+        return ScriptApi_MakeRef(*pValue);
     }
 
     const HypData& hypData = *pValue->GetHypData();
@@ -549,7 +548,7 @@ public:
 
         // read value from stack at (sp - offset)
         // into the the register
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC(), false), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC(), true), false);
     }
 
     HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16 index)
@@ -563,7 +562,7 @@ public:
             stackMemory.GetStackPointer());
 
         // read value from stack at the index into the the register
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), false), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true), false);
     }
 
     HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16 index)
@@ -572,7 +571,7 @@ public:
         // at the index into the the register
         Script_Value& value = vm->m_staticMemory[index];
 
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(value, vm->GetGC(), false), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(value), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
@@ -635,7 +634,7 @@ public:
                     return;
                 }
 
-                instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeRef((*array)[key.i], vm->GetGC(), false), false);
+                instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeRef((*array)[key.i]), false);
             }
             else if (key.flags & Number::FLAG_UNSIGNED)
             {
@@ -646,14 +645,14 @@ public:
                     return;
                 }
 
-                instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeRef((*array)[key.u], vm->GetGC(), false), false);
+                instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeRef((*array)[key.u]), false);
             }
 
             return;
         }
 
         // throw an exception
-        vm->ThrowException(instance, Script_Exception("Not an array!"));
+        vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
     }
 
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
@@ -694,7 +693,7 @@ public:
     HYP_FORCE_INLINE void LoadDeref(BCRegister dstReg, BCRegister srcReg)
     {
         Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
-        instance->thread.m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(src, vm->GetGC()), false);
+        instance->thread.m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(*src.Deref(), vm->GetGC()), false);
     }
 
     HYP_FORCE_INLINE void LoadNull(BCRegister reg)
@@ -737,7 +736,7 @@ public:
     HYP_FORCE_INLINE void MovIndex(uint16 index, BCRegister reg)
     {
         // copy value from register to stack value at index
-        instance->thread.m_stack[index].AssignValue(std::move(instance->thread.m_regs[reg]), true);
+        instance->thread.m_stack[index].AssignValue(ScriptApi_ShallowCopy(instance->thread.m_regs[reg].Deref()), true);
     }
 
     HYP_FORCE_INLINE void MovStatic(uint16 index, BCRegister reg)
@@ -754,7 +753,7 @@ public:
 
         if (!src.GetHypData()->Is<Script_ValueArray>())
         {
-            vm->ThrowException(instance, Script_Exception("Not an array!"));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
             return;
         }
 
@@ -777,7 +776,7 @@ public:
 
         if (!src.GetHypData()->Is<Script_ValueArray>())
         {
-            vm->ThrowException(instance, Script_Exception("Not an array!"));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
             return;
         }
 
@@ -902,7 +901,7 @@ public:
 
         if (!field)
         {
-            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(hash));
+            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(pValue, hash));
 
             return;
         }
@@ -917,22 +916,22 @@ public:
 
     HYP_FORCE_INLINE void GetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
-        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
+        Script_Value* pValue = instance->thread.m_regs[srcReg].Deref();
 
         const HypClass* hypClass = nullptr;
 
-        if (const AnyHandle& object = src.GetObject())
+        if (const AnyHandle& object = pValue->GetObject())
         {
             hypClass = object.ptr->InstanceClass();
         }
         else
         {
-            hypClass = GetClass(src.GetHypData()->GetTypeId());
+            hypClass = GetClass(pValue->GetHypData()->GetTypeId());
         }
 
         if (!hypClass)
         {
-            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(&src));
+            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(pValue));
 
             return;
         }
@@ -940,7 +939,7 @@ public:
         IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
         if (!member)
         {
-            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(hash));
+            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(pValue, hash));
 
             return;
         }
@@ -949,7 +948,7 @@ public:
         {
             HypField* field = static_cast<HypField*>(member);
 
-            instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*src.GetHypData())), false);
+            instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeValue(field->Get(*pValue->GetHypData())), false);
         }
         else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
         {
@@ -997,7 +996,7 @@ public:
 
         if (!dst.GetHypData()->Is<Script_ValueArray>())
         {
-            vm->ThrowException(instance, Script_Exception("Not an array!"));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("PUSH_ARRAY", dst.GetTypeString()));
             return;
         }
 

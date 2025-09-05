@@ -18,7 +18,9 @@ AstReturnStatement::AstReturnStatement(
     const SourceLocation& location)
     : AstStatement(location),
       m_expr(expr),
-      m_numPops(0)
+      m_numPops(0),
+      m_isVisited(false),
+      m_isConstructor(false)
 {
 }
 
@@ -31,7 +33,6 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
 
     // transverse the scope tree to make sure we are in a function
     bool inFunction = false;
-    bool isConstructor = false;
 
     TreeNode<Scope>* top = mod->m_scopes.TopNode();
 
@@ -43,7 +44,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
 
             if (top->Get().scopeFlags & CONSTRUCTOR_DEFINITION_FLAG)
             {
-                isConstructor = true;
+                m_isConstructor = true;
             }
 
             break;
@@ -79,6 +80,8 @@ UniquePtr<Buildable> AstReturnStatement::Build(AstVisitor* visitor, Module* mod)
     if (m_expr != nullptr)
     {
         chunk->Append(m_expr->Build(visitor, mod));
+
+        chunk->Append(Compiler::DerefIfNeeded(visitor, mod, m_expr->GetExprType()));
     }
 
     chunk->Append(Compiler::PopStack(visitor, m_numPops));

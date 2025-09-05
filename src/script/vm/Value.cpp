@@ -437,6 +437,39 @@ Script_Value* Script_Value::GetRef() const
     return vmData->valueRef; // shouldn't be a reference itself so no need to deref
 }
 
+Script_Value* Script_Value::Deref()
+{
+    Script_Value* deref = GetRef();
+    if (deref != nullptr)
+    {
+        Assert(!deref->IsGarbage());
+        // temp
+        Assert(!deref->IsRef());
+        Assert(deref != this);
+
+        return deref;
+    }
+
+    return this;
+}
+
+const Script_Value* Script_Value::Deref() const
+{
+    const Script_Value* deref = GetRef();
+
+    if (deref != nullptr)
+    {
+        Assert(!deref->IsGarbage());
+        // temp
+        Assert(!deref->IsRef());
+        Assert(deref != this);
+
+        return deref;
+    }
+
+    return this;
+}
+
 void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
 {
     Script_Value* ref;
@@ -445,6 +478,8 @@ void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
 
     if (assignRef && (ref = Deref()) != nullptr)
     {
+        Assert(!other.IsRef(), "Cannot create a reference to another reference!");
+
         HypData* hypData = ref->GetHypData();
         hypData->~HypData();
 
@@ -452,6 +487,11 @@ void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
     }
     else
     {
+        if (other.Deref() == this)
+        {
+            return;
+        }
+
         HypData* hypData = GetHypData();
         hypData->~HypData();
 

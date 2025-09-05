@@ -111,6 +111,7 @@ void HyperionEditor::Init()
 #if 1
     { // script 2
         String str;
+#if 0
         str = "extern class UUID {\n"
               "    ToString() -> string\n"
               "}\n"
@@ -140,7 +141,7 @@ void HyperionEditor::Init()
               "entity := new Entity()\n"
               "export x := (a, b) { return testVec4.x };";
 
-#if 0
+#else
         // vvvvv This is a test script vvvvv
         str = "class Base {} \n"
               "class MyClass : Base {\n"
@@ -149,6 +150,7 @@ void HyperionEditor::Init()
               "    x(a: int) { return a * jet; }\n"
               "    MyClass() {\n"
               "        jet = 4f;\n"
+              "        return self;\n"
               "    }\n"
               "    operator[](i: int) {\n"
               "       for (j := 1; j < i; j++) {\n"
@@ -160,16 +162,13 @@ void HyperionEditor::Init()
               "       jet = val\n"
               "       return 123\n"
               "    }\n"
-              "    ToString() {\n"
-              "       return \"blahfdhfdhdh\"\n"
-              "    }\n"
               "}\n"
               "ins : any = new MyClass();\n"
               "testArray2 : Array<int> = [9,9,34]\n"
               "testArray2[0]++\n"
-              "ref testRef = testArray2\n"
+              "testRef := testArray2\n"
               "testRef = [4,3,2,1]\n"
-              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testRef; }; };\n"
+              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20] = 3;\ntestArray2[1] = testArray2[2];\nreturn testArray2; }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

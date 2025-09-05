@@ -50,9 +50,12 @@ const SymbolTypeRef BuiltinTypes::VOID_TYPE = SymbolType::Primitive(
     "void",
     RC<AstUndefined>(new AstUndefined(SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::OBJECT = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::OBJECT = SymbolTypeRef(new SymbolType(
     "object",
-    nullptr);
+    TYPE_BUILTIN,
+    nullptr,
+    nullptr,
+    {}, {}));
 
 const SymbolTypeRef BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
     "Class",

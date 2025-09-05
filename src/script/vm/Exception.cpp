@@ -165,11 +165,12 @@ Script_Exception Script_Exception::OutOfBoundsException(SizeType index, SizeType
     return Script_Exception(buffer);
 }
 
-Script_Exception Script_Exception::MemberNotFoundException(HashCode::ValueType hashCode)
+Script_Exception Script_Exception::MemberNotFoundException(Script_Value* pValue, HashCode::ValueType hashCode)
 {
     return FormattedException(
-        HYP_STATIC_STRING("Member with hash code %llu not found!"),
-        hashCode);
+        HYP_STATIC_STRING("Member with hash code %llu not found on type: `%s`"),
+        hashCode,
+        pValue ? pValue->GetTypeString() : "<null>");
 }
 
 Script_Exception Script_Exception::InvalidMemberAccessException(Script_Value* pValue)

@@ -100,7 +100,9 @@ protected:
 
     // set while analyzing
     int m_numLocals;
-    bool m_lastIsReturn;
+    bool m_lastIsReturn : 1;
+    bool m_lastIsExpr : 1;
+    SymbolTypeRef m_lastExprType;
     Scope* m_scope = nullptr;
     ScopeType m_scopeType = ScopeType::SCOPE_TYPE_NORMAL;
     int m_scopeFlags = 0;

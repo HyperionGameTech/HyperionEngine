@@ -38,7 +38,8 @@ private:
 
     // set while analyzing
     uint32 m_numPops;
-    bool m_isVisited = false;
+    bool m_isVisited;
+    bool m_isConstructor;
 
     RC<AstReturnStatement> CloneImpl() const
     {

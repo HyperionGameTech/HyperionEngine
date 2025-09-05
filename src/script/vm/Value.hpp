@@ -250,28 +250,8 @@ public:
     bool IsRef() const;
     Script_Value* GetRef() const;
 
-    Script_Value* Deref()
-    {
-        Script_Value* deref = GetRef();
-        if (deref != nullptr)
-        {
-            return deref;
-        }
-
-        return this;
-    }
-
-    const Script_Value* Deref() const
-    {
-        const Script_Value* deref = GetRef();
-
-        if (deref != nullptr)
-        {
-            return deref;
-        }
-
-        return this;
-    }
+    Script_Value* Deref();
+    const Script_Value* Deref() const;
 
     void AssignValue(Script_Value&& other, bool assignRef);
 

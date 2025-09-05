@@ -124,9 +124,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // add implicit 'return self' at the end
             m_blockWithParameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
-                RC<AstVariable>(new AstVariable(
-                    "self",
-                    m_blockWithParameters->GetLocation())),
+                RC<AstVariable>(new AstVariable("self", m_blockWithParameters->GetLocation())),
                 m_blockWithParameters->GetLocation())));
         }
 

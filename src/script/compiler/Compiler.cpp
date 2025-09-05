@@ -475,6 +475,45 @@ UniquePtr<Buildable> Compiler::PopStack(AstVisitor* visitor, int amt)
     return nullptr;
 }
 
+static bool ShouldDerefType(const SymbolType& symbolType)
+{
+    // clang-format off
+    return !symbolType.IsOrHasBase(*BuiltinTypes::VOID_TYPE)
+        && (symbolType.IsOrHasBase(*BuiltinTypes::ANY) // <!-- unknown at compile time, so deref anyway (would be no-op if not a reference)
+            || symbolType.IsOrHasBase(*BuiltinTypes::STRING)
+            || symbolType.IsOrHasBase(*BuiltinTypes::ARRAY_BASE)
+            || symbolType.IsOrHasBase(*BuiltinTypes::MAP_BASE)
+            || symbolType.IsOrHasBase(*BuiltinTypes::OBJECT));
+    // clang-format on
+}
+
+UniquePtr<Buildable> Compiler::DerefIfNeeded(AstVisitor* visitor, Module* mod, const SymbolTypeRef& symbolType)
+{
+    if (!symbolType)
+    {
+        return nullptr;
+    }
+
+    SymbolTypeRef symbolTypeUnaliased = symbolType->GetUnaliased();
+
+    // error occured, should have been caught earlier
+    Assert(symbolTypeUnaliased != BuiltinTypes::UNDEFINED);
+
+    if (ShouldDerefType(*symbolTypeUnaliased))
+    {
+        const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+        chunk->Append(BytecodeUtil::Make<Comment>("Dereference block/function return expr"));
+        chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
+
+        return chunk;
+    }
+
+    return nullptr;
+}
+
 Compiler::Compiler(AstIterator* astIterator, CompilationUnit* compilationUnit)
     : AstVisitor(astIterator, compilationUnit)
 {

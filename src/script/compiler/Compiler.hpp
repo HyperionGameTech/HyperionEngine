@@ -84,6 +84,11 @@ public:
     */
     static UniquePtr<Buildable> PopStack(AstVisitor* visitor, int amt);
 
+    /** Deref the value in the current register if needed. Used for return values and block expressions.
+        Returns a chunk that derefs the value if needed, or nullptr if no deref is needed.
+    */
+    static UniquePtr<Buildable> DerefIfNeeded(AstVisitor* visitor, Module* mod, const SymbolTypeRef& symbolType);
+
 public:
     Compiler(AstIterator* astIterator, CompilationUnit* compilationUnit);
     Compiler(const Compiler& other);
