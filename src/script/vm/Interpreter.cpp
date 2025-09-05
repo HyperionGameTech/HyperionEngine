@@ -1,8 +1,7 @@
-#include <script/vm/VM.hpp>
+#include <script/vm/Interpreter.hpp>
 #include <script/vm/Value.hpp>
-#include <script/vm/VMArray.hpp>
-#include <script/vm/VMString.hpp>
-#include <script/vm/VMTypeInfo.hpp>
+#include <script/vm/Array.hpp>
+#include <script/vm/String.hpp>
 #include <script/vm/GC.hpp>
 #include <script/vm/Exception.hpp>
 
@@ -212,153 +211,155 @@
     }                                                                             \
     while (0)
 
-#define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper)                              \
-    do                                                                         \
-    {                                                                          \
-        switch (numericType)                                                   \
-        {                                                                      \
-        case NT_I8:                                                            \
-            result.i = static_cast<int8>(a.i) oper static_cast<int8>(b.i);     \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;           \
-            break;                                                             \
-        case NT_I16:                                                           \
-            result.i = static_cast<int16>(a.i) oper static_cast<int16>(b.i);   \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;          \
-            break;                                                             \
-        case NT_I32:                                                           \
-            result.i = static_cast<int32>(a.i) oper static_cast<int32>(b.i);   \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;          \
-            break;                                                             \
-        case NT_I64:                                                           \
-            result.i = a.i oper b.i;                                           \
-            result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;          \
-            break;                                                             \
-        case NT_U8:                                                            \
-            if (a.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u = static_cast<uint8>(a.i);                            \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;     \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u = static_cast<uint8>(a.u);                            \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;     \
-            }                                                                  \
-            if (b.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u oper## = static_cast<uint8>(b.i);                     \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;     \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u oper## = static_cast<uint8>(b.u);                     \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;     \
-            }                                                                  \
-            break;                                                             \
-        case NT_U16:                                                           \
-            if (a.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u = static_cast<uint16>(a.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;    \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u = static_cast<uint16>(a.u);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;    \
-            }                                                                  \
-            if (b.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u oper## = static_cast<uint16>(b.i);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;    \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u oper## = static_cast<uint16>(b.u);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;    \
-            }                                                                  \
-            break;                                                             \
-        case NT_U32:                                                           \
-            if (a.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u = static_cast<uint32>(a.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;    \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u = static_cast<uint32>(a.u);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;    \
-            }                                                                  \
-            if (b.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u oper## = static_cast<uint32>(b.i);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;    \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u oper## = static_cast<uint32>(b.u);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;    \
-            }                                                                  \
-            break;                                                             \
-        case NT_U64:                                                           \
-            if (a.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u = static_cast<uint64>(a.i);                           \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;    \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u = a.u;                                                \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;    \
-            }                                                                  \
-            if (b.flags & Number::FLAG_SIGNED)                                 \
-            {                                                                  \
-                result.u oper## = static_cast<uint64>(b.i);                    \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;    \
-            }                                                                  \
-            else                                                               \
-            {                                                                  \
-                result.u oper## = b.u;                                         \
-                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;    \
-            }                                                                  \
-            break;                                                             \
-        default:                                                               \
-            vm->ThrowException(instance, Exception::InvalidBitwiseArgument()); \
-            break;                                                             \
-        }                                                                      \
-    }                                                                          \
+#define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper)                                     \
+    do                                                                                \
+    {                                                                                 \
+        switch (numericType)                                                          \
+        {                                                                             \
+        case NT_I8:                                                                   \
+            result.i = static_cast<int8>(a.i) oper static_cast<int8>(b.i);            \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;                  \
+            break;                                                                    \
+        case NT_I16:                                                                  \
+            result.i = static_cast<int16>(a.i) oper static_cast<int16>(b.i);          \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;                 \
+            break;                                                                    \
+        case NT_I32:                                                                  \
+            result.i = static_cast<int32>(a.i) oper static_cast<int32>(b.i);          \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;                 \
+            break;                                                                    \
+        case NT_I64:                                                                  \
+            result.i = a.i oper b.i;                                                  \
+            result.flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;                 \
+            break;                                                                    \
+        case NT_U8:                                                                   \
+            if (a.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u = static_cast<uint8>(a.i);                                   \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u = static_cast<uint8>(a.u);                                   \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
+            }                                                                         \
+            if (b.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u oper## = static_cast<uint8>(b.i);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u oper## = static_cast<uint8>(b.u);                            \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;            \
+            }                                                                         \
+            break;                                                                    \
+        case NT_U16:                                                                  \
+            if (a.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u = static_cast<uint16>(a.i);                                  \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u = static_cast<uint16>(a.u);                                  \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
+            }                                                                         \
+            if (b.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u oper## = static_cast<uint16>(b.i);                           \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u oper## = static_cast<uint16>(b.u);                           \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;           \
+            }                                                                         \
+            break;                                                                    \
+        case NT_U32:                                                                  \
+            if (a.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u = static_cast<uint32>(a.i);                                  \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u = static_cast<uint32>(a.u);                                  \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
+            }                                                                         \
+            if (b.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u oper## = static_cast<uint32>(b.i);                           \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u oper## = static_cast<uint32>(b.u);                           \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;           \
+            }                                                                         \
+            break;                                                                    \
+        case NT_U64:                                                                  \
+            if (a.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u = static_cast<uint64>(a.i);                                  \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u = a.u;                                                       \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
+            }                                                                         \
+            if (b.flags & Number::FLAG_SIGNED)                                        \
+            {                                                                         \
+                result.u oper## = static_cast<uint64>(b.i);                           \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
+            }                                                                         \
+            else                                                                      \
+            {                                                                         \
+                result.u oper## = b.u;                                                \
+                result.flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;           \
+            }                                                                         \
+            break;                                                                    \
+        default:                                                                      \
+            vm->ThrowException(instance, Script_Exception::InvalidBitwiseArgument()); \
+            break;                                                                    \
+        }                                                                             \
+    }                                                                                 \
     while (0)
 
 namespace hyperion {
 
 extern const char* LookupTypeName(TypeId typeId);
 
+using BCRegister = uint8;
+
 #pragma region ScriptApi
 
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
-static inline Value ScriptApi_MakeValue(T&& data)
+static inline Script_Value ScriptApi_MakeValue(T&& data)
 {
-    return Value(HypData(std::forward<T>(data)));
+    return Script_Value(HypData(std::forward<T>(data)));
 }
 
-Value ScriptApi_MakeValue(HypData&& data)
+Script_Value ScriptApi_MakeValue(HypData&& data)
 {
-    return Value(std::move(data));
+    return Script_Value(std::move(data));
 }
 
-Value ScriptApi_MakeValue(const Script_VMData& data)
+Script_Value ScriptApi_MakeValue(const Script_VMData& data)
 {
-    return Value(data);
+    return Script_Value(data);
 }
 
-Value ScriptApi_MakeValue(const Number& number)
+Script_Value ScriptApi_MakeValue(const Number& number)
 {
-    return Value(number);
+    return Script_Value(number);
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory */
-Value ScriptApi_MakeRef(Value& refValue)
+Script_Value ScriptApi_MakeRef(Script_Value& refValue)
 {
-    Value* pValue = &refValue;
+    Script_Value* pValue = &refValue;
 
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
@@ -366,11 +367,11 @@ Value ScriptApi_MakeRef(Value& refValue)
 
     Assert(vmData.valueRef != nullptr);
 
-    return Value(vmData);
+    return Script_Value(vmData);
 }
 
 /*! \brief Use for loading into registers - promotes to tracked memory if needed */
-Value ScriptApi_MakeRef(Value& refValue, GC* gc, bool promoteToTrackedMemory)
+Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promoteToTrackedMemory)
 {
     if (promoteToTrackedMemory)
     {
@@ -385,7 +386,7 @@ Value ScriptApi_MakeRef(Value& refValue, GC* gc, bool promoteToTrackedMemory)
 
         const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
 
-        Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
+        Script_Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
         Assert(pValue != nullptr);
         Assert(pValue->GetGCIndex() != INVALID_GC_INDEX);
 
@@ -403,9 +404,9 @@ Value ScriptApi_MakeRef(Value& refValue, GC* gc, bool promoteToTrackedMemory)
 // #define HYP_SCRIPT_AUTO_REFERENCES
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-Value ScriptApi_ShallowCopy(Value& refValue, GC* gc)
+Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
 {
-    Value* pValue = refValue.Deref();
+    Script_Value* pValue = refValue.Deref();
 
     if (pValue->IsRef())
     {
@@ -440,7 +441,7 @@ Value ScriptApi_ShallowCopy(Value& refValue, GC* gc)
 
         newHypData.serializeFunction = hypData.serializeFunction;
 
-        return Value(std::move(newHypData));
+        return Script_Value(std::move(newHypData));
     }
 
     // reference type - promote to tracked memory
@@ -454,7 +455,7 @@ Value ScriptApi_ShallowCopy(Value& refValue, GC* gc)
 const uint16 Script_StaticMemory::staticSize = 65535;
 
 Script_StaticMemory::Script_StaticMemory()
-    : m_data(new Value[staticSize])
+    : m_data(new Script_Value[staticSize])
 {
 }
 
@@ -494,11 +495,11 @@ void Script_StackMemory::Purge()
 class InstructionHandler
 {
 public:
-    VM* vm;
+    Script_Interpreter* vm;
     Script_Instance* instance;
 
     InstructionHandler(
-        VM* vm,
+        Script_Interpreter* vm,
         Script_Instance* instance)
         : vm(vm),
           instance(instance)
@@ -569,14 +570,14 @@ public:
     {
         // read value from static memory
         // at the index into the the register
-        Value& value = vm->m_staticMemory[index];
+        Script_Value& value = vm->m_staticMemory[index];
 
         instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(value, vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
     {
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeValue(VMString(str)), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeValue(Script_String(str)), false);
     }
 
     HYP_FORCE_INLINE void LoadAddr(BCRegister reg, Script_FunctionAddress addr)
@@ -601,13 +602,13 @@ public:
 
     HYP_FORCE_INLINE void LoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
     {
-        Value& src = *instance->thread.m_regs[srcReg].Deref();
+        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
 
         Number key;
 
         if (!instance->thread.m_regs[indexReg].GetSignedOrUnsigned(&key))
         {
-            vm->ThrowException(instance, Exception("Array index must be an integral type"));
+            vm->ThrowException(instance, Script_Exception("Array index must be an integral type"));
 
             return;
         }
@@ -622,7 +623,7 @@ public:
                     key.u = SizeType(array->Size() - SizeType(-key.i));
                     if (key.u >= array->Size())
                     {
-                        vm->ThrowException(instance, Exception::OutOfBoundsException(key.u, array->Size()));
+                        vm->ThrowException(instance, Script_Exception::OutOfBoundsException(key.u, array->Size()));
 
                         return;
                     }
@@ -630,7 +631,7 @@ public:
 
                 if (SizeType(key.i) >= array->Size())
                 {
-                    vm->ThrowException(instance, Exception::OutOfBoundsException(SizeType(key.i), array->Size()));
+                    vm->ThrowException(instance, Script_Exception::OutOfBoundsException(SizeType(key.i), array->Size()));
                     return;
                 }
 
@@ -640,7 +641,7 @@ public:
             {
                 if (key.u >= array->Size())
                 {
-                    vm->ThrowException(instance, Exception::OutOfBoundsException(key.u, array->Size()));
+                    vm->ThrowException(instance, Script_Exception::OutOfBoundsException(key.u, array->Size()));
 
                     return;
                 }
@@ -652,13 +653,13 @@ public:
         }
 
         // throw an exception
-        vm->ThrowException(instance, Exception("Not an array!"));
+        vm->ThrowException(instance, Script_Exception("Not an array!"));
     }
 
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        Value newRef = ScriptApi_MakeRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], vm->GetGC(), true);
+        Script_Value newRef = ScriptApi_MakeRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], vm->GetGC(), true);
         Assert(newRef.IsRef());
 
         instance->thread.m_regs[reg].AssignValue(std::move(newRef), false);
@@ -674,7 +675,7 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        Value newRef = ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true);
+        Script_Value newRef = ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true);
         Assert(newRef.IsRef());
 
         // load reference to stack value at index into the register
@@ -683,7 +684,7 @@ public:
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
-        Value newRef = ScriptApi_MakeRef(instance->thread.m_regs[srcReg], vm->GetGC(), true);
+        Script_Value newRef = ScriptApi_MakeRef(instance->thread.m_regs[srcReg], vm->GetGC(), true);
         Assert(newRef.IsRef());
 
         // load reference to value in srcReg into dstReg
@@ -692,13 +693,13 @@ public:
 
     HYP_FORCE_INLINE void LoadDeref(BCRegister dstReg, BCRegister srcReg)
     {
-        Value& src = *instance->thread.m_regs[srcReg].Deref();
+        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
         instance->thread.m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(src, vm->GetGC()), false);
     }
 
     HYP_FORCE_INLINE void LoadNull(BCRegister reg)
     {
-        instance->thread.m_regs[reg].AssignValue(Value(), false);
+        instance->thread.m_regs[reg].AssignValue(Script_Value(), false);
     }
 
     HYP_FORCE_INLINE void LoadTrue(BCRegister reg)
@@ -717,12 +718,12 @@ public:
         const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(name);
         if (!hypClass)
         {
-            vm->ThrowException(instance, Exception::ClassNotFoundException(name.LookupString()));
+            vm->ThrowException(instance, Script_Exception::ClassNotFoundException(name.LookupString()));
 
             return;
         }
 
-        Value classValue = ScriptApi_MakeValue(HypData(HypClassRef(hypClass)));
+        Script_Value classValue = ScriptApi_MakeValue(HypData(HypClassRef(hypClass)));
 
         instance->thread.m_regs[reg].AssignValue(std::move(classValue), false);
     }
@@ -743,17 +744,17 @@ public:
     {
         Assert(index < vm->m_staticMemory.staticSize);
 
-        Value& value = vm->m_staticMemory[index];
+        Script_Value& value = vm->m_staticMemory[index];
         value.AssignValue(std::move(instance->thread.m_regs[reg]), false);
     }
 
     HYP_FORCE_INLINE void MovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
     {
-        Value& src = *instance->thread.m_regs[dstReg].Deref();
+        Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
 
         if (!src.GetHypData()->Is<Script_ValueArray>())
         {
-            vm->ThrowException(instance, Exception("Not an array!"));
+            vm->ThrowException(instance, Script_Exception("Not an array!"));
             return;
         }
 
@@ -761,7 +762,7 @@ public:
 
         if (index >= array.Size())
         {
-            vm->ThrowException(instance, Exception::OutOfBoundsException(SizeType(index), array.Size()));
+            vm->ThrowException(instance, Script_Exception::OutOfBoundsException(SizeType(index), array.Size()));
 
             return;
         }
@@ -772,22 +773,22 @@ public:
 
     HYP_FORCE_INLINE void MovArrayIdxReg(BCRegister dstReg, BCRegister indexReg, BCRegister srcReg)
     {
-        Value& src = *instance->thread.m_regs[dstReg].Deref();
+        Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
 
         if (!src.GetHypData()->Is<Script_ValueArray>())
         {
-            vm->ThrowException(instance, Exception("Not an array!"));
+            vm->ThrowException(instance, Script_Exception("Not an array!"));
             return;
         }
 
         Script_ValueArray& array = src.GetHypData()->Get<Script_ValueArray>();
 
         Number index;
-        Value& indexRegisterValue = instance->thread.m_regs[indexReg];
+        Script_Value& indexRegisterValue = instance->thread.m_regs[indexReg];
 
         if (!indexRegisterValue.GetSignedOrUnsigned(&index))
         {
-            vm->ThrowException(instance, Exception::InvalidArgsException("integer"));
+            vm->ThrowException(instance, Script_Exception::InvalidArgsException("integer"));
 
             return;
         }
@@ -803,7 +804,7 @@ public:
 
                 if (uIndexValue >= array.Size())
                 {
-                    vm->ThrowException(instance, Exception::OutOfBoundsException(uIndexValue, array.Size()));
+                    vm->ThrowException(instance, Script_Exception::OutOfBoundsException(uIndexValue, array.Size()));
 
                     return;
                 }
@@ -811,7 +812,7 @@ public:
 
             if (SizeType(indexValue) >= array.Size())
             {
-                vm->ThrowException(instance, Exception::OutOfBoundsException(SizeType(indexValue), array.Size()));
+                vm->ThrowException(instance, Script_Exception::OutOfBoundsException(SizeType(indexValue), array.Size()));
 
                 return;
             }
@@ -825,7 +826,7 @@ public:
 
             if (SizeType(indexValue) >= array.Size())
             {
-                vm->ThrowException(instance, Exception::OutOfBoundsException(indexValue, array.Size()));
+                vm->ThrowException(instance, Script_Exception::OutOfBoundsException(indexValue, array.Size()));
 
                 return;
             }
@@ -842,8 +843,8 @@ public:
 
     HYP_FORCE_INLINE void CheckHasMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
-        Value& src = *instance->thread.m_regs[srcReg].Deref();
-        Value& result = instance->thread.m_regs[dstReg];
+        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
+        Script_Value& result = instance->thread.m_regs[dstReg];
 
         const HypClass* hypClass = nullptr;
 
@@ -877,7 +878,7 @@ public:
 
     HYP_FORCE_INLINE void SetField(BCRegister dstReg, uint64 hash, BCRegister srcReg)
     {
-        Value* pValue = instance->thread.m_regs[dstReg].Deref();
+        Script_Value* pValue = instance->thread.m_regs[dstReg].Deref();
 
         const HypClass* hypClass = nullptr;
 
@@ -892,7 +893,7 @@ public:
 
         if (!hypClass)
         {
-            vm->ThrowException(instance, Exception::InvalidMemberAccessException(pValue));
+            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(pValue));
 
             return;
         }
@@ -901,22 +902,22 @@ public:
 
         if (!field)
         {
-            vm->ThrowException(instance, Exception::MemberNotFoundException(hash));
+            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(hash));
 
             return;
         }
 
         field->Set(*pValue->GetHypData(), *instance->thread.m_regs[srcReg].GetHypData());
 
-        // DEBUG TEST: Get the field, create a new Value, log it to string
+        // DEBUG TEST: Get the field, create a new Script_Value, log it to string
 
-        Value fieldValue = ScriptApi_MakeValue(field->Get(*pValue->GetHypData()));
+        Script_Value fieldValue = ScriptApi_MakeValue(field->Get(*pValue->GetHypData()));
         DebugLog(LogType::Info, "Set field '%s' to value: %s\n", field->GetName().LookupString(), fieldValue.ToString().GetData());
     }
 
     HYP_FORCE_INLINE void GetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
-        Value& src = *instance->thread.m_regs[srcReg].Deref();
+        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
 
         const HypClass* hypClass = nullptr;
 
@@ -931,7 +932,7 @@ public:
 
         if (!hypClass)
         {
-            vm->ThrowException(instance, Exception::InvalidMemberAccessException(&src));
+            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(&src));
 
             return;
         }
@@ -939,7 +940,7 @@ public:
         IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
         if (!member)
         {
-            vm->ThrowException(instance, Exception::MemberNotFoundException(hash));
+            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(hash));
 
             return;
         }
@@ -975,7 +976,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception("Member is not a field or method"));
+            vm->ThrowException(instance, Script_Exception("Member is not a field or method"));
         }
     }
 
@@ -992,11 +993,11 @@ public:
 
     HYP_FORCE_INLINE void PushArray(BCRegister dstReg, BCRegister srcReg)
     {
-        Value& dst = *instance->thread.m_regs[dstReg].Deref();
+        Script_Value& dst = *instance->thread.m_regs[dstReg].Deref();
 
         if (!dst.GetHypData()->Is<Script_ValueArray>())
         {
-            vm->ThrowException(instance, Exception("Not an array!"));
+            vm->ThrowException(instance, Script_Exception("Not an array!"));
             return;
         }
 
@@ -1061,7 +1062,7 @@ public:
     HYP_FORCE_INLINE void Ret()
     {
         // get top of stack (should be the address before jumping)
-        Value& top = instance->thread.GetStack().Top();
+        Script_Value& top = instance->thread.GetStack().Top();
 
         Script_VMData* vmData = top.GetVMData();
         Assert(vmData != nullptr);
@@ -1097,7 +1098,7 @@ public:
     HYP_FORCE_INLINE void EndTry()
     {
         // pop the try catch info from the stack
-        Value& top = instance->thread.m_stack.Top();
+        Script_Value& top = instance->thread.m_stack.Top();
 
         Script_VMData* vmData = top.GetVMData();
         Assert(vmData != nullptr);
@@ -1113,7 +1114,7 @@ public:
     HYP_FORCE_INLINE void New(BCRegister dst, BCRegister src) // come back to this
     {
         // read value from register
-        Value& classValue = *instance->thread.m_regs[src].Deref();
+        Script_Value& classValue = *instance->thread.m_regs[src].Deref();
 
         const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
         Assert(classRef.IsValid());
@@ -1123,7 +1124,7 @@ public:
         {
             vm->ThrowException(
                 instance,
-                Exception::InvalidOperationException(
+                Script_Exception::InvalidOperationException(
                     "NEW",
                     "Could not create instance of type",
                     classRef->GetName().LookupString()));
@@ -1142,7 +1143,7 @@ public:
 
     HYP_FORCE_INLINE void BeginClass(BCRegister reg)
     {
-        BytecodeStream* bs = &instance->stream;
+        Script_Stream* bs = &instance->stream;
 
         // Read class name length and name
         uint16 nameLen;
@@ -1308,7 +1309,7 @@ public:
 
                     // load function info from stack address
                     Assert(stackOffset <= instance->thread.GetStack().GetStackPointer(), "Stack offset out of bounds!");
-                    Value& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
+                    Script_Value& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
 
                     Script_VMData* funcVmData = funcValue.GetVMData();
                     Assert(funcVmData != nullptr);
@@ -1357,7 +1358,7 @@ public:
         Assert(hitEnd);
 
         // Read parent class register
-        Value& parentClassValue = instance->thread.m_regs[reg];
+        Script_Value& parentClassValue = instance->thread.m_regs[reg];
 
         const HypClass* parentClass = nullptr;
 
@@ -1377,9 +1378,9 @@ public:
 
         HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
-        Value classValue = ScriptApi_MakeValue(HypClassRef(newClass));
+        Script_Value classValue = ScriptApi_MakeValue(HypClassRef(newClass));
 
-        // promote the class object to tracked GC memory so it doesn't instantly get destroyed
+        // promote the class object to tracked Script_GC memory so it doesn't instantly get destroyed
         instance->thread.m_regs[reg].AssignValue(
             ScriptApi_MakeRef(classValue, vm->GetGC(), /* promoteToTrackedMemory */ true),
             false);
@@ -1395,8 +1396,8 @@ public:
         }
 
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -1434,7 +1435,7 @@ public:
             }
             else
             {
-                const int res = Value::CompareAsPointers(lhs, rhs);
+                const int res = Script_Value::CompareAsPointers(lhs, rhs);
 
                 if (res != -1)
                 {
@@ -1442,7 +1443,7 @@ public:
                 }
                 else
                 {
-                    vm->ThrowException(instance, Exception::InvalidComparisonException(lhs->GetTypeString(), rhs->GetTypeString()));
+                    vm->ThrowException(instance, Script_Exception::InvalidComparisonException(lhs->GetTypeString(), rhs->GetTypeString()));
                 }
             }
         }
@@ -1451,7 +1452,7 @@ public:
     HYP_FORCE_INLINE void CmpZ(BCRegister reg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[reg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[reg].Deref();
 
         Number num;
 
@@ -1485,8 +1486,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1499,7 +1500,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("ADD", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("ADD", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1514,8 +1515,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1528,7 +1529,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("SUB", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("SUB", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1543,8 +1544,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1557,7 +1558,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("MUL", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("MUL", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1572,8 +1573,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1584,13 +1585,13 @@ public:
         {
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
-                vm->ThrowException(instance, Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
 
                 return;
             }
             else if ((b.flags & Number::FLAG_UNSIGNED) && b.u == 0)
             {
-                vm->ThrowException(instance, Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
 
                 return;
             }
@@ -1599,7 +1600,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("DIV", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("DIV", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1614,8 +1615,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1627,13 +1628,13 @@ public:
             // custom handling for mod to allow floats to work
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
-                vm->ThrowException(instance, Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
 
                 return;
             }
             else if ((b.flags & Number::FLAG_UNSIGNED) && b.u == 0)
             {
-                vm->ThrowException(instance, Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
 
                 return;
             }
@@ -1671,7 +1672,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("MOD", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("MOD", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1686,8 +1687,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1700,7 +1701,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("AND", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("AND", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1715,8 +1716,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1729,7 +1730,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("OR", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("OR", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1744,8 +1745,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1758,7 +1759,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("XOR", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("XOR", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1772,8 +1773,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1786,7 +1787,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("SHL", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("SHL", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1800,8 +1801,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
+        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
 
@@ -1814,7 +1815,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("SHR", lhs->GetTypeString(), rhs->GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("SHR", lhs->GetTypeString(), rhs->GetTypeString()));
 
             return;
         }
@@ -1826,7 +1827,7 @@ public:
     HYP_FORCE_INLINE void Not(BCRegister reg)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[reg].Deref();
+        Script_Value& value = *instance->thread.m_regs[reg].Deref();
 
         Number num;
 
@@ -1881,7 +1882,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Exception::InvalidBitwiseArgument());
+            vm->ThrowException(instance, Script_Exception::InvalidBitwiseArgument());
 
             return;
         }
@@ -1892,31 +1893,31 @@ public:
     HYP_FORCE_INLINE void Throw(BCRegister reg)
     {
         // load value from register
-        Value* value = instance->thread.m_regs[reg].Deref();
+        Script_Value* value = instance->thread.m_regs[reg].Deref();
 
         // @TODO Allow throwing the arugment
 
-        vm->ThrowException(instance, Exception("User exception"));
+        vm->ThrowException(instance, Script_Exception("User exception"));
     }
 
     HYP_FORCE_INLINE void ExportSymbol(BCRegister reg, uint64 hash)
     {
         if (!vm->GetExportedSymbols().Store(hash, ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC())).second)
         {
-            vm->ThrowException(instance, Exception::DuplicateExportException());
+            vm->ThrowException(instance, Script_Exception::DuplicateExportException());
         }
     }
 
     HYP_FORCE_INLINE void Neg(BCRegister reg)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[reg].Deref();
+        Script_Value& value = *instance->thread.m_regs[reg].Deref();
 
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidOperationException("NEG", value.GetTypeString()));
+            vm->ThrowException(instance, Script_Exception::InvalidOperationException("NEG", value.GetTypeString()));
 
             return;
         }
@@ -1944,13 +1945,13 @@ public:
     HYP_FORCE_INLINE void CastU8(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
 
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "uint8"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "uint8"));
 
             return;
         }
@@ -1977,13 +1978,13 @@ public:
     HYP_FORCE_INLINE void CastU16(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
 
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "uint16"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "uint16"));
 
             return;
         }
@@ -2010,12 +2011,12 @@ public:
     HYP_FORCE_INLINE void CastU32(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "uint32"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "uint32"));
 
             return;
         }
@@ -2042,12 +2043,12 @@ public:
     HYP_FORCE_INLINE void CastU64(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "uint64"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "uint64"));
 
             return;
         }
@@ -2073,12 +2074,12 @@ public:
 
     HYP_FORCE_INLINE void CastI8(BCRegister dst, BCRegister src)
     {
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "int8"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "int8"));
 
             return;
         }
@@ -2104,12 +2105,12 @@ public:
 
     HYP_FORCE_INLINE void CastI16(BCRegister dst, BCRegister src)
     {
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "int16"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "int16"));
 
             return;
         }
@@ -2135,12 +2136,12 @@ public:
 
     HYP_FORCE_INLINE void CastI32(BCRegister dst, BCRegister src)
     {
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "int32"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "int32"));
 
             return;
         }
@@ -2166,12 +2167,12 @@ public:
 
     HYP_FORCE_INLINE void CastI64(BCRegister dst, BCRegister src)
     {
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "int64"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "int64"));
 
             return;
         }
@@ -2198,12 +2199,12 @@ public:
     HYP_FORCE_INLINE void CastF32(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "float32"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "float32"));
 
             return;
         }
@@ -2230,12 +2231,12 @@ public:
     HYP_FORCE_INLINE void CastF64(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "float64"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "float64"));
 
             return;
         }
@@ -2262,7 +2263,7 @@ public:
     HYP_FORCE_INLINE void CastBool(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
 
         // use same logic as CmpZ to determine truthiness
         bool result = false;
@@ -2292,13 +2293,13 @@ public:
     HYP_FORCE_INLINE void CastString(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
 
-        const VMString* pString = nullptr;
+        const Script_String* pString = nullptr;
 
         if (!value.GetString(&pString))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), "string"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "string"));
 
             return;
         }
@@ -2309,13 +2310,13 @@ public:
     HYP_FORCE_INLINE void CastDynamic(BCRegister dst, BCRegister src) // come back to this
     {
         // dst register holds HypClassRef object
-        Value& classValue = *instance->thread.m_regs[dst].Deref();
+        Script_Value& classValue = *instance->thread.m_regs[dst].Deref();
 
         const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
         Assert(classRef.IsValid());
 
         // load value from register
-        Value& value = *instance->thread.m_regs[src].Deref();
+        Script_Value& value = *instance->thread.m_regs[src].Deref();
 
         const HypClass* hypClass = nullptr;
 
@@ -2330,7 +2331,7 @@ public:
 
         if (!hypClass || !hypClass->IsDerivedFrom(classRef))
         {
-            vm->ThrowException(instance, Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
 
             return;
         }
@@ -2344,7 +2345,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
     InstructionHandler* handler,
     ubyte code)
 {
-    BytecodeStream* bs = &instance->stream;
+    Script_Stream* bs = &instance->stream;
 
     switch (code)
     {
@@ -3280,11 +3281,11 @@ HYP_FORCE_INLINE static void HandleInstruction(
         uint32 stringmapCount;
         bs->Read(&stringmapCount);
 
-        Tracemap::StringmapEntry* stringmap = nullptr;
+        Script_Tracemap::StringmapEntry* stringmap = nullptr;
 
         if (stringmapCount != 0)
         {
-            stringmap = new Tracemap::StringmapEntry[stringmapCount];
+            stringmap = new Script_Tracemap::StringmapEntry[stringmapCount];
 
             for (uint32 i = 0; i < stringmapCount; i++)
             {
@@ -3296,12 +3297,12 @@ HYP_FORCE_INLINE static void HandleInstruction(
         uint32 linemapCount;
         bs->Read(&linemapCount);
 
-        Tracemap::LinemapEntry* linemap = nullptr;
+        Script_Tracemap::LinemapEntry* linemap = nullptr;
 
         if (linemapCount != 0)
         {
-            linemap = new Tracemap::LinemapEntry[linemapCount];
-            bs->Read(linemap, sizeof(Tracemap::LinemapEntry) * linemapCount);
+            linemap = new Script_Tracemap::LinemapEntry[linemapCount];
+            bs->Read(linemap, sizeof(Script_Tracemap::LinemapEntry) * linemapCount);
         }
 
         handler->vm->m_tracemap.Set(stringmap, linemap);
@@ -3329,7 +3330,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         if (FBOMResult err = reader.Deserialize(ctx, bufferedReader, result))
         {
             // throw exception for invalid data:
-            handler->vm->ThrowException(instance, Exception(err.message.Data()));
+            handler->vm->ThrowException(instance, Script_Exception(err.message.Data()));
 
             break;
         }
@@ -3372,21 +3373,21 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
 #pragma endregion InstructionHandler
 
-#pragma region VM
+#pragma region Script_Interpreter
 
-VM::VM()
+Script_Interpreter::Script_Interpreter()
     : m_unhandledException(nullptr)
 {
-    m_gc = new GC();
+    m_gc = new Script_GC();
 }
 
-VM::~VM()
+Script_Interpreter::~Script_Interpreter()
 {
     delete m_unhandledException;
     delete m_gc;
 }
 
-void VM::ThrowException(Script_Instance* instance, const Exception& exception)
+void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_Exception& exception)
 {
     ++instance->thread.m_exceptionState.m_exceptionDepth;
 
@@ -3402,18 +3403,18 @@ void VM::ThrowException(Script_Instance* instance, const Exception& exception)
             DebugLog(LogType::Error, "unhandled exception in thread %d: %s", instance->thread.m_id, exception.ToString());
         }
 
-        m_unhandledException = new Exception(exception);
+        m_unhandledException = new Script_Exception(exception);
     }
 }
 
-void VM::Invoke(Script_Instance* instance, Value&& value, uint8 nargs)
+void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     static const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
 
     Script_ExecutionThread* thread = &instance->thread;
-    BytecodeStream* bs = &instance->stream;
+    Script_Stream* bs = &instance->stream;
 
-    Value& deref = *value.Deref();
+    Script_Value& deref = *value.Deref();
 
     if (deref.IsFunction())
     {
@@ -3453,11 +3454,11 @@ void VM::Invoke(Script_Instance* instance, Value&& value, uint8 nargs)
         if ((vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
         {
             // if variadic, make sure the arg count is /at least/ what is required
-            ThrowException(instance, Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
+            ThrowException(instance, Script_Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
         }
         else if (!(vmData->func.m_flags & (uint8)HypMethodFlags::VARIADIC) && vmData->func.m_nargs != nargs)
         {
-            ThrowException(instance, Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
+            ThrowException(instance, Script_Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
         }
         else
         {
@@ -3514,13 +3515,13 @@ void VM::Invoke(Script_Instance* instance, Value&& value, uint8 nargs)
         "cannot invoke type '%s' as a function",
         value.GetTypeString());
 
-    ThrowException(instance, Exception(buffer));
+    ThrowException(instance, Script_Exception(buffer));
 }
 
-void VM::InvokeNow(Script_Instance* instance, Value&& value, uint8 nargs)
+void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
-    BytecodeStream* bs = &instance->stream;
+    Script_Stream* bs = &instance->stream;
 
     const SizeType positionBefore = bs->Position();
     const uint32 originalFunctionDepth = instance->thread.m_funcDepth;
@@ -3528,7 +3529,7 @@ void VM::InvokeNow(Script_Instance* instance, Value&& value, uint8 nargs)
 
     InstructionHandler handler(this, instance);
 
-    Value* deref = value.Deref();
+    Script_Value* deref = value.Deref();
     Assert(deref != nullptr);
 
     Script_VMData* pVmData = deref->GetVMData();
@@ -3575,11 +3576,11 @@ void VM::InvokeNow(Script_Instance* instance, Value&& value, uint8 nargs)
     bs->SetPosition(positionBefore);
 }
 
-void VM::CreateStackTrace(Script_Instance* instance, StackTrace* out)
+void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* outTrace)
 {
-    const SizeType maxStackTraceSize = std::size(out->callAddresses);
+    const SizeType maxStackTraceSize = std::size(outTrace->callAddresses);
 
-    for (int& callAddress : out->callAddresses)
+    for (int& callAddress : outTrace->callAddresses)
     {
         callAddress = -1;
     }
@@ -3593,21 +3594,21 @@ void VM::CreateStackTrace(Script_Instance* instance, StackTrace* out)
             break;
         }
 
-        const Value& top = instance->thread.m_stack[sp - 1];
+        const Script_Value& top = instance->thread.m_stack[sp - 1];
 
         const Script_VMData* topVmData = top.GetVMData();
 
         if (topVmData && topVmData->type == Script_VMData::FUNCTION_CALL)
         {
-            out->callAddresses[numRecordedCallAddresses++] = int(topVmData->call.returnAddress);
+            outTrace->callAddresses[numRecordedCallAddresses++] = int(topVmData->call.returnAddress);
         }
     }
 }
 
-bool VM::HandleException(Script_Instance* instance)
+bool Script_Interpreter::HandleException(Script_Instance* instance)
 {
     Script_ExecutionThread* thread = &instance->thread;
-    BytecodeStream* bs = &instance->stream;
+    Script_Stream* bs = &instance->stream;
 
     if (instance->thread.m_exceptionState.m_tryCounter != 0)
     {
@@ -3617,7 +3618,7 @@ bool VM::HandleException(Script_Instance* instance)
         Assert(instance->thread.m_exceptionState.m_exceptionDepth != 0);
         --instance->thread.m_exceptionState.m_exceptionDepth;
 
-        Value* top = &instance->thread.m_stack.Top();
+        Script_Value* top = &instance->thread.m_stack.Top();
         Script_VMData* topVmData = top->GetVMData();
 
         while (topVmData && topVmData->type != Script_VMData::TRY_CATCH_INFO)
@@ -3641,12 +3642,12 @@ bool VM::HandleException(Script_Instance* instance)
     }
     else
     {
-        StackTrace stackTrace;
-        CreateStackTrace(instance, &stackTrace);
+        Script_Trace trace;
+        CreateTrace(instance, &trace);
 
-        std::cout << "stackTrace = \n";
+        std::cout << "trace = \n";
 
-        for (auto callAddress : stackTrace.callAddresses)
+        for (auto callAddress : trace.callAddresses)
         {
             if (callAddress == -1)
             {
@@ -3665,13 +3666,13 @@ bool VM::HandleException(Script_Instance* instance)
     return false;
 }
 
-void VM::Execute(Script_Instance* instance)
+void Script_Interpreter::Execute(Script_Instance* instance)
 {
     Assert(instance != nullptr);
 
     InstructionHandler handler(this, instance);
 
-    BytecodeStream* bs = &instance->stream;
+    Script_Stream* bs = &instance->stream;
 
     ubyte code;
 
@@ -3687,7 +3688,7 @@ void VM::Execute(Script_Instance* instance)
 
             if (m_unhandledException)
             {
-                DebugLog(LogType::Error, "Unhandled exception in VM, stopping execution...\n");
+                DebugLog(LogType::Error, "Unhandled exception, stopping execution...\n");
 
                 break;
             }
@@ -3695,6 +3696,6 @@ void VM::Execute(Script_Instance* instance)
     }
 }
 
-#pragma endregion VM
+#pragma endregion Script_Interpreter
 
 } // namespace hyperion

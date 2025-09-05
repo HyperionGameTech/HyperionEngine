@@ -1,4 +1,4 @@
-#include <script/vm/VMMap.hpp>
+#include <script/vm/HashMap.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -8,16 +8,16 @@
 
 namespace hyperion {
 
-VMMap::VMMap()
+Script_HashMap::Script_HashMap()
 {
 }
 
-VMMap::VMMap(VMMap&& other) noexcept
+Script_HashMap::Script_HashMap(Script_HashMap&& other) noexcept
     : m_map(std::move(other.m_map))
 {
 }
 
-VMMap& VMMap::operator=(VMMap&& other) noexcept
+Script_HashMap& Script_HashMap::operator=(Script_HashMap&& other) noexcept
 {
     if (&other == this)
     {
@@ -29,16 +29,16 @@ VMMap& VMMap::operator=(VMMap&& other) noexcept
     return *this;
 }
 
-VMMap::~VMMap()
+Script_HashMap::~Script_HashMap()
 {
 }
 
-void VMMap::SetElement(VMMapKey&& key, Value&& value)
+void Script_HashMap::SetElement(VMMapKey&& key, Script_Value&& value)
 {
     m_map.Set(std::move(key), std::move(value));
 }
 
-Value* VMMap::GetElement(const VMMapKey& key)
+Script_Value* Script_HashMap::GetElement(const VMMapKey& key)
 {
     auto it = m_map.Find(key);
 
@@ -50,7 +50,7 @@ Value* VMMap::GetElement(const VMMapKey& key)
     return &it->second;
 }
 
-const Value* VMMap::GetElement(const VMMapKey& key) const
+const Script_Value* Script_HashMap::GetElement(const VMMapKey& key) const
 {
     auto it = m_map.Find(key);
 
@@ -62,7 +62,7 @@ const Value* VMMap::GetElement(const VMMapKey& key) const
     return &it->second;
 }
 
-void VMMap::GetRepresentation(
+void Script_HashMap::GetRepresentation(
     std::stringstream& ss,
     bool addTypeName,
     int depth) const

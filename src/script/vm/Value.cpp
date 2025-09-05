@@ -1,7 +1,7 @@
 #include <script/vm/Value.hpp>
-#include <script/vm/VMArray.hpp>
-#include <script/vm/VMString.hpp>
-#include <script/vm/VMMap.hpp>
+#include <script/vm/Array.hpp>
+#include <script/vm/String.hpp>
+#include <script/vm/HashMap.hpp>
 
 #include <core/object/HypData.hpp>
 #include <core/object/HypClass.hpp>
@@ -33,7 +33,7 @@ static const TypeId g_typeIdU64 = TypeId::ForType<uint64>();
 static const TypeId g_typeIdF32 = TypeId::ForType<float>();
 static const TypeId g_typeIdF64 = TypeId::ForType<double>();
 static const TypeId g_typeIdBool = TypeId::ForType<bool>();
-static const TypeId g_typeIdString = TypeId::ForType<VMString>();
+static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
 
 // clang-format off
 static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions = {
@@ -48,13 +48,13 @@ static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions
     { g_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
     { g_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
     { g_typeIdBool, [](const void* p) -> String { return g_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
-    { g_typeIdString, [](const void* p) -> String { return reinterpret_cast<const VMString*>(p)->GetString(); } }
+    { g_typeIdString, [](const void* p) -> String { return reinterpret_cast<const Script_String*>(p)->GetString(); } }
 };
 // clang-format on
 
-bool ValueDataToString(const HypData& data, VMString& outString);
+bool ValueDataToString(const HypData& data, Script_String& outString);
 
-bool ValueDataToString(const HypData& data, VMString& outString)
+bool ValueDataToString(const HypData& data, Script_String& outString)
 {
     constexpr SizeType bufSize = 256;
 
@@ -62,7 +62,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
 
     if (!data.IsValid())
     {
-        outString = VMString(g_nullString);
+        outString = Script_String(g_nullString);
 
         return true;
     }
@@ -70,7 +70,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
     auto formatIt = g_builtinToStringFunctions.Find(data.GetTypeId());
     if (formatIt != g_builtinToStringFunctions.End())
     {
-        outString = VMString(formatIt->second(data.ToRef().GetPointer()));
+        outString = Script_String(formatIt->second(data.ToRef().GetPointer()));
 
         return true;
     }
@@ -82,7 +82,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
 
     //     if (!object.IsValid())
     //     {
-    //         outString = VMString(g_nullString);
+    //         outString = Script_String(g_nullString);
 
     //         return true;
     //     }
@@ -100,17 +100,17 @@ bool ValueDataToString(const HypData& data, VMString& outString)
         std::stringstream ss;
         GetRepresentation(*pArray, ss, false, maxArrayDepth);
 
-        outString = VMString(ss.str().c_str());
+        outString = Script_String(ss.str().c_str());
 
         return true;
     }
 
-    if (const VMMap* pMap = data.TryGet<VMMap>().TryGet())
+    if (const Script_HashMap* pMap = data.TryGet<Script_HashMap>().TryGet())
     {
         std::stringstream ss;
         pMap->GetRepresentation(ss, false, maxArrayDepth);
 
-        outString = VMString(ss.str().c_str());
+        outString = Script_String(ss.str().c_str());
 
         return true;
     }
@@ -123,7 +123,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
         {
             HypData result = toStringMethod->Invoke(Span<HypData> { const_cast<HypData*>(&data), 1 });
 
-            if (const VMString* str = result.TryGet<VMString>().TryGet())
+            if (const Script_String* str = result.TryGet<Script_String>().TryGet())
             {
                 outString = *str;
 
@@ -132,7 +132,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
 
             if (const String* str = result.TryGet<String>().TryGet())
             {
-                outString = VMString(*str);
+                outString = Script_String(*str);
 
                 return true;
             }
@@ -156,7 +156,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
         // if the class name is too long, dynamically allocate a larger buffer
         if (n < 0)
         {
-            outString = VMString("<Error formatting object>");
+            outString = Script_String("<Error formatting object>");
 
             return true;
         }
@@ -179,12 +179,12 @@ bool ValueDataToString(const HypData& data, VMString& outString)
             {
                 Memory::Free(newBuf);
 
-                outString = VMString("<Error formatting object>");
+                outString = Script_String("<Error formatting object>");
 
                 return true;
             }
 
-            VMString result(newBuf);
+            Script_String result(newBuf);
             Memory::Free(newBuf);
 
             outString = result;
@@ -192,7 +192,7 @@ bool ValueDataToString(const HypData& data, VMString& outString)
             return true;
         }
 
-        outString = VMString(buf);
+        outString = Script_String(buf);
 
         return true;
     }
@@ -200,19 +200,19 @@ bool ValueDataToString(const HypData& data, VMString& outString)
     return false;
 }
 
-Value::Value()
+Script_Value::Script_Value()
     : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData();
 }
 
-Value::Value(HypData&& data)
+Script_Value::Script_Value(HypData&& data)
     : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(std::move(data));
 }
 
-Value::Value(Number number)
+Script_Value::Script_Value(Number number)
     : m_gcIndex(INVALID_GC_INDEX)
 {
     if (number.flags & Number::FLAG_FLOATING_POINT)
@@ -270,7 +270,7 @@ Value::Value(Number number)
     }
 }
 
-Value::Value(const Script_VMData& vmData)
+Script_Value::Script_Value(const Script_VMData& vmData)
     : m_gcIndex(INVALID_GC_INDEX)
 {
     static_assert(sizeof(Script_VMData) == sizeof(HypData_UserData128));
@@ -282,19 +282,19 @@ Value::Value(const Script_VMData& vmData)
     new (m_internal) HypData(userData);
 }
 
-Value::Value(const Value& other)
+Script_Value::Script_Value(const Script_Value& other)
     : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(*other.GetHypData());
 }
 
-Value::Value(Value&& other) noexcept
+Script_Value::Script_Value(Script_Value&& other) noexcept
     : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(std::move(*other.GetHypData()));
 }
 
-Value& Value::operator=(const Value& other)
+Script_Value& Script_Value::operator=(const Script_Value& other)
 {
     if (this != &other)
     {
@@ -305,7 +305,7 @@ Value& Value::operator=(const Value& other)
     return *this;
 }
 
-Value& Value::operator=(Value&& other) noexcept
+Script_Value& Script_Value::operator=(Script_Value&& other) noexcept
 {
     if (this != &other)
     {
@@ -316,9 +316,9 @@ Value& Value::operator=(Value&& other) noexcept
     return *this;
 }
 
-Value::~Value()
+Script_Value::~Script_Value()
 {
-    Assert(m_gcIndex == INVALID_GC_INDEX); // should not be destroyed if it is tracked by the GC
+    Assert(m_gcIndex == INVALID_GC_INDEX); // should not be destroyed if it is tracked by the Script_GC
 
     // have to manually call destructor because we used placement new
     GetHypData()->~HypData();
@@ -327,7 +327,7 @@ Value::~Value()
     Memory::MemSet(m_internal, 0xFFu, sizeof(m_internal));
 }
 
-HypData* Value::GetHypData()
+HypData* Script_Value::GetHypData()
 {
     static_assert(sizeof(m_internal) == sizeof(HypData), "Size of m_internal must match size of HypData");
     static_assert(alignof(decltype(m_internal)) <= alignof(HypData), "Alignment of m_internal must be less than or equal to alignment of HypData");
@@ -335,7 +335,7 @@ HypData* Value::GetHypData()
     return reinterpret_cast<HypData*>(m_internal);
 }
 
-const HypData* Value::GetHypData() const
+const HypData* Script_Value::GetHypData() const
 {
     static_assert(sizeof(m_internal) == sizeof(HypData), "Size of m_internal must match size of HypData");
     static_assert(alignof(decltype(m_internal)) <= alignof(HypData), "Alignment of m_internal must be less than or equal to alignment of HypData");
@@ -343,9 +343,9 @@ const HypData* Value::GetHypData() const
     return reinterpret_cast<const HypData*>(m_internal);
 }
 
-void Value::Mark()
+void Script_Value::Mark()
 {
-    if (Value* ref = GetRef())
+    if (Script_Value* ref = GetRef())
     {
         ref->Mark();
 
@@ -355,26 +355,26 @@ void Value::Mark()
     // @TODO: Mark heap pointer
 }
 
-Script_VMData* Value::GetVMData()
+Script_VMData* Script_Value::GetVMData()
 {
     HypData& data = *GetHypData();
 
     return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-const Script_VMData* Value::GetVMData() const
+const Script_VMData* Script_Value::GetVMData() const
 {
     const HypData& data = *GetHypData();
 
     return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-bool Value::IsValid() const
+bool Script_Value::IsValid() const
 {
     return GetHypData()->IsValid();
 }
 
-bool Value::IsGarbage() const
+bool Script_Value::IsGarbage() const
 {
     // if all bytes are 0xFF it is considered garbage
     const uint8* bytes = reinterpret_cast<const uint8*>(m_internal);
@@ -389,7 +389,7 @@ bool Value::IsGarbage() const
     return true;
 }
 
-bool Value::IsFunction() const
+bool Script_Value::IsFunction() const
 {
     const Script_VMData* vmData = GetVMData();
 
@@ -401,7 +401,7 @@ bool Value::IsFunction() const
     return vmData->type == Script_VMData::FUNCTION || vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-bool Value::IsNativeFunction() const
+bool Script_Value::IsNativeFunction() const
 {
     const Script_VMData* vmData = GetVMData();
 
@@ -413,7 +413,7 @@ bool Value::IsNativeFunction() const
     return vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-bool Value::IsRef() const
+bool Script_Value::IsRef() const
 {
     const Script_VMData* vmData = GetVMData();
 
@@ -425,7 +425,7 @@ bool Value::IsRef() const
     return vmData->type == Script_VMData::VALUE_REF;
 }
 
-Value* Value::GetRef() const
+Script_Value* Script_Value::GetRef() const
 {
     const Script_VMData* vmData = GetVMData();
 
@@ -437,9 +437,9 @@ Value* Value::GetRef() const
     return vmData->valueRef; // shouldn't be a reference itself so no need to deref
 }
 
-void Value::AssignValue(Value&& other, bool assignRef)
+void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
 {
-    Value* ref;
+    Script_Value* ref;
 
     Assert(other.GetGCIndex() == INVALID_GC_INDEX);
 
@@ -459,7 +459,7 @@ void Value::AssignValue(Value&& other, bool assignRef)
     }
 }
 
-bool Value::GetUnsigned(uint64* out) const
+bool Script_Value::GetUnsigned(uint64* out) const
 {
     const HypData& data = *GetHypData();
 
@@ -473,7 +473,7 @@ bool Value::GetUnsigned(uint64* out) const
     return true;
 }
 
-bool Value::GetInteger(int64* out) const
+bool Script_Value::GetInteger(int64* out) const
 {
     const HypData& data = *GetHypData();
 
@@ -487,7 +487,7 @@ bool Value::GetInteger(int64* out) const
     return true;
 }
 
-bool Value::GetSignedOrUnsigned(Number* out) const
+bool Script_Value::GetSignedOrUnsigned(Number* out) const
 {
     const HypData& data = *GetHypData();
 
@@ -552,7 +552,7 @@ bool Value::GetSignedOrUnsigned(Number* out) const
     return false;
 }
 
-bool Value::GetFloatingPoint(double* out) const
+bool Script_Value::GetFloatingPoint(double* out) const
 {
     const HypData& data = *GetHypData();
 
@@ -566,13 +566,13 @@ bool Value::GetFloatingPoint(double* out) const
     return true;
 }
 
-bool Value::GetFloatingPointCoerce(double* out) const
+bool Script_Value::GetFloatingPointCoerce(double* out) const
 {
     // alias for backwards compatibility
     return GetNumber(out);
 }
 
-bool Value::GetNumber(double* out) const
+bool Script_Value::GetNumber(double* out) const
 {
     Number number;
     if (!GetNumber(&number))
@@ -604,7 +604,7 @@ bool Value::GetNumber(double* out) const
     return false;
 }
 
-bool Value::GetNumber(Number* out) const
+bool Script_Value::GetNumber(Number* out) const
 {
     const HypData& data = *GetHypData();
 
@@ -683,7 +683,7 @@ bool Value::GetNumber(Number* out) const
     return false;
 }
 
-NumericType Value::GetNumericType() const
+NumericType Script_Value::GetNumericType() const
 {
     const HypData& data = *GetHypData();
     const TypeId typeId = data.GetTypeId();
@@ -732,7 +732,7 @@ NumericType Value::GetNumericType() const
     return NT_NONE;
 }
 
-bool Value::GetBoolean(bool* out) const
+bool Script_Value::GetBoolean(bool* out) const
 {
     const HypData& data = *GetHypData();
 
@@ -745,23 +745,23 @@ bool Value::GetBoolean(bool* out) const
     return true;
 }
 
-bool Value::GetString(const VMString** out) const
+bool Script_Value::GetString(const Script_String** out) const
 {
     AssertDebug(out != nullptr);
 
     const HypData& data = *GetHypData();
 
-    if (!data.Is<VMString>(true))
+    if (!data.Is<Script_String>(true))
     {
         return false;
     }
 
-    *out = &data.Get<VMString>();
+    *out = &data.Get<Script_String>();
 
     return true;
 }
 
-const AnyHandle& Value::GetObject() const
+const AnyHandle& Script_Value::GetObject() const
 {
     const HypData& data = *GetHypData();
 
@@ -773,13 +773,13 @@ const AnyHandle& Value::GetObject() const
     return data.Get<AnyHandle>();
 }
 
-AnyRef Value::ToRef() const
+AnyRef Script_Value::ToRef() const
 {
     const HypData& data = *GetHypData();
     return data.ToRef();
 }
 
-Script_UserData Value::GetUserData() const
+Script_UserData Script_Value::GetUserData() const
 {
     const Script_VMData* vmData = GetVMData();
 
@@ -791,7 +791,7 @@ Script_UserData Value::GetUserData() const
     return vmData->userData;
 }
 
-int Value::CompareAsPointers(Value* lhs, Value* rhs)
+int Script_Value::CompareAsPointers(Script_Value* lhs, Script_Value* rhs)
 {
     void* a = lhs->GetHypData()->ToRef().GetPointer();
     void* b = rhs->GetHypData()->ToRef().GetPointer();
@@ -811,7 +811,7 @@ int Value::CompareAsPointers(Value* lhs, Value* rhs)
     }
 }
 
-int Value::CompareAsFunctions(Value* lhs, Value* rhs)
+int Script_Value::CompareAsFunctions(Script_Value* lhs, Script_Value* rhs)
 {
     Script_VMData* lhsVmData = lhs->GetVMData();
     Script_VMData* rhsVmData = rhs->GetVMData();
@@ -826,7 +826,7 @@ int Value::CompareAsFunctions(Value* lhs, Value* rhs)
         : CF_NONE;
 }
 
-int Value::CompareAsNativeFunctions(Value* lhs, Value* rhs)
+int Script_Value::CompareAsNativeFunctions(Script_Value* lhs, Script_Value* rhs)
 {
     Script_VMData* lhsVmData = lhs->GetVMData();
     Script_VMData* rhsVmData = rhs->GetVMData();
@@ -841,7 +841,7 @@ int Value::CompareAsNativeFunctions(Value* lhs, Value* rhs)
         : CF_NONE;
 }
 
-const char* Value::GetTypeString() const
+const char* Script_Value::GetTypeString() const
 {
     const HypData& data = *GetHypData();
 
@@ -896,7 +896,7 @@ const char* Value::GetTypeString() const
     {
         return "bool";
     }
-    else if (typeId == TypeId::ForType<VMString>())
+    else if (typeId == TypeId::ForType<Script_String>())
     {
         return "string";
     }
@@ -936,23 +936,23 @@ const char* Value::GetTypeString() const
     return "<Unknown type>";
 }
 
-VMString Value::ToString() const
+Script_String Script_Value::ToString() const
 {
     if (IsRef())
     {
-        if (Value* ref = GetRef())
+        if (Script_Value* ref = GetRef())
         {
             Assert(!ref->IsRef()); // should not be a reference itself to prevent infinite recursion
 
             return ref->ToString();
         }
 
-        return VMString(g_nullString);
+        return Script_String(g_nullString);
     }
 
     const HypData& hypData = *GetHypData();
 
-    VMString result("<error>");
+    Script_String result("<error>");
     if (ValueDataToString(hypData, result))
     {
         return result;
@@ -967,29 +967,28 @@ VMString Value::ToString() const
         switch (vmData->type)
         {
         case Script_VMData::FUNCTION:
-            return VMString("<Function>");
+            return Script_String("<Function>");
         case Script_VMData::NATIVE_FUNCTION:
-            return VMString("<Native Function>");
+            return Script_String("<Native Function>");
         case Script_VMData::ADDRESS:
             std::snprintf(buf, bufSize, "<Function address @ %p>", (void*)vmData->func.m_addr);
-            return VMString(buf);
+            return Script_String(buf);
         case Script_VMData::FUNCTION_CALL:
-            return VMString("<Stack frame>");
+            return Script_String("<Stack frame>");
         case Script_VMData::TRY_CATCH_INFO:
-            return VMString("<Try catch info>");
+            return Script_String("<Try catch info>");
         case Script_VMData::USER_DATA:
             std::snprintf(buf, bufSize, "<User data @ %p>", vmData->userData);
-            return VMString(buf);
+            return Script_String(buf);
         default:
             HYP_UNREACHABLE();
-            return VMString("<Unknown VM data>");
         }
     }
 
-    return VMString(HYP_FORMAT("<{} @ {}>", LookupTypeName(hypData.GetTypeId()), hypData.ToRef().GetPointer()));
+    return Script_String(HYP_FORMAT("<{} @ {}>", LookupTypeName(hypData.GetTypeId()), hypData.ToRef().GetPointer()));
 }
 
-void Value::ToRepresentation(
+void Script_Value::ToRepresentation(
     std::stringstream& ss,
     bool addTypeName,
     int depth) const

@@ -12,12 +12,12 @@
 
 namespace hyperion {
 
-class VMMap
+class Script_HashMap
 {
 public:
     struct VMMapKey
     {
-        Value key;
+        Script_Value key;
         uint64 hash;
 
         HYP_FORCE_INLINE bool operator==(const VMMapKey& other) const
@@ -36,14 +36,14 @@ public:
         }
     };
 
-    using InternalMapType = HashMap<VMMapKey, Value, HashTable_DynamicNodeAllocator<KeyValuePair<VMMapKey, Value>>>;
+    using InternalMapType = HashMap<VMMapKey, Script_Value, HashTable_DynamicNodeAllocator<KeyValuePair<VMMapKey, Script_Value>>>;
 
-    VMMap();
-    VMMap(const VMMap& other) = delete;
-    VMMap& operator=(const VMMap& other) = delete;
-    VMMap(VMMap&& other) noexcept;
-    VMMap& operator=(VMMap&& other) noexcept;
-    ~VMMap();
+    Script_HashMap();
+    Script_HashMap(const Script_HashMap& other) = delete;
+    Script_HashMap& operator=(const Script_HashMap& other) = delete;
+    Script_HashMap(Script_HashMap&& other) noexcept;
+    Script_HashMap& operator=(Script_HashMap&& other) noexcept;
+    ~Script_HashMap();
 
     SizeType GetSize() const
     {
@@ -60,15 +60,15 @@ public:
         return m_map;
     }
 
-    bool operator==(const VMMap& other) const
+    bool operator==(const Script_HashMap& other) const
     {
         return this == &other;
     }
 
-    void SetElement(VMMapKey&& key, Value&& value);
+    void SetElement(VMMapKey&& key, Script_Value&& value);
 
-    Value* GetElement(const VMMapKey& key);
-    const Value* GetElement(const VMMapKey& key) const;
+    Script_Value* GetElement(const VMMapKey& key);
+    const Script_Value* GetElement(const VMMapKey& key) const;
 
     void GetRepresentation(
         std::stringstream& ss,

@@ -8,31 +8,31 @@
 
 namespace hyperion {
 
-class VMString
+class Script_String
 {
 public:
-    static VMString Concat(const VMString& a, const VMString& b);
+    static Script_String Concat(const Script_String& a, const Script_String& b);
 
 public:
-    explicit VMString(const char* str);
-    VMString(const char* str, int maxLen);
-    explicit VMString(const String& str);
-    explicit VMString(String&& str);
+    explicit Script_String(const char* str);
+    Script_String(const char* str, int maxLen);
+    explicit Script_String(const String& str);
+    explicit Script_String(String&& str);
 
-    VMString(const VMString& other);
-    VMString& operator=(const VMString& other);
+    Script_String(const Script_String& other);
+    Script_String& operator=(const Script_String& other);
 
-    VMString(VMString&& other) noexcept;
-    VMString& operator=(VMString&& other) noexcept;
+    Script_String(Script_String&& other) noexcept;
+    Script_String& operator=(Script_String&& other) noexcept;
 
-    ~VMString();
+    ~Script_String();
 
-    bool operator==(const VMString& other) const
+    bool operator==(const Script_String& other) const
     {
         return m_str == other.m_str;
     }
 
-    bool operator!=(const VMString& other) const
+    bool operator!=(const Script_String& other) const
     {
         return m_str != other.m_str;
     }

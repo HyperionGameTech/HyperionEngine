@@ -19,8 +19,6 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-#include <script/vm/VMArray.hpp>
-
 #include <script/Instructions.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>

@@ -1,4 +1,4 @@
-#include <script/vm/VMArray.hpp>
+#include <script/vm/Array.hpp>
 
 namespace hyperion {
 

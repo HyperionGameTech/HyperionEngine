@@ -14,14 +14,14 @@
 namespace hyperion {
 
 class HypScript;
-class VM;
-class ExportedSymbolTable;
+class Script_Interpreter;
+class Script_SymbolTable;
 class InstructionStream;
 
 struct Script_Instance;
 
-#define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType)   \
-    enum class handleTypeName : underlyingType;                                         \
+#define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType) \
+    enum class handleTypeName : underlyingType;                                       \
     constexpr handleTypeName INVALID_##handleTypeNameCaps = handleTypeName(0);
 
 HYP_DEF_SCRIPT_API_HANDLE(Script_FunctionHandle, FUNCTION, uintptr_t)
@@ -41,7 +41,7 @@ public:
     HypScript& operator=(const HypScript& other) = delete;
     ~HypScript();
 
-    VM* GetVM() const
+    Script_Interpreter* GetVM() const
     {
         return m_vm;
     }
@@ -56,28 +56,28 @@ public:
     void Run(Script_Instance* instance);
 
     template <class T>
-    static inline Value CreateArgument(T&& item)
+    static inline Script_Value CreateArgument(T&& item)
     {
-        return Value(HypData(std::forward<T>(item)));
+        return Script_Value(HypData(std::forward<T>(item)));
     }
 
     template <class... Args>
-    static inline auto CreateArguments(Args&&... args) -> FixedArray<Value, sizeof...(Args)>
+    static inline auto CreateArguments(Args&&... args) -> FixedArray<Script_Value, sizeof...(Args)>
     {
-        return FixedArray<Value, sizeof...(Args)> { CreateArgument(args)... };
+        return FixedArray<Script_Value, sizeof...(Args)> { CreateArgument(args)... };
     }
 
-    void CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Value* args, ArgCount numArgs);
+    void CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Script_Value* args, ArgCount numArgs);
 
     bool GetFunctionHandle(const char* name, Script_FunctionHandle& outFunctionHandle);
     bool GetObjectHandle(const char* name, Script_ObjectHandle& outObjectHandle);
 
-    bool GetExportedValue(const char* name, Value*& outValue);
+    bool GetExportedValue(const char* name, Script_Value*& outValue);
 
-    ExportedSymbolTable& GetExportedSymbols() const;
+    Script_SymbolTable& GetExportedSymbols() const;
 
-    bool GetMember(Script_ObjectHandle objectHandle, const char* memberName, Value*& outValue);
-    bool SetMember(Script_ObjectHandle objectHandle, const char* memberName, Value&& value);
+    bool GetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value*& outValue);
+    bool SetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value&& value);
 
     template <class... Args>
     void CallFunction(Script_Instance* instance, Script_FunctionHandle functionHandle, Args&&... args)
@@ -87,10 +87,10 @@ public:
         CallFunctionArgV(instance, functionHandle, arguments.Data(), arguments.Size());
     }
 
-    void ReadLastReturnValue(Script_Instance* instance, Value& outValue);
+    void ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue);
 
 private:
-    VM* m_vm;
+    Script_Interpreter* m_vm;
 
     // global cached data used from native code
     mutable Mutex m_mutex;

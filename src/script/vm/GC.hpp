@@ -8,23 +8,23 @@
 
 namespace hyperion {
 
-class GC
+class Script_GC
 {
-    using Pool = MemoryPool<Value>;
+    using Pool = MemoryPool<Script_Value>;
 
 public:
-    GC();
+    Script_GC();
 
-    GC(const GC& other) = delete;
-    GC& operator=(const GC& other) = delete;
+    Script_GC(const Script_GC& other) = delete;
+    Script_GC& operator=(const Script_GC& other) = delete;
 
-    GC(GC&& other) = delete;
-    GC& operator=(GC&& other) = delete;
+    Script_GC(Script_GC&& other) = delete;
+    Script_GC& operator=(Script_GC&& other) = delete;
 
-    ~GC();
+    ~Script_GC();
 
     // returns the new pointer in tracked memory
-    Value* MoveToTrackedMemory(Value&& value);
+    Script_Value* MoveToTrackedMemory(Script_Value&& value);
 
 private:
     Pool m_pool;

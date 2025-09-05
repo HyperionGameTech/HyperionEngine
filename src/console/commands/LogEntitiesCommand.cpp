@@ -39,7 +39,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 {
     HYP_LOG(LogEntities, Info, "LogEntitiesCommand test");
 
-    // Trigger .NET GC and wait for finalizers (there may be entities waiting to be GC'd)
+    // Trigger .NET garbage collector and wait for finalizers (there may be entities waiting to be collected)
     dotnet::DotNetSystem::GetInstance().GetGlobalFunctions().triggerGcFunction();
     Threads::Sleep(1000);
 

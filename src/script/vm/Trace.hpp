@@ -2,27 +2,26 @@
 
 #include <core/Core.hpp>
 
-struct StackTrace
+struct Script_Trace
 {
     int callAddresses[10];
 
-    StackTrace()
+    Script_Trace()
     {
         hyperion::Memory::MemSet(callAddresses, 0, sizeof(callAddresses));
     }
 
-    StackTrace(const StackTrace& other)
+    Script_Trace(const Script_Trace& other)
     {
         hyperion::Memory::MemCpy(callAddresses, other.callAddresses, sizeof(callAddresses));
     }
 
-    StackTrace& operator=(const StackTrace& other)
+    Script_Trace& operator=(const Script_Trace& other)
     {
         hyperion::Memory::MemCpy(callAddresses, other.callAddresses, sizeof(callAddresses));
 
         return *this;
     }
 
-    ~StackTrace() = default;
+    ~Script_Trace() = default;
 };
-

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <script/vm/BytecodeStream.hpp>
+#include <script/vm/Stream.hpp>
 #include <script/compiler/emit/Instruction.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <core/containers/String.hpp>
@@ -18,8 +18,8 @@ public:
     DecompilationUnit();
     DecompilationUnit(const DecompilationUnit& other) = delete;
 
-    void DecodeNext(uint8 code, BytecodeStream& bs, InstructionStream& is, std::ostream* os = nullptr);
-    InstructionStream* Decompile(BytecodeStream& bs, std::ostream* os = nullptr);
+    void DecodeNext(uint8 code, Script_Stream& bs, InstructionStream& is, std::ostream* os = nullptr);
+    InstructionStream* Decompile(Script_Stream& bs, std::ostream* os = nullptr);
 };
 
 } // namespace hyperion

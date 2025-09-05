@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-class Tracemap
+class Script_Tracemap
 {
 public:
     // read stringmap into memory.
@@ -18,7 +18,7 @@ public:
             ENTRY_TYPE_MODULE_NAME
         } entryType;
 
-        char data[255];
+        char data[256];
     };
 
     // a mapping from binary instruction location, to line number as well as optionally, stringmap index (-1 if not set).
@@ -29,10 +29,10 @@ public:
         int64 stringmapIndex;
     };
 
-    Tracemap();
-    Tracemap(const Tracemap& other) = delete;
-    Tracemap& operator=(const Tracemap& other) = delete;
-    ~Tracemap();
+    Script_Tracemap();
+    Script_Tracemap(const Script_Tracemap& other) = delete;
+    Script_Tracemap& operator=(const Script_Tracemap& other) = delete;
+    ~Script_Tracemap();
 
     void Set(StringmapEntry* stringmap, LinemapEntry* linemap);
 

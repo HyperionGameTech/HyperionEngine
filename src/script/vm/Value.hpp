@@ -5,7 +5,7 @@
 #include <core/memory/Any.hpp>
 #include <core/memory/UniquePtr.hpp>
 
-#include <script/vm/VMString.hpp>
+#include <script/vm/String.hpp>
 #include <core/Types.hpp>
 
 #include <core/io/ByteWriter.hpp>
@@ -22,21 +22,17 @@ class AnyHandle;
 struct HypData;
 struct HypMethod;
 
-typedef uint8 BCRegister;
-
-#ifdef HYP_SCRIPT
 enum class Script_FunctionAddress : uint32;
+
 #ifndef INVALID_FUNCTION_ADDRESS
 #define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
 #endif
-#endif
 
-class Value;
-class InstructionHandler;
+class Script_Value;
 struct Script_ExecutionThread;
-class VM;
-class GC;
-class Exception;
+class Script_Interpreter;
+class Script_GC;
+class Script_Exception;
 
 enum NumericType : uint8
 {
@@ -133,14 +129,14 @@ namespace sdk {
 
 struct Params
 {
-    Value** args;
+    Script_Value** args;
     int32 nargs;
 
     void* ctx; // needs to be passed to the function pointers below.
 
     // sets the return value of a native function.
-    void (*setReturnValue)(void* ctx, Value&& value);
-    void (*throwException)(void* ctx, const Exception& exception);
+    void (*setReturnValue)(void* ctx, Script_Value&& value);
+    void (*throwException)(void* ctx, const Script_Exception& exception);
 };
 
 } // namespace sdk
@@ -163,7 +159,7 @@ struct alignas(8) Script_VMData
 {
     union
     {
-        Value* valueRef;
+        Script_Value* valueRef;
 
         struct
         {
@@ -211,28 +207,28 @@ struct alignas(8) Script_VMData
 enum class GCIndex : uint32;
 static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
 
-class alignas(8) Value
+class alignas(8) Script_Value
 {
-    friend class VM;
-    friend class GC;
+    friend class Script_Interpreter;
+    friend class Script_GC;
 
     char m_internal[32];
     GCIndex m_gcIndex;
 
 public:
-    Value();
+    Script_Value();
 
-    explicit Value(HypData&& data);
-    explicit Value(Number number);
-    explicit Value(const Script_VMData& vmData);
+    explicit Script_Value(HypData&& data);
+    explicit Script_Value(Number number);
+    explicit Script_Value(const Script_VMData& vmData);
 
-    Value(const Value& other);
-    Value(Value&& other) noexcept;
+    Script_Value(const Script_Value& other);
+    Script_Value(Script_Value&& other) noexcept;
 
-    Value& operator=(const Value& other);
-    Value& operator=(Value&& other) noexcept;
+    Script_Value& operator=(const Script_Value& other);
+    Script_Value& operator=(Script_Value&& other) noexcept;
 
-    ~Value();
+    ~Script_Value();
 
     HYP_FORCE_INLINE GCIndex GetGCIndex() const
     {
@@ -252,11 +248,11 @@ public:
     bool IsNativeFunction() const;
 
     bool IsRef() const;
-    Value* GetRef() const;
+    Script_Value* GetRef() const;
 
-    Value* Deref()
+    Script_Value* Deref()
     {
-        Value* deref = GetRef();
+        Script_Value* deref = GetRef();
         if (deref != nullptr)
         {
             return deref;
@@ -265,9 +261,9 @@ public:
         return this;
     }
 
-    const Value* Deref() const
+    const Script_Value* Deref() const
     {
-        const Value* deref = GetRef();
+        const Script_Value* deref = GetRef();
 
         if (deref != nullptr)
         {
@@ -277,7 +273,7 @@ public:
         return this;
     }
 
-    void AssignValue(Value&& other, bool assignRef);
+    void AssignValue(Script_Value&& other, bool assignRef);
 
     bool GetUnsigned(uint64* out) const;
     bool GetInteger(int64* out) const;
@@ -293,7 +289,7 @@ public:
 
     bool GetBoolean(bool* out) const;
 
-    bool GetString(const VMString** out) const;
+    bool GetString(const Script_String** out) const;
 
     const AnyHandle& GetObject() const;
 
@@ -301,16 +297,16 @@ public:
 
     Script_UserData GetUserData() const;
 
-    static int CompareAsPointers(Value* lhs, Value* rhs);
-    static int CompareAsFunctions(Value* lhs, Value* rhs);
-    static int CompareAsNativeFunctions(Value* lhs, Value* rhs);
+    static int CompareAsPointers(Script_Value* lhs, Script_Value* rhs);
+    static int CompareAsFunctions(Script_Value* lhs, Script_Value* rhs);
+    static int CompareAsNativeFunctions(Script_Value* lhs, Script_Value* rhs);
 
-    HYP_FORCE_INLINE bool operator==(const Value& other) const
+    HYP_FORCE_INLINE bool operator==(const Script_Value& other) const
     {
-        return CompareAsPointers(const_cast<Value*>(this), const_cast<Value*>(&other)) & CF_EQUAL;
+        return CompareAsPointers(const_cast<Script_Value*>(this), const_cast<Script_Value*>(&other)) & CF_EQUAL;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const Value& other) const
+    HYP_FORCE_INLINE bool operator!=(const Script_Value& other) const
     {
         return !(*this == other);
     }
@@ -318,7 +314,7 @@ public:
     void Mark();
 
     const char* GetTypeString() const;
-    VMString ToString() const;
+    Script_String ToString() const;
     void ToRepresentation(
         std::stringstream& ss,
         bool addTypeName = true,

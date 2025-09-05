@@ -1,6 +1,6 @@
 #include <script/HypScript.hpp>
 
-#include <script/vm/BytecodeStream.hpp>
+#include <script/vm/Stream.hpp>
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/InstructionStream.hpp>
@@ -18,7 +18,7 @@
 
 #include <script/compiler/AstPrintVisitor.hpp>
 
-#include <script/vm/VM.hpp>
+#include <script/vm/Interpreter.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -41,7 +41,7 @@ HypScript& HypScript::GetInstance()
 }
 
 HypScript::HypScript()
-    : m_vm(new VM())
+    : m_vm(new Script_Interpreter())
 {
 }
 
@@ -134,7 +134,7 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
         codeGenerator.Bake();
 
         Script_Instance* scriptInstance = new Script_Instance {
-            BytecodeStream(codeGenerator.GetInternalByteStream().GetData())
+            Script_Stream(codeGenerator.GetInternalByteStream().GetData())
         };
 
         return scriptInstance;
@@ -163,7 +163,7 @@ void HypScript::Run(Script_Instance* instance)
     m_vm->Execute(instance);
 }
 
-void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Value* args, ArgCount numArgs)
+void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Script_Value* args, ArgCount numArgs)
 {
     Assert(instance != nullptr);
     Assert(functionHandle != INVALID_FUNCTION);
@@ -182,9 +182,9 @@ void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandl
     // and we don't want to move the underlying value
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = reinterpret_cast<Value*>(functionHandle);
+    vmData.valueRef = reinterpret_cast<Script_Value*>(functionHandle);
 
-    m_vm->InvokeNow(instance, Value(vmData), numArgs);
+    m_vm->InvokeNow(instance, Script_Value(vmData), numArgs);
 
     if (numArgs != 0)
     {
@@ -192,14 +192,14 @@ void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandl
     }
 }
 
-void HypScript::ReadLastReturnValue(Script_Instance* instance, Value& outValue)
+void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue)
 {
     Assert(instance != nullptr);
 
     outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_vm->GetGC());
 }
 
-bool HypScript::GetMember(Script_ObjectHandle objectHandle, const char* memberName, Value*& outValue)
+bool HypScript::GetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value*& outValue)
 {
     HYP_NOT_IMPLEMENTED();
 
@@ -210,7 +210,7 @@ bool HypScript::GetMember(Script_ObjectHandle objectHandle, const char* memberNa
         return false;
     }
 
-    Value& objectValue = *reinterpret_cast<Value*>(objectHandle);
+    Script_Value& objectValue = *reinterpret_cast<Script_Value*>(objectHandle);
 
     VMObject* object = objectValue.GetObject();
 
@@ -230,7 +230,7 @@ bool HypScript::GetMember(Script_ObjectHandle objectHandle, const char* memberNa
 #endif
 }
 
-bool HypScript::SetMember(Script_ObjectHandle objectHandle, const char* memberName, Value&& value)
+bool HypScript::SetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value&& value)
 {
     HYP_NOT_IMPLEMENTED();
 #if 0
@@ -239,7 +239,7 @@ bool HypScript::SetMember(Script_ObjectHandle objectHandle, const char* memberNa
         return false;
     }
 
-    Value& objectValue = *reinterpret_cast<Value*>(objectHandle);
+    Script_Value& objectValue = *reinterpret_cast<Script_Value*>(objectHandle);
 
     VMObject* object = objectValue.GetObject();
 
@@ -263,7 +263,7 @@ bool HypScript::GetFunctionHandle(const char* name, Script_FunctionHandle& outFu
 {
     outFunctionHandle = INVALID_FUNCTION;
 
-    Value* pValue;
+    Script_Value* pValue;
     if (!GetExportedValue(name, pValue))
     {
         return false;
@@ -283,7 +283,7 @@ bool HypScript::GetObjectHandle(const char* name, Script_ObjectHandle& outObject
 {
     outObjectHandle = INVALID_OBJECT;
 
-    Value* pValue;
+    Script_Value* pValue;
 
     if (!GetExportedValue(name, pValue))
     {
@@ -295,7 +295,7 @@ bool HypScript::GetObjectHandle(const char* name, Script_ObjectHandle& outObject
         return false;
     }
 
-    Value* pRef = pValue->GetRef();
+    Script_Value* pRef = pValue->GetRef();
     if (pRef == nullptr || !pRef->IsValid())
     {
         return false;
@@ -306,12 +306,12 @@ bool HypScript::GetObjectHandle(const char* name, Script_ObjectHandle& outObject
     return true;
 }
 
-bool HypScript::GetExportedValue(const char* name, Value*& outValue)
+bool HypScript::GetExportedValue(const char* name, Script_Value*& outValue)
 {
     return GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), outValue);
 }
 
-ExportedSymbolTable& HypScript::GetExportedSymbols() const
+Script_SymbolTable& HypScript::GetExportedSymbols() const
 {
     return m_vm->GetExportedSymbols();
 }

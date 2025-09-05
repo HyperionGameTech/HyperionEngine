@@ -195,7 +195,7 @@ void HyperionEditor::Init()
             {
                 HypScript::GetInstance().CallFunction(instance, functionHandle, 5, 4);
 
-                Value lastReturn;
+                Script_Value lastReturn;
                 HypScript::GetInstance().ReadLastReturnValue(instance, lastReturn);
 
                 if (lastReturn.IsValid())

@@ -27,7 +27,7 @@ DecompilationUnit::DecompilationUnit()
 
 void DecompilationUnit::DecodeNext(
     uint8 code,
-    hyperion::BytecodeStream& bs,
+    hyperion::Script_Stream& bs,
     InstructionStream& is,
     std::ostream* os)
 {
@@ -1055,7 +1055,7 @@ void DecompilationUnit::DecodeNext(
         bs.Read(nameStr, nameLen);
 
         // Read type id
-        TypeId::ValueType typeIdValue; // keep same type as VM
+        TypeId::ValueType typeIdValue;
         bs.Read(&typeIdValue);
 
         uint8 flags;
@@ -1209,11 +1209,11 @@ void DecompilationUnit::DecodeNext(
                     delete[] attrNameStr;
                 }
 
-                // Read member type id (same as VM)
+                // Read member type id
                 TypeId::ValueType memberTypeIdValue;
                 bs.Read(&memberTypeIdValue);
 
-                // Read member-type-specific data (mirror VM)
+                // Read member-type-specific data
                 switch ((HypMemberType)memberType)
                 {
                 case HypMemberType::TYPE_FIELD:
@@ -1726,7 +1726,7 @@ void DecompilationUnit::DecodeNext(
     }
 }
 
-InstructionStream* DecompilationUnit::Decompile(hyperion::BytecodeStream& bs, std::ostream* os)
+InstructionStream* DecompilationUnit::Decompile(hyperion::Script_Stream& bs, std::ostream* os)
 {
     const SizeType prevPosition = bs.Position();
 

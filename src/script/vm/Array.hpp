@@ -7,7 +7,7 @@
 
 namespace hyperion {
 
-using Script_ValueArray = Array<Value>;
+using Script_ValueArray = Array<Script_Value>;
 
 void GetRepresentation(
     const Script_ValueArray& value,

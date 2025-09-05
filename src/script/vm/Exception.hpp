@@ -6,47 +6,47 @@
 
 namespace hyperion {
 
-class Value;
+class Script_Value;
 
-class Exception
+class Script_Exception
 {
 public:
-    Exception(const char* str);
-    Exception(const Exception& other);
-    Exception& operator=(const Exception& other);
-    Exception(Exception&& other) noexcept;
-    Exception& operator=(Exception&& other) noexcept;
-    ~Exception();
+    Script_Exception(const char* str);
+    Script_Exception(const Script_Exception& other);
+    Script_Exception& operator=(const Script_Exception& other);
+    Script_Exception(Script_Exception&& other) noexcept;
+    Script_Exception& operator=(Script_Exception&& other) noexcept;
+    ~Script_Exception();
 
     const char* ToString() const
     {
         return m_str;
     }
 
-    static Exception InvalidComparisonException(const char* leftTypeStr, const char* rightTypeStr);
-    static Exception InvalidOperationException(const char* opName,
+    static Script_Exception InvalidComparisonException(const char* leftTypeStr, const char* rightTypeStr);
+    static Script_Exception InvalidOperationException(const char* opName,
         const char* leftTypeStr, const char* rightTypeStr);
-    static Exception InvalidOperationException(const char* opName, const char* typeStr);
-    static Exception InvalidCastException(const char* fromTypeStr, const char* toTypeStr);
-    static Exception InvalidBitwiseArgument();
-    static Exception InvalidArgsException(int expected, int received, bool variadic = false);
-    static Exception InvalidArgsException(const char* expectedStr, int received);
-    static Exception InvalidArgsException(const char* expectedStr);
-    static Exception InvalidConstructorException();
-    static Exception NullReferenceException();
-    static Exception DivisionByZeroException();
-    static Exception OutOfBoundsException(SizeType index, SizeType size);
-    static Exception MemberNotFoundException(HashCode::ValueType hashCode);
-    static Exception InvalidMemberAccessException(Value* pValue);
-    static Exception FileOpenException(const char* fileName);
-    static Exception UnopenedFileWriteException();
-    static Exception UnopenedFileReadException();
-    static Exception UnopenedFileCloseException();
-    static Exception LibraryLoadException(const char* libName);
-    static Exception LibraryFunctionLoadException(const char* funcName);
-    static Exception DuplicateExportException();
-    static Exception KeyNotFoundException(const char* key);
-    static Exception ClassNotFoundException(const char* className);
+    static Script_Exception InvalidOperationException(const char* opName, const char* typeStr);
+    static Script_Exception InvalidCastException(const char* fromTypeStr, const char* toTypeStr);
+    static Script_Exception InvalidBitwiseArgument();
+    static Script_Exception InvalidArgsException(int expected, int received, bool variadic = false);
+    static Script_Exception InvalidArgsException(const char* expectedStr, int received);
+    static Script_Exception InvalidArgsException(const char* expectedStr);
+    static Script_Exception InvalidConstructorException();
+    static Script_Exception NullReferenceException();
+    static Script_Exception DivisionByZeroException();
+    static Script_Exception OutOfBoundsException(SizeType index, SizeType size);
+    static Script_Exception MemberNotFoundException(HashCode::ValueType hashCode);
+    static Script_Exception InvalidMemberAccessException(Script_Value* pValue);
+    static Script_Exception FileOpenException(const char* fileName);
+    static Script_Exception UnopenedFileWriteException();
+    static Script_Exception UnopenedFileReadException();
+    static Script_Exception UnopenedFileCloseException();
+    static Script_Exception LibraryLoadException(const char* libName);
+    static Script_Exception LibraryFunctionLoadException(const char* funcName);
+    static Script_Exception DuplicateExportException();
+    static Script_Exception KeyNotFoundException(const char* key);
+    static Script_Exception ClassNotFoundException(const char* className);
 
 private:
     char* m_str;

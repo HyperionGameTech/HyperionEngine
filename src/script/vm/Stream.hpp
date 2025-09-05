@@ -8,19 +8,19 @@
 
 namespace hyperion {
 
-class BytecodeStream
+class Script_Stream
 {
 public:
-    static BytecodeStream FromSourceFile(SourceFile& file);
+    static Script_Stream FromSourceFile(SourceFile& file);
 
 public:
-    BytecodeStream();
-    BytecodeStream(const ubyte* buffer, SizeType size, SizeType position = 0);
-    BytecodeStream(const ByteBuffer& byteBuffer, SizeType position = 0);
-    BytecodeStream(const BytecodeStream& other);
-    ~BytecodeStream() = default;
+    Script_Stream();
+    Script_Stream(const ubyte* buffer, SizeType size, SizeType position = 0);
+    Script_Stream(const ByteBuffer& byteBuffer, SizeType position = 0);
+    Script_Stream(const Script_Stream& other);
+    ~Script_Stream() = default;
 
-    BytecodeStream& operator=(const BytecodeStream& other);
+    Script_Stream& operator=(const Script_Stream& other);
 
     const ubyte* GetBuffer() const
     {

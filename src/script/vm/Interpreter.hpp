@@ -1,9 +1,9 @@
 #pragma once
 
-#include <script/vm/BytecodeStream.hpp>
-#include <script/vm/StackTrace.hpp>
+#include <script/vm/Stream.hpp>
+#include <script/vm/Trace.hpp>
 #include <script/vm/Tracemap.hpp>
-#include <script/vm/ExportedSymbolTable.hpp>
+#include <script/vm/SymbolTable.hpp>
 
 #include <core/containers/HeapArray.hpp>
 
@@ -21,23 +21,23 @@
 
 namespace hyperion {
 
-extern Value ScriptApi_MakeValue(const Script_VMData& data);
-extern Value ScriptApi_MakeValue(const Number& number);
-extern Value ScriptApi_MakeValue(HypData&& data);
-extern Value ScriptApi_MakeRef(Value& refValue);
-extern Value ScriptApi_MakeRef(Value& refValue, GC* gc, bool promoteToTrackedMemory);
-extern Value ScriptApi_ShallowCopy(Value& refValue, GC* gc);
+extern Script_Value ScriptApi_MakeValue(const Script_VMData& data);
+extern Script_Value ScriptApi_MakeValue(const Number& number);
+extern Script_Value ScriptApi_MakeValue(HypData&& data);
+extern Script_Value ScriptApi_MakeRef(Script_Value& refValue);
+extern Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promoteToTrackedMemory);
+extern Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc);
 
-class GC;
+class Script_GC;
 
 static constexpr uint32 VM_NUM_REGISTERS = 8;
 
 struct Script_RegisterMemory
 {
-    Value m_reg[VM_NUM_REGISTERS];
+    Script_Value m_reg[VM_NUM_REGISTERS];
     int m_flags = 0;
 
-    HYP_FORCE_INLINE Value& operator[](uint8 index)
+    HYP_FORCE_INLINE Script_Value& operator[](uint8 index)
     {
         return m_reg[index];
     }
@@ -61,14 +61,14 @@ public:
     Script_StaticMemory& operator=(Script_StaticMemory&& other) noexcept = delete;
     ~Script_StaticMemory();
 
-    HYP_FORCE_INLINE Value& operator[](SizeType index)
+    HYP_FORCE_INLINE Script_Value& operator[](SizeType index)
     {
         AssertDebug(index < staticSize, "out of bounds");
         return m_data[index];
     }
 
 private:
-    Value* m_data;
+    Script_Value* m_data;
 };
 
 class Script_StackMemory
@@ -89,13 +89,13 @@ public:
     /** Mark all items on the stack to not be garbage collected */
     void MarkAll();
 
-    HYP_FORCE_INLINE Value* GetData()
+    HYP_FORCE_INLINE Script_Value* GetData()
     {
-        return reinterpret_cast<Value*>(m_data.Data());
+        return reinterpret_cast<Script_Value*>(m_data.Data());
     }
-    HYP_FORCE_INLINE const Value* GetData() const
+    HYP_FORCE_INLINE const Script_Value* GetData() const
     {
-        return reinterpret_cast<const Value*>(m_data.Data());
+        return reinterpret_cast<const Script_Value*>(m_data.Data());
     }
 
     HYP_FORCE_INLINE SizeType GetStackPointer() const
@@ -103,7 +103,7 @@ public:
         return m_sp;
     }
 
-    HYP_FORCE_INLINE Value& operator[](SizeType index)
+    HYP_FORCE_INLINE Script_Value& operator[](SizeType index)
     {
         AssertDebug(index < STACK_SIZE, "out of bounds");
         AssertDebug(index < m_sp, "reading uninitialized stack memory");
@@ -111,7 +111,7 @@ public:
         return m_data[index].Get();
     }
 
-    HYP_FORCE_INLINE const Value& operator[](SizeType index) const
+    HYP_FORCE_INLINE const Script_Value& operator[](SizeType index) const
     {
         Assert(index < STACK_SIZE, "out of bounds");
         Assert(index < m_sp, "reading uninitialized stack memory");
@@ -120,24 +120,24 @@ public:
     }
 
     // return the top value from the stack
-    HYP_FORCE_INLINE Value& Top()
+    HYP_FORCE_INLINE Script_Value& Top()
     {
         Assert(m_sp > 0, "read from empty stack");
         return m_data[m_sp - 1].Get();
     }
 
     // return the top value from the stack
-    HYP_FORCE_INLINE const Value& Top() const
+    HYP_FORCE_INLINE const Script_Value& Top() const
     {
         Assert(m_sp > 0, "read from empty stack");
         return m_data[m_sp - 1].Get();
     }
 
     // push a value to the stack
-    HYP_FORCE_INLINE void Push(Value&& value)
+    HYP_FORCE_INLINE void Push(Script_Value&& value)
     {
         Assert(m_sp < STACK_SIZE, "stack overflow");
-        new (&m_data[m_sp++]) Value(std::move(value));
+        new (&m_data[m_sp++]) Script_Value(std::move(value));
     }
 
     // pop top value from the stack
@@ -160,7 +160,7 @@ public:
         }
     }
 
-    HeapArray<ValueStorage<Value>, STACK_SIZE> m_data;
+    HeapArray<ValueStorage<Script_Value>, STACK_SIZE> m_data;
     SizeType m_sp;
 };
 
@@ -209,64 +209,63 @@ struct Script_ExecutionThread
 
 struct Script_Instance
 {
-    BytecodeStream stream;
+    Script_Stream stream;
     Script_ExecutionThread thread;
 };
 
-class VM
+class Script_Interpreter
 {
 public:
-    VM();
-    VM(const VM& other) = delete;
-    VM& operator=(const VM& other) = delete;
-    VM(VM&& other) noexcept = delete;
-    VM& operator=(VM&& other) noexcept = delete;
-    ~VM();
+    Script_Interpreter();
+    Script_Interpreter(const Script_Interpreter& other) = delete;
+    Script_Interpreter& operator=(const Script_Interpreter& other) = delete;
+    Script_Interpreter(Script_Interpreter&& other) noexcept = delete;
+    Script_Interpreter& operator=(Script_Interpreter&& other) noexcept = delete;
+    ~Script_Interpreter();
 
     void Invoke(
         Script_Instance* instance,
-        Value&& value,
+        Script_Value&& value,
         uint8 nargs);
 
     void InvokeNow(
         Script_Instance* instance,
-        Value&& value,
+        Script_Value&& value,
         uint8 nargs);
 
     void Execute(Script_Instance* instance);
 
-    /** Reset the state of the VM, destroying all heap objects,
+    /** Reset the state of the Script_Interpreter, destroying all heap objects,
         stack objects and exception flags, etc.
      */
     void Reset();
 
-    void ThrowException(Script_Instance* instance, const Exception& exception);
+    void ThrowException(Script_Instance* instance, const Script_Exception& exception);
 
-    GC* GetGC() const
+    Script_GC* GetGC() const
     {
         return m_gc;
     }
 
-    ExportedSymbolTable& GetExportedSymbols()
+    Script_SymbolTable& GetExportedSymbols()
     {
         return m_exportedSymbols;
     }
 
-    const ExportedSymbolTable& GetExportedSymbols() const
+    const Script_SymbolTable& GetExportedSymbols() const
     {
         return m_exportedSymbols;
     }
 
     Script_StaticMemory m_staticMemory;
-    GC* m_gc = nullptr;
-    VM* m_vm = nullptr;
-    Tracemap m_tracemap;
-    ExportedSymbolTable m_exportedSymbols;
-    Exception* m_unhandledException = nullptr;
+    Script_GC* m_gc = nullptr;
+    Script_Tracemap m_tracemap;
+    Script_SymbolTable m_exportedSymbols;
+    Script_Exception* m_unhandledException = nullptr;
 
 private:
     bool HandleException(Script_Instance* instance);
-    void CreateStackTrace(Script_Instance* instance, StackTrace* out);
+    void CreateTrace(Script_Instance* instance, Script_Trace* outTrace);
 };
 
 } // namespace hyperion
