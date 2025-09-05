@@ -356,28 +356,22 @@ Script_Value ScriptApi_MakeValue(const Number& number)
     return Script_Value(number);
 }
 
-/*! \brief Use for loading into registers - does not promote to tracked memory */
+/*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
 Script_Value ScriptApi_MakeRef(Script_Value& refValue)
 {
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = refValue.Deref();
+    vmData.valueRef = &refValue;
 
     Assert(vmData.valueRef != nullptr);
-    Assert(!vmData.valueRef->IsRef(), "Cannot create a reference to a reference");
     Assert(!vmData.valueRef->IsGarbage(), "Creating a reference to garbage value");
 
     return Script_Value(vmData);
 }
 
-/*! \brief Use for loading into registers - promotes to tracked memory if needed */
+/*! \brief Use for loading into registers - moves to tracked memory if `promoteToTrackedMemory` is true  and `refValue` is not already in tracked memory */
 Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promoteToTrackedMemory)
 {
-    if (refValue.IsRef())
-    {
-        return refValue;
-    }
-
     if (promoteToTrackedMemory)
     {
         Assert(gc != nullptr);
@@ -411,15 +405,18 @@ Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promo
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
 Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
 {
-    Script_Value* pValue = refValue.Deref();
-
-    if (pValue->GetGCIndex() != INVALID_GC_INDEX)
+    if (refValue.IsRef())
     {
-        // already in tracked memory, make new reference
-        return ScriptApi_MakeRef(*pValue);
+        return refValue; // already a reference, return as-is
     }
 
-    const HypData& hypData = *pValue->GetHypData();
+    if (refValue.GetGCIndex() != INVALID_GC_INDEX)
+    {
+        // in tracked memory, make a reference to it
+        return ScriptApi_MakeRef(refValue);
+    }
+
+    const HypData& hypData = *refValue.GetHypData();
 
     // 'Any' is used internally by HypData for object that is heap-allocated,
     // and we use reference semantics for it rather than copying.
@@ -443,8 +440,12 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
         return Script_Value(std::move(newHypData));
     }
 
+#ifndef HYP_SCRIPT_AUTO_REFERENCES
+    HYP_UNREACHABLE();
+#else
     // reference type - promote to tracked memory
     return ScriptApi_MakeRef(refValue, gc, true);
+#endif
 }
 
 #pragma endregion ScriptApi
@@ -548,7 +549,7 @@ public:
 
         // read value from stack at (sp - offset)
         // into the the register
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC(), true), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16 index)
@@ -562,7 +563,7 @@ public:
             stackMemory.GetStackPointer());
 
         // read value from stack at the index into the the register
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16 index)
@@ -571,7 +572,7 @@ public:
         // at the index into the the register
         Script_Value& value = vm->m_staticMemory[index];
 
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(value), false);
+        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(value, vm->GetGC(), false), false);
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
@@ -683,7 +684,8 @@ public:
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
-        Script_Value newRef = ScriptApi_MakeRef(instance->thread.m_regs[srcReg], vm->GetGC(), true);
+        // move to tracked memory pool:
+        Script_Value newRef = ScriptApi_MakeRef(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC(), true);
         Assert(newRef.IsRef());
 
         // load reference to value in srcReg into dstReg
@@ -692,7 +694,7 @@ public:
 
     HYP_FORCE_INLINE void LoadDeref(BCRegister dstReg, BCRegister srcReg)
     {
-        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
+        Script_Value& src = *instance->thread.m_regs[srcReg].Deref(); // double deref to get the actual value
         instance->thread.m_regs[dstReg].AssignValue(ScriptApi_ShallowCopy(*src.Deref(), vm->GetGC()), false);
     }
 
@@ -730,13 +732,13 @@ public:
     HYP_FORCE_INLINE void MovOffset(uint16 offset, BCRegister reg)
     {
         // copy value from register to stack value at (sp - offset)
-        instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].AssignValue(std::move(instance->thread.m_regs[reg]), true);
+        instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC()), true);
     }
 
     HYP_FORCE_INLINE void MovIndex(uint16 index, BCRegister reg)
     {
         // copy value from register to stack value at index
-        instance->thread.m_stack[index].AssignValue(ScriptApi_ShallowCopy(instance->thread.m_regs[reg].Deref()), true);
+        instance->thread.m_stack[index].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC()), true);
     }
 
     HYP_FORCE_INLINE void MovStatic(uint16 index, BCRegister reg)
@@ -766,7 +768,7 @@ public:
             return;
         }
 
-        array[index].AssignValue(ScriptApi_ShallowCopy(instance->thread.m_regs[srcReg], vm->GetGC()), false);
+        array[index].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC()), false);
         array[index].Mark();
     }
 
@@ -816,7 +818,7 @@ public:
                 return;
             }
 
-            array[indexValue].AssignValue(ScriptApi_ShallowCopy(instance->thread.m_regs[srcReg], vm->GetGC()), false);
+            array[indexValue].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC()), false);
             array[indexValue].Mark();
         }
         else
@@ -830,7 +832,7 @@ public:
                 return;
             }
 
-            array[indexValue].AssignValue(ScriptApi_ShallowCopy(instance->thread.m_regs[srcReg], vm->GetGC()), false);
+            array[indexValue].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC()), false);
             array[indexValue].Mark();
         }
     }
@@ -906,7 +908,7 @@ public:
             return;
         }
 
-        field->Set(*pValue->GetHypData(), *instance->thread.m_regs[srcReg].GetHypData());
+        field->Set(*pValue->GetHypData(), *instance->thread.m_regs[srcReg].Deref()->GetHypData());
 
         // DEBUG TEST: Get the field, create a new Script_Value, log it to string
 
@@ -982,7 +984,7 @@ public:
     HYP_FORCE_INLINE void Push(BCRegister reg)
     {
         // Move value from register to top of stack
-        instance->thread.m_stack.Push(ScriptApi_ShallowCopy(instance->thread.m_regs[reg], vm->GetGC()));
+        instance->thread.m_stack.Push(ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC()));
     }
 
     HYP_FORCE_INLINE void Pop()
@@ -1002,7 +1004,7 @@ public:
 
         Script_ValueArray& array = dst.GetHypData()->Get<Script_ValueArray>();
 
-        array.PushBack(ScriptApi_ShallowCopy(instance->thread.m_regs[srcReg], vm->GetGC()));
+        array.PushBack(ScriptApi_ShallowCopy(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC()));
         array.Back().Mark();
     }
 

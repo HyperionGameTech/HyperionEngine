@@ -21,6 +21,7 @@ extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 static const String g_nullString = "null";
 static const String g_boolStrings[2] = { "false", "true" };
+static const String g_referenceString = "<reference>";
 
 static const TypeId g_typeIdI8 = TypeId::ForType<int8>();
 static const TypeId g_typeIdI16 = TypeId::ForType<int16>();
@@ -443,9 +444,6 @@ Script_Value* Script_Value::Deref()
     if (deref != nullptr)
     {
         Assert(!deref->IsGarbage());
-        // temp
-        Assert(!deref->IsRef());
-        Assert(deref != this);
 
         return deref;
     }
@@ -460,9 +458,6 @@ const Script_Value* Script_Value::Deref() const
     if (deref != nullptr)
     {
         Assert(!deref->IsGarbage());
-        // temp
-        Assert(!deref->IsRef());
-        Assert(deref != this);
 
         return deref;
     }
@@ -478,8 +473,6 @@ void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
 
     if (assignRef && (ref = Deref()) != nullptr)
     {
-        Assert(!other.IsRef(), "Cannot create a reference to another reference!");
-
         HypData* hypData = ref->GetHypData();
         hypData->~HypData();
 
@@ -487,11 +480,6 @@ void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
     }
     else
     {
-        if (other.Deref() == this)
-        {
-            return;
-        }
-
         HypData* hypData = GetHypData();
         hypData->~HypData();
 
@@ -982,8 +970,11 @@ Script_String Script_Value::ToString() const
     {
         if (Script_Value* ref = GetRef())
         {
-            Assert(!ref->IsRef()); // should not be a reference itself to prevent infinite recursion
-
+            if (ref->IsRef())
+            {
+                return Script_String(g_referenceString);
+            }
+            
             return ref->ToString();
         }
 
