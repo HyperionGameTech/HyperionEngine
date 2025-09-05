@@ -108,27 +108,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 0
-    //{ // script 1
-    //    // temp
-    //    String str;
-    //    str = "for (i := 0; i < 100; i++) { Logger.print(\"hello!\\n\"); }";
-
-    //    ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
-
-    //    SourceFile sourceFile("<temp>", byteBuffer.Size());
-    //    sourceFile.ReadIntoBuffer(byteBuffer);
-
-    //    ErrorList errorList;
-    //    ScriptHandle scriptHandle = HypScript::GetInstance().Compile(sourceFile, errorList);
-
-    //    if (scriptHandle != INVALID_SCRIPT)
-    //    {
-
-    //        HypScript::GetInstance().Run(scriptHandle);
-    //        HypScript::GetInstance().DestroyScript(scriptHandle);
-    //    }
-    //}
+#if 1
     { // script 2
         String str;
         str = "extern class UUID {\n"
@@ -216,7 +196,7 @@ void HyperionEditor::Init()
                 HypScript::GetInstance().CallFunction(scriptHandle, functionHandle, 5, 4);
 
                 Value lastReturn;
-                HypScript::GetInstance().ReadLastReturnValue(lastReturn);
+                HypScript::GetInstance().ReadLastReturnValue(scriptHandle, lastReturn);
 
                 if (lastReturn.IsValid())
                 {

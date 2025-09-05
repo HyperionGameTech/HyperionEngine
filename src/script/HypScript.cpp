@@ -16,8 +16,6 @@
 
 #include <script/compiler/dis/DecompilationUnit.hpp>
 
-#include <script/compiler/builtins/Builtins.hpp>
-
 #include <script/compiler/AstPrintVisitor.hpp>
 
 #include <script/vm/VM.hpp>
@@ -27,16 +25,13 @@
 
 namespace hyperion {
 
+// #define HYP_PRINT_AST
+
 HYP_DEFINE_LOG_CHANNEL(HypScript);
 
 static IdGenerator g_scriptHandleGenerator;
 
 #pragma region Opaque Handles
-
-struct ScriptHandleData
-{
-    BytecodeStream bytecodeStream;
-};
 
 #pragma endregion Opaque Handles
 
@@ -66,57 +61,6 @@ HypScript::~HypScript()
 
 void HypScript::Initialize()
 {
-    // Initialize builtins
-    TokenStream tokenStream(TokenStreamInfo { "<builtins>" });
-
-    AstIterator astIterator;
-    CompilationUnit compilationUnit;
-    SemanticAnalyzer semanticAnalyzer(&astIterator, &compilationUnit);
-
-    BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->m_scopes.Top().identifierTable);
-
-    Parser parser(&astIterator, &tokenStream, &compilationUnit);
-    parser.Parse(false);
-
-    AstPrintVisitor printer(&astIterator, &compilationUnit);
-    printer.SetUseColors(true);
-    printer.SetShowDetails(true);
-    printer.SetShowLocations(true);
-    printer.SetShowTypes(true);
-
-    // print the AST of the builtins to stdout
-    astIterator.ResetPosition();
-    std::wprintf(L"%S\n", printer.PrintTree(astIterator.Peek()).Data());
-    astIterator.ResetPosition();
-
-    semanticAnalyzer.Analyze(false);
-
-    ErrorList errorList = compilationUnit.GetErrorList();
-
-    if (errorList.HasFatalErrors())
-    {
-        // write errors to stdout
-        errorList.WriteOutput(std::cout);
-
-        HYP_FAIL("Fatal errors occurred while initializing HypScript!");
-    }
-
-    // only optimize if there were no errors
-    // before this point
-    astIterator.ResetPosition();
-
-    Optimizer optimizer(&astIterator, &compilationUnit);
-    optimizer.Optimize();
-
-    // compile into bytecode instructions
-    astIterator.ResetPosition();
-
-    Compiler compiler(&astIterator, &compilationUnit);
-
-    if (!compiler.Compile())
-    {
-        HYP_FAIL("Failed to compile HypScript builtins!");
-    }
 }
 
 void HypScript::DestroyScript(ScriptHandle scriptHandle)
@@ -150,6 +94,7 @@ ScriptHandle HypScript::Compile(
     TokenStream tokenStream(TokenStreamInfo { sourceFile.GetFilePath() });
 
     CompilationUnit compilationUnit;
+    BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->m_scopes.Top().identifierTable);
 
     Lexer lex(sourceStream, &tokenStream, &compilationUnit);
     lex.Analyze();
@@ -157,12 +102,22 @@ ScriptHandle HypScript::Compile(
     AstIterator astIterator;
     SemanticAnalyzer semanticAnalyzer(&astIterator, &compilationUnit);
 
-    compilationUnit.GetBuiltins().Visit(&semanticAnalyzer);
-
     Parser parser(&astIterator, &tokenStream, &compilationUnit);
     parser.Parse();
 
+    astIterator.ResetPosition();
     semanticAnalyzer.Analyze();
+
+#ifdef HYP_PRINT_AST
+    AstPrintVisitor printer(&astIterator, &compilationUnit);
+    printer.SetUseColors(true);
+    printer.SetShowDetails(true);
+    printer.SetShowLocations(true);
+    printer.SetShowTypes(true);
+
+    astIterator.ResetPosition();
+    HYP_LOG(HypScript, Info, "{}", printer.PrintTree(astIterator.Peek()));
+#endif
 
     outErrorList = compilationUnit.GetErrorList();
     outErrorList.WriteOutput(std::cout);
@@ -198,13 +153,14 @@ ScriptHandle HypScript::Compile(
         codeGenerator.Bake();
 
         ScriptHandle scriptHandle = (ScriptHandle)g_scriptHandleGenerator.Next();
-        ScriptHandleData* scriptHandleData = new ScriptHandleData {
+
+        Script_Instance* scriptInstance = new Script_Instance {
             BytecodeStream(codeGenerator.GetInternalByteStream().GetData())
         };
 
         {
             Mutex::Guard guard(m_mutex);
-            m_scripts.Insert({ scriptHandle, scriptHandleData });
+            m_scripts.Insert({ scriptHandle, scriptInstance });
         }
 
         return scriptHandle;
@@ -229,10 +185,10 @@ InstructionStream* HypScript::Decompile(ScriptHandle scriptHandle, std::ostream*
         return nullptr;
     }
 
-    ScriptHandleData* scriptHandleData = it->second;
-    Assert(scriptHandleData != nullptr);
+    Script_Instance* scriptInstance = it->second;
+    Assert(scriptInstance != nullptr);
 
-    return DecompilationUnit().Decompile(scriptHandleData->bytecodeStream, os);
+    return DecompilationUnit().Decompile(scriptInstance->stream, os);
 }
 
 void HypScript::Run(ScriptHandle scriptHandle)
@@ -242,7 +198,7 @@ void HypScript::Run(ScriptHandle scriptHandle)
         return;
     }
 
-    ScriptHandleData* scriptHandleData;
+    Script_Instance* scriptInstance;
 
     {
         Mutex::Guard guard(m_mutex);
@@ -253,11 +209,11 @@ void HypScript::Run(ScriptHandle scriptHandle)
             return;
         }
 
-        scriptHandleData = it->second;
-        Assert(scriptHandleData != nullptr);
+        scriptInstance = it->second;
+        Assert(scriptInstance != nullptr);
     }
 
-    m_vm->Execute(&scriptHandleData->bytecodeStream);
+    m_vm->Execute(scriptInstance);
 }
 
 void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle functionHandle, Value* args, ArgCount numArgs)
@@ -265,7 +221,16 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
     Assert(scriptHandle != INVALID_SCRIPT);
     Assert(functionHandle != INVALID_FUNCTION);
 
-    Script_ExecutionThread* mainThread = m_vm->GetMainThread();
+    Script_Instance* scriptInstance;
+
+    {
+        Mutex::Guard guard(m_mutex);
+        auto it = m_scripts.Find(scriptHandle);
+        Assert(it != m_scripts.End());
+
+        scriptInstance = it->second;
+        Assert(scriptInstance != nullptr);
+    }
 
     if (numArgs != 0)
     {
@@ -273,19 +238,8 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
 
         for (ArgCount i = 0; i < numArgs; i++)
         {
-            mainThread->m_stack.Push(std::move(args[i]));
+            scriptInstance->thread.m_stack.Push(std::move(args[i]));
         }
-    }
-
-    ScriptHandleData* scriptHandleData;
-
-    {
-        Mutex::Guard guard(m_mutex);
-        auto it = m_scripts.Find(scriptHandle);
-        Assert(it != m_scripts.End());
-
-        scriptHandleData = it->second;
-        Assert(scriptHandleData != nullptr);
     }
 
     // Create a reference since we know the lifetime of the function handle will exist longer than the call
@@ -294,18 +248,30 @@ void HypScript::CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle funct
     vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = reinterpret_cast<Value*>(functionHandle);
 
-    m_vm->InvokeNow(&scriptHandleData->bytecodeStream, Value(vmData), numArgs);
+    m_vm->InvokeNow(scriptInstance, Value(vmData), numArgs);
 
     if (numArgs != 0)
     {
-        mainThread->m_stack.Pop(numArgs);
+        scriptInstance->thread.m_stack.Pop(numArgs);
     }
 }
 
-void HypScript::ReadLastReturnValue(Value& outValue)
+void HypScript::ReadLastReturnValue(ScriptHandle scriptHandle, Value& outValue)
 {
-    Script_ExecutionThread* mainThread = m_vm->GetMainThread();
-    outValue = ScriptApi_ShallowCopy(mainThread->m_regs[0], m_vm->GetGC());
+    Assert(scriptHandle != INVALID_SCRIPT);
+
+    Script_Instance* scriptInstance;
+
+    {
+        Mutex::Guard guard(m_mutex);
+        auto it = m_scripts.Find(scriptHandle);
+        Assert(it != m_scripts.End());
+
+        scriptInstance = it->second;
+        Assert(scriptInstance != nullptr);
+    }
+
+    outValue = ScriptApi_ShallowCopy(scriptInstance->thread.m_regs[0], m_vm->GetGC());
 }
 
 bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)

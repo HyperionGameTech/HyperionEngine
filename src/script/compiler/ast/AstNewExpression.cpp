@@ -4,6 +4,7 @@
 #include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>

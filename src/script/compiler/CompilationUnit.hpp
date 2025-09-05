@@ -2,7 +2,6 @@
 
 #include <script/compiler/Module.hpp>
 #include <script/compiler/ErrorList.hpp>
-#include <script/compiler/builtins/Builtins.hpp>
 #include <script/compiler/emit/InstructionStream.hpp>
 #include <script/compiler/ast/AstNodeBuilder.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
@@ -80,16 +79,6 @@ public:
         return m_registeredTypes;
     }
 
-    Builtins& GetBuiltins()
-    {
-        return m_builtins;
-    }
-
-    const Builtins& GetBuiltins() const
-    {
-        return m_builtins;
-    }
-
     String GetAnonClassName()
     {
         return String("@AnonClass") + String::ToString(m_anonClassIdGenerator.Next());
@@ -114,7 +103,6 @@ private:
     InstructionStream m_instructionStream;
     AstNodeBuilder m_astNodeBuilder;
     Array<SymbolTypeRef> m_registeredTypes;
-    Builtins m_builtins;
 
     IdGenerator m_anonClassIdGenerator;
 

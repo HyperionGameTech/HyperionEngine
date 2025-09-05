@@ -95,10 +95,10 @@ bool ValueDataToString(const HypData& data, VMString& outString)
 
     constexpr int maxArrayDepth = 2;
 
-    if (const VMArray* pArray = data.TryGet<VMArray>().TryGet())
+    if (const Script_ValueArray* pArray = data.TryGet<Script_ValueArray>().TryGet())
     {
         std::stringstream ss;
-        pArray->GetRepresentation(ss, false, maxArrayDepth);
+        GetRepresentation(*pArray, ss, false, maxArrayDepth);
 
         outString = VMString(ss.str().c_str());
 
@@ -773,17 +773,6 @@ const AnyHandle& Value::GetObject() const
     return data.Get<AnyHandle>();
 }
 
-VMArray* Value::GetArray() const
-{
-    const HypData& data = *GetHypData();
-
-    if (!data.Is<VMArray>())
-    {
-        return nullptr;
-    }
-    return &data.Get<VMArray>();
-}
-
 AnyRef Value::ToRef() const
 {
     const HypData& data = *GetHypData();
@@ -911,7 +900,7 @@ const char* Value::GetTypeString() const
     {
         return "string";
     }
-    else if (typeId == TypeId::ForType<VMArray>())
+    else if (typeId == TypeId::ForType<Script_ValueArray>())
     {
         return "array";
     }

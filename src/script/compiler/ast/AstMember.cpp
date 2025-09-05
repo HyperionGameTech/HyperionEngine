@@ -4,6 +4,7 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstTypeRef.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>

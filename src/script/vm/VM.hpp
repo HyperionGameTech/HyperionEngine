@@ -207,6 +207,12 @@ struct Script_ExecutionThread
     }
 };
 
+struct Script_Instance
+{
+    BytecodeStream stream;
+    Script_ExecutionThread thread;
+};
+
 class VM
 {
 public:
@@ -218,28 +224,23 @@ public:
     ~VM();
 
     void Invoke(
-        InstructionHandler* handler,
+        Script_Instance* instance,
         Value&& value,
         uint8 nargs);
 
     void InvokeNow(
-        BytecodeStream* bs,
+        Script_Instance* instance,
         Value&& value,
         uint8 nargs);
 
-    void Execute(BytecodeStream* bs);
+    void Execute(Script_Instance* instance);
 
     /** Reset the state of the VM, destroying all heap objects,
         stack objects and exception flags, etc.
      */
     void Reset();
 
-    void ThrowException(Script_ExecutionThread* thread, const Exception& exception);
-
-    Script_ExecutionThread* GetMainThread() const
-    {
-        return m_executionThread;
-    }
+    void ThrowException(Script_Instance* instance, const Exception& exception);
 
     GC* GetGC() const
     {
@@ -256,7 +257,6 @@ public:
         return m_exportedSymbols;
     }
 
-    Script_ExecutionThread* m_executionThread = nullptr;
     Script_StaticMemory m_staticMemory;
     GC* m_gc = nullptr;
     VM* m_vm = nullptr;
@@ -265,8 +265,8 @@ public:
     Exception* m_unhandledException = nullptr;
 
 private:
-    bool HandleException(InstructionHandler* handler);
-    void CreateStackTrace(Script_ExecutionThread* thread, StackTrace* out);
+    bool HandleException(Script_Instance* instance);
+    void CreateStackTrace(Script_Instance* instance, StackTrace* out);
 };
 
 } // namespace hyperion

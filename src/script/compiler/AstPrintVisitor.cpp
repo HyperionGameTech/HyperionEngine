@@ -425,7 +425,14 @@ Array<AstStatement*> AstPrintVisitor::GetChildNodes(AstStatement* node) const
 {
     Array<AstStatement*> children;
 
-    if (auto* binExpr = dynamic_cast<AstBinaryExpression*>(node))
+    if (auto* moduleDecl = dynamic_cast<AstModuleDeclaration*>(node))
+    {
+        for (const auto& child : moduleDecl->GetChildren())
+        {
+            children.PushBack(child.Get());
+        }
+    }
+    else if (auto* binExpr = dynamic_cast<AstBinaryExpression*>(node))
     {
         children.PushBack(binExpr->GetLeft().Get());
         children.PushBack(binExpr->GetRight().Get());

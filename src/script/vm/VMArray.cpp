@@ -1,37 +1,12 @@
 #include <script/vm/VMArray.hpp>
 
-#include <core/debug/Debug.hpp>
-
-#include <cmath>
-#include <cstring>
-#include <sstream>
-
 namespace hyperion {
 
-VMArray::VMArray(SizeType size)
-{
-    m_internalArray.Resize(size);
-}
-
-void VMArray::Resize(SizeType newSize)
-{
-    m_internalArray.Resize(newSize);
-}
-
-void VMArray::Push(Value&& value)
-{
-    m_internalArray.PushBack(std::move(value));
-}
-
-void VMArray::Pop()
-{
-    m_internalArray.PopBack();
-}
-
-void VMArray::GetRepresentation(
+void GetRepresentation(
+    const Script_ValueArray& value,
     std::stringstream& ss,
     bool addTypeName,
-    int depth) const
+    int depth)
 {
     if (depth == 0)
     {
@@ -46,14 +21,14 @@ void VMArray::GetRepresentation(
     ss << '[';
 
     // convert all array elements to string
-    for (SizeType i = 0; i < m_internalArray.Size(); i++)
+    for (SizeType i = 0; i < value.Size(); i++)
     {
-        m_internalArray[i].ToRepresentation(
+        value[i].ToRepresentation(
             ss,
             addTypeName,
             depth - 1);
 
-        if (i != m_internalArray.Size() - 1)
+        if (i != value.Size() - 1)
         {
             ss << sepStr;
         }

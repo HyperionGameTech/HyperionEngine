@@ -18,57 +18,62 @@ public:
     void Prepend(AstIterator&& other, bool resetPosition = false);
     void Append(AstIterator&& other);
 
-    void Push(const RC<AstStatement>& statement)
+    HYP_FORCE_INLINE void Push(const RC<AstStatement>& statement)
     {
         m_list.PushBack(statement);
     }
 
-    void Pop()
+    HYP_FORCE_INLINE void Pop()
     {
         m_list.PopBack();
     }
 
-    SizeType GetPosition() const
+    HYP_FORCE_INLINE SizeType GetPosition() const
     {
         return m_position;
     }
 
-    void ResetPosition()
+    HYP_FORCE_INLINE void ResetPosition()
     {
         m_position = 0;
     }
 
-    void SetPosition(SizeType position)
+    HYP_FORCE_INLINE void SetPosition(SizeType position)
     {
         m_position = position;
     }
 
-    SizeType GetSize() const
+    HYP_FORCE_INLINE SizeType GetSize() const
     {
         return m_list.Size();
     }
 
-    RC<AstStatement>& Peek()
+    HYP_FORCE_INLINE AstStatement* Peek() const
     {
+        if (m_position >= m_list.Size())
+        {
+            return nullptr;
+        }
+
         return m_list[m_position];
     }
 
-    const RC<AstStatement>& Peek() const
+    HYP_FORCE_INLINE AstStatement* Next()
     {
-        return m_list[m_position];
-    }
+        if (m_position >= m_list.Size())
+        {
+            return nullptr;
+        }
 
-    RC<AstStatement> Next()
-    {
         return m_list[m_position++];
     }
 
-    bool HasNext() const
+    HYP_FORCE_INLINE bool HasNext() const
     {
         return m_position < m_list.Size();
     }
 
-    const SourceLocation& GetLocation() const
+    HYP_FORCE_INLINE const SourceLocation& GetLocation() const
     {
         return m_list[m_position]->m_location;
     }

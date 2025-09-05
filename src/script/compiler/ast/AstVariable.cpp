@@ -72,9 +72,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         {
             m_selfMemberAccess.Reset(new AstMember(
                 m_name,
-                RC<AstVariable>(new AstVariable(
-                    "self",
-                    m_location)),
+                RC<AstVariable>(new AstVariable("self", m_location)),
                 m_location));
 
             m_selfMemberAccess->Visit(visitor, mod);
@@ -285,19 +283,19 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
 
                 if (isRef && !m_isInRefAssignment)
                 {
-                    chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
-
                     chunk->Append(BytecodeUtil::Make<Comment>("Dereference variable " + m_name));
+
+                    chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
                 }
             }
             else if (m_accessMode == ACCESS_MODE_STORE)
             {
+                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+
                 // store the value at (rp - 1) into this local variable
                 auto instrMovIndex = BytecodeUtil::Make<StorageOperation>();
                 instrMovIndex->GetBuilder().Store(rp - 1).Local().ByOffset(offset);
                 chunk->Append(std::move(instrMovIndex));
-
-                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
             }
         }
         else
@@ -314,19 +312,19 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
 
                 if (isRef && !m_isInRefAssignment)
                 {
-                    chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
-
                     chunk->Append(BytecodeUtil::Make<Comment>("Dereference variable " + m_name));
+
+                    chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
                 }
             }
             else if (m_accessMode == ACCESS_MODE_STORE)
             {
+                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+
                 // store the value at the index into this local variable
                 auto instrMovIndex = BytecodeUtil::Make<StorageOperation>();
                 instrMovIndex->GetBuilder().Store(rp - 1).Local().ByIndex(stackLocation);
                 chunk->Append(std::move(instrMovIndex));
-
-                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
             }
         }
 

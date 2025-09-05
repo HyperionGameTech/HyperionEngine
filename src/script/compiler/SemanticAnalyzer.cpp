@@ -116,17 +116,6 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
         return;
     }
 
-    // log out both types members:
-    for (const SymbolTypeMember& member : resolvedParamType->GetMembers())
-    {
-        std::cout << "Param member: " << member.name << " : " << (member.type ? member.type->ToString() : "<null>") << std::endl;
-    }
-
-    for (const SymbolTypeMember& member : resolvedArgType->GetMembers())
-    {
-        std::cout << "Arg member: " << member.name << " : " << (member.type ? member.type->ToString() : "<null>") << std::endl;
-    }
-
     if (incompatibilities.Any())
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -193,8 +182,7 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
         {
             const String& genericArgName = genericArgs[i].m_name;
 
-            if (genericArgName == argInfo.name
-                && usedIndices.Find(i) == usedIndices.End())
+            if (genericArgName == argInfo.name && !usedIndices.Contains(i))
             {
                 return i;
             }

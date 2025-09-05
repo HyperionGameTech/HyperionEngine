@@ -1,8 +1,8 @@
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/Configuration.hpp>
+
 #include <script/compiler/emit/StaticObject.hpp>
 #include <script/compiler/emit/NamesPair.hpp>
-#include <script/compiler/builtins/Builtins.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -13,8 +13,7 @@ namespace hyperion {
 CompilationUnit::CompilationUnit()
     : m_globalModule(new Module(
           hyperion::Config::globalModuleName,
-          SourceLocation::eof)),
-      m_builtins(this)
+          SourceLocation::eof))
 {
     m_globalModule->SetImportTreeLink(m_moduleTree.TopNode());
 

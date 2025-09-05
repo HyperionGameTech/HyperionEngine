@@ -158,7 +158,6 @@ enum CompareFlags : uint8
 };
 
 class VMObject;
-class VMArray;
 
 struct alignas(8) Script_VMData
 {
@@ -297,7 +296,6 @@ public:
     bool GetString(const VMString** out) const;
 
     const AnyHandle& GetObject() const;
-    VMArray* GetArray() const;
 
     AnyRef ToRef() const;
 

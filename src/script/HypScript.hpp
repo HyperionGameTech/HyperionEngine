@@ -1,5 +1,8 @@
 #pragma once
 
+#include <script/SourceFile.hpp>
+#include <script/compiler/ErrorList.hpp>
+
 #include <script/vm/Value.hpp>
 
 #include <core/containers/FixedArray.hpp>
@@ -11,17 +14,15 @@
 namespace hyperion {
 
 class HypScript;
-class ErrorList;
 class VM;
 class ExportedSymbolTable;
-class SourceFile;
 class InstructionStream;
 
 #define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType) \
     enum class handleTypeName##Handle : underlyingType;                               \
     constexpr handleTypeName##Handle INVALID_##handleTypeNameCaps = handleTypeName##Handle(0);
 
-HYP_DEF_SCRIPT_API_HANDLE(Script, SCRIPT, uint32)
+HYP_DEF_SCRIPT_API_HANDLE(Script, SCRIPT, uintptr_t)
 HYP_DEF_SCRIPT_API_HANDLE(Function, FUNCTION, uintptr_t)
 HYP_DEF_SCRIPT_API_HANDLE(Object, OBJECT, uintptr_t)
 
@@ -85,14 +86,14 @@ public:
         CallFunctionArgV(scriptHandle, functionHandle, arguments.Data(), arguments.Size());
     }
 
-    void ReadLastReturnValue(Value& outValue);
+    void ReadLastReturnValue(ScriptHandle scriptHandle, Value& outValue);
 
 private:
     VM* m_vm;
 
     // global cached data used from native code
     mutable Mutex m_mutex;
-    HashMap<ScriptHandle, struct ScriptHandleData*> m_scripts;
+    HashMap<ScriptHandle, struct Script_Instance*> m_scripts;
 };
 
 } // namespace hyperion
