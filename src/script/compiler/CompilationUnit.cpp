@@ -8,11 +8,11 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 CompilationUnit::CompilationUnit()
     : m_globalModule(new Module(
-          hyperion::compiler::Config::globalModuleName,
+          hyperion::Config::globalModuleName,
           SourceLocation::eof)),
       m_builtins(this)
 {
@@ -54,4 +54,4 @@ Module* CompilationUnit::LookupModule(const String& name)
     return nullptr;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

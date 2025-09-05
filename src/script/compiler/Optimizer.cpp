@@ -6,7 +6,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 RC<AstConstant> Optimizer::ConstantFold(
     RC<AstExpression>& left,
@@ -110,4 +110,4 @@ void Optimizer::OptimizeInner()
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

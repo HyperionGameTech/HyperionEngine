@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/Operator.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstBinaryExpression;
 class AstBlock;
@@ -58,4 +58,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

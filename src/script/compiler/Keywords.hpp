@@ -6,7 +6,7 @@
 
 #include <map>
 
-namespace hyperion::compiler {
+namespace hyperion {
 enum Keywords
 {
     Keyword_module,
@@ -62,4 +62,4 @@ private:
     static const HashMap<String, Keywords> keywordStrings;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

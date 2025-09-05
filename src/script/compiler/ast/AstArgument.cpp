@@ -7,7 +7,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstArgument::AstArgument(
     const RC<AstExpression>& expr,
@@ -177,4 +177,4 @@ String AstArgument::ToString() const
     return result;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

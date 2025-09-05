@@ -7,7 +7,6 @@
 #include <core/memory/MemoryPool.hpp>
 
 namespace hyperion {
-namespace vm {
 
 class GC
 {
@@ -31,5 +30,4 @@ private:
     Pool m_pool;
 };
 
-} // namespace vm
 } // namespace hyperion

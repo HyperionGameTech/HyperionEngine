@@ -14,7 +14,7 @@
 #include <set>
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 Parser::Parser(AstIterator* astIterator,
     TokenStream* tokenStream,
@@ -2976,4 +2976,4 @@ RC<AstReturnStatement> Parser::ParseReturnStatement()
     return nullptr;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -10,7 +10,7 @@
 
 #include <limits>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstBlock::AstBlock(const Array<RC<AstStatement>>& children,
     const SourceLocation& location)
@@ -67,13 +67,13 @@ UniquePtr<Buildable> AstBlock::Build(AstVisitor* visitor, Module* mod)
 
     const int stackSizeNow = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
     const int stackSizeDiff = stackSizeNow - stackSizeBefore;
-    
+
     Assert(stackSizeDiff >= 0);
 
     if (stackSizeDiff > 0)
     {
         visitor->GetCompilationUnit()->GetInstructionStream().SetStackSize(stackSizeBefore);
-        
+
         chunk->Append(Compiler::PopStack(visitor, stackSizeNow - stackSizeBefore));
     }
 
@@ -97,4 +97,4 @@ RC<AstStatement> AstBlock::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

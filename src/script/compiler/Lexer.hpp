@@ -7,7 +7,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class Lexer
 {
@@ -57,5 +57,4 @@ private:
     bool SkipWhitespace();
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -1,6 +1,6 @@
 #include <script/compiler/Scope.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 Scope::Scope()
     : identifierTable(this),
@@ -16,4 +16,4 @@ Scope::Scope(ScopeType scopeType, int scopeFlags)
 {
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

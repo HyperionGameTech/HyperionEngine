@@ -15,7 +15,7 @@
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstForLoop::AstForLoop(
     const RC<AstStatement>& declPart,
@@ -319,4 +319,4 @@ String AstForLoop::ToString() const
     return result;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

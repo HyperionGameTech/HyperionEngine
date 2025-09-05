@@ -5,7 +5,6 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
-namespace vm {
 
 class VMTypeInfo
 {
@@ -43,6 +42,4 @@ private:
     char** m_names;
 };
 
-} // namespace vm
 } // namespace hyperion
-

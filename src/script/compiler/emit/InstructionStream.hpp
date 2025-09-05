@@ -3,13 +3,13 @@
 #include <script/compiler/emit/Instruction.hpp>
 #include <script/compiler/emit/StaticObject.hpp>
 
+#include <script/compiler/Tree.hpp>
+
 #include <core/utilities/Optional.hpp>
 
 #include <core/Types.hpp>
 
-#include "script/compiler/Tree.hpp"
-
-namespace hyperion::compiler {
+namespace hyperion {
 
 enum InstructionStreamContextType : uint32
 {
@@ -109,18 +109,18 @@ public:
     {
         return m_registerCounter;
     }
-    
+
     uint8 IncRegisterUsage()
     {
         Assert(m_registerCounter < UINT8_MAX);
-        
+
         return ++m_registerCounter;
     }
-    
+
     uint8 DecRegisterUsage()
     {
         Assert(m_registerCounter > 0);
-        
+
         return --m_registerCounter;
     }
 
@@ -183,5 +183,4 @@ private:
     Tree<InstructionStreamContext> m_contextTree;
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

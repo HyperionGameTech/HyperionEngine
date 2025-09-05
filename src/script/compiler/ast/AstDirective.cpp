@@ -5,7 +5,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstDirective::AstDirective(
     const String& key,
@@ -72,4 +72,4 @@ RC<AstStatement> AstDirective::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

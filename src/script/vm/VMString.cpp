@@ -1,7 +1,6 @@
 #include <script/vm/VMString.hpp>
 #include <iostream>
 namespace hyperion {
-namespace vm {
 
 VMString::VMString(const char* str)
     : m_str(str)
@@ -64,5 +63,4 @@ VMString VMString::Concat(const VMString& a, const VMString& b)
     return VMString(a.GetString() + b.GetString());
 }
 
-} // namespace vm
 } // namespace hyperion

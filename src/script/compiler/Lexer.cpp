@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 using namespace utf;
 
@@ -875,4 +875,4 @@ bool Lexer::SkipWhitespace()
     return hadNewline;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

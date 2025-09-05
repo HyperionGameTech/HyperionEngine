@@ -10,7 +10,7 @@ namespace hyperion {
 class BufferedReader;
 } // namespace hyperion
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstImport : public AstStatement
 {
@@ -52,5 +52,4 @@ protected:
         const String& filepath);
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -6,7 +6,7 @@
 #include <string>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstTypeSpecifier : public AstExpression
 {
@@ -64,4 +64,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -9,7 +9,7 @@
 
 #include <fstream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 ErrorList::ErrorList()
     : m_errorSuppressionDepth(0)
@@ -68,10 +68,10 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
         if (errorFilenames.Insert(path).second)
         {
             currentFileLines.Clear();
-            
+
             FileBufferedReaderSource source { path };
             BufferedReader reader { &source };
-            
+
             if (reader.IsOpen())
             {
                 currentFileLines = reader.ReadAllLines();
@@ -133,4 +133,4 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
     return os;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

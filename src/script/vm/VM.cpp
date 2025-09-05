@@ -334,50 +334,50 @@ extern const char* LookupTypeName(TypeId typeId);
 
 #pragma region ScriptApi
 
-template <class T, typename = std::enable_if_t<!std::is_same_v<vm::Script_VMData, NormalizedType<T>> && !std::is_same_v<vm::Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
-static inline vm::Value ScriptApi_MakeValue(T&& data)
+template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
+static inline Value ScriptApi_MakeValue(T&& data)
 {
-    return vm::Value(HypData(std::forward<T>(data)));
+    return Value(HypData(std::forward<T>(data)));
 }
 
-vm::Value ScriptApi_MakeValue(HypData&& data)
+Value ScriptApi_MakeValue(HypData&& data)
 {
-    return vm::Value(std::move(data));
+    return Value(std::move(data));
 }
 
-vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data)
+Value ScriptApi_MakeValue(const Script_VMData& data)
 {
-    return vm::Value(data);
+    return Value(data);
 }
 
-vm::Value ScriptApi_MakeValue(const vm::Number& number)
+Value ScriptApi_MakeValue(const Number& number)
 {
-    return vm::Value(number);
+    return Value(number);
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory */
-vm::Value ScriptApi_MakeRef(vm::Value& refValue)
+Value ScriptApi_MakeRef(Value& refValue)
 {
-    vm::Value* pValue = &refValue;
+    Value* pValue = &refValue;
 
-    vm::Script_VMData vmData;
-    vmData.type = vm::Script_VMData::VALUE_REF;
+    Script_VMData vmData;
+    vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = refValue.Deref();
 
     Assert(vmData.valueRef != nullptr);
 
-    return vm::Value(vmData);
+    return Value(vmData);
 }
 
 /*! \brief Use for loading into registers - promotes to tracked memory if needed */
-vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory)
+Value ScriptApi_MakeRef(Value& refValue, GC* gc, bool promoteToTrackedMemory)
 {
     if (promoteToTrackedMemory)
     {
         Assert(gc != nullptr);
         Assert(!refValue.IsRef());
 
-        if (refValue.GetGCIndex() != vm::INVALID_GC_INDEX)
+        if (refValue.GetGCIndex() != INVALID_GC_INDEX)
         {
             // already in tracked memory, make a reference to this value
             return ScriptApi_MakeRef(refValue);
@@ -385,9 +385,9 @@ vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrack
 
         const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
 
-        vm::Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
+        Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
         Assert(pValue != nullptr);
-        Assert(pValue->GetGCIndex() != vm::INVALID_GC_INDEX);
+        Assert(pValue->GetGCIndex() != INVALID_GC_INDEX);
 
         // update original reference to point to tracked memory
         refValue = ScriptApi_MakeRef(*pValue);
@@ -403,9 +403,9 @@ vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrack
 // #define HYP_SCRIPT_AUTO_REFERENCES
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
+Value ScriptApi_ShallowCopy(Value& refValue, GC* gc)
 {
-    vm::Value* pValue = refValue.Deref();
+    Value* pValue = refValue.Deref();
 
     if (pValue->IsRef())
     {
@@ -413,7 +413,7 @@ vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
         return ScriptApi_MakeRef(*refValue.Deref());
     }
 
-    if (pValue->GetGCIndex() != vm::INVALID_GC_INDEX)
+    if (pValue->GetGCIndex() != INVALID_GC_INDEX)
     {
         // already in tracked memory
         return ScriptApi_MakeRef(refValue);
@@ -440,7 +440,7 @@ vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 
         newHypData.serializeFunction = hypData.serializeFunction;
 
-        return vm::Value(std::move(newHypData));
+        return Value(std::move(newHypData));
     }
 
     // reference type - promote to tracked memory
@@ -448,28 +448,26 @@ vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc)
 }
 
 // set return value on main thread
-static void ScriptApi_SetReturnValue(void* ctx, vm::Value&& value)
+static void ScriptApi_SetReturnValue(void* ctx, Value&& value)
 {
     Assert(ctx != nullptr);
 
-    vm::VM* vm = static_cast<vm::VM*>(ctx);
+    VM* vm = static_cast<VM*>(ctx);
 
-    vm::Script_ExecutionThread* mainThread = vm->GetMainThread();
+    Script_ExecutionThread* mainThread = vm->GetMainThread();
     Assert(mainThread != nullptr);
 
     mainThread->GetRegisters()[0].AssignValue(std::move(value), false);
 }
 
-static void ScriptApi_ThrowException(void* ctx, const vm::Exception& exception)
+static void ScriptApi_ThrowException(void* ctx, const Exception& exception)
 {
     Assert(ctx != nullptr);
-    vm::VM* vm = static_cast<vm::VM*>(ctx);
+    VM* vm = static_cast<VM*>(ctx);
     vm->ThrowException(vm->GetMainThread(), exception);
 }
 
 #pragma endregion ScriptApi
-
-namespace vm {
 
 #pragma region Script_StaticMemory
 
@@ -1051,7 +1049,7 @@ public:
 
     HYP_FORCE_INLINE void Je(Script_FunctionAddress addr)
     {
-        if (thread->m_regs.m_flags & EQUAL)
+        if (thread->m_regs.m_flags & CF_EQUAL)
         {
             bs->Seek((uint32)addr);
         }
@@ -1059,7 +1057,7 @@ public:
 
     HYP_FORCE_INLINE void Jne(Script_FunctionAddress addr)
     {
-        if (!(thread->m_regs.m_flags & EQUAL))
+        if (!(thread->m_regs.m_flags & CF_EQUAL))
         {
             bs->Seek((uint32)addr);
         }
@@ -1067,7 +1065,7 @@ public:
 
     HYP_FORCE_INLINE void Jg(Script_FunctionAddress addr)
     {
-        if (thread->m_regs.m_flags & GREATER)
+        if (thread->m_regs.m_flags & CF_GREATER)
         {
             bs->Seek((uint32)addr);
         }
@@ -1075,7 +1073,7 @@ public:
 
     HYP_FORCE_INLINE void Jge(Script_FunctionAddress addr)
     {
-        if (thread->m_regs.m_flags & (GREATER | EQUAL))
+        if (thread->m_regs.m_flags & (CF_GREATER | CF_EQUAL))
         {
             bs->Seek((uint32)addr);
         }
@@ -1416,7 +1414,7 @@ public:
         // dropout early for comparing something against itself
         if (lhsReg == rhsReg)
         {
-            thread->m_regs.m_flags = EQUAL;
+            thread->m_regs.m_flags = CF_EQUAL;
             return;
         }
 
@@ -1430,44 +1428,24 @@ public:
         {
             if ((a.flags & Number::FLAG_SIGNED) && (b.flags & Number::FLAG_SIGNED))
             {
-                thread->m_regs.m_flags = (a.i == b.i)
-                    ? EQUAL
-                    : ((a.i > b.i)
-                              ? GREATER
-                              : NONE);
+                thread->m_regs.m_flags = (a.i == b.i) ? CF_EQUAL : ((a.i > b.i) ? CF_GREATER : CF_NONE);
             }
             else if ((a.flags & Number::FLAG_SIGNED) && (b.flags & Number::FLAG_UNSIGNED))
             {
-                thread->m_regs.m_flags = (a.i == b.u)
-                    ? EQUAL
-                    : ((a.i > b.u)
-                              ? GREATER
-                              : NONE);
+                thread->m_regs.m_flags = (a.i == b.u) ? CF_EQUAL : ((a.i > b.u) ? CF_GREATER : CF_NONE);
             }
             else if ((a.flags & Number::FLAG_UNSIGNED) && (b.flags & Number::FLAG_SIGNED))
             {
-                thread->m_regs.m_flags = (a.u == b.i)
-                    ? EQUAL
-                    : ((a.u > b.i)
-                              ? GREATER
-                              : NONE);
+                thread->m_regs.m_flags = (a.u == b.i) ? CF_EQUAL : ((a.u > b.i) ? CF_GREATER : CF_NONE);
             }
             else if ((a.flags & Number::FLAG_UNSIGNED) && (b.flags & Number::FLAG_UNSIGNED))
             {
-                thread->m_regs.m_flags = (a.u == b.u)
-                    ? EQUAL
-                    : ((a.u > b.u)
-                              ? GREATER
-                              : NONE);
+                thread->m_regs.m_flags = (a.u == b.u) ? CF_EQUAL : ((a.u > b.u) ? CF_GREATER : CF_NONE);
             }
         }
         else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f))
         {
-            thread->m_regs.m_flags = (a.f == b.f)
-                ? EQUAL
-                : ((a.f > b.f)
-                          ? GREATER
-                          : NONE);
+            thread->m_regs.m_flags = (a.f == b.f) ? CF_EQUAL : ((a.f > b.f) ? CF_GREATER : CF_NONE);
         }
         else
         {
@@ -1476,11 +1454,7 @@ public:
 
             if (lhs->GetBoolean(&lhsBool) && rhs->GetBoolean(&rhsBool))
             {
-                thread->m_regs.m_flags = (lhsBool == rhsBool)
-                    ? EQUAL
-                    : ((lhsBool > rhsBool)
-                              ? GREATER
-                              : NONE);
+                thread->m_regs.m_flags = (lhsBool == rhsBool) ? CF_EQUAL : ((lhsBool > rhsBool) ? CF_GREATER : CF_NONE);
             }
             else
             {
@@ -1492,11 +1466,7 @@ public:
                 }
                 else
                 {
-                    vm->ThrowException(
-                        thread,
-                        Exception::InvalidComparisonException(
-                            lhs->GetTypeString(),
-                            rhs->GetTypeString()));
+                    vm->ThrowException(thread, Exception::InvalidComparisonException(lhs->GetTypeString(), rhs->GetTypeString()));
                 }
             }
         }
@@ -1511,24 +1481,24 @@ public:
 
         if (lhs->GetSignedOrUnsigned(&num))
         {
-            thread->m_regs.m_flags = ((num.flags & Number::FLAG_SIGNED) ? !num.i : !num.u) ? EQUAL : NONE;
+            thread->m_regs.m_flags = ((num.flags & Number::FLAG_SIGNED) ? !num.i : !num.u) ? CF_EQUAL : CF_NONE;
         }
         else if (lhs->GetFloatingPoint(&num.f))
         {
-            thread->m_regs.m_flags = !num.f ? EQUAL : NONE;
+            thread->m_regs.m_flags = !num.f ? CF_EQUAL : CF_NONE;
         }
         else
         {
             bool boolValue;
             if (lhs->GetBoolean(&boolValue))
             {
-                thread->m_regs.m_flags = !boolValue ? EQUAL : NONE;
+                thread->m_regs.m_flags = !boolValue ? CF_EQUAL : CF_NONE;
             }
             else
             {
                 void* ptrValue = lhs->ToRef().GetPointer();
 
-                thread->m_regs.m_flags = !ptrValue ? EQUAL : NONE;
+                thread->m_regs.m_flags = !ptrValue ? CF_EQUAL : CF_NONE;
             }
         }
     }
@@ -1553,12 +1523,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "ADD",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("ADD", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1586,12 +1552,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "SUB",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("SUB", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1619,12 +1581,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "MUL",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("MUL", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1651,11 +1609,13 @@ public:
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
                 vm->ThrowException(thread, Exception::DivisionByZeroException());
+
                 return;
             }
             else if ((b.flags & Number::FLAG_UNSIGNED) && b.u == 0)
             {
                 vm->ThrowException(thread, Exception::DivisionByZeroException());
+
                 return;
             }
 
@@ -1663,12 +1623,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "DIV",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("DIV", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1696,11 +1652,13 @@ public:
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
                 vm->ThrowException(thread, Exception::DivisionByZeroException());
+
                 return;
             }
             else if ((b.flags & Number::FLAG_UNSIGNED) && b.u == 0)
             {
                 vm->ThrowException(thread, Exception::DivisionByZeroException());
+
                 return;
             }
 
@@ -1737,12 +1695,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "MOD",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("MOD", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1770,12 +1724,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "AND",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("AND", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1803,12 +1753,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "OR",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("OR", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1836,12 +1782,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "XOR",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("XOR", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1868,12 +1810,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "SHL",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("SHL", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1900,12 +1838,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "SHR",
-                    lhs->GetTypeString(),
-                    rhs->GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("SHR", lhs->GetTypeString(), rhs->GetTypeString()));
+
             return;
         }
 
@@ -1971,9 +1905,8 @@ public:
         }
         else
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidBitwiseArgument());
+            vm->ThrowException(thread, Exception::InvalidBitwiseArgument());
+
             return;
         }
 
@@ -1996,9 +1929,7 @@ public:
     {
         if (!vm->GetExportedSymbols().Store(hash, ScriptApi_ShallowCopy(*thread->m_regs[reg].Deref(), vm->GetGC())).second)
         {
-            vm->ThrowException(
-                thread,
-                Exception::DuplicateExportException());
+            vm->ThrowException(thread, Exception::DuplicateExportException());
         }
     }
 
@@ -2011,11 +1942,7 @@ public:
 
         if (!value.GetNumber(&num))
         {
-            vm->ThrowException(
-                thread,
-                Exception::InvalidOperationException(
-                    "NEG",
-                    value.GetTypeString()));
+            vm->ThrowException(thread, Exception::InvalidOperationException("NEG", value.GetTypeString()));
 
             return;
         }
@@ -3472,9 +3399,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
 #pragma region VM
 
-VM::VM(APIInstance& apiInstance)
-    : m_apiInstance(apiInstance),
-      m_unhandledException(nullptr)
+VM::VM()
+    : m_unhandledException(nullptr)
 {
     m_executionThread = new Script_ExecutionThread();
     m_gc = new GC();
@@ -3797,5 +3723,4 @@ void VM::Execute(BytecodeStream* bs)
 
 #pragma endregion VM
 
-} // namespace vm
 } // namespace hyperion

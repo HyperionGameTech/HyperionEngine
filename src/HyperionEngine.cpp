@@ -6,6 +6,8 @@
 
 #include <dotnet/DotNetSystem.hpp>
 
+#include <core/Core.hpp>
+
 #include <core/object/HypClassRegistry.hpp>
 
 #include <core/threading/Threads.hpp>

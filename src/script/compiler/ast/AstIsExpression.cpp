@@ -15,7 +15,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstIsExpression::AstIsExpression(
     const RC<AstExpression>& target,
@@ -114,4 +114,4 @@ bool AstIsExpression::MayHaveSideEffects() const
         || m_typeSpecification->MayHaveSideEffects();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

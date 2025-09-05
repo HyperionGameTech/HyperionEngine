@@ -4,7 +4,7 @@
 #include <core/Types.hpp>
 #include <core/memory/Memory.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 StaticObject::StaticObject()
     : m_id(0),
@@ -148,4 +148,4 @@ bool StaticObject::operator==(const StaticObject& other) const
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

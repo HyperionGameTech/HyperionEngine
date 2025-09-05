@@ -13,7 +13,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstParameter::AstParameter(
     const String& name,
@@ -174,4 +174,4 @@ SymbolTypeRef AstParameter::GetExprType() const
     return m_symbolType;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

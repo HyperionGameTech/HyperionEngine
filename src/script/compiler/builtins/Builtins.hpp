@@ -12,7 +12,7 @@
 #include <string>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstVisitor;
 class CompilationUnit;
@@ -53,5 +53,4 @@ private:
     Array<RC<AstVariableDeclaration>> m_vars;
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -11,7 +11,7 @@
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 #pragma region GenericInstanceTypeInfo
 
@@ -1279,4 +1279,4 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateN
     return hc;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

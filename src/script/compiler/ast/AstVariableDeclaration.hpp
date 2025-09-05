@@ -11,7 +11,7 @@
 
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstVariableDeclaration : public AstDeclaration
 {
@@ -124,4 +124,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

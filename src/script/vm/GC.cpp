@@ -1,7 +1,6 @@
 #include <script/vm/GC.hpp>
 
 namespace hyperion {
-namespace vm {
 
 GC::GC()
     : m_pool(NAME("GCMemoryPool"))
@@ -28,5 +27,4 @@ Value* GC::MoveToTrackedMemory(Value&& value)
     return ptr;
 }
 
-} // namespace vm
 } // namespace hyperion

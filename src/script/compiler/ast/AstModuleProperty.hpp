@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstModuleProperty : public AstExpression
 {
@@ -46,5 +46,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

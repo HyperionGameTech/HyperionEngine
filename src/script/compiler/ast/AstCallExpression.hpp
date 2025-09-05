@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstCallExpression : public AstExpression
 {
@@ -83,4 +83,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -5,7 +5,7 @@
 #include <script/compiler/Operator.hpp>
 #include <script/compiler/Configuration.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstBinaryExpression : public AstExpression
 {
@@ -77,4 +77,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

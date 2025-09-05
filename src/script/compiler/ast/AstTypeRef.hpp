@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 /*! \brief A reference to a type in the AST. Used for type specifiers, e.g. "int", "MyClass", etc. */
 class AstTypeRef : public AstExpression
@@ -48,4 +48,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

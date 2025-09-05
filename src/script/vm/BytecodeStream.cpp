@@ -3,7 +3,6 @@
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
-namespace vm {
 
 BytecodeStream BytecodeStream::FromSourceFile(SourceFile& file)
 {
@@ -57,5 +56,4 @@ void BytecodeStream::ReadZeroTerminatedString(char* ptr)
     while (ch);
 }
 
-} // namespace vm
 } // namespace hyperion

@@ -2,7 +2,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstUndefined::AstUndefined(const SourceLocation& location)
     : AstConstant(location)
@@ -49,4 +49,4 @@ RC<AstConstant> AstUndefined::HandleOperator(Operators opType, const AstConstant
     return nullptr;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

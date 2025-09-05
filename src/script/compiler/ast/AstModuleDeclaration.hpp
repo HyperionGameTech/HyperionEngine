@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstModuleDeclaration : public AstDeclaration
 {
@@ -71,5 +71,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

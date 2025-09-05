@@ -11,7 +11,7 @@
 #include <core/debug/Debug.hpp>
 #include <core/utilities/StringUtil.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstModuleDeclaration::AstModuleDeclaration(
     const String& name,
@@ -137,4 +137,4 @@ RC<AstStatement> AstModuleDeclaration::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

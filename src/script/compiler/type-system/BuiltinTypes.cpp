@@ -12,7 +12,7 @@
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 const SymbolTypeTrait BuiltinTypeTraits::variadic = {
     "@variadic"
@@ -178,4 +178,4 @@ const SymbolTypeRef BuiltinTypes::MAP = SymbolType::Generic(
         { { "key", SymbolType::GenericParameter("K") },
             { "value", SymbolType::GenericParameter("V") } } });
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstForLoop : public AstStatement
 {
@@ -65,4 +65,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

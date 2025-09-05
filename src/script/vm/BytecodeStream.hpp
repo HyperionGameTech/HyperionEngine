@@ -7,7 +7,6 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
-namespace vm {
 
 class BytecodeStream
 {
@@ -83,6 +82,4 @@ private:
     SizeType m_position;
 };
 
-} // namespace vm
 } // namespace hyperion
-

@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstWhileLoop : public AstStatement
 {
@@ -49,5 +49,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

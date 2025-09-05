@@ -21,7 +21,7 @@
 
 #include <core/containers/Array.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 
@@ -65,4 +65,4 @@ void Builtins::Visit(AstVisitor* visitor)
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

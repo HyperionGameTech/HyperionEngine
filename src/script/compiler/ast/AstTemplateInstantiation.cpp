@@ -16,7 +16,7 @@
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
     const RC<AstExpression>& expr,
@@ -155,4 +155,4 @@ RC<AstStatement> AstTemplateInstantiation::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

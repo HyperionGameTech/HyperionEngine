@@ -5,7 +5,6 @@
 #include <util/UTF8.hpp>
 
 namespace hyperion {
-namespace vm {
 
 class Value;
 
@@ -53,5 +52,4 @@ private:
     char* m_str;
 };
 
-} // namespace vm
 } // namespace hyperion

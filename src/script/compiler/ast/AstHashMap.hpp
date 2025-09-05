@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstTypeSpecifier;
 class AstBlock;
@@ -74,4 +74,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -1,7 +1,6 @@
 #include <script/vm/ExportedSymbolTable.hpp>
 
 namespace hyperion {
-namespace vm {
 
 ExportedSymbolTable::ExportedSymbolTable() = default;
 ExportedSymbolTable::~ExportedSymbolTable()
@@ -49,5 +48,4 @@ auto ExportedSymbolTable::Store(HashCode::ValueType hash, Value&& value) -> type
     return m_symbols.Insert(hash, new Value(std::move(value)));
 }
 
-} // namespace vm
 } // namespace hyperion

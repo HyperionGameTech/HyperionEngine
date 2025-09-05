@@ -5,7 +5,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstParameter : public AstDeclaration
 {
@@ -99,4 +99,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -5,7 +5,7 @@
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstTypeAlias::AstTypeAlias(
     const String& name,
@@ -62,4 +62,4 @@ RC<AstStatement> AstTypeAlias::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

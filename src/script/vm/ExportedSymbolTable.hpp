@@ -10,7 +10,6 @@
 #include <utility>
 
 namespace hyperion {
-namespace vm {
 
 class ExportedSymbolTable
 {
@@ -35,5 +34,4 @@ private:
     SymbolMap m_symbols;
 };
 
-} // namespace vm
 } // namespace hyperion

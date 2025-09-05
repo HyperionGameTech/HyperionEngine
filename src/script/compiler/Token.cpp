@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 const Token Token::EMPTY = Token(TK_EMPTY, "", SourceLocation::eof);
 
@@ -96,4 +96,4 @@ bool Token::IsContinuationToken() const
     return m_tokenClass == TK_DIRECTIVE || m_tokenClass == TK_COMMA || m_tokenClass == TK_COLON || m_tokenClass == TK_DOT || m_tokenClass == TK_RIGHT_ARROW || m_tokenClass == TK_OPEN_PARENTH || m_tokenClass == TK_OPEN_BRACKET || m_tokenClass == TK_OPEN_BRACE;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

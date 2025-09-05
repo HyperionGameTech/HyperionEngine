@@ -17,7 +17,7 @@
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstNewExpression::AstNewExpression(
     const RC<AstTypeSpecifier>& typeSpec,
@@ -250,4 +250,4 @@ AstExpression* AstNewExpression::GetTarget() const
     return m_objectValue.Get();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstReturnStatement final : public AstStatement
 {
@@ -48,5 +48,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

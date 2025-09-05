@@ -7,7 +7,6 @@
 #include <sstream>
 
 namespace hyperion {
-namespace vm {
 
 VMMap::VMMap()
 {
@@ -109,5 +108,4 @@ void VMMap::GetRepresentation(
     ss << '}';
 }
 
-} // namespace vm
 } // namespace hyperion

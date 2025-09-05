@@ -2,7 +2,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 enum AccessMode : int
 {
@@ -19,5 +19,4 @@ enum IdentifierType : int
     IDENTIFIER_TYPE_TYPE
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -14,7 +14,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstFloat::AstFloat(float value, const SourceLocation& location)
     : AstConstant(location),
@@ -287,4 +287,4 @@ String AstFloat::ToString() const
     return HYP_FORMAT("{}", m_value);
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

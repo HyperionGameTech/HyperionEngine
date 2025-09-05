@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstModuleProperty::AstModuleProperty(
     const String& fieldName,
@@ -121,4 +121,4 @@ SymbolTypeRef AstModuleProperty::GetExprType() const
     return m_exprType;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

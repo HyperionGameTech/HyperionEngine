@@ -3,7 +3,6 @@
 #include <core/utilities/Format.hpp>
 
 namespace hyperion {
-namespace vm {
 
 Tracemap::Tracemap()
     : m_stringmap(nullptr),
@@ -33,5 +32,4 @@ void Tracemap::Set(StringmapEntry* stringmap, LinemapEntry* linemap)
     m_linemap = linemap;
 }
 
-} // namespace vm
 } // namespace hyperion

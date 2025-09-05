@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstHasExpression : public AstExpression
 {
@@ -56,5 +56,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

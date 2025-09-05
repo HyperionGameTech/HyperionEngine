@@ -5,7 +5,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 IdentifierTable::IdentifierTable(Scope* scope)
     : identifierIndex(0),
@@ -114,7 +114,7 @@ SymbolTypeRef IdentifierTable::LookupSymbolType(const String& name, bool include
             {
                 continue;
             }
-            
+
             return symbolType;
         }
     }
@@ -137,4 +137,4 @@ void IdentifierTable::AddSymbolType(const SymbolTypeRef& symbolType)
     symbolTypes.PushBack(symbolType);
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

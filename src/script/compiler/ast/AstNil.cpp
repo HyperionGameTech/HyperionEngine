@@ -14,7 +14,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstNil::AstNil(const SourceLocation& location)
     : AstConstant(location)
@@ -100,4 +100,4 @@ RC<AstConstant> AstNil::HandleOperator(Operators opType, const AstConstant* righ
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

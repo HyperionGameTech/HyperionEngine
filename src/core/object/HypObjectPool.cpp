@@ -68,13 +68,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
     container->m_typeId = typeId;
     container->m_hypClass = hypClass;
 
-    auto& insertResult = *m_map.EmplaceBack(typeId, container).second;
-
-    DebugLog(LogType::Info, "Created object container for HypClass: %s (TypeId: %u) in map %p\tMap size: %u\tthread: %u\n", *hypClass->GetName(), typeId.Value(), &m_map,
-        m_map.Size(),
-        Threads::CurrentThreadId().GetValue());
-
-    return insertResult;
+    return *m_map.EmplaceBack(typeId, container).second;
 }
 
 HypObjectContainerBase& HypObjectPool::ContainerMap::Get(TypeId typeId)

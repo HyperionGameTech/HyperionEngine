@@ -19,7 +19,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 /** Attempts to evaluate the optimized expression at compile-time. */
 static RC<AstConstant> ConstantFold(
@@ -309,4 +309,4 @@ SymbolTypeRef AstUnaryExpression::GetExprType() const
     return m_target->GetExprType();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

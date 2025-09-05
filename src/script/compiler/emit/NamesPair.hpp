@@ -6,9 +6,8 @@
 #include <cstdint>
 #include <utility>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 typedef std::pair<uint16, Array<uint8>> NamesPair_t;
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -1,20 +1,22 @@
 #include <script/HypScript.hpp>
 
+#include <script/vm/BytecodeStream.hpp>
+
+#include <script/compiler/emit/BytecodeChunk.hpp>
+#include <script/compiler/emit/InstructionStream.hpp>
+#include <script/compiler/emit/Instruction.hpp>
+#include <script/compiler/emit/codegen/CodeGenerator.hpp>
+
 #include <script/compiler/Module.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
-#include <script/vm/BytecodeStream.hpp>
-#include <script/compiler/ast/AstModuleDeclaration.hpp>
-#include <script/compiler/emit/Instruction.hpp>
 #include <script/compiler/Lexer.hpp>
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/Compiler.hpp>
-#include <script/compiler/dis/DecompilationUnit.hpp>
-#include <script/compiler/emit/codegen/CodeGenerator.hpp>
-#include <script/compiler/builtins/Builtins.hpp>
 
-#include <script/ScriptBindings.hpp>
-#include <script/ScriptApi.hpp>
+#include <script/compiler/dis/DecompilationUnit.hpp>
+
+#include <script/compiler/builtins/Builtins.hpp>
 
 #include <script/vm/VM.hpp>
 
@@ -39,8 +41,7 @@ HypScript& HypScript::GetInstance()
 }
 
 HypScript::HypScript()
-    : m_apiInstance(),
-      m_vm(new VM(m_apiInstance))
+    : m_vm(new VM())
 {
 }
 
@@ -53,16 +54,11 @@ HypScript::~HypScript()
 
     m_scripts.Clear();
 
-    m_apiInstance.SetVM(nullptr);
     delete m_vm;
 }
 
 void HypScript::Initialize()
 {
-    g_scriptBindings.GenerateAll(m_context);
-
-    m_apiInstance.SetVM(m_vm);
-
     // Initialize builtins
     TokenStream tokenStream(TokenStreamInfo { "<builtins>" });
 
@@ -71,8 +67,6 @@ void HypScript::Initialize()
     SemanticAnalyzer semanticAnalyzer(&astIterator, &compilationUnit);
 
     compilationUnit.GetBuiltins().Visit(&semanticAnalyzer);
-
-    m_context.Visit(&semanticAnalyzer, &compilationUnit);
 
     Parser parser(&astIterator, &tokenStream, &compilationUnit);
     parser.Parse(false);
@@ -105,8 +99,6 @@ void HypScript::Initialize()
     {
         HYP_FAIL("Failed to compile HypScript builtins!");
     }
-
-    m_context.BindAll(m_apiInstance, m_vm);
 }
 
 void HypScript::DestroyScript(ScriptHandle scriptHandle)
@@ -148,8 +140,6 @@ ScriptHandle HypScript::Compile(
     SemanticAnalyzer semanticAnalyzer(&astIterator, &compilationUnit);
 
     compilationUnit.GetBuiltins().Visit(&semanticAnalyzer);
-
-    m_context.Visit(&semanticAnalyzer, &compilationUnit);
 
     Parser parser(&astIterator, &tokenStream, &compilationUnit);
     parser.Parse();
@@ -205,13 +195,11 @@ ScriptHandle HypScript::Compile(
     return INVALID_SCRIPT;
 }
 
-InstructionStream HypScript::Decompile(
-    ScriptHandle scriptHandle,
-    std::ostream* os) const
+InstructionStream* HypScript::Decompile(ScriptHandle scriptHandle, std::ostream* os) const
 {
     if (scriptHandle == INVALID_SCRIPT)
     {
-        return InstructionStream();
+        return nullptr;
     }
 
     Mutex::Guard guard(m_mutex);
@@ -220,7 +208,7 @@ InstructionStream HypScript::Decompile(
 
     if (it == m_scripts.End())
     {
-        return InstructionStream();
+        return nullptr;
     }
 
     ScriptHandleData* scriptHandleData = it->second;
@@ -305,7 +293,7 @@ void HypScript::ReadLastReturnValue(Value& outValue)
 bool HypScript::GetMember(ObjectHandle objectHandle, const char* memberName, Value*& outValue)
 {
     HYP_NOT_IMPLEMENTED();
-    
+
 #if 0
     
     if (objectHandle == INVALID_OBJECT)

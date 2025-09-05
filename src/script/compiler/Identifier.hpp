@@ -8,7 +8,7 @@
 #include <string>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 using IdentifierFlagBits = uint32;
 
@@ -143,4 +143,4 @@ private:
     Array<GenericInstanceTypeInfo::Arg> m_templateParams;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

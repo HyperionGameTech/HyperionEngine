@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstTypeRef;
 
@@ -49,5 +49,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

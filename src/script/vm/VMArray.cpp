@@ -7,7 +7,6 @@
 #include <sstream>
 
 namespace hyperion {
-namespace vm {
 
 VMArray::VMArray(SizeType size)
 {
@@ -63,5 +62,4 @@ void VMArray::GetRepresentation(
     ss << ']';
 }
 
-} // namespace vm
 } // namespace hyperion

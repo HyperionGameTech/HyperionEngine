@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstVariable::AstVariable(
     const String& name,
@@ -575,4 +575,4 @@ const AstExpression* AstVariable::GetDeepValueOf() const
     return AstIdentifier::GetDeepValueOf();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

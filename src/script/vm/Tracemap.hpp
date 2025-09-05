@@ -3,7 +3,6 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
-namespace vm {
 
 class Tracemap
 {
@@ -42,6 +41,4 @@ private:
     LinemapEntry* m_linemap;
 };
 
-} // namespace vm
 } // namespace hyperion
-

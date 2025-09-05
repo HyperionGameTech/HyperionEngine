@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class SymbolType;
 using SymbolTypeRef = RC<SymbolType>;
@@ -41,4 +41,4 @@ struct BuiltinTypes
     static const SymbolTypeRef MAP;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

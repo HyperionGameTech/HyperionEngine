@@ -5,7 +5,7 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/HashCode.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 using OperatorTypeBits = uint32;
 
@@ -251,4 +251,4 @@ private:
     bool m_supportsOverloading;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

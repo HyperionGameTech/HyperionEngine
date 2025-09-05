@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstIfStatement : public AstStatement
 {
@@ -52,4 +52,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

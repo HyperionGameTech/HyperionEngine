@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstModuleAccess : public AstExpression
 {
@@ -94,5 +94,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

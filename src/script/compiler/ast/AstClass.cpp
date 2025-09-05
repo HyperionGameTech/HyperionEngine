@@ -32,7 +32,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 static const String g_reservedClassMemberNames[] = {
     "$construct"
@@ -908,4 +908,4 @@ const String& AstClass::GetName() const
     return m_name;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

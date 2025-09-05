@@ -17,7 +17,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstArrayAccess::AstArrayAccess(
     const RC<AstExpression>& target,
@@ -476,4 +476,4 @@ const AstExpression* AstArrayAccess::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

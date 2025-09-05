@@ -8,7 +8,7 @@
 
 #include <vector>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 struct TokenStreamInfo
 {
@@ -89,5 +89,4 @@ private:
     TokenStreamInfo m_info;
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

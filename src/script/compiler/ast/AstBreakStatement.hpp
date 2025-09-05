@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstBreakStatement : public AstStatement
 {
@@ -35,5 +35,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -8,7 +8,7 @@
 #include <sstream>
 #include <map>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 enum ErrorLevel
 {
@@ -248,4 +248,4 @@ private:
     String m_text;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

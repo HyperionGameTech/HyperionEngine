@@ -9,7 +9,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstArgumentList::AstArgumentList(
     const Array<RC<AstArgument>>& args,
@@ -112,4 +112,4 @@ SymbolTypeRef AstArgumentList::GetExprType() const
     return BuiltinTypes::ANY;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

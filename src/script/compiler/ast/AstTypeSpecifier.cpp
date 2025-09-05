@@ -15,7 +15,7 @@
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstTypeSpecifier::AstTypeSpecifier(
     const RC<AstExpression>& expr,
@@ -135,4 +135,4 @@ SymbolTypeRef AstTypeSpecifier::GetHeldType() const
     return AstExpression::GetHeldType();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

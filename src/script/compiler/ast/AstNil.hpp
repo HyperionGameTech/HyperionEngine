@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstConstant.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstNil : public AstConstant
 {
@@ -29,5 +29,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

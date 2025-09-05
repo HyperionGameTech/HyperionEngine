@@ -1,6 +1,6 @@
 #include <script/compiler/ast/AstExpression.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstExpression::AstExpression(
     const SourceLocation& location,
@@ -11,4 +11,4 @@ AstExpression::AstExpression(
 {
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

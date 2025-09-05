@@ -4,7 +4,7 @@
 
 #include <type_traits>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 // fwd declarations
 struct BytecodeChunk;
@@ -22,5 +22,4 @@ public:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

@@ -14,7 +14,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstEnumExpression::AstEnumExpression(
     const String& name,
@@ -170,4 +170,4 @@ const String& AstEnumExpression::GetName() const
     return m_name;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

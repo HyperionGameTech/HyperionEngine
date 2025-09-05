@@ -19,8 +19,6 @@ namespace hyperion {
 
 extern HYP_API const char* LookupTypeName(TypeId typeId);
 
-namespace vm {
-
 static const String g_nullString = "null";
 static const String g_boolStrings[2] = { "false", "true" };
 
@@ -812,15 +810,15 @@ int Value::CompareAsPointers(Value* lhs, Value* rhs)
     if (a == b)
     {
         // pointers equal, drop out early.
-        return CompareFlags::EQUAL;
+        return CF_EQUAL;
     }
     else if (a == nullptr || b == nullptr)
     {
-        return CompareFlags::NONE;
+        return CF_NONE;
     }
     else
     {
-        return CompareFlags::NONE;
+        return CF_NONE;
     }
 }
 
@@ -831,12 +829,12 @@ int Value::CompareAsFunctions(Value* lhs, Value* rhs)
 
     if (lhsVmData == nullptr || rhsVmData == nullptr)
     {
-        return lhsVmData == rhsVmData ? CompareFlags::EQUAL : CompareFlags::NONE;
+        return lhsVmData == rhsVmData ? CF_EQUAL : CF_NONE;
     }
 
     return (lhsVmData->func.m_addr == rhsVmData->func.m_addr)
-        ? CompareFlags::EQUAL
-        : CompareFlags::NONE;
+        ? CF_EQUAL
+        : CF_NONE;
 }
 
 int Value::CompareAsNativeFunctions(Value* lhs, Value* rhs)
@@ -846,12 +844,12 @@ int Value::CompareAsNativeFunctions(Value* lhs, Value* rhs)
 
     if (lhsVmData == nullptr || rhsVmData == nullptr)
     {
-        return lhsVmData == rhsVmData ? CompareFlags::EQUAL : CompareFlags::NONE;
+        return lhsVmData == rhsVmData ? CF_EQUAL : CF_NONE;
     }
 
     return (lhsVmData->nativeFunc == rhsVmData->nativeFunc)
-        ? CompareFlags::EQUAL
-        : CompareFlags::NONE;
+        ? CF_EQUAL
+        : CF_NONE;
 }
 
 const char* Value::GetTypeString() const
@@ -1021,5 +1019,4 @@ void Value::ToRepresentation(
     }
 }
 
-} // namespace vm
 } // namespace hyperion

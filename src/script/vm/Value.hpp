@@ -18,12 +18,9 @@
 
 namespace hyperion {
 
-class APIInstance;
 class AnyHandle;
 struct HypData;
 struct HypMethod;
-
-namespace vm {
 
 typedef uint8 BCRegister;
 
@@ -34,8 +31,7 @@ enum class Script_FunctionAddress : uint32;
 #endif
 #endif
 
-struct Value;
-
+class Value;
 class InstructionHandler;
 struct Script_ExecutionThread;
 class VM;
@@ -133,38 +129,32 @@ struct Number
     }
 };
 
-} // namespace vm
-
 namespace sdk {
 
 struct Params
 {
-    APIInstance& apiInstance;
-    vm::Value** args;
+    Value** args;
     int32 nargs;
 
     void* ctx; // needs to be passed to the function pointers below.
 
     // sets the return value of a native function.
-    void (*setReturnValue)(void* ctx, vm::Value&& value);
-    void (*throwException)(void* ctx, const vm::Exception& exception);
+    void (*setReturnValue)(void* ctx, Value&& value);
+    void (*throwException)(void* ctx, const Exception& exception);
 };
 
 } // namespace sdk
 } // namespace hyperion
 
-// native typedefs
-typedef void (*Script_NativeFunction)(hyperion::sdk::Params);
 typedef void* Script_UserData;
 
 namespace hyperion {
-namespace vm {
 
 enum CompareFlags : uint8
 {
-    NONE = 0x00,
-    EQUAL = 0x01,
-    GREATER = 0x02
+    CF_NONE = 0x0,
+    CF_EQUAL = 0x01,
+    CF_GREATER = 0x02
 };
 
 class VMObject;
@@ -319,18 +309,13 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const Value& other) const
     {
-        return CompareAsPointers(const_cast<Value*>(this), const_cast<Value*>(&other)) & CompareFlags::EQUAL;
+        return CompareAsPointers(const_cast<Value*>(this), const_cast<Value*>(&other)) & CF_EQUAL;
     }
 
     HYP_FORCE_INLINE bool operator!=(const Value& other) const
     {
         return !(*this == other);
     }
-
-#if 0
-    Any ToAny() const;
-    AnyPtr ToAnyPtr() const;
-#endif
 
     void Mark();
 
@@ -342,5 +327,4 @@ public:
         int depth = 3) const;
 };
 
-} // namespace vm
 } // namespace hyperion

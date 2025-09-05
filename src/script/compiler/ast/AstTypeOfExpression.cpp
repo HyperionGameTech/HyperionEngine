@@ -12,7 +12,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstTypeOfExpression::AstTypeOfExpression(
     const RC<AstExpression>& expr,
@@ -151,4 +151,4 @@ const AstExpression* AstTypeOfExpression::GetDeepValueOf() const
 #endif
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

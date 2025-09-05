@@ -22,7 +22,7 @@ HYP_MAKE_ENUM_FLAGS(ClassFlags);
 
 } // namespace hyperion
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstClass : public AstExpression
 {
@@ -205,4 +205,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

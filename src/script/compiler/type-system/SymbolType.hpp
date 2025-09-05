@@ -12,7 +12,7 @@
 #include <tuple>
 #include <utility>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 // forward declaration
 class SymbolType;
@@ -492,4 +492,4 @@ private:
     Scope* m_declScope;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

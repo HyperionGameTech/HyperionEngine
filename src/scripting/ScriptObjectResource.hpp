@@ -16,6 +16,10 @@
 
 #include <core/Types.hpp>
 
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#endif
+
 namespace hyperion {
 
 #ifdef HYP_SCRIPT
@@ -50,7 +54,7 @@ struct ScriptObjectData_HypScript final
 {
     static constexpr ScriptLanguage lang = SL_HYPSCRIPT;
 
-    ScriptHandle handle;
+    ObjectHandle objectHandle = INVALID_OBJECT;
 };
 #endif
 

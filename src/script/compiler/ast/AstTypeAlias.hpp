@@ -9,7 +9,7 @@
 #include <string>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstTypeAlias : public AstStatement
 {
@@ -49,4 +49,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

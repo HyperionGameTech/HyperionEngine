@@ -15,7 +15,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstInteger::AstInteger(hyperion::int32 value, const SourceLocation& location)
     : AstConstant(location),
@@ -507,4 +507,4 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

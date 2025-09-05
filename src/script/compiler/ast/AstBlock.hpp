@@ -6,7 +6,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class Scope;
 
@@ -113,4 +113,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

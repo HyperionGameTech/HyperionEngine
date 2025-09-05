@@ -10,7 +10,7 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstModuleImportPart::AstModuleImportPart(
     const String& left,
@@ -255,4 +255,4 @@ RC<AstStatement> AstModuleImport::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

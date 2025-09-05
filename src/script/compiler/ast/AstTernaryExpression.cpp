@@ -11,7 +11,6 @@
 #include <cstdio>
 
 namespace hyperion {
-namespace compiler {
 
 AstTernaryExpression::AstTernaryExpression(
     const RC<AstExpression>& conditional,
@@ -276,5 +275,4 @@ const AstExpression* AstTernaryExpression::GetDeepValueOf() const
     return m_right->GetDeepValueOf();
 }
 
-} // namespace compiler
 } // namespace hyperion

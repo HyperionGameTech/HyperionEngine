@@ -2,7 +2,7 @@
 
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 Module::Module(
     const String& name,
@@ -280,4 +280,4 @@ void Module::CacheGenericInstance(const GenericInstanceCache::Key& cacheKey, con
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

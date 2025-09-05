@@ -8,7 +8,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstTrue::AstTrue(const SourceLocation& location)
     : AstConstant(location)
@@ -87,4 +87,4 @@ RC<AstConstant> AstTrue::HandleOperator(Operators opType, const AstConstant* rig
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

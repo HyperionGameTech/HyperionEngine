@@ -26,7 +26,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstHashMap::AstHashMap(
     const Array<RC<AstExpression>>& keys,
@@ -338,4 +338,4 @@ SymbolTypeRef AstHashMap::GetExprType() const
     return m_exprType;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

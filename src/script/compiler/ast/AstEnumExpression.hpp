@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 struct EnumEntry
 {
@@ -93,4 +93,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -11,7 +11,6 @@
 #include <sstream>
 
 namespace hyperion {
-namespace vm {
 
 class VMArray
 {
@@ -76,5 +75,4 @@ private:
     Array<Value> m_internalArray;
 };
 
-} // namespace vm
 } // namespace hyperion

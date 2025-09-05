@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstDeclaration : public AstStatement
 {
@@ -54,5 +54,4 @@ private:
     bool m_isVisited = false;
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

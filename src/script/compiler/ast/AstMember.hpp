@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <core/containers/String.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstTypeSpecifier;
 
@@ -64,4 +64,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

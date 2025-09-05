@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 // forward declaration
 class Scope;
@@ -124,4 +124,4 @@ protected:
     int GetStackOffset(int stackSize) const;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

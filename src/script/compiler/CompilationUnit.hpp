@@ -16,7 +16,7 @@
 
 #include <core/utilities/IdGenerator.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class CompilationUnit
 {
@@ -122,4 +122,4 @@ private:
     RC<Module> m_globalModule;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

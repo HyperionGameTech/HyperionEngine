@@ -18,7 +18,7 @@ enum class HypMethodFlags : uint8;
 enum class HypClassFlags : uint8;
 } // namespace hyperion
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 struct Instruction : public Buildable
 {
@@ -434,4 +434,4 @@ struct RawOperation<T, Ts...> : RawOperation<Ts...>
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

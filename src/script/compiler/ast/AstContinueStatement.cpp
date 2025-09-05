@@ -10,7 +10,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstContinueStatement::AstContinueStatement(const SourceLocation& location)
     : AstStatement(location),
@@ -79,4 +79,4 @@ RC<AstStatement> AstContinueStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

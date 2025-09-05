@@ -4,7 +4,6 @@
 #include <cstring>
 
 namespace hyperion {
-namespace vm {
 
 VMTypeInfo::VMTypeInfo(
     const char* name,
@@ -129,5 +128,4 @@ bool VMTypeInfo::operator==(const VMTypeInfo& other) const
     return true;
 }
 
-} // namespace vm
 } // namespace hyperion

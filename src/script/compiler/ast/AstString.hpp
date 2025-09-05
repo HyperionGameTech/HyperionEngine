@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstString : public AstConstant
 {
@@ -56,4 +56,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstIdentifier::AstIdentifier(const String& name, const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
@@ -148,4 +148,4 @@ SymbolTypeRef AstIdentifier::GetHeldType() const
     return AstExpression::GetHeldType();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

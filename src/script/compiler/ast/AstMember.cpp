@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstMember::AstMember(
     const String& fieldName,
@@ -343,4 +343,4 @@ bool AstMember::IsMutable() const
     return true;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

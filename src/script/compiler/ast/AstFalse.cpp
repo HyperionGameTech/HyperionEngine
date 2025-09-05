@@ -10,7 +10,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstFalse::AstFalse(const SourceLocation& location)
     : AstConstant(location)
@@ -88,4 +88,4 @@ RC<AstConstant> AstFalse::HandleOperator(Operators opType, const AstConstant* ri
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

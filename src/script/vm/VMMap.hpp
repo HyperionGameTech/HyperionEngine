@@ -11,7 +11,6 @@
 #include <sstream>
 
 namespace hyperion {
-namespace vm {
 
 class VMMap
 {
@@ -23,12 +22,12 @@ public:
 
         HYP_FORCE_INLINE bool operator==(const VMMapKey& other) const
         {
-            return hash == other.hash;// && key == other.key;
+            return hash == other.hash; // && key == other.key;
         }
 
         HYP_FORCE_INLINE bool operator!=(const VMMapKey& other) const
         {
-            return hash != other.hash;// || key != other.key;
+            return hash != other.hash; // || key != other.key;
         }
 
         HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -80,6 +79,4 @@ private:
     InternalMapType m_map;
 };
 
-} // namespace vm
 } // namespace hyperion
-

@@ -10,7 +10,7 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstClass;
 
@@ -110,4 +110,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

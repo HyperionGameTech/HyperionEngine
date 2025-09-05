@@ -7,7 +7,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 using ExprAccess = uint32;
 
@@ -131,4 +131,4 @@ protected:
     ExpressionFlags m_expressionFlags = EXPR_FLAGS_NONE;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class Identifier;
 
@@ -114,5 +114,4 @@ protected:
     }
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

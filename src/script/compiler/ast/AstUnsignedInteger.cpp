@@ -14,7 +14,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstUnsignedInteger::AstUnsignedInteger(hyperion::uint32 value, const SourceLocation& location)
     : AstConstant(location),
@@ -419,4 +419,4 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

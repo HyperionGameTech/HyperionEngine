@@ -21,16 +21,12 @@
 
 namespace hyperion {
 
-class APIInstance;
-
-extern vm::Value ScriptApi_MakeValue(const vm::Script_VMData& data);
-extern vm::Value ScriptApi_MakeValue(const vm::Number& number);
-extern vm::Value ScriptApi_MakeValue(HypData&& data);
-extern vm::Value ScriptApi_MakeRef(vm::Value& refValue);
-extern vm::Value ScriptApi_MakeRef(vm::Value& refValue, vm::GC* gc, bool promoteToTrackedMemory);
-extern vm::Value ScriptApi_ShallowCopy(vm::Value& refValue, vm::GC* gc);
-
-namespace vm {
+extern Value ScriptApi_MakeValue(const Script_VMData& data);
+extern Value ScriptApi_MakeValue(const Number& number);
+extern Value ScriptApi_MakeValue(HypData&& data);
+extern Value ScriptApi_MakeRef(Value& refValue);
+extern Value ScriptApi_MakeRef(Value& refValue, GC* gc, bool promoteToTrackedMemory);
+extern Value ScriptApi_ShallowCopy(Value& refValue, GC* gc);
 
 class GC;
 
@@ -214,7 +210,7 @@ struct Script_ExecutionThread
 class VM
 {
 public:
-    VM(APIInstance& apiInstance);
+    VM();
     VM(const VM& other) = delete;
     VM& operator=(const VM& other) = delete;
     VM(VM&& other) noexcept = delete;
@@ -271,9 +267,6 @@ public:
 private:
     bool HandleException(InstructionHandler* handler);
     void CreateStackTrace(Script_ExecutionThread* thread, StackTrace* out);
-
-    APIInstance& m_apiInstance;
 };
 
-} // namespace vm
 } // namespace hyperion

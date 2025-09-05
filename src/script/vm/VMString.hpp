@@ -7,7 +7,6 @@
 #include <cstring>
 
 namespace hyperion {
-namespace vm {
 
 class VMString
 {
@@ -62,5 +61,4 @@ private:
     String m_str;
 };
 
-} // namespace vm
 } // namespace hyperion

@@ -14,7 +14,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     AstVisitor* visitor,
@@ -1012,4 +1012,4 @@ void SemanticAnalyzer::Analyze(bool expectModuleDecl)
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -1,4 +1,7 @@
 #include <script/compiler/dis/DecompilationUnit.hpp>
+
+#include <script/compiler/emit/InstructionStream.hpp>
+
 #include <script/Instructions.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
@@ -16,7 +19,7 @@
 #include <sstream>
 #include <cstdio>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 DecompilationUnit::DecompilationUnit()
 {
@@ -24,7 +27,7 @@ DecompilationUnit::DecompilationUnit()
 
 void DecompilationUnit::DecodeNext(
     uint8 code,
-    hyperion::vm::BytecodeStream& bs,
+    hyperion::BytecodeStream& bs,
     InstructionStream& is,
     std::ostream* os)
 {
@@ -1723,11 +1726,11 @@ void DecompilationUnit::DecodeNext(
     }
 }
 
-InstructionStream DecompilationUnit::Decompile(hyperion::vm::BytecodeStream& bs, std::ostream* os)
+InstructionStream* DecompilationUnit::Decompile(hyperion::BytecodeStream& bs, std::ostream* os)
 {
     const SizeType prevPosition = bs.Position();
 
-    InstructionStream is;
+    InstructionStream* is = new InstructionStream();
 
     while (!bs.Eof())
     {
@@ -1741,7 +1744,7 @@ InstructionStream DecompilationUnit::Decompile(hyperion::vm::BytecodeStream& bs,
         uint8 code;
         bs.Read(&code);
 
-        DecodeNext(code, bs, is, os);
+        DecodeNext(code, bs, *is, os);
     }
 
     // rewind back to where we started
@@ -1750,4 +1753,4 @@ InstructionStream DecompilationUnit::Decompile(hyperion::vm::BytecodeStream& bs,
     return is;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

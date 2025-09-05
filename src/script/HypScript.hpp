@@ -1,32 +1,21 @@
 #pragma once
 
-#include <script/ScriptApi.hpp>
-#include <script/SourceFile.hpp>
-#include <script/compiler/ErrorList.hpp>
-#include <script/compiler/CompilationUnit.hpp>
-#include <script/compiler/emit/BytecodeChunk.hpp>
-#include <script/compiler/emit/InstructionStream.hpp>
-#include <script/vm/BytecodeStream.hpp>
+#include <script/vm/Value.hpp>
 
 #include <core/containers/FixedArray.hpp>
-#include <core/Util.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 #include <core/Defines.hpp>
 
-#include <util/UTF8.hpp>
-
 namespace hyperion {
 
-using namespace compiler;
-using namespace vm;
-
-namespace scriptapi2 {
-class Context;
-} // namespace scriptapi2
-
 class HypScript;
+class ErrorList;
+class VM;
+class ExportedSymbolTable;
+class SourceFile;
+class InstructionStream;
 
 #define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType) \
     enum class handleTypeName##Handle : underlyingType;                               \
@@ -40,7 +29,6 @@ HYP_DEF_SCRIPT_API_HANDLE(Object, OBJECT, uintptr_t)
 
 class HypScript
 {
-
 public:
     using ArgCount = uint16;
 
@@ -51,16 +39,6 @@ public:
     HypScript& operator=(const HypScript& other) = delete;
     ~HypScript();
 
-    APIInstance& GetAPIInstance()
-    {
-        return m_apiInstance;
-    }
-
-    const APIInstance& GetAPIInstance() const
-    {
-        return m_apiInstance;
-    }
-
     VM* GetVM() const
     {
         return m_vm;
@@ -70,13 +48,8 @@ public:
 
     void DestroyScript(ScriptHandle scriptHandle);
 
-    ScriptHandle Compile(
-        SourceFile& sourceFile,
-        ErrorList& outErrorList);
-
-    InstructionStream Decompile(
-        ScriptHandle scriptHandle,
-        std::ostream* os = nullptr) const;
+    ScriptHandle Compile(SourceFile& sourceFile, ErrorList& outErrorList);
+    InstructionStream* Decompile(ScriptHandle scriptHandle, std::ostream* os = nullptr) const;
 
     void Run(ScriptHandle scriptHandle);
 
@@ -89,9 +62,7 @@ public:
     template <class... Args>
     static inline auto CreateArguments(Args&&... args) -> FixedArray<Value, sizeof...(Args)>
     {
-        return FixedArray<Value, sizeof...(Args)> {
-            CreateArgument(args)...
-        };
+        return FixedArray<Value, sizeof...(Args)> { CreateArgument(args)... };
     }
 
     void CallFunctionArgV(ScriptHandle scriptHandle, FunctionHandle functionHandle, Value* args, ArgCount numArgs);
@@ -117,8 +88,6 @@ public:
     void ReadLastReturnValue(Value& outValue);
 
 private:
-    scriptapi2::Context m_context;
-    APIInstance m_apiInstance;
     VM* m_vm;
 
     // global cached data used from native code

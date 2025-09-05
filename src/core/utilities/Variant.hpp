@@ -887,7 +887,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
     template <class T, typename = std::enable_if_t<std::is_copy_constructible_v<T>>>
     HYP_FORCE_INLINE T& Set(const T& value)
     {
-        m_holder.template Set<T>(value);
+        return m_holder.template Set<T>(value);
     }
 
     template <class T>

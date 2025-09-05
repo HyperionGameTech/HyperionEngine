@@ -204,7 +204,8 @@ void HyperionEditor::Init()
         if (scriptHandle != INVALID_SCRIPT)
         {
 
-            HypScript::GetInstance().Decompile(scriptHandle, &std::cout);
+            InstructionStream* is = HypScript::GetInstance().Decompile(scriptHandle, &std::cout);
+            delete is;
 
             HypScript::GetInstance().Run(scriptHandle);
 
@@ -214,7 +215,7 @@ void HyperionEditor::Init()
             {
                 HypScript::GetInstance().CallFunction(scriptHandle, functionHandle, 5, 4);
 
-                vm::Value lastReturn;
+                Value lastReturn;
                 HypScript::GetInstance().ReadLastReturnValue(lastReturn);
 
                 if (lastReturn.IsValid())

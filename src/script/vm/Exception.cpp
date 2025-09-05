@@ -2,7 +2,6 @@
 #include <script/vm/Value.hpp>
 
 namespace hyperion {
-namespace vm {
 
 template <class FormatStringType, class... Args>
 static inline Exception FormattedException(FormatStringType formatString, Args&&... args)
@@ -235,5 +234,4 @@ Exception Exception::ClassNotFoundException(const char* className)
         className ? className : "<null>");
 }
 
-} // namespace vm
 } // namespace hyperion

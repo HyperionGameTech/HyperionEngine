@@ -14,7 +14,7 @@
 #include <fstream>
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstFileImport::AstFileImport(
     const String& path,
@@ -50,4 +50,4 @@ RC<AstStatement> AstFileImport::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

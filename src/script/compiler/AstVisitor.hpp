@@ -5,7 +5,7 @@
 #include <script/compiler/CompilerError.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstVisitor
 {
@@ -33,4 +33,4 @@ protected:
     CompilationUnit* m_compilationUnit;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

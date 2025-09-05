@@ -20,7 +20,7 @@
 #include <limits>
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstCallExpression::AstCallExpression(
     const RC<AstExpression>& expr,
@@ -330,4 +330,4 @@ String AstCallExpression::ToString() const
     return result;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

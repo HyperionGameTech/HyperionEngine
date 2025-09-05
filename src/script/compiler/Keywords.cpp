@@ -1,6 +1,6 @@
 #include <script/compiler/Keywords.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 const HashMap<String, Keywords> Keyword::keywordStrings = {
     { "module", Keyword_module },
     { "import", Keyword_import },
@@ -61,4 +61,4 @@ Optional<String> Keyword::ToString(Keywords keyword)
     return {};
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

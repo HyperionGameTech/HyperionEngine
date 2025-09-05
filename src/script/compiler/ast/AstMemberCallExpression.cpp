@@ -22,7 +22,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstMemberCallExpression::AstMemberCallExpression(
     const String& fieldName,
@@ -300,4 +300,4 @@ String AstMemberCallExpression::ToString() const
     return result;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

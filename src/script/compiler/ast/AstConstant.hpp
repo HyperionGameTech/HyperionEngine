@@ -5,7 +5,7 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstConstant : public AstExpression
 {
@@ -38,5 +38,4 @@ public:
     virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const = 0;
 };
 
-} // namespace hyperion::compiler
-
+} // namespace hyperion

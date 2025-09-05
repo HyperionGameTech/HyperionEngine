@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstArrayAccess : public AstExpression
 {
@@ -73,4 +73,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

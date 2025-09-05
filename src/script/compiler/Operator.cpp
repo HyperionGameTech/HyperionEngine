@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 const FlatMap<String, Operator*> Operator::binaryOperators = {
     { "+", new Operator(OP_add, 13, ARITHMETIC, false, true) },
@@ -156,4 +156,4 @@ const Operator* Operator::GetNonAssignmentVariant(const Operator* op)
     }
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

@@ -9,7 +9,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 InstructionStream::InstructionStream()
     : // m_position(0),
@@ -51,4 +51,4 @@ int InstructionStream::FindStaticObject(const StaticObject& staticObject) const
     return *this;
 }*/
 
-} // namespace hyperion::compiler
+} // namespace hyperion

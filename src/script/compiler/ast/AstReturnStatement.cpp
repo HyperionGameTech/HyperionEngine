@@ -11,7 +11,7 @@
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstReturnStatement::AstReturnStatement(
     const RC<AstExpression>& expr,
@@ -104,4 +104,4 @@ RC<AstStatement> AstReturnStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

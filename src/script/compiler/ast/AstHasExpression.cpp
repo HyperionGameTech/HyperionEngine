@@ -19,7 +19,7 @@
 
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstHasExpression::AstHasExpression(
     const RC<AstStatement>& target,
@@ -203,4 +203,4 @@ bool AstHasExpression::MayHaveSideEffects() const
     return m_hasSideEffects;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

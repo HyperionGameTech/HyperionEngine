@@ -5,7 +5,7 @@
 #include <core/Name.hpp>
 #include <core/Types.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 using byte = ubyte;
 using LabelPosition = uint32;
@@ -45,4 +45,4 @@ struct Buildable
     virtual ~Buildable() = default;
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion

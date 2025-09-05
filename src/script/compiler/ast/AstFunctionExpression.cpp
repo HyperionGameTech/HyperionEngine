@@ -32,7 +32,7 @@
 #include <vector>
 #include <iostream>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 AstFunctionExpression::AstFunctionExpression(
     const Array<RC<AstParameter>>& parameters,
@@ -570,4 +570,4 @@ SymbolTypeRef AstFunctionExpression::GetExprType() const
     return m_symbolType;
 }
 
-} // namespace hyperion::compiler
+} // namespace hyperion

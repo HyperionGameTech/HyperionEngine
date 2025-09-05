@@ -6,7 +6,7 @@
 
 #include <core/HashCode.hpp>
 
-namespace hyperion::compiler {
+namespace hyperion {
 
 class AstArgument : public AstExpression
 {
@@ -115,4 +115,4 @@ private:
     }
 };
 
-} // namespace hyperion::compiler
+} // namespace hyperion
