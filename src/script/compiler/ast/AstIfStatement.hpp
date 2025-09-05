@@ -18,6 +18,21 @@ public:
         const SourceLocation& location);
     virtual ~AstIfStatement() = default;
 
+    HYP_FORCE_INLINE const RC<AstExpression>& GetConditional() const
+    {
+        return m_conditional;
+    }
+
+    HYP_FORCE_INLINE const RC<AstBlock>& GetBlock() const
+    {
+        return m_block;
+    }
+
+    HYP_FORCE_INLINE const RC<AstBlock>& GetElseBlock() const
+    {
+        return m_elseBlock;
+    }
+
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;

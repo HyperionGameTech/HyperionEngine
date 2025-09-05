@@ -11,6 +11,8 @@ using SymbolTypeRef = RC<SymbolType>;
 
 class SymbolTypeTrait;
 
+class IdentifierTable;
+
 struct BuiltinTypeTraits
 {
     static const SymbolTypeTrait variadic;
@@ -39,6 +41,8 @@ struct BuiltinTypes
     static const SymbolTypeRef ARRAY;
     static const SymbolTypeRef MAP_BASE; // non-generic map type
     static const SymbolTypeRef MAP;
+
+    static void AddToSymbolTable(IdentifierTable& table);
 };
 
 } // namespace hyperion

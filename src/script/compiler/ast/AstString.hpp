@@ -45,9 +45,6 @@ public:
 private:
     String m_value;
 
-    // set while compiling
-    int m_staticId;
-
     RC<AstString> CloneImpl() const
     {
         return RC<AstString>(new AstString(

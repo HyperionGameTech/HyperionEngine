@@ -19,19 +19,24 @@ public:
         const SourceLocation& location);
     virtual ~AstArrayAccess() = default;
 
-    virtual void Visit(AstVisitor* visitor, Module* mod) override;
-    virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
-    virtual void Optimize(AstVisitor* visitor, Module* mod) override;
+    HYP_FORCE_INLINE const RC<AstExpression>& GetIndex() const
+    {
+        return m_index;
+    }
 
-    bool IsOperatorOverloadingEnabled() const
+    HYP_FORCE_INLINE bool IsOperatorOverloadingEnabled() const
     {
         return m_operatorOverloadingEnabled;
     }
 
-    void SetIsOperatorOverloadingEnabled(bool operatorOverloadingEnabled)
+    HYP_FORCE_INLINE void SetIsOperatorOverloadingEnabled(bool operatorOverloadingEnabled)
     {
         m_operatorOverloadingEnabled = operatorOverloadingEnabled;
     }
+
+    virtual void Visit(AstVisitor* visitor, Module* mod) override;
+    virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
+    virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
     virtual RC<AstStatement> Clone() const override;
 

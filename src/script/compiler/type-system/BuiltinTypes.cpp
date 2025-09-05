@@ -178,4 +178,28 @@ const SymbolTypeRef BuiltinTypes::MAP = SymbolType::Generic(
         { { "key", SymbolType::GenericParameter("K") },
             { "value", SymbolType::GenericParameter("V") } } });
 
+void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
+{
+    static const Array<SymbolType*> g_globalVisibleTypes {
+        BuiltinTypes::ANY,
+        BuiltinTypes::OBJECT,
+        BuiltinTypes::CLASS_TYPE,
+        BuiltinTypes::ENUM_TYPE,
+        BuiltinTypes::VOID_TYPE,
+        BuiltinTypes::INT,
+        BuiltinTypes::UNSIGNED_INT,
+        BuiltinTypes::FLOAT,
+        BuiltinTypes::BOOLEAN,
+        BuiltinTypes::STRING,
+        BuiltinTypes::FUNCTION,
+        BuiltinTypes::ARRAY,
+        BuiltinTypes::MAP
+    };
+
+    for (SymbolType* type : g_globalVisibleTypes)
+    {
+        table.AddSymbolType(type->RefCountedPtrFromThis());
+    }
+}
+
 } // namespace hyperion

@@ -12,8 +12,7 @@ namespace hyperion {
 
 AstString::AstString(const String& value, const SourceLocation& location)
     : AstConstant(location),
-      m_value(value),
-      m_staticId(0)
+      m_value(value)
 {
 }
 

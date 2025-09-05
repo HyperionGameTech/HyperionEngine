@@ -16,6 +16,11 @@ public:
         const SourceLocation& location);
     virtual ~AstMemberCallExpression() override = default;
 
+    HYP_FORCE_INLINE const RC<AstArgumentList>& GetArguments() const
+    {
+        return m_arguments;
+    }
+
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;

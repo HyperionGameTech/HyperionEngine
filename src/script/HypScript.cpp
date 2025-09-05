@@ -18,9 +18,16 @@
 
 #include <script/compiler/builtins/Builtins.hpp>
 
+#include <script/compiler/AstPrintVisitor.hpp>
+
 #include <script/vm/VM.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion {
+
+HYP_DEFINE_LOG_CHANNEL(HypScript);
 
 static IdGenerator g_scriptHandleGenerator;
 
@@ -66,10 +73,21 @@ void HypScript::Initialize()
     CompilationUnit compilationUnit;
     SemanticAnalyzer semanticAnalyzer(&astIterator, &compilationUnit);
 
-    compilationUnit.GetBuiltins().Visit(&semanticAnalyzer);
+    BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->m_scopes.Top().identifierTable);
 
     Parser parser(&astIterator, &tokenStream, &compilationUnit);
     parser.Parse(false);
+
+    AstPrintVisitor printer(&astIterator, &compilationUnit);
+    printer.SetUseColors(true);
+    printer.SetShowDetails(true);
+    printer.SetShowLocations(true);
+    printer.SetShowTypes(true);
+
+    // print the AST of the builtins to stdout
+    astIterator.ResetPosition();
+    std::wprintf(L"%S\n", printer.PrintTree(astIterator.Peek()).Data());
+    astIterator.ResetPosition();
 
     semanticAnalyzer.Analyze(false);
 
