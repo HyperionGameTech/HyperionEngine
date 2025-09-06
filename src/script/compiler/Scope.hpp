@@ -19,13 +19,13 @@ namespace hyperion {
     Generic instances are cached so that they can be reused when the same
     generic type is used with the same type arguments.
 */
-class GenericInstanceCache
+class TypeInstanceCache
 {
 
 public:
     class Key
     {
-        friend class GenericInstanceCache;
+        friend class TypeInstanceCache;
 
         Key() = default;
 
@@ -153,7 +153,7 @@ public:
     int scopeFlags;
     Array<SymbolTypeRef> returnTypes;
     HashMap<String, RC<Identifier>> closureCaptures;
-    GenericInstanceCache genericInstanceCache;
+    TypeInstanceCache typeInstanceCache;
 };
 
 } // namespace hyperion

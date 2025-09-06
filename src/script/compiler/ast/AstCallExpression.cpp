@@ -78,11 +78,11 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
     SymbolTypeRef unaliased = targetType->GetUnaliased();
     Assert(unaliased != nullptr);
 
-    SymbolTypeRef callMemberType;
+    SymbolTypeRef callMemberType = unaliased->FindMember("$invoke");
     String callMemberName;
 
     // check if $invoke is found on the object or its prototype
-    if ((callMemberType = unaliased->FindMember("$invoke")) || (callMemberType = unaliased->FindPrototypeMember("$invoke")))
+    if (callMemberType != nullptr)
     {
         callMemberName = "$invoke";
     }
@@ -103,10 +103,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         argsWithSelf.PushFront(std::move(closureSelfArg));
 
         m_overrideExpr.Reset(new AstCallExpression(
-            RC<AstMember>(new AstMember(
-                callMemberName,
-                CloneAstNode(m_expr),
-                m_location)),
+            RC<AstMember>(new AstMember(callMemberName, CloneAstNode(m_expr), m_location)),
             CloneAllAstNodes(argsWithSelf),
             false,
             m_location));

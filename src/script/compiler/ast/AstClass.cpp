@@ -328,7 +328,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
             constructorParams.PushBack(RC<AstParameter>(new AstParameter(
                 "self",
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(/*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY, m_location)),
+                    RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), m_location)),
                     m_location)),
                 nullptr,
                 false,
@@ -401,12 +401,11 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
             RC<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
                 constructorParams,
-                /*RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(
                         SymbolType::Placeholder("SelfType"),
                         m_location)),
-                    m_location)),*/
-                nullptr,
+                    m_location)),
                 constructorBody,
                 m_location));
 

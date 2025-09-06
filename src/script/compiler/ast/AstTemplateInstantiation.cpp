@@ -69,7 +69,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef returnType = m_functionReturnType->GetHeldType();
         Assert(returnType != nullptr);
 
-        genericParamTypes.PushBack({ "@return", returnType });
+        genericParamTypes.EmplaceBack("@return", returnType, nullptr, false, false);
     }
 
     for (SizeType i = 0; i < m_genericArgs.Size(); i++)
@@ -77,7 +77,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef argType = m_genericArgs[i]->GetHeldType();
         Assert(argType != nullptr);
 
-        genericParamTypes.PushBack({ HYP_FORMAT("@arg{}", i), argType });
+        genericParamTypes.EmplaceBack(HYP_FORMAT("@arg{}", i), argType, nullptr, false, false);
     }
 
     SymbolTypeRef genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(

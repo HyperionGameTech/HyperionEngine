@@ -57,6 +57,15 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_defaultParam != nullptr)
     {
+        if (IsRef())
+        {
+            // error; cannot create reference parameter with default argument
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_cannot_create_reference,
+                m_location));
+        }
+
         m_defaultParam->Visit(visitor, mod);
 
         const SymbolTypeRef defaultParamType = m_defaultParam->GetExprType();

@@ -124,7 +124,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (auto base = m_targetType->GetBaseType())
+        if (const SymbolTypeRef& base = m_targetType->GetBaseType())
         {
             m_targetType = base->GetUnaliased();
         }
@@ -138,10 +138,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
     if (fieldType != nullptr)
     {
-        fieldType = fieldType->GetUnaliased();
-        Assert(fieldType != nullptr);
-
-        m_symbolType = fieldType->GetUnaliased();
+        m_symbolType = fieldType;
     }
     else
     {

@@ -256,12 +256,12 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(cons
         });
 }
 
-SymbolTypeRef Module::LookupGenericInstance(const GenericInstanceCache::Key& cacheKey)
+SymbolTypeRef Module::LookupGenericInstance(const TypeInstanceCache::Key& cacheKey)
 {
     return PerformLookup<SymbolTypeRef>(
         [&cacheKey](TreeNode<Scope>* top)
         {
-            return top->Get().genericInstanceCache.Lookup(cacheKey);
+            return top->Get().typeInstanceCache.Lookup(cacheKey);
         },
         [&cacheKey](Module* mod)
         {
@@ -269,14 +269,14 @@ SymbolTypeRef Module::LookupGenericInstance(const GenericInstanceCache::Key& cac
         });
 }
 
-void Module::CacheGenericInstance(const GenericInstanceCache::Key& cacheKey, const SymbolTypeRef& type)
+void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type)
 {
     // cache in this module at topmost scope
     TreeNode<Scope>* top = m_scopes.TopNode();
 
     if (top != nullptr)
     {
-        top->Get().genericInstanceCache.Put(cacheKey, type);
+        top->Get().typeInstanceCache.Put(cacheKey, type);
     }
 }
 

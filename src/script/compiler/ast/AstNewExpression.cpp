@@ -232,12 +232,6 @@ bool AstNewExpression::MayHaveSideEffects() const
 
 SymbolTypeRef AstNewExpression::GetExprType() const
 {
-    if (m_constructorCall != nullptr)
-    {
-        return m_constructorCall->GetExprType();
-    }
-
-    Assert(m_instanceType != nullptr);
     return m_instanceType;
 }
 

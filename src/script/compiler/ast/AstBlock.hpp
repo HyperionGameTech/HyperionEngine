@@ -51,6 +51,16 @@ public:
         return m_lastIsReturn;
     }
 
+    bool IsLastStatementExpr() const
+    {
+        return m_lastIsExpr;
+    }
+
+    const SymbolTypeRef& GetLastExprType() const
+    {
+        return m_lastExprType;
+    }
+
     Scope* GetScope() const
     {
         return m_scope;

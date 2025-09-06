@@ -98,8 +98,8 @@ public:
 
     Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(const String& name, bool includePlaceholderTypes = true);
 
-    SymbolTypeRef LookupGenericInstance(const GenericInstanceCache::Key& cacheKey);
-    void CacheGenericInstance(const GenericInstanceCache::Key& cacheKey, const SymbolTypeRef& type);
+    SymbolTypeRef LookupGenericInstance(const TypeInstanceCache::Key& cacheKey);
+    void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type);
 
     Tree<Scope> m_scopes;
 

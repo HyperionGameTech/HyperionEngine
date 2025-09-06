@@ -95,8 +95,36 @@ struct GenericInstanceTypeInfo
         String m_name;
         SymbolTypeRef m_type;
         RC<AstExpression> m_defaultValue;
-        bool m_isRef = false;
-        bool m_isConst = false;
+        bool m_isRef : 1;
+        bool m_isConst : 1;
+
+        Arg()
+            : m_isRef(false),
+              m_isConst(false)
+        {
+        }
+
+        Arg(const String& name, const SymbolTypeRef& type, const RC<AstExpression>& defaultValue = nullptr)
+            : Arg(name, type, defaultValue, /* isRef */ false, /* isConst */ false)
+        {
+        }
+
+        Arg(const String& name, const SymbolTypeRef& type, const RC<AstExpression>& defaultValue, bool isRef, bool isConst)
+            : m_name(name),
+              m_type(type),
+              m_defaultValue(defaultValue),
+              m_isRef(isRef),
+              m_isConst(isConst)
+        {
+        }
+
+        Arg(const Arg& other) = default;
+        Arg& operator=(const Arg& other) = default;
+
+        Arg(Arg&& other) noexcept = default;
+        Arg& operator=(Arg&& other) noexcept = default;
+
+        ~Arg() = default;
 
         HashCode GetHashCode() const;
     };
@@ -378,12 +406,6 @@ public:
     bool FindMemberDeep(const String& name, SymbolTypeMember& out) const;
     bool FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
     bool FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const;
-
-    SymbolTypeRef FindPrototypeMember(const String& name) const;
-    bool FindPrototypeMember(const String& name, SymbolTypeMember& out) const;
-    bool FindPrototypeMember(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
-    bool FindPrototypeMemberDeep(const String& name) const;
-    bool FindPrototypeMemberDeep(const String& name, SymbolTypeMember& out) const;
 
     bool HasTrait(const SymbolTypeTrait& trait) const;
     bool HasTraitDeep(const SymbolTypeTrait& trait) const;

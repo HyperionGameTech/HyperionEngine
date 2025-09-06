@@ -153,6 +153,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     // first item will be set to return type
     Array<GenericInstanceTypeInfo::Arg> paramSymbolTypes;
+    paramSymbolTypes.Reserve(m_parameters.Size());
 
     for (auto& param : m_parameters)
     {
@@ -163,12 +164,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // add to list of param types
-        paramSymbolTypes.PushBack(GenericInstanceTypeInfo::Arg {
-            .m_name = param->GetName(),
-            .m_type = param->GetIdentifier()->GetSymbolType(),
-            .m_defaultValue = CloneAstNode(param->GetDefaultValue()),
-            .m_isRef = param->IsRef(),
-            .m_isConst = param->IsConst() });
+        paramSymbolTypes.PushBack(GenericInstanceTypeInfo::Arg(
+            param->GetName(),
+            param->GetIdentifier()->GetSymbolType(),
+            CloneAstNode(param->GetDefaultValue()),
+            param->IsRef(),
+            param->IsConst()));
     }
 
     Scope* functionScope = &mod->m_scopes.Top();
@@ -223,10 +224,66 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            m_returnType = BuiltinTypes::VOID_TYPE;
+            if (!m_returnTypeSpecification || m_returnType != BuiltinTypes::VOID_TYPE)
+            {
+                // check if last statement is an expression;
+                // if it is, we use its type as the return type. otherwise, it is 'void'.
+
+                if (m_blockWithParameters->IsLastStatementExpr())
+                {
+                    const SymbolTypeRef& lastExprType = m_blockWithParameters->GetLastExprType();
+
+                    if (lastExprType != nullptr)
+                    {
+                        if (m_returnTypeSpecification != nullptr)
+                        {
+                            // strict mode, because user specifically stated the intended return type
+                            if (!m_returnType->TypeCompatible(*lastExprType, true))
+                            {
+                                // error; does not match what user specified
+                                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                                    LEVEL_ERROR,
+                                    Msg_mismatched_return_type,
+                                    GetLocation(),
+                                    m_returnType->ToString(),
+                                    lastExprType->ToString()));
+                            }
+                        }
+                        else
+                        {
+                            m_returnType = lastExprType;
+                        }
+                    }
+                }
+                else
+                {
+                    // no expression at the end, so return type is void
+                    if (m_returnTypeSpecification != nullptr)
+                    {
+                        // strict mode, because user specifically stated the intended return type
+                        if (!m_returnType->TypeCompatible(*BuiltinTypes::VOID_TYPE, true))
+                        {
+                            // error; does not match what user specified
+                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                                LEVEL_ERROR,
+                                Msg_mismatched_return_type,
+                                GetLocation(),
+                                m_returnType->ToString(),
+                                BuiltinTypes::VOID_TYPE->ToString()));
+                        }
+                    }
+
+                    m_returnType = BuiltinTypes::VOID_TYPE;
+                }
+            }
+            else
+            {
+                // void return type
+                m_returnType = BuiltinTypes::VOID_TYPE;
+            }
         }
     }
-    else
+    else // function decl / extern (no block)
     {
         m_returnType = m_returnTypeSpecification != nullptr
             ? m_returnTypeSpecification->GetHeldType()
@@ -267,7 +324,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     // set object type to be an instance of function
     Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
     genericParamTypes.Reserve(paramSymbolTypes.Size() + 1);
-    genericParamTypes.PushBack({ "@return", m_returnType });
+    genericParamTypes.EmplaceBack("@return", m_returnType, nullptr, false, false);
 
     // perform checking to see if it should still be considered a closure
     if (m_isClosure)
@@ -277,10 +334,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (closureObjMembers.Any() || m_closureSelfParam->GetIdentifier()->GetUseCount() > 0)
         {
-            genericParamTypes.PushBack(GenericInstanceTypeInfo::Arg {
+            genericParamTypes.EmplaceBack(
                 m_closureSelfParam->GetName(),
                 closureSelfType,
-                nullptr });
+                nullptr,
+                /* isRef */ false,
+                /* isConst */ false);
         }
         else
         {

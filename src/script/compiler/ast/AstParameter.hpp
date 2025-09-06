@@ -41,10 +41,12 @@ public:
     {
         return m_isVariadic;
     }
+
     bool IsConst() const
     {
         return m_isConst;
     }
+
     bool IsRef() const
     {
         return m_isRef;
@@ -78,9 +80,9 @@ public:
 private:
     RC<AstTypeSpecifier> m_typeSpec;
     RC<AstExpression> m_defaultParam;
-    bool m_isVariadic;
-    bool m_isConst;
-    bool m_isRef;
+    bool m_isVariadic : 1;
+    bool m_isConst : 1;
+    bool m_isRef : 1;
 
     // Set while analyzing
     SymbolTypeRef m_symbolType;

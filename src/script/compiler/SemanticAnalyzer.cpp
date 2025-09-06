@@ -221,17 +221,15 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     SymbolTypeRef targetType = unaliasedInputType;
 
-    const GenericInstanceCache::Key cacheKey = GenericInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
+    const TypeInstanceCache::Key cacheKey = TypeInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
 
-    if (targetType->IsGenericInstanceType())
+    if (SymbolTypeRef cachedType = mod->LookupGenericInstance(cacheKey))
     {
-        if (SymbolTypeRef cachedType = mod->LookupGenericInstance(cacheKey))
-        {
-            return cachedType;
-        }
+        return cachedType;
     }
 
     bool changed = false;
+    bool cached = false;
 
     ScopeGuard scope { mod, SCOPE_TYPE_NORMAL, 0 };
 
@@ -268,7 +266,9 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     {
         // cache it now to avoid infinite recursion
         SymbolTypeRef newType = SymbolType::Temp();
-        mod->CacheGenericInstance(cacheKey, newType);
+        mod->CacheTypeInstance(cacheKey, newType);
+
+        cached = true;
 
         const GenericInstanceTypeInfo& genericInstanceInfo = targetType->GetGenericInstanceInfo();
 
@@ -449,7 +449,21 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         newMember.expr = CloneAstNode(member.expr);
     }
 
-    return changed ? targetType : inputType;
+    if (changed)
+    {
+        if (!cached)
+        {
+            // cache the new type
+            mod->CacheTypeInstance(cacheKey, targetType);
+        }
+
+        return targetType;
+    }
+
+    // return original type before any unaliasing or changes
+    // - since we use equality checks to determine if a type has changed,
+    //   we need to return the original input type if we didn't return a new / modified type.
+    return inputType;
 }
 
 SymbolTypeRef SemanticAnalyzer::Helpers::GenericPromotion(
@@ -731,14 +745,8 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 //     varargType
                 // );
 
-                // check should not be neccessary but added just in case
-                const bool isRef = argTypesWithoutReturn.Size() != 0
-                    ? argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isRef
-                    : false;
-
-                const bool isConst = argTypesWithoutReturn.Size() != 0
-                    ? argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isConst
-                    : false;
+                const bool isRef = argTypesWithoutReturn.Size() != 0 && argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isRef;
+                const bool isConst = argTypesWithoutReturn.Size() != 0 && argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isConst;
 
                 arg.argument->SetIsPassByRef(isRef);
                 arg.argument->SetIsPassConst(isConst);
@@ -824,27 +832,27 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
             RC<AstArgument> substitutedArg;
 
+            RC<AstExpression> expr;
+
+            if (hasDefaultValue)
             {
-                RC<AstExpression> expr;
-
-                if (hasDefaultValue)
-                {
-                    expr = CloneAstNode(argTypesWithoutReturn[unusedIndex].m_defaultValue);
-                }
-                else
-                {
-                    expr.Reset(new AstUndefined(location));
-                }
-
-                substitutedArg.Reset(new AstArgument(
-                    expr,
-                    false,
-                    true,
-                    isRef,
-                    isConst,
-                    argTypesWithoutReturn[unusedIndex].m_name,
-                    location));
+                expr = CloneAstNode(argTypesWithoutReturn[unusedIndex].m_defaultValue);
             }
+            else
+            {
+                expr.Reset(new AstUndefined(location));
+            }
+
+            substitutedArg.Reset(new AstArgument(
+                expr,
+                false,
+                true,
+                isRef,
+                isConst,
+                argTypesWithoutReturn[unusedIndex].m_name,
+                location));
+
+            expr.Reset();
 
             // push the default value as argument
             // use named argument, same name as in definition
