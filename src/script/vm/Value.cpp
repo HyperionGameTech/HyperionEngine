@@ -212,6 +212,9 @@ Script_Value::Script_Value(MakeGarbageTag)
 Script_Value::Script_Value()
     : m_gcIndex(INVALID_GC_INDEX)
 {
+    static_assert(sizeof(m_internal) == sizeof(HypData), "Size of m_internal must match size of HypData");
+    static_assert(alignof(decltype(m_internal)) <= alignof(HypData), "Alignment of m_internal must be less than or equal to alignment of HypData");
+
     new (m_internal) HypData();
 }
 
@@ -334,22 +337,6 @@ Script_Value::~Script_Value()
 
     // set all bytes to 0xFF to indicate garbage for debugging purposes
     Memory::MemSet(m_internal, 0xFFu, sizeof(m_internal));
-}
-
-HypData* Script_Value::GetHypData()
-{
-    static_assert(sizeof(m_internal) == sizeof(HypData), "Size of m_internal must match size of HypData");
-    static_assert(alignof(decltype(m_internal)) <= alignof(HypData), "Alignment of m_internal must be less than or equal to alignment of HypData");
-
-    return reinterpret_cast<HypData*>(m_internal);
-}
-
-const HypData* Script_Value::GetHypData() const
-{
-    static_assert(sizeof(m_internal) == sizeof(HypData), "Size of m_internal must match size of HypData");
-    static_assert(alignof(decltype(m_internal)) <= alignof(HypData), "Alignment of m_internal must be less than or equal to alignment of HypData");
-
-    return reinterpret_cast<const HypData*>(m_internal);
 }
 
 void Script_Value::Mark()

@@ -239,6 +239,16 @@ public:
 
     ~Script_Value();
 
+    HYP_FORCE_INLINE HypData* GetHypData()
+    {
+        return reinterpret_cast<HypData*>(m_internal);
+    }
+
+    HYP_FORCE_INLINE const HypData* GetHypData() const
+    {
+        return reinterpret_cast<const HypData*>(m_internal);
+    }
+
     HYP_FORCE_INLINE GCIndex GetGCIndex() const
     {
         return m_gcIndex;
@@ -246,9 +256,6 @@ public:
 
     Script_VMData* GetVMData();
     const Script_VMData* GetVMData() const;
-
-    HypData* GetHypData();
-    const HypData* GetHypData() const;
 
     bool IsValid() const;
     bool IsGarbage() const;
