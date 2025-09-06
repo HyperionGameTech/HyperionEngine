@@ -23,8 +23,7 @@ public:
 
     ~Script_GC();
 
-    // returns the new pointer in tracked memory
-    Script_Value* MoveToTrackedMemory(Script_Value&& value);
+    void MoveToTrackedMemory(Script_Value& inOutRefValue);
 
 private:
     Pool m_pool;

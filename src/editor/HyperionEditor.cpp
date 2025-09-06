@@ -166,9 +166,8 @@ void HyperionEditor::Init()
               "ins : any = new MyClass();\n"
               "testArray2 : Array<int> = [9,9,34]\n"
               "testArray2[0]++\n"
-              "testRef := testArray2\n"
+              "ref testRef := testArray2\n"
               "testRef = [4,3,2,1]\n"
-              "testRef[3] = 9.0 as int\n"
               "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20]++;\ntestArray2[1] = testArray2[2];\nreturn testRef; }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif

@@ -357,11 +357,13 @@ Script_Value ScriptApi_MakeValue(const Number& number)
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
-Script_Value ScriptApi_MakeRef(Script_Value& refValue)
+Script_Value ScriptApi_MakeRef(Script_Value* pValue)
 {
+    Assert(pValue != nullptr);
+
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = &refValue;
+    vmData.valueRef = pValue;
 
     Assert(vmData.valueRef != nullptr);
     Assert(!vmData.valueRef->IsGarbage(), "Creating a reference to garbage value");
@@ -369,23 +371,22 @@ Script_Value ScriptApi_MakeRef(Script_Value& refValue)
     return Script_Value(vmData);
 }
 
-Script_Value ScriptApi_MakeTrackedRef(Script_Value& refValue, Script_GC* gc)
+Script_Value ScriptApi_MakeTrackedRef(Script_Value* pValue, Script_GC* gc)
 {
     Assert(gc != nullptr);
-    Assert(!refValue.IsRef());
+    Assert(pValue != nullptr);
 
-    if (refValue.GetGCIndex() != INVALID_GC_INDEX)
+    if (pValue->GetGCIndex() != INVALID_GC_INDEX)
     {
         // already in tracked memory, make a reference to this value
-        return ScriptApi_MakeRef(refValue);
+        return ScriptApi_MakeRef(pValue);
     }
 
-    const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
+    const TypeId originalTypeId = pValue->GetHypData()->GetTypeId();
 
-    Script_Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
-    Assert(pValue != nullptr && pValue->GetGCIndex() != INVALID_GC_INDEX);
+    gc->MoveToTrackedMemory(*pValue);
 
-    return ScriptApi_MakeRef(*pValue);
+    return *pValue;
 }
 
 #define PASS_AS_REF(data) ((data).Is<Any>())
@@ -401,7 +402,7 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
     if (refValue.GetGCIndex() != INVALID_GC_INDEX)
     {
         // in tracked memory, make a reference to it
-        return ScriptApi_MakeRef(refValue);
+        return ScriptApi_MakeRef(&refValue);
     }
 
     const HypData& hypData = *refValue.GetHypData();
@@ -530,7 +531,7 @@ public:
         // read value from stack at (sp - offset)
         // into the the register
         instance->thread.m_regs[reg] = PASS_AS_REF(*srcValue.GetHypData())
-            ? ScriptApi_MakeRef(srcValue)
+            ? ScriptApi_MakeRef(&srcValue)
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
@@ -548,7 +549,7 @@ public:
 
         // read value from stack at the index into the the register
         instance->thread.m_regs[reg] = PASS_AS_REF(*srcValue.GetHypData())
-            ? ScriptApi_MakeRef(srcValue)
+            ? ScriptApi_MakeRef(&srcValue)
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
@@ -559,7 +560,7 @@ public:
         Script_Value& srcValue = vm->m_staticMemory[index];
 
         instance->thread.m_regs[reg] = PASS_AS_REF(*srcValue.GetHypData())
-            ? ScriptApi_MakeRef(srcValue)
+            ? ScriptApi_MakeRef(&srcValue)
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
@@ -623,7 +624,13 @@ public:
                     return;
                 }
 
-                instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeRef((*array)[key.i]), false);
+                Script_Value& srcValue = (*array)[key.i];
+
+                instance->thread.m_regs[dstReg].AssignValue(
+                    PASS_AS_REF(*srcValue.GetHypData())
+                        ? ScriptApi_MakeRef(&srcValue)
+                        : ScriptApi_ShallowCopy(srcValue, vm->GetGC()),
+                    false);
             }
             else if (key.flags & Number::FLAG_UNSIGNED)
             {
@@ -634,7 +641,13 @@ public:
                     return;
                 }
 
-                instance->thread.m_regs[dstReg].AssignValue(ScriptApi_MakeRef((*array)[key.u]), false);
+                Script_Value& srcValue = (*array)[key.u];
+
+                instance->thread.m_regs[dstReg].AssignValue(
+                    PASS_AS_REF(*srcValue.GetHypData())
+                        ? ScriptApi_MakeRef(&srcValue)
+                        : ScriptApi_ShallowCopy(srcValue, vm->GetGC()),
+                    false);
             }
 
             return;
@@ -647,9 +660,7 @@ public:
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], vm->GetGC());
-        Assert(newRef.IsRef());
-
+        Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].Deref(), vm->GetGC());
         instance->thread.m_regs[reg].AssignValue(std::move(newRef), false);
     }
 
@@ -663,20 +674,13 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        Script_Value newRef = ScriptApi_MakeTrackedRef(stackMemory[index], vm->GetGC());
-        Assert(newRef.IsRef());
-
-        // load reference to stack value at index into the register
+        Script_Value newRef = ScriptApi_MakeTrackedRef(stackMemory[index].Deref(), vm->GetGC());
         instance->thread.m_regs[reg].AssignValue(std::move(newRef), false);
     }
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
-        // move to tracked memory pool:
-        Script_Value newRef = ScriptApi_MakeTrackedRef(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC());
-        Assert(newRef.IsRef());
-
-        // load reference to value in srcReg into dstReg
+        Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_regs[srcReg].Deref(), vm->GetGC());
         instance->thread.m_regs[dstReg].AssignValue(std::move(newRef), false);
     }
 
@@ -1371,7 +1375,7 @@ public:
 
         // promote the class object to tracked gc memory so it doesn't instantly get destroyed
         instance->thread.m_regs[reg].AssignValue(
-            ScriptApi_MakeTrackedRef(classValue, vm->GetGC()),
+            ScriptApi_MakeTrackedRef(&classValue, vm->GetGC()),
             false);
     }
 
