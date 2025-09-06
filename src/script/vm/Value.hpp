@@ -36,16 +36,16 @@ class Script_Exception;
 
 enum NumericType : uint8
 {
-    NT_NONE = 0,
+    NT_INVALID = (uint8)-1,
 
+    NT_U8 = 0,
     NT_I8,
-    NT_I16,
-    NT_I32,
-    NT_I64,
-    NT_U8,
     NT_U16,
+    NT_I16,
     NT_U32,
+    NT_I32,
     NT_U64,
+    NT_I64,
     NT_F32,
     NT_F64
 };
@@ -86,29 +86,29 @@ struct Number
     {
         switch (numericType)
         {
-        case NT_I8:
-            flags = FLAG_SIGNED | FLAG_8_BIT;
-            break;
-        case NT_I16:
-            flags = FLAG_SIGNED | FLAG_16_BIT;
-            break;
-        case NT_I32:
-            flags = FLAG_SIGNED | FLAG_32_BIT;
-            break;
-        case NT_I64:
-            flags = FLAG_SIGNED | FLAG_64_BIT;
-            break;
         case NT_U8:
             flags = FLAG_UNSIGNED | FLAG_8_BIT;
+            break;
+        case NT_I8:
+            flags = FLAG_SIGNED | FLAG_8_BIT;
             break;
         case NT_U16:
             flags = FLAG_UNSIGNED | FLAG_16_BIT;
             break;
+        case NT_I16:
+            flags = FLAG_SIGNED | FLAG_16_BIT;
+            break;
         case NT_U32:
             flags = FLAG_UNSIGNED | FLAG_32_BIT;
             break;
+        case NT_I32:
+            flags = FLAG_SIGNED | FLAG_32_BIT;
+            break;
         case NT_U64:
             flags = FLAG_UNSIGNED | FLAG_64_BIT;
+            break;
+        case NT_I64:
+            flags = FLAG_SIGNED | FLAG_64_BIT;
             break;
         case NT_F32:
             flags = FLAG_FLOATING_POINT | FLAG_32_BIT;

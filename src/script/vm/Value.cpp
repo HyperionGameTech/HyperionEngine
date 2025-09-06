@@ -755,7 +755,7 @@ NumericType Script_Value::GetNumericType() const
         return NT_F64;
     }
 
-    return NT_NONE;
+    return NT_INVALID;
 }
 
 bool Script_Value::GetBoolean(bool* out) const

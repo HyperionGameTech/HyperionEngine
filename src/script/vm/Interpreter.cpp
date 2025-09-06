@@ -383,17 +383,10 @@ Script_Value ScriptApi_MakeTrackedRef(Script_Value& refValue, Script_GC* gc)
     const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
 
     Script_Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
-    Assert(pValue != nullptr);
-    Assert(pValue->GetGCIndex() != INVALID_GC_INDEX);
+    Assert(pValue != nullptr && pValue->GetGCIndex() != INVALID_GC_INDEX);
 
-    // update original reference to point to tracked memory
-    refValue = ScriptApi_MakeRef(*pValue);
-    Assert(refValue.GetRef() == pValue);
-    
-    return refValue;
+    return ScriptApi_MakeRef(*pValue);
 }
-
-// #define HYP_SCRIPT_AUTO_REFERENCES
 
 #define PASS_AS_REF(data) ((data).Is<Any>())
 
@@ -413,34 +406,16 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
 
     const HypData& hypData = *refValue.GetHypData();
 
-    // 'Any' is used internally by HypData for object that is heap-allocated,
-    // and we use reference semantics for it rather than copying.
-#ifdef HYP_SCRIPT_AUTO_REFERENCES
-    const bool shouldDoCopy = !PASS_AS_REF(hypData);
-#else
-    constexpr bool shouldDoCopy = true;
-#endif
+    HypData newHypData;
 
-    if (shouldDoCopy)
-    {
-        HypData newHypData;
+    Visit(hypData.value, [&newHypData](const auto& val)
+        {
+            newHypData.value.Set<NormalizedType<decltype(val)>>(val);
+        });
 
-        Visit(hypData.value, [&newHypData](const auto& val)
-            {
-                newHypData.value.Set<NormalizedType<decltype(val)>>(val);
-            });
+    newHypData.serializeFunction = hypData.serializeFunction;
 
-        newHypData.serializeFunction = hypData.serializeFunction;
-
-        return Script_Value(std::move(newHypData));
-    }
-
-#ifndef HYP_SCRIPT_AUTO_REFERENCES
-    HYP_UNREACHABLE();
-#else
-    // reference type - promote to tracked memory
-    return ScriptApi_MakeRef(refValue, gc, true);
-#endif
+    return Script_Value(std::move(newHypData));
 }
 
 #pragma endregion ScriptApi

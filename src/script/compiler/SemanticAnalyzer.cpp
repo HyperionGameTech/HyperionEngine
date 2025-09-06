@@ -111,7 +111,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (resolvedParamType->TypeCompatible(*resolvedArgType, true, &incompatibilities))
+    if (resolvedParamType->TypeCompatible(*resolvedArgType, /* strictNumbers */ true, &incompatibilities))
     {
         return;
     }

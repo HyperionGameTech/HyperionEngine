@@ -73,7 +73,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
             break;
         default:
-            Assert(false, "Unhandled operator type");
+            HYP_UNREACHABLE();
         }
 
         m_overrideBlock.Reset(new AstBlock(m_location));

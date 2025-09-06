@@ -402,7 +402,16 @@ bool SymbolType::TypeCompatible(
                 return true;
             }
 
-            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "numeric types cannot be implicitly converted in this context");
+            // check if right can be promoted to left
+            SymbolTypeRef promotedType = TypePromotion(RefCountedPtrFromThis(), right.RefCountedPtrFromThis());
+
+            if (promotedType != nullptr && promotedType->TypeEqual(*this))
+            {
+                // can promote right to left
+                return true;
+            }
+
+            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "numeric type " + right.ToString(false) + " would lose precision when assigned to " + ToString(false));
 
             return false;
         }
@@ -1147,7 +1156,7 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
         {
             return BuiltinTypes::FLOAT;
         }
-        else if (lptr->IsUnsignedIntegral() || rptr->IsUnsignedIntegral())
+        else if (rptr->IsUnsignedIntegral())
         {
             return BuiltinTypes::UNSIGNED_INT;
         }

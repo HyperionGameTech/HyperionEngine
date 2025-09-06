@@ -15,11 +15,24 @@
 #include <cstdio>
 
 #define MAIN_THREAD m_threads[0]
-
-#define MATCH_TYPES(leftType, rightType) \
-    ((leftType) < (rightType)) ? (rightType) : (leftType)
-
 namespace hyperion {
+
+/*! \brief Table for type promotion for binops. */
+static constexpr int g_typePromoLut[10][10] = {
+    // NT_U8=0, NT_I8=1, NT_U16=2, NT_I16=3, NT_U32=4, NT_I32=5, NT_U64=6, NT_I64=7, NT_F32=8, NT_F64=9
+    /*U8*/ { 0, 1, 2, 3, 4, 7, 6, 7, 8, 9 },
+    /*I8*/ { 1, 1, 3, 3, 7, 5, 7, 7, 8, 9 },
+    /*U16*/ { 2, 3, 2, 3, 4, 7, 6, 7, 8, 9 },
+    /*I16*/ { 3, 3, 3, 3, 7, 5, 7, 7, 8, 9 },
+    /*U32*/ { 4, 7, 4, 7, 4, 7, 6, 7, 8, 9 },
+    /*I32*/ { 7, 5, 7, 5, 7, 5, 7, 7, 8, 9 },
+    /*U64*/ { 6, 7, 6, 7, 6, 7, 6, 7, 9, 9 },
+    /*I64*/ { 7, 7, 7, 7, 7, 7, 7, 7, 9, 9 },
+    /*F32*/ { 8, 8, 8, 8, 8, 8, 9, 9, 8, 9 },
+    /*F64*/ { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9 }
+};
+
+#define MATCH_TYPES(leftType, rightType) ((NumericType)g_typePromoLut[(leftType)][(rightType)])
 
 extern Script_Value ScriptApi_MakeValue(const Script_VMData& data);
 extern Script_Value ScriptApi_MakeValue(const Number& number);
