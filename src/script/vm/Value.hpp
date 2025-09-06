@@ -215,7 +215,16 @@ class alignas(8) Script_Value
     char m_internal[32];
     GCIndex m_gcIndex;
 
+    enum MakeGarbageTag
+    {
+        MAKE_GARBAGE_TAG
+    };
+
+    explicit Script_Value(MakeGarbageTag);
+
 public:
+    static const Script_Value s_uninitializedValue;
+
     Script_Value();
 
     explicit Script_Value(HypData&& data);

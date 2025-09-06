@@ -201,6 +201,14 @@ bool ValueDataToString(const HypData& data, Script_String& outString)
     return false;
 }
 
+const Script_Value Script_Value::s_uninitializedValue = Script_Value(MAKE_GARBAGE_TAG);
+
+Script_Value::Script_Value(MakeGarbageTag)
+{
+    Memory::MemSet(m_internal, 0xFFu, sizeof(m_internal));
+    m_gcIndex = INVALID_GC_INDEX;
+}
+
 Script_Value::Script_Value()
     : m_gcIndex(INVALID_GC_INDEX)
 {
@@ -377,17 +385,7 @@ bool Script_Value::IsValid() const
 
 bool Script_Value::IsGarbage() const
 {
-    // if all bytes are 0xFF it is considered garbage
-    const uint8* bytes = reinterpret_cast<const uint8*>(m_internal);
-    for (SizeType i = 0; i < sizeof(m_internal); i++)
-    {
-        if (bytes[i] != 0xFF)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return Memory::MemCmp(this, &s_uninitializedValue, sizeof(Script_Value)) == 0;
 }
 
 bool Script_Value::IsFunction() const
@@ -974,7 +972,7 @@ Script_String Script_Value::ToString() const
             {
                 return Script_String(g_referenceString);
             }
-            
+
             return ref->ToString();
         }
 

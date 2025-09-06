@@ -25,7 +25,7 @@ extern Script_Value ScriptApi_MakeValue(const Script_VMData& data);
 extern Script_Value ScriptApi_MakeValue(const Number& number);
 extern Script_Value ScriptApi_MakeValue(HypData&& data);
 extern Script_Value ScriptApi_MakeRef(Script_Value& refValue);
-extern Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promoteToTrackedMemory);
+extern Script_Value ScriptApi_MakeTrackedRef(Script_Value& refValue, Script_GC* gc);
 extern Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc);
 
 class Script_GC;
@@ -34,17 +34,19 @@ static constexpr uint32 VM_NUM_REGISTERS = 8;
 
 struct Script_RegisterMemory
 {
-    Script_Value m_reg[VM_NUM_REGISTERS];
-    int m_flags = 0;
+    Script_Value data[VM_NUM_REGISTERS];
+    int flags = 0;
+
+    Script_RegisterMemory();
 
     HYP_FORCE_INLINE Script_Value& operator[](uint8 index)
     {
-        return m_reg[index];
+        return data[index];
     }
 
     HYP_FORCE_INLINE void ResetFlags()
     {
-        m_flags = 0;
+        flags = 0;
     }
 };
 

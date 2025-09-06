@@ -369,38 +369,33 @@ Script_Value ScriptApi_MakeRef(Script_Value& refValue)
     return Script_Value(vmData);
 }
 
-/*! \brief Use for loading into registers - moves to tracked memory if `promoteToTrackedMemory` is true  and `refValue` is not already in tracked memory */
-Script_Value ScriptApi_MakeRef(Script_Value& refValue, Script_GC* gc, bool promoteToTrackedMemory)
+Script_Value ScriptApi_MakeTrackedRef(Script_Value& refValue, Script_GC* gc)
 {
-    if (promoteToTrackedMemory)
+    Assert(gc != nullptr);
+    Assert(!refValue.IsRef());
+
+    if (refValue.GetGCIndex() != INVALID_GC_INDEX)
     {
-        Assert(gc != nullptr);
-        Assert(!refValue.IsRef());
-
-        if (refValue.GetGCIndex() != INVALID_GC_INDEX)
-        {
-            // already in tracked memory, make a reference to this value
-            return ScriptApi_MakeRef(refValue);
-        }
-
-        const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
-
-        Script_Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
-        Assert(pValue != nullptr);
-        Assert(pValue->GetGCIndex() != INVALID_GC_INDEX);
-
-        // update original reference to point to tracked memory
-        refValue = ScriptApi_MakeRef(*pValue);
-
-        Assert(refValue.IsRef());
-        Assert(refValue.Deref() == pValue);
-        Assert(refValue.Deref()->GetHypData()->GetTypeId() == originalTypeId);
+        // already in tracked memory, make a reference to this value
+        return ScriptApi_MakeRef(refValue);
     }
 
-    return ScriptApi_MakeRef(refValue);
+    const TypeId originalTypeId = refValue.GetHypData()->GetTypeId();
+
+    Script_Value* pValue = gc->MoveToTrackedMemory(std::move(refValue));
+    Assert(pValue != nullptr);
+    Assert(pValue->GetGCIndex() != INVALID_GC_INDEX);
+
+    // update original reference to point to tracked memory
+    refValue = ScriptApi_MakeRef(*pValue);
+    Assert(refValue.GetRef() == pValue);
+    
+    return refValue;
 }
 
 // #define HYP_SCRIPT_AUTO_REFERENCES
+
+#define PASS_AS_REF(data) ((data).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
 Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
@@ -421,7 +416,7 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
     // 'Any' is used internally by HypData for object that is heap-allocated,
     // and we use reference semantics for it rather than copying.
 #ifdef HYP_SCRIPT_AUTO_REFERENCES
-    const bool shouldDoCopy = !hypData.Is<Any>();
+    const bool shouldDoCopy = !PASS_AS_REF(hypData);
 #else
     constexpr bool shouldDoCopy = true;
 #endif
@@ -449,6 +444,14 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
 }
 
 #pragma endregion ScriptApi
+
+#pragma region Script_RegisterMemory
+
+Script_RegisterMemory::Script_RegisterMemory()
+{
+}
+
+#pragma endregion Script_RegisterMemory
 
 #pragma region Script_StaticMemory
 
@@ -547,9 +550,13 @@ public:
             "Stack offset out of bounds (%u)",
             offset);
 
+        Script_Value& srcValue = stackMemory[stackMemory.GetStackPointer() - offset];
+
         // read value from stack at (sp - offset)
         // into the the register
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[stackMemory.GetStackPointer() - offset], vm->GetGC(), false), false);
+        instance->thread.m_regs[reg] = PASS_AS_REF(*srcValue.GetHypData())
+            ? ScriptApi_MakeRef(srcValue)
+            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
     HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16 index)
@@ -562,17 +569,23 @@ public:
             index,
             stackMemory.GetStackPointer());
 
+        Script_Value& srcValue = stackMemory[index];
+
         // read value from stack at the index into the the register
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), false), false);
+        instance->thread.m_regs[reg] = PASS_AS_REF(*srcValue.GetHypData())
+            ? ScriptApi_MakeRef(srcValue)
+            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
     HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16 index)
     {
         // read value from static memory
         // at the index into the the register
-        Script_Value& value = vm->m_staticMemory[index];
+        Script_Value& srcValue = vm->m_staticMemory[index];
 
-        instance->thread.m_regs[reg].AssignValue(ScriptApi_MakeRef(value, vm->GetGC(), false), false);
+        instance->thread.m_regs[reg] = PASS_AS_REF(*srcValue.GetHypData())
+            ? ScriptApi_MakeRef(srcValue)
+            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
     HYP_FORCE_INLINE void LoadConstantString(BCRegister reg, uint32 len, const char* str)
@@ -659,7 +672,7 @@ public:
     HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        Script_Value newRef = ScriptApi_MakeRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], vm->GetGC(), true);
+        Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset], vm->GetGC());
         Assert(newRef.IsRef());
 
         instance->thread.m_regs[reg].AssignValue(std::move(newRef), false);
@@ -675,7 +688,7 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        Script_Value newRef = ScriptApi_MakeRef(stackMemory[index], vm->GetGC(), true);
+        Script_Value newRef = ScriptApi_MakeTrackedRef(stackMemory[index], vm->GetGC());
         Assert(newRef.IsRef());
 
         // load reference to stack value at index into the register
@@ -685,7 +698,7 @@ public:
     HYP_FORCE_INLINE void LoadRef(BCRegister dstReg, BCRegister srcReg)
     {
         // move to tracked memory pool:
-        Script_Value newRef = ScriptApi_MakeRef(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC(), true);
+        Script_Value newRef = ScriptApi_MakeTrackedRef(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC());
         Assert(newRef.IsRef());
 
         // load reference to value in srcReg into dstReg
@@ -1025,7 +1038,7 @@ public:
 
     HYP_FORCE_INLINE void Je(Script_FunctionAddress addr)
     {
-        if (instance->thread.m_regs.m_flags & CF_EQUAL)
+        if (instance->thread.m_regs.flags & CF_EQUAL)
         {
             instance->stream.Seek((uint32)addr);
         }
@@ -1033,7 +1046,7 @@ public:
 
     HYP_FORCE_INLINE void Jne(Script_FunctionAddress addr)
     {
-        if (!(instance->thread.m_regs.m_flags & CF_EQUAL))
+        if (!(instance->thread.m_regs.flags & CF_EQUAL))
         {
             instance->stream.Seek((uint32)addr);
         }
@@ -1041,7 +1054,7 @@ public:
 
     HYP_FORCE_INLINE void Jg(Script_FunctionAddress addr)
     {
-        if (instance->thread.m_regs.m_flags & CF_GREATER)
+        if (instance->thread.m_regs.flags & CF_GREATER)
         {
             instance->stream.Seek((uint32)addr);
         }
@@ -1049,7 +1062,7 @@ public:
 
     HYP_FORCE_INLINE void Jge(Script_FunctionAddress addr)
     {
-        if (instance->thread.m_regs.m_flags & (CF_GREATER | CF_EQUAL))
+        if (instance->thread.m_regs.flags & (CF_GREATER | CF_EQUAL))
         {
             instance->stream.Seek((uint32)addr);
         }
@@ -1381,9 +1394,9 @@ public:
 
         Script_Value classValue = ScriptApi_MakeValue(HypClassRef(newClass));
 
-        // promote the class object to tracked Script_GC memory so it doesn't instantly get destroyed
+        // promote the class object to tracked gc memory so it doesn't instantly get destroyed
         instance->thread.m_regs[reg].AssignValue(
-            ScriptApi_MakeRef(classValue, vm->GetGC(), /* promoteToTrackedMemory */ true),
+            ScriptApi_MakeTrackedRef(classValue, vm->GetGC()),
             false);
     }
 
@@ -1392,7 +1405,7 @@ public:
         // dropout early for comparing something against itself
         if (lhsReg == rhsReg)
         {
-            instance->thread.m_regs.m_flags = CF_EQUAL;
+            instance->thread.m_regs.flags = CF_EQUAL;
             return;
         }
 
@@ -1406,24 +1419,24 @@ public:
         {
             if ((a.flags & Number::FLAG_SIGNED) && (b.flags & Number::FLAG_SIGNED))
             {
-                instance->thread.m_regs.m_flags = (a.i == b.i) ? CF_EQUAL : ((a.i > b.i) ? CF_GREATER : CF_NONE);
+                instance->thread.m_regs.flags = (a.i == b.i) ? CF_EQUAL : ((a.i > b.i) ? CF_GREATER : CF_NONE);
             }
             else if ((a.flags & Number::FLAG_SIGNED) && (b.flags & Number::FLAG_UNSIGNED))
             {
-                instance->thread.m_regs.m_flags = (a.i == b.u) ? CF_EQUAL : ((a.i > b.u) ? CF_GREATER : CF_NONE);
+                instance->thread.m_regs.flags = (a.i == b.u) ? CF_EQUAL : ((a.i > b.u) ? CF_GREATER : CF_NONE);
             }
             else if ((a.flags & Number::FLAG_UNSIGNED) && (b.flags & Number::FLAG_SIGNED))
             {
-                instance->thread.m_regs.m_flags = (a.u == b.i) ? CF_EQUAL : ((a.u > b.i) ? CF_GREATER : CF_NONE);
+                instance->thread.m_regs.flags = (a.u == b.i) ? CF_EQUAL : ((a.u > b.i) ? CF_GREATER : CF_NONE);
             }
             else if ((a.flags & Number::FLAG_UNSIGNED) && (b.flags & Number::FLAG_UNSIGNED))
             {
-                instance->thread.m_regs.m_flags = (a.u == b.u) ? CF_EQUAL : ((a.u > b.u) ? CF_GREATER : CF_NONE);
+                instance->thread.m_regs.flags = (a.u == b.u) ? CF_EQUAL : ((a.u > b.u) ? CF_GREATER : CF_NONE);
             }
         }
         else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f))
         {
-            instance->thread.m_regs.m_flags = (a.f == b.f) ? CF_EQUAL : ((a.f > b.f) ? CF_GREATER : CF_NONE);
+            instance->thread.m_regs.flags = (a.f == b.f) ? CF_EQUAL : ((a.f > b.f) ? CF_GREATER : CF_NONE);
         }
         else
         {
@@ -1432,7 +1445,7 @@ public:
 
             if (lhs->GetBoolean(&lhsBool) && rhs->GetBoolean(&rhsBool))
             {
-                instance->thread.m_regs.m_flags = (lhsBool == rhsBool) ? CF_EQUAL : ((lhsBool > rhsBool) ? CF_GREATER : CF_NONE);
+                instance->thread.m_regs.flags = (lhsBool == rhsBool) ? CF_EQUAL : ((lhsBool > rhsBool) ? CF_GREATER : CF_NONE);
             }
             else
             {
@@ -1440,7 +1453,7 @@ public:
 
                 if (res != -1)
                 {
-                    instance->thread.m_regs.m_flags = res;
+                    instance->thread.m_regs.flags = res;
                 }
                 else
                 {
@@ -1459,24 +1472,24 @@ public:
 
         if (lhs->GetSignedOrUnsigned(&num))
         {
-            instance->thread.m_regs.m_flags = ((num.flags & Number::FLAG_SIGNED) ? !num.i : !num.u) ? CF_EQUAL : CF_NONE;
+            instance->thread.m_regs.flags = ((num.flags & Number::FLAG_SIGNED) ? !num.i : !num.u) ? CF_EQUAL : CF_NONE;
         }
         else if (lhs->GetFloatingPoint(&num.f))
         {
-            instance->thread.m_regs.m_flags = !num.f ? CF_EQUAL : CF_NONE;
+            instance->thread.m_regs.flags = !num.f ? CF_EQUAL : CF_NONE;
         }
         else
         {
             bool boolValue;
             if (lhs->GetBoolean(&boolValue))
             {
-                instance->thread.m_regs.m_flags = !boolValue ? CF_EQUAL : CF_NONE;
+                instance->thread.m_regs.flags = !boolValue ? CF_EQUAL : CF_NONE;
             }
             else
             {
                 void* ptrValue = lhs->ToRef().GetPointer();
 
-                instance->thread.m_regs.m_flags = !ptrValue ? CF_EQUAL : CF_NONE;
+                instance->thread.m_regs.flags = !ptrValue ? CF_EQUAL : CF_NONE;
             }
         }
     }

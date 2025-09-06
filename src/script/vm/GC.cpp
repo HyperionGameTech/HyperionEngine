@@ -21,7 +21,7 @@ Script_Value* Script_GC::MoveToTrackedMemory(Script_Value&& value)
     Script_Value* ptr;
     uint32 gcIndex = m_pool.AcquireIndex(&ptr) + 1; // reserve 0 for INVALID_GC_INDEX
 
-    *ptr = std::move(value);
+    new (ptr) Script_Value(std::move(value));
     ptr->m_gcIndex = GCIndex(gcIndex);
 
     return ptr;
