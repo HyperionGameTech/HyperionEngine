@@ -146,7 +146,7 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_BOOL, dstRegister, srcRegister));
     }
-    else if (m_resultType->IsOrHasBase(*BuiltinTypes::STRING))
+    else if (m_resultType->IsOrHasBase(*BuiltinTypes::g_stringType))
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_STRING, dstRegister, srcRegister));
     }
@@ -224,7 +224,7 @@ SymbolTypeRef AstAsExpression::GetExprType() const
         return heldType;
     }
 
-    return BuiltinTypes::UNDEFINED;
+    return BuiltinTypes::g_errorType;
 }
 
 Tribool AstAsExpression::IsTrue() const

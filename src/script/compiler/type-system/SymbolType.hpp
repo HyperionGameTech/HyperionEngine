@@ -2,7 +2,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/containers/Array.hpp>
-#include <core/containers/FlatSet.hpp>
+#include <core/containers/HashSet.hpp>
 #include <core/containers/String.hpp>
 #include <core/Types.hpp>
 
@@ -423,7 +423,6 @@ public:
     bool IsUnsignedIntegral() const;
     bool IsFloat() const;
     bool IsBoolean() const;
-    bool IsClass() const;
     bool IsObject() const;
     bool IsAnyType() const;
     bool IsPlaceholderType() const;
@@ -450,7 +449,7 @@ public:
 
     HashCode GetHashCode() const
     {
-        FlatSet<String> duplicateNames;
+        HashSet<String> duplicateNames;
 
         return GetHashCodeWithDuplicateRemoval(duplicateNames);
     }
@@ -492,7 +491,7 @@ public:
     }
 
 private:
-    HashCode GetHashCodeWithDuplicateRemoval(FlatSet<String>& duplicateNames) const;
+    HashCode GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const;
 
     String m_name;
     SymbolTypeClass m_typeClass;

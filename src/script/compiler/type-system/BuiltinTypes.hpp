@@ -20,27 +20,26 @@ struct BuiltinTypeTraits
 
 struct BuiltinTypes
 {
-    static const SymbolTypeRef PRIMITIVE_TYPE;
-    static const SymbolTypeRef UNDEFINED;
-    static const SymbolTypeRef OBJECT;
-    static const SymbolTypeRef CLASS_TYPE;
-    static const SymbolTypeRef ENUM_TYPE;
-    static const SymbolTypeRef ANY;
-    static const SymbolTypeRef PLACEHOLDER;
-    static const SymbolTypeRef VOID_TYPE;
-    static const SymbolTypeRef INT;
-    static const SymbolTypeRef UNSIGNED_INT;
-    static const SymbolTypeRef FLOAT;
-    static const SymbolTypeRef BOOLEAN;
-    static const SymbolTypeRef STRING;
-    static const SymbolTypeRef FUNCTION_BASE; // non-generic function type
-    static const SymbolTypeRef FUNCTION;
-    static const SymbolTypeRef NULL_TYPE;
-    static const SymbolTypeRef MODULE_INFO;
-    static const SymbolTypeRef ARRAY_BASE; // non-generic array type
-    static const SymbolTypeRef ARRAY;
-    static const SymbolTypeRef MAP_BASE; // non-generic map type
-    static const SymbolTypeRef MAP;
+    static const SymbolTypeRef g_primitiveType;
+    static const SymbolTypeRef g_errorType;
+    static const SymbolTypeRef g_objectType;
+    static const SymbolTypeRef g_enumType;
+    static const SymbolTypeRef g_anyType;
+    static const SymbolTypeRef g_classType;
+    static const SymbolTypeRef g_placeholderType;
+    static const SymbolTypeRef g_voidType;
+    static const SymbolTypeRef g_intType;
+    static const SymbolTypeRef g_unsignedIntType;
+    static const SymbolTypeRef g_floatType;
+    static const SymbolTypeRef g_boolType;
+    static const SymbolTypeRef g_stringType;
+    static const SymbolTypeRef g_functionBaseType; // non-generic function type
+    static const SymbolTypeRef g_functionType;
+    static const SymbolTypeRef g_nullType;
+    static const SymbolTypeRef g_arrayBaseType; // non-generic array type
+    static const SymbolTypeRef g_arrayType;
+    static const SymbolTypeRef g_mapBaseType; // non-generic map type
+    static const SymbolTypeRef g_mapType;
 
     static void AddToSymbolTable(IdentifierTable& table);
 };

@@ -37,7 +37,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     AstDeclaration::Visit(visitor, mod);
 
     // params are `Any` by default
-    m_symbolType = BuiltinTypes::ANY;
+    m_symbolType = BuiltinTypes::g_anyType;
 
     SymbolTypeRef specifiedSymbolType;
 
@@ -52,7 +52,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        m_symbolType = BuiltinTypes::ANY;
+        m_symbolType = BuiltinTypes::g_anyType;
     }
 
     if (m_defaultParam != nullptr)

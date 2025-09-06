@@ -58,7 +58,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(top != nullptr);
 
-        const SymbolTypeRef& returnType = m_expr ? m_expr->GetExprType() : BuiltinTypes::VOID_TYPE;
+        const SymbolTypeRef& returnType = m_expr ? m_expr->GetExprType() : BuiltinTypes::g_voidType;
         Assert(returnType != nullptr);
 
         top->Get().returnTypes.PushBack(returnType);

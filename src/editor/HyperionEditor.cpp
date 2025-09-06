@@ -111,7 +111,7 @@ void HyperionEditor::Init()
 #if 1
     { // script 2
         String str;
-#if 0
+#if 1
         str = "extern class UUID {\n"
               "    ToString() -> string\n"
               "}\n"
@@ -173,7 +173,7 @@ void HyperionEditor::Init()
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef);\n"
               "blah = 99.f as int;\n"
-              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20]++;\nreturn blah; }; };\n"
+              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { obj[20]++;\nreturn obj[5]; }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

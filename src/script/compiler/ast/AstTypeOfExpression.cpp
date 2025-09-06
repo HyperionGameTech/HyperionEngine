@@ -26,7 +26,7 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    m_heldType = BuiltinTypes::UNDEFINED;
+    m_heldType = BuiltinTypes::g_errorType;
 
     auto* valueOf = m_expr->GetDeepValueOf();
     Assert(valueOf != nullptr);
@@ -45,7 +45,7 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_typeRef->Visit(visitor, mod);
 #else
-    m_symbolType = BuiltinTypes::STRING;
+    m_symbolType = BuiltinTypes::g_stringType;
 
     SymbolTypeRef exprType;
     SymbolTypeRef unaliased;
@@ -59,7 +59,7 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
     else
     {
         m_stringExpr.Reset(new AstString(
-            BuiltinTypes::UNDEFINED->ToString(),
+            BuiltinTypes::g_errorType->ToString(),
             m_location));
     }
 
@@ -110,7 +110,7 @@ SymbolTypeRef AstTypeOfExpression::GetExprType() const
 
     return m_typeRef->GetExprType();
 #else
-    return BuiltinTypes::STRING;
+    return BuiltinTypes::g_stringType;
 #endif
 }
 

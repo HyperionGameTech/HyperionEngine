@@ -36,7 +36,7 @@ void AstEnumExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         m_underlyingType.Reset(new AstTypeSpecifier(
             RC<AstVariable>(new AstVariable(
-                BuiltinTypes::INT->GetName(),
+                BuiltinTypes::g_intType->GetName(),
                 m_location)),
             m_location));
     }
@@ -94,7 +94,7 @@ void AstEnumExpression::Visit(AstVisitor* visitor, Module* mod)
         ++enumCounter;
     }
 
-    SymbolTypeRef underlyingType = BuiltinTypes::INT;
+    SymbolTypeRef underlyingType = BuiltinTypes::g_intType;
 
     if (auto heldType = m_underlyingType->GetHeldType())
     {

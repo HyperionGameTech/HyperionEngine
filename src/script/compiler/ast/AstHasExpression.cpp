@@ -68,7 +68,11 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         m_hasMember = TRI_INDETERMINATE;
     }
-    else if (targetType->IsClass())
+    else if (targetType->IsPrimitive())
+    {
+        m_hasMember = TRI_FALSE;
+    }
+    else
     {
         SymbolTypeMember member;
 
@@ -84,14 +88,6 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
             // which has this member.
             m_hasMember = TRI_INDETERMINATE;
         }
-    }
-    else if (targetType->IsPrimitive())
-    {
-        m_hasMember = TRI_FALSE;
-    }
-    else
-    {
-        m_hasMember = TRI_INDETERMINATE;
     }
 }
 
@@ -190,7 +186,7 @@ RC<AstStatement> AstHasExpression::Clone() const
 
 SymbolTypeRef AstHasExpression::GetExprType() const
 {
-    return BuiltinTypes::BOOLEAN;
+    return BuiltinTypes::g_boolType;
 }
 
 Tribool AstHasExpression::IsTrue() const

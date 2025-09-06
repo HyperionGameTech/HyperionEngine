@@ -40,13 +40,13 @@ AstArrayExpression::AstArrayExpression(
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_members(members),
-      m_heldType(BuiltinTypes::ANY)
+      m_heldType(BuiltinTypes::g_anyType)
 {
 }
 
 void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_exprType = BuiltinTypes::UNDEFINED;
+    m_exprType = BuiltinTypes::g_errorType;
 
     m_replacedMembers.Reserve(m_members.Size());
 
@@ -63,7 +63,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            heldTypes.Insert(BuiltinTypes::ANY);
+            heldTypes.Insert(BuiltinTypes::g_anyType);
         }
 
         m_replacedMembers.PushBack(CloneAstNode(member));
@@ -73,7 +73,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(it != nullptr);
 
-        if (m_heldType->IsOrHasBase(*BuiltinTypes::UNDEFINED))
+        if (m_heldType->IsOrHasBase(*BuiltinTypes::g_errorType))
         {
             // `Undefined` invalidates the array type
             break;
@@ -91,7 +91,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         else
         {
             // more than one differing type, use Any.
-            m_heldType = BuiltinTypes::ANY;
+            m_heldType = BuiltinTypes::g_anyType;
             break;
         }
     }
@@ -124,7 +124,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     RC<AstTemplateInstantiation> templateInstantiation(new AstTemplateInstantiation(
-        RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::ARRAY, m_location)),
+        RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_arrayType, m_location)),
         { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_heldType, m_location)), m_location)) },
         nullptr, // no function return type
         m_location));
@@ -294,7 +294,7 @@ SymbolTypeRef AstArrayExpression::GetExprType() const
 {
     if (m_exprType == nullptr)
     {
-        return BuiltinTypes::UNDEFINED;
+        return BuiltinTypes::g_errorType;
     }
 
     return m_exprType;

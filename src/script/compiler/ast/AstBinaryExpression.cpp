@@ -197,7 +197,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // no bitwise operators on floats allowed.
             visitor->AddErrorIfFalse(
-                (leftType == BuiltinTypes::INT || leftType == BuiltinTypes::UNSIGNED_INT) && (rightType == BuiltinTypes::INT || leftType == BuiltinTypes::UNSIGNED_INT),
+                (leftType == BuiltinTypes::g_intType || leftType == BuiltinTypes::g_unsignedIntType) && (rightType == BuiltinTypes::g_intType || leftType == BuiltinTypes::g_unsignedIntType),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operands_must_be_int,
@@ -209,8 +209,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // arithmetic operators are only for numbers
             visitor->AddErrorIfFalse(
-                (leftType->TypeCompatible(*BuiltinTypes::INT, false) || leftType->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) || leftType->TypeCompatible(*BuiltinTypes::FLOAT, false))
-                    && (rightType->TypeCompatible(*BuiltinTypes::INT, false) || rightType->TypeCompatible(*BuiltinTypes::UNSIGNED_INT, false) | rightType->TypeCompatible(*BuiltinTypes::FLOAT, false)),
+                (leftType->TypeCompatible(*BuiltinTypes::g_intType, false) || leftType->TypeCompatible(*BuiltinTypes::g_unsignedIntType, false) || leftType->TypeCompatible(*BuiltinTypes::g_floatType, false))
+                    && (rightType->TypeCompatible(*BuiltinTypes::g_intType, false) || rightType->TypeCompatible(*BuiltinTypes::g_unsignedIntType, false) | rightType->TypeCompatible(*BuiltinTypes::g_floatType, false)),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_arithmetic_operands_must_be_numbers,
@@ -816,7 +816,7 @@ SymbolTypeRef AstBinaryExpression::GetExprType() const
 
     if ((m_op->GetType() & LOGICAL) || (m_op->GetType() & COMPARISON))
     {
-        return BuiltinTypes::BOOLEAN;
+        return BuiltinTypes::g_boolType;
     }
 
     Assert(m_left != nullptr);

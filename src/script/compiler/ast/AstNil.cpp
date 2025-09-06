@@ -56,7 +56,7 @@ float AstNil::FloatValue() const
 
 SymbolTypeRef AstNil::GetExprType() const
 {
-    return BuiltinTypes::NULL_TYPE;
+    return BuiltinTypes::g_nullType;
 }
 
 RC<AstConstant> AstNil::HandleOperator(Operators opType, const AstConstant* right) const

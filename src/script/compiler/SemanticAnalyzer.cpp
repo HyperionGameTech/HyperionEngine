@@ -85,7 +85,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         location,
         inputType->GetName()));
 
-    return BuiltinTypes::UNDEFINED;
+    return BuiltinTypes::g_errorType;
 }
 
 void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
@@ -98,7 +98,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     Assert(argType != nullptr);
     Assert(paramType != nullptr);
 
-    if (argType == BuiltinTypes::UNDEFINED)
+    if (argType == BuiltinTypes::g_errorType)
     {
         return;
     }
@@ -223,13 +223,14 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     const TypeInstanceCache::Key cacheKey = TypeInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
 
-    if (SymbolTypeRef cachedType = mod->LookupGenericInstance(cacheKey))
+    if (SymbolTypeRef cachedType = mod->LookupTypeInstance(cacheKey))
     {
         return cachedType;
     }
 
     bool changed = false;
-    bool cached = false;
+
+    SymbolTypeRef newType;
 
     ScopeGuard scope { mod, SCOPE_TYPE_NORMAL, 0 };
 
@@ -237,7 +238,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     {
     case TYPE_PLACEHOLDER:
         HYP_FAIL("Should not encounter placeholder type here");
-        return BuiltinTypes::UNDEFINED;
+        return BuiltinTypes::g_errorType;
     case TYPE_BUILTIN:
         return targetType;
     case TYPE_GENERIC_PARAMETER:
@@ -252,7 +253,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 location,
                 inputType->GetName()));
 
-            targetType = BuiltinTypes::UNDEFINED;
+            targetType = BuiltinTypes::g_errorType;
         }
 
         targetType = targetType->GetUnaliased();
@@ -264,11 +265,8 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     }
     case TYPE_GENERIC_INSTANCE:
     {
-        // cache it now to avoid infinite recursion
-        SymbolTypeRef newType = SymbolType::Temp();
+        newType = SymbolType::Temp();
         mod->CacheTypeInstance(cacheKey, newType);
-
-        cached = true;
 
         const GenericInstanceTypeInfo& genericInstanceInfo = targetType->GetGenericInstanceInfo();
 
@@ -366,15 +364,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             {}, {},
             GenericInstanceTypeInfo { std::move(resolvedArgs) });
 
-        // modify newType in place (we already cached it so we need to modify it)
-        newType->CopyMutate(*tmpGenericInstance);
-
-        tmpGenericInstance.Reset();
-
-        targetType = std::move(newType);
-
-        // set changed to true so we don't attempt to clone targetType below.
-        // we need to operate on the modified newType as it is what's in the cache
+        targetType = std::move(tmpGenericInstance);
         changed = true;
 
         break;
@@ -392,6 +382,10 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             if (!changed)
             {
                 targetType = targetType->Clone();
+
+                newType = SymbolType::Temp();
+                mod->CacheTypeInstance(cacheKey, newType);
+
                 changed = true;
             }
 
@@ -416,6 +410,10 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         if (!changed)
         {
             targetType = targetType->Clone();
+
+            newType = SymbolType::Temp();
+            mod->CacheTypeInstance(cacheKey, newType);
+
             changed = true;
         }
 
@@ -441,6 +439,10 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         if (!changed)
         {
             targetType = targetType->Clone();
+
+            newType = SymbolType::Temp();
+            mod->CacheTypeInstance(cacheKey, newType);
+
             changed = true;
         }
 
@@ -449,18 +451,22 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         newMember.expr = CloneAstNode(member.expr);
     }
 
+    if (newType != nullptr)
+    {
+        Assert(newType != nullptr);
+
+        // modify newType in place (we already cached it so we need to modify it)
+        newType->CopyMutate(*targetType);
+
+        return newType;
+    }
+
     if (changed)
     {
-        if (!cached)
-        {
-            // cache the new type
-            mod->CacheTypeInstance(cacheKey, targetType);
-        }
-
         return targetType;
     }
 
-    // return original type before any unaliasing or changes
+    // if nothing has been changed, return original type we started with.
     // - since we use equality checks to determine if a type has changed,
     //   we need to return the original input type if we didn't return a new / modified type.
     return inputType;
@@ -537,7 +543,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstan
             return baseType->GetUnaliased();
         }
 
-        return BuiltinTypes::ANY;
+        return BuiltinTypes::g_anyType;
     }
 
     return nullptr;

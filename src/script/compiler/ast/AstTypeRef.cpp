@@ -61,7 +61,7 @@ bool AstTypeRef::MayHaveSideEffects() const
 
 SymbolTypeRef AstTypeRef::GetExprType() const
 {
-    return BuiltinTypes::CLASS_TYPE;
+    return BuiltinTypes::g_voidType;
 }
 
 SymbolTypeRef AstTypeRef::GetHeldType() const

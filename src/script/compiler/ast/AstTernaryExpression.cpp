@@ -45,7 +45,7 @@ void AstTernaryExpression::Visit(AstVisitor* visitor, Module* mod)
         m_right->Visit(visitor, mod);
     }
 
-    if (GetExprType() == BuiltinTypes::UNDEFINED)
+    if (GetExprType() == BuiltinTypes::g_errorType)
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

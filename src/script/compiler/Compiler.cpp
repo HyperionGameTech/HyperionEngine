@@ -478,12 +478,12 @@ UniquePtr<Buildable> Compiler::PopStack(AstVisitor* visitor, int amt)
 static bool ShouldDerefType(const SymbolType& symbolType)
 {
     // clang-format off
-    return !symbolType.IsOrHasBase(*BuiltinTypes::VOID_TYPE)
-        && (symbolType.IsOrHasBase(*BuiltinTypes::ANY) // <!-- unknown at compile time, so deref anyway (would be no-op if not a reference)
-            || symbolType.IsOrHasBase(*BuiltinTypes::STRING)
-            || symbolType.IsOrHasBase(*BuiltinTypes::ARRAY_BASE)
-            || symbolType.IsOrHasBase(*BuiltinTypes::MAP_BASE)
-            || symbolType.IsOrHasBase(*BuiltinTypes::OBJECT));
+    return !symbolType.IsOrHasBase(*BuiltinTypes::g_voidType)
+        && (symbolType.IsOrHasBase(*BuiltinTypes::g_anyType) // <!-- unknown at compile time, so deref anyway (would be no-op if not a reference)
+            || symbolType.IsOrHasBase(*BuiltinTypes::g_stringType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::g_mapBaseType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::g_objectType));
     // clang-format on
 }
 
@@ -497,7 +497,7 @@ UniquePtr<Buildable> Compiler::DerefIfNeeded(AstVisitor* visitor, Module* mod, c
     SymbolTypeRef symbolTypeUnaliased = symbolType->GetUnaliased();
 
     // error occured, should have been caught earlier
-    Assert(symbolTypeUnaliased != BuiltinTypes::UNDEFINED);
+    Assert(symbolTypeUnaliased != BuiltinTypes::g_errorType);
 
     if (ShouldDerefType(*symbolTypeUnaliased))
     {

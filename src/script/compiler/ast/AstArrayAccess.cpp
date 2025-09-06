@@ -36,7 +36,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     Assert(m_index != nullptr);
 
-    m_exprType = BuiltinTypes::UNDEFINED;
+    m_exprType = BuiltinTypes::g_errorType;
 
     m_target->Visit(visitor, mod);
     m_index->Visit(visitor, mod);
@@ -56,7 +56,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (targetType->IsOrHasBase(*BuiltinTypes::ARRAY_BASE))
+    if (targetType->IsOrHasBase(*BuiltinTypes::g_arrayBaseType))
     {
         // array type
 
@@ -78,14 +78,14 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             mod,
             m_location,
             m_index->GetExprType(),
-            BuiltinTypes::INT);
+            BuiltinTypes::g_intType);
 
         return;
     }
 
     if (targetType->IsAnyType())
     {
-        m_exprType = BuiltinTypes::ANY;
+        m_exprType = BuiltinTypes::g_anyType;
     }
 
     if (m_operatorOverloadingEnabled)

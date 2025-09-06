@@ -658,10 +658,6 @@ RC<AstExpression> Parser::ParseTerm(
     {
         expr = ParseModuleAccess();
     }
-    else if (MatchKeyword(Keyword_module))
-    {
-        expr = ParseModuleProperty();
-    }
     else if (MatchKeyword(Keyword_self))
     {
         expr = ParseIdentifier(true);
@@ -1232,31 +1228,6 @@ RC<AstModuleAccess> Parser::ParseModuleAccess()
     }
 
     return nullptr;
-}
-
-RC<AstModuleProperty> Parser::ParseModuleProperty()
-{
-    Token token = ExpectKeyword(Keyword_module, true);
-    if (!token)
-    {
-        return nullptr;
-    }
-
-    Token dot = Expect(TK_DOT, true);
-    if (!dot)
-    {
-        return nullptr;
-    }
-
-    Token ident = Expect(TK_IDENT, true);
-    if (!ident)
-    {
-        return nullptr;
-    }
-
-    return RC<AstModuleProperty>(new AstModuleProperty(
-        ident.GetValue(),
-        token.GetLocation()));
 }
 
 RC<AstExpression> Parser::ParseMemberExpression(RC<AstExpression> target)

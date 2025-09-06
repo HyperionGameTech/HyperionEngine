@@ -104,7 +104,7 @@ RC<AstStatement> AstIsExpression::Clone() const
 
 SymbolTypeRef AstIsExpression::GetExprType() const
 {
-    return BuiltinTypes::BOOLEAN;
+    return BuiltinTypes::g_boolType;
 }
 
 Tribool AstIsExpression::IsTrue() const

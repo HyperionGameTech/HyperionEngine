@@ -112,8 +112,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         m_baseSpec->Visit(visitor, mod);
 
-        Assert(m_baseSpec->GetExprType() != nullptr);
-
         if (SymbolTypeRef baseTypeInner = m_baseSpec->GetHeldType())
         {
             m_baseType = baseTypeInner;
@@ -132,12 +130,12 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         if (!m_enumUnderlyingType.IsValid())
         {
-            m_enumUnderlyingType = BuiltinTypes::INT;
+            m_enumUnderlyingType = BuiltinTypes::g_intType;
         }
 
         // Create a generic instance of the enum type
         m_symbolType = SymbolType::GenericInstance(
-            BuiltinTypes::ENUM_TYPE,
+            BuiltinTypes::g_enumType,
             {}, {},
             GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
     }
@@ -145,6 +143,17 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         if (m_baseType != nullptr)
         {
+            if (!m_baseType->IsOrHasBase(*BuiltinTypes::g_objectType))
+            {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_invalid_base_class,
+                    m_location,
+                    m_baseType->ToString()));
+
+                m_baseType = BuiltinTypes::g_objectType;
+            }
+
             m_symbolType = SymbolType::Extend(
                 m_name,
                 m_baseType,
@@ -154,7 +163,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             m_symbolType = SymbolType::Object(
                 m_name,
-                BuiltinTypes::OBJECT,
+                BuiltinTypes::g_objectType,
                 {}, {});
         }
 
@@ -662,11 +671,11 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // iterate through parent types and add up their fields to get offset
     SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
 
-    while (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::OBJECT)
+    while (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::g_objectType)
     {
         for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
         {
-            if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // skip methods, they don't take up space on the instance
+            if (!member.type->IsOrHasBase(*BuiltinTypes::g_functionBaseType)) // skip methods, they don't take up space on the instance
             {
                 // align field offset
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -680,7 +689,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // Add all fields from our class
     for (const SymbolTypeMember& member : m_symbolType->GetMembers())
     {
-        if (!member.type->IsOrHasBase(*BuiltinTypes::FUNCTION_BASE)) // skip methods, they are handled above
+        if (!member.type->IsOrHasBase(*BuiltinTypes::g_functionBaseType)) // skip methods, they are handled above
         {
             // align field offset
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -707,7 +716,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
     baseTypeRef = m_symbolType->GetBaseType();
 
-    if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::OBJECT)
+    if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::g_objectType)
     {
         chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + baseTypeRef->GetName()));
 
@@ -876,7 +885,7 @@ bool AstClass::MayHaveSideEffects() const
 
 SymbolTypeRef AstClass::GetExprType() const
 {
-    return BuiltinTypes::CLASS_TYPE;
+    return BuiltinTypes::g_voidType;
 }
 
 SymbolTypeRef AstClass::GetHeldType() const

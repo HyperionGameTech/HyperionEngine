@@ -15,7 +15,7 @@ Identifier::Identifier(
       m_usecount(0),
       m_flags(flags),
       m_aliasee(aliasee),
-      m_symbolType(BuiltinTypes::UNDEFINED)
+      m_symbolType(BuiltinTypes::g_errorType)
 {
 }
 

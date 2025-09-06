@@ -33,7 +33,7 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    m_symbolType = BuiltinTypes::UNDEFINED;
+    m_symbolType = BuiltinTypes::g_errorType;
 
     SymbolTypeRef heldType = m_expr->GetHeldType();
 

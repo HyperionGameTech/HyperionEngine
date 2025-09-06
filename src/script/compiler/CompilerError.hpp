@@ -117,6 +117,7 @@ enum ErrorMessage
     Msg_not_a_data_member,
     Msg_not_a_constant_type,
     Msg_cannot_instantiate_non_object,
+    Msg_invalid_base_class,
     Msg_cannot_inline_variable,
 
     Msg_bitwise_operands_must_be_int,

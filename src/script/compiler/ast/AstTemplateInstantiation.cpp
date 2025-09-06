@@ -47,7 +47,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     if (!m_symbolType || !m_symbolType->IsGenericInstanceType())
     {
-        m_symbolType = BuiltinTypes::UNDEFINED;
+        m_symbolType = BuiltinTypes::g_errorType;
 
         // not a generic if it doesnt resolve
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -89,7 +89,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     if (!genericInstanceType)
     {
-        genericInstanceType = BuiltinTypes::UNDEFINED;
+        genericInstanceType = BuiltinTypes::g_errorType;
 
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

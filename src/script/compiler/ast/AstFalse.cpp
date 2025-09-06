@@ -52,7 +52,7 @@ float AstFalse::FloatValue() const
 
 SymbolTypeRef AstFalse::GetExprType() const
 {
-    return BuiltinTypes::BOOLEAN;
+    return BuiltinTypes::g_boolType;
 }
 
 RC<AstConstant> AstFalse::HandleOperator(Operators opType, const AstConstant* right) const

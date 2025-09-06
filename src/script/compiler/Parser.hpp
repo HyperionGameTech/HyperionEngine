@@ -33,7 +33,6 @@
 #include <script/compiler/ast/AstArgumentList.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstModuleAccess.hpp>
-#include <script/compiler/ast/AstModuleProperty.hpp>
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstBreakStatement.hpp>
 #include <script/compiler/ast/AstContinueStatement.hpp>
@@ -97,7 +96,6 @@ public:
         RC<AstExpression> target,
         bool requireParentheses = true);
     RC<AstModuleAccess> ParseModuleAccess();
-    RC<AstModuleProperty> ParseModuleProperty();
     RC<AstExpression> ParseMemberExpression(RC<AstExpression> target);
     RC<AstArrayAccess> ParseArrayAccess(
         RC<AstExpression> target,

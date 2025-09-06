@@ -36,7 +36,7 @@ AstVariableDeclaration::AstVariableDeclaration(
 
 void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_symbolType = BuiltinTypes::UNDEFINED;
+    m_symbolType = BuiltinTypes::g_errorType;
 
     const bool hasUserAssigned = m_assignment != nullptr;
     const bool hasUserSpecifiedType = m_proto != nullptr;
@@ -94,7 +94,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     m_proto->GetLocation(),
                     protoExprType->ToString()));
 
-                m_symbolType = BuiltinTypes::UNDEFINED;
+                m_symbolType = BuiltinTypes::g_errorType;
             }
             else
             {

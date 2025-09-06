@@ -18,162 +18,154 @@ const SymbolTypeTrait BuiltinTypeTraits::variadic = {
     "@variadic"
 };
 
-const SymbolTypeRef BuiltinTypes::PRIMITIVE_TYPE = SymbolTypeRef(new SymbolType(
+const SymbolTypeRef BuiltinTypes::g_primitiveType = SymbolTypeRef(new SymbolType(
     "<primitive>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
     {}, {}));
 
-const SymbolTypeRef BuiltinTypes::UNDEFINED = SymbolTypeRef(new SymbolType(
+const SymbolTypeRef BuiltinTypes::g_errorType = SymbolTypeRef(new SymbolType(
     "<error>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
     {}, {}));
 
-const SymbolTypeRef BuiltinTypes::ANY = SymbolTypeRef(new SymbolType(
+const SymbolTypeRef BuiltinTypes::g_anyType = SymbolTypeRef(new SymbolType(
     "any",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
     {}, {}));
 
-const SymbolTypeRef BuiltinTypes::PLACEHOLDER = SymbolTypeRef(new SymbolType(
+const SymbolTypeRef BuiltinTypes::g_classType = SymbolTypeRef(new SymbolType(
+    "<class>",
+    TYPE_BUILTIN,
+    nullptr,
+    nullptr,
+    {}, {}));
+
+const SymbolTypeRef BuiltinTypes::g_placeholderType = SymbolTypeRef(new SymbolType(
     "<placeholder>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
     {}, {}));
 
-const SymbolTypeRef BuiltinTypes::VOID_TYPE = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_voidType = SymbolType::Primitive(
     "void",
     RC<AstUndefined>(new AstUndefined(SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::OBJECT = SymbolTypeRef(new SymbolType(
+const SymbolTypeRef BuiltinTypes::g_objectType = SymbolTypeRef(new SymbolType(
     "object",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
     {}, {}));
 
-const SymbolTypeRef BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
-    "Class",
-    BuiltinTypes::OBJECT,
-    {},
-    {});
-
 // Enum type is a generic class type similar to Array<T>.
 // e.g. Enum<uint>
-const SymbolTypeRef BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
+const SymbolTypeRef BuiltinTypes::g_enumType = SymbolType::Generic(
     "Enum",
     {},
     {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
-const SymbolTypeRef BuiltinTypes::INT = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_intType = SymbolType::Primitive(
     "int",
     RC<AstInteger>(new AstInteger(0, SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::UNSIGNED_INT = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_unsignedIntType = SymbolType::Primitive(
     "uint",
     RC<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::FLOAT = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_floatType = SymbolType::Primitive(
     "float",
     RC<AstFloat>(new AstFloat(0.0, SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::BOOLEAN = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_boolType = SymbolType::Primitive(
     "bool",
     RC<AstFalse>(new AstFalse(SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::STRING = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_stringType = SymbolType::Primitive(
     "string",
     RC<AstString>(new AstString("", SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_nullType = SymbolType::Primitive(
     "<null>",
     RC<AstNil>(new AstNil(SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::MODULE_INFO = SymbolType::Object(
-    "ModuleInfo",
-    BuiltinTypes::OBJECT,
-    {
-        SymbolTypeMember { "id", BuiltinTypes::INT, BuiltinTypes::INT->GetDefaultValue() },
-        SymbolTypeMember { "name", BuiltinTypes::STRING, BuiltinTypes::STRING->GetDefaultValue() },
-    },
-    {});
-
-const SymbolTypeRef BuiltinTypes::FUNCTION_BASE = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_functionBaseType = SymbolType::Primitive(
     "FunctionBase",
     nullptr);
 
-const SymbolTypeRef BuiltinTypes::FUNCTION = SymbolType::Generic(
+const SymbolTypeRef BuiltinTypes::g_functionType = SymbolType::Generic(
     "Function",
-    BuiltinTypes::FUNCTION_BASE,
+    BuiltinTypes::g_functionBaseType,
     Array<SymbolTypeMember> {},
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo {
         {
             { "@return", SymbolType::GenericParameter("ReturnType") },
-            { "@args", SymbolType::Generic("ArgTypes", { SymbolTypeMember { "@variadic", BuiltinTypes::ANY } }, {}, GenericInstanceTypeInfo {}) },
+            { "@args", SymbolType::Generic("ArgTypes", { SymbolTypeMember { "@variadic", BuiltinTypes::g_anyType } }, {}, GenericInstanceTypeInfo {}) },
         } });
 
-const SymbolTypeRef BuiltinTypes::ARRAY_BASE = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_arrayBaseType = SymbolType::Primitive(
     "ArrayBase",
     nullptr);
 
-const SymbolTypeRef BuiltinTypes::ARRAY = SymbolType::Generic(
+const SymbolTypeRef BuiltinTypes::g_arrayType = SymbolType::Generic(
     "Array",
-    BuiltinTypes::ARRAY_BASE,
+    BuiltinTypes::g_arrayBaseType,
     Array<SymbolTypeMember> {
         SymbolTypeMember {
             "operator[]",
             SymbolType::GenericInstance(
-                BuiltinTypes::FUNCTION,
+                BuiltinTypes::g_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
-                        { "index", BuiltinTypes::INT } } }) },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::g_anyType },
+                        { "index", BuiltinTypes::g_intType } } }) },
         SymbolTypeMember {
             "operator[]=",
             SymbolType::GenericInstance(
-                BuiltinTypes::FUNCTION,
+                BuiltinTypes::g_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
-                        { "index", BuiltinTypes::INT },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::g_anyType },
+                        { "index", BuiltinTypes::g_intType },
                         { "value", SymbolType::GenericParameter("T") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
-const SymbolTypeRef BuiltinTypes::MAP_BASE = SymbolType::Primitive(
+const SymbolTypeRef BuiltinTypes::g_mapBaseType = SymbolType::Primitive(
     "MapBase",
     nullptr);
 
-const SymbolTypeRef BuiltinTypes::MAP = SymbolType::Generic(
+const SymbolTypeRef BuiltinTypes::g_mapType = SymbolType::Generic(
     "Map",
-    BuiltinTypes::MAP_BASE,
+    BuiltinTypes::g_mapBaseType,
     Array<SymbolTypeMember> {
         SymbolTypeMember {
             "operator[]",
             SymbolType::GenericInstance(
-                BuiltinTypes::FUNCTION,
+                BuiltinTypes::g_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("V") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::g_anyType },
                         { "key", SymbolType::GenericParameter("K") } } }) },
         SymbolTypeMember {
             "operator[]=",
             SymbolType::GenericInstance(
-                BuiltinTypes::FUNCTION,
+                BuiltinTypes::g_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("V") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::ANY },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::g_anyType },
                         { "key", SymbolType::GenericParameter("K") },
                         { "value", SymbolType::GenericParameter("V") } } }) } },
     Array<SymbolTypeMember> {},
@@ -183,20 +175,19 @@ const SymbolTypeRef BuiltinTypes::MAP = SymbolType::Generic(
 
 void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
 {
-    static const Array<SymbolType*> g_globalVisibleTypes {
-        BuiltinTypes::ANY,
-        BuiltinTypes::OBJECT,
-        BuiltinTypes::CLASS_TYPE,
-        BuiltinTypes::ENUM_TYPE,
-        BuiltinTypes::VOID_TYPE,
-        BuiltinTypes::INT,
-        BuiltinTypes::UNSIGNED_INT,
-        BuiltinTypes::FLOAT,
-        BuiltinTypes::BOOLEAN,
-        BuiltinTypes::STRING,
-        BuiltinTypes::FUNCTION,
-        BuiltinTypes::ARRAY,
-        BuiltinTypes::MAP
+    static SymbolType* const g_globalVisibleTypes[] {
+        BuiltinTypes::g_anyType,
+        BuiltinTypes::g_objectType,
+        BuiltinTypes::g_enumType,
+        BuiltinTypes::g_voidType,
+        BuiltinTypes::g_intType,
+        BuiltinTypes::g_unsignedIntType,
+        BuiltinTypes::g_floatType,
+        BuiltinTypes::g_boolType,
+        BuiltinTypes::g_stringType,
+        BuiltinTypes::g_functionType,
+        BuiltinTypes::g_arrayType,
+        BuiltinTypes::g_mapType
     };
 
     for (SymbolType* type : g_globalVisibleTypes)

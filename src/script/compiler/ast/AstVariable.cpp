@@ -418,7 +418,7 @@ bool AstVariable::IsLiteral() const
     {
         exprType = exprType->GetUnaliased();
 
-        if (exprType->IsObject() || exprType->IsClass())
+        if (exprType->IsObject())
         {
             return false;
         }
@@ -498,7 +498,7 @@ SymbolTypeRef AstVariable::GetExprType() const
         return m_properties.GetIdentifier()->GetSymbolType();
     }
 
-    return BuiltinTypes::UNDEFINED;
+    return BuiltinTypes::g_errorType;
 }
 
 bool AstVariable::IsMutable() const

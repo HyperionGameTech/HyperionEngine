@@ -62,7 +62,7 @@ float AstFloat::FloatValue() const
 
 SymbolTypeRef AstFloat::GetExprType() const
 {
-    return BuiltinTypes::FLOAT;
+    return BuiltinTypes::g_floatType;
 }
 
 RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* right) const
