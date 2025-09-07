@@ -53,6 +53,7 @@ enum ErrorMessage
     Msg_named_arg_not_found,
     Msg_redeclared_identifier,
     Msg_redeclared_identifier_type,
+    Msg_shadowing_identifier,
     Msg_undeclared_identifier,
     Msg_expected_identifier,
     Msg_keyword_cannot_be_used_as_identifier,

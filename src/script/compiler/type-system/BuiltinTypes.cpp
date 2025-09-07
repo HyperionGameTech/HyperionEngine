@@ -14,10 +14,6 @@
 
 namespace hyperion {
 
-const SymbolTypeTrait BuiltinTypeTraits::variadic = {
-    "@variadic"
-};
-
 const SymbolTypeRef BuiltinTypes::g_primitiveType = SymbolTypeRef(new SymbolType(
     "<primitive>",
     TYPE_BUILTIN,
@@ -31,6 +27,20 @@ const SymbolTypeRef BuiltinTypes::g_errorType = SymbolTypeRef(new SymbolType(
     nullptr,
     nullptr,
     {}, {}));
+
+const SymbolTypeRef BuiltinTypes::g_varArgsBaseType = SymbolType::Primitive(
+    "VarArgsBase",
+    nullptr);
+
+const SymbolTypeRef BuiltinTypes::g_varArgsType = SymbolType::Generic(
+    "VarArgs",
+    g_varArgsBaseType,
+    Array<SymbolTypeMember> {},
+    Array<SymbolTypeMember> {},
+    GenericInstanceTypeInfo {
+        {
+            { "type", SymbolType::GenericParameter("T") }
+        } });
 
 const SymbolTypeRef BuiltinTypes::g_anyType = SymbolTypeRef(new SymbolType(
     "any",
@@ -108,7 +118,7 @@ const SymbolTypeRef BuiltinTypes::g_functionType = SymbolType::Generic(
     GenericInstanceTypeInfo {
         {
             { "@return", SymbolType::GenericParameter("ReturnType") },
-            { "@args", SymbolType::Generic("ArgTypes", { SymbolTypeMember { "@variadic", BuiltinTypes::g_anyType } }, {}, GenericInstanceTypeInfo {}) },
+            { "@args", SymbolType::GenericInstance(BuiltinTypes::g_varArgsType, {}, {}, GenericInstanceTypeInfo { }) }
         } });
 
 const SymbolTypeRef BuiltinTypes::g_arrayBaseType = SymbolType::Primitive(

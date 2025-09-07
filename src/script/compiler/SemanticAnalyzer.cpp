@@ -536,11 +536,16 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstan
 
     if (lastGenericArgType->IsVarArgsType())
     {
-        SymbolTypeRef baseType = lastGenericArgType->GetBaseType();
+        // get `type` supplied argument to use for the expanded var args
+        auto it = lastGenericArgType->GetGenericInstanceInfo().m_genericArgs.FindIf([](const GenericInstanceTypeInfo::Arg& arg)
+            {
+                return arg.m_name == "type";
+            });
 
-        if (baseType)
+        if (it != lastGenericArgType->GetGenericInstanceInfo().m_genericArgs.End())
         {
-            return baseType->GetUnaliased();
+            Assert(it->m_type != nullptr);
+            return it->m_type;
         }
 
         return BuiltinTypes::g_anyType;

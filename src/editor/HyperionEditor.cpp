@@ -155,6 +155,7 @@ void HyperionEditor::Init()
               "    operator[](i: int) {\n"
               "       for (j := 1; j < i; j++) {\n"
               "           if (jet > 10000.0) { break }\n"
+              "           jet += j\n"
               "       }\n"
               "       return jet\n"
               "    }\n"

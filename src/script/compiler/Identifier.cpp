@@ -15,19 +15,8 @@ Identifier::Identifier(
       m_usecount(0),
       m_flags(flags),
       m_aliasee(aliasee),
-      m_symbolType(BuiltinTypes::g_errorType)
-{
-}
-
-Identifier::Identifier(const Identifier& other)
-    : m_name(other.m_name),
-      m_index(other.m_index),
-      m_stackLocation(other.m_stackLocation),
-      m_usecount(other.m_usecount),
-      m_flags(other.m_flags),
-      m_aliasee(other.m_aliasee),
-      m_currentValue(other.m_currentValue),
-      m_symbolType(other.m_symbolType)
+      m_symbolType(BuiltinTypes::g_errorType),
+      m_declScope(nullptr)
 {
 }
 

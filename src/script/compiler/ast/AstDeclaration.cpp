@@ -6,10 +6,12 @@ namespace hyperion {
 
 AstDeclaration::AstDeclaration(
     const String& name,
+    IdentifierFlagBits flags,
     const SourceLocation& location)
     : AstStatement(location),
       m_name(name),
-      m_identifier(nullptr)
+      m_identifier(nullptr),
+      m_flags(flags)
 {
 }
 
@@ -28,7 +30,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     // only this scope matters, variables with the same name outside
     // of this scope are fine
 
-    if ((m_identifier = mod->LookUpIdentifier(m_name, true)))
+    if (RC<Identifier> existingLocalIdentifier = mod->LookUpIdentifier(m_name, true))
     {
         // a collision was found, add an error
         compilationUnit->GetErrorList().AddError(CompilerError(
@@ -36,25 +38,48 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
             Msg_redeclared_identifier,
             m_location,
             m_name));
+
+        // redirect identifier to be the existing one, as we don't expect identifier to be nullptr later on
+        m_identifier = std::move(existingLocalIdentifier);
+
+        return;
     }
-    else
+
+    const bool skipShadowingCheck = m_name.StartsWith("$")
+        || (m_flags & IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER);
+    
+    if (!skipShadowingCheck) 
     {
-        // add identifier
-        m_identifier = scope.identifierTable.AddIdentifier(m_name);
-
-        TreeNode<Scope>* top = mod->m_scopes.TopNode();
-
-        while (top != nullptr)
+        if (RC<Identifier> shadowedIdentifier = mod->LookUpIdentifier(m_name, false))
         {
-            if (top->Get().scopeType == SCOPE_TYPE_FUNCTION)
+            // allow shadowing only if the found identifier is in global scope
+            if (shadowedIdentifier->GetDeclScope() != &mod->m_scopes.Root())
             {
-                // set declared in function flag
-                m_identifier->GetFlags() |= FLAG_DECLARED_IN_FUNCTION;
-                break;
+                // a collision was found, add an error, but continue evaluating as if no error.
+                compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_shadowing_identifier,
+                    m_location,
+                    m_name));
             }
-
-            top = top->m_parent;
         }
+    }
+
+    // add identifier
+    m_identifier = scope.identifierTable.AddIdentifier(m_name);
+
+    TreeNode<Scope>* top = mod->m_scopes.TopNode();
+
+    while (top != nullptr)
+    {
+        if (top->Get().scopeType == SCOPE_TYPE_FUNCTION)
+        {
+            // set declared in function flag
+            m_identifier->GetFlags() |= FLAG_DECLARED_IN_FUNCTION;
+            break;
+        }
+
+        top = top->m_parent;
     }
 }
 

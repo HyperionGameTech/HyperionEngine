@@ -12,6 +12,7 @@ class AstDeclaration : public AstStatement
 public:
     AstDeclaration(
         const String& name,
+        IdentifierFlagBits flags,
         const SourceLocation& location);
     virtual ~AstDeclaration() = default;
 
@@ -20,13 +21,41 @@ public:
         m_name = name;
     }
 
-    RC<Identifier>& GetIdentifier()
-    {
-        return m_identifier;
-    }
     const RC<Identifier>& GetIdentifier() const
     {
         return m_identifier;
+    }
+
+    bool IsConst() const
+    {
+        return m_flags & IdentifierFlags::FLAG_CONST;
+    }
+
+    bool IsRef() const
+    {
+        return m_flags & IdentifierFlags::FLAG_REF;
+    }
+
+    IdentifierFlagBits GetIdentifierFlags() const
+    {
+        return m_flags;
+    }
+
+    void SetIdentifierFlags(IdentifierFlagBits flags)
+    {
+        m_flags = flags;
+    }
+
+    void ApplyIdentifierFlags(IdentifierFlagBits flags, bool set = true)
+    {
+        if (set)
+        {
+            m_flags |= flags;
+        }
+        else
+        {
+            m_flags &= ~flags;
+        }
     }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -42,6 +71,7 @@ public:
         HashCode hc;
         hc.Add(TypeName<AstDeclaration>());
         hc.Add(m_name);
+        hc.Add(m_flags);
 
         return hc;
     }
@@ -49,6 +79,7 @@ public:
 protected:
     String m_name;
     RC<Identifier> m_identifier;
+    IdentifierFlagBits m_flags;
 
 private:
     bool m_isVisited = false;

@@ -48,7 +48,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         // if it's an alias then it will just refer to whatever other variable
         // is being referenced. if it is const, load the direct value held in the variable
         const bool isAlias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
-        const bool isMixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
         const bool isArgument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
         const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
         const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
@@ -95,7 +94,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
             }
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
-            const bool forceInline = isAlias || isMixin; // || isSubstitution;
+            const bool forceInline = isAlias; // || isSubstitution;
 
             if (forceInline && m_inlineValue == nullptr)
             {
@@ -170,9 +169,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
                         // we use the variable as 'self.<variable name>'
                         m_closureMemberAccess.Reset(new AstMember(
                             m_name,
-                            RC<AstVariable>(new AstVariable(
-                                "$functor",
-                                m_location)),
+                            RC<AstVariable>(new AstVariable("$functor", m_location)),
                             m_location));
 
                         m_closureMemberAccess->Visit(visitor, mod);

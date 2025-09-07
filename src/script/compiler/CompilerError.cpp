@@ -37,6 +37,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_named_arg_not_found, "Could not find a parameter named '%'" },
     { Msg_redeclared_identifier, "Identifier '%' has already been declared in this scope" },
     { Msg_redeclared_identifier_type, "'%' is the name of a type and cannot be used as an identifier" },
+    { Msg_shadowing_identifier, "'%' shadows an identifier in another local scope" },
     { Msg_undeclared_identifier, "'%' is not declared in module %" },
     { Msg_expected_identifier, "Expected an identifier" },
     { Msg_keyword_cannot_be_used_as_identifier, "Keyword '%' cannot be used as a name in this case" },

@@ -15,8 +15,7 @@ public:
         const RC<AstTypeSpecifier>& typeSpec,
         const RC<AstExpression>& defaultParam,
         bool isVariadic,
-        bool isConst,
-        bool isRef,
+        IdentifierFlagBits flags,
         const SourceLocation& location);
 
     virtual ~AstParameter() override = default;
@@ -42,16 +41,6 @@ public:
         return m_isVariadic;
     }
 
-    bool IsConst() const
-    {
-        return m_isConst;
-    }
-
-    bool IsRef() const
-    {
-        return m_isRef;
-    }
-
     // used by AstTemplateExpression
     const RC<AstTypeSpecifier>& GetTypeSpecifier() const
     {
@@ -71,8 +60,6 @@ public:
         hc.Add(m_typeSpec ? m_typeSpec->GetHashCode() : HashCode());
         hc.Add(m_defaultParam ? m_defaultParam->GetHashCode() : HashCode());
         hc.Add(m_isVariadic);
-        hc.Add(m_isConst);
-        hc.Add(m_isRef);
 
         return hc;
     }
@@ -81,8 +68,6 @@ private:
     RC<AstTypeSpecifier> m_typeSpec;
     RC<AstExpression> m_defaultParam;
     bool m_isVariadic : 1;
-    bool m_isConst : 1;
-    bool m_isRef : 1;
 
     // Set while analyzing
     SymbolTypeRef m_symbolType;
@@ -95,8 +80,7 @@ private:
             CloneAstNode(m_typeSpec),
             CloneAstNode(m_defaultParam),
             m_isVariadic,
-            m_isConst,
-            m_isRef,
+            m_flags,
             m_location));
     }
 };

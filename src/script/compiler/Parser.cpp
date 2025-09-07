@@ -2356,17 +2356,16 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
             break;
         }
 
-        bool isConst = false,
-             isRef = false;
+        IdentifierFlagBits flags = IdentifierFlags::FLAG_NONE;
 
         if (MatchKeyword(Keyword_const, true))
         {
-            isConst = true;
+            flags |= IdentifierFlags::FLAG_CONST;
         }
 
         if (MatchKeyword(Keyword_ref, true))
         {
-            isRef = true;
+            flags |= IdentifierFlags::FLAG_REF;
         }
 
         if ((token = ExpectIdentifier(true, true)))
@@ -2409,8 +2408,7 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
                 typeSpec,
                 defaultParam,
                 isVariadic,
-                isConst,
-                isRef,
+                flags,
                 token.GetLocation())));
 
             if (!Match(TK_COMMA, true))
@@ -2606,9 +2604,8 @@ RC<AstClass> Parser::ParseClass(
                     "self",
                     selfTypeSpec,
                     nullptr,
-                    false,
-                    false,
-                    false,
+                    false, /* variadic */
+                    IdentifierFlags::FLAG_CONST,
                     location)));
             }
 #endif

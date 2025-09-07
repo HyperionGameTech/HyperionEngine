@@ -27,10 +27,9 @@ AstVariableDeclaration::AstVariableDeclaration(
     const RC<AstExpression>& assignment,
     IdentifierFlagBits flags,
     const SourceLocation& location)
-    : AstDeclaration(name, location),
+    : AstDeclaration(name, flags, location),
       m_proto(proto),
-      m_assignment(assignment),
-      m_flags(flags)
+      m_assignment(assignment)
 {
 }
 

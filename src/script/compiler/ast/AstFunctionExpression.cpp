@@ -88,9 +88,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             "$functor",
             nullptr,
             nullptr,
-            false,
-            false,
-            false,
+            false, /* variadic */
+            IdentifierFlags::FLAG_CONST,
             m_location));
     }
 

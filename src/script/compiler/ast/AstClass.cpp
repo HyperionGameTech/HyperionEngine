@@ -340,9 +340,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), m_location)),
                     m_location)),
                 nullptr,
-                false,
-                false,
-                false,
+                false, /* variadic */
+                IdentifierFlags::FLAG_CONST,
                 m_location)));
 
             RC<AstBlock> constructorBody(new AstBlock(m_location));
@@ -464,9 +463,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                             m_location)),
                         m_location)),
                     nullptr,
-                    false,
-                    false,
-                    false,
+                    false, /* variadic */
+                    IdentifierFlags::FLAG_CONST,
                     m_location)));
 
                 if (constructorMember.HasValue())
@@ -511,8 +509,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                                 paramTypeSpec,
                                 CloneAstNode(param.m_defaultValue),
                                 isVariadic,
-                                param.m_isConst,
-                                param.m_isRef,
+                                (param.m_isConst ? IdentifierFlags::FLAG_CONST : 0)
+                                    | (param.m_isRef ? IdentifierFlags::FLAG_REF : 0),
                                 m_location)));
                         }
                     }

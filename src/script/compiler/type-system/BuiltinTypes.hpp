@@ -13,15 +13,12 @@ class SymbolTypeTrait;
 
 class IdentifierTable;
 
-struct BuiltinTypeTraits
-{
-    static const SymbolTypeTrait variadic;
-};
-
 struct BuiltinTypes
 {
     static const SymbolTypeRef g_primitiveType;
     static const SymbolTypeRef g_errorType;
+    static const SymbolTypeRef g_varArgsBaseType;
+    static const SymbolTypeRef g_varArgsType;
     static const SymbolTypeRef g_objectType;
     static const SymbolTypeRef g_enumType;
     static const SymbolTypeRef g_anyType;

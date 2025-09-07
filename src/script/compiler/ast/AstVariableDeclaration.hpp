@@ -22,6 +22,7 @@ public:
         const RC<AstExpression>& assignment,
         IdentifierFlagBits flags,
         const SourceLocation& location);
+
     virtual ~AstVariableDeclaration() = default;
 
     const RC<AstTypeSpecifier>& GetTypeSpecifier() const
@@ -49,38 +50,6 @@ public:
         return m_realAssignment;
     }
 
-    bool IsConst() const
-    {
-        return m_flags & IdentifierFlags::FLAG_CONST;
-    }
-
-    bool IsRef() const
-    {
-        return m_flags & IdentifierFlags::FLAG_REF;
-    }
-
-    IdentifierFlagBits GetIdentifierFlags() const
-    {
-        return m_flags;
-    }
-
-    void SetIdentifierFlags(IdentifierFlagBits flags)
-    {
-        m_flags = flags;
-    }
-
-    void ApplyIdentifierFlags(IdentifierFlagBits flags, bool set = true)
-    {
-        if (set)
-        {
-            m_flags |= flags;
-        }
-        else
-        {
-            m_flags &= ~flags;
-        }
-    }
-
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
@@ -98,7 +67,6 @@ public:
         hc.Add(AstDeclaration::GetHashCode());
         hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
         hc.Add(m_assignment ? m_assignment->GetHashCode() : HashCode());
-        hc.Add(m_flags);
 
         return hc;
     }
@@ -106,7 +74,6 @@ public:
 protected:
     RC<AstTypeSpecifier> m_proto;
     RC<AstExpression> m_assignment;
-    IdentifierFlagBits m_flags;
 
     // set while analyzing
     RC<AstExpression> m_realAssignment;

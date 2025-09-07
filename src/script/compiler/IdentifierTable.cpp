@@ -42,27 +42,32 @@ const RC<Identifier>& IdentifierTable::AddIdentifier(
     const RC<AstExpression>& currentValue,
     const SymbolTypeRef& symbolType)
 {
-    RC<Identifier> ident(new Identifier(
+    RC<Identifier> identifier(new Identifier(
         name,
         identifierIndex++,
         flags));
 
     if (currentValue != nullptr)
     {
-        ident->SetCurrentValue(currentValue);
+        identifier->SetCurrentValue(currentValue);
 
         if (symbolType == nullptr)
         {
-            ident->SetSymbolType(symbolType);
+            identifier->SetSymbolType(symbolType);
         }
     }
 
     if (symbolType != nullptr)
     {
-        ident->SetSymbolType(symbolType);
+        identifier->SetSymbolType(symbolType);
     }
 
-    return identifiers.PushBack(ident);
+    if (scope != nullptr && identifier->GetDeclScope() == nullptr)
+    {
+        identifier->SetDeclScope(scope);
+    }
+
+    return identifiers.PushBack(identifier);
 }
 
 bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
@@ -76,6 +81,11 @@ bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
     {
         // already exists
         return false;
+    }
+
+    if (scope != nullptr && identifier->GetDeclScope() == nullptr)
+    {
+        identifier->SetDeclScope(scope);
     }
 
     identifiers.PushBack(identifier);

@@ -20,15 +20,12 @@ AstParameter::AstParameter(
     const RC<AstTypeSpecifier>& typeSpec,
     const RC<AstExpression>& defaultParam,
     bool isVariadic,
-    bool isConst,
-    bool isRef,
+    IdentifierFlagBits flags,
     const SourceLocation& location)
-    : AstDeclaration(name, location),
+    : AstDeclaration(name, flags | IdentifierFlags::FLAG_ARGUMENT, location),
       m_typeSpec(typeSpec),
       m_defaultParam(defaultParam),
-      m_isVariadic(isVariadic),
-      m_isConst(isConst),
-      m_isRef(isRef)
+      m_isVariadic(isVariadic)
 {
 }
 
@@ -95,47 +92,26 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     // if variadic, then change symbol type to `varargs<T>`
     if (m_isVariadic)
     {
-        m_varargsTypeSpec.Reset(new AstTypeSpecifier(
-            RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                RC<AstVariable>(new AstVariable(
-                    "varargs",
-                    m_location)),
-                { RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        m_symbolType,
-                        m_location)),
-                    m_location)) },
-                nullptr, // no function return type
-                m_location)),
+        m_varargsTypeSpec.Reset(new AstTemplateInstantiation(
+            RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_varArgsType, m_location)),
+            { RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                RC<AstTypeRef>(new AstTypeRef(m_symbolType, m_location)),
+                m_location)) },
+            nullptr, // no function return type
             m_location));
 
         m_varargsTypeSpec->Visit(visitor, mod);
 
-        auto* varargsValueOf = m_varargsTypeSpec->GetDeepValueOf();
-        Assert(varargsValueOf != nullptr);
-
-        SymbolTypeRef heldType = varargsValueOf->GetHeldType();
+        SymbolTypeRef heldType = m_varargsTypeSpec->GetHeldType();
         Assert(heldType != nullptr);
         heldType = heldType->GetUnaliased();
 
         m_symbolType = heldType;
-        Assert(m_symbolType->IsVarArgsType());
     }
 
     if (m_identifier != nullptr)
     {
         m_identifier->SetSymbolType(m_symbolType);
-        m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_ARGUMENT);
-
-        if (m_isConst)
-        {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
-        }
-
-        if (m_isRef)
-        {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_REF);
-        }
 
         if (m_defaultParam != nullptr)
         {

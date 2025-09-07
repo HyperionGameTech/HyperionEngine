@@ -659,7 +659,7 @@ bool SymbolType::IsNullableType() const
 
 bool SymbolType::IsVarArgsType() const
 {
-    return HasTraitDeep(BuiltinTypeTraits::variadic);
+    return IsOrHasBase(*BuiltinTypes::g_varArgsBaseType);
 }
 
 bool SymbolType::IsGenericParameter() const

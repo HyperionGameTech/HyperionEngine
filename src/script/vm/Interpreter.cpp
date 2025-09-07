@@ -507,12 +507,12 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(u64);
     }
 
-    HYP_FORCE_INLINE void OpLoadF32(BCRegister reg, float f32)
+    HYP_FORCE_INLINE void OpLoadF32(BCRegister reg, float32 f32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(f32);
     }
 
-    HYP_FORCE_INLINE void OpLoadF64(BCRegister reg, double f64)
+    HYP_FORCE_INLINE void OpLoadF64(BCRegister reg, float64 f64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(f64);
     }
@@ -906,11 +906,6 @@ public:
         }
 
         field->Set(*pValue->GetHypData(), *instance->thread.m_regs[srcReg].Deref()->GetHypData());
-
-        // DEBUG TEST: Get the field, create a new Script_Value, log it to string
-
-        Script_Value fieldValue = ScriptApi_MakeValue(field->Get(*pValue->GetHypData()));
-        DebugLog(LogType::Info, "Set field '%s' to value: %s\n", field->GetName().LookupString(), fieldValue.ToString().GetData());
     }
 
     HYP_FORCE_INLINE void OpGetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
@@ -2377,7 +2372,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
             case DTYPE_F32:
             {
-                float value;
+                float32 value;
                 bs->Read(&value);
                 handler->OpLoadF32(reg, value);
             }
@@ -2385,7 +2380,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
             case DTYPE_F64:
             {
-                double value;
+                float64 value;
                 bs->Read(&value);
                 handler->OpLoadF64(reg, value);
             }

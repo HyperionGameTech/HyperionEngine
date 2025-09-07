@@ -10,6 +10,8 @@
 
 namespace hyperion {
 
+class Scope;
+
 using IdentifierFlagBits = uint32;
 
 enum IdentifierFlags : IdentifierFlagBits
@@ -17,7 +19,7 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_NONE = 0x0,
     FLAG_CONST = 0x1,
     FLAG_ALIAS = 0x2,
-    FLAG_MIXIN = 0x4,
+    FLAG_MODULE = 0x4,
     FLAG_GENERIC = 0x8,
     FLAG_DECLARED_IN_FUNCTION = 0x10,
     FLAG_PLACEHOLDER = 0x20,
@@ -41,7 +43,9 @@ class Identifier
 {
 public:
     Identifier(const String& name, int index, IdentifierFlagBits flags, Identifier* aliasee = nullptr);
-    Identifier(const Identifier& other);
+    Identifier(const Identifier& other) = delete;
+    Identifier& operator=(const Identifier& other) = delete;
+    ~Identifier() = default;
 
     const String& GetName() const
     {
@@ -94,40 +98,45 @@ public:
     {
         m_flags = flags;
     }
+
     const RC<AstExpression>& GetCurrentValue() const
     {
         return Unalias()->m_currentValue;
     }
+
     void SetCurrentValue(const RC<AstExpression>& expr)
     {
         Unalias()->m_currentValue = expr;
     }
+
     const SymbolTypeRef& GetSymbolType() const
     {
         return Unalias()->m_symbolType;
     }
+
     void SetSymbolType(const SymbolTypeRef& symbolType)
     {
         Unalias()->m_symbolType = symbolType;
-    }
-
-    const Array<GenericInstanceTypeInfo::Arg>& GetTemplateParams() const
-    {
-        return Unalias()->m_templateParams;
-    }
-
-    void SetTemplateParams(const Array<GenericInstanceTypeInfo::Arg>& templateParams)
-    {
-        Unalias()->m_templateParams = templateParams;
     }
 
     Identifier* Unalias()
     {
         return (m_aliasee != nullptr) ? m_aliasee : this;
     }
+
     const Identifier* Unalias() const
     {
         return (m_aliasee != nullptr) ? m_aliasee : this;
+    }
+
+    Scope* GetDeclScope() const
+    {
+        return Unalias()->m_declScope;
+    }
+
+    void SetDeclScope(Scope* scope)
+    {
+        Unalias()->m_declScope = scope;
     }
 
 private:
@@ -139,8 +148,7 @@ private:
     Identifier* m_aliasee;
     RC<AstExpression> m_currentValue;
     SymbolTypeRef m_symbolType;
-
-    Array<GenericInstanceTypeInfo::Arg> m_templateParams;
+    Scope* m_declScope;
 };
 
 } // namespace hyperion
