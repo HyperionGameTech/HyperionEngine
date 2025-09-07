@@ -903,8 +903,8 @@ protected:
     }
 
     BucketArray m_buckets;
-    SizeType m_size;
     NodeAllocatorType m_nodeAllocator;
+    SizeType m_size;
 };
 
 template <class Value, auto KeyBy, class NodeAllocatorType>

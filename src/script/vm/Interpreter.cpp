@@ -1485,24 +1485,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION(a, b, +);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("ADD", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpSub(
@@ -1514,24 +1512,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+
+            Number result { numericType };
             HYP_NUMERIC_OPERATION(a, b, -);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("SUB", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpMul(
@@ -1543,24 +1539,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+
+            Number result { numericType };
             HYP_NUMERIC_OPERATION(a, b, *);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("MUL", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpDiv(
@@ -1572,13 +1566,12 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
                 vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
@@ -1591,18 +1584,17 @@ public:
 
                 return;
             }
-
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION(a, b, /);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("DIV", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpMod(
@@ -1614,13 +1606,12 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+
             // custom handling for mod to allow floats to work
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
@@ -1634,6 +1625,8 @@ public:
 
                 return;
             }
+
+            Number result { numericType };
 
             if (a.flags & Number::FLAG_FLOATING_POINT || b.flags & Number::FLAG_FLOATING_POINT)
             {
@@ -1665,16 +1658,14 @@ public:
             {
                 HYP_UNREACHABLE();
             }
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("MOD", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpAnd(
@@ -1686,24 +1677,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, &);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("AND", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpOr(
@@ -1715,24 +1704,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, |);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("OR", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpXor(
@@ -1744,24 +1731,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, ^);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("XOR", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpShl(BCRegister lhsReg,
@@ -1772,24 +1757,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, <<);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("SHL", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpShr(BCRegister lhsReg,
@@ -1800,24 +1783,22 @@ public:
         Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
         Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
 
-        const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-
         Number a, b;
-        Number result { numericType };
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
+            const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
+            
+            Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, >>);
+
+            // set the destination register to be the result
+            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
         }
         else
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("SHR", lhs->GetTypeString(), rhs->GetTypeString()));
-
-            return;
         }
-
-        // set the destination register to be the result
-        instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(result);
     }
 
     HYP_FORCE_INLINE void OpNot(BCRegister reg)

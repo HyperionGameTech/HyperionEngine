@@ -22,7 +22,7 @@ enum class HypClassAttributeType : uint8
     BOOLEAN
 };
 
-struct HypClassAttributeValue
+struct HypClassAttributeValue final
 {
     static const HypClassAttributeValue empty;
 
@@ -137,7 +137,7 @@ struct HypClassAttributeValue
     Variant<String, int, bool> value;
 };
 
-struct HypClassAttribute
+struct HypClassAttribute final
 {
     HypClassAttribute() = default;
 
@@ -194,11 +194,13 @@ struct HypClassAttribute
     HypClassAttributeValue value;
 };
 
-class HypClassAttributeSet
+class HypClassAttributeSet final
 {
 public:
-    using Iterator = typename HashSet<HypClassAttribute, &HypClassAttribute::name>::Iterator;
-    using ConstIterator = typename HashSet<HypClassAttribute, &HypClassAttribute::name>::ConstIterator;
+    using SetType = HashSet<HypClassAttribute, &HypClassAttribute::name, HashTable_DynamicNodeAllocator<HypClassAttribute>>;
+
+    using Iterator = typename SetType::Iterator;
+    using ConstIterator = typename SetType::ConstIterator;
 
     HypClassAttributeSet() = default;
 
@@ -215,12 +217,12 @@ public:
         }
     }
 
-    HypClassAttributeSet(const HashSet<HypClassAttribute, &HypClassAttribute::name>& attributes)
+    HypClassAttributeSet(const SetType& attributes)
         : m_attributes(attributes)
     {
     }
 
-    HypClassAttributeSet(HashSet<HypClassAttribute, &HypClassAttribute::name>&& attributes)
+    HypClassAttributeSet(SetType&& attributes)
         : m_attributes(std::move(attributes))
     {
     }
@@ -305,7 +307,7 @@ public:
     HYP_DEF_STL_BEGIN_END(m_attributes.Begin(), m_attributes.End())
 
 private:
-    HashSet<HypClassAttribute, &HypClassAttribute::name> m_attributes;
+    SetType m_attributes;
 };
 
 } // namespace hyperion

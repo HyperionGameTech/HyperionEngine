@@ -127,12 +127,7 @@ const AstExpression* AstTypeSpecifier::GetDeepValueOf() const
 
 SymbolTypeRef AstTypeSpecifier::GetHeldType() const
 {
-    if (m_symbolType != nullptr)
-    {
-        return m_symbolType;
-    }
-
-    return AstExpression::GetHeldType();
+    return m_symbolType;
 }
 
 } // namespace hyperion

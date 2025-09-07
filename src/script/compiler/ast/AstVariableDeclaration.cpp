@@ -71,20 +71,9 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         /* ===== handle type specification ===== */
         if (hasUserSpecifiedType)
         {
-            auto* valueOf = m_proto->GetDeepValueOf();
-            Assert(valueOf != nullptr);
+            SymbolTypeRef heldType = m_proto->GetHeldType();
 
-            SymbolTypeRef protoExprType = valueOf->GetExprType();
-            Assert(protoExprType != nullptr);
-            protoExprType = protoExprType->GetUnaliased();
-
-            SymbolTypeRef protoHeldType = valueOf->GetHeldType();
-            if (protoHeldType != nullptr)
-            {
-                protoHeldType = protoHeldType->GetUnaliased();
-            }
-
-            if (protoHeldType == nullptr)
+            if (!heldType)
             {
                 // Add error that invalid type was specified.
 
@@ -92,13 +81,13 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     LEVEL_ERROR,
                     Msg_not_a_type,
                     m_proto->GetLocation(),
-                    protoExprType->ToString()));
+                    m_proto->GetExprType()->ToString()));
 
                 m_symbolType = BuiltinTypes::g_errorType;
             }
             else
             {
-                m_symbolType = protoHeldType;
+                m_symbolType = heldType;
             }
 
 #if HYP_SCRIPT_ANY_ONLY_FUNCTION_PARAMATERS

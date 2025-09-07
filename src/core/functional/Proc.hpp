@@ -25,10 +25,6 @@ struct Proc_Impl;
 template <class MemoryType, class ReturnType, class... Args>
 struct Proc_Impl<ReturnType(Args...), MemoryType>
 {
-    ReturnType (*invokeFn)(void*, Args...);
-    void (*moveFn)(Proc_Impl*, Proc_Impl*);
-    void (*deleteFn)(void*);
-
     union
     {
         // For inline storage of functor objects - if moveFn is not nullptr, then this memory is used.
@@ -37,6 +33,10 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
         // For heap-allocation or C function pointer
         void* ptr;
     };
+
+    ReturnType (*invokeFn)(void*, Args...);
+    void (*moveFn)(Proc_Impl*, Proc_Impl*);
+    void (*deleteFn)(void*);
 
     Proc_Impl()
         : invokeFn(nullptr),
@@ -204,9 +204,9 @@ class ProcRef;
 template <class ReturnType, class... Args>
 class Proc<ReturnType(Args...)> : ProcBase
 {
-    static constexpr uint32 inlineStorageSizeBytes = 256;
+    static constexpr uint32 s_inlineStorageSizeBytes = 64;
 
-    using InlineStorageType = ValueStorage<char, inlineStorageSizeBytes>;
+    using InlineStorageType = ValueStorage<char, s_inlineStorageSizeBytes>;
     using Impl = Proc_Impl<ReturnType(Args...), InlineStorageType>;
 
 public:
@@ -242,7 +242,7 @@ public:
             void* ptr = &m_impl.memory;
             const uintptr_t addressAligned = HYP_ALIGN_ADDRESS(ptr, alignof(FuncNormalized));
 
-            if (addressAligned + sizeof(FuncNormalized) <= uintptr_t(ptr) + inlineStorageSizeBytes)
+            if (addressAligned + sizeof(FuncNormalized) <= uintptr_t(ptr) + s_inlineStorageSizeBytes)
             {
                 Memory::Construct<FuncNormalized>(std::assume_aligned<alignof(FuncNormalized)>(reinterpret_cast<FuncNormalized*>(addressAligned)), std::forward<Func>(fn));
 
