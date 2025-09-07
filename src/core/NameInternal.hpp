@@ -120,7 +120,7 @@ struct Name
         return Name { 0 };
     }
 
-    HYP_METHOD()
+    HYP_METHOD(NoScriptBindings)
     HYP_API String ToString() const;
 };
 
@@ -230,7 +230,7 @@ struct WeakName
         return WeakName {};
     };
 
-    HYP_METHOD()
+    HYP_METHOD(NoScriptBindings)
     HYP_API String ToString() const;
 };
 

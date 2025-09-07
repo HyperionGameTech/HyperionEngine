@@ -11,7 +11,7 @@ namespace Hyperion
     public struct Name
     {
         internal static ConcurrentDictionary<string, Name> nameCache = new ConcurrentDictionary<string, Name>();
-        
+
         public static readonly Name Invalid = new Name(0);
 
         [FieldOffset(0)]
@@ -66,12 +66,12 @@ namespace Hyperion
             return name;
         }
 
-        public static bool operator == (Name a, Name b)
+        public static bool operator ==(Name a, Name b)
         {
             return a.Equals(b);
         }
 
-        public static bool operator != (Name a, Name b)
+        public static bool operator !=(Name a, Name b)
         {
             return !a.Equals(b);
         }

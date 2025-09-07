@@ -3,8 +3,11 @@
 
 #include <core/object/HypClass.hpp>
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/logging/Logger.hpp>
+
+#include <core/debug/Debug.hpp>
 
 #include <dotnet/Object.hpp>
 #include <dotnet/Class.hpp>
@@ -174,7 +177,6 @@ void ScriptObjectResource::Initialize()
             HYP_FAIL("Failed to recreate managed object for HypClass %s", hypClass->GetName().LookupString());
         }
     }
-}
 #endif
 }
 

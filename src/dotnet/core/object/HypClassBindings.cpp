@@ -188,13 +188,16 @@ extern "C"
 
     HYP_EXPORT HypMethod* HypClass_GetMethod(const HypClass* hypClass, const Name* name)
     {
-        /*if (!hypClass || !name)
+#ifndef HYP_MSVC
+        if (!hypClass || !name)
         {
             return nullptr;
         }
 
-        return hypClass->GetMethod(*name);*/
-        HYP_NOT_IMPLEMENTED(); // @FIXME: Linker error in MSVC ... GetMethod() is not linking??? Weird.
+        return hypClass->GetMethod(*name);
+#endif
+        // @FIXME: Linker error in MSVC ... GetMethod() is not linking??? Weird.
+        HYP_NOT_IMPLEMENTED();
     }
 
     HYP_EXPORT HypField* HypClass_GetField(const HypClass* hypClass, const Name* name)

@@ -175,7 +175,7 @@ SizeType GetNumDescendants(TypeId typeId)
     return base->GetNumDescendants();
 }
 
-static HypProperty* MakeHypProperty(const HypField* field)
+HypProperty* MakeHypProperty(const HypField* field)
 {
     HYP_CORE_ASSERT(field != nullptr);
 
@@ -233,7 +233,7 @@ static HypProperty* MakeHypProperty(const HypField* field)
     return pResult;
 }
 
-static HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
+HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
 {
     HypProperty* pResult = new HypProperty();
     HypProperty& result = *pResult;

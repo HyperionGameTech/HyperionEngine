@@ -2279,7 +2279,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_ShallowCopy(value, vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpCastDynamic(BCRegister dst, BCRegister src) // come back to this
+    HYP_FORCE_INLINE void OpCastDynamic(BCRegister dst, BCRegister src)
     {
         // dst register holds HypClassRef object
         Script_Value& classValue = *instance->thread.m_regs[dst].Deref();
