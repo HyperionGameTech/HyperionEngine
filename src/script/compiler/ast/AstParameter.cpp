@@ -107,6 +107,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
         heldType = heldType->GetUnaliased();
 
         m_symbolType = heldType;
+        Assert(m_symbolType->IsVarArgsType());
     }
 
     if (m_identifier != nullptr)

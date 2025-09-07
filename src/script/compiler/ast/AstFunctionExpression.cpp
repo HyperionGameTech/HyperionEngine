@@ -209,6 +209,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     else if (m_returnType->TypeCompatible(*symbolType, false))
                     {
                         m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
+
+                        // @TODO: If return statement differs, we should insert a cast expression
                     }
                     else
                     {
@@ -499,19 +501,6 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
             variadicParam = param.Get();
         }
     }
-
-    // if (variadicParam != nullptr)
-    //{
-    //     const uint8 currentRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    //     // push dummy placeholder value
-    //    chunk->Append(BytecodeUtil::Make<ConstNull>(currentRegister));
-
-    //    auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-    //    instrPush->opcode = PUSH;
-    //    instrPush->Accept<uint8>(currentRegister);
-    //    chunk->Append(std::move(instrPush));
-    //}
 
     uint16 numArgs = 0;
 

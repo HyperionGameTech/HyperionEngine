@@ -536,16 +536,11 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstan
 
     if (lastGenericArgType->IsVarArgsType())
     {
-        // get `type` supplied argument to use for the expanded var args
-        auto it = lastGenericArgType->GetGenericInstanceInfo().m_genericArgs.FindIf([](const GenericInstanceTypeInfo::Arg& arg)
-            {
-                return arg.m_name == "type";
-            });
-
-        if (it != lastGenericArgType->GetGenericInstanceInfo().m_genericArgs.End())
+        if (lastGenericArgType->GetGenericInstanceInfo().m_genericArgs.Any())
         {
-            Assert(it->m_type != nullptr);
-            return it->m_type;
+            Assert(lastGenericArgType->GetGenericInstanceInfo().m_genericArgs[0].m_type != nullptr);
+
+            return lastGenericArgType->GetGenericInstanceInfo().m_genericArgs[0].m_type;
         }
 
         return BuiltinTypes::g_anyType;
@@ -554,6 +549,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstan
     return nullptr;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     AstVisitor* visitor,
     Module* mod,
@@ -590,6 +586,12 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
         if (index >= numGenericArgs && varargType != nullptr)
         {
+            DebugLog(
+                LogType::Info,
+                "Checking vararg type compatibility for argument %zu: %s with vararg type %s\n",
+                index,
+                arg->GetExprType() ? arg->GetExprType()->ToString().Data() : "null",
+                varargType ? varargType->ToString().Data() : "null");
             CheckArgTypeCompatible(
                 visitor,
                 mod,
@@ -617,6 +619,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
         }
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor* visitor, Module* mod,
@@ -748,13 +751,13 @@ bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
             if (varargType != nullptr && ((i + namedArgs.Size())) >= argTypesWithoutReturn.Size() - 1)
             {
-                // in varargs... check against vararg base type
+                // // in varargs... check against vararg type
                 // CheckArgTypeCompatible(
                 //     visitor,
-                //     std::get<1>(arg)->GetLocation(),
-                //     std::get<0>(arg).type,
-                //     varargType
-                // );
+                //     mod,
+                //     arg.argument->GetLocation(),
+                //     arg.argument->GetExprType(),
+                //     varargType);
 
                 const bool isRef = argTypesWithoutReturn.Size() != 0 && argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isRef;
                 const bool isConst = argTypesWithoutReturn.Size() != 0 && argTypesWithoutReturn[argTypesWithoutReturn.Size() - 1].m_isConst;
