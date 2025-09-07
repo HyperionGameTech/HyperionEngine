@@ -4,6 +4,10 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstTernaryExpression.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/Module.hpp>
@@ -18,6 +22,8 @@
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
+static constexpr const char* g_tempArrayStoreVarName = "$__arrayStoreValue";
 
 AstArrayAccess::AstArrayAccess(
     const RC<AstExpression>& target,
@@ -56,6 +62,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
+    ScopeGuard scope(mod, SCOPE_TYPE_NORMAL);
+
     if (targetType->IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
         || targetType->IsOrHasBase(*BuiltinTypes::g_varArgsBaseType))
     {
@@ -66,10 +74,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef elementType = targetType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
         Assert(elementType != nullptr);
 
-        Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL);
-
         // supplant "SelfType" placeholder type with the actual target type
-        scope.identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { targetType }));
+        scope->identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { targetType }));
 
         elementType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
@@ -85,8 +91,6 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             m_location,
             m_index->GetExprType(),
             BuiltinTypes::g_intType);
-
-        mod->m_scopes.Close();
 
         return;
     }
@@ -104,6 +108,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             ? overloadFunctionNames[1]
             : overloadFunctionNames[0];
 
+        bool needsTemporaryVar = false;
+
         RC<AstArgumentList> argumentList(new AstArgumentList(
             { RC<AstArgument>(new AstArgument(
                 CloneAstNode(m_index),
@@ -117,8 +123,10 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
         if (m_accessMode == ACCESS_MODE_STORE)
         {
+            needsTemporaryVar = true;
+
             argumentList->GetArguments().PushBack(RC<AstArgument>(new AstArgument(
-                nullptr, // placeholder argument, will be filled in at bytecode generation time
+                RC<AstVariable>(new AstVariable(g_tempArrayStoreVarName, m_location)), // temporary variable to be stored into the array
                 false,
                 false,
                 false,
@@ -153,8 +161,10 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
             if (m_accessMode == ACCESS_MODE_STORE)
             {
+                needsTemporaryVar = true;
+
                 callExpr->GetArguments().PushBack(RC<AstArgument>(new AstArgument(
-                    nullptr, // placeholder argument, will be filled in at bytecode generation time
+                    RC<AstVariable>(new AstVariable(g_tempArrayStoreVarName, m_location)), // temporary variable to be stored into the array
                     false,
                     false,
                     false,
@@ -192,6 +202,21 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                 targetType->ToString()));
         }
 
+        if (needsTemporaryVar && m_accessMode == ACCESS_MODE_STORE)
+        {
+            // create a temporary variable to hold the value to be stored into the array
+            m_tempArrayStoreVarDecl.Reset(new AstVariableDeclaration(
+                g_tempArrayStoreVarName,
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                    RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_anyType, m_location)),
+                    m_location)),
+                nullptr, // no initializer
+                IdentifierFlags::FLAG_LAX,
+                m_location));
+
+            m_tempArrayStoreVarDecl->Visit(visitor, mod);
+        }
+
         if (m_overrideExpr != nullptr)
         {
             m_overrideExpr->Visit(visitor, mod);
@@ -219,7 +244,6 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         || (m_overrideExpr != nullptr && (m_overrideExpr->MayHaveSideEffects() || m_accessMode == ACCESS_MODE_STORE));
 
     uint8 rhsRegister = uint8(-1);
-    int rhsStackLocation = -1;
 
     if (m_accessMode == ACCESS_MODE_STORE)
     {
@@ -228,14 +252,8 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
 
         if (sideEffects)
         {
-            rhsStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-            visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-
-            // move rhs to stack
-            auto instr = BytecodeUtil::Make<RawOperation<>>();
-            instr->opcode = PUSH;
-            instr->Accept<uint8>(rhsRegister);
-            chunk->Append(std::move(instr));
+            Assert(m_tempArrayStoreVarDecl != nullptr);
+            chunk->Append(m_tempArrayStoreVarDecl->Build(visitor, mod));
 
             rhsRegister = uint8(-1); // mark no longer valid so we don't trip over it
         }
@@ -283,17 +301,14 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
     {
         if (m_overrideExpr != nullptr)
         {
-            // RHS should be stored on stack here:
-            Assert(rhsStackLocation != -1);
-
-            // build override expression, which will use the rhsRegister as the value to store
             chunk->Append(m_overrideExpr->Build(visitor, mod));
         }
         else
         {
             if (sideEffects)
             {
-                Assert(rhsRegister == uint8(-1) && rhsStackLocation != -1);
+                Assert(rhsRegister == uint8(-1));
+                Assert(m_tempArrayStoreVarDecl != nullptr);
 
                 // preserve index register
                 visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
@@ -303,6 +318,9 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
                 visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage(); // preserve rhs register now
 
                 {
+                    const int rhsStackLocation = m_tempArrayStoreVarDecl->GetIdentifier()->GetStackLocation();
+                    Assert(rhsStackLocation != -1);
+
                     auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
                     instrLoadOffset->opcode = LOAD_OFFSET;
                     instrLoadOffset->Accept<uint8>(rhsRegister);
@@ -346,19 +364,6 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
 
                 chunk->Append(std::move(instrMov));
             }
-        }
-
-        if (rhsStackLocation != -1)
-        {
-            // pop our rhs from the stack
-            auto instrPop = BytecodeUtil::Make<RawOperation<>>();
-            instrPop->opcode = POP;
-            chunk->Append(std::move(instrPop));
-
-            // decrement stack size for rhs
-            visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-
-            rhsStackLocation = -1;
         }
     }
     else if (m_accessMode == ACCESS_MODE_LOAD)

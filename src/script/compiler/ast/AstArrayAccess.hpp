@@ -9,6 +9,8 @@
 
 namespace hyperion {
 
+class AstVariableDeclaration;
+
 class AstArrayAccess : public AstExpression
 {
 public:
@@ -66,6 +68,7 @@ private:
 
     // set while analyzing
     RC<AstExpression> m_overrideExpr;
+    RC<AstVariableDeclaration> m_tempArrayStoreVarDecl;
     SymbolTypeRef m_exprType;
 
     RC<AstArrayAccess> CloneImpl() const

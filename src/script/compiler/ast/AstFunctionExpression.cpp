@@ -387,7 +387,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     CloneAstNode(m_block),
                     false, // do not enable closure
                     m_location)),
-                IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER,
+                IdentifierFlags::FLAG_PLACEHOLDER,
                 m_location)) },
             {},
             ClassFlags::CLASS_FLAG_ANONYMOUS,
@@ -400,8 +400,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(member.type, m_location)),
                     m_location)),
-                RC<AstNil>(new AstNil(m_location)), // placeholder; set later
-                IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER,
+                RC<AstNil>(new AstNil(m_location)),                            // placeholder; set later
+                IdentifierFlags::FLAG_PLACEHOLDER | IdentifierFlags::FLAG_LAX, // don't emit errors for null assignment
                 m_location)));
         }
 
@@ -500,9 +500,9 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         }
     }
 
-    //if (variadicParam != nullptr)
+    // if (variadicParam != nullptr)
     //{
-    //    const uint8 currentRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    //     const uint8 currentRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     //     // push dummy placeholder value
     //    chunk->Append(BytecodeUtil::Make<ConstNull>(currentRegister));
@@ -514,21 +514,20 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     //}
 
     uint16 numArgs = 0;
-    
-    // build params in reverse order
-    for (SizeType index = m_parameters.Size(); index > 0; index--, numArgs++)
-    {
-        const RC<AstParameter>& param = m_parameters[index - 1];
-        Assert(param != nullptr);
-
-        chunk->Append(param->Build(visitor, mod));
-    }
 
     if (m_isClosure && m_closureSelfParam != nullptr)
     {
         chunk->Append(m_closureSelfParam->Build(visitor, mod));
 
         numArgs++;
+    }
+
+    for (SizeType index = 0; index < m_parameters.Size(); index++, numArgs++)
+    {
+        const RC<AstParameter>& param = m_parameters[index];
+        Assert(param != nullptr);
+
+        chunk->Append(param->Build(visitor, mod));
     }
 
     uint8 rp;
@@ -544,7 +543,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
         methodFlags |= HypMethodFlags::VARIADIC;
 
-        //chunk->Append(variadicParam->Build(visitor, mod));
+        // chunk->Append(variadicParam->Build(visitor, mod));
     }
 
     // the label to jump to the very end

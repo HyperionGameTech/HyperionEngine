@@ -1485,7 +1485,7 @@ public:
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
             const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION(a, b, +);
 
@@ -1579,7 +1579,7 @@ public:
 
                 return;
             }
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION(a, b, /);
 
@@ -1677,7 +1677,7 @@ public:
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
             const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, &);
 
@@ -1704,7 +1704,7 @@ public:
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
             const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, |);
 
@@ -1731,7 +1731,7 @@ public:
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
             const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, ^);
 
@@ -1757,7 +1757,7 @@ public:
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
             const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, <<);
 
@@ -1783,7 +1783,7 @@ public:
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b))
         {
             const NumericType numericType = MATCH_TYPES(lhs->GetNumericType(), rhs->GetNumericType());
-            
+
             Number result { numericType };
             HYP_NUMERIC_OPERATION_BITWISE(a, b, >>);
 
@@ -3396,10 +3396,9 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
         {
             HypData** argsHypData = (HypData**)StackAlloc((nargs > 0 ? nargs : 1) * sizeof(HypData*));
 
-            int64 i = static_cast<int64>(instance->thread.m_stack.GetStackPointer()) - 1;
-            for (int argIndex = 0; argIndex < nargs && i >= 0; i--, argIndex++)
+            for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
-                argsHypData[argIndex] = instance->thread.m_stack[i].GetHypData();
+                argsHypData[argIndex] = instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - argIndex - 1].GetHypData();
             }
 
             // @TODO: Implement
@@ -3450,31 +3449,25 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
                 {
                     varargsAmt = 0;
                 }
-                /// FIXME: Change in calling convention is breaking this.
-
-                Script_Value& varargArrayValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - vmData->func.m_nargs];
 
                 // set varargsPush value so we know how to get back to the stack size before.
-                previousAddr.call.varargsPush = 0;
+                previousAddr.call.varargsPush = varargsAmt - 1;
 
                 // create an array to hold variadic args
                 Script_ValueArray arr;
                 arr.Resize(varargsAmt);
 
-                for (int i = varargsAmt; i > 0; i--)
+                for (int i = varargsAmt - 1; i >= 0; i--)
                 {
-                    Script_Value& argValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - vmData->func.m_nargs - i];
-
                     // push to array
-                    arr[i - 1] = std::move(argValue);
+                    arr[i] = std::move(instance->thread.GetStack().Top());
+                    instance->thread.GetStack().Pop();
                 }
 
-                // swap the array into the position reserved for varargs
-                //Script_Value varargArrayValue = ScriptApi_MakeValue(std::move(arr));
-
-               // instance->thread.GetStack().Push(std::move(varargArrayValue));
-                varargArrayValue = ScriptApi_MakeValue(std::move(arr));
+                // push the array to the stack
+                instance->thread.GetStack().Push(ScriptApi_MakeValue(std::move(arr)));
             }
+
             // push the address
             instance->thread.GetStack().Push(ScriptApi_MakeValue(previousAddr));
 

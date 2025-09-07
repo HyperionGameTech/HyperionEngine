@@ -27,19 +27,19 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
 
     chunk->Append(BytecodeUtil::Make<Comment>("Building function arguments - total count: " + String::ToString(args.Size())));
 
-    // push a copy of each argument to the stack (in reverse order)
-    for (SizeType index = args.Size(); index > 0; index--)
+    // push a copy of each argument to the stack
+    for (SizeType index = 0; index < args.Size(); index++)
     {
-        const RC<AstArgument>& arg = args[index - 1];
+        const RC<AstArgument>& arg = args[index];
         Assert(arg != nullptr);
 
         if (arg->IsPlaceholderArgument())
         {
-            chunk->Append(BytecodeUtil::Make<Comment>("Skipping placeholder argument at index " + String::ToString(index - 1)));
+            chunk->Append(BytecodeUtil::Make<Comment>("Skipping placeholder argument at index " + String::ToString(index)));
             continue;
         }
 
-        chunk->Append(BytecodeUtil::Make<Comment>("Processing argument " + String::ToString(index - 1) + ": " + (arg ? arg->ToString() : "<null>")));
+        chunk->Append(BytecodeUtil::Make<Comment>("Processing argument " + String::ToString(index) + ": " + (arg ? arg->ToString() : "<null>")));
 
         // build in current module (not mod)
         chunk->Append(arg->Build(visitor, visitor->GetCompilationUnit()->GetCurrentModule()));

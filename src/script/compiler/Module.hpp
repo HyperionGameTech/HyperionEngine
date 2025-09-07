@@ -169,7 +169,7 @@ public:
 
 struct ScopeGuard : TreeNodeGuard<Scope>
 {
-    ScopeGuard(Module* mod, ScopeType scopeType, int scopeFlags)
+    ScopeGuard(Module* mod, ScopeType scopeType, int scopeFlags = 0)
         : TreeNodeGuard(&mod->m_scopes, scopeType, scopeFlags)
     {
     }

@@ -46,9 +46,9 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     }
 
     const bool skipShadowingCheck = m_name.StartsWith("$")
-        || (m_flags & IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER);
-    
-    if (!skipShadowingCheck) 
+        || (m_flags & IdentifierFlags::FLAG_LAX);
+
+    if (!skipShadowingCheck)
     {
         if (RC<Identifier> shadowedIdentifier = mod->LookUpIdentifier(m_name, false))
         {

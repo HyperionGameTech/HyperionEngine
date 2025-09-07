@@ -156,6 +156,25 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
 
     uint16 numArgsToPop = 0;
 
+    int selfStackLocation = -1;
+
+    { // self load
+        chunk->Append(BytecodeUtil::Make<Comment>("Loading target object for method call"));
+        Assert(m_target != nullptr);
+        chunk->Append(m_target->Build(visitor, mod));
+
+        const uint8 selfArgRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        chunk->Append(BytecodeUtil::Make<Comment>("Pushing 'self' argument to stack (register " + String::ToString(selfArgRegister) + ")"));
+        auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+        instrPush->opcode = PUSH;
+        instrPush->Accept<uint8>(selfArgRegister);
+        chunk->Append(std::move(instrPush));
+
+        selfStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+    }
+
     if (m_substitutedArgs.Any())
     {
         // build arguments
@@ -166,27 +185,26 @@ UniquePtr<Buildable> AstMemberCallExpression::Build(AstVisitor* visitor, Module*
             numArgsToPop));
     }
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Loading target object for method call"));
-    Assert(m_target != nullptr);
-    chunk->Append(m_target->Build(visitor, mod));
+    Assert(selfStackLocation != -1);
 
-    { // push self arg to stack lastly as it is the first arg and we push in reverse order
-        const uint8 selfArgRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    { // load self back into register
+        chunk->Append(BytecodeUtil::Make<Comment>("Loading 'self' argument back into register (stack location " + String::ToString(selfStackLocation) + ")"));
 
-        chunk->Append(BytecodeUtil::Make<Comment>("Pushing 'self' argument to stack (register " + String::ToString(selfArgRegister) + ")"));
-        auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-        instrPush->opcode = PUSH;
-        instrPush->Accept<uint8>(selfArgRegister);
-        chunk->Append(std::move(instrPush));
+        const uint8 currentRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+        auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
+        instrLoadOffset->opcode = LOAD_OFFSET;
+        instrLoadOffset->Accept<uint8>(currentRegister);
+        instrLoadOffset->Accept<uint16>(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - selfStackLocation);
+        chunk->Append(std::move(instrLoadOffset));
     }
 
-    const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
+    {
+        const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName + " (method call) - hash: " + String::ToString(hash)));
-
-    chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
+        chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName + " (method call) - hash: " + String::ToString(hash)));
+        chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
+    }
 
     // num args for call may be > numArgsToPop.
     // (placeholder args don't count towards stack size and are handled outside of this node)

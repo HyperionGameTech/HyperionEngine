@@ -226,7 +226,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (noDefaultAssignment && !(m_flags & (IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER | IdentifierFlags::FLAG_EXTERN)))
+        if (noDefaultAssignment && !(m_flags & (IdentifierFlags::FLAG_LAX | IdentifierFlags::FLAG_EXTERN)))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -294,7 +294,9 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
 
     Assert(m_realAssignment != nullptr);
 
-    if (!Config::cullUnusedObjects || m_identifier->GetUseCount() > 0 || (m_flags & (IdentifierFlags::FLAG_EXTERN | IdentifierFlags::FLAG_CLOSURE_PLACEHOLDER)))
+    if (!Config::cullUnusedObjects
+        || m_identifier->GetUseCount() > 0
+        || (m_flags & (IdentifierFlags::FLAG_EXTERN | IdentifierFlags::FLAG_PLACEHOLDER)))
     {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());

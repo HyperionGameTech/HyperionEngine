@@ -52,7 +52,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
         const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
         const bool isMember = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
-        const bool isSubstitution = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC_SUBSTITUTION;
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
         // clone the AST node so we don't double-visit
@@ -94,7 +93,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
             }
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
-            const bool forceInline = isAlias; // || isSubstitution;
+            const bool forceInline = isAlias;
 
             if (forceInline && m_inlineValue == nullptr)
             {

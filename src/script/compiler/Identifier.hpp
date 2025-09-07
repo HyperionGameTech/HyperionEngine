@@ -30,13 +30,10 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_REF = 0x400,
     FLAG_ENUM = 0x800,
     FLAG_MEMBER = 0x1000,
-    FLAG_GENERIC_SUBSTITUTION = 0x2000,
     FLAG_CONSTRUCTOR = 0x4000,
-    FLAG_CLASS = 0x8000,
     FLAG_FUNCTION = 0x10000,
     FLAG_EXTERN = 0x20000,
-    FLAG_TRAIT = 0x40000,
-    FLAG_CLOSURE_PLACEHOLDER = 0x80000
+    FLAG_LAX = 0x80000 //!< except from many analyses, this identifier should be hidden from the user
 };
 
 class Identifier
