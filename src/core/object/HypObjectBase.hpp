@@ -50,7 +50,7 @@ class Class;
 extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
 extern HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
 
-extern HYP_API TypeId GetTypeIdForHypClass(const HypClass* hypClass);
+extern HYP_API TypeId GetTypeIdForClass(const HypClass* hypClass);
 
 class HYP_API HypObjectBase
 {
@@ -83,14 +83,14 @@ public:
     {
         HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
 
-        return ObjIdBase { GetTypeIdForHypClass(m_header->hypClass), m_header->index + 1 };
+        return ObjIdBase { GetTypeIdForClass(m_header->hypClass), m_header->index + 1 };
     }
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
 
-        return GetTypeIdForHypClass(m_header->hypClass);
+        return GetTypeIdForClass(m_header->hypClass);
     }
 
     HYP_FORCE_INLINE static const HypClass* Class()

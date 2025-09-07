@@ -107,7 +107,7 @@ HypObjectBase* HypObjectHeader::GetObjectPointer(HypObjectHeader* header)
     AssertDebug(header->hypClass != nullptr);
 
     // calculate offset of the object data after the header
-    const SizeType alignment = header->hypClass->GetObjectContainer()->GetObjectAlignment();
+    const SizeType alignment = header->hypClass->GetAlignment();
     const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     // get pointer to object
@@ -122,7 +122,7 @@ void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
     AssertDebug(header->hypClass != nullptr);
 
     // calculate offset of the object data after the header
-    const SizeType alignment = header->hypClass->GetObjectContainer()->GetObjectAlignment();
+    const SizeType alignment = header->hypClass->GetAlignment();
     const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     // get pointer to object
@@ -141,7 +141,7 @@ HypObjectBase::HypObjectBase()
     HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
     HYP_CORE_ASSERT(context != nullptr);
 
-    const SizeType alignment = context->hypClass->GetObjectContainer()->GetObjectAlignment();
+    const SizeType alignment = context->hypClass->GetAlignment();
     HYP_CORE_ASSERT(alignment != 0);
 
     // calculate offset of the object data after the header
@@ -152,6 +152,7 @@ HypObjectBase::HypObjectBase()
 
     // increment the strong reference count for the Handle<T> that will be returned from CreateObject<T>().
     AtomicIncrement(&m_header->refCountStrong);
+    HYP_CORE_ASSERT(m_header->refCountStrong == 1);
 }
 
 HypObjectBase::~HypObjectBase()

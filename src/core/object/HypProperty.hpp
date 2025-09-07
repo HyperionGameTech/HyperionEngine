@@ -357,6 +357,8 @@ class HypProperty : public IHypMember
 {
 public:
     friend class HypClass;
+    friend HypProperty* MakeHypProperty(const HypField* field);
+    friend HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter);
 
     HypProperty()
         : m_originalMember(nullptr)
@@ -534,9 +536,6 @@ public:
 
     /*! \brief Get the associated HypClass for this property's type Id, if applicable. */
     HYP_API const HypClass* GetHypClass() const;
-
-    static HYP_API HypProperty MakeHypProperty(const HypField* field);
-    static HYP_API HypProperty MakeHypProperty(const HypMethod* getter, const HypMethod* setter);
 
 private:
     Name m_name;

@@ -13,7 +13,12 @@ class Scope;
 class IdentifierTable
 {
 public:
-    explicit IdentifierTable(Scope* scope);
+    explicit IdentifierTable(Scope* scope)
+        : identifierIndex(0),
+          scope(scope)
+    {
+    }
+
     IdentifierTable(const IdentifierTable& other) = delete;
     IdentifierTable& operator=(const IdentifierTable& other) = delete;
 
@@ -26,8 +31,8 @@ public:
     const RC<Identifier>& AddIdentifier(
         const String& name,
         int flags = 0,
-        RC<AstExpression> currentValue = nullptr,
-        SymbolTypeRef symbolType = nullptr);
+        const RC<AstExpression>& currentValue = nullptr,
+        const SymbolTypeRef& symbolType = nullptr);
 
     bool AddIdentifier(const RC<Identifier>& identifier);
 

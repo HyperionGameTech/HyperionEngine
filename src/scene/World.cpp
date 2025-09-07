@@ -69,9 +69,9 @@ World::~World()
 
             OnSceneRemoved(this, scene);
 
-            for (auto& it : m_subsystems)
+            for (Subsystem* subsystem : m_subsystemsArray)
             {
-                it.second->OnSceneDetached(scene);
+                subsystem->OnSceneDetached(scene);
             }
 
             if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
@@ -96,12 +96,9 @@ World::~World()
     SafeDelete(std::move(m_scenes));
     SafeDelete(std::move(m_views));
 
-    for (auto& it : m_subsystems)
+    for (Subsystem* subsystem : m_subsystemsArray)
     {
-        const Handle<Subsystem>& subsystem = it.second;
-        Assert(subsystem.IsValid());
-
-        it.second->OnRemovedFromWorld();
+        subsystem->OnRemovedFromWorld();
     }
 
     if (m_viewCollectionBatch)
@@ -156,13 +153,15 @@ void World::Init()
             .attachments = { { TF_R8 } }
         };
 
+        Handle<Camera> camera = CreateObject<Camera>();
+
         const ViewDesc raytracingViewDesc {
             .flags = ViewFlags::RAYTRACING | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
             .outputTargetDesc = outputTargetDesc,
-            .camera = CreateObject<Camera>()
+            .camera = camera
         };
 
         Handle<View> raytracingView = CreateObject<View>(raytracingViewDesc);
@@ -181,9 +180,9 @@ void World::Init()
 
         OnSceneAdded(this, scene);
 
-        for (auto& it : m_subsystems)
+        for (Subsystem* subsystem : m_subsystemsArray)
         {
-            it.second->OnSceneAttached(scene);
+            subsystem->OnSceneAttached(scene);
         }
 
         if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
@@ -310,10 +309,8 @@ void World::Update(float delta)
 #ifdef HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
     Array<Task<void>> updateSubsystemTasks;
 
-    for (auto& it : m_subsystems)
+    for (Subsystem* subsystem : m_subsystemsArray)
     {
-        Subsystem* subsystem = it.second.Get();
-
         if (subsystem->RequiresUpdateOnGameThread())
         {
             continue;
@@ -329,10 +326,8 @@ void World::Update(float delta)
             }));
     }
 
-    for (auto& it : m_subsystems)
+    for (Subsystem* subsystem : m_subsystemsArray)
     {
-        Subsystem* subsystem = it.second.Get();
-
         if (!subsystem->RequiresUpdateOnGameThread())
         {
             continue;
@@ -349,10 +344,8 @@ void World::Update(float delta)
 
     updateSubsystemTasks.Clear();
 #else
-    for (auto& it : m_subsystems)
+    for (Subsystem* subsystem : m_subsystemsArray)
     {
-        Subsystem* subsystem = it.second.Get();
-
         subsystem->PreUpdate(delta);
         subsystem->Update(delta);
     }
@@ -437,13 +430,13 @@ void World::Update(float delta)
     bufferData->frameCounter = RenderApi_GetFrameCounter();
 }
 
-Handle<Subsystem> World::AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem)
+const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem)
 {
     HYP_SCOPE;
 
     if (!subsystem)
     {
-        return nullptr;
+        return Handle<Subsystem>::Null();
     }
 
     Threads::AssertOnThread(g_gameThread);
@@ -455,9 +448,11 @@ Handle<Subsystem> World::AddSubsystem(TypeId typeId, const Handle<Subsystem>& su
 
     auto insertResult = m_subsystems.Set(typeId, subsystem);
 
-    // Create a new Handle, calling OnAddedToWorld() may add new subsystems which would invalidate the iterator
-    Handle<Subsystem> newSubsystem = insertResult.first->second;
+    // fine to take reference since we use dynamic hash map allocator which doesn't invalidate references.
+    const Handle<Subsystem>& newSubsystem = insertResult.first->second;
     Assert(newSubsystem.IsValid());
+
+    m_subsystemsArray.PushBack(newSubsystem.Get());
 
     // If World is already initialized, initialize the subsystem
     // otherwise, it will be initialized when World::Init() is called
@@ -499,24 +494,20 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    const auto it = m_subsystems.FindIf([name](const Pair<TypeId, Handle<Subsystem>>& item)
+    const auto it = m_subsystemsArray.FindIf([name](Subsystem* subsystem)
         {
-            if (!item.second)
-            {
-                return false;
-            }
 
-            const HypClass* hypClass = item.second->InstanceClass();
+            const HypClass* hypClass = subsystem->InstanceClass();
 
             return hypClass->GetName() == name;
         });
 
-    if (it == m_subsystems.End())
+    if (it == m_subsystemsArray.End())
     {
         return nullptr;
     }
 
-    return it->second.Get();
+    return *it;
 }
 
 bool World::RemoveSubsystem(Subsystem* subsystem)
@@ -558,6 +549,11 @@ bool World::RemoveSubsystem(Subsystem* subsystem)
     subsystem->SetWorld(nullptr);
 
     m_subsystems.Erase(it);
+
+    auto arrayIt = m_subsystemsArray.Find(subsystem);
+    Assert(arrayIt != m_subsystemsArray.End());
+
+    m_subsystemsArray.Erase(arrayIt);
 
     return true;
 }
@@ -627,9 +623,9 @@ void World::AddScene(const Handle<Scene>& scene)
 
         OnSceneAdded(this, scene);
 
-        for (auto& it : m_subsystems)
+        for (Subsystem* subsystem : m_subsystemsArray)
         {
-            it.second->OnSceneAttached(scene);
+            subsystem->OnSceneAttached(scene);
         }
 
         if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
@@ -673,9 +669,9 @@ bool World::RemoveScene(Scene* scene)
 
         if (IsReady())
         {
-            for (auto& it : m_subsystems)
+            for (Subsystem* subsystem : m_subsystemsArray)
             {
-                it.second->OnSceneDetached(scene);
+                subsystem->OnSceneDetached(scene);
             }
 
             for (const Handle<View>& view : m_views)

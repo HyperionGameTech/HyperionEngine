@@ -609,13 +609,13 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
         return HYP_MAKE_ERROR(Error, "AssetObject is invalid");
     }
 
-    if (assetObject->GetPackage() == this)
+    if (assetObject->m_package.GetUnsafe() == this)
     {
         // already added, fine
         return {};
     }
 
-    if (assetObject->GetPackage().IsValid())
+    if (assetObject->IsRegistered())
     {
         HYP_LOG(Assets, Warning, "AssetObject '{}' already belongs to another package!", assetObject->GetName());
     }

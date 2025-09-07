@@ -263,7 +263,7 @@ Token Lexer::NextToken()
             LEVEL_ERROR,
             Msg_unexpected_token,
             location,
-            String(&badTokenU32, &badTokenU32 + 1)));
+            UTF32String(&badTokenU32, &badTokenU32 + 1).ToUTF8()));
 
         m_sourceLocation.GetColumn()++;
 

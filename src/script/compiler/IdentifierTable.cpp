@@ -7,12 +7,6 @@
 
 namespace hyperion {
 
-IdentifierTable::IdentifierTable(Scope* scope)
-    : identifierIndex(0),
-      scope(scope)
-{
-}
-
 int IdentifierTable::CountUsedVariables() const
 {
     HashSet<int> usedVariables;
@@ -45,8 +39,8 @@ const RC<Identifier>& IdentifierTable::AddAlias(const String& name, Identifier* 
 const RC<Identifier>& IdentifierTable::AddIdentifier(
     const String& name,
     int flags,
-    RC<AstExpression> currentValue,
-    SymbolTypeRef symbolType)
+    const RC<AstExpression>& currentValue,
+    const SymbolTypeRef& symbolType)
 {
     RC<Identifier> ident(new Identifier(
         name,
@@ -73,13 +67,14 @@ const RC<Identifier>& IdentifierTable::AddIdentifier(
 
 bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
 {
-    if (identifier == nullptr)
+    if (!identifier)
     {
         return false;
     }
 
-    if (auto alreadyExistingIdentifier = LookUpIdentifier(identifier->GetName()))
+    if (LookUpIdentifier(identifier->GetName()) != nullptr)
     {
+        // already exists
         return false;
     }
 
@@ -90,13 +85,13 @@ bool IdentifierTable::AddIdentifier(const RC<Identifier>& identifier)
 
 RC<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
 {
-    for (auto& ident : identifiers)
+    for (const RC<Identifier>& identifier : identifiers)
     {
-        if (ident != nullptr)
+        if (identifier != nullptr)
         {
-            if (ident->GetName() == name)
+            if (identifier->GetName() == name)
             {
-                return ident;
+                return identifier;
             }
         }
     }

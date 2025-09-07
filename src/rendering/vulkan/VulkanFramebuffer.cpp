@@ -274,16 +274,16 @@ RendererResult VulkanFramebuffer::Create()
     if (frame != nullptr)
     {
         RenderQueue& renderQueue = frame->renderQueue;
-        renderQueue << ClearFramebuffer(HandleFromThis());
+        renderQueue << ClearFramebuffer(this);
 
         return {};
     }
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = GetRenderBackend()->GetSingleTimeCommands();
 
-    singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
+    singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
         {
-            renderQueue << ClearFramebuffer(HandleFromThis());
+            renderQueue << ClearFramebuffer(this);
 
             return {};
         });
@@ -349,7 +349,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
         &m_handle));
 
     RenderQueue& renderQueue = g_renderBackend->GetCurrentFrame()->renderQueue;
-    renderQueue << ClearFramebuffer(HandleFromThis());
+    renderQueue << ClearFramebuffer(this);
 
     HYPERION_RETURN_OK;
 }

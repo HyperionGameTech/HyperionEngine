@@ -319,6 +319,12 @@ public:
         return result;
     }
 
+    template <class T>
+    HYP_FORCE_INLINE static constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Min(T a)
+    {
+        return a;
+    }
+
     template <class T, class U, class V = std::common_type_t<T, U>>
     HYP_FORCE_INLINE static constexpr V Min(T a, U b)
     {
@@ -329,6 +335,12 @@ public:
     HYP_FORCE_INLINE static constexpr V Min(T a, U b, Args... args)
     {
         return Min(Min(a, b), args...);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE static constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Max(T a)
+    {
+        return a;
     }
 
     template <class T, class U, class V = std::common_type_t<T, U>>

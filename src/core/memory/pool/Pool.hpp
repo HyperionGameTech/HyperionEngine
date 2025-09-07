@@ -13,12 +13,11 @@
 #include <core/Defines.hpp>
 
 #include <core/Types.hpp>
-#include <cstring> // add this
 
 namespace hyperion {
 namespace memory {
 
-class Pool
+class HYP_API Pool
 {
 public:
     struct Block

@@ -265,18 +265,13 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
                 continue;
             }
 
-            if (isdigit(c) && !inQuotes)
+            if (std::isdigit(c) && !inQuotes)
             {
                 if (!isNumeric)
                 {
                     isNumeric = true;
                     hypClassAttributeValueType = HypClassAttributeType::INT;
                 }
-            }
-            else if (c == '.' && !inQuotes && isNumeric && hypClassAttributeValueType == HypClassAttributeType::INT)
-            {
-                hypClassAttributeValueType = HypClassAttributeType::FLOAT;
-                hasDecimal = true;
             }
 
             hypClassAttributeValueString.Append(c);
@@ -315,18 +310,6 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
             }
 
             results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(int_value) });
-            break;
-        }
-        case HypClassAttributeType::FLOAT:
-        {
-            double float_value;
-
-            if (!StringUtil::Parse<double>(hypClassAttributeValueString, &float_value))
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to parse float in HypClass attribute");
-            }
-
-            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(float_value) });
             break;
         }
         case HypClassAttributeType::BOOLEAN:

@@ -373,7 +373,16 @@ public:
     friend class HypObjectPool;
     friend class HypObjectContainerBase;
 
-    HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    HypClass(
+        TypeId typeId,
+        Name name,
+        int staticIndex,
+        uint32 numDescendants,
+        Name parentName,
+        Span<const HypClassAttribute> attributes,
+        EnumFlags<HypClassFlags> flags,
+        Span<HypMember> members);
+
     HypClass(const HypClass& other) = delete;
     HypClass& operator=(const HypClass& other) = delete;
     HypClass(HypClass&& other) noexcept = delete;
@@ -387,9 +396,9 @@ public:
         return false;
     }
 
-    virtual HypObjectContainerBase* GetObjectContainer() const
+    HYP_FORCE_INLINE HypObjectContainerBase* GetObjectContainer() const
     {
-        return nullptr;
+        return m_objectContainer;
     }
 
     HYP_FORCE_INLINE SizeType GetSize() const
@@ -673,6 +682,8 @@ protected:
 
     EnumFlags<HypClassSerializationMode> m_serializationMode;
 
+    HypObjectContainerBase* m_objectContainer;
+
 private:
     mutable Weak<dotnet::Class> m_managedClass;
     mutable Mutex m_managedClassMutex;
@@ -706,8 +717,7 @@ public:
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members)
-        : HypClass(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members),
-          m_objectContainer(nullptr)
+        : HypClass(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
@@ -720,11 +730,6 @@ public:
     virtual bool IsValid() const override
     {
         return true;
-    }
-
-    virtual HypObjectContainerBase* GetObjectContainer() const override
-    {
-        return m_objectContainer;
     }
 
     virtual HypClassAllocationMethod GetAllocationMethod() const override
@@ -905,7 +910,6 @@ protected:
     }
 
 protected:
-    HypObjectContainer<T>* m_objectContainer;
 };
 
 /*! \brief a runtime created HypClass instance, for use in scripts or external code such as .NET or HypScript */
@@ -923,8 +927,6 @@ public:
     virtual ~DynamicHypClassInstance() override;
 
     virtual bool IsValid() const override;
-
-    virtual HypObjectContainerBase* GetObjectContainer() const override;
 
     virtual HypClassAllocationMethod GetAllocationMethod() const override;
 
@@ -954,8 +956,6 @@ protected:
     virtual bool CreateInstance_Internal(HypData& out) const override;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
-
-    HypObjectContainerBase* m_objectContainer;
 
     volatile int32 m_refCount;
 };

@@ -69,6 +69,8 @@ class HYP_API World final : public HypObjectBase
     HYP_OBJECT_BODY(World);
 
 public:
+    using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, HashTable_DynamicNodeAllocator<KeyValuePair<TypeId, Handle<Subsystem>>>>;
+
     World();
     World(const World& other) = delete;
     World& operator=(const World& other) = delete;
@@ -110,7 +112,7 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE Handle<T> AddSubsystem()
+    HYP_FORCE_INLINE const Handle<T>& AddSubsystem()
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
@@ -118,14 +120,14 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE Handle<T> AddSubsystem(const Handle<T>& subsystem)
+    HYP_FORCE_INLINE const Handle<T>& AddSubsystem(const Handle<T>& subsystem)
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
         return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), subsystem));
     }
 
-    Handle<Subsystem> AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem);
+    const Handle<Subsystem>& AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T* GetSubsystem()
@@ -231,7 +233,8 @@ private:
 
     View* m_raytracingView;
 
-    TypeMap<Handle<Subsystem>> m_subsystems;
+    SubsystemsMap m_subsystems;
+    Array<Subsystem*> m_subsystemsArray;
 
     Handle<WorldGrid> m_worldGrid;
 

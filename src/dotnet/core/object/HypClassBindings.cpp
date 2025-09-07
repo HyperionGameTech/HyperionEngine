@@ -4,9 +4,7 @@
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObject.hpp>
 #include <core/object/HypData.hpp>
-#include <core/object/HypObject.hpp>
 
-#include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
@@ -190,12 +188,13 @@ extern "C"
 
     HYP_EXPORT HypMethod* HypClass_GetMethod(const HypClass* hypClass, const Name* name)
     {
-        if (!hypClass || !name)
+        /*if (!hypClass || !name)
         {
             return nullptr;
         }
 
-        return hypClass->GetMethod(*name);
+        return hypClass->GetMethod(*name);*/
+        HYP_NOT_IMPLEMENTED(); // @FIXME: Linker error in MSVC ... GetMethod() is not linking??? Weird.
     }
 
     HYP_EXPORT HypField* HypClass_GetField(const HypClass* hypClass, const Name* name)

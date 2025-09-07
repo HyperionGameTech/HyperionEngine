@@ -384,7 +384,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
 
             FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
             RenderQueue& renderQueue = frame->renderQueue;
-            renderQueue << ::hyperion::InsertBarrier(HandleFromThis(), previousResourceState);
+            renderQueue << ::hyperion::InsertBarrier(this, previousResourceState);
         }
     }
 

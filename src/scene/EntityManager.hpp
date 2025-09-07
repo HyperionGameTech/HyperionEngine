@@ -185,7 +185,7 @@ public:
      *
      *  \param[in] system The System to add.
      */
-    Handle<SystemBase> AddSystem(const Handle<SystemBase>& system)
+    SystemBase* AddSystem(const Handle<SystemBase>& system)
     {
         Assert(system.IsValid());
         Assert(IsValidForSystem(system.Get()), "System is not valid for this SystemExecutionGroup");
@@ -199,7 +199,7 @@ public:
     }
 
     template <class SystemType>
-    Handle<SystemType> GetSystem() const
+    SystemType* GetSystem() const
     {
         static const TypeId typeId = TypeId::ForType<SystemType>();
 
@@ -210,13 +210,7 @@ public:
             return Handle<SystemType>::empty;
         }
 
-        if (!IsA<SystemType>(*it->second))
-        {
-            HYP_BREAKPOINT;
-            return Handle<SystemType>::empty;
-        }
-
-        return Handle<SystemType>(it->second);
+        return ObjCast<SystemType>(*it->second);
     }
 
     /*! \brief Removes a System from the SystemExecutionGroup.
@@ -887,32 +881,32 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Handle<SystemBase> AddSystem(const Handle<SystemBase>& system)
+    HYP_FORCE_INLINE SystemBase* AddSystem(const Handle<SystemBase>& system)
     {
         if (!system.IsValid())
         {
-            return Handle<SystemBase>::empty;
+            return nullptr;
         }
 
         return AddSystemToExecutionGroup(system);
     }
 
     template <class SystemType>
-    Handle<SystemType> GetSystem() const
+    SystemType* GetSystem() const
     {
         for (const SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
         {
-            if (Handle<SystemType> system = systemExecutionGroup.GetSystem<SystemType>())
+            if (SystemType* system = systemExecutionGroup.GetSystem<SystemType>())
             {
                 return system;
             }
         }
 
-        return Handle<SystemType>::empty;
+        return nullptr;
     }
 
     HYP_METHOD()
-    Handle<SystemBase> GetSystemByTypeId(TypeId systemTypeId) const
+    SystemBase* GetSystemByTypeId(TypeId systemTypeId) const
     {
         for (const SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
         {
@@ -925,7 +919,7 @@ public:
             }
         }
 
-        return Handle<SystemBase>::empty;
+        return nullptr;
     }
 
     template <class Callback>
@@ -1016,7 +1010,7 @@ private:
         ((HasTag<EntityTag(Indices + 1)>(entity) ? (void)(outMask |= (1u << uint32(Indices))) : void()), ...);
     }
 
-    Handle<SystemBase> AddSystemToExecutionGroup(const Handle<SystemBase>& system)
+    SystemBase* AddSystemToExecutionGroup(const Handle<SystemBase>& system)
     {
         Assert(system.IsValid());
         Assert(system->m_entityManager == nullptr || system->m_entityManager == this);

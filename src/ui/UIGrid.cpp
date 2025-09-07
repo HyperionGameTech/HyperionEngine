@@ -60,7 +60,7 @@ void UIGridRow::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    UIGridColumn* column = FindEmptyColumn();
+    Handle<UIGridColumn> column = MakeStrongRef(FindEmptyColumn());
 
     if (column == nullptr)
     {
@@ -295,7 +295,7 @@ void UIGrid::SetNumRows(uint32 numRows)
             Handle<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(row);
 
-            m_rows.PushBack(std::move(row));
+            m_rows.PushBack(row);
         }
     }
 
@@ -378,7 +378,7 @@ void UIGrid::AddChildUIObject(const Handle<UIObject>& uiObject)
 
         if (!(column = row->FindEmptyColumn()))
         {
-            column = row->AddColumn();
+            column = row->AddColumn().Get();
         }
     }
 

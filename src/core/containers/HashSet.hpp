@@ -419,7 +419,7 @@ using HashTable_DefaultNodeAllocator = HashTable_PooledNodeAllocator<Value>;
  *  \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash set elements. The default is `HashTable_DefaultNodeAllocator<Value>`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `HashTable_DynamicNodeAllocator<Value>` instead.
  */
 template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class NodeAllocatorType = HashTable_DefaultNodeAllocator<Value>>
-class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<Value>()))>
+class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
 public:
     static constexpr bool isContiguous = false;
@@ -462,7 +462,7 @@ protected:
     }
 
 public:
-    using KeyType = decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<Value>()));
+    using KeyType = decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()));
     using ValueType = Value;
 
     using Base = ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, KeyType>;

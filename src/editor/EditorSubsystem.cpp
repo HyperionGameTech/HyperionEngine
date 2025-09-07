@@ -955,7 +955,7 @@ EditorSubsystem::EditorSubsystem()
 
                     m_delegateHandlers.Add(
                         NAME("OnPackageRemoved"),
-                        g_assetManager->GetAssetRegistry()->OnPackageRemoved.BindThreaded([this](AssetPackage* package)
+                        g_assetManager->GetAssetRegistry()->OnPackageRemoved.BindThreaded([this](const Handle<AssetPackage>& package)
                             {
                                 RemovePackageFromContentBrowser(package);
                             },

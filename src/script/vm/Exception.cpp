@@ -41,6 +41,12 @@ Script_Exception::Script_Exception(const Script_Exception& other)
     std::strcpy(m_str, other.m_str);
 }
 
+Script_Exception::Script_Exception(Script_Exception&& other) noexcept
+    : m_str(other.m_str)
+{
+    other.m_str = nullptr;
+}
+
 Script_Exception& Script_Exception::operator=(const Script_Exception& other)
 {
     if (this != &other)

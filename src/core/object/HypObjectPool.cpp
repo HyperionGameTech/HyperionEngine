@@ -112,9 +112,7 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
 
 HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const HypClass* hypClass)
     : m_typeId(typeId),
-      m_hypClass(hypClass),
-      m_objectSize(hypClass != nullptr ? hypClass->GetSize() : 0),
-      m_objectAlignment(hypClass != nullptr ? hypClass->GetAlignment() : 0)
+      m_hypClass(hypClass)
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void());
 }

@@ -15,6 +15,7 @@
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
+#include <core/Util.hpp>
 
 #include <type_traits>
 

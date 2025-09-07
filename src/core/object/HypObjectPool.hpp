@@ -55,16 +55,6 @@ public:
         return m_hypClass;
     }
 
-    HYP_FORCE_INLINE SizeType GetObjectSize() const
-    {
-        return m_objectSize;
-    }
-
-    HYP_FORCE_INLINE SizeType GetObjectAlignment() const
-    {
-        return m_objectAlignment;
-    }
-
     virtual HypObjectBase* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
 
@@ -75,8 +65,6 @@ protected:
 
     TypeId m_typeId;
     const HypClass* m_hypClass;
-    SizeType m_objectSize;
-    SizeType m_objectAlignment;
     IdGenerator m_idGenerator;
 };
 
@@ -272,15 +260,6 @@ public:
     HypObjectContainer(const HypClass* hypClass)
         : HypObjectContainerBase(TypeId::ForType<T>(), hypClass)
     {
-        // sizeof(T) can be different from HypClass::m_size if T is a subclass of the class described by hypClass
-        // and does not have its own HypClass.
-
-        // also, the size/alignment could be larger than T, if we use a base class in place of T and reserve
-        // extra memory per object for some reason (e.g. script objects)
-
-        // in any case, ensure that the size/alignment is at least that of T
-        m_objectSize = MathUtil::Max(m_objectSize, sizeof(T));
-        m_objectAlignment = MathUtil::Max(m_objectAlignment, alignof(T));
     }
 
     HypObjectContainer(const HypObjectContainer& other) = delete;
@@ -301,14 +280,14 @@ public:
         }
     }
 
-    HYP_NODISCARD HypObjectHeader* Allocate()
+    HYP_NODISCARD HypObjectHeader* Allocate(SizeType objectSize, SizeType objectAlignment)
     {
-        AssertDebug(m_objectSize != 0 && m_objectAlignment != 0, "Object size and alignment must be set before allocating objects");
-        AssertDebug(m_objectSize >= sizeof(T), "Object size must be at least the size of T");
-        AssertDebug(m_objectAlignment >= alignof(T), "Object alignment must be at least the alignment of T");
+        AssertDebug(objectSize != 0 && objectAlignment != 0, "Object size and alignment must be set before allocating objects");
+        AssertDebug(objectSize >= sizeof(T), "Object size must be at least the size of T! Got: {}, expected: {}", objectSize, sizeof(T));
+        AssertDebug(objectAlignment == alignof(T), "Object alignment must be equal to the alignment of T! Got: {}, expected: {}", objectAlignment, alignof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
-        const SizeType allocationSize = ByteUtil::AlignAs(sizeof(HypObjectHeader), m_objectAlignment) + m_objectSize;
+        const SizeType allocationSize = ByteUtil::AlignAs(sizeof(HypObjectHeader), objectAlignment) + objectSize;
 
         Mutex::Guard guard(m_mutex);
 
@@ -394,25 +373,25 @@ public:
         ContainerMap& operator=(ContainerMap&&) noexcept = delete;
         HYP_API ~ContainerMap();
 
-        template <class T>
-        HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
-        {
-            // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), hypClass, [](const HypClass* hypClass) -> HypObjectContainerBase*
-                {
-                    return new HypObjectContainer<T>(hypClass);
-                }));
-
-            return container;
-        }
+        HYP_API HypObjectContainerBase& Get(TypeId typeId);
+        HYP_API HypObjectContainerBase* TryGet(TypeId typeId);
 
         HYP_API HypObjectContainerBase& GetOrCreate(
             TypeId typeId,
             const HypClass* hypClass,
             HypObjectContainerBase* (*createFn)(const HypClass* hypClass));
 
-        HYP_API HypObjectContainerBase& Get(TypeId typeId);
-        HYP_API HypObjectContainerBase* TryGet(TypeId typeId);
+        template <class T>
+        HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
+        {
+            // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
+            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), hypClass, +[](const HypClass* hypClass) -> HypObjectContainerBase*
+                {
+                    return new HypObjectContainer<T>(hypClass);
+                }));
+
+            return container;
+        }
     };
 
     HYP_API static ContainerMap& GetObjectContainerMap();

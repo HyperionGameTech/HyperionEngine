@@ -12,7 +12,8 @@
 
 namespace hyperion {
 
-AstBlock::AstBlock(const Array<RC<AstStatement>>& children,
+AstBlock::AstBlock(
+    const Array<RC<AstStatement>>& children,
     const SourceLocation& location)
     : AstStatement(location),
       m_children(children),

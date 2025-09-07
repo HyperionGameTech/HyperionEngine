@@ -440,4 +440,10 @@ struct CheckedPointer
     }
 };
 
+template <class T, class... Ts>
+struct FirstOf
+{
+    using Type = T;
+};
+
 } // namespace hyperion
