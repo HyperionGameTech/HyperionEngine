@@ -26,6 +26,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/object/HypMethod.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <util/UTF8.hpp>
 
@@ -481,14 +483,45 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         &visitor->GetCompilationUnit()->GetInstructionStream().GetContextTree(),
         INSTRUCTION_STREAM_CONTEXT_DEFAULT);
 
-    uint16 numArgs = 0;
+    AstParameter* variadicParam = nullptr;
 
+    // Find variadic parameter, reserve stack location for the array that will be created:
+    for (SizeType index = m_parameters.Size(); index > 0; index--)
+    {
+        const RC<AstParameter>& param = m_parameters[index - 1];
+        Assert(param != nullptr);
+
+        if (param->IsVariadic())
+        {
+            Assert(variadicParam == nullptr);
+            Assert(index == m_parameters.Size());
+
+            variadicParam = param.Get();
+        }
+    }
+
+    //if (variadicParam != nullptr)
+    //{
+    //    const uint8 currentRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    //     // push dummy placeholder value
+    //    chunk->Append(BytecodeUtil::Make<ConstNull>(currentRegister));
+
+    //    auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+    //    instrPush->opcode = PUSH;
+    //    instrPush->Accept<uint8>(currentRegister);
+    //    chunk->Append(std::move(instrPush));
+    //}
+
+    uint16 numArgs = 0;
+    
     // build params in reverse order
     for (SizeType index = m_parameters.Size(); index > 0; index--, numArgs++)
     {
-        Assert(m_parameters[index - 1] != nullptr);
+        const RC<AstParameter>& param = m_parameters[index - 1];
+        Assert(param != nullptr);
 
-        chunk->Append(m_parameters[index - 1]->Build(visitor, mod));
+        chunk->Append(param->Build(visitor, mod));
     }
 
     if (m_isClosure && m_closureSelfParam != nullptr)
@@ -502,17 +535,16 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
 
     Assert(m_parameters.Size() + (m_isClosure ? 1 : 0) <= MathUtil::MaxSafeValue<uint8>());
 
-    uint8 flags = FunctionFlags::NONE;
+    EnumFlags<HypMethodFlags> methodFlags = HypMethodFlags::NONE;
 
-    if (m_parameters.Any())
+    if (variadicParam)
     {
         const RC<AstParameter>& last = m_parameters.Back();
         Assert(last != nullptr);
 
-        if (last->IsVariadic())
-        {
-            flags |= FunctionFlags::VARIADIC;
-        }
+        methodFlags |= HypMethodFlags::VARIADIC;
+
+        //chunk->Append(variadicParam->Build(visitor, mod));
     }
 
     // the label to jump to the very end
@@ -544,7 +576,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     func->labelId = funcAddr;
     func->reg = rp;
     func->nargs = (uint8)numArgs;
-    func->flags = flags;
+    func->flags = (uint8)methodFlags;
     chunk->Append(std::move(func));
 
     return chunk;

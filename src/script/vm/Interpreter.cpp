@@ -1316,7 +1316,7 @@ public:
                         TypeId(memberTypeIdValue),
                         TypeId(targetTypeIdValue),
                         functionAddress,
-                        HypMethodFlags(flags),
+                        funcVmData->func.m_flags | flags, // combine flags
                         attrs.ToSpan());
 
                     uint8 nargs = funcVmData->func.m_nargs;
@@ -3379,6 +3379,8 @@ void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     static const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
@@ -3448,25 +3450,31 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
                 {
                     varargsAmt = 0;
                 }
+                /// FIXME: Change in calling convention is breaking this.
+
+                Script_Value& varargArrayValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - vmData->func.m_nargs];
 
                 // set varargsPush value so we know how to get back to the stack size before.
-                previousAddr.call.varargsPush = varargsAmt - 1;
+                previousAddr.call.varargsPush = 0;
 
                 // create an array to hold variadic args
                 Script_ValueArray arr;
                 arr.Resize(varargsAmt);
 
-                for (int i = varargsAmt - 1; i >= 0; i--)
+                for (int i = varargsAmt; i > 0; i--)
                 {
+                    Script_Value& argValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - vmData->func.m_nargs - i];
+
                     // push to array
-                    arr[i] = std::move(instance->thread.GetStack().Top());
-                    instance->thread.GetStack().Pop();
+                    arr[i - 1] = std::move(argValue);
                 }
 
-                // push the array to the stack
-                instance->thread.GetStack().Push(ScriptApi_MakeValue(std::move(arr)));
-            }
+                // swap the array into the position reserved for varargs
+                //Script_Value varargArrayValue = ScriptApi_MakeValue(std::move(arr));
 
+               // instance->thread.GetStack().Push(std::move(varargArrayValue));
+                varargArrayValue = ScriptApi_MakeValue(std::move(arr));
+            }
             // push the address
             instance->thread.GetStack().Push(ScriptApi_MakeValue(previousAddr));
 
@@ -3490,6 +3498,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
     ThrowException(instance, Script_Exception(buffer));
 }
 
+HYP_ENABLE_OPTIMIZATION;
 void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;

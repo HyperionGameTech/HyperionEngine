@@ -27,6 +27,7 @@
 #include <core/object/HypObject.hpp>
 #include <core/object/HypData.hpp>
 #include <core/object/HypClass.hpp>
+#include <core/object/HypMethod.hpp>
 
 #include <core/utilities/Optional.hpp>
 
@@ -633,6 +634,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         methodInfo.name = decl->GetName();
         methodInfo.typeId = TypeId::ForType<HypData>();
         methodInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+        methodInfo.flags = HypMethodFlags::MEMBER; // flags will be combined with the function's other flags (e.g VARIDIC) with the member is created during execution
 
         Assert(decl->GetRealAssignment() != nullptr);
 

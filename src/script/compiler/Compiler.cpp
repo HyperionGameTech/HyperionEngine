@@ -482,6 +482,7 @@ static bool ShouldDerefType(const SymbolType& symbolType)
         && (symbolType.IsOrHasBase(*BuiltinTypes::g_anyType) // <!-- unknown at compile time, so deref anyway (would be no-op if not a reference)
             || symbolType.IsOrHasBase(*BuiltinTypes::g_stringType)
             || symbolType.IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::g_varArgsBaseType)
             || symbolType.IsOrHasBase(*BuiltinTypes::g_mapBaseType)
             || symbolType.IsOrHasBase(*BuiltinTypes::g_objectType));
     // clang-format on

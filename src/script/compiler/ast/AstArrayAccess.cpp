@@ -56,7 +56,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (targetType->IsOrHasBase(*BuiltinTypes::g_arrayBaseType))
+    if (targetType->IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
+        || targetType->IsOrHasBase(*BuiltinTypes::g_varArgsBaseType))
     {
         // array type
 

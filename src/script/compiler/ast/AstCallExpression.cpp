@@ -169,9 +169,8 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
             // not a function type
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
-                Msg_not_a_function,
-                m_location,
-                targetType->ToString(true)));
+                Msg_function_arg_substitution_failed,
+                m_location));
 
             return;
         }

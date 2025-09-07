@@ -968,4 +968,12 @@
     </Expand>
   </Type>
 
+  <Type Name="hyperion::Script_Value">
+    <DisplayString>{{ {(hyperion::HypData *)&amp;m_internal[0]} }}</DisplayString>
+    <Expand>
+      <Item Name="[Data]">(hyperion::HypData *)&amp;m_internal[0]</Item>
+      <Item Name="[GCIndex]">m_gcIndex</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>

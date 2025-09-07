@@ -285,7 +285,6 @@ void CodeGenerator::Visit(TryCatchInfo* node)
 
 void CodeGenerator::Visit(ScriptFunction* node)
 {
-    // TODO: make it store and load statically
     m_ibs.Put(Instructions::LOAD_FUNC);
     m_ibs.Put(node->reg);
     m_ibs.AddFixup(node->labelId, buildParams.blockOffset);
