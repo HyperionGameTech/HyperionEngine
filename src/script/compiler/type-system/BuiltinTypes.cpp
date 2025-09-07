@@ -126,7 +126,7 @@ const SymbolTypeRef BuiltinTypes::g_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::g_anyType },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::g_intType } } }) },
         SymbolTypeMember {
             "operator[]=",
@@ -135,7 +135,7 @@ const SymbolTypeRef BuiltinTypes::g_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::g_anyType },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::g_intType },
                         { "value", SymbolType::GenericParameter("T") } } }) } },
     Array<SymbolTypeMember> {},

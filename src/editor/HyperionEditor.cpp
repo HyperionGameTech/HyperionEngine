@@ -111,7 +111,7 @@ void HyperionEditor::Init()
 #if 1
     { // script 2
         String str;
-#if 1
+#if 0
         str = "extern class UUID {\n"
               "    ToString() -> string\n"
               "}\n"
@@ -136,10 +136,10 @@ void HyperionEditor::Init()
               "}\n"
               "testVec3 := new Vec3f()\n"
               "testVec3.x = 9.0f\n"
-              "ref testVec4 := testVec3\n"
+              "testVec4 := testVec3\n"
               "testVec4.x = 4.0f\n"
               "entity := new Entity()\n"
-              "export x := (a, b) { return testVec4.x };";
+              "export x := (a, b) { return testVec3.x };";
 
 #else
         // vvvvv This is a test script vvvvv

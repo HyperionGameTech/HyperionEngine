@@ -65,6 +65,11 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef elementType = targetType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
         Assert(elementType != nullptr);
 
+        Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL);
+
+        // supplant "SelfType" placeholder type with the actual target type
+        scope.identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { targetType }));
+
         elementType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
             mod,
@@ -79,6 +84,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             m_location,
             m_index->GetExprType(),
             BuiltinTypes::g_intType);
+
+        mod->m_scopes.Close();
 
         return;
     }
