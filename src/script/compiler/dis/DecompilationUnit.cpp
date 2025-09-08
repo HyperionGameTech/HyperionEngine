@@ -152,7 +152,7 @@ void DecompilationUnit::DecodeNext(
             {
                 uint16 offset;
                 bs.Read(&offset);
-                *os << ", $" << offset;
+                *os << ", $(sp-" << offset << ")";
             }
             break;
 
@@ -160,7 +160,7 @@ void DecompilationUnit::DecodeNext(
             {
                 uint16 index;
                 bs.Read(&index);
-                *os << ", #" << index;
+                *os << ", $" << index;
             }
             break;
 
@@ -249,7 +249,7 @@ void DecompilationUnit::DecodeNext(
                     bs.Read(&offset);
                     uint8 srcReg;
                     bs.Read(&srcReg);
-                    *os << "$" << offset << ", %r" << (int)srcReg;
+                    *os << "$(sp-" << offset << "), %r" << (int)srcReg;
                 }
                 break;
 
@@ -259,7 +259,7 @@ void DecompilationUnit::DecodeNext(
                     bs.Read(&index);
                     uint8 srcReg;
                     bs.Read(&srcReg);
-                    *os << "#" << index << ", %r" << (int)srcReg;
+                    *os << "$" << index << ", %r" << (int)srcReg;
                 }
                 break;
 
@@ -642,7 +642,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MOV_INDEX ["
-                << "u16(" << dst << "), "
+                << "$" << dst << ", "
                 << "%r" << (int)src
                 << "]"
                 << std::endl;
@@ -662,7 +662,7 @@ void DecompilationUnit::DecodeNext(
         {
             (*os)
                 << "MOV_STATIC ["
-                << "#" << dst << ", "
+                << "static[" << dst << "], "
                 << "%r" << (int)src
                 << "]"
                 << std::endl;

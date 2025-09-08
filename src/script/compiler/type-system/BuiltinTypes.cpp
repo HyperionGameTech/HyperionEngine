@@ -34,7 +34,7 @@ const SymbolTypeRef BuiltinTypes::s_varArgsBaseType = SymbolType::Primitive(
 
 const SymbolTypeRef BuiltinTypes::s_varArgsType = SymbolType::Generic(
     "VarArgs",
-    g_varArgsBaseType,
+    s_varArgsBaseType,
     Array<SymbolTypeMember> {},
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo {

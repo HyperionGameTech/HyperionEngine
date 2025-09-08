@@ -37,6 +37,8 @@ private:
     RC<AstExpression> m_expr;
 
     // set while analyzing
+    RC<AstExpression> m_overrideExpr;
+    SymbolTypeRef m_exprType;
     uint32 m_numPops;
     bool m_isVisited;
     bool m_isConstructor;

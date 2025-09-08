@@ -259,6 +259,12 @@ bool SymbolType::TypeCompatible(
 
         return true;
     }
+    else if (strictAny && right.IsAnyType())
+    {
+        ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "right-hand side of expression is 'any' and must be explicitly cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
+
+        return false;
+    }
 
     // if (IsProxyClass()) {
     //     // TODO:

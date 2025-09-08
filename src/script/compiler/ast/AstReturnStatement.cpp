@@ -1,4 +1,7 @@
 #include <script/compiler/ast/AstReturnStatement.hpp>
+#include <script/compiler/ast/AstAsExpression.hpp>
+#include <script/compiler/ast/AstTypeSpecifier.hpp>
+#include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/Optimizer.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -26,9 +29,54 @@ AstReturnStatement::AstReturnStatement(
 
 void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
 {
+    m_exprType = m_expr ? BuiltinTypes::s_errorType : BuiltinTypes::s_voidType;
+
     if (m_expr != nullptr)
     {
         m_expr->Visit(visitor, mod);
+
+        m_exprType = m_expr->GetExprType();
+        Assert(m_exprType != nullptr);
+
+        // Find the ReturnType placeholder type:
+        SymbolTypeRef returnType = mod->LookupSymbolType("ReturnType", /* includePlaceholderTypes */ true);
+
+        // should be defined as long as return is used in a valid function context.
+        // it's an error otherwise, but could still happen so we need to do a null check.
+        if (!returnType)
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_return_outside_function,
+                m_location));
+
+            return;
+        }
+
+        // if returnType is a placeholder type, we don't want to do any type compatibility checks
+        // but otherwise, we need to make sure the returned expression is compatible with the function's return type.
+        // if it's not equal, we'll need to do a cast.
+        if (!returnType->IsPlaceholderType())
+        {
+            if (!returnType->IsAnyType() && !returnType->TypeEqual(*m_exprType))
+            {
+                if (returnType->TypeCompatible(*m_exprType, /* strictNumbers */ false, /* strictAny */ false))
+                {
+                    // insert cast
+                    m_overrideExpr.Reset(new AstAsExpression(
+                        CloneAstNode(m_expr),
+                        RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                            RC<AstTypeRef>(new AstTypeRef(returnType, m_location)),
+                            m_location)),
+                        m_location));
+
+                    m_overrideExpr->Visit(visitor, mod);
+
+                    m_exprType = m_overrideExpr->GetExprType();
+                    Assert(m_exprType != nullptr);
+                }
+            }
+        }
     }
 
     // transverse the scope tree to make sure we are in a function
@@ -58,10 +106,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(top != nullptr);
 
-        const SymbolTypeRef& returnType = m_expr ? m_expr->GetExprType() : BuiltinTypes::s_voidType;
-        Assert(returnType != nullptr);
-
-        top->Get().returnTypes.PushBack(returnType);
+        top->Get().returnTypes.PushBack(m_exprType);
 
         return;
     }
@@ -77,11 +122,13 @@ UniquePtr<Buildable> AstReturnStatement::Build(AstVisitor* visitor, Module* mod)
 {
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    if (m_expr != nullptr)
-    {
-        chunk->Append(m_expr->Build(visitor, mod));
+    const RC<AstExpression>& expr = m_overrideExpr ? m_overrideExpr : m_expr;
 
-        chunk->Append(Compiler::DerefIfNeeded(visitor, mod, m_expr->GetExprType()));
+    if (expr != nullptr)
+    {
+        chunk->Append(expr->Build(visitor, mod));
+
+        chunk->Append(Compiler::DerefIfNeeded(visitor, mod, m_exprType));
     }
 
     chunk->Append(Compiler::PopStack(visitor, m_numPops));
@@ -96,7 +143,11 @@ UniquePtr<Buildable> AstReturnStatement::Build(AstVisitor* visitor, Module* mod)
 
 void AstReturnStatement::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_expr != nullptr)
+    if (m_overrideExpr != nullptr)
+    {
+        m_overrideExpr->Optimize(visitor, mod);
+    }
+    else if (m_expr != nullptr)
     {
         m_expr->Optimize(visitor, mod);
     }

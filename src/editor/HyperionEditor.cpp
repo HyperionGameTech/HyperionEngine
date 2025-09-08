@@ -111,7 +111,7 @@ void HyperionEditor::Init()
 #if 1
     { // script 2
         String str;
-#if 1
+#if 0
         str = "extern class UUID {\n"
               "    ToString() -> string\n"
               "}\n"
@@ -146,25 +146,25 @@ void HyperionEditor::Init()
         str = "class Base {} \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\"\n"
-              "    jet : float = 1f\n"
+              "    jet : int = 1\n"
               "    x(a: int) { return a * jet; }\n"
               "    MyClass() {\n"
-              "        jet = 4f\n"
+              "        jet = 4\n"
               "        return self\n"
               "    }\n"
-              "    operator[](i: int) {\n"
+              "    operator[](i: int) -> any {\n"
               "       for (j := 1; j < i; j++) {\n"
               "           if (jet > 10000.0) { break }\n"
               "           jet += j\n"
               "       }\n"
               "       return jet\n"
               "    }\n"
-              "    operator[]=(i: int, val: any) {\n"
-              "       jet = val\n"
-              "       return val\n"
+              "    operator[]=(i: int, val: any) -> any {\n"
+              "       jet = val as int\n"
+              "       return jet\n"
               "    }\n"
-              "    modValue(inValue : Array<int>, args : float...) -> float {\n"
-              "        args[1]\n"
+              "    modValue(inValue : Array<int>, args : float...) -> any {\n"
+              "        args\n"
               "    }\n"
               "}\n"
               "ins := new MyClass();\n"
@@ -173,7 +173,6 @@ void HyperionEditor::Init()
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, 1, 5.4, 3, 4);\n"
-              "blah = 99.54343473847384738473478347384f;\n"
               "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { blah }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif

@@ -114,13 +114,30 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_parameters[index]->Visit(visitor, mod);
     }
 
-    if (m_blockWithParameters != nullptr)
+    if (m_returnTypeSpecification != nullptr)
     {
-        if (m_returnTypeSpecification != nullptr)
+        m_returnTypeSpecification->Visit(visitor, mod);
+
+        if (m_returnTypeSpecification->GetHeldType() != nullptr)
         {
-            m_blockWithParameters->PrependChild(m_returnTypeSpecification);
+            m_returnType = m_returnTypeSpecification->GetHeldType();
+        }
+        else
+        {
+            m_returnType = BuiltinTypes::s_errorType;
         }
 
+        mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("ReturnType", { m_returnType }));
+    }
+    else
+    {
+        // add placeholder return type for AstReturnStatement nodes to use
+        SymbolTypeRef placeholderReturnType = SymbolType::Placeholder("ReturnType");
+        mod->scopeTree.Top().identifierTable.AddSymbolType(placeholderReturnType);
+    }
+
+    if (m_blockWithParameters != nullptr)
+    {
         if (m_isConstructorDefinition)
         {
             // add implicit 'return self' at the end
@@ -132,31 +149,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         // visit the function body
         m_blockWithParameters->Visit(visitor, mod);
     }
-    else
-    {
-        if (m_returnTypeSpecification != nullptr)
-        {
-            m_returnTypeSpecification->Visit(visitor, mod);
-        }
-    }
-
-    if (m_returnTypeSpecification != nullptr)
-    {
-        if (m_returnTypeSpecification->GetHeldType() != nullptr)
-        {
-            m_returnType = m_returnTypeSpecification->GetHeldType();
-        }
-        else
-        {
-            m_returnType = BuiltinTypes::s_errorType;
-        }
-    }
 
     // first item will be set to return type
     Array<GenericInstanceTypeInfo::Arg> paramSymbolTypes;
     paramSymbolTypes.Reserve(m_parameters.Size());
 
-    for (auto& param : m_parameters)
+    for (const RC<AstParameter>& param : m_parameters)
     {
         if (!param || !param->GetIdentifier())
         {
@@ -178,6 +176,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_blockWithParameters != nullptr)
     {
+        // - set when we need to insert casts for return statements to cast to the deduced return type
+        //   or if the user specified a return type that differs from the deduced return type but can be promoted to it implicitly.
+        // - we do this by providing an alias for `ReturnType` in a new scope and re-visiting the function body.
+        // - AstReturnStatement nodes will insert cast expressions as needed.
+        bool needsCast = false;
+
         if (functionScope->returnTypes.Any())
         {
             // search through return types for ambiguities
@@ -188,7 +192,16 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 if (m_returnTypeSpecification != nullptr)
                 {
                     // strict mode, because user specifically stated the intended return type
-                    if (!m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ true, /* strictAny */ true))
+
+                    if (m_returnType->TypeEqual(*symbolType))
+                    {
+                        // same type, do nothing
+                    }
+                    else if (m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ false, /* strictAny */ false))
+                    {
+                        needsCast = true;
+                    }
+                    else
                     {
                         // error; does not match what user specified
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -202,15 +215,19 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 else
                 {
                     // deduce return type
-                    if (m_returnType->IsAnyType())
+                    if (m_returnType->TypeEqual(*symbolType))
                     {
+                        // same type, do nothing
+                    }
+                    else if (m_returnType->IsAnyType())
+                    {
+                        // first return type found, take it
                         m_returnType = symbolType;
                     }
                     else if (m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ false, /* strictAny */ false))
                     {
                         m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
-
-                        // If return statement differs, we need to insert a cast expression for each return statement
+                        needsCast = true;
                     }
                     else
                     {
@@ -284,6 +301,21 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 // void return type
                 m_returnType = BuiltinTypes::s_voidType;
             }
+        }
+
+        if (needsCast)
+        {
+            // If return statements differ from the deduced return type, we need to insert a cast expression for each return statement
+            // to ensure the correct type is returned.
+
+            // we'll need to clone our block, open a new scope, provide replacement type via ReturnType.
+            m_blockWithParameters = CloneAstNode(m_blockWithParameters);
+
+            // @NOTE: do NOT use SCOPE_TYPE_FUNCTION, it'll treat it as a nested function and create closure captures.
+            ScopeGuard newScope(mod, SCOPE_TYPE_NORMAL);
+            newScope->identifierTable.AddSymbolType(SymbolType::Alias("ReturnType", { m_returnType }));
+
+            m_blockWithParameters->Visit(visitor, mod);
         }
     }
     else // function decl / extern (no block)

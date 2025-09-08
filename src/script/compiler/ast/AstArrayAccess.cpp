@@ -17,6 +17,7 @@
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
+#include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
 #include <core/debug/Debug.hpp>
@@ -202,7 +203,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                 targetType->ToString()));
         }
 
-        if (needsTemporaryVar && m_accessMode == ACCESS_MODE_STORE)
+        if (needsTemporaryVar)
         {
             // create a temporary variable to hold the value to be stored into the array
             m_tempArrayStoreVarDecl.Reset(new AstVariableDeclaration(
@@ -250,11 +251,26 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         rhsRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister() - 1;
         Assert(rhsRegister != uint8(-1)); // AstBinaryExpression should have reserved a register for the right hand side
 
+        if (m_tempArrayStoreVarDecl != nullptr)
+        {
+            // store rhs value into the temporary variable
+            const int stackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+            Assert(stackLocation != -1);
+
+            visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+            // Push the value from the rhs register onto the stack
+            auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+            instrPush->opcode = PUSH;
+            instrPush->Accept<uint8>(rhsRegister);
+            chunk->Append(std::move(instrPush));
+
+            // set the stack location of the temporary variable
+            m_tempArrayStoreVarDecl->GetIdentifier()->SetStackLocation(stackLocation);
+        }
+
         if (sideEffects)
         {
-            Assert(m_tempArrayStoreVarDecl != nullptr);
-            chunk->Append(m_tempArrayStoreVarDecl->Build(visitor, mod));
-
             rhsRegister = uint8(-1); // mark no longer valid so we don't trip over it
         }
     }
@@ -321,10 +337,10 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
                     const int rhsStackLocation = m_tempArrayStoreVarDecl->GetIdentifier()->GetStackLocation();
                     Assert(rhsStackLocation != -1);
 
-                    auto instrLoadOffset = BytecodeUtil::Make<RawOperation<>>();
-                    instrLoadOffset->opcode = LOAD_OFFSET;
-                    instrLoadOffset->Accept<uint8>(rhsRegister);
-                    instrLoadOffset->Accept<uint16>(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - rhsStackLocation);
+                    const int diff = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - rhsStackLocation;
+
+                    auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+                    instrLoadOffset->GetBuilder().Load(rhsRegister).Local().ByOffset(diff);
                     chunk->Append(std::move(instrLoadOffset));
                 }
 
