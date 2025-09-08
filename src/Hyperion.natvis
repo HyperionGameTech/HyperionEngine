@@ -876,17 +876,17 @@
 
   <Type Name="hyperion::Handle&lt;*&gt;">
     <Expand>
-      <Item Name="[Strong Refs]">(ptr-&gt;m_header-&gt;refCountStrong.m_value._Storage._Value)</Item>
-      <Item Name="[Weak Refs]">(ptr-&gt;m_header-&gt;refCountWeak.m_value._Storage._Value)</Item>
+      <Item Name="[Strong Refs]">(ptr-&gt;m_header-&gt;refCountStrong)</Item>
+      <Item Name="[Weak Refs]">(ptr-&gt;m_header-&gt;refCountWeak)</Item>
       <ExpandedItem>($T1*)ptr</ExpandedItem>
     </Expand>
   </Type>
 
   <Type Name="hyperion::WeakHandle&lt;*&gt;">
     <Expand>
-      <Item Name="[Alive]">(ptr-&gt;m_header-&gt;refCountStrong.m_value._Storage._Value != 0)</Item>
-      <Item Name="[Strong Refs]">(ptr-&gt;m_header-&gt;refCountStrong.m_value._Storage._Value)</Item>
-      <Item Name="[Weak Refs]">(ptr-&gt;m_header-&gt;refCountWeak.m_value._Storage._Value)</Item>
+      <Item Name="[Alive]">(ptr-&gt;m_header-&gt;refCountStrong != 0)</Item>
+      <Item Name="[Strong Refs]">(ptr-&gt;m_header-&gt;refCountStrong)</Item>
+      <Item Name="[Weak Refs]">(ptr-&gt;m_header-&gt;refCountWeak)</Item>
       <ExpandedItem>($T1*)ptr</ExpandedItem>
     </Expand>
   </Type>

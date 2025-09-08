@@ -181,7 +181,6 @@ RendererResult VulkanGpuImage::Create()
     return Create(RS_UNDEFINED);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanGpuImage::Create(ResourceState initialState)
 {
     if (IsCreated())
@@ -333,7 +332,6 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     HYPERION_RETURN_OK;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
 {

@@ -3379,8 +3379,6 @@ void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     static const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
@@ -3491,7 +3489,6 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
     ThrowException(instance, Script_Exception(buffer));
 }
 
-HYP_ENABLE_OPTIMIZATION;
 void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;

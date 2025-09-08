@@ -257,7 +257,6 @@ void LightmapJob::AddTask(TaskBatch* taskBatch)
     m_currentTasks.PushBack(taskBatch);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void LightmapJob::Process()
 {
     Assert(IsRunning());
@@ -439,7 +438,6 @@ void LightmapJob::Process()
 
     PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion LightmapJob
 

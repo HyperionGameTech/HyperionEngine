@@ -549,7 +549,6 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstan
     return nullptr;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     AstVisitor* visitor,
     Module* mod,
@@ -619,7 +618,6 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
         }
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 bool SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor* visitor, Module* mod,

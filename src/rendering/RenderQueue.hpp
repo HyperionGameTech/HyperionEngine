@@ -402,7 +402,7 @@ public:
         default:
             HYP_UNREACHABLE();
         }
-        
+
         static_assert(std::is_trivially_destructible_v<BindDescriptorSet>);
         // cmdCasted->~BindDescriptorSet();
     }
@@ -724,7 +724,6 @@ private:
     GpuImageBase* m_image;
 };
 
-HYP_DISABLE_OPTIMIZATION;
 class CopyBuffer final : public CmdBase
 {
 public:
@@ -778,7 +777,6 @@ private:
     uint32 m_dstOffset;
     uint32 m_count;
 };
-HYP_ENABLE_OPTIMIZATION;
 
 class GenerateMipmaps final : public CmdBase
 {
@@ -850,7 +848,6 @@ private:
     Vec3u m_workgroupCount;
 };
 
-HYP_DISABLE_OPTIMIZATION;
 class RenderQueue
 {
     using InvokeCmdFnPtr = void (*)(CmdBase*, CommandBufferBase*);
@@ -964,11 +961,9 @@ public:
     void Execute(CommandBufferBase* commandBuffer);
 
 private:
-
     Array<CmdHeader> m_cmdHeaders;
     ByteBuffer m_buffer;
     uint32 m_offset;
 };
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion
