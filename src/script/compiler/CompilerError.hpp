@@ -50,6 +50,7 @@ enum ErrorMessage
     Msg_arg_type_incompatible,
     Msg_arg_type_incompatible_more_info,
     Msg_incompatible_cast,
+    Msg_incompatible_cast_more_info,
     Msg_named_arg_not_found,
     Msg_redeclared_identifier,
     Msg_redeclared_identifier_type,

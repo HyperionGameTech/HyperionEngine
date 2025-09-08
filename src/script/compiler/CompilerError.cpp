@@ -34,6 +34,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_arg_type_incompatible, "% cannot be passed as %" },
     { Msg_arg_type_incompatible_more_info, "% cannot be passed as %.%" },
     { Msg_incompatible_cast, "% cannot be converted to %" },
+    { Msg_incompatible_cast_more_info, "% cannot be converted to %.%" },
     { Msg_named_arg_not_found, "Could not find a parameter named '%'" },
     { Msg_redeclared_identifier, "Identifier '%' has already been declared in this scope" },
     { Msg_redeclared_identifier_type, "'%' is the name of a type and cannot be used as an identifier" },

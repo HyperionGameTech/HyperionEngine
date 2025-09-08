@@ -52,7 +52,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     Assert(targetType != nullptr);
     targetType = targetType->GetUnaliased();
 
-    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG))
+    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG, /* thisScopeOnly */ false))
     {
         // TODO: implement ref array access
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

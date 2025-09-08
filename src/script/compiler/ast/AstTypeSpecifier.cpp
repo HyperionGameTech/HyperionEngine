@@ -30,6 +30,11 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
+    // open scope to set type spec context (so variable names will be looked up as types only)
+    // this prevents issues such as using MyClass as a param type in a function inside MyClass
+    // being interpreted as the constructor function, not the type MyClass.
+    ScopeGuard scope(mod, SCOPE_TYPE_TYPE_SPECIFICATION);
+
     Assert(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 

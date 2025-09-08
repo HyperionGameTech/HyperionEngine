@@ -232,18 +232,12 @@ bool SymbolType::TypeCompatible(
     // check object inheritance (left is base of right)
     if (IsObject() && right.IsObject())
     {
-        SymbolTypeRef base = right.GetBaseType();
-        while (base != nullptr)
+        if (right.IsOrHasBase(*this))
         {
-            if (TypeEqual(*base))
-            {
-                return true;
-            }
-
-            base = base->GetBaseType();
+            return true;
         }
 
-        ADD_INCOMPATIBILITY(IT_BASE_MISMATCH, right.ToString(false) + " is not the same class as " + ToString(false) + ", nor is it a base class of it");
+        ADD_INCOMPATIBILITY(IT_BASE_MISMATCH, "left-hand side type '" + GetName() + "' is not a base of right-hand side type '" + right.GetName() + "'");
 
         return false;
     }

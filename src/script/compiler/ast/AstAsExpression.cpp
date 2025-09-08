@@ -80,15 +80,31 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (!targetType->TypeCompatible(*m_resultType, /* strictNumbers */ false, /* strictAny */ false))
+    SymbolTypeIncompatibilities incompatibilities;
+
+    if (!m_resultType->TypeCompatible(*targetType, /* strictNumbers */ false, /* strictAny */ false, &incompatibilities))
     {
-        // not compatible
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_incompatible_cast,
-            m_location,
-            targetType->ToString(),
-            m_resultType->ToString()));
+        if (incompatibilities.Any())
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_incompatible_cast_more_info,
+                m_location,
+                targetType->ToString(),
+                m_resultType->ToString(),
+                (incompatibilities.Size() > 1
+                        ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                        : " " + incompatibilities[0].details)));
+        }
+        else
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_incompatible_cast,
+                m_location,
+                targetType->ToString(),
+                m_resultType->ToString()));
+        }
 
         return;
     }

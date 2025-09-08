@@ -58,7 +58,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         m_targetType,
         m_location);
 
-    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG))
+    if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG, /* thisScopeOnly */ false))
     {
         // TODO: implement
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

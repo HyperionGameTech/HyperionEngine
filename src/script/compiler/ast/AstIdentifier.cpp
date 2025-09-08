@@ -19,7 +19,23 @@ AstIdentifier::AstIdentifier(const String& name, const SourceLocation& location)
 
 void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
 {
-    if (auto identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name))
+    // only look up types if we're in a type specification scope
+    if (mod->IsInScopeOfType(SCOPE_TYPE_TYPE_SPECIFICATION, /* thisScopeOnly */ true))
+    {
+        if (SymbolTypeRef type = mod->LookupSymbolType(m_name))
+        {
+            m_properties.m_foundType = type;
+            m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
+        }
+        else
+        {
+            m_properties.SetIdentifierType(IDENTIFIER_TYPE_NOT_FOUND);
+        }
+
+        return;
+    }
+
+    if (auto identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
     {
         if (identifierOrSymbolType.Is<RC<Identifier>>())
         {
@@ -31,14 +47,17 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
             m_properties.m_foundType = identifierOrSymbolType.Get<SymbolTypeRef>();
             m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
         }
+        else
+        {
+            HYP_UNREACHABLE();
+        }
 
         return;
     }
 
     if ((m_properties.m_identifier = visitor->GetCompilationUnit()->GetGlobalModule()->LookUpIdentifier(m_name, false)))
     {
-        // if the identifier was not found,
-        // look in the global module to see if it is a global function.
+        // if the identifier was not found, check if it is global
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
     }
     else if (mod->LookupNestedModule(m_name) != nullptr)

@@ -78,7 +78,7 @@ bool Module::IsInGlobalScope() const
     return scopeTree.TopNode()->m_parent == nullptr;
 }
 
-bool Module::IsInScopeOfType(ScopeType scopeType) const
+bool Module::IsInScopeOfType(ScopeType scopeType, bool thisScopeOnly) const
 {
     const TreeNode<Scope>* top = scopeTree.TopNode();
 
@@ -89,13 +89,18 @@ bool Module::IsInScopeOfType(ScopeType scopeType) const
             return true;
         }
 
+        if (thisScopeOnly)
+        {
+            return false;
+        }
+
         top = top->m_parent;
     }
 
     return false;
 }
 
-bool Module::IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags) const
+bool Module::IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags, bool thisScopeOnly) const
 {
     const TreeNode<Scope>* top = scopeTree.TopNode();
 
@@ -104,6 +109,11 @@ bool Module::IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags) const
         if (top->Get().scopeType == scopeType && (uint32(top->Get().scopeFlags) & scopeFlags) == scopeFlags)
         {
             return true;
+        }
+
+        if (thisScopeOnly)
+        {
+            return false;
         }
 
         top = top->m_parent;

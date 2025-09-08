@@ -68,12 +68,12 @@ public:
 
     /** Reverse iterate the scopes starting from the currently opened scope,
         checking if the scope is nested within a scope of the given type. */
-    bool IsInScopeOfType(ScopeType scopeType) const;
+    bool IsInScopeOfType(ScopeType scopeType, bool thisScopeOnly) const;
 
     /** Reverse iterate the scopes starting from the currently opened scope,
         checking if the scope is nested within a scope of the given type.
         Returns true only if the scopeType matches and the scopeFlags match.*/
-    bool IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags) const;
+    bool IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags, bool thisScopeOnly) const;
 
     /** Look up a child module of this module */
     Module* LookupNestedModule(const String& name);
