@@ -55,7 +55,7 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
 void AstIdentifier::CheckInFunction(AstVisitor* visitor, Module* mod)
 {
     m_properties.m_depth = 0;
-    TreeNode<Scope>* top = mod->m_scopes.TopNode();
+    TreeNode<Scope>* top = mod->scopeTree.TopNode();
 
     while (top != nullptr)
     {

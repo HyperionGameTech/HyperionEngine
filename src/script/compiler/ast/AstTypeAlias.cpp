@@ -44,7 +44,7 @@ void AstTypeAlias::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef aliasType = SymbolType::Alias(m_name, { aliaseeType });
 
         // add it
-        mod->m_scopes.Top().identifierTable.AddSymbolType(aliasType);
+        mod->scopeTree.Top().identifierTable.AddSymbolType(aliasType);
     }
 }
 

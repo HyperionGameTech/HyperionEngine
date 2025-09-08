@@ -83,7 +83,7 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
     {
         return GetUnaliased()->TypeEqual(*other.GetUnaliased());
     }
-    
+
     if (m_name != other.m_name)
     {
         return false;
@@ -214,9 +214,10 @@ bool SymbolType::TypeEqual(const SymbolType& other) const
 bool SymbolType::TypeCompatible(
     const SymbolType& right,
     bool strictNumbers,
+    bool strictAny,
     SymbolTypeIncompatibilities* outIncompatibilities) const
 {
-    if (TypeEqual(*BuiltinTypes::g_errorType) || right.TypeEqual(*BuiltinTypes::g_errorType))
+    if (TypeEqual(*BuiltinTypes::s_errorType) || right.TypeEqual(*BuiltinTypes::s_errorType))
     {
         ADD_INCOMPATIBILITY(IT_UNDEFINED_TYPE, "one of the types was the result of an errored expression");
 
@@ -247,8 +248,15 @@ bool SymbolType::TypeCompatible(
         return false;
     }
 
-    if (IsAnyType() || right.IsAnyType())
+    if (IsAnyType() || (!strictAny && right.IsAnyType()))
     {
+        // Add error message for right as any type. Right will need to be cast to the left type explicitly.
+        // Otherwise, reference types that are returned will not be properly deref'd if left is a non-ref type. (e.g int)
+        if (right.IsAnyType())
+        {
+            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "right-hand side of expression is 'any' and must be cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
+        }
+
         return true;
     }
 
@@ -303,7 +311,7 @@ bool SymbolType::TypeCompatible(
         SymbolTypeRef sp = m_aliasInfo.m_aliasee.Lock();
         Assert(sp != nullptr);
 
-        return sp->TypeCompatible(right, strictNumbers, outIncompatibilities);
+        return sp->TypeCompatible(right, strictNumbers, strictAny, outIncompatibilities);
     }
     case TYPE_GENERIC_INSTANCE:
     {
@@ -597,69 +605,69 @@ SymbolTypeRef SymbolType::GetUnaliased() const
 
 bool SymbolType::IsNumber() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_intType)
-        || IsOrHasBase(*BuiltinTypes::g_unsignedIntType)
-        || IsOrHasBase(*BuiltinTypes::g_floatType);
+    return IsOrHasBase(*BuiltinTypes::s_intType)
+        || IsOrHasBase(*BuiltinTypes::s_unsignedIntType)
+        || IsOrHasBase(*BuiltinTypes::s_floatType);
 }
 
 bool SymbolType::IsIntegral() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_intType)
-        || IsOrHasBase(*BuiltinTypes::g_unsignedIntType);
+    return IsOrHasBase(*BuiltinTypes::s_intType)
+        || IsOrHasBase(*BuiltinTypes::s_unsignedIntType);
 }
 
 bool SymbolType::IsSignedIntegral() const
 {
-    return this == BuiltinTypes::g_intType;
+    return this == BuiltinTypes::s_intType;
 }
 
 bool SymbolType::IsUnsignedIntegral() const
 {
-    return this == BuiltinTypes::g_unsignedIntType;
+    return this == BuiltinTypes::s_unsignedIntType;
 }
 
 bool SymbolType::IsFloat() const
 {
-    return this == BuiltinTypes::g_floatType;
+    return this == BuiltinTypes::s_floatType;
 }
 
 bool SymbolType::IsBoolean() const
 {
-    return this == BuiltinTypes::g_boolType;
+    return this == BuiltinTypes::s_boolType;
 }
 
 bool SymbolType::IsObject() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_objectType);
+    return IsOrHasBase(*BuiltinTypes::s_objectType);
 }
 
 bool SymbolType::IsAnyType() const
 {
-    return this == BuiltinTypes::g_anyType;
+    return this == BuiltinTypes::s_anyType;
 }
 
 bool SymbolType::IsPlaceholderType() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_placeholderType);
+    return IsOrHasBase(*BuiltinTypes::s_placeholderType);
 }
 
 bool SymbolType::IsNullType() const
 {
-    return this == BuiltinTypes::g_nullType;
+    return this == BuiltinTypes::s_nullType;
 }
 
 bool SymbolType::IsNullableType() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_objectType)
-        || IsOrHasBase(*BuiltinTypes::g_functionBaseType)
-        || IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
-        || IsOrHasBase(*BuiltinTypes::g_mapBaseType)
-        || IsOrHasBase(*BuiltinTypes::g_stringType);
+    return IsOrHasBase(*BuiltinTypes::s_objectType)
+        || IsOrHasBase(*BuiltinTypes::s_functionBaseType)
+        || IsOrHasBase(*BuiltinTypes::s_arrayBaseType)
+        || IsOrHasBase(*BuiltinTypes::s_mapBaseType)
+        || IsOrHasBase(*BuiltinTypes::s_stringType);
 }
 
 bool SymbolType::IsVarArgsType() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_varArgsBaseType);
+    return IsOrHasBase(*BuiltinTypes::s_varArgsBaseType);
 }
 
 bool SymbolType::IsGenericParameter() const
@@ -674,12 +682,12 @@ bool SymbolType::IsGenericInstanceType() const
 
 bool SymbolType::IsPrimitive() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_primitiveType);
+    return IsOrHasBase(*BuiltinTypes::s_primitiveType);
 }
 
 bool SymbolType::IsEnumType() const
 {
-    return IsOrHasBase(*BuiltinTypes::g_enumType);
+    return IsOrHasBase(*BuiltinTypes::s_enumType);
 }
 
 SymbolTypeRef SymbolType::Alias(
@@ -707,7 +715,7 @@ SymbolTypeRef SymbolType::Placeholder(
     return SymbolTypeRef(new SymbolType(
         name,
         TYPE_PLACEHOLDER,
-        BuiltinTypes::g_placeholderType));
+        BuiltinTypes::s_placeholderType));
 }
 
 SymbolTypeRef SymbolType::Primitive(
@@ -717,7 +725,7 @@ SymbolTypeRef SymbolType::Primitive(
     return SymbolTypeRef(new SymbolType(
         name,
         TYPE_BUILTIN,
-        BuiltinTypes::g_primitiveType,
+        BuiltinTypes::s_primitiveType,
         defaultValue,
         {}, {}));
 }
@@ -1054,35 +1062,35 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
         return lptr;
     }
 
-    if (lptr->TypeEqual(*BuiltinTypes::g_errorType) || rptr->TypeEqual(*BuiltinTypes::g_errorType))
+    if (lptr->TypeEqual(*BuiltinTypes::s_errorType) || rptr->TypeEqual(*BuiltinTypes::s_errorType))
     {
-        return BuiltinTypes::g_errorType;
+        return BuiltinTypes::s_errorType;
     }
     else if (lptr->IsAnyType() || rptr->IsAnyType())
     {
         // Any + T = Any
         // T + Any = Any
-        return BuiltinTypes::g_anyType;
+        return BuiltinTypes::s_anyType;
     }
     else if (lptr->IsNumber() && rptr->IsNumber())
     {
         if (lptr->IsFloat() || rptr->IsFloat())
         {
-            return BuiltinTypes::g_floatType;
+            return BuiltinTypes::s_floatType;
         }
         else if (rptr->IsUnsignedIntegral())
         {
-            return BuiltinTypes::g_unsignedIntType;
+            return BuiltinTypes::s_unsignedIntType;
         }
         else
         {
-            return BuiltinTypes::g_intType;
+            return BuiltinTypes::s_intType;
         }
     }
 
     // @TODO Check for common base
 
-    return BuiltinTypes::g_errorType;
+    return BuiltinTypes::s_errorType;
 }
 
 SymbolTypeRef SymbolType::SubstituteGenericParams(

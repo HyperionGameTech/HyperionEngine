@@ -48,7 +48,7 @@ void AstArgument::Visit(AstVisitor* visitor, Module* mod)
 
     if (IsPassConst())
     {
-        Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
+        Scope& scope = mod->scopeTree.Open(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
 
         passConstScope = true;
     }
@@ -57,7 +57,7 @@ void AstArgument::Visit(AstVisitor* visitor, Module* mod)
     {
         if (m_expr->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)
         {
-            Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
+            Scope& scope = mod->scopeTree.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
 
             passByRefScope = true;
         }
@@ -72,12 +72,12 @@ void AstArgument::Visit(AstVisitor* visitor, Module* mod)
 
     if (passByRefScope)
     {
-        mod->m_scopes.Close();
+        mod->scopeTree.Close();
     }
 
     if (passConstScope)
     {
-        mod->m_scopes.Close();
+        mod->scopeTree.Close();
     }
 }
 

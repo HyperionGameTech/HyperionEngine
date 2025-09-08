@@ -80,7 +80,7 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (!targetType->TypeCompatible(*m_resultType, false))
+    if (!targetType->TypeCompatible(*m_resultType, /* strictNumbers */ false, /* strictAny */ false))
     {
         // not compatible
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -146,7 +146,7 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_BOOL, dstRegister, srcRegister));
     }
-    else if (m_resultType->IsOrHasBase(*BuiltinTypes::g_stringType))
+    else if (m_resultType->IsOrHasBase(*BuiltinTypes::s_stringType))
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_STRING, dstRegister, srcRegister));
     }
@@ -224,7 +224,7 @@ SymbolTypeRef AstAsExpression::GetExprType() const
         return heldType;
     }
 
-    return BuiltinTypes::g_errorType;
+    return BuiltinTypes::s_errorType;
 }
 
 Tribool AstAsExpression::IsTrue() const

@@ -50,7 +50,7 @@ float AstTrue::FloatValue() const
 
 SymbolTypeRef AstTrue::GetExprType() const
 {
-    return BuiltinTypes::g_boolType;
+    return BuiltinTypes::s_boolType;
 }
 
 RC<AstConstant> AstTrue::HandleOperator(Operators opType, const AstConstant* right) const

@@ -197,7 +197,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // no bitwise operators on floats allowed.
             visitor->AddErrorIfFalse(
-                (leftType == BuiltinTypes::g_intType || leftType == BuiltinTypes::g_unsignedIntType) && (rightType == BuiltinTypes::g_intType || leftType == BuiltinTypes::g_unsignedIntType),
+                (leftType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType) && (rightType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operands_must_be_int,
@@ -209,8 +209,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // arithmetic operators are only for numbers
             visitor->AddErrorIfFalse(
-                (leftType->TypeCompatible(*BuiltinTypes::g_intType, false) || leftType->TypeCompatible(*BuiltinTypes::g_unsignedIntType, false) || leftType->TypeCompatible(*BuiltinTypes::g_floatType, false))
-                    && (rightType->TypeCompatible(*BuiltinTypes::g_intType, false) || rightType->TypeCompatible(*BuiltinTypes::g_unsignedIntType, false) | rightType->TypeCompatible(*BuiltinTypes::g_floatType, false)),
+                (leftType->TypeCompatible(*BuiltinTypes::s_intType, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_unsignedIntType, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_floatType, false, false))
+                    && (rightType->TypeCompatible(*BuiltinTypes::s_intType, false, false) || rightType->TypeCompatible(*BuiltinTypes::s_unsignedIntType, false, false) | rightType->TypeCompatible(*BuiltinTypes::s_floatType, false, false)),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_arithmetic_operands_must_be_numbers,
@@ -233,7 +233,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
     else
     {
         // compare both sides because assignment does not matter in this case
-        if (!leftType->TypeCompatible(*rightType, false))
+        if (!leftType->TypeCompatible(*rightType, /* strictNumbers */ false, /* strictAny */ false))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -816,7 +816,7 @@ SymbolTypeRef AstBinaryExpression::GetExprType() const
 
     if ((m_op->GetType() & LOGICAL) || (m_op->GetType() & COMPARISON))
     {
-        return BuiltinTypes::g_boolType;
+        return BuiltinTypes::s_boolType;
     }
 
     Assert(m_left != nullptr);

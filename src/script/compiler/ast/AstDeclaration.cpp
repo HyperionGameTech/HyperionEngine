@@ -24,7 +24,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     m_isVisited = true;
 
     CompilationUnit* compilationUnit = visitor->GetCompilationUnit();
-    Scope& scope = mod->m_scopes.Top();
+    Scope& scope = mod->scopeTree.Top();
 
     // look up variable to make sure it doesn't already exist
     // only this scope matters, variables with the same name outside
@@ -53,7 +53,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
         if (RC<Identifier> shadowedIdentifier = mod->LookUpIdentifier(m_name, false))
         {
             // allow shadowing only if the found identifier is in global scope
-            if (shadowedIdentifier->GetDeclScope() != &mod->m_scopes.Root())
+            if (shadowedIdentifier->GetDeclScope() != &mod->scopeTree.Root())
             {
                 // a collision was found, add an error, but continue evaluating as if no error.
                 compilationUnit->GetErrorList().AddError(CompilerError(
@@ -68,7 +68,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     // add identifier
     m_identifier = scope.identifierTable.AddIdentifier(m_name);
 
-    TreeNode<Scope>* top = mod->m_scopes.TopNode();
+    TreeNode<Scope>* top = mod->scopeTree.TopNode();
 
     while (top != nullptr)
     {

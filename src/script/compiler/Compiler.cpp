@@ -478,13 +478,13 @@ UniquePtr<Buildable> Compiler::PopStack(AstVisitor* visitor, int amt)
 static bool ShouldDerefType(const SymbolType& symbolType)
 {
     // clang-format off
-    return !symbolType.IsOrHasBase(*BuiltinTypes::g_voidType)
-        && (symbolType.IsOrHasBase(*BuiltinTypes::g_anyType) // <!-- unknown at compile time, so deref anyway (would be no-op if not a reference)
-            || symbolType.IsOrHasBase(*BuiltinTypes::g_stringType)
-            || symbolType.IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
-            || symbolType.IsOrHasBase(*BuiltinTypes::g_varArgsBaseType)
-            || symbolType.IsOrHasBase(*BuiltinTypes::g_mapBaseType)
-            || symbolType.IsOrHasBase(*BuiltinTypes::g_objectType));
+    return !symbolType.IsOrHasBase(*BuiltinTypes::s_voidType)
+        && (symbolType.IsOrHasBase(*BuiltinTypes::s_anyType) // <!-- unknown at compile time, so deref anyway (would be no-op if not a reference)
+            || symbolType.IsOrHasBase(*BuiltinTypes::s_stringType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::s_arrayBaseType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::s_varArgsBaseType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::s_mapBaseType)
+            || symbolType.IsOrHasBase(*BuiltinTypes::s_objectType));
     // clang-format on
 }
 
@@ -498,7 +498,7 @@ UniquePtr<Buildable> Compiler::DerefIfNeeded(AstVisitor* visitor, Module* mod, c
     SymbolTypeRef symbolTypeUnaliased = symbolType->GetUnaliased();
 
     // error occured, should have been caught earlier
-    Assert(symbolTypeUnaliased != BuiltinTypes::g_errorType);
+    Assert(symbolTypeUnaliased != BuiltinTypes::s_errorType);
 
     if (ShouldDerefType(*symbolTypeUnaliased))
     {

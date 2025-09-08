@@ -34,7 +34,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     AstDeclaration::Visit(visitor, mod);
 
     // params are `Any` by default
-    m_symbolType = BuiltinTypes::g_anyType;
+    m_symbolType = BuiltinTypes::s_anyType;
 
     SymbolTypeRef specifiedSymbolType;
 
@@ -49,7 +49,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        m_symbolType = BuiltinTypes::g_anyType;
+        m_symbolType = BuiltinTypes::s_anyType;
     }
 
     if (m_defaultParam != nullptr)
@@ -77,7 +77,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
             Assert(m_symbolType == specifiedSymbolType); // just sanity check, assigned above
 
             // verify types compatible
-            if (!specifiedSymbolType->TypeCompatible(*defaultParamType, true))
+            if (!specifiedSymbolType->TypeCompatible(*defaultParamType, /* strictNumbers */ true, /* strictAny */ true))
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
@@ -93,7 +93,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     if (m_isVariadic)
     {
         m_varargsTypeSpec.Reset(new AstTemplateInstantiation(
-            RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_varArgsType, m_location)),
+            RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_varArgsType, m_location)),
             { RC<AstTypeSpecifier>(new AstTypeSpecifier(
                 RC<AstTypeRef>(new AstTypeRef(m_symbolType, m_location)),
                 m_location)) },

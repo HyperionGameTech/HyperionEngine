@@ -58,7 +58,7 @@ float AstString::FloatValue() const
 
 SymbolTypeRef AstString::GetExprType() const
 {
-    return BuiltinTypes::g_stringType;
+    return BuiltinTypes::s_stringType;
 }
 
 RC<AstConstant> AstString::HandleOperator(Operators opType, const AstConstant* right) const

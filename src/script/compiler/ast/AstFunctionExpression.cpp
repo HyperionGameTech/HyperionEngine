@@ -63,7 +63,7 @@ AstFunctionExpression::AstFunctionExpression(
       m_enableClosure(enableClosure),
       m_isClosure(false),
       m_isConstructorDefinition(false),
-      m_returnType(BuiltinTypes::g_anyType),
+      m_returnType(BuiltinTypes::s_anyType),
       m_staticId(0)
 {
 }
@@ -101,7 +101,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // // open the new scope for parameters
-    mod->m_scopes.Open(SCOPE_TYPE_FUNCTION, scopeFlags);
+    mod->scopeTree.Open(SCOPE_TYPE_FUNCTION, scopeFlags);
 
     if (m_isClosure)
     {
@@ -148,7 +148,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            m_returnType = BuiltinTypes::g_errorType;
+            m_returnType = BuiltinTypes::s_errorType;
         }
     }
 
@@ -173,7 +173,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             param->IsConst()));
     }
 
-    Scope* functionScope = &mod->m_scopes.Top();
+    Scope* functionScope = &mod->scopeTree.Top();
     Assert(functionScope != nullptr);
 
     if (m_blockWithParameters != nullptr)
@@ -188,7 +188,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 if (m_returnTypeSpecification != nullptr)
                 {
                     // strict mode, because user specifically stated the intended return type
-                    if (!m_returnType->TypeCompatible(*symbolType, true))
+                    if (!m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ true, /* strictAny */ true))
                     {
                         // error; does not match what user specified
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -206,11 +206,11 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     {
                         m_returnType = symbolType;
                     }
-                    else if (m_returnType->TypeCompatible(*symbolType, false))
+                    else if (m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ false, /* strictAny */ false))
                     {
                         m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
 
-                        // @TODO: If return statement differs, we should insert a cast expression
+                        // If return statement differs, we need to insert a cast expression for each return statement
                     }
                     else
                     {
@@ -227,7 +227,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            if (!m_returnTypeSpecification || m_returnType != BuiltinTypes::g_voidType)
+            if (!m_returnTypeSpecification || m_returnType != BuiltinTypes::s_voidType)
             {
                 // check if last statement is an expression;
                 // if it is, we use its type as the return type. otherwise, it is 'void'.
@@ -241,7 +241,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                         if (m_returnTypeSpecification != nullptr)
                         {
                             // strict mode, because user specifically stated the intended return type
-                            if (!m_returnType->TypeCompatible(*lastExprType, true))
+                            if (!m_returnType->TypeCompatible(*lastExprType, /* strictNumbers */ true, /* strictAny */ true))
                             {
                                 // error; does not match what user specified
                                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -264,7 +264,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     if (m_returnTypeSpecification != nullptr)
                     {
                         // strict mode, because user specifically stated the intended return type
-                        if (!m_returnType->TypeCompatible(*BuiltinTypes::g_voidType, true))
+                        if (!m_returnType->TypeCompatible(*BuiltinTypes::s_voidType, /* strictNumbers */ true, /* strictAny */ false))
                         {
                             // error; does not match what user specified
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -272,17 +272,17 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                                 Msg_mismatched_return_type,
                                 GetLocation(),
                                 m_returnType->ToString(),
-                                BuiltinTypes::g_voidType->ToString()));
+                                BuiltinTypes::s_voidType->ToString()));
                         }
                     }
 
-                    m_returnType = BuiltinTypes::g_voidType;
+                    m_returnType = BuiltinTypes::s_voidType;
                 }
             }
             else
             {
                 // void return type
-                m_returnType = BuiltinTypes::g_voidType;
+                m_returnType = BuiltinTypes::s_voidType;
             }
         }
     }
@@ -290,7 +290,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         m_returnType = m_returnTypeSpecification != nullptr
             ? m_returnTypeSpecification->GetHeldType()
-            : BuiltinTypes::g_anyType;
+            : BuiltinTypes::s_anyType;
 
         if (m_returnType)
         {
@@ -298,7 +298,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            m_returnType = BuiltinTypes::g_errorType;
+            m_returnType = BuiltinTypes::s_errorType;
         }
     }
 
@@ -320,7 +320,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // close parameter scope
-    mod->m_scopes.Close();
+    mod->scopeTree.Close();
 
     SymbolTypeRef closureSelfType = SymbolType::Temp();
 
@@ -358,7 +358,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     SymbolTypeRef functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         visitor, mod,
-        BuiltinTypes::g_functionType,
+        BuiltinTypes::s_functionType,
         genericParamTypes,
         m_location);
 

@@ -83,7 +83,7 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_symbolType->IsAnyType())
     {
-        m_returnType = BuiltinTypes::g_anyType;
+        m_returnType = BuiltinTypes::s_anyType;
         m_substitutedArgs = argsWithSelf; // NOTE: do not clone because we don't need to visit again.
     }
     else
@@ -99,7 +99,7 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (!substituted)
         {
-            m_returnType = BuiltinTypes::g_errorType;
+            m_returnType = BuiltinTypes::s_errorType;
 
             // not a function type
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

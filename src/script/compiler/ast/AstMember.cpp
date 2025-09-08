@@ -40,7 +40,7 @@ AstMember::AstMember(
 
 void AstMember::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_symbolType = BuiltinTypes::g_errorType;
+    m_symbolType = BuiltinTypes::s_errorType;
 
     Assert(m_target != nullptr);
     m_target->Visit(visitor, mod);
@@ -81,7 +81,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
         if (m_targetType->IsAnyType())
         {
-            fieldType = BuiltinTypes::g_anyType;
+            fieldType = BuiltinTypes::s_anyType;
 
             break;
         }

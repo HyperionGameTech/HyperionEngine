@@ -494,7 +494,7 @@ SymbolTypeRef AstVariable::GetExprType() const
         return m_properties.GetIdentifier()->GetSymbolType();
     }
 
-    return BuiltinTypes::g_errorType;
+    return BuiltinTypes::s_errorType;
 }
 
 bool AstVariable::IsMutable() const

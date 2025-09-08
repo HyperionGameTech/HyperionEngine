@@ -9,7 +9,7 @@ Module::Module(
     const SourceLocation& location)
     : m_name(name),
       m_location(location),
-      m_treeLink(nullptr)
+      importTreeNode(nullptr)
 {
 }
 
@@ -17,7 +17,7 @@ FlatSet<String> Module::GenerateAllScanPaths() const
 {
     FlatSet<String> allScanPaths = m_scanPaths;
 
-    TreeNode<Module*>* top = m_treeLink;
+    TreeNode<Module*>* top = importTreeNode;
 
     while (top != nullptr)
     {
@@ -36,7 +36,7 @@ FlatSet<String> Module::GenerateAllScanPaths() const
 
 String Module::GenerateFullModuleName() const
 {
-    TreeNode<Module*>* top = m_treeLink;
+    TreeNode<Module*>* top = importTreeNode;
 
     if (top != nullptr)
     {
@@ -75,12 +75,12 @@ String Module::GenerateFullModuleName() const
 
 bool Module::IsInGlobalScope() const
 {
-    return m_scopes.TopNode()->m_parent == nullptr;
+    return scopeTree.TopNode()->m_parent == nullptr;
 }
 
 bool Module::IsInScopeOfType(ScopeType scopeType) const
 {
-    const TreeNode<Scope>* top = m_scopes.TopNode();
+    const TreeNode<Scope>* top = scopeTree.TopNode();
 
     while (top != nullptr)
     {
@@ -97,7 +97,7 @@ bool Module::IsInScopeOfType(ScopeType scopeType) const
 
 bool Module::IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags) const
 {
-    const TreeNode<Scope>* top = m_scopes.TopNode();
+    const TreeNode<Scope>* top = scopeTree.TopNode();
 
     while (top != nullptr)
     {
@@ -114,11 +114,11 @@ bool Module::IsInScopeOfType(ScopeType scopeType, uint32 scopeFlags) const
 
 Module* Module::LookupNestedModule(const String& name)
 {
-    Assert(m_treeLink != nullptr);
+    Assert(importTreeNode != nullptr);
 
     // search siblings of the current module,
     // rather than global lookup.
-    for (auto* sibling : m_treeLink->m_siblings)
+    for (auto* sibling : importTreeNode->m_siblings)
     {
         Assert(sibling != nullptr);
         Assert(sibling->Get() != nullptr);
@@ -134,13 +134,13 @@ Module* Module::LookupNestedModule(const String& name)
 
 Array<Module*> Module::CollectNestedModules() const
 {
-    Assert(m_treeLink != nullptr);
+    Assert(importTreeNode != nullptr);
 
     Array<Module*> nestedModules;
 
     // search siblings of the current module,
     // rather than global lookup.
-    for (auto* sibling : m_treeLink->m_siblings)
+    for (auto* sibling : importTreeNode->m_siblings)
     {
         Assert(sibling != nullptr);
         Assert(sibling->Get() != nullptr);
@@ -153,7 +153,7 @@ Array<Module*> Module::CollectNestedModules() const
 
 RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, bool outsideModules)
 {
-    TreeNode<Scope>* top = m_scopes.TopNode();
+    TreeNode<Scope>* top = scopeTree.TopNode();
 
     while (top != nullptr)
     {
@@ -173,9 +173,9 @@ RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, 
 
     if (outsideModules)
     {
-        if (m_treeLink != nullptr && m_treeLink->m_parent != nullptr)
+        if (importTreeNode != nullptr && importTreeNode->m_parent != nullptr)
         {
-            if (Module* other = m_treeLink->m_parent->Get())
+            if (Module* other = importTreeNode->m_parent->Get())
             {
                 if (other->GetLocation().GetFileName() == m_location.GetFileName())
                 {
@@ -184,7 +184,7 @@ RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, 
                 else
                 {
                     // we are outside of file scope, so loop until root/global module found
-                    const TreeNode<Module*>* modLink = m_treeLink->m_parent;
+                    const TreeNode<Module*>* modLink = importTreeNode->m_parent;
 
                     while (modLink->m_parent != nullptr)
                     {
@@ -205,7 +205,7 @@ RC<Identifier> Module::LookUpIdentifier(const String& name, bool thisScopeOnly, 
 
 RC<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
 {
-    TreeNode<Scope>* top = m_scopes.TopNode();
+    TreeNode<Scope>* top = scopeTree.TopNode();
 
     for (int i = 0; top != nullptr && i < depthLevel; i++)
     {
@@ -272,7 +272,7 @@ SymbolTypeRef Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey)
 void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type)
 {
     // cache in this module at topmost scope
-    TreeNode<Scope>* top = m_scopes.TopNode();
+    TreeNode<Scope>* top = scopeTree.TopNode();
 
     if (top != nullptr)
     {

@@ -109,7 +109,7 @@ bool AstArgumentList::MayHaveSideEffects() const
 
 SymbolTypeRef AstArgumentList::GetExprType() const
 {
-    return BuiltinTypes::g_anyType;
+    return BuiltinTypes::s_anyType;
 }
 
 } // namespace hyperion

@@ -31,7 +31,7 @@ AstCallExpression::AstCallExpression(
       m_expr(expr),
       m_args(args),
       m_insertSelf(insertSelf),
-      m_returnType(BuiltinTypes::g_errorType)
+      m_returnType(BuiltinTypes::s_errorType)
 {
     for (auto& arg : m_args)
     {
@@ -137,10 +137,10 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (unaliased->IsAnyType())
     {
-        m_returnType = BuiltinTypes::g_anyType;
+        m_returnType = BuiltinTypes::s_anyType;
         m_substitutedArgs = argsWithSelf; // NOTE: do not clone because we don't need to visit again.
     }
-    else if (!unaliased->IsOrHasBase(*BuiltinTypes::g_functionBaseType))
+    else if (!unaliased->IsOrHasBase(*BuiltinTypes::s_functionBaseType))
     {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -164,7 +164,7 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
         if (!substituted)
         {
-            m_returnType = BuiltinTypes::g_errorType;
+            m_returnType = BuiltinTypes::s_errorType;
 
             // not a function type
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

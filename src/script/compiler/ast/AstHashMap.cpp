@@ -45,10 +45,10 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     m_replacedKeys.Reserve(m_keys.Size());
     m_replacedValues.Reserve(m_values.Size());
 
-    m_exprType = BuiltinTypes::g_errorType;
+    m_exprType = BuiltinTypes::s_errorType;
 
-    m_keyType = BuiltinTypes::g_errorType;
-    m_valueType = BuiltinTypes::g_errorType;
+    m_keyType = BuiltinTypes::s_errorType;
+    m_valueType = BuiltinTypes::s_errorType;
 
     Array<Pair<RC<AstExpression>, RC<AstExpression>>> keyValuePairs;
     keyValuePairs.Reserve(m_keys.Size());
@@ -84,7 +84,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             keyType = keyType->GetUnaliased();
             valueType = valueType->GetUnaliased();
 
-            if (m_keyType == BuiltinTypes::g_errorType)
+            if (m_keyType == BuiltinTypes::s_errorType)
             {
                 m_keyType = keyType;
             }
@@ -93,7 +93,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
                 m_keyType = SymbolType::TypePromotion(m_keyType, keyType);
             }
 
-            if (m_valueType == BuiltinTypes::g_errorType)
+            if (m_valueType == BuiltinTypes::s_errorType)
             {
                 m_valueType = valueType;
             }
@@ -108,13 +108,13 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        m_keyType = BuiltinTypes::g_anyType;
-        m_valueType = BuiltinTypes::g_anyType;
+        m_keyType = BuiltinTypes::s_anyType;
+        m_valueType = BuiltinTypes::s_anyType;
     }
 
     // if either key or value type is undefined, set it to `Any`
 
-    if (m_keyType == BuiltinTypes::g_errorType || m_valueType == BuiltinTypes::g_errorType)
+    if (m_keyType == BuiltinTypes::s_errorType || m_valueType == BuiltinTypes::s_errorType)
     {
         // add error
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -172,7 +172,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
 
     // @TODO: Cache generic instance types
     m_mapTypeExpr.Reset(new AstTemplateInstantiation(
-        RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_mapType, m_location)), m_location)),
+        RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_mapType, m_location)), m_location)),
         { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_keyType, m_location)), m_location)),
             RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_valueType, m_location)), m_location)) },
         nullptr, // no function return type
@@ -332,7 +332,7 @@ SymbolTypeRef AstHashMap::GetExprType() const
 {
     if (m_exprType == nullptr)
     {
-        return BuiltinTypes::g_errorType;
+        return BuiltinTypes::s_errorType;
     }
 
     return m_exprType;

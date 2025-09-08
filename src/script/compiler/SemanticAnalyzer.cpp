@@ -85,7 +85,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         location,
         inputType->GetName()));
 
-    return BuiltinTypes::g_errorType;
+    return BuiltinTypes::s_errorType;
 }
 
 void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
@@ -98,7 +98,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     Assert(argType != nullptr);
     Assert(paramType != nullptr);
 
-    if (argType == BuiltinTypes::g_errorType)
+    if (argType == BuiltinTypes::s_errorType)
     {
         return;
     }
@@ -111,7 +111,7 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (resolvedParamType->TypeCompatible(*resolvedArgType, /* strictNumbers */ true, &incompatibilities))
+    if (resolvedParamType->TypeCompatible(*resolvedArgType, /* strictNumbers */ true, /* strictAny */ true, &incompatibilities))
     {
         return;
     }
@@ -238,7 +238,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     {
     case TYPE_PLACEHOLDER:
         HYP_FAIL("Should not encounter placeholder type here");
-        return BuiltinTypes::g_errorType;
+        return BuiltinTypes::s_errorType;
     case TYPE_BUILTIN:
         return targetType;
     case TYPE_GENERIC_PARAMETER:
@@ -253,7 +253,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 location,
                 inputType->GetName()));
 
-            targetType = BuiltinTypes::g_errorType;
+            targetType = BuiltinTypes::s_errorType;
         }
 
         targetType = targetType->GetUnaliased();
@@ -286,7 +286,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 break;
             }
 
-            mod->m_scopes.Top().identifierTable.AddSymbolType(SymbolType::Alias(
+            mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias(
                 genericInstanceInfo.m_genericArgs[index].m_type->GetName(),
                 AliasTypeInfo { inArgs[index].m_type }));
         }
@@ -506,7 +506,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GenericPromotion(
                     rGenericArgs,
                     location);
 
-                if (promoted && promoted->TypeCompatible(*rptrUnalias, true))
+                if (promoted && promoted->TypeCompatible(*rptrUnalias, /* strictNumbers */ true, /* strictAny */ true))
                 {
                     return promoted->GetUnaliased();
                 }
@@ -543,7 +543,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GetVarArgType(const Array<GenericInstan
             return lastGenericArgType->GetGenericInstanceInfo().m_genericArgs[0].m_type;
         }
 
-        return BuiltinTypes::g_anyType;
+        return BuiltinTypes::s_anyType;
     }
 
     return nullptr;
@@ -961,7 +961,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (!symbolTypeUnaliased->TypeCompatible(*assignmentTypeUnaliased, true, &incompatibilities))
+    if (!symbolTypeUnaliased->TypeCompatible(*assignmentTypeUnaliased, /* strictNumbers */ true, /* strictAny */ true, &incompatibilities))
     {
         if (incompatibilities.Any())
         {
@@ -1008,7 +1008,7 @@ void SemanticAnalyzer::Analyze(bool expectModuleDecl)
         Assert(node != nullptr);
 
         // this will not work due to nseted Visit() calls
-        node->SetScopeDepth(m_compilationUnit->GetCurrentModule()->m_scopes.TopNode()->m_depth);
+        node->SetScopeDepth(m_compilationUnit->GetCurrentModule()->scopeTree.TopNode()->m_depth);
 
         node->Visit(this, mod);
     }

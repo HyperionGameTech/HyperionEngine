@@ -42,7 +42,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     Assert(m_index != nullptr);
 
-    m_exprType = BuiltinTypes::g_errorType;
+    m_exprType = BuiltinTypes::s_errorType;
 
     m_target->Visit(visitor, mod);
     m_index->Visit(visitor, mod);
@@ -64,8 +64,8 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
     ScopeGuard scope(mod, SCOPE_TYPE_NORMAL);
 
-    if (targetType->IsOrHasBase(*BuiltinTypes::g_arrayBaseType)
-        || targetType->IsOrHasBase(*BuiltinTypes::g_varArgsBaseType))
+    if (targetType->IsOrHasBase(*BuiltinTypes::s_arrayBaseType)
+        || targetType->IsOrHasBase(*BuiltinTypes::s_varArgsBaseType))
     {
         // array type
 
@@ -90,14 +90,14 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             mod,
             m_location,
             m_index->GetExprType(),
-            BuiltinTypes::g_intType);
+            BuiltinTypes::s_intType);
 
         return;
     }
 
     if (targetType->IsAnyType())
     {
-        m_exprType = BuiltinTypes::g_anyType;
+        m_exprType = BuiltinTypes::s_anyType;
     }
 
     if (m_operatorOverloadingEnabled)
@@ -208,7 +208,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             m_tempArrayStoreVarDecl.Reset(new AstVariableDeclaration(
                 g_tempArrayStoreVarName,
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_anyType, m_location)),
+                    RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_anyType, m_location)),
                     m_location)),
                 nullptr, // no initializer
                 IdentifierFlags::FLAG_LAX,

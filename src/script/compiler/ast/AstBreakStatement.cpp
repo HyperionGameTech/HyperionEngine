@@ -22,7 +22,7 @@ void AstBreakStatement::Visit(AstVisitor* visitor, Module* mod)
 {
     bool inLoop = false;
 
-    TreeNode<Scope>* top = mod->m_scopes.TopNode();
+    TreeNode<Scope>* top = mod->scopeTree.TopNode();
 
     while (top != nullptr)
     {

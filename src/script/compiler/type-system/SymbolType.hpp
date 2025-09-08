@@ -388,6 +388,7 @@ public:
     bool TypeCompatible(
         const SymbolType& other,
         bool strictNumbers,
+        bool strictAny,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
     bool operator==(const SymbolType& other) const

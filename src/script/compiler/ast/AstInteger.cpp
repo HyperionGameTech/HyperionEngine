@@ -63,7 +63,7 @@ float AstInteger::FloatValue() const
 
 SymbolTypeRef AstInteger::GetExprType() const
 {
-    return BuiltinTypes::g_intType;
+    return BuiltinTypes::s_intType;
 }
 
 RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* right) const
@@ -245,8 +245,8 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
     case OP_bitwise_xor:
         // right must be integer
         if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::g_intType
-                && right->GetExprType() != BuiltinTypes::g_unsignedIntType))
+            || (right->GetExprType() != BuiltinTypes::s_intType
+                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
         {
             return nullptr;
         }
@@ -265,8 +265,8 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
     case OP_bitwise_and:
         // right must be integer
         if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::g_intType
-                && right->GetExprType() != BuiltinTypes::g_unsignedIntType))
+            || (right->GetExprType() != BuiltinTypes::s_intType
+                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
         {
             return nullptr;
         }
@@ -284,8 +284,8 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
 
     case OP_bitwise_or:
         if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::g_intType
-                && right->GetExprType() != BuiltinTypes::g_unsignedIntType))
+            || (right->GetExprType() != BuiltinTypes::s_intType
+                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
         {
             return nullptr;
         }
@@ -304,8 +304,8 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
     case OP_bitshift_left:
         // right must be integer
         if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::g_intType
-                && right->GetExprType() != BuiltinTypes::g_unsignedIntType))
+            || (right->GetExprType() != BuiltinTypes::s_intType
+                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
         {
             return nullptr;
         }
@@ -324,8 +324,8 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
     case OP_bitshift_right:
         // right must be integer
         if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::g_intType
-                && right->GetExprType() != BuiltinTypes::g_unsignedIntType))
+            || (right->GetExprType() != BuiltinTypes::s_intType
+                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
         {
             return nullptr;
         }

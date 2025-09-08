@@ -17,7 +17,7 @@ CompilationUnit::CompilationUnit()
 {
     m_globalModule->SetImportTreeLink(m_moduleTree.TopNode());
 
-    Scope& top = m_globalModule->m_scopes.Top();
+    Scope& top = m_globalModule->scopeTree.Top();
 
     m_moduleTree.TopNode()->Get() = m_globalModule.Get();
 }

@@ -34,8 +34,8 @@ AstBlock::AstBlock(const SourceLocation& location)
 void AstBlock::Visit(AstVisitor* visitor, Module* mod)
 {
     // open the new scope
-    mod->m_scopes.Open(m_scopeType, m_scopeFlags);
-    m_scope = &mod->m_scopes.Top();
+    mod->scopeTree.Open(m_scopeType, m_scopeFlags);
+    m_scope = &mod->scopeTree.Top();
 
     // visit all children in the block
     for (RC<AstStatement>& child : m_children)
@@ -63,7 +63,7 @@ void AstBlock::Visit(AstVisitor* visitor, Module* mod)
     m_numLocals = m_scope->identifierTable.CountUsedVariables();
 
     // go down to previous scope
-    mod->m_scopes.Close();
+    mod->scopeTree.Close();
 }
 
 UniquePtr<Buildable> AstBlock::Build(AstVisitor* visitor, Module* mod)

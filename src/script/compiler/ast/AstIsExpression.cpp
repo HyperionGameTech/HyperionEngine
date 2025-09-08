@@ -40,7 +40,7 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         if (const auto heldType = m_typeSpecification->GetHeldType())
         {
-            if (targetType->TypeCompatible(*heldType, true))
+            if (targetType->TypeCompatible(*heldType, /* strictNumbers */ true, /* strictAny */ false))
             {
                 m_isType = TRI_TRUE;
             }
@@ -104,7 +104,7 @@ RC<AstStatement> AstIsExpression::Clone() const
 
 SymbolTypeRef AstIsExpression::GetExprType() const
 {
-    return BuiltinTypes::g_boolType;
+    return BuiltinTypes::s_boolType;
 }
 
 Tribool AstIsExpression::IsTrue() const

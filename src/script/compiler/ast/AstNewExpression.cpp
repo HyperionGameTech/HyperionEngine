@@ -48,7 +48,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     auto* valueOf = m_typeSpec->GetDeepValueOf();
     Assert(valueOf != nullptr);
 
-    m_instanceType = BuiltinTypes::g_errorType;
+    m_instanceType = BuiltinTypes::s_errorType;
 
     SymbolTypeRef exprType = valueOf->GetExprType();
     Assert(exprType != nullptr);

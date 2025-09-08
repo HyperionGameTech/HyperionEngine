@@ -34,7 +34,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
     // transverse the scope tree to make sure we are in a function
     bool inFunction = false;
 
-    TreeNode<Scope>* top = mod->m_scopes.TopNode();
+    TreeNode<Scope>* top = mod->scopeTree.TopNode();
 
     while (top != nullptr)
     {
@@ -58,7 +58,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(top != nullptr);
 
-        const SymbolTypeRef& returnType = m_expr ? m_expr->GetExprType() : BuiltinTypes::g_voidType;
+        const SymbolTypeRef& returnType = m_expr ? m_expr->GetExprType() : BuiltinTypes::s_voidType;
         Assert(returnType != nullptr);
 
         top->Get().returnTypes.PushBack(returnType);

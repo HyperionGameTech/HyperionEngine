@@ -47,7 +47,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     if (!m_symbolType || !m_symbolType->IsGenericInstanceType())
     {
-        m_symbolType = BuiltinTypes::g_errorType;
+        m_symbolType = BuiltinTypes::s_errorType;
 
         // not a generic if it doesnt resolve
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -61,7 +61,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     SymbolTypeRef newType = SymbolType::Temp();
 
-    Scope& scope = mod->m_scopes.Open(SCOPE_TYPE_NORMAL);
+    Scope& scope = mod->scopeTree.Open(SCOPE_TYPE_NORMAL);
 
     // supplant "SelfType" placeholder type with the actual target type
     scope.identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { newType }));
@@ -94,11 +94,11 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes,
         m_location);
 
-    mod->m_scopes.Close();
+    mod->scopeTree.Close();
 
     if (!genericInstanceType)
     {
-        genericInstanceType = BuiltinTypes::g_errorType;
+        genericInstanceType = BuiltinTypes::s_errorType;
 
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

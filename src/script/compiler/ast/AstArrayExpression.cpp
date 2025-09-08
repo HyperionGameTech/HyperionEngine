@@ -40,13 +40,13 @@ AstArrayExpression::AstArrayExpression(
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_members(members),
-      m_heldType(BuiltinTypes::g_anyType)
+      m_heldType(BuiltinTypes::s_anyType)
 {
 }
 
 void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_exprType = BuiltinTypes::g_errorType;
+    m_exprType = BuiltinTypes::s_errorType;
 
     m_replacedMembers.Reserve(m_members.Size());
 
@@ -63,7 +63,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            heldTypes.Insert(BuiltinTypes::g_anyType);
+            heldTypes.Insert(BuiltinTypes::s_anyType);
         }
 
         m_replacedMembers.PushBack(CloneAstNode(member));
@@ -73,7 +73,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         Assert(it != nullptr);
 
-        if (m_heldType->IsOrHasBase(*BuiltinTypes::g_errorType))
+        if (m_heldType->IsOrHasBase(*BuiltinTypes::s_errorType))
         {
             // `Undefined` invalidates the array type
             break;
@@ -84,14 +84,14 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
             // take first item found that is not `Any`
             m_heldType = it;
         }
-        else if (m_heldType->TypeCompatible(*it, false))
+        else if (m_heldType->TypeCompatible(*it, /* strictNumbers */ false, /* strictAny */ false))
         { // allow non-strict numbers because we can do a cast
             m_heldType = SymbolType::TypePromotion(m_heldType, it);
         }
         else
         {
             // more than one differing type, use Any.
-            m_heldType = BuiltinTypes::g_anyType;
+            m_heldType = BuiltinTypes::s_anyType;
             break;
         }
     }
@@ -112,9 +112,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
                 replacedMember.Reset(new AstAsExpression(
                     replacedMember,
                     RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                        RC<AstTypeRef>(new AstTypeRef(
-                            m_heldType,
-                            member->GetLocation())),
+                        RC<AstTypeRef>(new AstTypeRef(m_heldType, member->GetLocation())),
                         member->GetLocation())),
                     member->GetLocation()));
             }
@@ -124,7 +122,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     RC<AstTemplateInstantiation> templateInstantiation(new AstTemplateInstantiation(
-        RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::g_arrayType, m_location)),
+        RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_arrayType, m_location)),
         { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_heldType, m_location)), m_location)) },
         nullptr, // no function return type
         m_location));
@@ -294,7 +292,7 @@ SymbolTypeRef AstArrayExpression::GetExprType() const
 {
     if (m_exprType == nullptr)
     {
-        return BuiltinTypes::g_errorType;
+        return BuiltinTypes::s_errorType;
     }
 
     return m_exprType;

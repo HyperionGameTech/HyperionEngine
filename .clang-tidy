@@ -12,7 +12,7 @@ CheckOptions:
   - { key: readability-identifier-naming.FunctionCase,                    value: CamelCase }
   - { key: readability-identifier-naming.ClassCase,                       value: CamelCase }
   - { key: readability-identifier-naming.ClassIgnoredRegexp,              value: "(.*_.*)|(^float16$)" }
-  # - { key: readability-identifier-naming.AbstractClassSuffix,             value: Base } # come back to this
+  - { key: readability-identifier-naming.AbstractClassSuffix,             value: Base }
   - { key: readability-identifier-naming.AbstractClassIgnoredRegexp,      value: "^(I(.*))|(HypEnum)|(HypClass)|(HypStruct)$" }
   - { key: readability-identifier-naming.StructCase,                      value: CamelCase }
   - { key: readability-identifier-naming.StructIgnoredRegexp,             value: "(.*_.*)|(^float16$)" }
@@ -46,9 +46,9 @@ CheckOptions:
   - { key: readability-identifier-naming.PrivateMethodCase,               value: CamelCase }
   - { key: readability-identifier-naming.PrivateMethodIgnoredRegexp,      value: "(.*_Impl$)|(.*_.*)" }
   - { key: readability-identifier-naming.StaticConstantCase,              value: camelBack }
-  - { key: readability-identifier-naming.StaticConstantPrefix,            value: "" }
+  - { key: readability-identifier-naming.StaticConstantPrefix,            value: "s_" }
   - { key: readability-identifier-naming.StaticVariableCase,              value: camelBack }
-  - { key: readability-identifier-naming.StaticVariablePrefix,            value: "" }
+  - { key: readability-identifier-naming.StaticVariablePrefix,            value: "s_" }
   - { key: readability-identifier-naming.TemplateParameterCase,           value: CamelCase }
   - { key: readability-identifier-naming.TemplateParameterIgnoredRegexp,  value: "^(string_type)|(.*_.*)$" }
   - { key: readability-identifier-naming.TemplateTypeCase,                value: CamelCase }

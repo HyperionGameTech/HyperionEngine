@@ -41,7 +41,7 @@ float AstUndefined::FloatValue() const
 
 SymbolTypeRef AstUndefined::GetExprType() const
 {
-    return BuiltinTypes::g_errorType;
+    return BuiltinTypes::s_errorType;
 }
 
 RC<AstConstant> AstUndefined::HandleOperator(Operators opType, const AstConstant* right) const

@@ -35,7 +35,7 @@ AstVariableDeclaration::AstVariableDeclaration(
 
 void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_symbolType = BuiltinTypes::g_errorType;
+    m_symbolType = BuiltinTypes::s_errorType;
 
     const bool hasUserAssigned = m_assignment != nullptr;
     const bool hasUserSpecifiedType = m_proto != nullptr;
@@ -82,7 +82,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     m_proto->GetLocation(),
                     m_proto->GetExprType()->ToString()));
 
-                m_symbolType = BuiltinTypes::g_errorType;
+                m_symbolType = BuiltinTypes::s_errorType;
             }
             else
             {
@@ -153,7 +153,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         if (IsConst())
         {
-            mod->m_scopes.Open(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
+            mod->scopeTree.Open(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG);
 
             passByConstScope = true;
         }
@@ -164,7 +164,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             {
                 if (m_realAssignment->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)
                 {
-                    mod->m_scopes.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
+                    mod->scopeTree.Open(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG);
 
                     passByRefScope = true;
                 }
@@ -239,12 +239,12 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         if (passByRefScope)
         {
-            mod->m_scopes.Close();
+            mod->scopeTree.Close();
         }
 
         if (passByConstScope)
         {
-            mod->m_scopes.Close();
+            mod->scopeTree.Close();
         }
     }
 

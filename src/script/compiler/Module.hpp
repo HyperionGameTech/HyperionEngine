@@ -46,17 +46,17 @@ public:
 
     TreeNode<Module*>* GetImportTreeLink()
     {
-        return m_treeLink;
+        return importTreeNode;
     }
 
     const TreeNode<Module*>* GetImportTreeLink() const
     {
-        return m_treeLink;
+        return importTreeNode;
     }
 
     void SetImportTreeLink(TreeNode<Module*>* treeLink)
     {
-        m_treeLink = treeLink;
+        importTreeNode = treeLink;
     }
 
     FlatSet<String> GenerateAllScanPaths() const;
@@ -101,14 +101,15 @@ public:
     SymbolTypeRef LookupTypeInstance(const TypeInstanceCache::Key& cacheKey);
     void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type);
 
-    Tree<Scope> m_scopes;
+    Tree<Scope> scopeTree;
+    TreeNode<Module*>* importTreeNode;
 
     template <class T>
     T PerformLookup(
         Proc<T(TreeNode<Scope>*)>&& pred1,
         Proc<T(Module*)>&& pred2)
     {
-        return PerformLookup<T>(m_scopes.TopNode(), std::move(pred1), std::move(pred2));
+        return PerformLookup<T>(scopeTree.TopNode(), std::move(pred1), std::move(pred2));
     }
 
     template <class T>
@@ -128,9 +129,9 @@ public:
             top = top->m_parent;
         }
 
-        if (m_treeLink && m_treeLink->m_parent)
+        if (importTreeNode && importTreeNode->m_parent)
         {
-            if (Module* other = m_treeLink->m_parent->Get())
+            if (Module* other = importTreeNode->m_parent->Get())
             {
                 if (other->GetLocation().GetFileName() == m_location.GetFileName())
                 {
@@ -139,7 +140,7 @@ public:
                 else
                 {
                     // we are outside of file scope, so loop until root/global module found
-                    auto* link = m_treeLink->m_parent;
+                    auto* link = importTreeNode->m_parent;
 
                     while (link->m_parent)
                     {
@@ -157,20 +158,16 @@ public:
         return T {};
     }
 
+private:
     String m_name;
     SourceLocation m_location;
-
-    // module scan paths
     FlatSet<String> m_scanPaths;
-
-    /** A link to where this module exists in the import tree */
-    TreeNode<Module*>* m_treeLink;
 };
 
 struct ScopeGuard : TreeNodeGuard<Scope>
 {
     ScopeGuard(Module* mod, ScopeType scopeType, int scopeFlags = 0)
-        : TreeNodeGuard(&mod->m_scopes, scopeType, scopeFlags)
+        : TreeNodeGuard(&mod->scopeTree, scopeType, scopeFlags)
     {
     }
 

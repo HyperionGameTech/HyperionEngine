@@ -30,7 +30,7 @@ AstWhileLoop::AstWhileLoop(const RC<AstExpression>& conditional,
 void AstWhileLoop::Visit(AstVisitor* visitor, Module* mod)
 {
     // open scope
-    mod->m_scopes.Open(SCOPE_TYPE_LOOP);
+    mod->scopeTree.Open(SCOPE_TYPE_LOOP);
 
     // visit the conditional
     m_conditional->Visit(visitor, mod);
@@ -38,11 +38,11 @@ void AstWhileLoop::Visit(AstVisitor* visitor, Module* mod)
     // visit the body
     m_block->Visit(visitor, mod);
 
-    Scope& thisScope = mod->m_scopes.Top();
+    Scope& thisScope = mod->scopeTree.Top();
     m_numLocals = thisScope.identifierTable.CountUsedVariables();
 
     // close scope
-    mod->m_scopes.Close();
+    mod->scopeTree.Close();
 }
 
 UniquePtr<Buildable> AstWhileLoop::Build(AstVisitor* visitor, Module* mod)
