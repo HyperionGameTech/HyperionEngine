@@ -585,12 +585,6 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 
         if (index >= numGenericArgs && varargType != nullptr)
         {
-            DebugLog(
-                LogType::Info,
-                "Checking vararg type compatibility for argument %zu: %s with vararg type %s\n",
-                index,
-                arg->GetExprType() ? arg->GetExprType()->ToString().Data() : "null",
-                varargType ? varargType->ToString().Data() : "null");
             CheckArgTypeCompatible(
                 visitor,
                 mod,

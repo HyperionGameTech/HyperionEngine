@@ -111,7 +111,7 @@ void HyperionEditor::Init()
 #if 1
     { // script 2
         String str;
-#if 0
+#if 1
         str = "extern class UUID {\n"
               "    ToString() -> string\n"
               "}\n"

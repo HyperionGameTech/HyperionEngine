@@ -38,15 +38,18 @@ public:
     void Clear();
 
     /*! \brief Get the number of objects waiting for updates */
-    SizeType GetPendingUpdateCount() const { return m_pendingObjects.Size(); }
+    SizeType GetPendingUpdateCount() const
+    {
+        return m_pendingObjects.Size();
+    }
 
 private:
     struct UpdateEntry
     {
         int index = -1;
+        int depth = 0; // For sorting by hierarchy depth
         WeakHandle<UIObject> object;
         EnumFlags<UIObjectUpdateType> updateTypes;
-        int depth = 0; // For sorting by hierarchy depth
     };
 
     SparsePagedArray<UpdateEntry, 2048> m_entryPool;
@@ -54,7 +57,7 @@ private:
 
     // Objects that need updating, organized by individual update type for proper batching
     HashMap<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
-    
+
     // All objects that have pending updates (for quick lookup)
     HashMap<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;
 

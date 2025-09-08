@@ -68,26 +68,26 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
-    HypConstant(Name name, const ConstantType* valuePtr, Span<const HypClassAttribute> attributes = {})
+    HypConstant(Name name, const ConstantType* pValue, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
           m_typeId(TypeId::ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
-        m_getProc = [valuePtr]() -> HypData
+        m_getProc = [pValue]() -> HypData
         {
-            return HypData(AnyRef(const_cast<NormalizedType<ConstantType>*>(valuePtr)));
+            return HypData(AnyRef(const_cast<NormalizedType<ConstantType>*>(pValue)));
         };
 
         if (m_attributes["serialize"] || m_attributes["xmlattribute"])
         {
-            m_serializeProc = [valuePtr](EnumFlags<FBOMDataFlags> flags) -> FBOMData
+            m_serializeProc = [pValue](EnumFlags<FBOMDataFlags> flags) -> FBOMData
             {
-                HYP_CORE_ASSERT(valuePtr != nullptr);
+                HYP_CORE_ASSERT(pValue != nullptr);
 
                 FBOMData out;
 
-                if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*valuePtr, out, flags))
+                if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
                 {
                     HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                 }

@@ -815,10 +815,10 @@ public:
             return changed;
         }
 
-        void Track(IdType id, const ElementType& value, const int* versionPtr = nullptr, bool allowDuplicatesInSameFrame = true)
+        void Track(IdType id, const ElementType& value, const int* pVersion = nullptr, bool allowDuplicatesInSameFrame = true)
         {
-            ElementType* currentValuePtr = nullptr;
-            int* currentVersionPtr = nullptr;
+            ElementType* pCurrentValue = nullptr;
+            int* pCurrentVersion = nullptr;
 
             ResourceTrackState trackState = ResourceTrackState::UNCHANGED;
 
@@ -831,10 +831,10 @@ public:
             {
                 AssertDebug(elements.HasIndex(id.ToIndex()));
 
-                currentValuePtr = &elements.Get(id.ToIndex());
-                currentVersionPtr = &versions.Get(id.ToIndex());
+                pCurrentValue = &elements.Get(id.ToIndex());
+                pCurrentVersion = &versions.Get(id.ToIndex());
 
-                AssertDebug(currentValuePtr != nullptr && currentVersionPtr != nullptr);
+                AssertDebug(pCurrentValue && pCurrentVersion);
             }
 
             bool isDoublyAddedThisFrame = false;
@@ -855,13 +855,13 @@ public:
                 }
             }
 
-            if (currentValuePtr != nullptr)
+            if (pCurrentValue != nullptr)
             {
                 // elements and versions must be kept in sync
-                AssertDebug(currentVersionPtr != nullptr);
+                AssertDebug(pCurrentVersion != nullptr);
 
                 // Advance if version has changed or if elements are not equal
-                if (value != *currentValuePtr || (versionPtr != nullptr && *versionPtr != *currentVersionPtr))
+                if (value != *pCurrentValue || (pVersion && *pVersion != *pCurrentVersion))
                 {
                     if (!next.Test(id.ToIndex()) && previous.Test(id.ToIndex()))
                     {
@@ -870,8 +870,8 @@ public:
                     }
 
                     // update value and version
-                    *currentValuePtr = value;
-                    *currentVersionPtr = versionPtr ? *versionPtr : 0;
+                    *pCurrentValue = value;
+                    *pCurrentVersion = pVersion ? *pVersion : 0;
 
                     trackState = ResourceTrackState::CHANGED_MODIFIED;
                 }
@@ -890,7 +890,7 @@ public:
 
                 // use emplace to destruct / reconstruct current element
                 elements.Set(id.ToIndex(), value);
-                versions.Set(id.ToIndex(), versionPtr ? *versionPtr : 0);
+                versions.Set(id.ToIndex(), pVersion ? *pVersion : 0);
 
                 trackState = ResourceTrackState::CHANGED_ADDED;
             }

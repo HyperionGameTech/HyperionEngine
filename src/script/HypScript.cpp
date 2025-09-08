@@ -75,6 +75,7 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
     TokenStream tokenStream(TokenStreamInfo { sourceFile.GetFilePath() });
 
     CompilationUnit compilationUnit;
+
     BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->m_scopes.Top().identifierTable);
 
     Lexer lex(sourceStream, &tokenStream, &compilationUnit);

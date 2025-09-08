@@ -604,9 +604,9 @@ static Result ReadBinaryArray(const FBXObject& object, Array<T>& ary)
         {
             const auto& item = property.arrayElements[index];
 
-            if (const auto* valuePtr = item.TryGet<T>())
+            if (const T* pValue = item.TryGet<T>())
             {
-                ary[index] = *valuePtr;
+                ary[index] = *pValue;
             }
             else
             {

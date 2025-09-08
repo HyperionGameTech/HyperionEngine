@@ -3,13 +3,6 @@
 #include <script/compiler/CompilerError.hpp>
 #include <script/compiler/Keywords.hpp>
 
-#include <array>
-#include <sstream>
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <iostream>
-
 namespace hyperion {
 
 using namespace utf;
