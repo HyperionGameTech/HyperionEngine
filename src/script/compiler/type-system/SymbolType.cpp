@@ -1204,6 +1204,7 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateN
         break;
     }
 
+#if 0 // HACK for same classes returning not equal because of resolving placeholder types causing new SymbolType to be created.
     for (const SymbolTypeMember& member : m_members)
     {
         hc.Add(member.name);
@@ -1227,6 +1228,7 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateN
 
         hc.Add(staticMember.type->GetHashCodeWithDuplicateRemoval(duplicateNames));
     }
+#endif
 
     return hc;
 }

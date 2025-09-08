@@ -377,6 +377,9 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     if (SymbolTypeRef baseType = unaliasedInputType->GetBaseType())
     {
+        baseType = baseType->GetUnaliased();
+        Assert(baseType != nullptr);
+
         SymbolTypeRef substitutedBaseType = SubstituteGenericParameters(visitor, mod, baseType, {}, location);
 
         if (substitutedBaseType != baseType)
@@ -401,9 +404,13 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         Assert(memberIndex < targetType->GetMembers().Size());
 
         const SymbolTypeMember& member = targetType->GetMembers()[memberIndex];
-        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, member.type, {}, location);
 
-        if (substitutedMemberType == member.type)
+        SymbolTypeRef memberType = member.type->GetUnaliased();
+        Assert(memberType != nullptr);
+
+        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, memberType, {}, location);
+
+        if (substitutedMemberType == memberType)
         {
             // no change, skip
             continue;
@@ -430,9 +437,13 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         Assert(memberIndex < targetType->GetStaticMembers().Size());
 
         const SymbolTypeMember& member = targetType->GetStaticMembers()[memberIndex];
-        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, member.type, {}, location);
 
-        if (substitutedMemberType == member.type)
+        SymbolTypeRef memberType = member.type->GetUnaliased();
+        Assert(memberType != nullptr);
+
+        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, memberType, {}, location);
+
+        if (substitutedMemberType == memberType)
         {
             // no change, skip
             continue;
