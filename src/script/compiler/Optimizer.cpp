@@ -60,7 +60,7 @@ RC<AstExpression> Optimizer::OptimizeExpr(
     }
     else if (const AstBinaryExpression* exprAsBinop = dynamic_cast<AstBinaryExpression*>(expr.Get()))
     {
-        if (exprAsBinop->GetRight() == nullptr)
+        if (!exprAsBinop->GetRight())
         {
             // right side has been optimized away
             return Optimizer::OptimizeExpr(exprAsBinop->GetLeft(), visitor, mod);

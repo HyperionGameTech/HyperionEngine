@@ -52,6 +52,7 @@ HypScript::~HypScript()
 
 void HypScript::Initialize()
 {
+    BuiltinTypes::Initialize();
 }
 
 void HypScript::DestroyScript(Script_Instance* instance)

@@ -735,15 +735,13 @@ void AstBinaryExpression::Optimize(AstVisitor* visitor, Module* mod)
 
     Assert(m_left != nullptr);
 
-    m_left->Optimize(visitor, mod);
     m_left = Optimizer::OptimizeExpr(m_left, visitor, mod);
 
-    if (m_right == nullptr)
+    if (!m_right)
     {
         return;
     }
 
-    m_right->Optimize(visitor, mod);
     m_right = Optimizer::OptimizeExpr(m_right, visitor, mod);
 
     // check that we can further optimize the

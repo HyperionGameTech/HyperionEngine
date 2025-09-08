@@ -254,14 +254,30 @@ bool SymbolType::TypeCompatible(
         // Otherwise, reference types that are returned will not be properly deref'd if left is a non-ref type. (e.g int)
         if (right.IsAnyType())
         {
-            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "right-hand side of expression is 'any' and must be cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
+            ADD_INCOMPATIBILITY(IT_IMPLICIT_ANY, "right-hand side of expression is 'any' and must be cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
         }
 
         return true;
     }
     else if (strictAny && right.IsAnyType())
     {
-        ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "right-hand side of expression is 'any' and must be explicitly cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
+        ADD_INCOMPATIBILITY(IT_IMPLICIT_ANY, "right-hand side of expression is 'any' and must be explicitly cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
+
+        return false;
+    }
+
+    if (IsVarArgsType())
+    {
+        // cannot assign anything to varargs without explicit cast or unpacking.
+        ADD_INCOMPATIBILITY(IT_VARARGS, "left-hand side of expression is variadic and cannot be used for direct assignment");
+
+        return false;
+    }
+
+    if (right.IsVarArgsType())
+    {
+        // cannot assign anything from varargs without explicit cast or unpacking.
+        ADD_INCOMPATIBILITY(IT_VARARGS, "right-hand side of expression is variadic and cannot be used for direct assignment");
 
         return false;
     }
@@ -277,7 +293,7 @@ bool SymbolType::TypeCompatible(
     {
         if (!right.IsNullableType())
         {
-            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "null is only compatible with nullable types");
+            ADD_INCOMPATIBILITY(IT_NULLABLE_MISMATCH, "null is only compatible with nullable types");
 
             return false;
         }
@@ -289,7 +305,7 @@ bool SymbolType::TypeCompatible(
     {
         if (!IsNullableType())
         {
-            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "null is only compatible with nullable types");
+            ADD_INCOMPATIBILITY(IT_NULLABLE_MISMATCH, "null is only compatible with nullable types");
 
             return false;
         }
@@ -427,7 +443,14 @@ bool SymbolType::TypeCompatible(
                 return true;
             }
 
-            ADD_INCOMPATIBILITY(IT_NAME_MISMATCH, "numeric type " + right.ToString(false) + " would lose precision when assigned to " + ToString(false));
+            if (promotedType->IsFloat())
+            {
+                ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause precision loss. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
+            }
+            else if (right.IsUnsignedIntegral() && IsSignedIntegral())
+            {
+                ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause a signed integer overflow. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
+            }
 
             return false;
         }
@@ -1041,9 +1064,7 @@ SymbolTypeRef SymbolType::Extend(
 
     SymbolTypeRef symbolType(new SymbolType(
         name,
-        base->GetTypeClass() == TYPE_BUILTIN
-            ? TYPE_USER_DEFINED
-            : base->GetTypeClass(),
+        base->GetTypeClass(),
         base,
         base->GetDefaultValue(),
         members,

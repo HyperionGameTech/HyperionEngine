@@ -163,8 +163,8 @@ void HyperionEditor::Init()
               "       jet = val as int\n"
               "       return jet\n"
               "    }\n"
-              "    modValue(inValue : Array<int>, args : float...) -> any {\n"
-              "        args\n"
+              "    modValue(inValue : Array<int>, args : int ...) {\n"
+              "        args[0]\n"
               "    }\n"
               "}\n"
               "ins := new MyClass();\n"
@@ -172,7 +172,8 @@ void HyperionEditor::Init()
               "testArray2[0]++\n"
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
-              "blah := ins.modValue(testRef, 1, 5.4, 3, 4);\n"
+              "blah := ins.modValue(testRef, 1, 5, 3, 4) as uint;\n"
+              "blah = -1u\n"
               "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { blah }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif

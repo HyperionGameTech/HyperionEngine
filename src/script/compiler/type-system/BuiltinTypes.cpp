@@ -28,18 +28,6 @@ const SymbolTypeRef BuiltinTypes::s_errorType = SymbolTypeRef(new SymbolType(
     nullptr,
     {}, {}));
 
-const SymbolTypeRef BuiltinTypes::s_varArgsBaseType = SymbolType::Primitive(
-    "VarArgsBase",
-    nullptr);
-
-const SymbolTypeRef BuiltinTypes::s_varArgsType = SymbolType::Generic(
-    "VarArgs",
-    s_varArgsBaseType,
-    Array<SymbolTypeMember> {},
-    Array<SymbolTypeMember> {},
-    GenericInstanceTypeInfo {
-        { { "type", SymbolType::GenericParameter("T") } } });
-
 const SymbolTypeRef BuiltinTypes::s_anyType = SymbolTypeRef(new SymbolType(
     "any",
     TYPE_BUILTIN,
@@ -71,6 +59,24 @@ const SymbolTypeRef BuiltinTypes::s_objectType = SymbolTypeRef(new SymbolType(
     nullptr,
     nullptr,
     {}, {}));
+
+const SymbolTypeRef BuiltinTypes::s_functionBaseType = SymbolType::Primitive(
+    "FunctionBase",
+    nullptr);
+
+const SymbolTypeRef BuiltinTypes::s_arrayBaseType = SymbolType::Primitive(
+    "ArrayBase",
+    nullptr);
+
+const SymbolTypeRef BuiltinTypes::s_varArgsBaseType = SymbolType::Extend(
+    "VarArgsBase",
+    BuiltinTypes::s_arrayBaseType,
+    {},
+    {});
+
+const SymbolTypeRef BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
+    "MapBase",
+    nullptr);
 
 // Enum type is a generic class type similar to Array<T>.
 // e.g. Enum<uint>
@@ -104,9 +110,13 @@ const SymbolTypeRef BuiltinTypes::s_nullType = SymbolType::Primitive(
     "<null>",
     RC<AstNil>(new AstNil(SourceLocation::eof)));
 
-const SymbolTypeRef BuiltinTypes::s_functionBaseType = SymbolType::Primitive(
-    "FunctionBase",
-    nullptr);
+const SymbolTypeRef BuiltinTypes::s_varArgsType = SymbolType::Generic(
+    "VarArgs",
+    s_varArgsBaseType,
+    Array<SymbolTypeMember> {},
+    Array<SymbolTypeMember> {},
+    GenericInstanceTypeInfo {
+        { { "type", SymbolType::GenericParameter("T") } } });
 
 const SymbolTypeRef BuiltinTypes::s_functionType = SymbolType::Generic(
     "Function",
@@ -116,10 +126,6 @@ const SymbolTypeRef BuiltinTypes::s_functionType = SymbolType::Generic(
     GenericInstanceTypeInfo {
         { { "@return", SymbolType::GenericParameter("ReturnType") },
             { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) } } });
-
-const SymbolTypeRef BuiltinTypes::s_arrayBaseType = SymbolType::Primitive(
-    "ArrayBase",
-    nullptr);
 
 const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
     "Array",
@@ -146,10 +152,6 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                         { "value", SymbolType::GenericParameter("T") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
-
-const SymbolTypeRef BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
-    "MapBase",
-    nullptr);
 
 const SymbolTypeRef BuiltinTypes::s_mapType = SymbolType::Generic(
     "Map",
@@ -178,6 +180,11 @@ const SymbolTypeRef BuiltinTypes::s_mapType = SymbolType::Generic(
     GenericInstanceTypeInfo {
         { { "key", SymbolType::GenericParameter("K") },
             { "value", SymbolType::GenericParameter("V") } } });
+
+void BuiltinTypes::Initialize()
+{
+    // do nothing for now
+}
 
 void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
 {

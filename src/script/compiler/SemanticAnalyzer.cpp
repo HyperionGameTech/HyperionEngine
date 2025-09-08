@@ -124,7 +124,9 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
             location,
             resolvedArgType->ToString(),
             resolvedParamType->ToString(),
-            "\n * " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n * ")));
+            (incompatibilities.Size() > 1
+                    ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                    : " " + incompatibilities[0].details)));
     }
     else
     {
@@ -971,7 +973,9 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 location,
                 assignmentTypeUnaliased->ToString(),
                 symbolTypeUnaliased->ToString(),
-                "\n * " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n * ")));
+                (incompatibilities.Size() > 1
+                        ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
+                        : " " + incompatibilities[0].details)));
         }
         else
         {

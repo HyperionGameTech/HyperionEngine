@@ -255,16 +255,23 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
 
     m_target->Optimize(visitor, mod);
 
-    if (m_op->GetOperatorType() == Operators::OP_positive)
+    if (!m_folded)
     {
-        m_folded = true;
-    }
-    else if (auto constantValue = ConstantFold(
-                 m_target,
-                 m_op->GetOperatorType(),
-                 visitor))
-    {
-        m_target = constantValue;
+        // only try ConstantFold if we aren't already folded
+        // otherwise, we may double fold and mess up the value (e.g. --5 becomes 5)
+
+        if (m_op->GetOperatorType() == Operators::OP_positive)
+        {
+            // nothing to do for unary plus
+        }
+        else if (RC<AstConstant> constantValue = ConstantFold(
+                     m_target,
+                     m_op->GetOperatorType(),
+                     visitor))
+        {
+            m_target = constantValue;
+        }
+
         m_folded = true;
     }
 }

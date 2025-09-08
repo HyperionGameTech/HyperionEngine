@@ -17,9 +17,11 @@ struct BuiltinTypes
 {
     static const SymbolTypeRef s_primitiveType;
     static const SymbolTypeRef s_errorType;
-    static const SymbolTypeRef s_varArgsBaseType;
-    static const SymbolTypeRef s_varArgsType;
     static const SymbolTypeRef s_objectType;
+    static const SymbolTypeRef s_functionBaseType; // non-generic function type
+    static const SymbolTypeRef s_arrayBaseType;    // non-generic array type
+    static const SymbolTypeRef s_varArgsBaseType;
+    static const SymbolTypeRef s_mapBaseType; // non-generic map type
     static const SymbolTypeRef s_enumType;
     static const SymbolTypeRef s_anyType;
     static const SymbolTypeRef s_classType;
@@ -30,14 +32,13 @@ struct BuiltinTypes
     static const SymbolTypeRef s_floatType;
     static const SymbolTypeRef s_boolType;
     static const SymbolTypeRef s_stringType;
-    static const SymbolTypeRef s_functionBaseType; // non-generic function type
+    static const SymbolTypeRef s_varArgsType;
     static const SymbolTypeRef s_functionType;
     static const SymbolTypeRef s_nullType;
-    static const SymbolTypeRef s_arrayBaseType; // non-generic array type
     static const SymbolTypeRef s_arrayType;
-    static const SymbolTypeRef s_mapBaseType; // non-generic map type
     static const SymbolTypeRef s_mapType;
 
+    static void Initialize();
     static void AddToSymbolTable(IdentifierTable& table);
 };
 
