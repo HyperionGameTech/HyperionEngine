@@ -31,9 +31,6 @@ AstVariable::AstVariable(
 
 void AstVariable::Visit(AstVisitor* visitor, Module* mod)
 {
-    Assert(!m_isVisited);
-    m_isVisited = true;
-
     AstIdentifier::Visit(visitor, mod);
 
     Assert(m_properties.GetIdentifierType() != IDENTIFIER_TYPE_UNKNOWN);
@@ -212,8 +209,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
 {
-    Assert(m_isVisited);
-
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     chunk->Append(BytecodeUtil::Make<Comment>("Variable access: " + m_name + " (access mode: " + String::ToString(static_cast<int>(m_accessMode)) + ")"));

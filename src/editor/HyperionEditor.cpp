@@ -169,7 +169,7 @@ void HyperionEditor::Init()
               "testArray2[0]++\n"
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
-              "blah := ins.modValue(testRef);\n"
+              "blah := ins.modValue(testRef, new Fart());\n"
               "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { ins }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif

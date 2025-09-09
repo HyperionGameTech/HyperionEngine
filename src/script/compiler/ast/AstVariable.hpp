@@ -39,7 +39,6 @@ private:
     bool m_shouldInline;
     bool m_isInRefAssignment;
     bool m_isInConstAssignment;
-    bool m_isVisited = false;
 
     RC<AstVariable> CloneImpl() const
     {

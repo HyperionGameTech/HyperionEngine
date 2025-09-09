@@ -20,9 +20,6 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    Assert(!m_isVisited);
-    m_isVisited = true;
-
     CompilationUnit* compilationUnit = visitor->GetCompilationUnit();
     Scope& scope = mod->scopeTree.Top();
 

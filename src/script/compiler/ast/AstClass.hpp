@@ -113,6 +113,11 @@ public:
         return m_flags[CLASS_FLAG_EXTERN];
     }
 
+    void SetPreRegister(bool preRegister)
+    {
+        m_preRegister = preRegister;
+    }
+
     SymbolTypeRef GetBaseType() const
     {
         return m_baseType;
@@ -202,8 +207,7 @@ protected:
     RC<AstTypeRef> m_typeRef;
     Array<RC<AstVariableDeclaration>> m_outsideMembers;
     Array<RC<AstVariableDeclaration>> m_combinedMembers;
-    bool m_isVisited;
-    bool m_isPreRegistered;
+    bool m_preRegister;
 
     RC<AstClass> CloneImpl() const
     {

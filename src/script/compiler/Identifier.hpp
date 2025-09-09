@@ -33,7 +33,8 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_CONSTRUCTOR = 0x4000,
     FLAG_FUNCTION = 0x10000,
     FLAG_EXTERN = 0x20000,
-    FLAG_LAX = 0x80000 //!< except from many analyses, this identifier should be hidden from the user
+    FLAG_LAX = 0x80000, //!< except from many analyses, this identifier should be hidden from the user
+    FLAG_PREREGISTER = 0x100000
 };
 
 class Identifier

@@ -53,41 +53,11 @@ void AstModuleDeclaration::PreRegisterClassTypes(AstVisitor* visitor, Module* mo
 
         if (AstClass* classNode = dynamic_cast<AstClass*>(child.Get()))
         {
-            if (classNode->GetSymbolType())
-            {
-                continue;
-            }
+            classNode->SetPreRegister(true);
 
-            if (classNode->IsEnum())
-            {
-                if (!classNode->GetEnumUnderlyingType().IsValid())
-                {
-                    classNode->SetEnumUnderlyingType(BuiltinTypes::s_intType);
-                }
+            classNode->Visit(visitor, mod);
 
-                SymbolTypeRef enumType = SymbolType::GenericInstance(
-                    BuiltinTypes::s_enumType,
-                    {}, {},
-                    GenericInstanceTypeInfo { { { "of", classNode->GetEnumUnderlyingType() } } });
-
-                classNode->SetSymbolType(enumType);
-            }
-            else
-            {
-                SymbolTypeRef classType = SymbolType::Object(
-                    classNode->GetName(),
-                    BuiltinTypes::s_objectType,
-                    {}, {});
-
-                if (classNode->IsProxyClass())
-                {
-                    classType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
-                }
-
-                classNode->SetSymbolType(classType);
-            }
-
-            mod->scopeTree.Root().identifierTable.AddSymbolType(classNode->GetSymbolType());
+            classNode->SetPreRegister(false);
         }
     }
 }

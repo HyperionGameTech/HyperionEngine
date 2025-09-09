@@ -48,7 +48,6 @@ private:
     bool m_enableConstructorCall;
 
     /** Set while analyzing */
-    RC<AstExpression> m_objectValue;
     SymbolTypeRef m_instanceType;
     RC<AstBlock> m_constructorBlock; // create a block to store temporary vars
     RC<AstExpression> m_constructorCall;

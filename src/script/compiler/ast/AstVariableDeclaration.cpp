@@ -37,19 +37,44 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
     m_symbolType = BuiltinTypes::s_errorType;
 
-    const bool hasUserAssigned = m_assignment != nullptr;
     const bool hasUserSpecifiedType = m_proto != nullptr;
+
+    if (hasUserSpecifiedType)
+    {
+        m_proto->Visit(visitor, mod);
+    }
+
+    if (m_flags & IdentifierFlags::FLAG_PREREGISTER)
+    {
+        m_symbolType = hasUserSpecifiedType ? m_proto->GetHeldType() : BuiltinTypes::s_anyType;
+
+        AstDeclaration::Visit(visitor, mod);
+
+        if (m_identifier != nullptr)
+        {
+            m_identifier->GetFlags() |= m_flags;
+            m_identifier->SetSymbolType(m_symbolType);
+
+            // set current value to be the assignment
+            if (!m_identifier->GetCurrentValue())
+            {
+                // Note: we do not call CloneAstNode() on the assignment,
+                // because we need to use GetExprType(), which requires that the node has been visited.
+                m_identifier->SetCurrentValue(m_realAssignment);
+            }
+        }
+
+        // if pre-registering, do not visit assignment
+        return;
+    }
+
+    const bool hasUserAssigned = m_assignment != nullptr;
 
     bool isDefaultAssigned = false;
 
     if (hasUserAssigned)
     {
         m_realAssignment = m_assignment;
-    }
-
-    if (m_proto != nullptr)
-    {
-        m_proto->Visit(visitor, mod);
     }
 
     if (!hasUserSpecifiedType && !hasUserAssigned)
@@ -106,7 +131,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                 // generic/non-concrete types that have default values
                 // will get assigned to their default value without causing
                 // an error
-                if (const RC<AstExpression> defaultValue = m_proto->GetDefaultValue())
+                if (const RC<AstExpression>& defaultValue = m_symbolType->GetDefaultValue())
                 {
                     // Assign variable to the default value for the specified type.
                     m_realAssignment = CloneAstNode(defaultValue);

@@ -56,8 +56,7 @@ AstClass::AstClass(
       m_staticMembers(staticMembers),
       m_enumUnderlyingType(enumUnderlyingType),
       m_flags(flags),
-      m_isVisited(false),
-      m_isPreRegistered(false)
+      m_preRegister(false)
 {
 }
 
@@ -105,7 +104,6 @@ AstClass::AstClass(
 void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
-    Assert(!m_isVisited);
 
     // Create scope
     ScopeGuard scopeGuard(mod, SCOPE_TYPE_CLASS_DEFINITION, IsEnum() ? ENUM_MEMBERS_FLAG : 0);
@@ -128,60 +126,25 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
+    SymbolTypeRef newType;
+
     if (IsEnum())
     {
-        if (!m_symbolType)
+        if (!m_enumUnderlyingType.IsValid())
         {
-            if (!m_enumUnderlyingType.IsValid())
-            {
-                m_enumUnderlyingType = BuiltinTypes::s_intType;
-            }
-
-            // Create a generic instance of the enum type
-            m_symbolType = SymbolType::GenericInstance(
-                BuiltinTypes::s_enumType,
-                {}, {},
-                GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
+            m_enumUnderlyingType = BuiltinTypes::s_intType;
         }
+
+        // Create a generic instance of the enum type
+        newType = SymbolType::GenericInstance(
+            BuiltinTypes::s_enumType,
+            {}, {},
+            GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
     }
     else
     {
-        if (!m_symbolType)
+        if (m_baseType != nullptr)
         {
-            if (m_baseType != nullptr)
-            {
-                if (!m_baseType->IsOrHasBase(*BuiltinTypes::s_objectType))
-                {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_invalid_base_class,
-                        m_location,
-                        m_baseType->ToString()));
-
-                    m_baseType = BuiltinTypes::s_objectType;
-                }
-
-                m_symbolType = SymbolType::Extend(
-                    m_name,
-                    m_baseType,
-                    {}, {});
-            }
-            else
-            {
-                m_symbolType = SymbolType::Object(
-                    m_name,
-                    BuiltinTypes::s_objectType,
-                    {}, {});
-            }
-
-            if (IsProxyClass())
-            {
-                m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
-            }
-        }
-        else if (m_baseType != nullptr)
-        {
-            // Symbol type was pre-registered, but now we need to update it with proper base type
             if (!m_baseType->IsOrHasBase(*BuiltinTypes::s_objectType))
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -193,19 +156,34 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 m_baseType = BuiltinTypes::s_objectType;
             }
 
-            // Create new symbol type with proper inheritance
-            SymbolTypeRef updatedType = SymbolType::Extend(
+            newType = SymbolType::Extend(
                 m_name,
                 m_baseType,
                 {}, {});
-
-            if (IsProxyClass())
-            {
-                updatedType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
-            }
-
-            m_symbolType->CopyMutate(*updatedType);
         }
+        else
+        {
+            newType = SymbolType::Object(
+                m_name,
+                BuiltinTypes::s_objectType,
+                {}, {});
+        }
+
+        if (IsProxyClass())
+        {
+            newType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+        }
+    }
+
+    Assert(newType != nullptr);
+
+    if (m_symbolType)
+    {
+        m_symbolType->CopyMutate(*newType);
+    }
+    else
+    {
+        m_symbolType = newType;
     }
 
     const Array<RC<AstVariableDeclaration>>* allMembers[] = {
@@ -220,6 +198,11 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             for (const RC<AstVariableDeclaration>& member : *members)
             {
+                if (member->GetIdentifierFlags() & IdentifierFlags::FLAG_LAX)
+                {
+                    continue;
+                }
+
                 if (member != nullptr && member->GetName() == reserved)
                 {
                     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -232,7 +215,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // Register the symbol type (AddSymbolType handles the internal list management)
+    // Re-register the symbol type and add SelfType alias for member processing
     mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
     mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { m_symbolType }));
 
@@ -262,6 +245,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 {
                     decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
                 }
+
+                decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
 
                 decl->Visit(visitor, mod);
 
@@ -297,6 +282,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
                 }
 
+                decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
+
                 decl->Visit(visitor, mod);
 
                 const String& memberName = decl->GetName();
@@ -324,6 +311,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
                 }
 
+                decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
+
                 decl->Visit(visitor, mod);
 
                 const String& memberName = decl->GetName();
@@ -341,131 +330,131 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 m_symbolType->GetMembers().PushBack(std::move(member));
             }
-        }
 
-        if (!IsExternClass() && !IsProxyClass())
-        {
-            // add a $construct member. It'll need to call the user-defined constructor (if any).
-            // user-defined constructor is a function member with the same name as the class
-
-            // @TODO: Call base class constructor if applicable
-            Optional<SymbolTypeMember> userDefinedConstructorMember;
-            for (const SymbolTypeMember& member : m_symbolType->GetMembers())
+            if (m_preRegister && !IsExternClass() && !IsProxyClass())
             {
-                if (member.name == m_name)
+                // add a $construct member. It'll need to call the user-defined constructor (if any).
+                // user-defined constructor is a function member with the same name as the class
+
+                // @TODO: Call base class constructor if applicable
+                Optional<SymbolTypeMember> userDefinedConstructorMember;
+                for (const SymbolTypeMember& member : m_symbolType->GetMembers())
                 {
-                    userDefinedConstructorMember = member;
-                    break;
+                    if (member.name == m_name)
+                    {
+                        userDefinedConstructorMember = member;
+                        break;
+                    }
                 }
-            }
 
-            SymbolTypeMember constructorMember;
+                SymbolTypeMember constructorMember;
 
-            // add constructor
-            Array<RC<AstParameter>> constructorParams;
+                // add constructor
+                Array<RC<AstParameter>> constructorParams;
 
-            // add `self: typeof SelfType` parameter
-            constructorParams.PushBack(RC<AstParameter>(new AstParameter(
-                "self",
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), m_location)),
-                    m_location)),
-                nullptr,
-                false, /* variadic */
-                IdentifierFlags::FLAG_CONST,
-                m_location)));
+                // add `self: typeof SelfType` parameter
+                constructorParams.PushBack(RC<AstParameter>(new AstParameter(
+                    "self",
+                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                        RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), m_location)),
+                        m_location)),
+                    nullptr,
+                    false, /* variadic */
+                    IdentifierFlags::FLAG_CONST,
+                    m_location)));
 
-            RC<AstBlock> constructorBody(new AstBlock(m_location));
-            // initialize data members to default values
-            for (const RC<AstVariableDeclaration>& dataMember : m_dataMembers)
-            {
-                Assert(dataMember != nullptr);
-
-                if (dataMember->GetRealAssignment() != nullptr)
+                RC<AstBlock> constructorBody(new AstBlock(m_location));
+                // initialize data members to default values
+                for (const RC<AstVariableDeclaration>& dataMember : m_dataMembers)
                 {
-                    RC<AstExpression> expr(new AstBinaryExpression(
+                    Assert(dataMember != nullptr);
+
+                    if (dataMember->GetRealAssignment() != nullptr)
+                    {
+                        RC<AstExpression> expr(new AstBinaryExpression(
+                            RC<AstMember>(new AstMember(
+                                dataMember->GetName(),
+                                RC<AstVariable>(new AstVariable("self", m_location)),
+                                m_location)),
+                            CloneAstNode(dataMember->GetRealAssignment()),
+                            Operator::FindBinaryOperator(Operators::OP_assign),
+                            m_location));
+
+                        constructorBody->AddChild(expr);
+                    }
+                }
+
+                // If there is a user-defined constructor, call it with the parameters passed to this constructor
+                if (userDefinedConstructorMember.HasValue())
+                {
+                    const SymbolTypeMember& userDefinedConstructorMemberRef = userDefinedConstructorMember.Get();
+                    Assert(userDefinedConstructorMemberRef.type != nullptr);
+
+                    Array<RC<AstArgument>> constructorArgs;
+                    constructorArgs.Reserve(constructorParams.Size());
+
+                    // Pass each parameter as an argument to the constructor
+                    for (SizeType i = 0; i < constructorParams.Size(); i++)
+                    {
+                        const RC<AstParameter>& param = constructorParams[i];
+                        Assert(param != nullptr);
+
+                        constructorArgs.PushBack(RC<AstArgument>(new AstArgument(
+                            RC<AstVariable>(new AstVariable(
+                                param->GetName(),
+                                m_location)),
+                            false,
+                            false,
+                            param->IsRef(),
+                            param->IsConst(),
+                            param->GetName(),
+                            m_location)));
+                    }
+
+                    constructorBody->AddChild(RC<AstExpression>(new AstCallExpression(
                         RC<AstMember>(new AstMember(
-                            dataMember->GetName(),
+                            userDefinedConstructorMemberRef.name,
                             RC<AstVariable>(new AstVariable("self", m_location)),
                             m_location)),
-                        CloneAstNode(dataMember->GetRealAssignment()),
-                        Operator::FindBinaryOperator(Operators::OP_assign),
-                        m_location));
-
-                    constructorBody->AddChild(expr);
-                }
-            }
-
-            // If there is a user-defined constructor, call it with the parameters passed to this constructor
-            if (userDefinedConstructorMember.HasValue())
-            {
-                const SymbolTypeMember& userDefinedConstructorMemberRef = userDefinedConstructorMember.Get();
-                Assert(userDefinedConstructorMemberRef.type != nullptr);
-
-                Array<RC<AstArgument>> constructorArgs;
-                constructorArgs.Reserve(constructorParams.Size());
-
-                // Pass each parameter as an argument to the constructor
-                for (SizeType i = 0; i < constructorParams.Size(); i++)
-                {
-                    const RC<AstParameter>& param = constructorParams[i];
-                    Assert(param != nullptr);
-
-                    constructorArgs.PushBack(RC<AstArgument>(new AstArgument(
-                        RC<AstVariable>(new AstVariable(
-                            param->GetName(),
-                            m_location)),
-                        false,
-                        false,
-                        param->IsRef(),
-                        param->IsConst(),
-                        param->GetName(),
+                        constructorArgs,
+                        false, /* insertSelf */
                         m_location)));
                 }
 
-                constructorBody->AddChild(RC<AstExpression>(new AstCallExpression(
-                    RC<AstMember>(new AstMember(
-                        userDefinedConstructorMemberRef.name,
-                        RC<AstVariable>(new AstVariable("self", m_location)),
-                        m_location)),
-                    constructorArgs,
-                    false, /* insertSelf */
+                // add return self to the constructor function body
+                constructorBody->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
+                    RC<AstVariable>(new AstVariable("self", m_location)),
                     m_location)));
-            }
 
-            // add return self to the constructor function body
-            constructorBody->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
-                RC<AstVariable>(new AstVariable("self", m_location)),
-                m_location)));
-
-            RC<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
-                constructorParams,
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(
-                        SymbolType::Placeholder("SelfType"),
+                RC<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
+                    constructorParams,
+                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                        RC<AstTypeRef>(new AstTypeRef(
+                            SymbolType::Placeholder("SelfType"),
+                            m_location)),
                         m_location)),
-                    m_location)),
-                constructorBody,
-                m_location));
+                    constructorBody,
+                    m_location));
 
-            // add the constructor expression to the AST
-            RC<AstVariableDeclaration>& constructMemberDecl = m_functionMembers.EmplaceBack(new AstVariableDeclaration(
-                "$construct",
-                nullptr,
-                constructorExpr,
-                IdentifierFlags::FLAG_CONST,
-                m_location));
+                // add the constructor expression to the AST
+                RC<AstVariableDeclaration>& constructMemberDecl = m_functionMembers.EmplaceBack(new AstVariableDeclaration(
+                    "$construct",
+                    nullptr,
+                    constructorExpr,
+                    IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_LAX,
+                    m_location));
 
-            constructMemberDecl->Visit(visitor, mod);
+                constructMemberDecl->Visit(visitor, mod);
 
-            constructorMember = SymbolTypeMember {
-                "$construct",
-                constructorExpr->GetExprType(),
-                CloneAstNode(constructorExpr)
-            };
+                constructorMember = SymbolTypeMember {
+                    "$construct",
+                    constructorExpr->GetExprType(),
+                    CloneAstNode(constructorExpr)
+                };
 
-            m_symbolType->GetMembers().PushBack(constructorMember);
-            constructorExpr.Reset(); // release ref
+                m_symbolType->GetMembers().PushBack(constructorMember);
+                constructorExpr.Reset(); // release ref
+            }
         }
     }
 
@@ -480,14 +469,11 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         m_typeRef.Reset(new AstTypeRef(m_symbolType, m_location));
         m_typeRef->Visit(visitor, mod);
     }
-
-    m_isVisited = true;
 }
 
 UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_symbolType != nullptr);
-    Assert(m_isVisited);
 
     if (IsProxyClass() || IsExternClass())
     {
@@ -744,8 +730,6 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
 void AstClass::Optimize(AstVisitor* visitor, Module* mod)
 {
-    Assert(m_isVisited);
-
     Assert(m_typeRef != nullptr);
     m_typeRef->Optimize(visitor, mod);
 }
@@ -784,7 +768,6 @@ SymbolTypeRef AstClass::GetHeldType() const
 
 const AstExpression* AstClass::GetValueOf() const
 {
-    Assert(m_isVisited);
     Assert(m_typeRef != nullptr);
 
     return m_typeRef->GetValueOf();
@@ -792,7 +775,6 @@ const AstExpression* AstClass::GetValueOf() const
 
 const AstExpression* AstClass::GetDeepValueOf() const
 {
-    Assert(m_isVisited);
     Assert(m_typeRef != nullptr);
 
     return m_typeRef->GetDeepValueOf();

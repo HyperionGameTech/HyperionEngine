@@ -57,7 +57,6 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     if (SymbolTypeRef heldType = valueOf->GetHeldType())
     {
         m_instanceType = heldType->GetUnaliased();
-        m_objectValue = m_typeSpec->GetDefaultValue(); // may be nullptr
     }
     else
     {
@@ -193,11 +192,6 @@ void AstNewExpression::Optimize(AstVisitor* visitor, Module* mod)
 
     Assert(m_typeSpec != nullptr);
     m_typeSpec->Optimize(visitor, mod);
-
-    if (m_objectValue != nullptr)
-    {
-        m_objectValue->Optimize(visitor, mod);
-    }
 }
 
 RC<AstStatement> AstNewExpression::Clone() const
@@ -210,11 +204,6 @@ Tribool AstNewExpression::IsTrue() const
     if (m_constructorCall != nullptr)
     {
         return m_constructorCall->IsTrue();
-    }
-
-    if (m_objectValue != nullptr)
-    {
-        return m_objectValue->IsTrue();
     }
 
     return Tribool::Indeterminate();
@@ -242,7 +231,7 @@ AstExpression* AstNewExpression::GetTarget() const
         return m_constructorCall->GetTarget();
     }
 
-    return m_objectValue.Get();
+    return nullptr;
 }
 
 } // namespace hyperion

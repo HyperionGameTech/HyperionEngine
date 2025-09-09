@@ -1022,11 +1022,10 @@ void SemanticAnalyzer::Analyze(bool expectModuleDecl)
         auto node = m_astIterator->Next();
         Assert(node != nullptr);
 
-        // this will not work due to nseted Visit() calls
+        // this will not work due to nested Visit() calls
         node->SetScopeDepth(m_compilationUnit->GetCurrentModule()->scopeTree.TopNode()->m_depth);
 
         node->Visit(this, mod);
     }
 }
-
 } // namespace hyperion

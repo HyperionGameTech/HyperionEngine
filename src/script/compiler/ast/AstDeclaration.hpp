@@ -80,9 +80,6 @@ protected:
     String m_name;
     RC<Identifier> m_identifier;
     IdentifierFlagBits m_flags;
-
-private:
-    bool m_isVisited = false;
 };
 
 } // namespace hyperion

@@ -139,6 +139,20 @@ void IdentifierTable::AddSymbolType(const SymbolTypeRef& symbolType)
         symbolType->m_declScope = scope;
     }
 
+    auto it = symbolTypes.FindIf([&](const SymbolTypeRef& other)
+        {
+            return other->GetName() == symbolType->GetName();
+        });
+
+    if (it != symbolTypes.End())
+    {
+        // already exists, update
+        *it = symbolType;
+
+        return;
+    }
+
+    // add to list of types
     symbolTypes.PushBack(symbolType);
 }
 

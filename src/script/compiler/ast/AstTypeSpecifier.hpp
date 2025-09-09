@@ -20,10 +20,6 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    const RC<AstExpression>& GetDefaultValue() const
-    {
-        return m_defaultValue;
-    }
     virtual const RC<AstExpression>& GetExpr() const
     {
         return m_expr;
@@ -53,7 +49,6 @@ protected:
 
     /** Set while analyzing */
     SymbolTypeRef m_symbolType;
-    RC<AstExpression> m_defaultValue;
 
 private:
     RC<AstTypeSpecifier> CloneImpl() const
