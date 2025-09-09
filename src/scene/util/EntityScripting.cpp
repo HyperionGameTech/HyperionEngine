@@ -118,11 +118,6 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
 static HYP_FORCE_INLINE void InvokeScriptMethod(UTF8StringView methodName, ScriptComponent& target)
 {
-    if (!(target.flags & ScriptComponentFlags::INITIALIZED))
-    {
-        return;
-    }
-
     InvokeScriptMethodT<void>(nullptr, target.scriptObjectResource, *methodName);
 }
 
