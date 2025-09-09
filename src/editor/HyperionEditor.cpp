@@ -78,7 +78,7 @@
 
 #include <core/containers/SparsePagedArray.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <asset/ScriptAsset.hpp>
 
 #include <HyperionEngine.hpp>
 #include <engine/EngineGlobals.hpp>
@@ -359,6 +359,21 @@ void HyperionEditor::Init()
                     // }
 
                     // zombie->AddComponent<AudioComponent>(AudioComponent { .audioSource = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(), .playbackState = { .loopMode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE, .speed = 2.0f } });
+
+                    // temp: add test script component
+
+                    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
+
+                    ResourceHandle resourceHandle(*scriptAsset->GetResource());
+                    
+                    ScriptData* scriptData = scriptAsset->GetScriptData();
+                    Assert(scriptData != nullptr);
+
+                    Memory::StrCpy(scriptData->path, "tmp.hyp", sizeof(scriptData->path));
+
+                    ScriptComponent& scriptComponent = scene->GetEntityManager()->AddComponent<ScriptComponent>(static_cast<Entity*>(zombie.Get()), ScriptComponent {
+                        scriptAsset    
+                    });
 
                     zombie->SetName(NAME("zombie"));
                 }
