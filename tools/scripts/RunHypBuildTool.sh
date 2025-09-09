@@ -38,9 +38,6 @@ else
                 FILE_MAJOR="${BASH_REMATCH[1]}"
                 FILE_MINOR="${BASH_REMATCH[2]}"
                 
-                echo "Found build tool version: $FILE_MAJOR.$FILE_MINOR"
-                echo "Expected build tool version: $HYP_BUILD_TOOL_VERSION_MAJOR.$HYP_BUILD_TOOL_VERSION_MINOR"
-                
                 if [ "$FILE_MAJOR" -ne "$HYP_BUILD_TOOL_VERSION_MAJOR" ]; then
                     REBUILD=true
                     REBUILD_REASON="Major version mismatch"

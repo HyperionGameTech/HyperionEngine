@@ -51,9 +51,6 @@ for /f "tokens=3,4 delims=. " %%a in ("!line!") do (
     set "fileMinor=%%b"
 )
 
-echo Found build tool version: !fileMajor!.!fileMinor!
-echo Expected build tool version: !HYP_BUILD_TOOL_VERSION_MAJOR!.!HYP_BUILD_TOOL_VERSION_MINOR!
-
 set "fileMajorClean=!fileMajor: =!"
 set "fileMinorClean=!fileMinor: =!"
 set "majorClean=!HYP_BUILD_TOOL_VERSION_MAJOR: =!"

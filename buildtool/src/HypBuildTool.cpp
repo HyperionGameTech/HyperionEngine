@@ -94,6 +94,9 @@ public:
 
     Result Run()
     {
+        HYP_LOG(BuildTool, Info, "HypBuildTool v{}.{}.{}", HYP_BUILD_TOOL_VERSION_MAJOR, HYP_BUILD_TOOL_VERSION_MINOR, HYP_BUILD_TOOL_VERSION_PATCH);
+        HYP_LOG(BuildTool, Info, "Running...");
+
         FindModules();
 
         Task processModules = ProcessModules();
@@ -135,6 +138,8 @@ public:
 
         outputFileWriter.WriteString("\n");
         outputFileWriter.Close();
+
+        HYP_LOG(BuildTool, Info, "Build tool finished successfully");
 
         return {};
     }
@@ -363,17 +368,6 @@ private:
                 {
                     TopologicalSort(root);
                 }
-
-                // Log out the class hierarchy with static indices
-                for (const HypClassDefinition* hypClassDefinition : hypClassDefinitions)
-                {
-                    HYP_LOG(BuildTool, Info, "Class: {}, Type: {}, Static Index: {}, Num Descendants: {}, Parent: {}",
-                        hypClassDefinition->name,
-                        HypClassDefinitionTypeToString(hypClassDefinition->type),
-                        hypClassDefinition->staticIndex,
-                        hypClassDefinition->numDescendants,
-                        String::Join(hypClassDefinition->baseClassNames, ", "));
-                }
             });
     }
 
@@ -424,22 +418,38 @@ private:
 
             RC<HypScriptModuleGenerator> hypscriptModuleGenerator = MakeRefCountedPtr<HypScriptModuleGenerator>();
 
-            for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
+            // for hypscript, we want to generate all modules and then merge them into one file
+            // but we need to sort modules topologically to ensure dependencies come first
+
+            FileByteWriter hypscriptModuleWriter(m_analyzer.GetHypScriptOutputDirectory() / "Lib.hyp");
+
+            if (!hypscriptModuleWriter.IsOpen())
+            {
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypScript output file: {}", {}, -1, m_analyzer.GetHypScriptOutputDirectory() / "Hyperion.hyp"));
+            }
+
+            Array<Module*> sortedModules = SortModulesTopologically();
+
+            for (Module* mod : sortedModules)
             {
                 if (mod->GetHypClasses().Empty())
                 {
                     continue;
                 }
 
-                // hypscript modules can be processed async from C++ modules
-                batch->AddTask([this, hypscriptModuleGenerator, &mod = *mod]()
-                    {
-                        if (Result res = hypscriptModuleGenerator->Generate(m_analyzer, mod); res.HasError())
-                        {
-                            m_analyzer.AddError(AnalyzerError(res.GetError(), mod.GetPath()));
-                        }
-                    });
+                MemoryByteWriter writer;
+
+                if (Result res = hypscriptModuleGenerator->Generate(m_analyzer, *mod, writer); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+
+                    continue;
+                }
+
+                hypscriptModuleWriter.Write(writer.GetBuffer());
             }
+
+            hypscriptModuleWriter.Close();
         }
 
         RC<CXXModuleGenerator> cxxModuleGenerator = MakeRefCountedPtr<CXXModuleGenerator>();
@@ -528,13 +538,135 @@ private:
         return task;
     }
 
+    Array<Module*> SortModulesTopologically()
+    {
+        // Build a map from class names to modules that contain them
+        HashMap<String, Module*> classToModule;
+        HashMap<Module*, uint32> moduleToIndex;
+        Array<Module*> moduleArray;
+
+        for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
+        {
+            if (mod->GetHypClasses().Empty())
+            {
+                continue;
+            }
+
+            const uint32 moduleIndex = uint32(moduleArray.Size());
+            moduleToIndex[mod.Get()] = moduleIndex;
+            moduleArray.PushBack(mod.Get());
+
+            for (const auto& classEntry : mod->GetHypClasses())
+            {
+                classToModule[classEntry.second.name] = mod.Get();
+            }
+        }
+
+        // Build dependency graph between modules
+        const SizeType numModules = moduleArray.Size();
+        Array<Array<uint32>> dependents(numModules); // dependents[i] contains modules that depend on module i
+        Array<uint32> inDegree;                      // number of modules that this module depends on
+        inDegree.Resize(numModules);
+
+        // Initialize inDegree to 0
+        for (SizeType i = 0; i < numModules; i++)
+        {
+            inDegree[i] = 0;
+        }
+
+        for (SizeType i = 0; i < numModules; i++)
+        {
+            Module* currentModule = moduleArray[i];
+
+            // Collect all base classes used by this module
+            HashSet<Module*> dependencyModules;
+
+            for (const auto& classEntry : currentModule->GetHypClasses())
+            {
+                const HypClassDefinition& classDef = classEntry.second;
+
+                for (const String& baseClassName : classDef.baseClassNames)
+                {
+                    auto it = classToModule.Find(baseClassName);
+                    if (it != classToModule.End() && it->second != currentModule)
+                    {
+                        dependencyModules.Insert(it->second);
+                    }
+                }
+            }
+
+            // Update dependency graph: currentModule depends on dependencyModules
+            // So dependencyModule should come before currentModule
+            for (Module* depModule : dependencyModules)
+            {
+                const uint32 depModuleIndex = moduleToIndex.At(depModule);
+                dependents[depModuleIndex].PushBack(i); // depModule has currentModule as dependent
+                inDegree[i]++;                          // currentModule has one more dependency
+            }
+        }
+
+        Array<uint32> result;
+        Array<uint32> queue;
+
+        // Find all modules with no dependencies
+        for (SizeType i = 0; i < numModules; i++)
+        {
+            if (inDegree[i] == 0)
+            {
+                queue.PushBack(i);
+            }
+        }
+
+        while (!queue.Empty())
+        {
+            const uint32 currentIndex = queue.PopBack();
+            result.PushBack(currentIndex);
+
+            // Remove this module from dependency graph and check its dependents
+            for (uint32 dependentIndex : dependents[currentIndex])
+            {
+                inDegree[dependentIndex]--;
+                if (inDegree[dependentIndex] == 0)
+                {
+                    queue.PushBack(dependentIndex);
+                }
+            }
+        }
+
+        // Check for cycles
+        if (result.Size() != numModules)
+        {
+            HYP_LOG(BuildTool, Warning, "Circular dependency detected in modules! Some modules may be in incorrect order.");
+
+            // Add remaining modules to avoid missing any
+            for (SizeType i = 0; i < numModules; i++)
+            {
+                if (inDegree[i] > 0)
+                {
+                    result.PushBack(i);
+                }
+            }
+        }
+
+        // Convert indices back to module pointers
+        Array<Module*> sortedModules;
+        sortedModules.Reserve(result.Size());
+
+        for (uint32 index : result)
+        {
+            sortedModules.PushBack(moduleArray[index]);
+        }
+
+        return sortedModules;
+    }
+
     void LogGeneratedClasses() const
     {
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
             for (const Pair<String, HypClassDefinition>& hypClass : mod->GetHypClasses())
             {
-                HYP_LOG(BuildTool, Info, "Class: {}", hypClass.first);
+                HYP_LOG(BuildTool, Info, "Class: {} -> {}", hypClass.first, hypClass.second.staticIndex);
 
                 // Log out all members
                 for (const HypMemberDefinition& hypMember : hypClass.second.members)

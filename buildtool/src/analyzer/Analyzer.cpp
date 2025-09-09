@@ -750,8 +750,6 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
     {
         TResult<Array<HypMemberDefinition>, AnalyzerError> res = Array<HypMemberDefinition> {};
 
-        HYP_LOG(BuildTool, Info, "Building class definition: {} ({})", hypClassDefinition.name, HypClassDefinitionTypeToString(hypClassDefinition.type));
-
         switch (hypClassDefinition.type)
         {
         case HypClassDefinitionType::CLASS:
