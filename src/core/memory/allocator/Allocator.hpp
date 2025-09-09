@@ -52,7 +52,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             // The following nested union fields are unused but make natvis work correctly for arrays.
             union
             {
-                uintptr_t buffer;
+                UIntPtr buffer;
                 SizeType capacity;
             } dynamicAllocation;
 
@@ -561,7 +561,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             // The following nested union fields are unused but make natvis work correctly for arrays.
             union
             {
-                uintptr_t buffer;
+                UIntPtr buffer;
                 SizeType capacity;
             } dynamicAllocation;
 

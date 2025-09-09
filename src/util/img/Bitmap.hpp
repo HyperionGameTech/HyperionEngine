@@ -56,7 +56,7 @@ struct PixelReference
             return 0.0f;
         }
 
-        return *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + (sizeof(ComponentType) * index));
+        return *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index));
     }
 
     HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
@@ -74,7 +74,7 @@ struct PixelReference
         }
         else
         {
-            fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + (sizeof(ComponentType) * index)));
+            fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)));
         }
 
         if constexpr (IsSrgb)
@@ -96,7 +96,7 @@ struct PixelReference
             return;
         }
 
-        *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + (sizeof(ComponentType) * index)) = value;
+        *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)) = value;
     }
 
     HYP_FORCE_INLINE void SetComponentFloat(uint32 index, float value)
@@ -118,7 +118,7 @@ struct PixelReference
         }
         else
         {
-            *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + (sizeof(ComponentType) * index)) = ComponentType(value);
+            *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)) = ComponentType(value);
         }
     }
 
@@ -186,7 +186,7 @@ struct PixelReference
 
             if constexpr (numComponents >= 2)
             {
-                rg.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType));
+                rg.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
         }
 
@@ -233,7 +233,7 @@ struct PixelReference
 
             if constexpr (numComponents >= 2)
             {
-                *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
+                *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
             }
         }
     }
@@ -267,12 +267,12 @@ struct PixelReference
 
             if constexpr (numComponents >= 2)
             {
-                rgb.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType));
+                rgb.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
             if constexpr (numComponents >= 3)
             {
-                rgb.z = *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 2);
+                rgb.z = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
         }
 
@@ -325,12 +325,12 @@ struct PixelReference
 
             if constexpr (numComponents >= 2)
             {
-                *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
+                *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
             }
 
             if constexpr (numComponents >= 3)
             {
-                *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 2) = ComponentType(b);
+                *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2) = ComponentType(b);
             }
         }
     }
@@ -369,17 +369,17 @@ struct PixelReference
 
             if constexpr (numComponents >= 2)
             {
-                rgba.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType));
+                rgba.y = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
             if constexpr (numComponents >= 3)
             {
-                rgba.z = *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 2);
+                rgba.z = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
 
             if constexpr (numComponents >= 4)
             {
-                rgba.w = *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 3);
+                rgba.w = *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3);
             }
         }
 
@@ -441,17 +441,17 @@ struct PixelReference
 
             if constexpr (numComponents >= 2)
             {
-                *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
+                *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType)) = ComponentType(g);
             }
 
             if constexpr (numComponents >= 3)
             {
-                *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 2) = ComponentType(b);
+                *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2) = ComponentType(b);
             }
 
             if constexpr (numComponents >= 4)
             {
-                *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 3) = ComponentType(a);
+                *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3) = ComponentType(a);
             }
         }
     }
@@ -546,7 +546,7 @@ struct ConstPixelReference
             return 0.0f;
         }
 
-        return *reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + (sizeof(ComponentType) * index));
+        return *reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index));
     }
 
     HYP_FORCE_INLINE float GetComponentFloat(uint32 index) const
@@ -564,7 +564,7 @@ struct ConstPixelReference
         }
         else
         {
-            fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + (sizeof(ComponentType) * index)));
+            fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)));
         }
 
         if constexpr (IsSrgb)
@@ -578,7 +578,6 @@ struct ConstPixelReference
 
         return fv;
     }
-
 
     HYP_FORCE_INLINE float GetR() const
     {
@@ -624,7 +623,7 @@ struct ConstPixelReference
 
             if constexpr (numComponents >= 2)
             {
-                rg.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType));
+                rg.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
         }
 
@@ -666,12 +665,12 @@ struct ConstPixelReference
 
             if constexpr (numComponents >= 2)
             {
-                rgb.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType));
+                rgb.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
             if constexpr (numComponents >= 3)
             {
-                rgb.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 2);
+                rgb.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
         }
 
@@ -718,17 +717,17 @@ struct ConstPixelReference
 
             if constexpr (numComponents >= 2)
             {
-                rgba.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType));
+                rgba.y = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType));
             }
 
             if constexpr (numComponents >= 3)
             {
-                rgba.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 2);
+                rgba.z = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 2);
             }
 
             if constexpr (numComponents >= 4)
             {
-                rgba.w = *reinterpret_cast<const ComponentType*>(reinterpret_cast<uintptr_t>(byteOffset) + sizeof(ComponentType) * 3);
+                rgba.w = *reinterpret_cast<const ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + sizeof(ComponentType) * 3);
             }
         }
 

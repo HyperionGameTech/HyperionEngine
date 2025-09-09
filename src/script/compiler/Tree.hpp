@@ -248,7 +248,7 @@ public:
         }
 
         return reinterpret_cast<TreeNode<T>*>(
-            uintptr_t(value) - offsetof(TreeNode<T>, m_value));
+            UIntPtr(value) - offsetof(TreeNode<T>, m_value));
     }
 
     static const TreeNode<T>* GetTreeNodeFromValue(const T* value)

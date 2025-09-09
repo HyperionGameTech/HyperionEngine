@@ -129,6 +129,7 @@ struct HypData
         /* Fundamental types - can be stored inline */
         std::is_same_v<T, int8> || std::is_same_v<T, int16> | std::is_same_v<T, int32> | std::is_same_v<T, int64>
         || std::is_same_v<T, uint8> || std::is_same_v<T, uint16> || std::is_same_v<T, uint32> || std::is_same_v<T, uint64>
+
         || std::is_same_v<T, char>
         || std::is_same_v<T, float> || std::is_same_v<T, double>
         || std::is_same_v<T, bool>

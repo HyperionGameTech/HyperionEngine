@@ -244,11 +244,11 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, bufferStructAlignment);
 
-                void* dstPtr = reinterpret_cast<void*>((uintptr_t(drawCall.batch)) + fieldOffset + (entityIndex * bufferStructSize));
-                void* srcPtr = reinterpret_cast<void*>(uintptr_t(meshInstanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
+                void* dstPtr = reinterpret_cast<void*>((UIntPtr(drawCall.batch)) + fieldOffset + (entityIndex * bufferStructSize));
+                void* srcPtr = reinterpret_cast<void*>(UIntPtr(meshInstanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
 
                 // sanity checks
-                AssertDebug((uintptr_t(dstPtr) + bufferStructSize) - uintptr_t(drawCall.batch) <= batchSizeof,
+                AssertDebug((UIntPtr(dstPtr) + bufferStructSize) - UIntPtr(drawCall.batch) <= batchSizeof,
                     "Buffer struct size is larger than batch size! Buffer struct size: %u, Buffer struct alignment: %u, Batch size: %u, Entity index: %u, Field offset: %u",
                     bufferStructSize, bufferStructAlignment, batchSizeof, entityIndex, fieldOffset);
                 AssertDebug(meshInstanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,

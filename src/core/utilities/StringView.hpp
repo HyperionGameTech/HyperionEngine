@@ -228,7 +228,7 @@ public:
      *  \returns True if the StringView is valid, false otherwise. */
     HYP_FORCE_INLINE constexpr explicit operator bool() const
     {
-        return uintptr_t(m_end) > uintptr_t(m_begin);
+        return UIntPtr(m_end) > UIntPtr(m_begin);
     }
 
     /*! \brief Conversion operator to return the charater pointer the StringView is pointing to.

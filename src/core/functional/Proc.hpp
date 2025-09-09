@@ -240,9 +240,9 @@ public:
             m_impl.memory = InlineStorageType();
 
             void* ptr = &m_impl.memory;
-            const uintptr_t addressAligned = HYP_ALIGN_ADDRESS(ptr, alignof(FuncNormalized));
+            const UIntPtr addressAligned = HYP_ALIGN_ADDRESS(ptr, alignof(FuncNormalized));
 
-            if (addressAligned + sizeof(FuncNormalized) <= uintptr_t(ptr) + s_inlineStorageSizeBytes)
+            if (addressAligned + sizeof(FuncNormalized) <= UIntPtr(ptr) + s_inlineStorageSizeBytes)
             {
                 Memory::Construct<FuncNormalized>(std::assume_aligned<alignof(FuncNormalized)>(reinterpret_cast<FuncNormalized*>(addressAligned)), std::forward<Func>(fn));
 

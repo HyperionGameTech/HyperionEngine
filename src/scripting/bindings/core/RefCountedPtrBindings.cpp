@@ -17,7 +17,7 @@ extern "C"
         return nullptr; //&memory::RefCountedPtrBase<AtomicVar<uint32>>::emptyRefCountData;
     }
 
-    HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrlBlock, uintptr_t address, ValueStorage<HypData>* outHypData)
+    HYP_EXPORT void RefCountedPtr_Get(UIntPtr ctrlBlock, UIntPtr address, ValueStorage<HypData>* outHypData)
     {
         Assert(outHypData != nullptr);
 
@@ -30,7 +30,7 @@ extern "C"
         outHypData->Construct(std::move(rc));
     }
 
-    HYP_EXPORT void RefCountedPtr_IncRef(uintptr_t ctrlBlock, uintptr_t address)
+    HYP_EXPORT void RefCountedPtr_IncRef(UIntPtr ctrlBlock, UIntPtr address)
     {
         auto* refCountData = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
         AssertDebug(refCountData != nullptr);
@@ -38,7 +38,7 @@ extern "C"
         refCountData->IncRefCount_Strong(reinterpret_cast<void*>(address));
     }
 
-    HYP_EXPORT void RefCountedPtr_DecRef(uintptr_t ctrlBlock, uintptr_t address)
+    HYP_EXPORT void RefCountedPtr_DecRef(UIntPtr ctrlBlock, UIntPtr address)
     {
         auto* refCountData = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
         AssertDebug(refCountData != nullptr);
@@ -46,7 +46,7 @@ extern "C"
         refCountData->DecRefCount_Strong(reinterpret_cast<void*>(address));
     }
 
-    HYP_EXPORT void WeakRefCountedPtr_IncRef(uintptr_t ctrlBlock, uintptr_t address)
+    HYP_EXPORT void WeakRefCountedPtr_IncRef(UIntPtr ctrlBlock, UIntPtr address)
     {
         auto* refCountData = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
         AssertDebug(refCountData != nullptr);
@@ -54,7 +54,7 @@ extern "C"
         refCountData->IncRefCount_Weak(reinterpret_cast<void*>(address));
     }
 
-    HYP_EXPORT void WeakRefCountedPtr_DecRef(uintptr_t ctrlBlock, uintptr_t address)
+    HYP_EXPORT void WeakRefCountedPtr_DecRef(UIntPtr ctrlBlock, UIntPtr address)
     {
         auto* refCountData = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
         AssertDebug(refCountData != nullptr);
@@ -62,7 +62,7 @@ extern "C"
         refCountData->IncRefCount_Weak(reinterpret_cast<void*>(address));
     }
 
-    HYP_EXPORT uint32 WeakRefCountedPtr_Lock(uintptr_t ctrlBlock, uintptr_t address)
+    HYP_EXPORT uint32 WeakRefCountedPtr_Lock(UIntPtr ctrlBlock, UIntPtr address)
     {
         auto* refCountData = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
         AssertDebug(refCountData != nullptr);

@@ -5,16 +5,13 @@
 
 set -e  # Exit on any error
 
-# Define source and destination directories
 DOTNET_RUNTIME_DIR="src/dotnet/runtime"
 DOTNET_CORE_DIR="src/dotnet/core"
 DEST_DIR="src/scripting/bindings"
 
-# Create destination directory if it doesn't exist
 echo "Creating destination directory: $DEST_DIR"
 mkdir -p "$DEST_DIR"
 
-# Function to move .cpp files while preserving directory structure
 move_cpp_files() {
     local src_dir="$1"
     local relative_path="$2"
@@ -59,9 +56,3 @@ fi
 
 echo "Migration completed successfully!"
 echo "C binding files have been moved to: $DEST_DIR"
-
-echo ""
-echo "Next steps:"
-echo "1. Update your build system (CMakeLists.txt, Makefile, etc.) to reference the new paths"
-echo "2. Update any #include statements in other files that reference these bindings"
-echo "3. Consider updating the file headers to reflect their new generalized purpose"

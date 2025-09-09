@@ -7,6 +7,8 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <core/memory/Pimpl.hpp>
+
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 #include <core/Defines.hpp>
@@ -32,15 +34,8 @@ public:
     HypScript& operator=(const HypScript& other) = delete;
     ~HypScript();
 
-    Script_Interpreter* GetVM() const
-    {
-        return m_vm;
-    }
-
-    Script_Instance* GetGlobalInstance() const
-    {
-        return m_globalInstance;
-    }
+    Script_Interpreter* GetVM() const;
+    Script_Instance* GetGlobalInstance() const;
 
     void Initialize();
 
@@ -91,8 +86,7 @@ public:
     void ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue);
 
 private:
-    Script_Interpreter* m_vm;
-    Script_Instance* m_globalInstance;
+    Pimpl<struct HypScriptImpl> m_impl;
 };
 
 } // namespace hyperion

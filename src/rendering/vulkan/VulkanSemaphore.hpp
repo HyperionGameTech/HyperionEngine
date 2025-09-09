@@ -56,7 +56,7 @@ struct VulkanSemaphoreRef
 
     bool operator<(const VulkanSemaphoreRef& other) const
     {
-        return uintptr_t(semaphore.GetVulkanHandle()) < uintptr_t(other.semaphore.GetVulkanHandle());
+        return UIntPtr(semaphore.GetVulkanHandle()) < UIntPtr(other.semaphore.GetVulkanHandle());
     }
 };
 

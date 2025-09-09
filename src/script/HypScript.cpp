@@ -85,7 +85,8 @@ SymbolTypeRef TypeIdToSymbolTypeImpl(TypeId typeId)
 
     if (!hypClass)
     {
-        HYP_LOG(HypScript, Warning, "No HypClass found for TypeId({})", typeId.Value());
+        HYP_LOG(HypScript, Warning, "No HypClass found for `{}`", LookupTypeName(typeId));
+
         return BuiltinTypes::s_errorType;
     }
 
@@ -128,11 +129,20 @@ SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
         parentType = HypClassToSymbolType(hypClass->GetParent());
     }
 
+    // check if it was added by the parent call
+    it = g_symbolTypeCache.Find(hypClass->GetTypeId());
+    if (it != g_symbolTypeCache.End())
+    {
+        return it->second;
+    }
+
     SymbolTypeRef newType = SymbolType::Object(
         *hypClass->GetName(),
         parentType,
         {},
         {});
+
+    it = g_symbolTypeCache.Insert(hypClass->GetTypeId(), newType).first;
 
     for (const HypField* field : hypClass->GetFields())
     {
@@ -140,8 +150,7 @@ SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
 
         newType->GetMembers().PushBack(SymbolTypeMember {
             *field->GetName(),
-            TypeIdToSymbolType(fieldTypeId)
-        });
+            TypeIdToSymbolType(fieldTypeId) });
     }
 
     for (const HypMethod* method : hypClass->GetMethods())
@@ -160,8 +169,7 @@ SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
 
             parameters.PushBack(GenericInstanceTypeInfo::Arg {
                 HYP_FORMAT("arg{}", paramIndex),
-                TypeIdToSymbolType(param.typeId)
-            });
+                TypeIdToSymbolType(param.typeId) });
         }
 
         newType->GetMembers().PushBack(SymbolTypeMember {
@@ -169,39 +177,66 @@ SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
-                GenericInstanceTypeInfo { parameters })
-        });
+                GenericInstanceTypeInfo { parameters }) });
     }
 
-    g_symbolTypeCache.Insert(hypClass->GetTypeId(), newType);
-    
     return newType;
 }
 
 #pragma endregion HypClass SymbolType Interop
 
+#pragma region HypScriptImpl
+
+struct HypScriptImpl
+{
+    Script_Interpreter* vm;
+    Script_Instance* globalInstance;
+
+    HypScriptImpl()
+        : vm(new Script_Interpreter()),
+          globalInstance(nullptr)
+    {
+    }
+
+    HypScriptImpl(const HypScriptImpl& other) = delete;
+    HypScriptImpl& operator=(const HypScriptImpl& other) = delete;
+
+    ~HypScriptImpl()
+    {
+        if (globalInstance)
+        {
+            delete globalInstance;
+            globalInstance = nullptr;
+        }
+
+        delete vm;
+    }
+};
+
+#pragma endregion HypScriptImpl
+
 HypScript& HypScript::GetInstance()
 {
-    static HypScript instance;
+    static HypScript s_hypScriptInstance;
 
-    return instance;
+    return s_hypScriptInstance;
 }
 
 HypScript::HypScript()
-    : m_vm(new Script_Interpreter()),
-      m_globalInstance(nullptr)
+    : m_impl(MakePimpl<HypScriptImpl>())
 {
 }
 
-HypScript::~HypScript()
-{
-    if (m_globalInstance)
-    {
-        DestroyScript(m_globalInstance);
-        m_globalInstance = nullptr;
-    }
+HypScript::~HypScript() = default;
 
-    delete m_vm;
+Script_Interpreter* HypScript::GetVM() const
+{
+    return m_impl->vm;
+}
+
+Script_Instance* HypScript::GetGlobalInstance() const
+{
+    return m_impl->globalInstance;
 }
 
 void HypScript::Initialize()
@@ -216,8 +251,14 @@ void HypScript::Initialize()
                 return IterationResult::CONTINUE;
             }
 
-            // add to global symbol table
-            //// @TODO
+            SymbolTypeRef symbolType = HypClassToSymbolType(hypClass);
+
+            if (!symbolType)
+            {
+                HYP_LOG(HypScript, Warning, "Failed to create SymbolType for HypClass '{}'", *hypClass->GetName());
+
+                return IterationResult::CONTINUE;
+            }
 
             return IterationResult::CONTINUE;
         });
@@ -330,7 +371,7 @@ void HypScript::Run(Script_Instance* instance)
         return;
     }
 
-    m_vm->Execute(instance);
+    m_impl->vm->Execute(instance);
 }
 
 Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs)
@@ -354,7 +395,7 @@ Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script
     vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = const_cast<Script_Value*>(&value);
 
-    m_vm->InvokeNow(instance, Script_Value(vmData), numArgs);
+    m_impl->vm->InvokeNow(instance, Script_Value(vmData), numArgs);
 
     if (numArgs != 0)
     {
@@ -368,7 +409,7 @@ void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& out
 {
     Assert(instance != nullptr);
 
-    outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_vm->GetGC());
+    outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
 }
 
 bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetValue, const char* memberName, Script_Value& outValue)
@@ -405,7 +446,7 @@ bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetV
 
         return true;
     }
-    
+
     if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
     {
         HypMethod* method = static_cast<HypMethod*>(member);
@@ -448,7 +489,7 @@ bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Scri
     {
         return false;
     }
-    
+
     const HypClass* hypClass = object.ptr->InstanceClass();
     Assert(hypClass != nullptr);
 

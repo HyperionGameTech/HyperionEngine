@@ -27,7 +27,7 @@ namespace Hyperion
         internal static extern uint WeakRefCountedPtr_Lock(IntPtr ctrlBlock, IntPtr address);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 16, Pack = 8)]
     public struct RefCountedPtr
     {
         internal static readonly IntPtr NullCtrlBlock = RefCountedPtrNativeBindings.RefCountedPtr_GetNullCtrlBlock();
@@ -83,7 +83,7 @@ namespace Hyperion
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 16, Pack = 8)]
     public struct RefCountedPtr<T>
     {
         public static readonly RefCountedPtr<T> Null = new RefCountedPtr<T>();
@@ -157,7 +157,7 @@ namespace Hyperion
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 16, Pack = 8)]
     public struct WeakRefCountedPtr
     {
         private IntPtr ptr = IntPtr.Zero;
@@ -227,7 +227,7 @@ namespace Hyperion
         }
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 16, Pack = 8)]
     public struct WeakRefCountedPtr<T>
     {
         private IntPtr ptr = IntPtr.Zero;

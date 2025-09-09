@@ -60,10 +60,10 @@ public:
             HYP_CORE_ASSERT(targetRef.HasValue(), "Invalid target reference");
             HYP_CORE_ASSERT(targetRef.GetTypeId() != TypeId::Void(), "Invalid target type");
 
-            const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(targetRef.GetPointer());
+            const UIntPtr baseAddress = reinterpret_cast<UIntPtr>(targetRef.GetPointer());
             HYP_CORE_ASSERT(baseAddress != 0, "Invalid target base address");
 
-            const uintptr_t memberAddress = baseAddress + offset;
+            const UIntPtr memberAddress = baseAddress + offset;
             HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
 
             return *reinterpret_cast<const HypData*>(memberAddress);
@@ -76,10 +76,10 @@ public:
             HYP_CORE_ASSERT(targetRef.HasValue(), "Invalid target reference");
             HYP_CORE_ASSERT(targetRef.GetTypeId() != TypeId::Void(), "Invalid target type");
 
-            const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(targetRef.GetPointer());
+            const UIntPtr baseAddress = reinterpret_cast<UIntPtr>(targetRef.GetPointer());
             HYP_CORE_ASSERT(baseAddress != 0, "Invalid target base address");
 
-            const uintptr_t memberAddress = baseAddress + offset;
+            const UIntPtr memberAddress = baseAddress + offset;
             HYP_CORE_ASSERT(memberAddress != 0, "Invalid member address");
 
             *reinterpret_cast<HypData*>(memberAddress) = data;
@@ -176,7 +176,7 @@ public:
                 {
                     HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
                         TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
-                    
+
                     decltype(auto) target = targetData.Get<ThisType>();
 
                     if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, out, flags))

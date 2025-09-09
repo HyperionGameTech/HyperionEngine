@@ -319,9 +319,9 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
         result.m_getter.serializeProc = [getter](const HypData& target, EnumFlags<FBOMDataFlags> flags) -> FBOMData
         {
             FBOMData data;
-            
+
             const bool result = getter->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, data, flags);
-            
+
             HYP_CORE_ASSERT(result);
 
             return data;
@@ -341,7 +341,7 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
         result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> void
         {
             const bool result = setter->Deserialize(context, target, value);
-            
+
             HYP_CORE_ASSERT(result);
         };
         result.m_originalMember = setter;
@@ -1337,7 +1337,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     HYP_CORE_ASSERT(fieldOffset + sizeof(HypClassRef) <= m_size,
         "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypClassRef), m_size);
 
-    HypClassRef* classFieldPtr = (HypClassRef*)(uintptr_t(ptr) + fieldOffset);
+    HypClassRef* classFieldPtr = (HypClassRef*)(UIntPtr(ptr) + fieldOffset);
     new (classFieldPtr) HypClassRef(this);
     fieldOffset += sizeof(HypClassRef);
 
@@ -1357,7 +1357,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
             HYP_CORE_ASSERT(fieldOffset + sizeof(HypData) <= m_size,
                 "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypData), m_size);
 
-            HypData* fieldPtr = (HypData*)(uintptr_t(ptr) + fieldOffset);
+            HypData* fieldPtr = (HypData*)(UIntPtr(ptr) + fieldOffset);
             new (fieldPtr) HypData();
 
             fieldOffset += sizeof(HypData);
@@ -1372,7 +1372,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         HYP_CORE_ASSERT(fieldOffset + sizeof(HypData) <= m_size,
             "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypData), m_size);
 
-        HypData* fieldPtr = (HypData*)(uintptr_t(ptr) + fieldOffset);
+        HypData* fieldPtr = (HypData*)(UIntPtr(ptr) + fieldOffset);
         new (fieldPtr) HypData();
 
         fieldOffset += sizeof(HypData);

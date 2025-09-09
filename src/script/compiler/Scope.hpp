@@ -54,7 +54,7 @@ public:
         HashCode GetHashCode() const
         {
             HashCode hash;
-            hash.Add(uintptr_t(m_originalType));
+            hash.Add(UIntPtr(m_originalType));
             hash.Add(m_genericArgsHashCode);
 
             return hash;

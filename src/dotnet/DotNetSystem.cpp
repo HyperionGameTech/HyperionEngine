@@ -81,8 +81,7 @@ class DotNetImpl : public DotNetImplBase
 {
 public:
     DotNetImpl()
-        : m_dll(nullptr),
-          m_initializeAssemblyFptr(nullptr),
+        : m_initializeAssemblyFptr(nullptr),
           m_unloadAssemblyFptr(nullptr),
           m_cxt(nullptr),
           m_initFptr(nullptr),
@@ -216,7 +215,7 @@ public:
 
             if (result != int(LoadAssemblyResult::OK))
             {
-                HYP_FAIL("Failed to load core assembly %s: Got error code %d", entry.first.Data(), result);
+                HYP_FAIL("Failed to load assembly `{}`: Got error code {}", entry.first.Data(), result);
             }
         }
     }
@@ -397,9 +396,9 @@ private:
             return false;
         }
 
-        m_initFptr = (hostfxr_initialize_for_runtime_config_fn)m_dll->GetFunction("hostfxr_initialize_for_runtime_config");
-        m_getDelegateFptr = (hostfxr_get_runtime_delegate_fn)m_dll->GetFunction("hostfxr_get_runtime_delegate");
-        m_closeFptr = (hostfxr_close_fn)m_dll->GetFunction("hostfxr_close");
+        m_initFptr = (hostfxr_initialize_for_runtime_config_fn)m_dll.GetFunction("hostfxr_initialize_for_runtime_config");
+        m_getDelegateFptr = (hostfxr_get_runtime_delegate_fn)m_dll.GetFunction("hostfxr_get_runtime_delegate");
+        m_closeFptr = (hostfxr_close_fn)m_dll.GetFunction("hostfxr_close");
 
         HYP_LOG(DotNET, Debug, "Loaded hostfxr functions");
 
@@ -450,7 +449,7 @@ private:
 
     FilePath m_basePath;
 
-    UniquePtr<DynamicLibrary> m_dll;
+    DynamicLibrary m_dll;
 
     HashMap<String, RC<Assembly>> m_coreAssemblies;
 

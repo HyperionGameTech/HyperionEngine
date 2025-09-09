@@ -283,8 +283,7 @@ public:
     HYP_NODISCARD HypObjectHeader* Allocate(SizeType objectSize, SizeType objectAlignment)
     {
         AssertDebug(objectSize != 0 && objectAlignment != 0, "Object size and alignment must be set before allocating objects");
-        AssertDebug(objectSize >= sizeof(T), "Object size must be at least the size of T! Got: {}, expected: {}", objectSize, sizeof(T));
-        AssertDebug(objectAlignment == alignof(T), "Object alignment must be equal to the alignment of T! Got: {}, expected: {}", objectAlignment, alignof(T));
+        AssertDebug(objectSize >= sizeof(T) && objectAlignment == alignof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
         const SizeType allocationSize = ByteUtil::AlignAs(sizeof(HypObjectHeader), objectAlignment) + objectSize;

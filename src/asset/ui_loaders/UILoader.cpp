@@ -629,7 +629,7 @@ public:
                     {
                         const HypField& field = static_cast<const HypField&>(*memberIt);
 
-                        const uintptr_t fieldAddress = uintptr_t(uiObject.Get()) + uintptr_t(field.GetOffset());
+                        const UIntPtr fieldAddress = UIntPtr(uiObject.Get()) + UIntPtr(field.GetOffset());
 
                         IScriptableDelegate* scriptableDelegate = reinterpret_cast<IScriptableDelegate*>(fieldAddress);
 

@@ -85,7 +85,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
 #ifdef HYP_SCRIPT
             Script_Value obj;
-            
+
             ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj), HYP_SCRIPT_TAG);
             Assert(scriptObjectResource != nullptr);
 
@@ -111,7 +111,7 @@ HypObjectBase* HypObjectHeader::GetObjectPointer(HypObjectHeader* header)
     const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     // get pointer to object
-    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<uintptr_t>(header) + objectOffset);
+    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + objectOffset);
 
     return ptr;
 }
@@ -126,7 +126,7 @@ void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
     const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     // get pointer to object
-    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<uintptr_t>(header) + objectOffset);
+    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + objectOffset);
 
     ptr->~HypObjectBase();
 }
@@ -148,7 +148,7 @@ HypObjectBase::HypObjectBase()
     const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     // get the header by subtracting the offset from this pointer
-    m_header = reinterpret_cast<HypObjectHeader*>(uintptr_t(this) - objectOffset);
+    m_header = reinterpret_cast<HypObjectHeader*>(UIntPtr(this) - objectOffset);
 
     // increment the strong reference count for the Handle<T> that will be returned from CreateObject<T>().
     AtomicIncrement(&m_header->refCountStrong);
@@ -173,7 +173,7 @@ HypObjectBase::~HypObjectBase()
 
             // `class` field
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
-            HypClassRef* classFieldPtr = (HypClassRef*)(uintptr_t(this) + fieldOffset);
+            HypClassRef* classFieldPtr = (HypClassRef*)(UIntPtr(this) + fieldOffset);
             fieldOffset += sizeof(HypClassRef);
 
             while (hypClass != nullptr && hypClass->IsDynamic())
@@ -183,7 +183,7 @@ HypObjectBase::~HypObjectBase()
                     // align field offset
                     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
 
-                    HypData* fieldPtr = (HypData*)(uintptr_t(this) + fieldOffset);
+                    HypData* fieldPtr = (HypData*)(UIntPtr(this) + fieldOffset);
                     fieldPtr->~HypData();
 
                     fieldOffset += sizeof(HypData);

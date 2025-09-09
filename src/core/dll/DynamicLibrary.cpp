@@ -15,7 +15,7 @@ namespace hyperion {
 struct DynamicLibraryImpl
 {
     String path;
-    uintptr_t handle;
+    UIntPtr handle;
 
     DynamicLibraryImpl()
         : handle(0)
@@ -29,7 +29,7 @@ struct DynamicLibraryImpl
 };
 
 DynamicLibrary::DynamicLibrary(const String& path)
-    : m_impl(MakePimpl<DynamicLibraryImpl>())
+    : m_impl(MakeRefCountedPtr<DynamicLibraryImpl>())
 {
     m_impl->path = path;
 }
@@ -62,7 +62,7 @@ void DynamicLibrary::SetPath(const String& path)
 {
     if (!m_impl)
     {
-        m_impl = MakePimpl<DynamicLibraryImpl>();
+        m_impl = MakeRefCountedPtr<DynamicLibraryImpl>();
         m_impl->path = path;
 
         return;
@@ -86,7 +86,7 @@ bool DynamicLibrary::Load()
 #ifdef HYP_WINDOWS
     WideString wpath = m_impl->path.ToWide();
 
-    HMODULE handle = reinterpret_cast<uintptr_t>(LoadLibraryW(wpath.Data()));
+    HMODULE handle = reinterpret_cast<UIntPtr>(LoadLibraryW(wpath.Data()));
 
     if (!handle)
     {
@@ -95,7 +95,7 @@ bool DynamicLibrary::Load()
 
     m_impl->handle = handle;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    m_impl->handle = reinterpret_cast<uintptr_t>(dlopen(m_impl->path.Data(), RTLD_NOW));
+    m_impl->handle = reinterpret_cast<UIntPtr>(dlopen(m_impl->path.Data(), RTLD_NOW));
 
     if (!m_impl->handle)
     {
@@ -108,7 +108,7 @@ bool DynamicLibrary::Load()
     return false;
 }
 
-uintptr_t DynamicLibrary::GetFunction(const char* name) const
+UIntPtr DynamicLibrary::GetFunction(const char* name) const
 {
     if (!m_impl || !m_impl->handle)
     {
@@ -116,9 +116,9 @@ uintptr_t DynamicLibrary::GetFunction(const char* name) const
     }
 
 #ifdef HYP_WINDOWS
-    return reinterpret_cast<uintptr_t>(GetProcAddress(reinterpret_cast<HMODULE>(m_impl->handle), name));
+    return reinterpret_cast<UIntPtr>(GetProcAddress(reinterpret_cast<HMODULE>(m_impl->handle), name));
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    return reinterpret_cast<uintptr_t>(dlsym(reinterpret_cast<void*>(m_impl->handle), name));
+    return reinterpret_cast<UIntPtr>(dlsym(reinterpret_cast<void*>(m_impl->handle), name));
 #else
     return 0;
 #endif

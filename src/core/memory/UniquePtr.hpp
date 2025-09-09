@@ -315,7 +315,7 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const UniquePtr& other) const
     {
-        return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get());
+        return UIntPtr(Base::Get()) < UIntPtr(other.Base::Get());
     }
 
     /*! \brief Drops any currently held valeu and constructs a new value using \ref{value}.
@@ -472,7 +472,7 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const UniquePtr& other) const
     {
-        return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get());
+        return UIntPtr(Base::Get()) < UIntPtr(other.Base::Get());
     }
 
     /*! \brief Destroys any currently held object.  */

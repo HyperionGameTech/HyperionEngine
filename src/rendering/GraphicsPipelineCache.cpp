@@ -100,7 +100,7 @@ public:
         }
 
         reverseAttrMap.Erase(reverseAttrMapIt);
-        
+
         SafeDelete(std::move(*pGraphicsPipeline));
     }
 
@@ -177,8 +177,7 @@ public:
             typename Base::Page* page = Base::m_pages[pageIdx];
             AssertDebug(page != nullptr);
 
-            if (uintptr_t(pGraphicsPipeline) < uintptr_t(&page->storage) ||
-                uintptr_t(pGraphicsPipeline) >= uintptr_t(&page->storage) + pageStorageSizeBytes)
+            if (UIntPtr(pGraphicsPipeline) < UIntPtr(&page->storage) || UIntPtr(pGraphicsPipeline) >= UIntPtr(&page->storage) + pageStorageSizeBytes)
             {
                 continue; // pointer not in this page
             }
@@ -186,20 +185,19 @@ public:
             // calculate the index of the graphics pipeline, using the offset relative to the page's storage address
             // to get the index within the page.
             // then, we add the page index multiplied by the page size to get the absolute index in the SparsePagedArray.
-            return (pageIdx << Base::pageSizeBits) +
-                ((uintptr_t(pGraphicsPipeline) - uintptr_t(&page->storage)) / sizeof(GraphicsPipelineRef));
+            return (pageIdx << Base::pageSizeBits) + ((UIntPtr(pGraphicsPipeline) - UIntPtr(&page->storage)) / sizeof(GraphicsPipelineRef));
         }
 
         return SizeType(-1);
     }
 
     IdGenerator idGenerator;
-    
+
     RefCountMap refCountMap;
 
     AttrMap attrMap;
     ReverseAttrMap reverseAttrMap;
-    
+
     Iterator cleanupIterator;
 };
 
@@ -359,7 +357,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         DeferCreate(table);
     }
 
-    Proc<void(GraphicsPipelineBase* graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
+    Proc<void(GraphicsPipelineBase * graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
         {
             Mutex::Guard guard(m_mutex);
 
@@ -455,13 +453,10 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(
-                shader,
-                descriptorTableDecl,
-                Map(framebuffers, [](const FramebufferRef& framebuffer)
-                    {
-                        return static_cast<const FramebufferBase*>(framebuffer.Get());
-                    }),
+        if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
+                                                                            {
+                                                                                return static_cast<const FramebufferBase*>(framebuffer.Get());
+                                                                            }),
                 attributes))
         {
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
@@ -507,13 +502,13 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
         }
 
         GraphicsPipelineRef& graphicsPipeline = *m_cachedPipelines->cleanupIterator;
-        
+
         if (!graphicsPipeline)
         {
             // empty slot, remove if unused
             const SizeType index = m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator);
             Assert(index != SizeType(-1));
-            
+
             // skip to next iterator before potentially removing the current slot
             ++m_cachedPipelines->cleanupIterator;
 

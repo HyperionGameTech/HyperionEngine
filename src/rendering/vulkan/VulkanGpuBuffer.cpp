@@ -356,7 +356,7 @@ void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
         Map();
     }
 
-    Memory::MemCpy(reinterpret_cast<void*>(uintptr_t(m_mapping) + offset), ptr, count);
+    Memory::MemCpy(reinterpret_cast<void*>(UIntPtr(m_mapping) + offset), ptr, count);
 }
 
 void VulkanGpuBuffer::Map() const
@@ -403,7 +403,7 @@ void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
         HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
     }
 
-    Memory::MemCpy(outPtr, reinterpret_cast<void*>(uintptr_t(m_mapping) + uintptr_t(offset)), count);
+    Memory::MemCpy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
 }
 
 bool VulkanGpuBuffer::IsCreated() const
@@ -577,7 +577,7 @@ void VulkanGpuBuffer::CopyFrom(
     region.size = count;
     region.srcOffset = srcOffset;
     region.dstOffset = dstOffset;
-    
+
     vkCmdCopyBuffer(
         VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
         VULKAN_CAST(srcBuffer)->m_handle,
@@ -639,7 +639,7 @@ RendererResult VulkanGpuBuffer::Create()
     if (IsCpuAccessible())
     {
         Map();
-        
+
         // Memset all to zero
         Memory::MemSet(m_mapping, 0, m_size);
     }
@@ -688,7 +688,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             VkBuffer buffer;
             VmaAllocation vmaAllocation;
         };
-        
+
         // safely destroy the buffer after the GPU is done with it:
         VulkanBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<VulkanBufferDeleter>([](void* ptr)
             {

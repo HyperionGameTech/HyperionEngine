@@ -108,7 +108,7 @@ public:
     HYP_FORCE_INLINE T* Get() const
     {
         return m_allocation ? (static_cast<Allocation*>(m_allocation))->storage.GetPointer() : nullptr;
-        // return HYP_ALIGN_PTR_AS(reinterpret_cast<uintptr_t>(m_allocation) + offsetof(Allocation, storage), T);
+        // return HYP_ALIGN_PTR_AS(reinterpret_cast<UIntPtr>(m_allocation) + offsetof(Allocation, storage), T);
     }
 
     HYP_FORCE_INLINE T* operator->() const
@@ -123,7 +123,7 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const Pimpl& other) const
     {
-        return uintptr_t(m_allocation) < uintptr_t(other.m_allocation);
+        return UIntPtr(m_allocation) < UIntPtr(other.m_allocation);
     }
 
     HYP_FORCE_INLINE void Reset(std::nullptr_t)

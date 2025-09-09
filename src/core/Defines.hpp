@@ -455,7 +455,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_FREE_ALIGNED(block) free(block)
 #endif
 
-#define HYP_ALIGN_ADDRESS(ptr, alignment) (((uintptr_t(ptr) + (alignment) - 1) / (alignment)) * (alignment))
+#define HYP_ALIGN_ADDRESS(ptr, alignment) (((UIntPtr(ptr) + (alignment) - 1) / (alignment)) * (alignment))
 #define HYP_ALIGN_PTR_AS(ptr, T) (std::assume_aligned<alignof(T)>(reinterpret_cast<T*>(HYP_ALIGN_ADDRESS(ptr, alignof(T)))))
 
 #pragma endregion Memory Management
@@ -468,8 +468,8 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
 #ifdef HYP_DEBUG_MODE
-//#define HYP_ENABLE_MT_CHECK
-// #define HYP_LOG_MEMORY_OPERATIONS
+// #define HYP_ENABLE_MT_CHECK
+//  #define HYP_LOG_MEMORY_OPERATIONS
 
 #define HYP_RENDER_COMMANDS_DEBUG_NAME
 #endif

@@ -329,7 +329,7 @@ struct HashTable_PooledNodeAllocator
                 return nullptr;
             }
 
-            return reinterpret_cast<Node*>(uintptr_t(newBase) + (uintptr_t(p) - uintptr_t(previousBase)));
+            return reinterpret_cast<Node*>(UIntPtr(newBase) + (UIntPtr(p) - UIntPtr(previousBase)));
         };
 
         for (Bucket& bucket : buckets)

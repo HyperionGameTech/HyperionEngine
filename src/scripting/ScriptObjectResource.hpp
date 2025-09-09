@@ -39,6 +39,7 @@ public:
 };
 
 #ifdef HYP_DOTNET
+
 struct ScriptObjectData_DotNet final
 {
     static constexpr ScriptLanguage lang = SL_CSHARP;
@@ -46,6 +47,7 @@ struct ScriptObjectData_DotNet final
     dotnet::Object* objectPtr = nullptr;
     RC<dotnet::Class> managedClass = nullptr;
 };
+
 #endif
 
 #ifdef HYP_SCRIPT
@@ -103,7 +105,7 @@ public:
 
         return nullptr;
     }
-    
+
     ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
     {
 #ifdef HYP_DOTNET

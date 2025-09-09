@@ -208,13 +208,13 @@ struct HashCode
     template <class T, typename = std::enable_if_t<!std::is_same_v<T, char>>>
     static inline HashCode GetHashCode(T* ptr)
     {
-        return GetHashCode(reinterpret_cast<uintptr_t>(ptr));
+        return GetHashCode(reinterpret_cast<UIntPtr>(ptr));
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<T, char>>>
     static inline HashCode GetHashCode(const T* ptr)
     {
-        return GetHashCode(reinterpret_cast<uintptr_t>(ptr));
+        return GetHashCode(reinterpret_cast<UIntPtr>(ptr));
     }
 
     template <SizeType Size>
