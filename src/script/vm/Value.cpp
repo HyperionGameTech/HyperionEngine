@@ -31,8 +31,8 @@ static const TypeId g_typeIdU8 = TypeId::ForType<uint8>();
 static const TypeId g_typeIdU16 = TypeId::ForType<uint16>();
 static const TypeId g_typeIdU32 = TypeId::ForType<uint32>();
 static const TypeId g_typeIdU64 = TypeId::ForType<uint64>();
-static const TypeId g_typeIdF32 = TypeId::ForType<float>();
-static const TypeId g_typeIdF64 = TypeId::ForType<double>();
+static const TypeId g_typeIdF32 = TypeId::ForType<float32>();
+static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
 static const TypeId g_typeIdBool = TypeId::ForType<bool>();
 static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
 

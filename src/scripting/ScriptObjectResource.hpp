@@ -23,9 +23,9 @@
 namespace hyperion {
 
 #ifdef HYP_SCRIPT
-enum HypScriptObjectTag
+enum HypScriptTag
 {
-    HYP_SCRIPT_OBJECT
+    HYP_SCRIPT_TAG
 };
 #endif
 
@@ -53,7 +53,8 @@ struct ScriptObjectData_HypScript final
 {
     static constexpr ScriptLanguage lang = SL_HYPSCRIPT;
 
-    Script_ObjectHandle objectHandle = INVALID_OBJECT;
+    Script_Instance* instance = nullptr;
+    Script_Value obj;
 };
 #endif
 
@@ -66,7 +67,7 @@ public:
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(HypObjectPtr ptr, const Script_ObjectHandle& objectHandle, HypScriptObjectTag);
+    ScriptObjectResource(Script_Instance* hypScriptInstance, Script_Value&& hypScriptValue, HypScriptTag);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;
@@ -102,23 +103,7 @@ public:
 
         return nullptr;
     }
-
-protected:
-    virtual void Initialize() override final;
-    virtual void Destroy() override final;
-
-    HypObjectPtr m_ptr;
-
-    mutable Variant<
-#ifdef HYP_DOTNET
-        ScriptObjectData_DotNet,
-#endif
-#ifdef HYP_SCRIPT
-        ScriptObjectData_HypScript,
-#endif
-        ScriptObjectData_Dummy>
-        m_scriptObjectData;
-
+    
     ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
     {
 #ifdef HYP_DOTNET
@@ -136,6 +121,22 @@ protected:
         return nullptr;
 #endif
     }
+
+protected:
+    virtual void Initialize() override final;
+    virtual void Destroy() override final;
+
+    HypObjectPtr m_ptr;
+
+    mutable Variant<
+#ifdef HYP_DOTNET
+        ScriptObjectData_DotNet,
+#endif
+#ifdef HYP_SCRIPT
+        ScriptObjectData_HypScript,
+#endif
+        ScriptObjectData_Dummy>
+        m_scriptObjectData;
 };
 
 } // namespace hyperion

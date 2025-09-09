@@ -39,7 +39,7 @@ struct ScriptData
     char path[scriptMaxPathLength];
 
     HYP_FIELD(Serialize)
-    char assemblyPath[scriptMaxPathLength];
+    char assemblyPath[scriptMaxPathLength]; // C# only
 
     HYP_FIELD(Serialize)
     char className[scriptMaxClassNameLength];

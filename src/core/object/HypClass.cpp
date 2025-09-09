@@ -19,6 +19,10 @@
 #include <dotnet/Assembly.hpp>
 #endif
 
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#endif
+
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
@@ -1285,7 +1289,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 #endif
 
 #ifdef HYP_SCRIPT
-    Script_ObjectHandle objectHandle = {}/* @TODO */;
+    Script_Value obj;
 
     // get or create new container for dynamic type
     HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());
@@ -1374,7 +1378,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         fieldOffset += sizeof(HypData);
     }
 
-    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(HypObjectPtr(this, ptr), objectHandle, HYP_SCRIPT_OBJECT);
+    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj), HYP_SCRIPT_TAG);
     Assert(scriptObjectResource != nullptr);
     ptr->SetScriptObjectResource(scriptObjectResource);
 

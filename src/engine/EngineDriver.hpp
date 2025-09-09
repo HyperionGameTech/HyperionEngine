@@ -122,8 +122,6 @@ private:
 
     void PreFrameUpdate(FrameBase* frame);
 
-    void FindTextureFormatDefaults();
-
     FixedArray<Handle<EngineStats>, g_numMultiBuffers> m_engineStatsBuffered;
 
     UniquePtr<RenderThread> m_renderThread;

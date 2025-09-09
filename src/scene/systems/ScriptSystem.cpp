@@ -29,9 +29,93 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#endif
+
 namespace hyperion {
 
 constexpr bool g_enableScriptReloading = true;
+
+template <class ReturnType, class... ArgTypes>
+static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
+{
+    Assert(sor != nullptr);
+
+    switch (sor->GetScriptLanguage())
+    {
+#ifdef HYP_DOTNET
+    case SL_CSHARP:
+    {
+        AssertDebug(sor->GetManagedObject() != nullptr);
+
+        if (dotnet::Class* classPtr = sor->GetManagedObject()->GetClass())
+        {
+            if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
+            {
+                if (methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
+                {
+                    // Stubbed method, don't waste cycles calling it if it's not implemented
+
+                    break;
+                }
+
+                if constexpr (!std::is_void_v<ReturnType>)
+                {
+                    AssertDebug(outReturnValue != nullptr);
+                    new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(methodPtr, std::forward<ArgTypes>(args)...));
+                }
+                else
+                {
+                    sor->GetManagedObject()->InvokeMethod<void>(methodPtr, std::forward<ArgTypes>(args)...);
+                }
+            }
+        }
+
+        break;
+    }
+#endif
+#ifdef HYP_SCRIPT
+    case SL_HYPSCRIPT:
+    {
+        auto* data = sor->GetScriptObjectData_HypScript();
+        Assert(data != nullptr);
+
+        const Script_Value& targetValue = data->obj;
+        Assert(targetValue.IsValid());
+
+        HypScript& hs = HypScript::GetInstance();
+            
+        Script_Value memberValue;
+        if (!hs.GetMember(targetValue, methodName, memberValue))
+        {
+            break;
+        }
+
+        if (!memberValue.IsFunction())
+        {
+            break;
+        }
+
+        Script_Value returnValue = hs.CallFunction(data->instance, memberValue);
+        
+        if constexpr (!std::is_void_v<ReturnType>)
+        {
+            Assert(returnValue.IsValid());
+            Assert(returnValue.GetHypData()->Is<ReturnType>());
+
+            AssertDebug(outReturnValue != nullptr);
+
+            new (outReturnValue) ReturnType(std::move(returnValue.GetHypData()->Get<ReturnType>()));
+        }
+
+        break;
+    }
+#endif
+    default:
+        break;
+    }
+}
 
 ScriptSystem::ScriptSystem(EntityManager& entityManager)
     : SystemBase(entityManager)
@@ -178,24 +262,7 @@ void ScriptSystem::Process(float delta)
             continue;
         }
 
-        AssertDebug(scriptComponent.scriptObjectResource != nullptr);
-        AssertDebug(scriptComponent.scriptObjectResource->GetManagedObject() != nullptr);
-
-        if (dotnet::Class* classPtr = scriptComponent.scriptObjectResource->GetManagedObject()->GetClass())
-        {
-            if (dotnet::Method* updateMethodPtr = classPtr->GetMethod("Update"))
-            {
-                if (updateMethodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
-                {
-                    // Stubbed method, don't waste cycles calling it if it's not implemented
-                    continue;
-                }
-
-                HYP_NAMED_SCOPE("Call Update() on script component");
-
-                scriptComponent.scriptObjectResource->GetManagedObject()->InvokeMethod<void, float>(updateMethodPtr, float(delta));
-            }
-        }
+        InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", float(delta));
     }
 }
 
@@ -223,22 +290,7 @@ void ScriptSystem::CallScriptMethod(UTF8StringView methodName)
             continue;
         }
 
-        AssertDebug(scriptComponent.scriptObjectResource != nullptr);
-        AssertDebug(scriptComponent.scriptObjectResource->GetManagedObject() != nullptr);
-
-        if (dotnet::Class* classPtr = scriptComponent.scriptObjectResource->GetManagedObject()->GetClass())
-        {
-            if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
-            {
-                if (methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
-                {
-                    // Stubbed method, don't waste cycles calling it if it's not implemented
-                    continue;
-                }
-
-                scriptComponent.scriptObjectResource->GetManagedObject()->InvokeMethod<void>(methodPtr);
-            }
-        }
+        InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, *methodName);
     }
 }
 
@@ -249,22 +301,7 @@ void ScriptSystem::CallScriptMethod(UTF8StringView methodName, ScriptComponent& 
         return;
     }
 
-    AssertDebug(target.scriptObjectResource != nullptr);
-    AssertDebug(target.scriptObjectResource->GetManagedObject() != nullptr);
-
-    if (dotnet::Class* classPtr = target.scriptObjectResource->GetManagedObject()->GetClass())
-    {
-        if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
-        {
-            if (methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
-            {
-                // Stubbed method, don't waste cycles calling it if it's not implemented
-                return;
-            }
-
-            target.scriptObjectResource->GetManagedObject()->InvokeMethod<void>(methodPtr);
-        }
-    }
+    InvokeScriptMethodT<void>(nullptr, target.scriptObjectResource, *methodName);
 }
 
 } // namespace hyperion

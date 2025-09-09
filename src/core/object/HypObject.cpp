@@ -19,7 +19,7 @@
 #endif
 
 #ifdef HYP_SCRIPT
-#include <scripting/Script.hpp>
+#include <script/HypScript.hpp>
 #endif
 
 namespace hyperion {
@@ -84,9 +84,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 #endif
 
 #ifdef HYP_SCRIPT
-            Script_ObjectHandle objectHandle = {} /* @TODO */;
+            Script_Value obj;
             
-            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, objectHandle, HYP_SCRIPT_OBJECT);
+            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj), HYP_SCRIPT_TAG);
             Assert(scriptObjectResource != nullptr);
 
             target->SetScriptObjectResource(scriptObjectResource);

@@ -72,9 +72,9 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
     UpdateEntry* newEntry = &*m_entryPool.Emplace(entryIndex);
     *newEntry = {
         .index = int(entryIndex),
+        .depth = uiObject->GetComputedDepth(),
         .object = weakHandle,
-        .updateTypes = updateTypes,
-        .depth = uiObject->GetComputedDepth()
+        .updateTypes = updateTypes
     };
 
     // Add to pending set

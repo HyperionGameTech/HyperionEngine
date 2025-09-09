@@ -419,6 +419,16 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
     return Script_Value(std::move(newHypData));
 }
 
+bool ScriptApi_ShouldValuePassByRef(const Script_Value& value)
+{
+    if (!value.IsValid())
+    {
+        return false;
+    }
+
+    return PASS_AS_REF(value);
+}
+
 #pragma endregion ScriptApi
 
 #pragma region Script_RegisterMemory
@@ -1874,7 +1884,13 @@ public:
 
     HYP_FORCE_INLINE void OpExportSymbol(BCRegister reg, uint64 hash)
     {
-        if (!vm->GetExportedSymbols().Store(hash, ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC())).second)
+        Script_Value& srcValue = *instance->thread.m_regs[reg].Deref();
+
+        Script_Value newValue = PASS_AS_REF(srcValue)
+            ? ScriptApi_MakeTrackedRef(&srcValue, vm->GetGC())
+            : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
+
+        if (!vm->GetExportedSymbols().Store(hash, std::move(newValue)).second)
         {
             vm->ThrowException(instance, Script_Exception::DuplicateExportException());
         }

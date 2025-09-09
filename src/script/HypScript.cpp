@@ -20,8 +20,16 @@
 
 #include <script/vm/Interpreter.hpp>
 
+#include <core/object/HypClass.hpp>
+#include <core/object/HypMethod.hpp>
+#include <core/object/HypField.hpp>
+#include <core/object/HypMemberFwd.hpp>
+#include <core/object/HypClassRegistry.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <core/utilities/Format.hpp>
 
 namespace hyperion {
 
@@ -29,9 +37,148 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(HypScript);
 
-#pragma region Opaque Handles
+#pragma region HypClass SymbolType Interop
 
-#pragma endregion Opaque Handles
+static const TypeId g_typeIdVoid = TypeId::Void();
+static const TypeId g_typeIdI8 = TypeId::ForType<int8>();
+static const TypeId g_typeIdU8 = TypeId::ForType<uint8>();
+static const TypeId g_typeIdI16 = TypeId::ForType<int16>();
+static const TypeId g_typeIdU16 = TypeId::ForType<uint16>();
+static const TypeId g_typeIdI32 = TypeId::ForType<int32>();
+static const TypeId g_typeIdU32 = TypeId::ForType<uint32>();
+static const TypeId g_typeIdI64 = TypeId::ForType<int64>();
+static const TypeId g_typeIdU64 = TypeId::ForType<uint64>();
+static const TypeId g_typeIdF32 = TypeId::ForType<float32>();
+static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
+static const TypeId g_typeIdBool = TypeId::ForType<bool>();
+static const TypeId g_typeIdString = TypeId::ForType<String>();
+
+static HashMap<TypeId, SymbolTypeRef> g_symbolTypeCache;
+
+SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass);
+
+SymbolTypeRef TypeIdToSymbolTypeImpl(TypeId typeId)
+{
+    static const HashMap<TypeId, SymbolTypeRef> s_builtinTypes = {
+        { g_typeIdVoid, BuiltinTypes::s_voidType },
+        { g_typeIdI8, BuiltinTypes::s_intType },
+        { g_typeIdI16, BuiltinTypes::s_intType },
+        { g_typeIdI32, BuiltinTypes::s_intType },
+        { g_typeIdI64, BuiltinTypes::s_intType },
+        { g_typeIdU8, BuiltinTypes::s_unsignedIntType },
+        { g_typeIdU16, BuiltinTypes::s_unsignedIntType },
+        { g_typeIdU32, BuiltinTypes::s_unsignedIntType },
+        { g_typeIdU64, BuiltinTypes::s_unsignedIntType },
+        { g_typeIdF32, BuiltinTypes::s_floatType },
+        { g_typeIdF64, BuiltinTypes::s_floatType },
+        { g_typeIdBool, BuiltinTypes::s_boolType },
+        { g_typeIdString, BuiltinTypes::s_stringType }
+    };
+
+    auto it = s_builtinTypes.Find(typeId);
+    if (it != s_builtinTypes.End())
+    {
+        return it->second;
+    }
+
+    const HypClass* hypClass = GetClass(typeId);
+
+    if (!hypClass)
+    {
+        HYP_LOG(HypScript, Warning, "No HypClass found for TypeId({})", typeId.Value());
+        return BuiltinTypes::s_errorType;
+    }
+
+    return HypClassToSymbolType(hypClass);
+}
+
+SymbolTypeRef TypeIdToSymbolType(TypeId typeId)
+{
+    auto it = g_symbolTypeCache.Find(typeId);
+
+    if (it != g_symbolTypeCache.End())
+    {
+        return it->second;
+    }
+
+    SymbolTypeRef newType = TypeIdToSymbolTypeImpl(typeId);
+
+    g_symbolTypeCache.Insert(typeId, newType);
+
+    return newType;
+}
+
+SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
+{
+    if (!hypClass)
+    {
+        return nullptr;
+    }
+
+    auto it = g_symbolTypeCache.Find(hypClass->GetTypeId());
+    if (it != g_symbolTypeCache.End())
+    {
+        return it->second;
+    }
+
+    SymbolTypeRef parentType = BuiltinTypes::s_objectType;
+
+    if (hypClass->GetParent() != nullptr)
+    {
+        parentType = HypClassToSymbolType(hypClass->GetParent());
+    }
+
+    SymbolTypeRef newType = SymbolType::Object(
+        *hypClass->GetName(),
+        parentType,
+        {},
+        {});
+
+    for (const HypField* field : hypClass->GetFields())
+    {
+        const TypeId fieldTypeId = field->GetTypeId();
+
+        newType->GetMembers().PushBack(SymbolTypeMember {
+            *field->GetName(),
+            TypeIdToSymbolType(fieldTypeId)
+        });
+    }
+
+    for (const HypMethod* method : hypClass->GetMethods())
+    {
+        Array<GenericInstanceTypeInfo::Arg> parameters;
+        parameters.Reserve(method->GetParameters().Size() + 1);
+
+        // add return type as first parameter with name "@return"
+        parameters.PushBack(GenericInstanceTypeInfo::Arg {
+            "@return",
+            TypeIdToSymbolType(method->GetTypeId()) });
+
+        for (SizeType paramIndex = 0; paramIndex < method->GetParameters().Size(); paramIndex++)
+        {
+            const HypMethodParameter& param = method->GetParameters()[paramIndex];
+
+            parameters.PushBack(GenericInstanceTypeInfo::Arg {
+                HYP_FORMAT("arg{}", paramIndex),
+                TypeIdToSymbolType(param.typeId)
+            });
+        }
+
+        newType->GetMembers().PushBack(SymbolTypeMember {
+            *method->GetName(),
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo { parameters })
+        });
+    }
+
+    g_symbolTypeCache.Insert(hypClass->GetTypeId(), newType);
+    
+    return newType;
+}
+
+#pragma endregion HypClass SymbolType Interop
 
 HypScript& HypScript::GetInstance()
 {
@@ -41,18 +188,39 @@ HypScript& HypScript::GetInstance()
 }
 
 HypScript::HypScript()
-    : m_vm(new Script_Interpreter())
+    : m_vm(new Script_Interpreter()),
+      m_globalInstance(nullptr)
 {
 }
 
 HypScript::~HypScript()
 {
+    if (m_globalInstance)
+    {
+        DestroyScript(m_globalInstance);
+        m_globalInstance = nullptr;
+    }
+
     delete m_vm;
 }
 
 void HypScript::Initialize()
 {
     BuiltinTypes::Initialize();
+
+    // create the global script instance using HypClassRegistry to hold our global classes
+    HypClassRegistry::GetInstance().ForEachClass([this](const HypClass* hypClass)
+        {
+            if (hypClass->GetAttribute("noscriptbindings").GetBool() == true)
+            {
+                return IterationResult::CONTINUE;
+            }
+
+            // add to global symbol table
+            //// @TODO
+
+            return IterationResult::CONTINUE;
+        });
 }
 
 void HypScript::DestroyScript(Script_Instance* instance)
@@ -165,10 +333,10 @@ void HypScript::Run(Script_Instance* instance)
     m_vm->Execute(instance);
 }
 
-void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Script_Value* args, ArgCount numArgs)
+Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs)
 {
     Assert(instance != nullptr);
-    Assert(functionHandle != INVALID_FUNCTION);
+    Assert(value.IsFunction());
 
     if (numArgs != 0)
     {
@@ -184,7 +352,7 @@ void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandl
     // and we don't want to move the underlying value
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = reinterpret_cast<Script_Value*>(functionHandle);
+    vmData.valueRef = const_cast<Script_Value*>(&value);
 
     m_vm->InvokeNow(instance, Script_Value(vmData), numArgs);
 
@@ -192,6 +360,8 @@ void HypScript::CallFunctionArgV(Script_Instance* instance, Script_FunctionHandl
     {
         instance->thread.m_stack.Pop(numArgs);
     }
+
+    return std::move(instance->thread.GetRegisters()[0]);
 }
 
 void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue)
@@ -201,72 +371,105 @@ void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& out
     outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_vm->GetGC());
 }
 
-bool HypScript::GetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value*& outValue)
+bool HypScript::GetMember(const Script_Value& targetValue, const char* memberName, Script_Value& outValue)
 {
-    HYP_NOT_IMPLEMENTED();
+    outValue = Script_Value();
 
-#if 0
+    if (!targetValue.IsValid())
+    {
+        return false;
+    }
+
+    const AnyHandle& object = targetValue.GetObject();
+
+    if (!object)
+    {
+        return false;
+    }
+
+    const HypClass* hypClass = object.ptr->InstanceClass();
+    Assert(hypClass != nullptr);
+
+    IHypMember* member = hypClass->GetMember(WeakName(memberName));
+
+    if (!member)
+    {
+        return false;
+    }
+
+    if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
+    {
+        HypField* field = static_cast<HypField*>(member);
+
+        outValue = ScriptApi_MakeValue(field->Get(*targetValue.GetHypData()));
+
+        return true;
+    }
     
-    if (objectHandle == INVALID_OBJECT)
+    if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
     {
-        return false;
-    }
+        HypMethod* method = static_cast<HypMethod*>(member);
 
-    Script_Value& objectValue = *reinterpret_cast<Script_Value*>(objectHandle);
+        Script_VMData vmData;
 
-    VMObject* object = objectValue.GetObject();
+        if (method->IsScriptFunction())
+        {
+            Assert(method->GetParameters().Size() <= UINT8_MAX);
 
-    if (!object)
-    {
-        return false;
-    }
+            vmData.type = Script_VMData::FUNCTION;
+            vmData.func.m_addr = method->GetScriptAddress();
+            vmData.func.m_nargs = (uint8)method->GetParameters().Size();
+            vmData.func.m_flags = (uint8)method->GetFlags();
+        }
+        else
+        {
+            vmData.type = Script_VMData::NATIVE_FUNCTION;
+            vmData.nativeFunc = method;
+        }
 
-    if (Member* member = object->LookupMemberFromHash(hashFnv1(memberName)))
-    {
-        outValue = &member->value;
+        outValue = ScriptApi_MakeValue(vmData);
 
         return true;
     }
 
     return false;
-#endif
 }
 
-bool HypScript::SetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value&& value)
+bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Script_Value&& value)
 {
-    HYP_NOT_IMPLEMENTED();
-#if 0
-    if (objectHandle == INVALID_OBJECT)
+    if (!targetValue.IsValid())
     {
         return false;
     }
 
-    Script_Value& objectValue = *reinterpret_cast<Script_Value*>(objectHandle);
-
-    VMObject* object = objectValue.GetObject();
+    const AnyHandle& object = targetValue.GetObject();
 
     if (!object)
     {
         return false;
     }
+    
+    const HypClass* hypClass = object.ptr->InstanceClass();
+    Assert(hypClass != nullptr);
 
-    if (Member* member = object->LookupMemberFromHash(hashFnv1(memberName)))
+    HypField* field = hypClass->GetField(WeakName(memberName));
+
+    if (!field)
     {
-        member->value.AssignValue(std::move(value), false);
-
-        return true;
+        return false;
     }
 
-    return false;
-#endif
+    field->Set(*targetValue.GetHypData(), std::move(*value.GetHypData()));
+
+    return true;
 }
 
-bool HypScript::GetFunctionHandle(const char* name, Script_FunctionHandle& outFunctionHandle)
+bool HypScript::GetFunctionHandle(const char* name, Script_Value& outValue)
 {
-    outFunctionHandle = INVALID_FUNCTION;
+    outValue = Script_Value();
 
     Script_Value* pValue;
-    if (!GetExportedValue(name, pValue))
+    if (!GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
     }
@@ -276,41 +479,35 @@ bool HypScript::GetFunctionHandle(const char* name, Script_FunctionHandle& outFu
         return false;
     }
 
-    outFunctionHandle = (Script_FunctionHandle)((uintptr_t)pValue);
+    outValue = *pValue;
 
     return true;
 }
 
-bool HypScript::GetObjectHandle(const char* name, Script_ObjectHandle& outObjectHandle)
+bool HypScript::GetExportedValue(const char* name, Script_Value& outValue, bool getReference)
 {
-    outObjectHandle = INVALID_OBJECT;
+    outValue = Script_Value();
 
     Script_Value* pValue;
-
-    if (!GetExportedValue(name, pValue))
+    if (!GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
     }
 
-    if (!pValue->IsRef())
+    Assert(pValue != nullptr);
+
+    pValue = pValue->Deref();
+
+    if (getReference || ScriptApi_ShouldValuePassByRef(*pValue))
     {
-        return false;
+        outValue = ScriptApi_MakeRef(pValue);
+
+        return true;
     }
 
-    Script_Value* pRef = pValue->GetRef();
-    if (pRef == nullptr || !pRef->IsValid())
-    {
-        return false;
-    }
-
-    outObjectHandle = (Script_ObjectHandle)((uintptr_t)pRef);
+    outValue = *pValue;
 
     return true;
-}
-
-bool HypScript::GetExportedValue(const char* name, Script_Value*& outValue)
-{
-    return GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), outValue);
 }
 
 Script_SymbolTable& HypScript::GetExportedSymbols() const

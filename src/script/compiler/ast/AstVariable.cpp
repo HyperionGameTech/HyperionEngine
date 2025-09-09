@@ -77,7 +77,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            m_isInRefAssignment = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG), /* thisScopeOnly */ false;
+            m_isInRefAssignment = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG, /* thisScopeOnly */ false);
             m_isInConstAssignment = mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG, /* thisScopeOnly */ false);
 
             if (m_isInRefAssignment)

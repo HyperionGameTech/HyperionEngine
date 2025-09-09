@@ -163,8 +163,7 @@ void HyperionEditor::Init()
               "       jet = val as int\n"
               "       return jet\n"
               "    }\n"
-              "    modValue(inValue : Array<int>, args : MyClass...) -> void {\n"
-              "        args[0]\n"
+              "    modValue(inValue : Array<int>) -> void {\n"
               "    }\n"
               "}\n"
               "ins := new MyClass();\n"
@@ -172,8 +171,8 @@ void HyperionEditor::Init()
               "testArray2[0]++\n"
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
-              "blah := ins.modValue(testRef, ins, ins);\n"
-              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { blah }; };\n"
+              "blah := ins.modValue(testRef);\n"
+              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { ins }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 
@@ -194,13 +193,10 @@ void HyperionEditor::Init()
             HypScript::GetInstance().Run(instance);
 
             // call function
-            Script_FunctionHandle functionHandle;
-            if (HypScript::GetInstance().GetFunctionHandle("x", functionHandle))
+            Script_Value functionValue;
+            if (HypScript::GetInstance().GetFunctionHandle("x", functionValue))
             {
-                HypScript::GetInstance().CallFunction(instance, functionHandle, 5, 4);
-
-                Script_Value lastReturn;
-                HypScript::GetInstance().ReadLastReturnValue(instance, lastReturn);
+                Script_Value lastReturn = HypScript::GetInstance().CallFunction(instance, functionValue, 5, 4);
 
                 if (lastReturn.IsValid())
                 {

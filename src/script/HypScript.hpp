@@ -20,15 +20,6 @@ class InstructionStream;
 
 struct Script_Instance;
 
-#define HYP_DEF_SCRIPT_API_HANDLE(handleTypeName, handleTypeNameCaps, underlyingType) \
-    enum class handleTypeName : underlyingType;                                       \
-    constexpr handleTypeName INVALID_##handleTypeNameCaps = handleTypeName(0);
-
-HYP_DEF_SCRIPT_API_HANDLE(Script_FunctionHandle, FUNCTION, uintptr_t)
-HYP_DEF_SCRIPT_API_HANDLE(Script_ObjectHandle, OBJECT, uintptr_t)
-
-#undef HYP_DEF_SCRIPT_API_HANDLE
-
 class HypScript
 {
 public:
@@ -44,6 +35,11 @@ public:
     Script_Interpreter* GetVM() const
     {
         return m_vm;
+    }
+
+    Script_Instance* GetGlobalInstance() const
+    {
+        return m_globalInstance;
     }
 
     void Initialize();
@@ -67,33 +63,36 @@ public:
         return FixedArray<Script_Value, sizeof...(Args)> { CreateArgument(args)... };
     }
 
-    void CallFunctionArgV(Script_Instance* instance, Script_FunctionHandle functionHandle, Script_Value* args, ArgCount numArgs);
+    Script_Value CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs);
 
-    bool GetFunctionHandle(const char* name, Script_FunctionHandle& outFunctionHandle);
-    bool GetObjectHandle(const char* name, Script_ObjectHandle& outObjectHandle);
-
-    bool GetExportedValue(const char* name, Script_Value*& outValue);
+    bool GetFunctionHandle(const char* name, Script_Value& outValue);
+    bool GetExportedValue(const char* name, Script_Value& outValue, bool getReference);
 
     Script_SymbolTable& GetExportedSymbols() const;
 
-    bool GetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value*& outValue);
-    bool SetMember(Script_ObjectHandle objectHandle, const char* memberName, Script_Value&& value);
+    /*! \brief Implements OpGetMember in the virtual machine.
+     *  Gets a field or method by name and sets `outValue` to the value.
+     *  Returns true on found, false otherwise. */
+    bool GetMember(const Script_Value& targetValue, const char* memberName, Script_Value& outValue);
+
+    /*! \brief Implements OpSetField in the virtual machine. Sets a field with the name `memberName` to the value held in `value`.
+     *  If the field was not found, returns false.
+     *  Returns true on success. */
+    bool SetField(Script_Value& targetValue, const char* memberName, Script_Value&& value);
 
     template <class... Args>
-    void CallFunction(Script_Instance* instance, Script_FunctionHandle functionHandle, Args&&... args)
+    Script_Value CallFunction(Script_Instance* instance, const Script_Value& value, Args&&... args)
     {
         auto arguments = CreateArguments(std::forward<Args>(args)...);
 
-        CallFunctionArgV(instance, functionHandle, arguments.Data(), arguments.Size());
+        return CallFunctionArgV(instance, value, arguments.Data(), arguments.Size());
     }
 
     void ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue);
 
 private:
     Script_Interpreter* m_vm;
-
-    // global cached data used from native code
-    mutable Mutex m_mutex;
+    Script_Instance* m_globalInstance;
 };
 
 } // namespace hyperion

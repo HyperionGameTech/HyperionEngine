@@ -37,9 +37,10 @@ static constexpr int g_typePromoLut[10][10] = {
 extern Script_Value ScriptApi_MakeValue(const Script_VMData& data);
 extern Script_Value ScriptApi_MakeValue(const Number& number);
 extern Script_Value ScriptApi_MakeValue(HypData&& data);
-extern Script_Value ScriptApi_MakeRef(Script_Value& refValue);
-extern Script_Value ScriptApi_MakeTrackedRef(Script_Value& refValue, Script_GC* gc);
+extern Script_Value ScriptApi_MakeRef(Script_Value* refValue);
+extern Script_Value ScriptApi_MakeTrackedRef(Script_Value* refValue, Script_GC* gc);
 extern Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc);
+extern bool ScriptApi_ShouldValuePassByRef(const Script_Value& value);
 
 class Script_GC;
 

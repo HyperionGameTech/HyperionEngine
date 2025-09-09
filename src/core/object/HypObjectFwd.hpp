@@ -90,7 +90,7 @@ public:
     {
     }
 
-    HypObjectPtr(std::nullptr_t)
+    explicit HypObjectPtr(std::nullptr_t)
         : m_ptr(nullptr),
           m_hypClass(nullptr)
     {
@@ -103,7 +103,7 @@ public:
     }
 
     template <class T, typename = std::enable_if_t<IsHypObject<T>::value>>
-    HypObjectPtr(T* ptr)
+    explicit HypObjectPtr(T* ptr)
         : m_ptr(ptr),
           m_hypClass(T::Class())
     {

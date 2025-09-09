@@ -77,11 +77,11 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Cl
 
 #ifdef HYP_SCRIPT
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const Script_ObjectHandle& objectHandle, HypScriptObjectTag)
-    : m_ptr(ptr)
+ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, Script_Value&& hypScriptValue, HypScriptTag)
 {
     ScriptObjectData_HypScript& data = m_scriptObjectData.Emplace<ScriptObjectData_HypScript>();
-    data.objectHandle = objectHandle;
+    data.instance = hypScriptInstance;
+    data.obj = std::move(hypScriptValue);
 }
 
 #endif
@@ -101,7 +101,21 @@ ScriptObjectResource::~ScriptObjectResource()
 
         dotNetData->managedClass = nullptr;
     }
+#endif
 
+#ifdef HYP_SCRIPT
+    ScriptObjectData_HypScript* hypScriptData = GetScriptObjectData_HypScript();
+
+    if (hypScriptData)
+    {
+        if (hypScriptData->instance)
+        {
+            HypScript::GetInstance().DestroyScript(hypScriptData->instance);
+            hypScriptData->instance = nullptr;
+        }
+
+        hypScriptData->obj = Script_Value();
+    }
 #endif
 
     m_scriptObjectData.Reset();
