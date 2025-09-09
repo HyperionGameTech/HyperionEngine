@@ -83,6 +83,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             { "int16", { "short", "ReadInt16" } },
             { "int32", { "int", "ReadInt32" } },
             { "int64", { "long", "ReadInt64" } },
+            { "uintptr_t", { "IntPtr", "ReadIntPtr" } },
             { "string", { "string", "ReadString" } },
             { "String", { "string", "ReadString" } },
             { "ANSIString", { "string", "ReadString" } },

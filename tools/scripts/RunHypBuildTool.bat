@@ -78,7 +78,11 @@ if errorlevel 1 (
     echo Failed to build Hyperion build tool.
     exit /b 1
 ) else (
-    echo Hyperion build tool built successfully.
+    rem Check if build tool was created
+    if not exist "%WORKING_DIR%\build\hyperion-buildtool.exe" (
+        echo Build tool returned success, but the executable could not be found!
+        exit /b 1
+    )
 )
 
 :_skipBuild

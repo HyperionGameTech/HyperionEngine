@@ -39,7 +39,7 @@ string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 set(HYP_BUILD_TYPE "Release")
 
 set(HYP_BUILD_TOOL_VERSION_MAJOR 0)
-set(HYP_BUILD_TOOL_VERSION_MINOR 2)
+set(HYP_BUILD_TOOL_VERSION_MINOR 3)
 set(HYP_BUILD_TOOL_VERSION_PATCH 1)
 
 set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
@@ -313,8 +313,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 
 add_definitions(-DHYP_SCRIPT=1)
 
-# set to explicitly disable dotnet
-set(HYP_NO_DOTNET 1)
+# # set to explicitly disable dotnet
+# set(HYP_NO_DOTNET 1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1

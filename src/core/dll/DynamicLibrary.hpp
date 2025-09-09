@@ -2,33 +2,40 @@
 
 #pragma once
 
-#include <core/memory/UniquePtr.hpp>
+#include <core/memory/Pimpl.hpp>
+
 #include <core/containers/String.hpp>
 
 namespace hyperion {
 
-class DynamicLibrary
+HYP_STRUCT(Size = 8)
+class HYP_API DynamicLibrary
 {
 public:
-    static UniquePtr<DynamicLibrary> Load(const PlatformString& path);
+    DynamicLibrary() = default;
 
-    DynamicLibrary(const PlatformString& path, void* handle);
+    explicit DynamicLibrary(const String& path);
+
     DynamicLibrary(const DynamicLibrary&) = delete;
     DynamicLibrary& operator=(const DynamicLibrary&) = delete;
-    DynamicLibrary(DynamicLibrary&&) noexcept = delete;
-    DynamicLibrary& operator=(DynamicLibrary&&) noexcept = delete;
+    DynamicLibrary(DynamicLibrary&&) noexcept = default;
+    DynamicLibrary& operator=(DynamicLibrary&&) noexcept = default;
     ~DynamicLibrary();
 
-    const PlatformString& GetPath() const
-    {
-        return m_path;
-    }
+    HYP_METHOD()
+    const String& GetPath() const;
 
-    void* GetFunction(const char* name) const;
+    HYP_METHOD()
+    void SetPath(const String& path);
+
+    HYP_METHOD()
+    bool Load();
+
+    HYP_METHOD()
+    uintptr_t GetFunction(const char* name) const;
 
 private:
-    PlatformString m_path;
-    void* m_handle;
+    Pimpl<struct DynamicLibraryImpl> m_impl;
 };
 
 } // namespace hyperion

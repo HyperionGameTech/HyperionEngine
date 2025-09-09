@@ -12,60 +12,115 @@
 
 namespace hyperion {
 
-UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString& path)
+struct DynamicLibraryImpl
 {
-#ifdef HYP_WINDOWS
-    HMODULE handle = LoadLibraryW(path.Data());
+    String path;
+    uintptr_t handle;
 
-    if (handle == nullptr)
+    DynamicLibraryImpl()
+        : handle(0)
     {
-        return nullptr;
     }
 
-    return MakeUnique<DynamicLibrary>(path, reinterpret_cast<void*>(handle));
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    void* handle = dlopen(path.Data(), RTLD_NOW);
-
-    if (handle == nullptr)
+    ~DynamicLibraryImpl()
     {
-        return nullptr;
+        Assert(!handle); // should have been freed by DynamicLibrary::~DynamicLibrary()
     }
+};
 
-    return MakeUnique<DynamicLibrary>(path, handle);
-#endif
-}
-
-DynamicLibrary::DynamicLibrary(const PlatformString& path, void* handle)
-    : m_path(path),
-      m_handle(handle)
+DynamicLibrary::DynamicLibrary(const String& path)
+    : m_impl(MakePimpl<DynamicLibraryImpl>())
 {
+    m_impl->path = path;
 }
 
 DynamicLibrary::~DynamicLibrary()
 {
-    if (!m_handle)
+    if (!m_impl)
     {
         return;
     }
 
 #ifdef HYP_WINDOWS
-    FreeLibrary(reinterpret_cast<HMODULE>(m_handle));
+    FreeLibrary(reinterpret_cast<HMODULE>(m_impl->handle));
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    dlclose(m_handle);
+    dlclose(reinterpret_cast<void*>(m_impl->handle));
 #endif
 }
 
-void* DynamicLibrary::GetFunction(const char* name) const
+const String& DynamicLibrary::GetPath() const
 {
-    if (!m_handle)
+    if (!m_impl)
     {
-        return nullptr;
+        return String::empty;
+    }
+
+    return m_impl->path;
+}
+
+void DynamicLibrary::SetPath(const String& path)
+{
+    if (!m_impl)
+    {
+        m_impl = MakePimpl<DynamicLibraryImpl>();
+        m_impl->path = path;
+
+        return;
+    }
+
+    m_impl->path = path;
+}
+
+bool DynamicLibrary::Load()
+{
+    if (!m_impl) // disposed
+    {
+        return false;
+    }
+
+    if (m_impl->handle) // already loaded
+    {
+        return true;
     }
 
 #ifdef HYP_WINDOWS
-    return reinterpret_cast<void*>(GetProcAddress(reinterpret_cast<HMODULE>(m_handle), name));
+    WideString wpath = m_impl->path.ToWide();
+
+    HMODULE handle = reinterpret_cast<uintptr_t>(LoadLibraryW(wpath.Data()));
+
+    if (!handle)
+    {
+        return false;
+    }
+
+    m_impl->handle = handle;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    return dlsym(m_handle, name);
+    m_impl->handle = reinterpret_cast<uintptr_t>(dlopen(m_impl->path.Data(), RTLD_NOW));
+
+    if (!m_impl->handle)
+    {
+        return false;
+    }
+
+    return true;
+#endif
+
+    return false;
+}
+
+uintptr_t DynamicLibrary::GetFunction(const char* name) const
+{
+    if (!m_impl || !m_impl->handle)
+    {
+        return 0;
+    }
+
+#ifdef HYP_WINDOWS
+    return reinterpret_cast<uintptr_t>(GetProcAddress(reinterpret_cast<HMODULE>(m_impl->handle), name));
+#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+    return reinterpret_cast<uintptr_t>(dlsym(reinterpret_cast<void*>(m_impl->handle), name));
+#else
+    return 0;
 #endif
 }
 

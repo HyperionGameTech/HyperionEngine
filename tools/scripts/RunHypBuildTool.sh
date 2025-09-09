@@ -65,7 +65,11 @@ fi
 if [ "$REBUILD" = true ]; then
     echo "Running BuildHypBuildTool.sh ..."
     if (printf "y" | ./tools/scripts/BuildHypBuildTool.sh); then
-        echo "Hyperion build tool built successfully."
+        # Check if build tool was created
+        if [ ! -f ./build/hyperion-buildtool ]; then
+            echo "Build tool returned success, but the executable could not be found!"
+            exit 1
+        fi
     else
         echo "Failed to build Hyperion build tool."
         exit 1

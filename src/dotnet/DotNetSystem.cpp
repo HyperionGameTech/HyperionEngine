@@ -230,7 +230,7 @@ public:
         if (!filepath.HasValue())
         {
             HYP_LOG(DotNET, Error, "Failed to load assembly {}: Could not find assembly DLL (base path: {})", path, m_basePath);
-            
+
             return nullptr;
         }
 
@@ -352,21 +352,47 @@ private:
 
     bool LoadHostFxr()
     {
-        // Pre-allocate a large buffer for the path to hostfxr
-        char_t buffer[2048];
-        size_t bufferSize = sizeof(buffer) / sizeof(char_t);
-        int rc = get_hostfxr_path(buffer, &bufferSize, nullptr);
-        if (rc != 0)
+        TChar wbuffer[2048];
+        SizeType bufferSize = sizeof(wbuffer) / sizeof(TChar);
+
+        PlatformString wpath;
+
+        int rc = get_hostfxr_path(wbuffer, &bufferSize, nullptr);
+
+        if (rc == 0)
         {
+            wpath = PlatformString(wbuffer, wbuffer + bufferSize - 1);
+        }
+        else if (rc == -1)
+        {
+            // try again with a larger buffer
+            Array<TChar> dyn_wbuffer;
+            dyn_wbuffer.Resize(bufferSize);
+
+            rc = get_hostfxr_path(dyn_wbuffer.Data(), &bufferSize, nullptr);
+
+            if (rc != 0)
+            {
+                HYP_LOG(DotNET, Error, "Failed to load hostfxr: get_hostfxr_path failed with error code {}", rc);
+
+                return false;
+            }
+
+            wpath = PlatformString(dyn_wbuffer.Data(), dyn_wbuffer.Data() + bufferSize - 1);
+        }
+        else
+        {
+            HYP_LOG(DotNET, Error, "Failed to load hostfxr: get_hostfxr_path failed with error code {}", rc);
+
             return false;
         }
 
-        HYP_LOG(DotNET, Debug, "Loading hostfxr from: {}", &buffer[0]);
+        HYP_LOG(DotNET, Debug, "Loading hostfxr from: {}", wpath);
 
         // Load hostfxr and get desired exports
-        m_dll = DynamicLibrary::Load(buffer);
+        m_dll = DynamicLibrary(wpath.ToUTF8());
 
-        if (!m_dll)
+        if (!m_dll.Load())
         {
             return false;
         }
