@@ -367,7 +367,7 @@ void Parser::Parse(bool expectModuleDecl)
             }
 
             // parse at top level, to allow for nested modules
-            if (auto stmt = ParseStatement(true))
+            if (RC<AstStatement> stmt = ParseStatement(true))
             {
                 m_astIterator->Push(stmt);
             }
@@ -542,7 +542,7 @@ RC<AstModuleDeclaration> Parser::ParseModuleDeclaration()
                     {
 
                         // parse at top level, to allow for nested modules
-                        if (auto stmt = ParseStatement(true))
+                        if (RC<AstStatement> stmt = ParseStatement(true))
                         {
                             moduleAst->AddChild(stmt);
                         }

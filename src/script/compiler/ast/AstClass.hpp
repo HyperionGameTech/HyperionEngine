@@ -113,6 +113,31 @@ public:
         return m_flags[CLASS_FLAG_EXTERN];
     }
 
+    SymbolTypeRef GetBaseType() const
+    {
+        return m_baseType;
+    }
+
+    SymbolTypeRef GetSymbolType() const
+    {
+        return m_symbolType;
+    }
+
+    void SetSymbolType(const SymbolTypeRef& symbolType)
+    {
+        m_symbolType = symbolType;
+    }
+
+    SymbolTypeRef GetEnumUnderlyingType() const
+    {
+        return m_enumUnderlyingType;
+    }
+
+    void SetEnumUnderlyingType(const SymbolTypeRef& enumUnderlyingType)
+    {
+        m_enumUnderlyingType = enumUnderlyingType;
+    }
+
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
@@ -178,6 +203,7 @@ protected:
     Array<RC<AstVariableDeclaration>> m_outsideMembers;
     Array<RC<AstVariableDeclaration>> m_combinedMembers;
     bool m_isVisited;
+    bool m_isPreRegistered;
 
     RC<AstClass> CloneImpl() const
     {

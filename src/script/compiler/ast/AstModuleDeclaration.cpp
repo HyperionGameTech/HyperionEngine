@@ -1,5 +1,6 @@
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstClass.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 
@@ -44,11 +45,58 @@ void AstModuleDeclaration::PerformLookup(AstVisitor* visitor)
     }
 }
 
+void AstModuleDeclaration::PreRegisterClassTypes(AstVisitor* visitor, Module* mod)
+{
+    for (const RC<AstStatement>& child : m_children)
+    {
+        Assert(child != nullptr);
+
+        if (AstClass* classNode = dynamic_cast<AstClass*>(child.Get()))
+        {
+            if (classNode->GetSymbolType())
+            {
+                continue;
+            }
+
+            if (classNode->IsEnum())
+            {
+                if (!classNode->GetEnumUnderlyingType().IsValid())
+                {
+                    classNode->SetEnumUnderlyingType(BuiltinTypes::s_intType);
+                }
+
+                SymbolTypeRef enumType = SymbolType::GenericInstance(
+                    BuiltinTypes::s_enumType,
+                    {}, {},
+                    GenericInstanceTypeInfo { { { "of", classNode->GetEnumUnderlyingType() } } });
+
+                classNode->SetSymbolType(enumType);
+            }
+            else
+            {
+                SymbolTypeRef classType = SymbolType::Object(
+                    classNode->GetName(),
+                    BuiltinTypes::s_objectType,
+                    {}, {});
+
+                if (classNode->IsProxyClass())
+                {
+                    classType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+                }
+
+                classNode->SetSymbolType(classType);
+            }
+
+            mod->scopeTree.Root().identifierTable.AddSymbolType(classNode->GetSymbolType());
+        }
+    }
+}
+
 void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr);
 
-    if (m_module == nullptr)
+    if (!m_module)
     {
         PerformLookup(visitor);
     }
@@ -62,7 +110,7 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         // add this module to list of imported modules,
         // but only if mod == nullptr, that way we don't add nested modules
-        if (mod == nullptr)
+        if (!mod)
         {
             // parse filename
             Array<String> path = m_location.GetFileName().Split('\\', '/');
@@ -86,13 +134,15 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
         mod = m_module.Get();
         Assert(mod == visitor->GetCompilationUnit()->GetCurrentModule());
 
+        // Pre-register all class types so forward references work
+        PreRegisterClassTypes(visitor, mod);
+
         // visit all children
-        for (auto& child : m_children)
+        for (const RC<AstStatement>& child : m_children)
         {
-            if (child != nullptr)
-            {
-                child->Visit(visitor, mod);
-            }
+            Assert(child != nullptr);
+
+            child->Visit(visitor, mod);
         }
 
         // close this module

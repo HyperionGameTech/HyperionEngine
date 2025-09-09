@@ -59,6 +59,9 @@ public:
     }
 
 private:
+    /** Pre-register all class types for forward reference support */
+    void PreRegisterClassTypes(AstVisitor* visitor, Module* mod);
+
     Array<RC<AstStatement>> m_children;
     RC<Module> m_module;
 

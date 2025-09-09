@@ -56,7 +56,8 @@ AstClass::AstClass(
       m_staticMembers(staticMembers),
       m_enumUnderlyingType(enumUnderlyingType),
       m_flags(flags),
-      m_isVisited(false)
+      m_isVisited(false),
+      m_isPreRegistered(false)
 {
 }
 
@@ -129,21 +130,58 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     if (IsEnum())
     {
-        if (!m_enumUnderlyingType.IsValid())
+        if (!m_symbolType)
         {
-            m_enumUnderlyingType = BuiltinTypes::s_intType;
-        }
+            if (!m_enumUnderlyingType.IsValid())
+            {
+                m_enumUnderlyingType = BuiltinTypes::s_intType;
+            }
 
-        // Create a generic instance of the enum type
-        m_symbolType = SymbolType::GenericInstance(
-            BuiltinTypes::s_enumType,
-            {}, {},
-            GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
+            // Create a generic instance of the enum type
+            m_symbolType = SymbolType::GenericInstance(
+                BuiltinTypes::s_enumType,
+                {}, {},
+                GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
+        }
     }
     else
     {
-        if (m_baseType != nullptr)
+        if (!m_symbolType)
         {
+            if (m_baseType != nullptr)
+            {
+                if (!m_baseType->IsOrHasBase(*BuiltinTypes::s_objectType))
+                {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_invalid_base_class,
+                        m_location,
+                        m_baseType->ToString()));
+
+                    m_baseType = BuiltinTypes::s_objectType;
+                }
+
+                m_symbolType = SymbolType::Extend(
+                    m_name,
+                    m_baseType,
+                    {}, {});
+            }
+            else
+            {
+                m_symbolType = SymbolType::Object(
+                    m_name,
+                    BuiltinTypes::s_objectType,
+                    {}, {});
+            }
+
+            if (IsProxyClass())
+            {
+                m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+            }
+        }
+        else if (m_baseType != nullptr)
+        {
+            // Symbol type was pre-registered, but now we need to update it with proper base type
             if (!m_baseType->IsOrHasBase(*BuiltinTypes::s_objectType))
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -155,22 +193,18 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 m_baseType = BuiltinTypes::s_objectType;
             }
 
-            m_symbolType = SymbolType::Extend(
+            // Create new symbol type with proper inheritance
+            SymbolTypeRef updatedType = SymbolType::Extend(
                 m_name,
                 m_baseType,
                 {}, {});
-        }
-        else
-        {
-            m_symbolType = SymbolType::Object(
-                m_name,
-                BuiltinTypes::s_objectType,
-                {}, {});
-        }
 
-        if (IsProxyClass())
-        {
-            m_symbolType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+            if (IsProxyClass())
+            {
+                updatedType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+            }
+
+            m_symbolType->CopyMutate(*updatedType);
         }
     }
 
@@ -198,6 +232,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
+    // Register the symbol type (AddSymbolType handles the internal list management)
     mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
     mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { m_symbolType }));
 

@@ -104,7 +104,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 0
+#if 1
     { // script 2
         String str;
 #if 0
@@ -159,9 +159,10 @@ void HyperionEditor::Init()
               "       jet = val as int\n"
               "       return jet\n"
               "    }\n"
-              "    modValue(inValue : Array<int>) -> void {\n"
+              "    modValue(inValue : Array<int>, farts: Fart...) -> void {\n"
               "    }\n"
               "}\n"
+              "class Fart {}\n"
               "ins := new MyClass();\n"
               "testArray2 : Array<int> = [9,9,34]\n"
               "testArray2[0]++\n"
@@ -190,7 +191,7 @@ void HyperionEditor::Init()
 
             // call function
             Script_Value functionValue;
-            if (HypScript::GetInstance().GetFunctionHandle("x", functionValue))
+            if (HypScript::GetInstance().GetFunctionHandle(instance, "x", functionValue))
             {
                 Script_Value lastReturn = HypScript::GetInstance().CallFunction(instance, functionValue, 5, 4);
 
@@ -208,7 +209,7 @@ void HyperionEditor::Init()
         }
     }
 
-    //HYP_BREAKPOINT;
+    HYP_BREAKPOINT;
 #endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
