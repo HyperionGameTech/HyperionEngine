@@ -28,6 +28,8 @@
 
 namespace hyperion {
 
+extern FilePath CoreApi_GetExecutablePath();
+
 #ifdef HYP_SCRIPT
 
 extern Script_Value ScriptApi_MakeValue(HypData&& data);
@@ -280,7 +282,8 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             ResourceHandle resourceHandle(*scriptComponent.scriptAsset->GetResource());
 
-            FilePath path(scriptData->path);
+            // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
+            FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path);
 
             if (!path.Exists() || !path.CanRead())
             {
@@ -319,6 +322,14 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             // run the script to initialize classes, functions, etc.
             hs.Run(instance);
+
+            if (!Memory::StrCmp(scriptData->className, ""))
+            {
+                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: ScriptData for entity #{} has no class name!", entity->Id());
+                
+                hs.DestroyScript(instance);
+                return;
+            }
 
             const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(scriptData->className);
 

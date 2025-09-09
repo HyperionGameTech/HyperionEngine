@@ -108,7 +108,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 1
+#if 0
     { // script 2
         String str;
 #if 0
@@ -212,7 +212,7 @@ void HyperionEditor::Init()
         }
     }
 
-    HYP_BREAKPOINT;
+    //HYP_BREAKPOINT;
 #endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
@@ -347,7 +347,8 @@ void HyperionEditor::Init()
                     zombie->Scale(0.25f);
                     zombie->Translate(Vec3f(0, 2.0f, -1.0f));
 
-                    scene->GetRoot()->AddChild(zombie);
+                    const Handle<Entity>& firstEntity = ObjCast<Entity>(zombie->GetChild(0)->GetChild(0));
+                    Assert(firstEntity != nullptr);
 
                     // if (auto* meshComponent = zombie->TryGetComponent<MeshComponent>())
                     // {
@@ -364,18 +365,26 @@ void HyperionEditor::Init()
 
                     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
+                    // register the package
+                    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("Temp/Scripts", scriptAsset);
+                    Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
+
                     ResourceHandle resourceHandle(*scriptAsset->GetResource());
                     
                     ScriptData* scriptData = scriptAsset->GetScriptData();
                     Assert(scriptData != nullptr);
-
+                    
+                    scriptAsset->GetScriptData()->language = SL_HYPSCRIPT;
                     Memory::StrCpy(scriptData->path, "tmp.hyp", sizeof(scriptData->path));
+                    Memory::StrCpy(scriptData->className, "MyClass", sizeof(scriptData->className));
 
-                    ScriptComponent& scriptComponent = scene->GetEntityManager()->AddComponent<ScriptComponent>(static_cast<Entity*>(zombie.Get()), ScriptComponent {
+                    ScriptComponent& scriptComponent = firstEntity->AddComponent<ScriptComponent>(ScriptComponent {
                         scriptAsset    
                     });
 
                     zombie->SetName(NAME("zombie"));
+
+                    scene->GetRoot()->AddChild(zombie);
                 }
 
                 /// testing Voxel octree
