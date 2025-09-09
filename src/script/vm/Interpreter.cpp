@@ -1890,7 +1890,7 @@ public:
             ? ScriptApi_MakeTrackedRef(&srcValue, vm->GetGC())
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
 
-        if (!vm->GetExportedSymbols().Store(hash, std::move(newValue)).second)
+        if (!instance->exportedSymbols.Store(hash, std::move(newValue)).second)
         {
             vm->ThrowException(instance, Script_Exception::DuplicateExportException());
         }

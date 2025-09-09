@@ -371,7 +371,7 @@ void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& out
     outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_vm->GetGC());
 }
 
-bool HypScript::GetMember(const Script_Value& targetValue, const char* memberName, Script_Value& outValue)
+bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetValue, const char* memberName, Script_Value& outValue)
 {
     outValue = Script_Value();
 
@@ -464,12 +464,12 @@ bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Scri
     return true;
 }
 
-bool HypScript::GetFunctionHandle(const char* name, Script_Value& outValue)
+bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, Script_Value& outValue)
 {
     outValue = Script_Value();
 
     Script_Value* pValue;
-    if (!GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), pValue))
+    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
     }
@@ -484,12 +484,12 @@ bool HypScript::GetFunctionHandle(const char* name, Script_Value& outValue)
     return true;
 }
 
-bool HypScript::GetExportedValue(const char* name, Script_Value& outValue, bool getReference)
+bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Script_Value& outValue, bool getReference)
 {
     outValue = Script_Value();
 
     Script_Value* pValue;
-    if (!GetExportedSymbols().Find(HashCode::GetHashCode(name).Value(), pValue))
+    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
     }
@@ -510,9 +510,9 @@ bool HypScript::GetExportedValue(const char* name, Script_Value& outValue, bool 
     return true;
 }
 
-Script_SymbolTable& HypScript::GetExportedSymbols() const
+Script_SymbolTable& HypScript::GetExportedSymbols(Script_Instance* instance) const
 {
-    return m_vm->GetExportedSymbols();
+    return instance->exportedSymbols;
 }
 
 } // namespace hyperion

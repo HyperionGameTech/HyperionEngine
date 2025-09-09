@@ -227,6 +227,7 @@ struct Script_Instance
 {
     Script_Stream stream;
     Script_ExecutionThread thread;
+    Script_SymbolTable exportedSymbols;
 };
 
 class Script_Interpreter
@@ -263,20 +264,9 @@ public:
         return m_gc;
     }
 
-    Script_SymbolTable& GetExportedSymbols()
-    {
-        return m_exportedSymbols;
-    }
-
-    const Script_SymbolTable& GetExportedSymbols() const
-    {
-        return m_exportedSymbols;
-    }
-
     Script_StaticMemory m_staticMemory;
     Script_GC* m_gc = nullptr;
     Script_Tracemap m_tracemap;
-    Script_SymbolTable m_exportedSymbols;
     Script_Exception* m_unhandledException = nullptr;
 
 private:

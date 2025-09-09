@@ -65,15 +65,15 @@ public:
 
     Script_Value CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs);
 
-    bool GetFunctionHandle(const char* name, Script_Value& outValue);
-    bool GetExportedValue(const char* name, Script_Value& outValue, bool getReference);
+    bool GetFunctionHandle(Script_Instance* instance, const char* name, Script_Value& outValue);
+    bool GetExportedValue(Script_Instance* instance, const char* name, Script_Value& outValue, bool getReference);
 
-    Script_SymbolTable& GetExportedSymbols() const;
+    Script_SymbolTable& GetExportedSymbols(Script_Instance* instance) const;
 
     /*! \brief Implements OpGetMember in the virtual machine.
      *  Gets a field or method by name and sets `outValue` to the value.
      *  Returns true on found, false otherwise. */
-    bool GetMember(const Script_Value& targetValue, const char* memberName, Script_Value& outValue);
+    bool GetMember(Script_Instance* instance, const Script_Value& targetValue, const char* memberName, Script_Value& outValue);
 
     /*! \brief Implements OpSetField in the virtual machine. Sets a field with the name `memberName` to the value held in `value`.
      *  If the field was not found, returns false.

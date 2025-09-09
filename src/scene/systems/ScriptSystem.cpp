@@ -81,23 +81,20 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         auto* data = sor->GetScriptObjectData_HypScript();
         Assert(data != nullptr);
 
-        const Script_Value& targetValue = data->obj;
-        Assert(targetValue.IsValid());
-
         HypScript& hs = HypScript::GetInstance();
             
-        Script_Value memberValue;
-        if (!hs.GetMember(targetValue, methodName, memberValue))
+        Script_Value functionValue;
+        if (!hs.GetFunctionHandle(methodName, targetValue))
         {
             break;
         }
 
-        if (!memberValue.IsFunction())
+        if (!functionValue.IsFunction())
         {
             break;
         }
 
-        Script_Value returnValue = hs.CallFunction(data->instance, memberValue);
+        Script_Value returnValue = hs.CallFunction(data->instance, functionValue);
         
         if constexpr (!std::is_void_v<ReturnType>)
         {

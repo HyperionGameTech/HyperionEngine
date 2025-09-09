@@ -80,23 +80,15 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         auto* data = sor->GetScriptObjectData_HypScript();
         Assert(data != nullptr);
 
-        const Script_Value& obj = data->obj;
-        Assert(obj.IsValid());
-
         HypScript& hs = HypScript::GetInstance();
             
-        Script_Value memberValue;
-        if (!hs.GetMember(obj, methodName, memberValue))
+        Script_Value functionValue;
+        if (!hs.GetFunctionHandle(methodName, functionValue))
         {
             break;
         }
 
-        if (!memberValue.IsFunction())
-        {
-            break;
-        }
-
-        Script_Value returnValue = hs.CallFunction(data->instance, memberValue);
+        Script_Value returnValue = hs.CallFunction(data->instance, functionValue);
         
         if constexpr (!std::is_void_v<ReturnType>)
         {
@@ -268,7 +260,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
     {
         HypScript& hs = HypScript::GetInstance();
 
-        if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->obj.IsValid())
+        if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
         {
             FreeResource<ScriptObjectResource>(sor);
             sor = nullptr;
@@ -313,42 +305,10 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             Assert(instance != nullptr);
 
-            HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, HypScript class: {}", scriptData->className);
-
             // run the script to initialize classes, functions, etc.
             hs.Run(instance);
 
-            if (!Memory::StrCmp(scriptData->className, ""))
-            {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: ScriptData for entity #{} has no class name!", entity->Id());
-                
-                hs.DestroyScript(instance);
-                return;
-            }
-
-            const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(scriptData->className);
-
-            if (!hypClass)
-            {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to find HypClass '{}'!", scriptData->className);
-
-                hs.DestroyScript(instance);
-
-                return;
-            }
-
-            HypData instanceData;
-            
-            if (!hypClass->CreateInstance(instanceData, /* allowAbstract */ true))
-            {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create instance of HypClass '{}'!", scriptData->className);
-
-                hs.DestroyScript(instance);
-
-                return;
-            }
-            
-            sor = AllocateResource<ScriptObjectResource>(instance, ScriptApi_MakeValue(std::move(instanceData)), HYP_SCRIPT_TAG);
+            sor = AllocateResource<ScriptObjectResource>(instance, Script_Value(), HYP_SCRIPT_TAG);
             sor->IncRef();
 
             if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
@@ -363,10 +323,8 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
             }
 
-            if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->obj.IsValid())
+            if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
             {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' for entity #{}", scriptData->className, entity->Id());
-                
                 if (scriptComponent.scriptObjectResource)
                 {
                     scriptComponent.scriptObjectResource->DecRef();

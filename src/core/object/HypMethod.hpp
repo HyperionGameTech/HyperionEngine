@@ -154,7 +154,7 @@ struct HypMethodHelper<FunctionType, std::enable_if_t<!FunctionTraits<FunctionTy
         return (target.*_mem_fn)(std::forward<InnerArgTypes>(args)...);                          \
     }
 
-class HypMethod : public IHypMember
+class HypMethod final : public IHypMember
 {
 public:
     HypMethod(Span<const HypClassAttribute> attributes = {})
