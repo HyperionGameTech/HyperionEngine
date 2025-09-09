@@ -74,10 +74,6 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/memory/pool/Pool.hpp>
-
-#include <core/containers/SparsePagedArray.hpp>
-
 #include <asset/ScriptAsset.hpp>
 
 #include <HyperionEngine.hpp>
@@ -370,17 +366,16 @@ void HyperionEditor::Init()
                     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
                     ResourceHandle resourceHandle(*scriptAsset->GetResource());
-                    
+
                     ScriptData* scriptData = scriptAsset->GetScriptData();
                     Assert(scriptData != nullptr);
-                    
+
                     scriptAsset->GetScriptData()->language = SL_HYPSCRIPT;
                     Memory::StrCpy(scriptData->path, "tmp.hyp", sizeof(scriptData->path));
                     Memory::StrCpy(scriptData->className, "MyClass", sizeof(scriptData->className));
 
                     ScriptComponent& scriptComponent = firstEntity->AddComponent<ScriptComponent>(ScriptComponent {
-                        scriptAsset    
-                    });
+                        scriptAsset });
 
                     zombie->SetName(NAME("zombie"));
 
