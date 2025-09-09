@@ -2,8 +2,6 @@
 
 SCRIPT_DIR=`dirname -- "$( readlink -f -- "$0"; )"`
 
-BUILD_TOOL_CMD="./build/hyperion-buildtool --WorkingDirectory=$SCRIPT_DIR --SourceDirectory=$SCRIPT_DIR/src --CXXOutputDirectory=$SCRIPT_DIR/build/generated --CSharpOutputDirectory=$SCRIPT_DIR/src/generated/csharp --ExcludeDirectories=$SCRIPT_DIR/src/generated --ExcludeFiles=$SCRIPT_DIR/src/core/Defines.hpp"
-
 read -t 3 -p "Regenerate CMake? (will continue without regenerating in 3s) " RESP
 
 if [[ $RESP =~ ^[Yy] ]]; then

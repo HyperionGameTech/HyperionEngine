@@ -38,7 +38,6 @@ class Entity;
 class EditorDelegates;
 
 HYP_ENUM(Flags)
-
 enum NodeFlags : uint32
 {
     NONE = 0x0,

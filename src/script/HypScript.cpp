@@ -136,6 +136,8 @@ SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
         return it->second;
     }
 
+    HYP_LOG(HypScript, Debug, "Creating SymbolType for HypClass '{}'", *hypClass->GetName());
+
     SymbolTypeRef newType = SymbolType::Object(
         *hypClass->GetName(),
         parentType,
@@ -146,30 +148,112 @@ SymbolTypeRef HypClassToSymbolType(const HypClass* hypClass)
 
     for (const HypField* field : hypClass->GetFields())
     {
+        HYP_LOG(HypScript, Debug, "Adding field {}", *field->GetName());
+
         const TypeId fieldTypeId = field->GetTypeId();
+
+        SymbolTypeRef symbolType = TypeIdToSymbolType(fieldTypeId);
+
+        if (!symbolType)
+        {
+            HYP_LOG(HypScript, Warning, "Failed to get SymbolType for field '{}' of type '{}' in class '{}'",
+                *field->GetName(),
+                LookupTypeName(fieldTypeId),
+                *hypClass->GetName());
+
+            symbolType = BuiltinTypes::s_errorType;
+        }
+
+        if (symbolType == BuiltinTypes::s_errorType)
+        {
+            HYP_LOG(HypScript, Warning, "Field '{}' in class '{}' has error type",
+                *field->GetName(),
+                *hypClass->GetName());
+
+            continue;
+        }
 
         newType->GetMembers().PushBack(SymbolTypeMember {
             *field->GetName(),
-            TypeIdToSymbolType(fieldTypeId) });
+            symbolType });
     }
 
     for (const HypMethod* method : hypClass->GetMethods())
     {
+        HYP_LOG(HypScript, Debug, "Adding method {}", *method->GetName());
+
         Array<GenericInstanceTypeInfo::Arg> parameters;
         parameters.Reserve(method->GetParameters().Size() + 1);
+
+        SymbolTypeRef symbolType = TypeIdToSymbolType(method->GetTypeId());
+
+        if (!symbolType)
+        {
+            HYP_LOG(HypScript, Warning, "Failed to get SymbolType for return type '{}' of method '{}' in class '{}'",
+                LookupTypeName(method->GetTypeId()),
+                *method->GetName(),
+                *hypClass->GetName());
+
+            symbolType = BuiltinTypes::s_errorType;
+        }
+
+        if (symbolType == BuiltinTypes::s_errorType)
+        {
+            HYP_LOG(HypScript, Warning, "Method '{}' in class '{}' has error return type",
+                *method->GetName(),
+                *hypClass->GetName());
+
+            continue;
+        }
 
         // add return type as first parameter with name "@return"
         parameters.PushBack(GenericInstanceTypeInfo::Arg {
             "@return",
-            TypeIdToSymbolType(method->GetTypeId()) });
+            symbolType });
+
+        bool errored = false;
 
         for (SizeType paramIndex = 0; paramIndex < method->GetParameters().Size(); paramIndex++)
         {
             const HypMethodParameter& param = method->GetParameters()[paramIndex];
 
+            HYP_LOG(HypScript, Debug, "  with param type {}", LookupTypeName(param.typeId));
+
+            symbolType = TypeIdToSymbolType(param.typeId);
+
+            if (!symbolType)
+            {
+                HYP_LOG(HypScript, Warning, "Failed to get SymbolType for parameter {} of type '{}' in method '{}' in class '{}'",
+                    paramIndex,
+                    LookupTypeName(param.typeId),
+                    *method->GetName(),
+                    *hypClass->GetName());
+
+                symbolType = BuiltinTypes::s_errorType;
+            }
+
+            if (symbolType == BuiltinTypes::s_errorType)
+            {
+                HYP_LOG(HypScript, Warning, "Parameter {} in method '{}' in class '{}' has error type",
+                    paramIndex,
+                    *method->GetName(),
+                    *hypClass->GetName());
+
+                errored = true;
+
+                break;
+            }
+
             parameters.PushBack(GenericInstanceTypeInfo::Arg {
                 HYP_FORMAT("arg{}", paramIndex),
-                TypeIdToSymbolType(param.typeId) });
+                symbolType });
+        }
+
+        symbolType.Reset();
+
+        if (errored)
+        {
+            continue;
         }
 
         newType->GetMembers().PushBack(SymbolTypeMember {

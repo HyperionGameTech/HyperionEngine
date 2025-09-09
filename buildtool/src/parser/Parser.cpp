@@ -16,7 +16,9 @@ namespace hyperion::buildtool {
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 HYP_DEFINE_LOG_SUBCHANNEL(Parser, BuildTool);
 
-#pragma region CSharp type mapping
+#pragma region Type mapping
+
+const HypScriptTypeMapping g_hypscriptAnyTypeMapping { "any" };
 
 const ASTType* ExtractInnerType(const ASTType* type)
 {
@@ -68,7 +70,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "Type name has no parts");
         }
 
-        static const HashMap<String, CSharpTypeMapping> mapping {
+        static const HashMap<String, CSharpTypeMapping> s_mapping {
             { "int", { "int", "ReadInt32" } },
             { "float", { "float", "ReadFloat" } },
             { "double", { "double", "ReadDouble" } },
@@ -103,9 +105,9 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
 
         const String typeNameString = type->typeName->ToString(/* includeNamespace */ false);
 
-        auto it = mapping.Find(typeNameString);
+        auto it = s_mapping.Find(typeNameString);
 
-        if (it != mapping.End())
+        if (it != s_mapping.End())
         {
             return it->second;
         }
@@ -170,11 +172,142 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
     return HYP_MAKE_ERROR(Error, "Type is unable to be mapped to a C# type");
 }
 
-#pragma endregion CSharp type mapping
+TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const ASTType* type)
+{
+    if (type->isPointer && type->ptrTo->IsVoid())
+    {
+        return HYP_MAKE_ERROR(Error, "Void pointers are not supported in HypScript");
+    }
+
+    if (type->isArray)
+    {
+        if (!type->arrayOf)
+        {
+            return HYP_MAKE_ERROR(Error, "Array type has no inner type");
+        }
+
+        if (auto res = MapToHypScriptType(analyzer, type->arrayOf.Get()); res.HasError())
+        {
+            return HypScriptTypeMapping { "Array<any>" };
+        }
+        else
+        {
+            return HypScriptTypeMapping { "Array<" + res.GetValue().typeName + ">" };
+        }
+    }
+
+    type = ExtractInnerType(type);
+    Assert(type != nullptr);
+
+    if (type->typeName.HasValue())
+    {
+        if (type->typeName->parts.Empty())
+        {
+            return HYP_MAKE_ERROR(Error, "Type name has no parts");
+        }
+
+        static const HashMap<String, HypScriptTypeMapping> s_mapping {
+            { "int", { "int" } },
+            { "uint32", { "uint" } },
+            { "float", { "float" } },
+            { "double", { "double" } },
+            { "bool", { "bool" } },
+            { "void", { "void" } },
+            { "string", { "string" } },
+            { "String", { "string" } },
+            { "HypData", g_hypscriptAnyTypeMapping },
+            { "ANSIString", { "string" } },
+            { "UTF8StringView", { "string" } },
+            { "ANSIStringView", { "string" } },
+            { "FilePath", { "string" } },
+            { "Name", { "Name" } },
+            { "WeakName", { "Name" } },
+            { "HypObjectBase", { "object" } },
+            { "AnyHandle", g_hypscriptAnyTypeMapping },
+            { "AnyRef", g_hypscriptAnyTypeMapping },
+            { "ConstAnyRef", g_hypscriptAnyTypeMapping }
+
+            /* more to be filled in later */
+        };
+
+        const String typeNameString = type->typeName->ToString(/* includeNamespace */ false);
+
+        auto it = s_mapping.Find(typeNameString);
+
+        if (it != s_mapping.End())
+        {
+            return it->second;
+        }
+
+        if (type->isTemplate)
+        {
+            const String templateName = type->typeName->parts.Back();
+
+            // hypscript uses Array<T> for arrays
+            if (templateName == "Array"
+                || templateName == "FixedArray")
+            {
+                if (type->templateArguments.Empty())
+                {
+                    return HYP_MAKE_ERROR(Error, "Type missing template argument");
+                }
+
+                if (!type->templateArguments[0]->type)
+                {
+                    return HYP_MAKE_ERROR(Error, "Type template argument is not a type");
+                }
+
+                if (auto res = MapToHypScriptType(analyzer, type->templateArguments[0]->type.Get()); res.HasError())
+                {
+                    return HypScriptTypeMapping { "Array<any>" };
+                }
+                else
+                {
+                    return HypScriptTypeMapping { "Array<" + res.GetValue().typeName + ">" };
+                }
+            }
+
+            if (templateName == "RC"
+                || templateName == "Handle"
+                || templateName == "EnumFlags")
+            {
+                if (type->templateArguments.Empty())
+                {
+                    return HYP_MAKE_ERROR(Error, "Type missing template argument");
+                }
+
+                if (!type->templateArguments[0]->type)
+                {
+                    return HYP_MAKE_ERROR(Error, "Type template argument is not a type");
+                }
+
+                return MapToHypScriptType(analyzer, type->templateArguments[0]->type.Get());
+            }
+
+            return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a HypScript type");
+        }
+
+        // Find a HypClass with the same name. HypObjects (classes deriving HypObject.cs) and structs with HypClassBinding
+        // attribute can use custom overloads to try and get a specific method for reading the value.
+        const HypClassDefinition* definition = analyzer.FindHypClassDefinition(typeNameString);
+
+        if (definition)
+        {
+            return HypScriptTypeMapping { definition->name };
+        }
+
+        return HypScriptTypeMapping { typeNameString };
+    }
+
+    return HYP_MAKE_ERROR(Error, "Type is unable to be mapped to a HypScript type");
+}
+
+#pragma endregion Type mapping
 
 #pragma region QualifiedName
 
-String QualifiedName::ToString(bool includeNamespace) const
+String
+QualifiedName::ToString(bool includeNamespace) const
 {
     if (parts.Empty())
     {

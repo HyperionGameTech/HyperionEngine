@@ -263,16 +263,16 @@ protected:
         return resourceCasted->GetAssetRef().TryGet<T>();
     }
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Serialize)
     UUID m_uuid;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Serialize)
     Name m_name;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Serialize)
     EnumFlags<AssetObjectFlags> m_flags;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Serialize)
     FilePath m_originalFilepath; // used to determine if we should skip importing an asset
 
     HYP_FIELD(JsonIgnore)

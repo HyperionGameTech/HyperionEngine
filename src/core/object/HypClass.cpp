@@ -364,10 +364,17 @@ const char* LookupTypeName(TypeId typeId)
 
     if (!g_formattedStringMap)
     {
-        g_formattedStringMap = Threads::CurrentThreadObject()->GetTLS().Alloc<FormattedStringMap>();
+        ThreadBase* currentThreadObject = Threads::CurrentThreadObject();
+
+        if (currentThreadObject == nullptr)
+        {
+            return "<could not lookup type name>";
+        }
+
+        g_formattedStringMap = currentThreadObject->GetTLS().Alloc<FormattedStringMap>();
         new (g_formattedStringMap) FormattedStringMap();
 
-        Threads::CurrentThreadObject()->AtExit([]()
+        currentThreadObject->AtExit([]()
             {
                 g_formattedStringMap->~FormattedStringMap();
             });

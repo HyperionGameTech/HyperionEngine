@@ -77,6 +77,16 @@ public:
         m_csharpOutputDirectory = csharpOutputDirectory;
     }
 
+    HYP_FORCE_INLINE const FilePath& GetHypScriptOutputDirectory() const
+    {
+        return m_hypscriptOutputDirectory;
+    }
+
+    HYP_FORCE_INLINE void SetHypScriptOutputDirectory(const FilePath& hypscriptOutputDirectory)
+    {
+        m_hypscriptOutputDirectory = hypscriptOutputDirectory;
+    }
+
     HYP_FORCE_INLINE const HashSet<FilePath>& GetExcludeDirectories() const
     {
         return m_excludeDirectories;
@@ -147,6 +157,7 @@ private:
     FilePath m_sourceDirectory;
     FilePath m_cxxOutputDirectory;
     FilePath m_csharpOutputDirectory;
+    FilePath m_hypscriptOutputDirectory;
 
     HashSet<FilePath> m_excludeDirectories;
     HashSet<FilePath> m_excludeFiles;

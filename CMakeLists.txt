@@ -620,7 +620,7 @@ message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
 
-# for all csharp sources, compile them into a Class library
+# for all C# sources, compile them into a Class library
 # use `dotnet` to compile them
 
 if(HYP_GENERATE_CSHARP_LIBRARIES)
@@ -634,7 +634,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
     endif()
 
     file(GLOB_RECURSE CSHARP_SHARED_SOURCES "src/dotnet/shared/**.cs")
-    file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs" "${HYP_GENERATED_DIR}/csharp/**.cs")
+    file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs" "${HYP_GENERATED_DIR}/CSharp/**.cs")
     file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "src/dotnet/interop/**.cs")
     file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 

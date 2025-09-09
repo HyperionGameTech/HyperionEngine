@@ -32,11 +32,19 @@ class ASTType;
 
 struct CSharpTypeMapping
 {
-    String typeName;                    // Name of the type in C#
+    String typeName;                   // Name of the type in C#
     Optional<String> getValueOverload; // Method to use instead of GetValue() if a specific one is defined in HypData.cs
 };
 
+struct HypScriptTypeMapping
+{
+    String typeName; // Name of the type in HypScript
+};
+
+extern const HypScriptTypeMapping g_hypscriptAnyTypeMapping;
+
 TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTType* type);
+TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const ASTType* type);
 
 struct ASTNode
 {
