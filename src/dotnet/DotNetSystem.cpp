@@ -182,11 +182,11 @@ public:
 
         static const FixedArray<Pair<String, FilePath>, 3> coreAssemblies = {
             Pair<String, FilePath> { "interop", *interopAssemblyPath },
-            Pair<String, FilePath> { "core", FindAssemblyFilePath(m_basePath, "HyperionCore.dll").GetOr([]() -> FilePath
-                                                 {
-                                                     HYP_FAIL("Failed to get HyperionCore.dll");
-                                                     return {};
-                                                 }) },
+            Pair<String, FilePath> { "shared", FindAssemblyFilePath(m_basePath, "HyperionShared.dll").GetOr([]() -> FilePath
+                                                   {
+                                                       HYP_FAIL("Failed to get HyperionShared.dll");
+                                                       return {};
+                                                   }) },
             Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "HyperionRuntime.dll").GetOr([]() -> FilePath
                                                     {
                                                         HYP_FAIL("Failed to get HyperionRuntime.dll");

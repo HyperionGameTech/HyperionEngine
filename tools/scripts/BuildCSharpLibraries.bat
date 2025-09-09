@@ -3,7 +3,7 @@ SETLOCAL EnableDelayedExpansion
 SET "CONFIG=Release"
 IF NOT "%~1"=="" SET "CONFIG=%~1"
 
-SET "projects=HyperionCore HyperionRuntime HyperionInterop HyperionScripting"
+SET "projects=HyperionShared HyperionRuntime HyperionInterop HyperionScripting"
 
 pushd build
 SET "buildDir=%CD%"

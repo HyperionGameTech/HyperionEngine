@@ -115,12 +115,12 @@ namespace Hyperion
                     return (int)LoadAssemblyResult.NotFound;
                 }
 
-                AssemblyName hyperionCoreDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionCore");
+                AssemblyName hyperionSharedDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionShared");
 
-                if (hyperionCoreDependency != null)
+                if (hyperionSharedDependency != null)
                 {
                     // Verify the engine version (major, minor)
-                    if (!VerifyEngineVersion(hyperionCoreDependency.Version.ToString(), true, true, false))
+                    if (!VerifyEngineVersion(hyperionSharedDependency.Version.ToString(), true, true, false))
                     {
                         Logger.Log(LogType.Error, "Assembly version does not match engine version");
 

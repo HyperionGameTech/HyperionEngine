@@ -8,7 +8,7 @@ if [ ! -z "$1" ]; then
     CONFIG="$1"
 fi
 
-projects=("HyperionCore" "HyperionRuntime" "HyperionInterop" "HyperionScripting")
+projects=("HyperionShared" "HyperionRuntime" "HyperionInterop" "HyperionScripting")
 
 pushd build
 buildDir="$(pwd)"
