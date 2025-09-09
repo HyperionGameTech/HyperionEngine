@@ -84,7 +84,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         HypScript& hs = HypScript::GetInstance();
             
         Script_Value functionValue;
-        if (!hs.GetFunctionHandle(methodName, targetValue))
+        if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
             break;
         }
@@ -94,7 +94,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             break;
         }
 
-        Script_Value returnValue = hs.CallFunction(data->instance, functionValue);
+        Script_Value returnValue = hs.CallFunction(data->instance, functionValue, std::forward<ArgTypes>(args)...);
         
         if constexpr (!std::is_void_v<ReturnType>)
         {
@@ -248,8 +248,8 @@ void ScriptSystem::Process(float delta)
 
     // Only update scripts if we're in simulation mode
     if (world->GetGameState().mode != GameStateMode::SIMULATING)
-    {
-        return;
+    { // temp; removed for testing
+        //return;
     }
 
     for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))

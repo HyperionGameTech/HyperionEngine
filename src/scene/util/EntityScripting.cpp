@@ -83,7 +83,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         HypScript& hs = HypScript::GetInstance();
             
         Script_Value functionValue;
-        if (!hs.GetFunctionHandle(methodName, functionValue))
+        if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
             break;
         }
