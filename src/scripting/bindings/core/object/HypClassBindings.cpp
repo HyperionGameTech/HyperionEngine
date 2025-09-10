@@ -189,15 +189,15 @@ extern "C"
 
     HYP_EXPORT HypMethod* HypClass_GetMethod(const HypClass* hypClass, const Name* name)
     {
-//#ifndef HYP_MSVC
+        // #ifndef HYP_MSVC
         if (!hypClass || !name)
         {
             return nullptr;
         }
 
         return hypClass->GetMethod(*name);
-//#endif
-        // @FIXME: Linker error in MSVC ... GetMethod() is not linking??? Weird.
+        // #endif
+        //  @FIXME: Linker error in MSVC ... GetMethod() is not linking??? Weird.
         HYP_NOT_IMPLEMENTED();
     }
 
@@ -262,7 +262,7 @@ extern "C"
         Assert(parentHypClass != nullptr);
 
 #ifdef HYP_DOTNET
-        return new DynamicHypClassInstance(*typeId, CreateNameFromDynamicString(name), parentHypClass, nullptr, Span<const HypClassAttribute>(), HypClassFlags::NONE, Span<HypMember>());
+        return new DynamicHypClassInstance(*typeId, CreateNameFromDynamicString(name), parentHypClass, nullptr, Span<const HypClassAttribute>(), HypClassFlags::CLASS_TYPE, Span<HypMember>());
 #else
         return nullptr;
 #endif

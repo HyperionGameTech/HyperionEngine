@@ -1371,6 +1371,9 @@ public:
             Assert(parentClass != nullptr);
         }
 
+        // some type needs to be set
+        Assert(flags & (uint8)(HypClassFlags::CLASS_TYPE | HypClassFlags::STRUCT_TYPE | HypClassFlags::ENUM_TYPE) != 0);
+
         DynamicHypClassInstance* newClass = new DynamicHypClassInstance(
             TypeId(typeIdValue),
             className,

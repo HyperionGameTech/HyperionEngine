@@ -266,17 +266,29 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(cons
         });
 }
 
-SymbolTypeRef Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey)
+SymbolTypeRef Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep)
 {
-    return PerformLookup<SymbolTypeRef>(
-        [&cacheKey](TreeNode<Scope>* top)
-        {
-            return top->Get().typeInstanceCache.Lookup(cacheKey);
-        },
-        [&cacheKey](Module* mod)
-        {
-            return mod->LookupTypeInstance(cacheKey);
-        });
+    if (deep)
+    {
+        return PerformLookup<SymbolTypeRef>(
+            [&cacheKey](TreeNode<Scope>* top)
+            {
+                return top->Get().typeInstanceCache.Lookup(cacheKey);
+            },
+            [&cacheKey](Module* mod)
+            {
+                return mod->LookupTypeInstance(cacheKey);
+            });
+    }
+
+    TreeNode<Scope>* top = scopeTree.TopNode();
+
+    if (top != nullptr)
+    {
+        return top->Get().typeInstanceCache.Lookup(cacheKey);
+    }
+
+    return nullptr;
 }
 
 void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type)

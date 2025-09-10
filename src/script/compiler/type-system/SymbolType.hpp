@@ -480,7 +480,7 @@ public:
     /*! \brief Copy the contents of another SymbolType into this one, mutating it.
         This is used when instantiating generic types to avoid having to re-cache
         the new instance. */
-    void CopyMutate(const SymbolType& other)
+    void Assign(const SymbolType& other)
     {
         m_name = std::move(other.m_name);
         m_typeClass = other.m_typeClass;

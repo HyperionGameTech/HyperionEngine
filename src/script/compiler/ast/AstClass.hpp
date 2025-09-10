@@ -45,16 +45,6 @@ public:
         EnumFlags<ClassFlags> classFlags,
         const SourceLocation& location);
 
-    AstClass(
-        const String& name,
-        const RC<AstTypeSpecifier>& baseSpec,
-        const Array<RC<AstVariableDeclaration>>& dataMembers,
-        const Array<RC<AstVariableDeclaration>>& functionMembers,
-        const Array<RC<AstVariableDeclaration>>& staticMembers,
-        const SymbolTypeRef& enumUnderlyingType,
-        EnumFlags<ClassFlags> classFlags,
-        const SourceLocation& location);
-
     virtual ~AstClass() override = default;
 
     /** enable setting to that variable declarations can change the type name */
@@ -133,16 +123,6 @@ public:
         m_symbolType = symbolType;
     }
 
-    SymbolTypeRef GetEnumUnderlyingType() const
-    {
-        return m_enumUnderlyingType;
-    }
-
-    void SetEnumUnderlyingType(const SymbolTypeRef& enumUnderlyingType)
-    {
-        m_enumUnderlyingType = enumUnderlyingType;
-    }
-
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
@@ -182,11 +162,6 @@ public:
             hc.Add(member ? member->GetHashCode() : HashCode());
         }
 
-        if (m_enumUnderlyingType != nullptr)
-        {
-            hc.Add(m_enumUnderlyingType->GetHashCode());
-        }
-
         hc.Add(m_flags);
 
         return hc;
@@ -199,7 +174,6 @@ protected:
     Array<RC<AstVariableDeclaration>> m_dataMembers;
     Array<RC<AstVariableDeclaration>> m_functionMembers;
     Array<RC<AstVariableDeclaration>> m_staticMembers;
-    SymbolTypeRef m_enumUnderlyingType;
     EnumFlags<ClassFlags> m_flags;
 
     SymbolTypeRef m_symbolType;
@@ -229,7 +203,6 @@ protected:
             CloneAllAstNodes(m_dataMembers),
             CloneAllAstNodes(m_functionMembers),
             CloneAllAstNodes(m_staticMembers),
-            m_enumUnderlyingType,
             m_flags,
             m_location));
     }

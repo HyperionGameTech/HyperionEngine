@@ -145,7 +145,7 @@ ConsoleUI::ConsoleUI()
     SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
 
     m_loggerRedirectId = Logger::GetInstance().GetOutputStream()->AddRedirect(
-        g_logChannel_Console.GetMaskBitset(),
+        g_logChannel_Console.maskBitset,
         (void*)this,
         [](void* context, const LogChannel& channel, const LogMessage& message)
         {
@@ -355,10 +355,10 @@ void ConsoleUI::Init()
                 {
                     // let the parent handle this key
                     Blur();
-                    
+
                     return UIEventHandlerResult::OK;
                 }
-            
+
                 if (eventData.keyCode == KeyCode::RETURN)
                 {
                     const String& text = m_textbox->GetText();

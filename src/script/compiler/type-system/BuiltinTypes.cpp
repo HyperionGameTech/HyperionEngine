@@ -78,13 +78,16 @@ const SymbolTypeRef BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
     "MapBase",
     nullptr);
 
-// Enum type is a generic class type similar to Array<T>.
-// e.g. Enum<uint>
-const SymbolTypeRef BuiltinTypes::s_enumType = SymbolType::Generic(
+const SymbolTypeRef BuiltinTypes::s_enumBaseType = SymbolType::Primitive(
+    "EnumBase",
+    nullptr);
+
+const SymbolTypeRef BuiltinTypes::s_enumType = SymbolType::GenericInstance(
     "Enum",
+    BuiltinTypes::s_enumBaseType,
     {},
     {},
-    GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
+    GenericInstanceTypeInfo { { { "underlyingType", SymbolType::GenericParameter("T") } } });
 
 const SymbolTypeRef BuiltinTypes::s_intType = SymbolType::Primitive(
     "int",

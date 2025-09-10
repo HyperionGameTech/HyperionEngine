@@ -197,7 +197,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // no bitwise operators on floats allowed.
             visitor->AddErrorIfFalse(
-                (leftType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType) && (rightType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType),
+                (leftType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType || leftType->IsEnumType())
+                    && (rightType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType || rightType->IsEnumType()),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operands_must_be_int,

@@ -1,7 +1,6 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/ast/AstClass.hpp>
-#include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Configuration.hpp>
@@ -163,14 +162,10 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         // if the variable has been assigned to an anonymous type,
         // rename the type to be the name of this variable
-        if (AstClass* asTypeExpr = dynamic_cast<AstClass*>(m_realAssignment.Get()))
+        if (AstClass* asClass = dynamic_cast<AstClass*>(m_realAssignment.Get()))
         {
-            asTypeExpr->SetName(m_name);
+            asClass->SetName(m_name);
         }
-        else if (AstEnumExpression* asEnumExpr = dynamic_cast<AstEnumExpression*>(m_realAssignment.Get()))
-        {
-            asEnumExpr->SetName(m_name);
-        } // @TODO more polymorphic way of doing this..
 
         // do this only within the scope of the assignment being visited.
         bool passByRefScope = false;

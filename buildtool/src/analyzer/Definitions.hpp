@@ -21,6 +21,7 @@ namespace hyperion {
 namespace buildtool {
 
 class ASTType;
+class ASTMemberDecl;
 class Analyzer;
 
 enum class HypClassDefinitionType
@@ -38,6 +39,7 @@ struct HypMemberDefinition
     String friendlyName;
     Array<Pair<String, HypClassAttributeValue>> attributes;
     RC<ASTType> cxxType;
+    RC<ASTMemberDecl> cxxDecl;
     String source;
 
     bool HasAttribute(UTF8StringView key) const

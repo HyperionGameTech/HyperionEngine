@@ -369,6 +369,18 @@ void ASTUnaryExpr::ToJSON(json::JSONValue& out) const
     out = std::move(object);
 }
 
+String ASTUnaryExpr::ToString() const
+{
+    if (isPrefix)
+    {
+        return op->LookupStringValue() + expr->ToString();
+    }
+    else
+    {
+        return expr->ToString() + op->LookupStringValue();
+    }
+}
+
 void ASTBinExpr::ToJSON(json::JSONValue& out) const
 {
     json::JSONObject object;
@@ -385,6 +397,11 @@ void ASTBinExpr::ToJSON(json::JSONValue& out) const
     object["op"] = op->LookupStringValue();
 
     out = std::move(object);
+}
+
+String ASTBinExpr::ToString() const
+{
+    return "(" + left->ToString() + " " + op->LookupStringValue() + " " + right->ToString() + ")";
 }
 
 void ASTTernaryExpr::ToJSON(json::JSONValue& out) const
@@ -407,6 +424,11 @@ void ASTTernaryExpr::ToJSON(json::JSONValue& out) const
     out = std::move(object);
 }
 
+String ASTTernaryExpr::ToString() const
+{
+    return "(" + conditional->ToString() + " ? " + trueExpr->ToString() + " : " + falseExpr->ToString() + ")";
+}
+
 void ASTLiteralString::ToJSON(json::JSONValue& out) const
 {
     json::JSONObject object;
@@ -425,6 +447,11 @@ void ASTLiteralInt::ToJSON(json::JSONValue& out) const
     out = std::move(object);
 }
 
+String ASTLiteralInt::ToString() const
+{
+    return originalString;
+}
+
 void ASTLiteralFloat::ToJSON(json::JSONValue& out) const
 {
     json::JSONObject object;
@@ -432,6 +459,11 @@ void ASTLiteralFloat::ToJSON(json::JSONValue& out) const
     object["value"] = value;
 
     out = std::move(object);
+}
+
+String ASTLiteralFloat::ToString() const
+{
+    return originalString;
 }
 
 void ASTLiteralBool::ToJSON(json::JSONValue& out) const
@@ -465,6 +497,11 @@ void ASTIdentifier::ToJSON(json::JSONValue& out) const
     out = std::move(object);
 }
 
+String ASTIdentifier::ToString() const
+{
+    return name.ToString();
+}
+
 void ASTInitializerExpr::ToJSON(json::JSONValue& out) const
 {
     json::JSONObject object;
@@ -482,6 +519,25 @@ void ASTInitializerExpr::ToJSON(json::JSONValue& out) const
     object["values"] = std::move(valuesArray);
 
     out = std::move(object);
+}
+
+String ASTInitializerExpr::ToString() const
+{
+    String result = "{ ";
+
+    for (SizeType i = 0; i < values.Size(); i++)
+    {
+        if (i > 0)
+        {
+            result += ", ";
+        }
+
+        result += values[i]->ToString();
+    }
+
+    result += " }";
+
+    return result;
 }
 
 void ASTTemplateArgument::ToJSON(json::JSONValue& out) const
@@ -503,6 +559,22 @@ void ASTTemplateArgument::ToJSON(json::JSONValue& out) const
     }
 
     out = std::move(object);
+}
+
+String ASTTemplateArgument::ToString() const
+{
+    if (type)
+    {
+        return type->Format();
+    }
+    else if (expr)
+    {
+        return expr->ToString();
+    }
+    else
+    {
+        return "<empty_template_argument>";
+    }
 }
 
 String ASTType::Format(bool useCsharpSyntax) const
@@ -823,6 +895,11 @@ void ASTType::ToJSON(json::JSONValue& out) const
     out = std::move(object);
 }
 
+String ASTType::ToString() const
+{
+    return Format(/* useCsharpSyntax */ false);
+}
+
 void ASTMemberDecl::ToJSON(json::JSONValue& out) const
 {
     json::JSONObject object;
@@ -846,6 +923,18 @@ void ASTMemberDecl::ToJSON(json::JSONValue& out) const
     }
 
     out = std::move(object);
+}
+
+String ASTMemberDecl::ToString() const
+{
+    if (value)
+    {
+        return type->FormatDecl(name, /* useCsharpSyntax */ false) + " = " + value->ToString();
+    }
+    else
+    {
+        return type->FormatDecl(name, /* useCsharpSyntax */ false);
+    }
 }
 
 String ASTFunctionType::Format(bool useCsharpSyntax) const
@@ -1003,6 +1092,11 @@ void ASTFunctionType::ToJSON(json::JSONValue& out) const
     object["parameters"] = std::move(parametersArray);
 
     out = json::JSONObject(typeJson.ToObject()).Merge(std::move(object));
+}
+
+String ASTFunctionType::ToString() const
+{
+    return Format(false);
 }
 
 #pragma endregion JSON conversion
@@ -1591,7 +1685,8 @@ RC<ASTExpr> Parser::ParseLiteralInt()
     if (Token token = Expect(TK_INTEGER, true))
     {
         RC<ASTLiteralInt> value = MakeRefCountedPtr<ASTLiteralInt>();
-        value->value = StringUtil::Parse<int>(token.GetValue());
+        value->value = StringUtil::Parse<int64>(token.GetValue());
+        value->originalString = token.GetValue();
 
         return value;
     }
@@ -1605,6 +1700,7 @@ RC<ASTExpr> Parser::ParseLiteralFloat()
     {
         RC<ASTLiteralFloat> value = MakeRefCountedPtr<ASTLiteralFloat>();
         value->value = StringUtil::Parse<double>(token.GetValue());
+        value->originalString = token.GetValue();
 
         return value;
     }

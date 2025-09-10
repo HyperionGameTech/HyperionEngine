@@ -22,55 +22,49 @@ public:
 
     Script_Stream& operator=(const Script_Stream& other);
 
-    const ubyte* GetBuffer() const
+    HYP_FORCE_INLINE const ubyte* GetBuffer() const
     {
         return m_byteBuffer.Data();
     }
 
-    void ReadBytes(ubyte* ptr, SizeType numBytes)
+    HYP_FORCE_INLINE void ReadBytes(ubyte* ptr, SizeType numBytes)
     {
-        Assert(m_position + numBytes < m_byteBuffer.Size() + 1, "cannot read past end of buffer");
-
-        const auto* data = m_byteBuffer.Data();
-
-        for (SizeType i = 0; i < numBytes; i++)
-        {
-            ptr[i] = data[m_position++];
-        }
+        Memory::MemCpy(ptr, m_byteBuffer.Data() + m_position, numBytes);
+        m_position += numBytes;
     }
 
     template <class T>
-    void Read(T* ptr, SizeType numBytes = sizeof(T))
+    HYP_FORCE_INLINE void Read(T* ptr, SizeType numBytes = sizeof(T))
     {
         ReadBytes(reinterpret_cast<ubyte*>(ptr), numBytes);
     }
 
-    SizeType Position() const
+    HYP_FORCE_INLINE SizeType Position() const
     {
         return m_position;
     }
 
-    void SetPosition(SizeType position)
+    HYP_FORCE_INLINE void SetPosition(SizeType position)
     {
         m_position = position;
     }
 
-    SizeType Size() const
+    HYP_FORCE_INLINE SizeType Size() const
     {
         return m_byteBuffer.Size();
     }
 
-    void Seek(SizeType address)
+    HYP_FORCE_INLINE void Seek(SizeType address)
     {
         m_position = address;
     }
 
-    void Skip(SizeType amount)
+    HYP_FORCE_INLINE void Skip(SizeType amount)
     {
         m_position += amount;
     }
 
-    bool Eof() const
+    HYP_FORCE_INLINE bool Eof() const
     {
         return m_position >= m_byteBuffer.Size();
     }

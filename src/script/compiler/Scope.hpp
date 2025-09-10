@@ -21,6 +21,7 @@ namespace hyperion {
 */
 class TypeInstanceCache
 {
+    static constexpr SizeType s_maxCacheSize = 65536;
 
 public:
     class Key
@@ -67,6 +68,8 @@ public:
 
     static Key MakeKey(const SymbolTypeRef& originalType, const GenericInstanceTypeInfo& genericInstanceTypeInfo)
     {
+        Assert(originalType != nullptr);
+
         Key key;
         key.m_originalType = originalType.Get();
         key.m_genericArgsHashCode = genericInstanceTypeInfo.GetHashCode();
@@ -98,6 +101,9 @@ public:
         Mutex::Guard guard(m_mutex);
 
         m_cache.Set(key, type.ToWeak());
+
+        Assert(m_cache.Size() <= s_maxCacheSize,
+            "TypeInstanceCache exceeded max size! May indicate a logic error inserting infinite entries.");
     }
 
 private:

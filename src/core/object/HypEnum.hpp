@@ -38,7 +38,7 @@ public:
 
     virtual bool CanCreateInstance() const override = 0;
 
-    virtual TypeId GetUnderlyingTypeId() const = 0;
+    virtual TypeId GetUnderlyingTypeId() const override = 0;
 
 protected:
     virtual bool CreateInstance_Internal(HypData& out) const override = 0;

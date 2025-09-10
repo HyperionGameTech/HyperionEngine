@@ -302,34 +302,34 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
 
         case HypClassAttributeType::INT:
         {
-            int int_value;
+            int valueInt;
 
-            if (!StringUtil::Parse<int>(hypClassAttributeValueString, &int_value))
+            if (!StringUtil::Parse<int>(hypClassAttributeValueString, &valueInt))
             {
                 return HYP_MAKE_ERROR(Error, "Failed to parse int in HypClass attribute");
             }
 
-            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(int_value) });
+            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(valueInt) });
             break;
         }
         case HypClassAttributeType::BOOLEAN:
         {
-            bool bool_value;
+            bool valueBool;
 
             if (hypClassAttributeValueString == "true")
             {
-                bool_value = true;
+                valueBool = true;
             }
             else if (hypClassAttributeValueString == "false")
             {
-                bool_value = false;
+                valueBool = false;
             }
             else
             {
                 return HYP_MAKE_ERROR(Error, "Failed to parse boolean in HypClass attribute");
             }
 
-            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(bool_value) });
+            results.PushBack(Pair<String, HypClassAttributeValue> { key, HypClassAttributeValue(valueBool) });
 
             break;
         }
@@ -635,6 +635,7 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(c
 
         result.name = decl->name;
         result.cxxType = decl->type;
+        result.cxxDecl = decl;
     }
 
     return results;
@@ -669,32 +670,33 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(co
 
     auto res = CreateParser(analyzer, mod, innerContent, [&](Parser& parser) -> TResult<void, AnalyzerError>
         {
-            RC<ASTMemberDecl> member_decl;
+            RC<ASTMemberDecl> memberDecl;
 
             uint32 member_index = 0;
 
             do
             {
-                HypMemberDefinition hyp_member_definition;
-                hyp_member_definition.type = HypMemberType::TYPE_CONSTANT;
+                HypMemberDefinition hypMemberDefinition;
+                hypMemberDefinition.type = HypMemberType::TYPE_CONSTANT;
 
-                member_decl = parser.ParseEnumMemberDecl(nullptr);
+                memberDecl = parser.ParseEnumMemberDecl(nullptr);
 
-                if (!member_decl)
+                if (!memberDecl)
                 {
                     return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse enum member declaration", mod.GetPath());
                 }
 
-                hyp_member_definition.name = member_decl->name;
-                hyp_member_definition.cxxType = member_decl->type;
+                hypMemberDefinition.name = memberDecl->name;
+                hypMemberDefinition.cxxType = memberDecl->type;
+                hypMemberDefinition.cxxDecl = memberDecl;
 
-                if (hyp_member_definition.name.Empty())
+                if (hypMemberDefinition.name.Empty())
                 {
                     return HYP_MAKE_ERROR(AnalyzerError, "Enum member must have a name for element at index {}", mod.GetPath(), 0, member_index);
                 }
 
                 // Add the member to the results
-                results.PushBack(std::move(hyp_member_definition));
+                results.PushBack(std::move(hypMemberDefinition));
 
                 ++member_index;
             }
@@ -713,17 +715,17 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(co
 
 #pragma region Analyzer
 
-const HypClassDefinition* Analyzer::FindHypClassDefinition(UTF8StringView class_name) const
+const HypClassDefinition* Analyzer::FindHypClassDefinition(UTF8StringView className) const
 {
     Mutex::Guard guard(m_mutex);
 
     for (const UniquePtr<Module>& module : m_modules)
     {
-        const HypClassDefinition* hyp_class = module->FindHypClassDefinition(class_name);
+        const HypClassDefinition* hypClass = module->FindHypClassDefinition(className);
 
-        if (hyp_class)
+        if (hypClass)
         {
-            return hyp_class;
+            return hypClass;
         }
     }
 
@@ -799,7 +801,14 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                     nameWithoutPrefix = nameWithoutPrefix.Substr(2);
                 }
 
-                definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
+                if (definition.type == HypMemberType::TYPE_CONSTANT)
+                {
+                    definition.friendlyName = StringUtil::ToSnakeCase(nameWithoutPrefix).ToUpper();
+                }
+                else
+                {
+                    definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
+                }
 
                 break;
             }
@@ -825,11 +834,11 @@ bool Analyzer::HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8St
     {
         for (const UniquePtr<Module>& module : m_modules)
         {
-            const HypClassDefinition* hyp_class = module->FindHypClassDefinition(name);
+            const HypClassDefinition* hypClass = module->FindHypClassDefinition(name);
 
-            if (hyp_class)
+            if (hypClass)
             {
-                return hyp_class;
+                return hypClass;
             }
         }
 

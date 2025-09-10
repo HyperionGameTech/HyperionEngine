@@ -473,7 +473,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_closureBlock->AddChild(RC<AstVariable>(new AstVariable("$__closure_instance", m_location)));
         m_closureBlock->Visit(visitor, mod);
 
-        closureSelfType->CopyMutate(*closureClassDecl->GetHeldType());
+        closureSelfType->Assign(*closureClassDecl->GetHeldType());
 
         m_symbolType = std::move(closureSelfType);
 
@@ -493,13 +493,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* mod)
 {
+    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
     if (!m_blockWithParameters)
     {
-        // extern function declaration
         return nullptr;
     }
-
-    UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (m_isClosure)
     {

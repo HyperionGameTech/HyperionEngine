@@ -386,6 +386,13 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
 
     CompilationUnit compilationUnit;
 
+    const FilePath basePath = sourceFile.GetFilePath().BasePath();
+
+    // allow resolution of local modules
+    compilationUnit.GetGlobalModule()->AddScanPath(basePath);
+    // add local path as well
+    compilationUnit.GetGlobalModule()->AddScanPath(CoreApi_GetExecutablePath());
+
     BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->scopeTree.Top().identifierTable);
 
     Lexer lex(sourceStream, &tokenStream, &compilationUnit);

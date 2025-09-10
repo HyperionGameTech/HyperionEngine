@@ -710,7 +710,7 @@ bool SymbolType::IsPrimitive() const
 
 bool SymbolType::IsEnumType() const
 {
-    return IsOrHasBase(*BuiltinTypes::s_enumType);
+    return IsOrHasBase(*BuiltinTypes::s_enumBaseType);
 }
 
 SymbolTypeRef SymbolType::Alias(

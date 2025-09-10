@@ -8,12 +8,12 @@
 namespace hyperion {
 
 SourceFile::SourceFile()
-    : m_filepath("??"),
+    : m_filepath(),
       m_position(0)
 {
 }
 
-SourceFile::SourceFile(const String& filepath, SizeType size)
+SourceFile::SourceFile(const FilePath& filepath, SizeType size)
     : m_filepath(filepath),
       m_position(0)
 {
@@ -66,7 +66,7 @@ void SourceFile::ReadIntoBuffer(const ubyte* data, SizeType size)
     // make sure we have enough space in the buffer
     if (m_position + size >= m_buffer.Size())
     {
-        Assert("not enough space in buffer");
+        HYP_FAIL("not enough space in buffer");
     }
 
     for (SizeType i = 0; i < size; i++)

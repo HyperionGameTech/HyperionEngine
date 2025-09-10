@@ -139,13 +139,13 @@ public:
     {
     }
 
-    LogChannel(Name name, LogChannel* parentChannel = nullptr);
+    explicit LogChannel(Name name, LogChannel* parentChannel = nullptr);
 
-    LogChannel(const LogChannel& other) = delete;
-    LogChannel& operator=(const LogChannel& other) = delete;
+    LogChannel(const LogChannel& other) = default;
+    LogChannel& operator=(const LogChannel& other) = default;
 
-    LogChannel(LogChannel&& other) noexcept = delete;
-    LogChannel& operator=(LogChannel&& other) noexcept = delete;
+    LogChannel(LogChannel&& other) noexcept = default;
+    LogChannel& operator=(LogChannel&& other) noexcept = default;
 
     ~LogChannel() = default;
 };

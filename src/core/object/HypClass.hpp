@@ -444,6 +444,12 @@ public:
         return m_numDescendants;
     }
 
+    // Enum types only
+    virtual TypeId GetUnderlyingTypeId() const
+    {
+        return TypeId::Void();
+    }
+
     HYP_FORCE_INLINE const HypClass* GetParent() const
     {
         return m_parent;
@@ -930,6 +936,8 @@ public:
 
     virtual HypClassAllocationMethod GetAllocationMethod() const override;
 
+    virtual TypeId GetUnderlyingTypeId() const override;
+
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override;
 #endif
@@ -956,6 +964,8 @@ protected:
     virtual bool CreateInstance_Internal(HypData& out) const override;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
+
+    TypeId m_enumUnderlyingTypeId;
 
     volatile int32 m_refCount;
 };

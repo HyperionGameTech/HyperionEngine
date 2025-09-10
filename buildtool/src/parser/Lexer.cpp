@@ -468,9 +468,46 @@ Token Lexer::ReadNumberLiteral()
     switch ((char)ch)
     {
     case 'u':
+    {
+        // handle u, ul, ull
+
+        tokenFlags[0] = 'u';
+        value.Append(utf::asUtf8Char(ch));
+        m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
+
+        if (m_sourceStream.HasNext())
+        {
+            ch = m_sourceStream.Peek();
+
+            if (ch == 'l' || ch == 'L')
+            {
+                tokenFlags[1] = 'l';
+                value.Append(utf::asUtf8Char(ch));
+                m_sourceStream.Next();
+                m_sourceLocation.GetColumn()++;
+
+                if (m_sourceStream.HasNext())
+                {
+                    ch = m_sourceStream.Peek();
+
+                    if (ch == 'l' || ch == 'L')
+                    {
+                        tokenFlags[2] = 'l';
+                        value.Append(utf::asUtf8Char(ch));
+                        m_sourceStream.Next();
+                        m_sourceLocation.GetColumn()++;
+                    }
+                }
+            }
+        }
+
+        break;
+    }
     case 'f':
     case 'i':
         tokenFlags[0] = (char)ch;
+        value.Append(utf::asUtf8Char(ch));
 
         if (m_sourceStream.HasNext())
         {

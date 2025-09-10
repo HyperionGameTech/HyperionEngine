@@ -45,7 +45,6 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    const SymbolTypeRef& enumUnderlyingType,
     EnumFlags<ClassFlags> flags,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
@@ -54,7 +53,6 @@ AstClass::AstClass(
       m_dataMembers(dataMembers),
       m_functionMembers(functionMembers),
       m_staticMembers(staticMembers),
-      m_enumUnderlyingType(enumUnderlyingType),
       m_flags(flags),
       m_preRegister(false)
 {
@@ -70,35 +68,14 @@ AstClass::AstClass(
     const SourceLocation& location)
     : AstClass(
           name,
-          nullptr,
+          RC<AstTypeSpecifier>(),
           dataMembers,
           functionMembers,
           staticMembers,
-          nullptr,
           flags,
           location)
 {
     m_baseType = baseType;
-}
-
-AstClass::AstClass(
-    const String& name,
-    const RC<AstTypeSpecifier>& baseSpec,
-    const Array<RC<AstVariableDeclaration>>& dataMembers,
-    const Array<RC<AstVariableDeclaration>>& functionMembers,
-    const Array<RC<AstVariableDeclaration>>& staticMembers,
-    EnumFlags<ClassFlags> flags,
-    const SourceLocation& location)
-    : AstClass(
-          name,
-          baseSpec,
-          dataMembers,
-          functionMembers,
-          staticMembers,
-          nullptr,
-          flags,
-          location)
-{
 }
 
 void AstClass::Visit(AstVisitor* visitor, Module* mod)
@@ -130,16 +107,27 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     if (IsEnum())
     {
-        if (!m_enumUnderlyingType.IsValid())
+        if (!m_baseType)
         {
-            m_enumUnderlyingType = BuiltinTypes::s_intType;
+            m_baseType = BuiltinTypes::s_intType;
+        }
+
+        if (!m_baseType->IsIntegral())
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_enum_underlying_type_must_be_integer,
+                m_location,
+                m_baseType->ToString()));
+
+            m_baseType = BuiltinTypes::s_intType;
         }
 
         // Create a generic instance of the enum type
         newType = SymbolType::GenericInstance(
             BuiltinTypes::s_enumType,
             {}, {},
-            GenericInstanceTypeInfo { { { "of", m_enumUnderlyingType } } });
+            GenericInstanceTypeInfo { { { "underlyingType", m_baseType } } });
     }
     else
     {
@@ -179,7 +167,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_symbolType)
     {
-        m_symbolType->CopyMutate(*newType);
+        m_symbolType->Assign(*newType);
     }
     else
     {
@@ -462,7 +450,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location);
     Assert(resolvedType != nullptr);
 
-    m_symbolType->CopyMutate(*resolvedType);
+    m_symbolType->Assign(*resolvedType);
     resolvedType.Reset();
 
     { // create a type ref for the symbol type
@@ -585,21 +573,28 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
-
-    baseTypeRef = m_symbolType->GetBaseType();
-
-    if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
+    if (IsEnum())
     {
-        chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + baseTypeRef->GetName()));
-
-        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(baseTypeRef->GetName())));
+        chunk->Append(BytecodeUtil::Make<Comment>("Begin enum " + m_symbolType->GetName()));
     }
     else
     {
-        chunk->Append(BytecodeUtil::Make<Comment>("Base type: <None>"));
+        chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
 
-        chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
+        baseTypeRef = m_symbolType->GetBaseType();
+
+        if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
+        {
+            chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + baseTypeRef->GetName()));
+
+            chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(baseTypeRef->GetName())));
+        }
+        else
+        {
+            chunk->Append(BytecodeUtil::Make<Comment>("Base type: <None>"));
+
+            chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
+        }
     }
 
     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -616,14 +611,19 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 
         instrType->flags = HypClassFlags::DYNAMIC; // all classes defined in script are dynamic
 
-        if (m_flags & ClassFlags::CLASS_FLAG_ANONYMOUS)
+        if (IsAnonymous())
         {
             instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::ANONYMOUS);
         }
 
-        if (m_flags & ClassFlags::CLASS_FLAG_IS_ENUM)
+        if (IsEnum())
         {
             instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::ENUM_TYPE);
+        }
+        else
+        {
+            // @TODO Struct types
+            instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::CLASS_TYPE);
         }
 
         chunk->Append(std::move(instrType));
@@ -723,7 +723,14 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     }
 #endif
 
-    chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbolType->GetName()));
+    if (IsEnum())
+    {
+        chunk->Append(BytecodeUtil::Make<Comment>("End enum " + m_symbolType->GetName()));
+    }
+    else
+    {
+        chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbolType->GetName()));
+    }
 
     return chunk;
 }

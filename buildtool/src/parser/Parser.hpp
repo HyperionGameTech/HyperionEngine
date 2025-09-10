@@ -51,6 +51,10 @@ struct ASTNode
     virtual ~ASTNode() = default;
 
     virtual void ToJSON(json::JSONValue& out) const = 0;
+    virtual String ToString() const
+    {
+        return String::empty;
+    }
 };
 
 struct ASTExpr : ASTNode
@@ -58,6 +62,7 @@ struct ASTExpr : ASTNode
     virtual ~ASTExpr() override = default;
 
     virtual void ToJSON(json::JSONValue& out) const override = 0;
+    virtual String ToString() const override = 0;
 };
 
 struct ASTUnaryExpr : ASTExpr
@@ -69,6 +74,7 @@ struct ASTUnaryExpr : ASTExpr
     bool isPrefix;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTBinExpr : ASTExpr
@@ -80,6 +86,7 @@ struct ASTBinExpr : ASTExpr
     const Operator* op;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTTernaryExpr : ASTExpr
@@ -91,6 +98,7 @@ struct ASTTernaryExpr : ASTExpr
     RC<ASTExpr> falseExpr;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTLiteralString : ASTExpr
@@ -100,15 +108,22 @@ struct ASTLiteralString : ASTExpr
     String value;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+
+    virtual String ToString() const override
+    {
+        return "\"" + value + "\"";
+    }
 };
 
 struct ASTLiteralInt : ASTExpr
 {
     virtual ~ASTLiteralInt() override = default;
 
-    int value;
+    int64 value;
+    String originalString;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTLiteralFloat : ASTExpr
@@ -116,8 +131,10 @@ struct ASTLiteralFloat : ASTExpr
     virtual ~ASTLiteralFloat() override = default;
 
     double value;
+    String originalString;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTLiteralBool : ASTExpr
@@ -127,6 +144,11 @@ struct ASTLiteralBool : ASTExpr
     bool value;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+
+    virtual String ToString() const override
+    {
+        return value ? "true" : "false";
+    }
 };
 
 struct ASTIdentifier : ASTExpr
@@ -136,6 +158,7 @@ struct ASTIdentifier : ASTExpr
     QualifiedName name;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTInitializerExpr : ASTExpr
@@ -145,6 +168,7 @@ struct ASTInitializerExpr : ASTExpr
     Array<RC<ASTExpr>> values;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTTemplateArgument : ASTNode
@@ -155,6 +179,7 @@ struct ASTTemplateArgument : ASTNode
     RC<ASTExpr> expr;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTType : ASTNode
@@ -213,6 +238,7 @@ struct ASTType : ASTNode
     virtual String FormatDecl(const String& declName, bool useCsharpSyntax = false) const;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTMemberDecl : ASTNode
@@ -224,6 +250,7 @@ struct ASTMemberDecl : ASTNode
     RC<ASTExpr> value;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 struct ASTFunctionType : ASTType
@@ -251,6 +278,7 @@ struct ASTFunctionType : ASTType
     virtual String FormatDecl(const String& declName, bool useCsharpSyntax = false) const override;
 
     virtual void ToJSON(json::JSONValue& out) const override;
+    virtual String ToString() const override;
 };
 
 class Parser

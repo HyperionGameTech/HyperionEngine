@@ -13,7 +13,6 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstHashMap.hpp>
 #include <script/compiler/ast/AstClass.hpp>
-#include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
@@ -154,10 +153,6 @@ public:
         EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE,
         String typeName = "<Anonymous Type>");
     RC<AstStatement> ParseEnumDefinition();
-    RC<AstEnumExpression> ParseEnumExpression(
-        bool requireKeyword = true,
-        bool allowIdentifier = true,
-        String enumName = "<Anonymous Enum>");
     RC<AstImport> ParseImport();
     RC<AstExportStatement> ParseExportStatement();
     RC<AstFileImport> ParseFileImport();

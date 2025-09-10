@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/Types.hpp>
-#include <core/containers/String.hpp>
+#include <core/filesystem/FilePath.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
 namespace hyperion {
@@ -10,7 +10,7 @@ class SourceFile
 {
 public:
     SourceFile();
-    SourceFile(const String& filepath, SizeType size);
+    SourceFile(const FilePath& filepath, SizeType size);
     SourceFile(const SourceFile& other);
     SourceFile& operator=(const SourceFile& other);
     ~SourceFile();
@@ -20,7 +20,7 @@ public:
         return !m_buffer.Empty();
     }
 
-    const String& GetFilePath() const
+    const FilePath& GetFilePath() const
     {
         return m_filepath;
     }
@@ -44,10 +44,9 @@ public:
     void ReadIntoBuffer(const ubyte* data, SizeType size);
 
 private:
-    String m_filepath;
+    FilePath m_filepath;
     ByteBuffer m_buffer;
     SizeType m_position;
 };
 
 } // namespace hyperion
-

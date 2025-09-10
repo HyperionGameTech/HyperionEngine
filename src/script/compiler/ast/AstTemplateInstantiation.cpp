@@ -108,7 +108,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    newType->CopyMutate(*genericInstanceType);
+    newType->Assign(*genericInstanceType);
 
     m_symbolType = newType;
     Assert(m_symbolType != nullptr);

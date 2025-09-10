@@ -142,11 +142,14 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
         FlatSet<String> scanPaths;
         String foundPath;
 
-        // add current directory as first.
-        scanPaths.Insert(currentDir);
+        if (currentDir.Any())
+        {
+            // add current directory as first.
+            scanPaths.Insert(currentDir);
+        }
 
         // add this module's scan paths.
-        for (const auto& scanPath : mod->GetScanPaths())
+        for (const String& scanPath : mod->GetScanPaths())
         {
             scanPaths.Insert(scanPath);
         }
@@ -155,7 +158,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
         const FlatSet<String>& globalScanPaths =
             visitor->GetCompilationUnit()->GetGlobalModule()->GetScanPaths();
 
-        for (const auto& scanPath : globalScanPaths)
+        for (const String& scanPath : globalScanPaths)
         {
             scanPaths.Insert(scanPath);
         }
@@ -164,7 +167,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
         for (const String& scanPath : scanPaths)
         {
             const String& filename = first->GetLeft();
-            const String ext = ".hypscript";
+            const String ext = ".hyp";
 
             foundPath = FilePath::Join(scanPath, filename + ext);
             triedPaths.PushBack(foundPath);

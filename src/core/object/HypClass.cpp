@@ -1048,7 +1048,7 @@ bool HypClass::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& 
 
 #ifdef HYP_DOTNET
 DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-    : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
+    : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
@@ -1079,7 +1079,7 @@ DynamicHypClassInstance::DynamicHypClassInstance(
     Span<const HypClassAttribute> attributes,
     EnumFlags<HypClassFlags> flags,
     Span<HypMember> members)
-    : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::CLASS_TYPE | HypClassFlags::DYNAMIC, members)
+    : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
@@ -1175,6 +1175,16 @@ HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
     }
 
     return HypClassAllocationMethod::HANDLE;
+}
+
+TypeId DynamicHypClassInstance::GetUnderlyingTypeId() const
+{
+    if (!IsEnumType())
+    {
+        return HypClass::GetUnderlyingTypeId();
+    }
+
+    return m_enumUnderlyingTypeId;
 }
 
 #ifdef HYP_DOTNET
@@ -1296,7 +1306,12 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 #endif
 
 #ifdef HYP_SCRIPT
-    Script_Value obj;
+    if (IsEnumType())
+    {
+        HYP_NOT_IMPLEMENTED(); // enum instance creation not yet implemented for scripts
+    }
+
+    Script_Value obj; // @TODO
 
     // get or create new container for dynamic type
     HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());

@@ -9,6 +9,8 @@
 
 #include <core/Name.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/io/ByteWriter.hpp>
 
 namespace hyperion {
@@ -119,13 +121,6 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             continue;
         }
 
-        if (hypClass.type != HypClassDefinitionType::CLASS
-            && hypClass.type != HypClassDefinitionType::STRUCT)
-        {
-            // only classes / structs are supported for now
-            continue;
-        }
-
         const SizeType index = classesToGenerate.Size();
         classNameToIndex[hypClass.name] = index;
         classesToGenerate.PushBack(&hypClass);
@@ -137,132 +132,194 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
     // Generate classes in sorted order
     for (const HypClassDefinition* hypClass : sortedClasses)
     {
-
-        HashSet<const HypClassDefinition*> baseClassDefinitions;
-
-        if (hypClass->baseClassNames.Any())
+        if (hypClass->type == HypClassDefinitionType::CLASS || hypClass->type == HypClassDefinitionType::STRUCT)
         {
-            for (const String& baseClassName : hypClass->baseClassNames)
+            HashSet<const HypClassDefinition*> baseClassDefinitions;
+
+            if (hypClass->baseClassNames.Any())
             {
-                const HypClassDefinition* baseClassDefinition = analyzer.FindHypClassDefinition(baseClassName);
-
-                if (baseClassDefinition)
+                for (const String& baseClassName : hypClass->baseClassNames)
                 {
-                    baseClassDefinitions.Insert(baseClassDefinition);
-                }
-            }
-        }
+                    const HypClassDefinition* baseClassDefinition = analyzer.FindHypClassDefinition(baseClassName);
 
-        if (baseClassDefinitions.Size() > 1)
-        {
-            return HYP_MAKE_ERROR(Error, "Multiple inheritance not supported in HypScript");
-        }
-
-        if (baseClassDefinitions.Any())
-        {
-            writer.WriteString(HYP_FORMAT("extern class {} : {}", hypClass->name, baseClassDefinitions.Front()->name) + " {\n");
-        }
-        else
-        {
-            writer.WriteString(HYP_FORMAT("extern class {}", hypClass->name) + " {\n");
-        }
-
-        for (SizeType i = 0; i < hypClass->members.Size(); ++i)
-        {
-            const HypMemberDefinition& member = hypClass->members[i];
-
-            if (const HypClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
-            {
-                // skip generating script bindings for this
-                continue;
-            }
-
-            String managedName = member.friendlyName;
-
-            if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
-            {
-                managedName = attr.GetString();
-            }
-
-            if (member.type == HypMemberType::TYPE_METHOD)
-            {
-                if (!member.cxxType->isFunction)
-                {
-                    return HYP_MAKE_ERROR(Error, "Cannot generate script bindings for non-function type");
-                }
-
-                if (member.cxxType->isStatic)
-                {
-                    continue; // not yet supported
-                }
-
-                const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(member.cxxType.Get());
-
-                if (!functionType)
-                {
-                    return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
-                }
-
-                HypScriptTypeMapping returnTypeMapping;
-
-                if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, functionType->returnType); res.HasError())
-                {
-                    returnTypeMapping = g_hypscriptAnyTypeMapping;
-                }
-                else
-                {
-                    returnTypeMapping = res.GetValue();
-                }
-
-                Array<String> methodArgDecls;
-                Array<String> methodArgNames;
-
-                for (SizeType i = 0; i < functionType->parameters.Size(); ++i)
-                {
-                    const ASTMemberDecl* parameter = functionType->parameters[i];
-
-                    HypScriptTypeMapping parameterTypeMapping;
-
-                    if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, parameter->type); res.HasError())
+                    if (baseClassDefinition)
                     {
-                        parameterTypeMapping = g_hypscriptAnyTypeMapping;
+                        baseClassDefinitions.Insert(baseClassDefinition);
+                    }
+                }
+            }
+
+            if (baseClassDefinitions.Size() > 1)
+            {
+                return HYP_MAKE_ERROR(Error, "Multiple inheritance not supported in HypScript");
+            }
+
+            if (baseClassDefinitions.Any())
+            {
+                writer.WriteString(HYP_FORMAT("extern class {} : {}", hypClass->name, baseClassDefinitions.Front()->name) + " {\n");
+            }
+            else
+            {
+                writer.WriteString(HYP_FORMAT("extern class {}", hypClass->name) + " {\n");
+            }
+
+            HYP_DEFER({ writer.WriteString("}\n"); });
+
+            for (SizeType i = 0; i < hypClass->members.Size(); ++i)
+            {
+                const HypMemberDefinition& member = hypClass->members[i];
+
+                if (const HypClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
+                {
+                    // skip generating script bindings for this
+                    continue;
+                }
+
+                String managedName = member.friendlyName;
+
+                if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+                {
+                    managedName = attr.GetString();
+                }
+
+                if (member.type == HypMemberType::TYPE_METHOD)
+                {
+                    if (!member.cxxType->isFunction)
+                    {
+                        return HYP_MAKE_ERROR(Error, "Cannot generate script bindings for non-function type");
+                    }
+
+                    if (member.cxxType->isStatic)
+                    {
+                        continue; // not yet supported
+                    }
+
+                    const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(member.cxxType.Get());
+
+                    if (!functionType)
+                    {
+                        return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
+                    }
+
+                    HypScriptTypeMapping returnTypeMapping;
+
+                    if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, functionType->returnType); res.HasError())
+                    {
+                        returnTypeMapping = g_hypscriptAnyTypeMapping;
                     }
                     else
                     {
-                        parameterTypeMapping = res.GetValue();
+                        returnTypeMapping = res.GetValue();
                     }
 
-                    methodArgDecls.PushBack(HYP_FORMAT("{} : {}", parameter->name, parameterTypeMapping.typeName));
-                    methodArgNames.PushBack(parameter->name);
+                    Array<String> methodArgDecls;
+                    Array<String> methodArgNames;
+
+                    for (SizeType i = 0; i < functionType->parameters.Size(); ++i)
+                    {
+                        const ASTMemberDecl* parameter = functionType->parameters[i];
+
+                        HypScriptTypeMapping parameterTypeMapping;
+
+                        if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, parameter->type); res.HasError())
+                        {
+                            parameterTypeMapping = g_hypscriptAnyTypeMapping;
+                        }
+                        else
+                        {
+                            parameterTypeMapping = res.GetValue();
+                        }
+
+                        methodArgDecls.PushBack(HYP_FORMAT("{} : {}", parameter->name, parameterTypeMapping.typeName));
+                        methodArgNames.PushBack(parameter->name);
+                    }
+
+                    writer.WriteString(HYP_FORMAT("    {}({}) -> {};\n", managedName, methodArgDecls.Any() ? String::Join(methodArgDecls, ", ") : "", returnTypeMapping.typeName));
+
+                    continue;
                 }
 
-                writer.WriteString(HYP_FORMAT("    {}({}) -> {};\n", managedName, methodArgDecls.Any() ? String::Join(methodArgDecls, ", ") : "", returnTypeMapping.typeName));
+                if (member.type == HypMemberType::TYPE_FIELD)
+                {
+                    HypScriptTypeMapping fieldTypeMapping;
 
-                continue;
+                    if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, member.cxxType.Get()); res.HasError())
+                    {
+                        fieldTypeMapping = g_hypscriptAnyTypeMapping;
+                    }
+                    else
+                    {
+                        fieldTypeMapping = res.GetValue();
+                    }
+
+                    writer.WriteString(HYP_FORMAT("    {} : {};\n", managedName, fieldTypeMapping.typeName));
+
+                    continue;
+                }
+
+                /* @TODO: Delegates, static members */
+            }
+        }
+        else if (hypClass->type == HypClassDefinitionType::ENUM)
+        {
+            if (hypClass->baseClassNames.Any()) // underlying type
+            {
+                if (hypClass->baseClassNames.Size() > 1)
+                {
+                    return HYP_MAKE_ERROR(Error, "Enum types may only have one underlying type");
+                }
+
+                writer.WriteString(HYP_FORMAT("enum {} : {}", hypClass->name, hypClass->baseClassNames[0]) + " {");
+            }
+            else
+            {
+                writer.WriteString(HYP_FORMAT("enum {}", hypClass->name) + " {");
             }
 
-            if (member.type == HypMemberType::TYPE_FIELD)
-            {
-                HypScriptTypeMapping fieldTypeMapping;
+            HYP_DEFER({ writer.WriteString("\n}\n"); });
 
-                if (TResult<HypScriptTypeMapping> res = MapToHypScriptType(analyzer, member.cxxType.Get()); res.HasError())
+            uint32 enumMemberIndex = 0;
+
+            for (SizeType i = 0; i < hypClass->members.Size(); ++i)
+            {
+                const HypMemberDefinition& member = hypClass->members[i];
+
+                if (const HypClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
                 {
-                    fieldTypeMapping = g_hypscriptAnyTypeMapping;
+                    // skip generating script bindings for this
+                    continue;
+                }
+
+                String managedName = member.friendlyName;
+
+                if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+                {
+                    managedName = attr.GetString();
+                }
+
+                if (member.type != HypMemberType::TYPE_CONSTANT)
+                {
+                    return HYP_MAKE_ERROR(Error, "Only static members allowed in enum types");
+                }
+
+                writer.WriteString((enumMemberIndex > 0 ? String(",") : String::empty) + "\n");
+
+                if (member.cxxDecl != nullptr && member.cxxDecl->value != nullptr)
+                {
+                    writer.WriteString(HYP_FORMAT("    {} = {}", managedName, member.cxxDecl->value->ToString()));
                 }
                 else
                 {
-                    fieldTypeMapping = res.GetValue();
+                    writer.WriteString(HYP_FORMAT("    {}", managedName));
                 }
 
-                writer.WriteString(HYP_FORMAT("    {} : {};\n", managedName, fieldTypeMapping.typeName));
-
-                continue;
+                ++enumMemberIndex;
             }
-
-            /* @TODO: Delegates */
         }
-
-        writer.WriteString("}\n");
+        else
+        {
+            return HYP_MAKE_ERROR(Error, "Unknown HypClassDefinitionType");
+        }
     }
 
     return {};

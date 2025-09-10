@@ -311,6 +311,65 @@ public:
         return camelCase;
     }
 
+    static inline String ToSnakeCase(const String& str)
+    {
+        String result;
+        result.Reserve(str.Size() * 2);
+
+        bool lastWasUpper = false;
+        bool isFirstChar = true;
+
+        for (SizeType i = 0; i < str.Size(); i++)
+        {
+            utf::u32char ch = str.GetChar(i);
+
+            if (ch == ' ' || ch == '-' || ch == '_')
+            {
+                if (!result.Empty() && result.Back() != '_')
+                {
+                    result.Append('_');
+                }
+
+                lastWasUpper = false;
+                isFirstChar = false;
+                continue;
+            }
+
+            if (ch >= 'A' && ch <= 'Z')
+            {
+                bool needsUnderscore = !isFirstChar && !result.Empty() && result.Back() != '_';
+
+                if (needsUnderscore && lastWasUpper)
+                {
+                    if (i + 1 < str.Size())
+                    {
+                        utf::u32char nextCh = str.GetChar(i + 1);
+                        if (nextCh >= 'a' && nextCh <= 'z')
+                        {
+                            result.Append('_');
+                        }
+                    }
+                }
+                else if (needsUnderscore && !lastWasUpper)
+                {
+                    result.Append('_');
+                }
+
+                result.Append(std::tolower(ch));
+                lastWasUpper = true;
+            }
+            else
+            {
+                result.Append(ch);
+                lastWasUpper = false;
+            }
+
+            isFirstChar = false;
+        }
+
+        return result;
+    }
+
     static inline bool Parse(const String& str, int* outValue)
     {
         *outValue = std::strtol(str.Data(), nullptr, 0);

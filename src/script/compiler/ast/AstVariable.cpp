@@ -440,10 +440,6 @@ bool AstVariable::IsLiteral() const
         return m_inlineValue->IsLiteral();
     }
 
-    // if (m_closureMemberAccess != nullptr) {
-    //     return m_closureMemberAccess->IsLiteral();
-    // }
-
     if (m_selfMemberAccess != nullptr)
     {
         return m_selfMemberAccess->IsLiteral();

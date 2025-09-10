@@ -2696,53 +2696,20 @@ RC<AstClass> Parser::ParseClass(
     return nullptr;
 }
 
-RC<AstStatement> Parser::ParseEnumDefinition() /// @TODO: Change to return AstEnum (same way PraseClassDefinition() return AstClass)
+RC<AstStatement> Parser::ParseEnumDefinition()
 {
-    if (Token token = ExpectKeyword(Keyword_enum, true))
-    {
-        if (Token identifier = ExpectIdentifier(false, true))
-        {
-            auto assignment = ParseEnumExpression(
-                false,
-                false,
-                identifier.GetValue());
+    String enumName;
 
-            if (assignment == nullptr)
-            {
-                // could not parse type expr
-                return nullptr;
-            }
-
-            return RC<AstVariableDeclaration>(new AstVariableDeclaration(
-                identifier.GetValue(),
-                nullptr, // type specifier
-                assignment,
-                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_ENUM,
-                token.GetLocation()));
-        }
-    }
-
-    return nullptr;
-}
-
-RC<AstEnumExpression> Parser::ParseEnumExpression(
-    bool requireKeyword,
-    bool allowIdentifier,
-    String enumName)
-{
     const SourceLocation location = CurrentLocation();
 
-    if (requireKeyword && !ExpectKeyword(Keyword_enum, true))
+    if (!ExpectKeyword(Keyword_enum, true))
     {
         return nullptr;
     }
 
-    if (allowIdentifier)
+    if (Token ident = Match(TK_IDENT, true))
     {
-        if (Token ident = Match(TK_IDENT, true))
-        {
-            enumName = ident.GetValue();
-        }
+        enumName = ident.GetValue();
     }
 
     RC<AstTypeSpecifier> underlyingType;
@@ -2755,7 +2722,7 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
 
     SkipStatementTerminators();
 
-    Array<EnumEntry> entries;
+    Array<RC<AstVariableDeclaration>> entries;
 
     if (!Expect(TK_OPEN_BRACE, true))
     {
@@ -2764,24 +2731,32 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
 
     while (!Match(TK_CLOSE_BRACE, true))
     {
-        EnumEntry entry {};
-
         if (const Token ident = Expect(TK_IDENT, true))
         {
-            entry.name = ident.GetValue();
-            entry.location = ident.GetLocation();
+            RC<AstTypeSpecifier> typeSpec(new AstTypeSpecifier(
+                RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), ident.GetLocation())),
+                ident.GetLocation()));
+
+            RC<AstExpression> assignment;
+
+            if (const Token op = MatchOperator("=", true))
+            {
+                assignment = ParseExpression(/* overrideCommas */ true);
+            }
+
+            RC<AstVariableDeclaration> entry(new AstVariableDeclaration(
+                ident.GetValue(),
+                typeSpec,
+                assignment,
+                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_MEMBER | IdentifierFlags::FLAG_ACCESS_PUBLIC,
+                ident.GetLocation()));
+
+            entries.PushBack(std::move(entry));
         }
         else
         {
             break;
         }
-
-        if (const Token op = MatchOperator("=", true))
-        {
-            entry.assignment = ParseExpression(true);
-        }
-
-        entries.PushBack(entry);
 
         while (Match(TK_NEWLINE, true))
             ;
@@ -2792,12 +2767,13 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
         }
     }
 
-    // ExpectKeyword(Keyword_end, true);
-
-    return RC<AstEnumExpression>(new AstEnumExpression(
+    return RC<AstClass>(new AstClass(
         enumName,
-        entries,
         underlyingType,
+        {}, // no member variables
+        {}, // no member functions
+        entries,
+        ClassFlags::CLASS_FLAG_IS_ENUM,
         location));
 }
 

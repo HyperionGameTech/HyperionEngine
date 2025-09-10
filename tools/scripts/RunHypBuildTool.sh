@@ -76,4 +76,4 @@ else
 fi
 
 # Run the build tool
-./build/hyperion-buildtool --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/src --CXXOutputDirectory=$WORKING_DIR/build/generated --CSharpOutputDirectory=$WORKING_DIR/build/generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/build/generated/HypScript --ExcludeDirectories=$WORKING_DIR/src/generated --ExcludeFiles=$WORKING_DIR/src/core/Defines.hpp
+./build/hyperion-buildtool --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/src --CXXOutputDirectory=$WORKING_DIR/build/generated --CSharpOutputDirectory=$WORKING_DIR/build/generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/build/bin --ExcludeDirectories=$WORKING_DIR/src/generated --ExcludeFiles=$WORKING_DIR/src/core/Defines.hpp
