@@ -194,6 +194,13 @@ struct ASTType : ASTNode
             && typeName->parts[0] == "void";
     }
 
+    HYP_FORCE_INLINE bool IsChar() const
+    {
+        return typeName.HasValue()
+            && typeName->parts.Size() == 1
+            && (typeName->parts[0] == "char");
+    }
+
     HYP_FORCE_INLINE bool IsScriptableDelegate() const
     {
         return typeName.HasValue()

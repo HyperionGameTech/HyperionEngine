@@ -44,7 +44,7 @@ HYP_API extern void OnPostLoad_Impl(const HypClass* hypClass, void* objectPtr);
 HYP_STRUCT()
 struct AssetPath
 {
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     Name* chain = nullptr;
 
     AssetPath() = default;

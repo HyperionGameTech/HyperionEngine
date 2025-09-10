@@ -104,7 +104,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 1
+#if 0
     { // script 2
         String str;
 #if 0
@@ -160,7 +160,7 @@ void HyperionEditor::Init()
               "       return jet\n"
               "    }\n"
               "    modValue(inValue : Array<int>, farts: Fart...) -> void {\n"
-              "        farts[0].i = 9\n"
+              "        farts[0]\n"
               "    }\n"
               "}\n"
               "class Fart { i: int; }\n"
@@ -170,7 +170,7 @@ void HyperionEditor::Init()
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { ins }; };\n"
+              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { blah }; };\n"
               "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

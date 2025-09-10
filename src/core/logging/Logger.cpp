@@ -83,9 +83,9 @@ public:
 
     static BasicLoggerOutputStream& GetDefaultInstance()
     {
-        static BasicLoggerOutputStream instance { stdout, stderr };
+        static BasicLoggerOutputStream s_instance { stdout, stderr };
 
-        return instance;
+        return s_instance;
     }
 
     BasicLoggerOutputStream(FILE* output, FILE* outputError)
@@ -176,7 +176,7 @@ public:
     {
         const LogChannel* channelPtr = &channel;
 
-        if (channel.Id() >= Logger::maxChannels)
+        if (channel.id >= Logger::maxChannels)
         {
             // log channel overflow! revert to Log_Misc
             /// @TODO: Dynamic channels with ID >= maxChannels should be checked using a dynamic bitset w/ mutex
@@ -200,11 +200,11 @@ public:
         }
         while (HYP_UNLIKELY(rwMarkerState & writeFlag));
 
-        void* context = m_contexts[channelPtr->Id()];
-        LoggerWriteFnPtr fnptr = m_writeFnptrTable[channelPtr->Id()];
+        void* context = m_contexts[channelPtr->id];
+        LoggerWriteFnPtr fnptr = m_writeFnptrTable[channelPtr->id];
 
         uint32 bitIndex;
-        uint64 mask = channelPtr->GetMaskBitset().ToUInt64() & ~(1ull << channelPtr->Id());
+        uint64 mask = channelPtr->maskBitset.ToUInt64() & ~(1ull << channelPtr->id);
 
         while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
         {
@@ -228,7 +228,7 @@ public:
     {
         const LogChannel* channelPtr = &channel;
 
-        if (channel.Id() >= Logger::maxChannels)
+        if (channel.id >= Logger::maxChannels)
         {
             // log channel overflow! revert to Log_Misc
             channelPtr = &g_logChannel_Misc;
@@ -251,11 +251,11 @@ public:
         }
         while (HYP_UNLIKELY(rwMarkerState & writeFlag));
 
-        void* context = m_contexts[channelPtr->Id()];
-        LoggerWriteFnPtr fnptr = m_writeErrorFnptrTable[channelPtr->Id()];
+        void* context = m_contexts[channelPtr->id];
+        LoggerWriteFnPtr fnptr = m_writeErrorFnptrTable[channelPtr->id];
 
         uint32 bitIndex;
-        uint64 mask = channelPtr->GetMaskBitset().ToUInt64() & ~(1ull << channelPtr->Id());
+        uint64 mask = channelPtr->maskBitset.ToUInt64() & ~(1ull << channelPtr->id);
 
         while ((bitIndex = ByteUtil::HighestSetBitIndex(mask)) != -1)
         {
@@ -371,11 +371,11 @@ DynamicLogChannelHandle& DynamicLogChannelHandle::operator=(DynamicLogChannelHan
 #pragma region LogChannel
 
 LogChannel::LogChannel(Name name, LogChannel* parentChannel)
-    : m_id(~0u),
-      m_name(name),
-      m_flags(LogChannelFlags::NONE),
-      m_parentChannel(parentChannel),
-      m_maskBitset(0)
+    : id(~0u),
+      name(name),
+      flags(LogChannelFlags::NONE),
+      parentChannel(parentChannel),
+      maskBitset(0)
 {
 }
 
@@ -407,9 +407,9 @@ void LogChannelRegistrar::RegisterAll()
 
     for (LogChannel* channel : channels)
     {
-        if (channel->m_parentChannel)
+        if (channel->parentChannel)
         {
-            children[channel->m_parentChannel].PushBack(channel);
+            children[channel->parentChannel].PushBack(channel);
             ++indeg[channel];
         }
     }
@@ -450,33 +450,33 @@ void LogChannelRegistrar::RegisterAll()
 
     for (uint32 i = 0; i < n; i++)
     {
-        order[i]->m_id = i;
+        order[i]->id = i;
     }
 
     // kept alive until program exit
-    static Array<DynamicLogChannelHandle> dynamicLogChannelHandles;
+    static Array<DynamicLogChannelHandle> s_dynamicLogChannelHandles;
 
     for (LogChannel* channel : m_channels)
     {
-        Assert(channel->m_id != ~0u);
+        Assert(channel->id != ~0u);
 
-        channel->m_maskBitset = Bitset();
-        channel->m_maskBitset.Set(channel->m_id, true);
+        channel->maskBitset = Bitset();
+        channel->maskBitset.Set(channel->id, true);
 
-        if (channel->m_parentChannel != nullptr)
+        if (channel->parentChannel != nullptr)
         {
-            Assert(channel->m_parentChannel->m_id != ~0u);
+            Assert(channel->parentChannel->id != ~0u);
 
-            channel->m_maskBitset |= channel->m_parentChannel->m_maskBitset;
+            channel->maskBitset |= channel->parentChannel->maskBitset;
         }
 
-        if (channel->m_id < hyperion::logging::Logger::maxChannels)
+        if (channel->id < hyperion::logging::Logger::maxChannels)
         {
             continue;
         }
 
         // out of slots, need to store dynamic
-        dynamicLogChannelHandles.PushBack(Logger::GetInstance().CreateDynamicLogChannel(*channel));
+        s_dynamicLogChannelHandles.PushBack(Logger::GetInstance().CreateDynamicLogChannel(*channel));
     }
 
     m_channels.Clear();
@@ -516,9 +516,9 @@ private:
 
 Logger& Logger::GetInstance()
 {
-    static Logger instance;
+    static Logger s_instance;
 
-    return instance;
+    return s_instance;
 }
 
 Logger::Logger()
@@ -548,7 +548,7 @@ const LogChannel* Logger::FindLogChannel(WeakName name) const
             break;
         }
 
-        if (channel->GetName() == name)
+        if (channel->name == name)
         {
             return channel;
         }
@@ -560,7 +560,7 @@ const LogChannel* Logger::FindLogChannel(WeakName name) const
     {
         AssertDebug(channel != nullptr);
 
-        if (channel->GetName() == name)
+        if (channel->name == name)
         {
             return channel;
         }
@@ -574,9 +574,9 @@ const LogChannel* Logger::FindLogChannel(WeakName name) const
 void Logger::RegisterChannel(LogChannel* channel)
 {
     HYP_CORE_ASSERT(channel != nullptr);
-    HYP_CORE_ASSERT(channel->Id() < m_pImpl->m_logChannels.Size());
+    HYP_CORE_ASSERT(channel->id < m_pImpl->m_logChannels.Size());
 
-    m_pImpl->m_logChannels[channel->Id()] = channel;
+    m_pImpl->m_logChannels[channel->id] = channel;
 }
 
 DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* parentChannel)
@@ -587,15 +587,15 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* p
 
     LogChannel* channel = m_pImpl->m_dynamicLogChannels.PushBack(new LogChannel(name));
 
-    channel->m_id = AtomicIncrement(&g_maxLogChannelId);
-    channel->m_maskBitset = Bitset(1ull << channel->m_id);
+    channel->id = AtomicIncrement(&g_maxLogChannelId);
+    channel->maskBitset = Bitset(1ull << channel->id);
 
     if (parentChannel)
     {
-        AssertDebug(parentChannel->m_id != ~0u, "Parent channel must be registered if it exists!");
+        AssertDebug(parentChannel->id != ~0u, "Parent channel must be registered if it exists!");
 
-        channel->m_parentChannel = parentChannel;
-        channel->m_maskBitset |= parentChannel->m_maskBitset;
+        channel->parentChannel = parentChannel;
+        channel->maskBitset |= parentChannel->maskBitset;
     }
 
     return DynamicLogChannelHandle(this, channel, /* ownsAllocation */ true);
@@ -607,14 +607,14 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
 
     m_pImpl->m_dynamicLogChannels.PushBack(&channel);
 
-    if (channel.m_id == ~0u)
+    if (channel.id == ~0u)
     {
         AssertDebug(g_registerAllCalled);
 
-        channel.m_id = AtomicIncrement(&g_maxLogChannelId);
+        channel.id = AtomicIncrement(&g_maxLogChannelId);
     }
 
-    channel.m_maskBitset = Bitset(1ull << channel.m_id);
+    channel.maskBitset = Bitset(1ull << channel.id);
 
     return DynamicLogChannelHandle(this, &channel, /* ownsAllocation */ false);
 }
@@ -625,7 +625,7 @@ void Logger::RemoveDynamicLogChannel(Name name)
 
     auto it = m_pImpl->m_dynamicLogChannels.FindIf([name](LogChannel* channel)
         {
-            return channel->GetName() == name;
+            return channel->name == name;
         });
 
     if (it == m_pImpl->m_dynamicLogChannels.End())
@@ -665,7 +665,7 @@ void Logger::RemoveDynamicLogChannel(DynamicLogChannelHandle& channelHandle)
 
 bool Logger::IsChannelEnabled(const LogChannel& channel) const
 {
-    const uint64 channelMaskBitset = channel.GetMaskBitset().ToUInt64();
+    const uint64 channelMaskBitset = channel.maskBitset.ToUInt64();
 
     return (m_pImpl->m_logMask.Get(MemoryOrder::RELAXED) & channelMaskBitset) == channelMaskBitset;
 }
@@ -674,11 +674,11 @@ void Logger::SetChannelEnabled(const LogChannel& channel, bool enabled)
 {
     if (enabled)
     {
-        m_pImpl->m_logMask.BitOr(1ull << channel.Id(), MemoryOrder::RELAXED);
+        m_pImpl->m_logMask.BitOr(1ull << channel.id, MemoryOrder::RELAXED);
     }
     else
     {
-        m_pImpl->m_logMask.BitAnd(~(1ull << channel.Id()), MemoryOrder::RELAXED);
+        m_pImpl->m_logMask.BitAnd(~(1ull << channel.id), MemoryOrder::RELAXED);
     }
 }
 

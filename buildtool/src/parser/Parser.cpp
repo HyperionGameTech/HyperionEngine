@@ -192,7 +192,26 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
         }
         else
         {
+            if (res.GetValue().typeName == "char")
+            {
+                return HypScriptTypeMapping { "string" };
+            }
+
             return HypScriptTypeMapping { "Array<" + res.GetValue().typeName + ">" };
+        }
+    }
+
+    if (type->isPointer)
+    {
+        if (!type->ptrTo)
+        {
+            return HYP_MAKE_ERROR(Error, "Pointer type has no inner type");
+        }
+
+        // c strings
+        if (type->ptrTo->IsChar())
+        {
+            return HypScriptTypeMapping { "string" };
         }
     }
 

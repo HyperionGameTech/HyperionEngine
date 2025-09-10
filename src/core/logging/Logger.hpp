@@ -13,6 +13,8 @@
 
 #include <core/memory/Pimpl.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/containers/String.hpp>
 #include <core/containers/Bitset.hpp>
 
@@ -106,54 +108,46 @@ static constexpr const char* LogLevelTermColor()
     }
 }
 
-class LogChannel
+HYP_STRUCT()
+class HYP_API LogChannel
 {
 public:
     friend class Logger;
     friend class LogChannelRegistrar;
 
+    HYP_FIELD()
+    uint32 id;
+
+    HYP_FIELD()
+    Name name;
+
+    HYP_FIELD()
+    EnumFlags<LogChannelFlags> flags;
+
+    HYP_FIELD()
+    LogChannel* parentChannel;
+
+    HYP_FIELD(NoScriptBindings)
+    Bitset maskBitset;
+
+    LogChannel()
+        : id(0),
+          name(),
+          flags(LogChannelFlags::NONE),
+          parentChannel(nullptr),
+          maskBitset()
+    {
+    }
+
     LogChannel(Name name, LogChannel* parentChannel = nullptr);
+
     LogChannel(const LogChannel& other) = delete;
     LogChannel& operator=(const LogChannel& other) = delete;
+
     LogChannel(LogChannel&& other) noexcept = delete;
     LogChannel& operator=(LogChannel&& other) noexcept = delete;
+
     ~LogChannel() = default;
-
-    /*! \brief Get the integral identifier of this channel. */
-    HYP_FORCE_INLINE uint32 Id() const
-    {
-        return m_id;
-    }
-
-    /*! \brief Get the name of this channel. */
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    /*! \brief Get the flags for this channel. */
-    HYP_FORCE_INLINE EnumFlags<LogChannelFlags> GetFlags() const
-    {
-        return m_flags;
-    }
-
-    /*! \brief Get a pointer to the parent channel, if one exists. */
-    HYP_FORCE_INLINE LogChannel* GetParentChannel() const
-    {
-        return m_parentChannel;
-    }
-
-    HYP_FORCE_INLINE const Bitset& GetMaskBitset() const
-    {
-        return m_maskBitset;
-    }
-
-private:
-    uint32 m_id;
-    Name m_name;
-    EnumFlags<LogChannelFlags> m_flags;
-    LogChannel* m_parentChannel;
-    Bitset m_maskBitset;
 };
 
 using LoggerWriteFnPtr = void (*)(void* context, const LogChannel& channel, const LogMessage& message);
@@ -293,35 +287,35 @@ inline void LogStatic(Logger& logger, Args&&... args)
 
     constexpr const char* colorCode = LogLevelTermColor<Category.GetLevel()>();
 
-    static const LogChannel& channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, channel.GetName(), LogLevelToString<Category.GetLevel()>());
+    static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
+    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
 
-    if (logger.IsChannelEnabled(channel))
+    if (logger.IsChannelEnabled(s_channel))
     {
         if constexpr (Memory::AreStaticStringsEqual(colorCode, ""))
         {
             if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
             {
-                logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
 
                 HYP_UNREACHABLE();
             }
             else
             {
-                logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
+                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } } });
             }
         }
         else
         {
             if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
             {
-                logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
+                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
 
                 HYP_UNREACHABLE();
             }
             else
             {
-                logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
+                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...), "\33[0m" } } });
             }
         }
     }
@@ -337,7 +331,7 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
 
     constexpr const char* colorCode = LogLevelTermColor<Category.GetLevel()>();
 
-    const String prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, channel.GetName(), LogLevelToString<Category.GetLevel()>());
+    const String prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, channel.name, LogLevelToString<Category.GetLevel()>());
 
     if (logger.IsChannelEnabled(channel))
     {
@@ -364,35 +358,35 @@ inline void LogDynamic(Logger& logger, const char* str)
 
     constexpr const char* colorCode = LogLevelTermColor<Category.GetLevel()>();
 
-    static const LogChannel& channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, channel.GetName(), LogLevelToString<Category.GetLevel()>());
+    static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
+    static const String s_prefix = HYP_FORMAT("{}{} [{}]: ", colorCode, s_channel.name, LogLevelToString<Category.GetLevel()>());
 
-    if (logger.IsChannelEnabled(channel))
+    if (logger.IsChannelEnabled(s_channel))
     {
         if constexpr (Memory::AreStaticStringsEqual(colorCode, ""))
         {
             if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
             {
-                logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, str } } });
+                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
 
                 HYP_UNREACHABLE();
             }
             else
             {
-                logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, str } } });
+                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } } });
             }
         }
         else
         {
             if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
             {
-                logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, str, "\33[0m" } } });
+                logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str, "\33[0m" } } });
 
                 HYP_UNREACHABLE();
             }
             else
             {
-                logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, str, "\33[0m" } } });
+                logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str, "\33[0m" } } });
             }
         }
     }
@@ -403,8 +397,9 @@ class LogChannelRegistrar
 public:
     static LogChannelRegistrar& GetInstance()
     {
-        static LogChannelRegistrar instance;
-        return instance;
+        static LogChannelRegistrar s_instance;
+
+        return s_instance;
     }
 
     void Register(LogChannel* channel)
@@ -418,7 +413,7 @@ public:
     {
         AssertDebug(channel);
 
-        channel->m_parentChannel = parentChannel;
+        channel->parentChannel = parentChannel;
 
         m_channels.PushBack(channel);
     }
@@ -459,12 +454,12 @@ using logging::LogMessage;
 // Helper macros
 
 // Must be used outside of function (in global scope)
-#define HYP_DEFINE_LOG_CHANNEL(name)                                            \
-    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) };  \
+#define HYP_DEFINE_LOG_CHANNEL(name)                                           \
+    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
     static hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name)
 
-#define HYP_DEFINE_LOG_SUBCHANNEL(name, parentName)                             \
-    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) };  \
+#define HYP_DEFINE_LOG_SUBCHANNEL(name, parentName)                            \
+    hyperion::logging::LogChannel g_logChannel_##name { NAME(HYP_STR(name)) }; \
     static hyperion::logging::LogChannelRegistration g_logChannelRegistration_##name(&g_logChannel_##name, &g_logChannel_##parentName)
 
 // Undefine HYP_LOG if already defined (LoggerFwd could have defined it as an empty macro)
