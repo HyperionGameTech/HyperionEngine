@@ -5,7 +5,14 @@
 namespace hyperion {
 
 AstConstant::AstConstant(const SourceLocation& location)
-    : AstExpression(location, ACCESS_MODE_LOAD)
+    : AstExpression(location, ACCESS_MODE_LOAD),
+      m_bitSize(CBS_INVALID)
+{
+}
+
+AstConstant::AstConstant(ConstantBitSize bitSize, const SourceLocation& location)
+    : AstExpression(location, ACCESS_MODE_LOAD),
+      m_bitSize(bitSize)
 {
 }
 
@@ -31,9 +38,9 @@ bool AstConstant::MayHaveSideEffects() const
     return false;
 }
 
-uint32 AstConstant::UnsignedValue() const
+uint64 AstConstant::UnsignedValue() const
 {
-    return (uint32)IntValue();
+    return (uint64)IntValue();
 }
 
 } // namespace hyperion

@@ -197,8 +197,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // no bitwise operators on floats allowed.
             visitor->AddErrorIfFalse(
-                (leftType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType || leftType->IsEnumType())
-                    && (rightType == BuiltinTypes::s_intType || leftType == BuiltinTypes::s_unsignedIntType || rightType->IsEnumType()),
+                (leftType->IsIntegral() || leftType->IsEnumType())
+                    && (rightType->IsIntegral() || rightType->IsEnumType()),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operands_must_be_int,
@@ -210,8 +210,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // arithmetic operators are only for numbers
             visitor->AddErrorIfFalse(
-                (leftType->TypeCompatible(*BuiltinTypes::s_intType, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_unsignedIntType, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_floatType, false, false))
-                    && (rightType->TypeCompatible(*BuiltinTypes::s_intType, false, false) || rightType->TypeCompatible(*BuiltinTypes::s_unsignedIntType, false, false) | rightType->TypeCompatible(*BuiltinTypes::s_floatType, false, false)),
+                (leftType->TypeCompatible(*BuiltinTypes::s_int32Type, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_uint32Type, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_floatType, false, false))
+                    && (rightType->TypeCompatible(*BuiltinTypes::s_int32Type, false, false) || rightType->TypeCompatible(*BuiltinTypes::s_uint32Type, false, false) | rightType->TypeCompatible(*BuiltinTypes::s_floatType, false, false)),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_arithmetic_operands_must_be_numbers,

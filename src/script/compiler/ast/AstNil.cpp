@@ -1,5 +1,7 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
+#include <script/compiler/ast/AstUnsignedInteger.hpp>
+#include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
 #include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -17,7 +19,7 @@
 namespace hyperion {
 
 AstNil::AstNil(const SourceLocation& location)
-    : AstConstant(location)
+    : AstConstant(CBS_INVALID, location)
 {
 }
 
@@ -44,14 +46,14 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-hyperion::int32 AstNil::IntValue() const
+hyperion::int64 AstNil::IntValue() const
 {
     return 0;
 }
 
-float AstNil::FloatValue() const
+double AstNil::FloatValue() const
 {
-    return 0.0f;
+    return 0.0;
 }
 
 SymbolTypeRef AstNil::GetExprType() const
@@ -79,9 +81,33 @@ RC<AstConstant> AstNil::HandleOperator(Operators opType, const AstConstant* righ
             return nullptr;
         }
 
-        return RC<AstInteger>(new AstInteger(
-            right->IntValue(),
-            m_location));
+        // Return the right operand if it's truthy, otherwise return false
+        if (right->IsTrue() == Tribool::True())
+        {
+            if (dynamic_cast<const AstInteger*>(right))
+            {
+                return RC<AstInteger>(new AstInteger(
+                    right->IntValue(),
+                    right->GetBitSize(),
+                    m_location));
+            }
+            else if (dynamic_cast<const AstUnsignedInteger*>(right))
+            {
+                return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                    right->UnsignedValue(),
+                    right->GetBitSize(),
+                    m_location));
+            }
+            else if (dynamic_cast<const AstFloat*>(right))
+            {
+                return RC<AstFloat>(new AstFloat(
+                    right->FloatValue(),
+                    right->GetBitSize(),
+                    m_location));
+            }
+        }
+
+        return RC<AstFalse>(new AstFalse(m_location));
 
     case OP_equals:
         if (dynamic_cast<const AstNil*>(right) != nullptr)

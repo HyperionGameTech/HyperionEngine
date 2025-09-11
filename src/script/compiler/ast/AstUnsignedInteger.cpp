@@ -1,4 +1,5 @@
 #include <script/compiler/ast/AstUnsignedInteger.hpp>
+#include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstTrue.hpp>
@@ -16,8 +17,8 @@
 
 namespace hyperion {
 
-AstUnsignedInteger::AstUnsignedInteger(hyperion::uint32 value, const SourceLocation& location)
-    : AstConstant(location),
+AstUnsignedInteger::AstUnsignedInteger(hyperion::uint64 value, ConstantBitSize bitSize, const SourceLocation& location)
+    : AstConstant(bitSize, location),
       m_value(value)
 {
 }
@@ -26,7 +27,20 @@ UniquePtr<Buildable> AstUnsignedInteger::Build(AstVisitor* visitor, Module* mod)
 {
     // get active register
     uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-    return BytecodeUtil::Make<ConstU32>(rp, m_value);
+
+    switch (m_bitSize)
+    {
+    case CBS_8:
+        return BytecodeUtil::Make<ConstU32>(rp, uint8(m_value)); // @TODO
+    case CBS_16:
+        return BytecodeUtil::Make<ConstU32>(rp, uint16(m_value)); // @TODO
+    case CBS_32:
+        return BytecodeUtil::Make<ConstU32>(rp, uint32(m_value));
+    case CBS_64:
+        return BytecodeUtil::Make<ConstU64>(rp, m_value);
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
 RC<AstStatement> AstUnsignedInteger::Clone() const
@@ -45,24 +59,36 @@ bool AstUnsignedInteger::IsNumber() const
     return true;
 }
 
-hyperion::int32 AstUnsignedInteger::IntValue() const
+hyperion::int64 AstUnsignedInteger::IntValue() const
 {
-    return (hyperion::int32)m_value;
+    return (hyperion::int64)m_value;
 }
 
-hyperion::uint32 AstUnsignedInteger::UnsignedValue() const
+hyperion::uint64 AstUnsignedInteger::UnsignedValue() const
 {
     return m_value;
 }
 
-float AstUnsignedInteger::FloatValue() const
+double AstUnsignedInteger::FloatValue() const
 {
-    return (float)m_value;
+    return (double)m_value;
 }
 
 SymbolTypeRef AstUnsignedInteger::GetExprType() const
 {
-    return BuiltinTypes::s_unsignedIntType;
+    switch (m_bitSize)
+    {
+    case CBS_8:
+        return BuiltinTypes::s_uint8Type;
+    case CBS_16:
+        return BuiltinTypes::s_uint16Type;
+    case CBS_32:
+        return BuiltinTypes::s_uint32Type;
+    case CBS_64:
+        return BuiltinTypes::s_uint64Type;
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
 RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstConstant* right) const
@@ -78,13 +104,24 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         // we have to determine weather or not to promote this to a float
         if (dynamic_cast<const AstFloat*>(right))
         {
-            return RC<AstFloat>(
-                new AstFloat(FloatValue() + right->FloatValue(), m_location));
+            return RC<AstFloat>(new AstFloat(
+                FloatValue() + right->FloatValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+                m_location));
+        }
+        else if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) + right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
         }
         else
         {
-            return RC<AstUnsignedInteger>(
-                new AstUnsignedInteger(UnsignedValue() + right->UnsignedValue(), m_location));
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() + right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
         }
 
     case OP_subtract:
@@ -96,13 +133,24 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         // we have to determine weather or not to promote this to a float
         if (dynamic_cast<const AstFloat*>(right))
         {
-            return RC<AstFloat>(
-                new AstFloat(FloatValue() - right->FloatValue(), m_location));
+            return RC<AstFloat>(new AstFloat(
+                FloatValue() - right->FloatValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+                m_location));
+        }
+        else if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) - right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
         }
         else
         {
-            return RC<AstUnsignedInteger>(
-                new AstUnsignedInteger(UnsignedValue() - right->UnsignedValue(), m_location));
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() - right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
         }
 
     case OP_multiply:
@@ -114,13 +162,24 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         // we have to determine weather or not to promote this to a float
         if (dynamic_cast<const AstFloat*>(right))
         {
-            return RC<AstFloat>(
-                new AstFloat(FloatValue() * right->FloatValue(), m_location));
+            return RC<AstFloat>(new AstFloat(
+                FloatValue() * right->FloatValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+                m_location));
+        }
+        else if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) * right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
         }
         else
         {
-            return RC<AstUnsignedInteger>(
-                new AstUnsignedInteger(UnsignedValue() * right->UnsignedValue(), m_location));
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() * right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
         }
 
     case OP_divide:
@@ -132,32 +191,50 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         // we have to determine weather or not to promote this to a float
         if (dynamic_cast<const AstFloat*>(right))
         {
-            float result;
+            double result;
             auto rightFloat = right->FloatValue();
             if (rightFloat == 0.0)
             {
-                // division by zero, return Undefined
-                return nullptr;
+                result = NAN;
             }
             else
             {
                 result = FloatValue() / rightFloat;
             }
-            return RC<AstFloat>(
-                new AstFloat(result, m_location));
+
+            return RC<AstFloat>(new AstFloat(
+                result,
+                MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+                m_location));
+        }
+        else if (dynamic_cast<const AstInteger*>(right))
+        {
+            auto rightInt = right->IntValue();
+            if (rightInt == 0)
+            {
+                return RC<AstUndefined>(new AstUndefined(m_location));
+            }
+            else
+            {
+                return RC<AstInteger>(new AstInteger(
+                    int64(UnsignedValue()) / rightInt,
+                    MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                    m_location));
+            }
         }
         else
         {
             auto rightInt = right->UnsignedValue();
             if (rightInt == 0)
             {
-                // division by zero, return Undefined
-                return nullptr;
+                return RC<AstUndefined>(new AstUndefined(m_location));
             }
             else
             {
-                return RC<AstUnsignedInteger>(
-                    new AstUnsignedInteger(UnsignedValue() / rightInt, m_location));
+                return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                    UnsignedValue() / rightInt,
+                    MathUtil::Max(m_bitSize, right->GetBitSize()),
+                    m_location));
             }
         }
 
@@ -167,92 +244,132 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        // we have to determine weather or not to promote this to a float
         if (dynamic_cast<const AstFloat*>(right))
         {
-            float result;
-            auto rightFloat = right->FloatValue();
-            if (rightFloat == 0.0)
-            {
-                // division by zero, return Undefined
-                return nullptr;
-            }
-            else
-            {
-                result = std::fmod(FloatValue(), rightFloat);
-            }
-            return RC<AstFloat>(
-                new AstFloat(result, m_location));
+            return RC<AstFloat>(new AstFloat(
+                std::fmod(FloatValue(), right->FloatValue()),
+                MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+                m_location));
+        }
+        else if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) % right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
         }
         else
         {
-            auto rightInt = right->UnsignedValue();
-            if (rightInt == 0)
-            {
-                // division by zero, return Undefined
-                return nullptr;
-            }
-            else
-            {
-                return RC<AstUnsignedInteger>(
-                    new AstUnsignedInteger(UnsignedValue() % rightInt, m_location));
-            }
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() % right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
         }
 
     case OP_bitwise_xor:
-        if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::s_intType
-                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
+        if (!right->GetExprType()->IsIntegral())
         {
             return nullptr;
         }
 
-        return RC<AstUnsignedInteger>(
-            new AstUnsignedInteger(UnsignedValue() ^ right->UnsignedValue(), m_location));
+        if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) ^ right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
+        }
+        else
+        {
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() ^ right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
+        }
 
     case OP_bitwise_and:
-        if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::s_intType
-                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
+        if (!right->GetExprType()->IsIntegral())
         {
             return nullptr;
         }
 
-        return RC<AstUnsignedInteger>(
-            new AstUnsignedInteger(UnsignedValue() & right->UnsignedValue(), m_location));
+        if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) & right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
+        }
+        else
+        {
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() & right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
+        }
 
     case OP_bitwise_or:
-        if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::s_intType
-                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
+        if (!right->GetExprType()->IsIntegral())
         {
             return nullptr;
         }
 
-        return RC<AstUnsignedInteger>(
-            new AstUnsignedInteger(UnsignedValue() | right->UnsignedValue(), m_location));
+        if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) | right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
+        }
+        else
+        {
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() | right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
+        }
 
     case OP_bitshift_left:
-        if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::s_intType
-                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
+        if (!right->GetExprType()->IsIntegral())
         {
             return nullptr;
         }
 
-        return RC<AstUnsignedInteger>(
-            new AstUnsignedInteger(UnsignedValue() << right->UnsignedValue(), m_location));
+        if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) << right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
+        }
+        else
+        {
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() << right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
+        }
 
     case OP_bitshift_right:
-        if (!right->IsNumber()
-            || (right->GetExprType() != BuiltinTypes::s_intType
-                && right->GetExprType() != BuiltinTypes::s_unsignedIntType))
+        if (!right->GetExprType()->IsIntegral())
         {
             return nullptr;
         }
 
-        return RC<AstUnsignedInteger>(
-            new AstUnsignedInteger(UnsignedValue() >> right->UnsignedValue(), m_location));
+        if (dynamic_cast<const AstInteger*>(right))
+        {
+            return RC<AstInteger>(new AstInteger(
+                int64(UnsignedValue()) >> right->IntValue(),
+                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
+                m_location));
+        }
+        else
+        {
+            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                UnsignedValue() >> right->UnsignedValue(),
+                MathUtil::Max(m_bitSize, right->GetBitSize()),
+                m_location));
+        }
 
     case OP_logical_and:
     {
@@ -265,9 +382,9 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             if (dynamic_cast<const AstNil*>(right))
             {
                 // rhs is null, return false
-                return RC<AstFalse>(
-                    new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
+
             return nullptr;
         }
 
@@ -305,6 +422,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
                     return RC<AstFalse>(new AstFalse(m_location));
                 }
             }
+
             return nullptr;
         }
 
@@ -399,10 +517,10 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         }
 
     case OP_negative:
-        return RC<AstUnsignedInteger>(new AstUnsignedInteger(-UnsignedValue(), m_location));
+        return RC<AstUnsignedInteger>(new AstUnsignedInteger(-UnsignedValue(), m_bitSize, m_location));
 
     case OP_bitwise_complement:
-        return RC<AstUnsignedInteger>(new AstUnsignedInteger(~UnsignedValue(), m_location));
+        return RC<AstUnsignedInteger>(new AstUnsignedInteger(~UnsignedValue(), m_bitSize, m_location));
 
     case OP_logical_not:
         if (UnsignedValue() == 0)

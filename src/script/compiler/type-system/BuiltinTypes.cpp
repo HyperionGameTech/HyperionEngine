@@ -89,17 +89,50 @@ const SymbolTypeRef BuiltinTypes::s_enumType = SymbolType::GenericInstance(
     {},
     GenericInstanceTypeInfo { { { "underlyingType", SymbolType::GenericParameter("T") } } });
 
-const SymbolTypeRef BuiltinTypes::s_intType = SymbolType::Primitive(
-    "int",
-    RC<AstInteger>(new AstInteger(0, SourceLocation::eof)));
+const SymbolTypeRef BuiltinTypes::s_int8Type = SymbolType::Primitive(
+    "int8",
+    RC<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::eof)),
+    CBS_8);
 
-const SymbolTypeRef BuiltinTypes::s_unsignedIntType = SymbolType::Primitive(
-    "uint",
-    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof)));
+const SymbolTypeRef BuiltinTypes::s_int16Type = SymbolType::Primitive(
+    "int16",
+    RC<AstInteger>(new AstInteger(0, CBS_16, SourceLocation::eof)),
+    CBS_16);
+
+const SymbolTypeRef BuiltinTypes::s_int32Type = SymbolType::Primitive(
+    "int32",
+    RC<AstInteger>(new AstInteger(0, CBS_32, SourceLocation::eof)),
+    CBS_32);
+
+const SymbolTypeRef BuiltinTypes::s_int64Type = SymbolType::Primitive(
+    "int64",
+    RC<AstInteger>(new AstInteger(0, CBS_64, SourceLocation::eof)),
+    CBS_64);
+
+const SymbolTypeRef BuiltinTypes::s_uint8Type = SymbolType::Primitive(
+    "uint8",
+    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_8, SourceLocation::eof)),
+    CBS_8);
+
+const SymbolTypeRef BuiltinTypes::s_uint16Type = SymbolType::Primitive(
+    "uint16",
+    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_16, SourceLocation::eof)),
+    CBS_16);
+
+const SymbolTypeRef BuiltinTypes::s_uint32Type = SymbolType::Primitive(
+    "uint32",
+    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_32, SourceLocation::eof)),
+    CBS_32);
+
+const SymbolTypeRef BuiltinTypes::s_uint64Type = SymbolType::Primitive(
+    "uint64",
+    RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_64, SourceLocation::eof)),
+    CBS_64);
 
 const SymbolTypeRef BuiltinTypes::s_floatType = SymbolType::Primitive(
     "float",
-    RC<AstFloat>(new AstFloat(0.0, SourceLocation::eof)));
+    RC<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::eof)),
+    CBS_32);
 
 const SymbolTypeRef BuiltinTypes::s_boolType = SymbolType::Primitive(
     "bool",
@@ -142,7 +175,7 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_intType } } }) },
+                        { "index", BuiltinTypes::s_int32Type } } }) },
         SymbolTypeMember {
             "operator[]=",
             SymbolType::GenericInstance(
@@ -151,7 +184,7 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_intType },
+                        { "index", BuiltinTypes::s_int32Type },
                         { "value", SymbolType::GenericParameter("T") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
@@ -191,19 +224,30 @@ void BuiltinTypes::Initialize()
 
 void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
 {
+    static const SymbolTypeRef s_intType = SymbolType::Alias("int", { BuiltinTypes::s_int32Type });
+    static const SymbolTypeRef s_uintType = SymbolType::Alias("uint", { BuiltinTypes::s_uint32Type });
+
     static SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
         BuiltinTypes::s_objectType,
         BuiltinTypes::s_enumType,
         BuiltinTypes::s_voidType,
-        BuiltinTypes::s_intType,
-        BuiltinTypes::s_unsignedIntType,
+        BuiltinTypes::s_int8Type,
+        BuiltinTypes::s_int16Type,
+        BuiltinTypes::s_int32Type,
+        BuiltinTypes::s_int64Type,
+        BuiltinTypes::s_uint8Type,
+        BuiltinTypes::s_uint16Type,
+        BuiltinTypes::s_uint32Type,
+        BuiltinTypes::s_uint64Type,
         BuiltinTypes::s_floatType,
         BuiltinTypes::s_boolType,
         BuiltinTypes::s_stringType,
         BuiltinTypes::s_functionType,
         BuiltinTypes::s_arrayType,
-        BuiltinTypes::s_mapType
+        BuiltinTypes::s_mapType,
+        s_intType,
+        s_uintType
     };
 
     for (SymbolType* type : s_globalVisibleTypes)

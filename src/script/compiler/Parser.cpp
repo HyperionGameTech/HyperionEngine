@@ -1,18 +1,12 @@
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/Keywords.hpp>
+#include <script/compiler/type-system/SymbolType.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
 #include <util/UTF8.hpp>
 #include <core/utilities/StringUtil.hpp>
-
-#include <memory>
-#include <cstdlib>
-#include <cstdio>
-#include <sstream>
-#include <set>
-#include <iostream>
 
 namespace hyperion {
 
@@ -997,29 +991,32 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
 
         if (token.GetFlags()[0] == '\0' || token.GetFlags()[0] == 'i')
         {
-            hyperion::int32 value;
+            hyperion::int64 value;
             ss >> value;
 
             return RC<AstInteger>(new AstInteger(
                 value,
+                CBS_32, // @TODO: determine size from value
                 token.GetLocation()));
         }
         else if (token.GetFlags()[0] == 'u')
         {
-            hyperion::uint32 value;
+            hyperion::uint64 value;
             ss >> value;
 
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
                 value,
+                CBS_32, // @TODO: determine size from value
                 token.GetLocation()));
         }
         else if (token.GetFlags()[0] == 'f')
         {
-            float value;
+            double value;
             ss >> value;
 
             return RC<AstFloat>(new AstFloat(
                 value,
+                CBS_32, // @TODO: determine size from value
                 token.GetLocation()));
         }
         else
@@ -1042,6 +1039,7 @@ RC<AstFloat> Parser::ParseFloatLiteral()
 
         return RC<AstFloat>(new AstFloat(
             value,
+            CBS_32, // @TODO: determine size from value
             token.GetLocation()));
     }
 

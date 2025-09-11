@@ -153,10 +153,10 @@ struct LoadDeref : public Buildable
 struct ConstI32 : public Buildable
 {
     RegIndex reg;
-    int32_t value;
+    int32 value;
 
     ConstI32() = default;
-    ConstI32(RegIndex reg, int32_t value)
+    ConstI32(RegIndex reg, int32 value)
         : reg(reg),
           value(value)
     {
@@ -166,10 +166,10 @@ struct ConstI32 : public Buildable
 struct ConstI64 : public Buildable
 {
     RegIndex reg;
-    int64_t value;
+    int64 value;
 
     ConstI64() = default;
-    ConstI64(RegIndex reg, int64_t value)
+    ConstI64(RegIndex reg, int64 value)
         : reg(reg),
           value(value)
     {
@@ -179,10 +179,10 @@ struct ConstI64 : public Buildable
 struct ConstU32 : public Buildable
 {
     RegIndex reg;
-    uint32_t value;
+    uint32 value;
 
     ConstU32() = default;
-    ConstU32(RegIndex reg, uint32_t value)
+    ConstU32(RegIndex reg, uint32 value)
         : reg(reg),
           value(value)
     {
@@ -192,10 +192,10 @@ struct ConstU32 : public Buildable
 struct ConstU64 : public Buildable
 {
     RegIndex reg;
-    uint64_t value;
+    uint64 value;
 
     ConstU64() = default;
-    ConstU64(RegIndex reg, uint64_t value)
+    ConstU64(RegIndex reg, uint64 value)
         : reg(reg),
           value(value)
     {
@@ -205,7 +205,7 @@ struct ConstU64 : public Buildable
 struct ConstF32 : public Buildable
 {
     RegIndex reg;
-    float value;
+    float32 value;
 
     ConstF32() = default;
     ConstF32(RegIndex reg, float value)
@@ -218,7 +218,7 @@ struct ConstF32 : public Buildable
 struct ConstF64 : public Buildable
 {
     RegIndex reg;
-    double value;
+    float64 value;
 
     ConstF64() = default;
     ConstF64(RegIndex reg, double value)
@@ -231,10 +231,10 @@ struct ConstF64 : public Buildable
 struct ConstBool : public Buildable
 {
     RegIndex reg;
-    bool value;
+    uint8 value;
 
     ConstBool() = default;
-    ConstBool(RegIndex reg, bool value)
+    ConstBool(RegIndex reg, uint8 value)
         : reg(reg),
           value(value)
     {

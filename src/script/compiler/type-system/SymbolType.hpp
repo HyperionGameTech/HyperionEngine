@@ -81,6 +81,16 @@ struct SymbolTypeIncompatibility
 
 using SymbolTypeIncompatibilities = Array<SymbolTypeIncompatibility, DynamicAllocator>;
 
+enum ConstantBitSize : uint8
+{
+    CBS_INVALID = 0,
+
+    CBS_8 = 8,
+    CBS_16 = 16,
+    CBS_32 = 32,
+    CBS_64 = 64
+};
+
 struct AliasTypeInfo
 {
     SymbolTypeWeakRef m_aliasee;
@@ -197,7 +207,8 @@ public:
 
     static SymbolTypeRef Primitive(
         const String& name,
-        const RC<AstExpression>& defaultValue);
+        const RC<AstExpression>& defaultValue,
+        ConstantBitSize bitSize = CBS_INVALID);
 
     static SymbolTypeRef Object(
         const String& name,
@@ -452,6 +463,11 @@ public:
         return m_flags & SYMBOL_TYPE_FLAGS_PROXY;
     }
 
+    ConstantBitSize GetConstantBitSize() const
+    {
+        return m_constantBitSize;
+    }
+
     HashCode GetHashCode() const
     {
         HashSet<String> duplicateNames;
@@ -471,6 +487,7 @@ public:
         result->m_aliasInfo = m_aliasInfo;
         result->m_genericInstanceInfo = m_genericInstanceInfo;
         result->m_genericParamInfo = m_genericParamInfo;
+        result->m_constantBitSize = m_constantBitSize;
         result->m_flags = m_flags;
         result->m_declScope = nullptr; // do not copy scope
 
@@ -491,6 +508,7 @@ public:
         m_aliasInfo = std::move(other.m_aliasInfo);
         m_genericInstanceInfo = std::move(other.m_genericInstanceInfo);
         m_genericParamInfo = std::move(other.m_genericParamInfo);
+        m_constantBitSize = other.m_constantBitSize;
         m_flags = other.m_flags;
         m_declScope = nullptr; // do not copy scope
     }
@@ -514,6 +532,7 @@ private:
     // if this is a generic param
     GenericParameterTypeInfo m_genericParamInfo;
 
+    ConstantBitSize m_constantBitSize;
     SymbolTypeFlags m_flags;
     Scope* m_declScope;
 };

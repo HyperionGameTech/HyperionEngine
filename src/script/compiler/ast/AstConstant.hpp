@@ -7,10 +7,15 @@
 
 namespace hyperion {
 
+enum ConstantBitSize : uint8;
+
 class AstConstant : public AstExpression
 {
+protected:
+    explicit AstConstant(const SourceLocation& location);
+    AstConstant(ConstantBitSize bitSize, const SourceLocation& location);
+
 public:
-    AstConstant(const SourceLocation& location);
     virtual ~AstConstant() = default;
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -21,21 +26,34 @@ public:
     {
         return true;
     }
+
+    HYP_FORCE_INLINE ConstantBitSize GetBitSize() const
+    {
+        return m_bitSize;
+    }
+
     virtual RC<AstStatement> Clone() const override = 0;
 
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override;
+
     virtual bool IsNumber() const = 0;
-    virtual hyperion::int32 IntValue() const = 0;
-    virtual hyperion::uint32 UnsignedValue() const;
-    virtual float FloatValue() const = 0;
+
+    virtual hyperion::int64 IntValue() const = 0;
+    virtual hyperion::uint64 UnsignedValue() const;
+    virtual double FloatValue() const = 0;
 
     virtual HashCode GetHashCode() const override
     {
-        return AstExpression::GetHashCode().Add(TypeName<AstConstant>());
+        return AstExpression::GetHashCode()
+            .Add(TypeName<AstConstant>())
+            .Add(m_bitSize);
     }
 
     virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const = 0;
+
+protected:
+    ConstantBitSize m_bitSize;
 };
 
 } // namespace hyperion

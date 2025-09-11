@@ -91,7 +91,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             mod,
             m_location,
             m_index->GetExprType(),
-            BuiltinTypes::s_intType);
+            BuiltinTypes::s_int32Type);
 
         return;
     }

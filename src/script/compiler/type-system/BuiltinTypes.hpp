@@ -28,8 +28,14 @@ struct BuiltinTypes
     static const SymbolTypeRef s_classType;
     static const SymbolTypeRef s_placeholderType;
     static const SymbolTypeRef s_voidType;
-    static const SymbolTypeRef s_intType;
-    static const SymbolTypeRef s_unsignedIntType;
+    static const SymbolTypeRef s_int8Type;
+    static const SymbolTypeRef s_int16Type;
+    static const SymbolTypeRef s_int32Type;
+    static const SymbolTypeRef s_int64Type;
+    static const SymbolTypeRef s_uint8Type;
+    static const SymbolTypeRef s_uint16Type;
+    static const SymbolTypeRef s_uint32Type;
+    static const SymbolTypeRef s_uint64Type;
     static const SymbolTypeRef s_floatType;
     static const SymbolTypeRef s_boolType;
     static const SymbolTypeRef s_stringType;

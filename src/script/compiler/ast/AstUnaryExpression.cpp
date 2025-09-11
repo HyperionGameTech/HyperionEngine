@@ -63,12 +63,12 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
         switch (m_op->GetOperatorType())
         {
         case OP_increment:
-            expr.Reset(new AstInteger(1, m_location));
+            expr.Reset(new AstInteger(1, CBS_32, m_location));
             binOp = Operator::FindBinaryOperator(Operators::OP_add_assign);
 
             break;
         case OP_decrement:
-            expr.Reset(new AstInteger(1, m_location));
+            expr.Reset(new AstInteger(1, CBS_32, m_location));
             binOp = Operator::FindBinaryOperator(Operators::OP_subtract_assign);
 
             break;

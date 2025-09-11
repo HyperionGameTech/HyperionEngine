@@ -11,7 +11,7 @@
 namespace hyperion {
 
 AstString::AstString(const String& value, const SourceLocation& location)
-    : AstConstant(location),
+    : AstConstant(CBS_INVALID, location),
       m_value(value)
 {
 }
@@ -44,16 +44,16 @@ bool AstString::IsNumber() const
     return false;
 }
 
-hyperion::int32 AstString::IntValue() const
+hyperion::int64 AstString::IntValue() const
 {
     // not valid
     return 0;
 }
 
-float AstString::FloatValue() const
+double AstString::FloatValue() const
 {
     // not valid
-    return 0.0f;
+    return 0.0;
 }
 
 SymbolTypeRef AstString::GetExprType() const

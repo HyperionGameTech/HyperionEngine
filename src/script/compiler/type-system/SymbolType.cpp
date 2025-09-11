@@ -49,6 +49,7 @@ SymbolType::SymbolType(
       m_typeClass(typeClass),
       m_defaultValue(nullptr),
       m_base(base ? base->GetUnaliased() : nullptr),
+      m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr)
 {
@@ -67,6 +68,7 @@ SymbolType::SymbolType(
       m_members(members),
       m_staticMembers(staticMembers),
       m_base(base ? base->GetUnaliased() : nullptr),
+      m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr)
 {
@@ -440,13 +442,25 @@ bool SymbolType::TypeCompatible(
             if (promotedType->IsFloat())
             {
                 ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause precision loss. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
-            }
-            else if (right.IsUnsignedIntegral() && IsSignedIntegral())
-            {
-                ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause a signed integer overflow. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
+
+                return false;
             }
 
-            return false;
+            if (right.IsUnsignedIntegral() && IsSignedIntegral())
+            {
+                ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause a signed integer overflow. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
+
+                return false;
+            }
+
+            if (right.GetConstantBitSize() > GetConstantBitSize())
+            {
+                ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause data loss. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
+
+                return false;
+            }
+
+            return true;
         }
 
         break;
@@ -628,30 +642,34 @@ SymbolTypeRef SymbolType::GetUnaliased() const
 
 bool SymbolType::IsNumber() const
 {
-    return IsOrHasBase(*BuiltinTypes::s_intType)
-        || IsOrHasBase(*BuiltinTypes::s_unsignedIntType)
-        || IsOrHasBase(*BuiltinTypes::s_floatType);
+    return IsIntegral() || IsFloat();
 }
 
 bool SymbolType::IsIntegral() const
 {
-    return IsOrHasBase(*BuiltinTypes::s_intType)
-        || IsOrHasBase(*BuiltinTypes::s_unsignedIntType);
+    return IsSignedIntegral() || IsUnsignedIntegral();
 }
 
 bool SymbolType::IsSignedIntegral() const
 {
-    return this == BuiltinTypes::s_intType;
+    return this == BuiltinTypes::s_int8Type
+        || this == BuiltinTypes::s_int16Type
+        || this == BuiltinTypes::s_int32Type
+        || this == BuiltinTypes::s_int64Type;
 }
 
 bool SymbolType::IsUnsignedIntegral() const
 {
-    return this == BuiltinTypes::s_unsignedIntType;
+    return this == BuiltinTypes::s_uint8Type
+        || this == BuiltinTypes::s_uint16Type
+        || this == BuiltinTypes::s_uint32Type
+        || this == BuiltinTypes::s_uint64Type;
 }
 
 bool SymbolType::IsFloat() const
 {
     return this == BuiltinTypes::s_floatType;
+    //|| this == BuiltinTypes::s_doubleType;
 }
 
 bool SymbolType::IsBoolean() const
@@ -743,14 +761,19 @@ SymbolTypeRef SymbolType::Placeholder(
 
 SymbolTypeRef SymbolType::Primitive(
     const String& name,
-    const RC<AstExpression>& defaultValue)
+    const RC<AstExpression>& defaultValue,
+    ConstantBitSize bitSize)
 {
-    return SymbolTypeRef(new SymbolType(
+    SymbolTypeRef symbolType(new SymbolType(
         name,
         TYPE_BUILTIN,
         BuiltinTypes::s_primitiveType,
         defaultValue,
         {}, {}));
+
+    symbolType->m_constantBitSize = bitSize;
+
+    return symbolType;
 }
 
 SymbolTypeRef SymbolType::Object(
@@ -1097,15 +1120,87 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
     {
         if (lptr->IsFloat() || rptr->IsFloat())
         {
-            return BuiltinTypes::s_floatType;
+            // Float promotion - use the larger bit size, minimum 32-bit
+            ConstantBitSize leftSize = lptr->GetConstantBitSize();
+            ConstantBitSize rightSize = rptr->GetConstantBitSize();
+            ConstantBitSize resultSize = MathUtil::Max(leftSize, rightSize, CBS_32);
+
+            if (resultSize == CBS_64)
+            {
+                return BuiltinTypes::s_floatType; // BuiltinTypes::s_doubleType;
+            }
+            else
+            {
+                return BuiltinTypes::s_floatType;
+            }
         }
-        else if (rptr->IsUnsignedIntegral())
+        else if (lptr->IsIntegral() && rptr->IsIntegral())
         {
-            return BuiltinTypes::s_unsignedIntType;
-        }
-        else
-        {
-            return BuiltinTypes::s_intType;
+            bool leftIsSigned = lptr->IsSignedIntegral();
+            bool rightIsSigned = rptr->IsSignedIntegral();
+
+            ConstantBitSize leftSize = lptr->GetConstantBitSize();
+            ConstantBitSize rightSize = rptr->GetConstantBitSize();
+
+            // If mixing signed and unsigned, promote to signed with potentially larger size
+            if (leftIsSigned != rightIsSigned)
+            {
+                ConstantBitSize resultSize = MathUtil::Min(leftSize > rightSize ? leftSize : ConstantBitSize(leftSize << 1), CBS_64);
+
+                switch (resultSize)
+                {
+                case CBS_8:
+                    return BuiltinTypes::s_int8Type;
+                case CBS_16:
+                    return BuiltinTypes::s_int16Type;
+                case CBS_32:
+                    return BuiltinTypes::s_int32Type;
+                case CBS_64:
+                    return BuiltinTypes::s_int64Type;
+                default:
+                    return BuiltinTypes::s_int32Type;
+                }
+            }
+            else
+            {
+                // Same signedness, use the larger size
+                ConstantBitSize resultSize = MathUtil::Max(leftSize, rightSize);
+
+                if (leftIsSigned)
+                {
+                    // Both signed
+                    switch (resultSize)
+                    {
+                    case CBS_8:
+                        return BuiltinTypes::s_int8Type;
+                    case CBS_16:
+                        return BuiltinTypes::s_int16Type;
+                    case CBS_32:
+                        return BuiltinTypes::s_int32Type;
+                    case CBS_64:
+                        return BuiltinTypes::s_int64Type;
+                    default:
+                        return BuiltinTypes::s_int32Type;
+                    }
+                }
+                else
+                {
+                    // Both unsigned
+                    switch (resultSize)
+                    {
+                    case CBS_8:
+                        return BuiltinTypes::s_uint8Type;
+                    case CBS_16:
+                        return BuiltinTypes::s_uint16Type;
+                    case CBS_32:
+                        return BuiltinTypes::s_uint32Type;
+                    case CBS_64:
+                        return BuiltinTypes::s_uint64Type;
+                    default:
+                        return BuiltinTypes::s_uint32Type;
+                    }
+                }
+            }
         }
     }
 
@@ -1185,6 +1280,7 @@ HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateN
     hc.Add(m_name);
     hc.Add(m_typeClass);
     hc.Add(m_base ? m_base->GetHashCodeWithDuplicateRemoval(duplicateNames) : HashCode());
+    hc.Add(m_constantBitSize);
     hc.Add(m_flags);
 
     switch (m_typeClass)

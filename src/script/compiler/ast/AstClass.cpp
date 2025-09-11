@@ -109,7 +109,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         if (!m_baseType)
         {
-            m_baseType = BuiltinTypes::s_intType;
+            m_baseType = BuiltinTypes::s_int32Type;
         }
 
         if (!m_baseType->IsIntegral())
@@ -120,7 +120,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 m_location,
                 m_baseType->ToString()));
 
-            m_baseType = BuiltinTypes::s_intType;
+            m_baseType = BuiltinTypes::s_int32Type;
         }
 
         // Create a generic instance of the enum type
@@ -416,11 +416,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 RC<AstFunctionExpression> constructorExpr(new AstFunctionExpression(
                     constructorParams,
-                    RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                        RC<AstTypeRef>(new AstTypeRef(
-                            SymbolType::Placeholder("SelfType"),
-                            m_location)),
-                        m_location)),
+                    nullptr,
                     constructorBody,
                     m_location));
 

@@ -16,8 +16,8 @@
 
 namespace hyperion {
 
-AstFloat::AstFloat(float value, const SourceLocation& location)
-    : AstConstant(location),
+AstFloat::AstFloat(double value, ConstantBitSize bitSize, const SourceLocation& location)
+    : AstConstant(bitSize, location),
       m_value(value)
 {
 }
@@ -26,7 +26,16 @@ UniquePtr<Buildable> AstFloat::Build(AstVisitor* visitor, Module* mod)
 {
     // get active register
     const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-    return BytecodeUtil::Make<ConstF32>(rp, m_value);
+
+    switch (m_bitSize)
+    {
+    case CBS_32:
+        return BytecodeUtil::Make<ConstF32>(rp, float32(m_value));
+    case CBS_64:
+        return BytecodeUtil::Make<ConstF64>(rp, m_value);
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
 RC<AstStatement> AstFloat::Clone() const
@@ -45,24 +54,32 @@ bool AstFloat::IsNumber() const
     return true;
 }
 
-hyperion::int32 AstFloat::IntValue() const
+hyperion::int64 AstFloat::IntValue() const
 {
-    return (hyperion::int32)m_value;
+    return (hyperion::int64)m_value;
 }
 
-hyperion::uint32 AstFloat::UnsignedValue() const
+hyperion::uint64 AstFloat::UnsignedValue() const
 {
-    return (hyperion::uint32)m_value;
+    return (hyperion::uint64)m_value;
 }
 
-float AstFloat::FloatValue() const
+double AstFloat::FloatValue() const
 {
     return m_value;
 }
 
 SymbolTypeRef AstFloat::GetExprType() const
 {
-    return BuiltinTypes::s_floatType;
+    switch (m_bitSize)
+    {
+    case CBS_32:
+        return BuiltinTypes::s_floatType;
+    case CBS_64:
+        return BuiltinTypes::s_floatType; // BuiltinTypes::s_doubleType;
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
 RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* right) const
@@ -74,24 +91,33 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return nullptr;
         }
-        return RC<AstFloat>(
-            new AstFloat(FloatValue() + right->FloatValue(), m_location));
+
+        return RC<AstFloat>(new AstFloat(
+            FloatValue() + right->FloatValue(),
+            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            m_location));
 
     case OP_subtract:
         if (!right->IsNumber())
         {
             return nullptr;
         }
-        return RC<AstFloat>(
-            new AstFloat(FloatValue() - right->FloatValue(), m_location));
+
+        return RC<AstFloat>(new AstFloat(
+            FloatValue() - right->FloatValue(),
+            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            m_location));
 
     case OP_multiply:
         if (!right->IsNumber())
         {
             return nullptr;
         }
-        return RC<AstFloat>(
-            new AstFloat(FloatValue() * right->FloatValue(), m_location));
+
+        return RC<AstFloat>(new AstFloat(
+            FloatValue() * right->FloatValue(),
+            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            m_location));
 
     case OP_divide:
     {
@@ -106,7 +132,11 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             // division by zero
             return nullptr;
         }
-        return RC<AstFloat>(new AstFloat(FloatValue() / rightFloat, m_location));
+
+        return RC<AstFloat>(new AstFloat(
+            FloatValue() / rightFloat,
+            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            m_location));
     }
 
     case OP_modulus:
@@ -123,7 +153,10 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             return nullptr;
         }
 
-        return RC<AstFloat>(new AstFloat(std::fmod(FloatValue(), rightFloat), m_location));
+        return RC<AstFloat>(new AstFloat(
+            std::fmod(FloatValue(), rightFloat),
+            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            m_location));
     }
 
     case OP_logical_and:
@@ -265,7 +298,7 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         }
 
     case OP_negative:
-        return RC<AstFloat>(new AstFloat(-FloatValue(), m_location));
+        return RC<AstFloat>(new AstFloat(-FloatValue(), m_bitSize, m_location));
 
     case OP_logical_not:
         if (FloatValue() == 0.0)

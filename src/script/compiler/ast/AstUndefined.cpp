@@ -5,7 +5,7 @@
 namespace hyperion {
 
 AstUndefined::AstUndefined(const SourceLocation& location)
-    : AstConstant(location)
+    : AstConstant(CBS_INVALID, location)
 {
 }
 
@@ -29,12 +29,12 @@ bool AstUndefined::IsNumber() const
     return false;
 }
 
-hyperion::int32 AstUndefined::IntValue() const
+hyperion::int64 AstUndefined::IntValue() const
 {
     return 0;
 }
 
-float AstUndefined::FloatValue() const
+double AstUndefined::FloatValue() const
 {
     return 0.0f;
 }

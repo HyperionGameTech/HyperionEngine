@@ -104,7 +104,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 0
+#if 1
     { // script 2
         String str;
 #if 0
@@ -142,36 +142,36 @@ void HyperionEditor::Init()
         str = "class Base {} \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\"\n"
-              "    jet : int = 1\n"
-              "    x(a: int) { return a * jet; }\n"
+              "    jet : int32 = 1\n"
+              "    x(a: int32) { return a * jet; }\n"
               "    MyClass() {\n"
               "        jet = 4\n"
               "        return self\n"
               "    }\n"
-              "    operator[](i: int) -> any {\n"
+              "    operator[](i: int32) -> any {\n"
               "       for (j := 1; j < i; j++) {\n"
               "           if (jet > 10000.0) { break }\n"
               "           jet += j\n"
               "       }\n"
               "       return jet\n"
               "    }\n"
-              "    operator[]=(i: int, val: any) -> any {\n"
-              "       jet = val as int\n"
+              "    operator[]=(i: int32, val: any) -> any {\n"
+              "       jet = val as int32\n"
               "       return jet\n"
               "    }\n"
               "    modValue(inValue : Array<int>, farts: Fart...) -> void {\n"
               "        farts[0]\n"
               "    }\n"
               "}\n"
-              "class Fart { i: int; }\n"
+              "class Fart { i: int32; }\n"
               "ins := new MyClass();\n"
-              "testArray2 : Array<int> = [9,9,34]\n"
+              "testArray2 : Array<int32> = [9,9,34]\n"
               "testArray2[0]++\n"
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int = 5, ary: Array<int> = [1,2,3], obj: MyClass) { return () { blah }; };\n"
-              "export x := (a: float, ref b: int) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
+              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { return () { obj }; };\n"
+              "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 
         ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));

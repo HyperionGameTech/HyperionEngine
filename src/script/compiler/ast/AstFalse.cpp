@@ -13,7 +13,7 @@
 namespace hyperion {
 
 AstFalse::AstFalse(const SourceLocation& location)
-    : AstConstant(location)
+    : AstConstant(CBS_8, location)
 {
 }
 
@@ -40,14 +40,14 @@ bool AstFalse::IsNumber() const
     return false;
 }
 
-hyperion::int32 AstFalse::IntValue() const
+hyperion::int64 AstFalse::IntValue() const
 {
     return 0;
 }
 
-float AstFalse::FloatValue() const
+double AstFalse::FloatValue() const
 {
-    return 0.0f;
+    return 0.0;
 }
 
 SymbolTypeRef AstFalse::GetExprType() const

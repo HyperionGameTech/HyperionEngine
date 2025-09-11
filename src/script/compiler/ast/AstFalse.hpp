@@ -15,8 +15,8 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
-    virtual hyperion::int32 IntValue() const override;
-    virtual float FloatValue() const override;
+    virtual hyperion::int64 IntValue() const override;
+    virtual double FloatValue() const override;
     virtual SymbolTypeRef GetExprType() const override;
 
     virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
@@ -34,8 +34,7 @@ public:
 private:
     RC<AstFalse> CloneImpl() const
     {
-        return RC<AstFalse>(new AstFalse(
-            m_location));
+        return RC<AstFalse>(new AstFalse(m_location));
     }
 };
 

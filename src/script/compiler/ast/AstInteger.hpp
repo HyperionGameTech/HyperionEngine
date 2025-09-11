@@ -9,7 +9,10 @@ namespace hyperion {
 class AstInteger : public AstConstant
 {
 public:
-    AstInteger(hyperion::int32 value, const SourceLocation& location);
+    AstInteger(
+        hyperion::int64 value,
+        ConstantBitSize bitSize,
+        const SourceLocation& location);
 
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
 
@@ -17,9 +20,11 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
-    virtual hyperion::int32 IntValue() const override;
-    virtual hyperion::uint32 UnsignedValue() const override;
-    virtual float FloatValue() const override;
+
+    virtual hyperion::int64 IntValue() const override;
+    virtual hyperion::uint64 UnsignedValue() const override;
+    virtual double FloatValue() const override;
+
     virtual SymbolTypeRef GetExprType() const override;
 
     virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
@@ -38,12 +43,13 @@ public:
     }
 
 private:
-    hyperion::int32 m_value;
+    hyperion::int64 m_value;
 
     RC<AstInteger> CloneImpl() const
     {
         return RC<AstInteger>(new AstInteger(
             m_value,
+            m_bitSize,
             m_location));
     }
 };
