@@ -41,7 +41,7 @@ HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
 HYP_ENUM()
 enum EnvProbeType : uint32
 {
-    EPT_INVALID = uint32(-1),
+    EPT_INVALID = ~0u,
 
     EPT_SKY = 0,
     EPT_REFLECTION,

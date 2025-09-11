@@ -77,7 +77,11 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
             Assert(m_symbolType == specifiedSymbolType); // just sanity check, assigned above
 
             // verify types compatible
-            if (!specifiedSymbolType->TypeCompatible(*defaultParamType, /* strictNumbers */ true, /* strictAny */ true))
+            if (!specifiedSymbolType->TypeCompatible(
+                    *defaultParamType,
+                    /* strictNumbers */ true,
+                    /* strictAny */ true,
+                    /* strictEnum */ true))
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,

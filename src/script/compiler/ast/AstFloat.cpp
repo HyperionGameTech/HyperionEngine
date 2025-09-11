@@ -76,7 +76,7 @@ SymbolTypeRef AstFloat::GetExprType() const
     case CBS_32:
         return BuiltinTypes::s_floatType;
     case CBS_64:
-        return BuiltinTypes::s_floatType; // BuiltinTypes::s_doubleType;
+        return BuiltinTypes::s_doubleType;
     default:
         HYP_UNREACHABLE();
     }

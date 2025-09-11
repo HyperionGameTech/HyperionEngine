@@ -84,7 +84,11 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
             // take first item found that is not `Any`
             m_heldType = it;
         }
-        else if (m_heldType->TypeCompatible(*it, /* strictNumbers */ false, /* strictAny */ false))
+        else if (m_heldType->TypeCompatible(
+                     *it,
+                     /* strictNumbers */ false,
+                     /* strictAny */ false,
+                     /* strictEnum */ false))
         { // allow non-strict numbers because we can do a cast
             m_heldType = SymbolType::TypePromotion(m_heldType, it);
         }

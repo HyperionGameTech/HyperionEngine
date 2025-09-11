@@ -57,10 +57,9 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
 
     if (heldType->IsEnumType())
     {
-        Assert(heldType->GetGenericInstanceInfo().m_genericArgs.Size() == 1);
-
-        SymbolTypeRef enumUnderlyingType = heldType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
+        SymbolTypeRef enumUnderlyingType = heldType->GetBaseType();
         Assert(enumUnderlyingType != nullptr);
+
         enumUnderlyingType = enumUnderlyingType->GetUnaliased();
 
         // for enum types, we use the underlying type.

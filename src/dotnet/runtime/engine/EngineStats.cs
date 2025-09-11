@@ -103,12 +103,12 @@ namespace Hyperion
         {
             get
             {
-                HypField? field = HypClass.GetField(new Name("Entries", weak: true));
+                HypField? field = HypClass.GetField(new Name("entries", weak: true));
                 Assert.Throw(field != null, "EngineStatGroup does not have an 'Entries' field");
 
                 IntPtr entriesAddress = NativeAddress + ((IntPtr)((HypField)field).Offset);
 
-                uint count = (uint)ReadNativeField(new Name("Count", weak: true));
+                uint count = (uint)ReadNativeField(new Name("count", weak: true));
                 Assert.Throw(count <= 32, "incorrect stat group count, would cause out of bounds access");
 
                 for (int i = 0; i < count; i++)

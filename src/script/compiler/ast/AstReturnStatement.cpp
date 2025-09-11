@@ -60,7 +60,11 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
         {
             if (!returnType->IsAnyType() && !returnType->TypeEqual(*m_exprType))
             {
-                if (returnType->TypeCompatible(*m_exprType, /* strictNumbers */ false, /* strictAny */ false))
+                if (returnType->TypeCompatible(
+                        *m_exprType,
+                        /* strictNumbers */ false,
+                        /* strictAny */ false,
+                        /* strictEnum */ false))
                 {
                     // insert cast
                     m_overrideExpr.Reset(new AstAsExpression(

@@ -21,7 +21,7 @@ enum ThreadCategory : ThreadMask
 
 enum ThreadType : uint32
 {
-    THREAD_TYPE_INVALID = uint32(-1),
+    THREAD_TYPE_INVALID = ~0u,
     THREAD_TYPE_GAME = 0,
     THREAD_TYPE_RENDER = 1,
     THREAD_TYPE_TASK = 2,

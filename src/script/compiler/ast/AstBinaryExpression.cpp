@@ -210,8 +210,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // arithmetic operators are only for numbers
             visitor->AddErrorIfFalse(
-                (leftType->TypeCompatible(*BuiltinTypes::s_int32Type, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_uint32Type, false, false) || leftType->TypeCompatible(*BuiltinTypes::s_floatType, false, false))
-                    && (rightType->TypeCompatible(*BuiltinTypes::s_int32Type, false, false) || rightType->TypeCompatible(*BuiltinTypes::s_uint32Type, false, false) | rightType->TypeCompatible(*BuiltinTypes::s_floatType, false, false)),
+                leftType->IsNumber() && rightType->IsNumber(),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_arithmetic_operands_must_be_numbers,
@@ -234,7 +233,11 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
     else
     {
         // compare both sides because assignment does not matter in this case
-        if (!leftType->TypeCompatible(*rightType, /* strictNumbers */ false, /* strictAny */ false))
+        if (!leftType->TypeCompatible(
+                *rightType,
+                /* strictNumbers */ false,
+                /* strictAny */ false,
+                /* strictEnum */ false))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,

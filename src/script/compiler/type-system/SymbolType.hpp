@@ -42,6 +42,7 @@ enum SymbolTypeClass : uint8
 
     TYPE_BUILTIN = 0,
     TYPE_USER_DEFINED,
+    TYPE_ENUM,
     TYPE_ALIAS,
     TYPE_GENERIC_INSTANCE,
     TYPE_GENERIC_PARAMETER,
@@ -209,6 +210,11 @@ public:
         const String& name,
         const RC<AstExpression>& defaultValue,
         ConstantBitSize bitSize = CBS_INVALID);
+
+    static SymbolTypeRef Enum(
+        const String& name,
+        const SymbolTypeRef& underlyingType,
+        const Array<SymbolTypeMember>& members);
 
     static SymbolTypeRef Object(
         const String& name,
@@ -404,6 +410,7 @@ public:
         const SymbolType& other,
         bool strictNumbers,
         bool strictAny,
+        bool strictEnum,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
     bool operator==(const SymbolType& other) const

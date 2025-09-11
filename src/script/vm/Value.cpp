@@ -897,11 +897,11 @@ const char* Script_Value::GetTypeString() const
     {
         return "uint64";
     }
-    else if (typeId == TypeId::ForType<float>())
+    else if (typeId == TypeId::ForType<float32>())
     {
         return "float";
     }
-    else if (typeId == TypeId::ForType<double>())
+    else if (typeId == TypeId::ForType<float64>())
     {
         return "double";
     }

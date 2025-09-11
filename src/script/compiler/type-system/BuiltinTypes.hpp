@@ -22,8 +22,6 @@ struct BuiltinTypes
     static const SymbolTypeRef s_arrayBaseType;    // non-generic array type
     static const SymbolTypeRef s_varArgsBaseType;
     static const SymbolTypeRef s_mapBaseType; // non-generic map type
-    static const SymbolTypeRef s_enumBaseType;
-    static const SymbolTypeRef s_enumType;
     static const SymbolTypeRef s_anyType;
     static const SymbolTypeRef s_classType;
     static const SymbolTypeRef s_placeholderType;
@@ -37,6 +35,7 @@ struct BuiltinTypes
     static const SymbolTypeRef s_uint32Type;
     static const SymbolTypeRef s_uint64Type;
     static const SymbolTypeRef s_floatType;
+    static const SymbolTypeRef s_doubleType;
     static const SymbolTypeRef s_boolType;
     static const SymbolTypeRef s_stringType;
     static const SymbolTypeRef s_varArgsType;

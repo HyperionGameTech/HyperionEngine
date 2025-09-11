@@ -136,7 +136,12 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (resolvedParamType->TypeCompatible(*resolvedArgType, /* strictNumbers */ true, /* strictAny */ true, &incompatibilities))
+    if (resolvedParamType->TypeCompatible(
+            *resolvedArgType,
+            /* strictNumbers */ true,
+            /* strictAny */ true,
+            /* strictEnum */ true,
+            &incompatibilities))
     {
         return;
     }
@@ -546,9 +551,16 @@ SymbolTypeRef SemanticAnalyzer::Helpers::GenericPromotion(
                     rGenericArgs,
                     location);
 
-                if (promoted && promoted->TypeCompatible(*rptrUnalias, /* strictNumbers */ true, /* strictAny */ true))
+                if (promoted)
                 {
-                    return promoted->GetUnaliased();
+                    if (promoted->TypeCompatible(
+                            *rptrUnalias,
+                            /* strictNumbers */ true,
+                            /* strictAny */ true,
+                            /* strictEnum */ true))
+                    {
+                        return promoted->GetUnaliased();
+                    }
                 }
 
                 return lptr;
@@ -1001,7 +1013,12 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (!symbolTypeUnaliased->TypeCompatible(*assignmentTypeUnaliased, /* strictNumbers */ true, /* strictAny */ true, &incompatibilities))
+    if (!symbolTypeUnaliased->TypeCompatible(
+            *assignmentTypeUnaliased,
+            /* strictNumbers */ true,
+            /* strictAny */ true,
+            /* strictEnum */ true,
+            &incompatibilities))
     {
         if (incompatibilities.Any())
         {

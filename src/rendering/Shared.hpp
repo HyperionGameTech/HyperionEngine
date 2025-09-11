@@ -55,7 +55,7 @@ enum DefaultImageFormat : uint8
 HYP_ENUM()
 enum TextureType : uint32
 {
-    TT_INVALID = uint32(-1),
+    TT_INVALID = ~0u,
 
     TT_TEX2D = 0,
     TT_TEX3D = 1,

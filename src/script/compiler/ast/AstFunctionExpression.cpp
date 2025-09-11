@@ -197,7 +197,11 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     {
                         // same type, do nothing
                     }
-                    else if (m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ false, /* strictAny */ false))
+                    else if (m_returnType->TypeCompatible(
+                                 *symbolType,
+                                 /* strictNumbers */ false,
+                                 /* strictAny */ false,
+                                 /* strictEnum */ false))
                     {
                         needsCast = true;
                     }
@@ -224,7 +228,11 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                         // first return type found, take it
                         m_returnType = symbolType;
                     }
-                    else if (m_returnType->TypeCompatible(*symbolType, /* strictNumbers */ false, /* strictAny */ false))
+                    else if (m_returnType->TypeCompatible(
+                                 *symbolType,
+                                 /* strictNumbers */ false,
+                                 /* strictAny */ false,
+                                 /* strictEnum */ false))
                     {
                         m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
                         needsCast = true;
@@ -258,7 +266,11 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                         if (m_returnTypeSpecification != nullptr)
                         {
                             // strict mode, because user specifically stated the intended return type
-                            if (!m_returnType->TypeCompatible(*lastExprType, /* strictNumbers */ true, /* strictAny */ true))
+                            if (!m_returnType->TypeCompatible(
+                                    *lastExprType,
+                                    /* strictNumbers */ true,
+                                    /* strictAny */ true,
+                                    /* strictEnum */ true))
                             {
                                 // error; does not match what user specified
                                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -280,8 +292,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     // no expression at the end, so return type is void
                     if (m_returnTypeSpecification != nullptr)
                     {
-                        // strict mode, because user specifically stated the intended return type
-                        if (!m_returnType->TypeCompatible(*BuiltinTypes::s_voidType, /* strictNumbers */ true, /* strictAny */ false))
+                        if (m_returnType != BuiltinTypes::s_voidType)
                         {
                             // error; does not match what user specified
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

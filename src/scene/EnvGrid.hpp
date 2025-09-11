@@ -39,7 +39,7 @@ HYP_MAKE_ENUM_FLAGS(EnvGridFlags);
 
 enum EnvGridType : uint32
 {
-    ENV_GRID_TYPE_INVALID = uint32(-1),
+    ENV_GRID_TYPE_INVALID = ~0u,
     ENV_GRID_TYPE_SH = 0,
     ENV_GRID_TYPE_VOXEL,
     ENV_GRID_TYPE_LIGHT_FIELD,

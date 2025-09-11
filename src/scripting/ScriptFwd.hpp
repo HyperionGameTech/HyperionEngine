@@ -39,7 +39,7 @@ HYP_MAKE_ENUM_FLAGS(ScriptCompileStatus)
 HYP_ENUM()
 enum ScriptLanguage : uint32
 {
-    SL_INVALID = uint32(-1),
+    SL_INVALID = ~0u,
 
     SL_HYPSCRIPT = 0,
     SL_CSHARP = 1

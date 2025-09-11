@@ -82,7 +82,12 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (!m_resultType->TypeCompatible(*targetType, /* strictNumbers */ false, /* strictAny */ false, &incompatibilities))
+    if (!m_resultType->TypeCompatible(
+            *targetType,
+            /* strictNumbers */ false,
+            /* strictAny */ false,
+            /* strictEnum */ false,
+            &incompatibilities))
     {
         if (incompatibilities.Any())
         {

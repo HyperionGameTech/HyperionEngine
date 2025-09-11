@@ -19,6 +19,7 @@
 #include <script/compiler/Module.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/Optimizer.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -129,10 +130,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // Create a generic instance of the enum type
-        newType = SymbolType::GenericInstance(
-            BuiltinTypes::s_enumType,
-            {}, {},
-            GenericInstanceTypeInfo { { { "underlyingType", m_baseType } } });
+        newType = SymbolType::Enum(
+            m_name,
+            m_baseType,
+            {});
     }
     else
     {
@@ -281,23 +282,23 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     Assert(realAssignment != nullptr);
 
                     // so we can pre-evaluate the constant value
-                    realAssignment->Optimize(visitor, mod);
+                    RC<AstExpression> optimizedExpr = Optimizer::OptimizeExpr(
+                        realAssignment,
+                        visitor,
+                        mod);
 
-                    const AstExpression* assignment = realAssignment->GetDeepValueOf();
-                    Assert(assignment != nullptr);
-
-                    if (!assignment->IsLiteral())
+                    if (!optimizedExpr || !optimizedExpr->IsLiteral())
                     {
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
                             Msg_enum_assignment_not_constant,
-                            assignment->GetLocation(),
+                            realAssignment->GetLocation(),
                             decl->GetName()));
 
                         continue;
                     }
 
-                    const AstConstant* constant = dynamic_cast<const AstConstant*>(assignment);
+                    const AstConstant* constant = dynamic_cast<const AstConstant*>(optimizedExpr.Get());
                     Assert(constant != nullptr);
 
                     Assert(m_baseType != nullptr);

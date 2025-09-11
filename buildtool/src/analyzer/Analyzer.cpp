@@ -807,7 +807,7 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                 }
                 else
                 {
-                    definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
+                    definition.friendlyName = StringUtil::ToCamelCase(nameWithoutPrefix, preserveCase);
                 }
 
                 break;

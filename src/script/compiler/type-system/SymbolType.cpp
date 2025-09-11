@@ -217,6 +217,7 @@ bool SymbolType::TypeCompatible(
     const SymbolType& right,
     bool strictNumbers,
     bool strictAny,
+    bool strictEnum,
     SymbolTypeIncompatibilities* outIncompatibilities) const
 {
     if (TypeEqual(*BuiltinTypes::s_errorType) || right.TypeEqual(*BuiltinTypes::s_errorType))
@@ -309,11 +310,33 @@ bool SymbolType::TypeCompatible(
         return true;
     }
 
-    // if (IsGenericParameter() || right.IsGenericParameter())
-    // {
-    //     // no substitution yet, compatible
-    //     return true;
-    // }
+    if (IsEnumType() && !right.IsEnumType() && !strictEnum)
+    {
+        // use the underlying type for compatibility checks
+        const SymbolTypeRef& underlyingType = m_base;
+        Assert(underlyingType != nullptr);
+
+        return underlyingType->TypeCompatible(
+            right,
+            strictNumbers,
+            strictAny,
+            strictEnum,
+            outIncompatibilities);
+    }
+
+    if (right.IsEnumType() && IsEnumType() && !strictEnum)
+    {
+        // use the underlying type for compatibility checks
+        const SymbolTypeRef& underlyingType = right.m_base;
+        Assert(underlyingType != nullptr);
+
+        return TypeCompatible(
+            *underlyingType,
+            strictNumbers,
+            strictAny,
+            strictEnum,
+            outIncompatibilities);
+    }
 
     if (m_typeClass != right.m_typeClass)
     {
@@ -329,7 +352,12 @@ bool SymbolType::TypeCompatible(
         SymbolTypeRef sp = m_aliasInfo.m_aliasee.Lock();
         Assert(sp != nullptr);
 
-        return sp->TypeCompatible(right, strictNumbers, strictAny, outIncompatibilities);
+        return sp->TypeCompatible(
+            right,
+            strictNumbers,
+            strictAny,
+            strictEnum,
+            outIncompatibilities);
     }
     case TYPE_GENERIC_INSTANCE:
     {
@@ -668,8 +696,8 @@ bool SymbolType::IsUnsignedIntegral() const
 
 bool SymbolType::IsFloat() const
 {
-    return this == BuiltinTypes::s_floatType;
-    //|| this == BuiltinTypes::s_doubleType;
+    return this == BuiltinTypes::s_floatType
+        || this == BuiltinTypes::s_doubleType;
 }
 
 bool SymbolType::IsBoolean() const
@@ -728,7 +756,7 @@ bool SymbolType::IsPrimitive() const
 
 bool SymbolType::IsEnumType() const
 {
-    return IsOrHasBase(*BuiltinTypes::s_enumBaseType);
+    return m_typeClass == TYPE_ENUM;
 }
 
 SymbolTypeRef SymbolType::Alias(
@@ -772,6 +800,25 @@ SymbolTypeRef SymbolType::Primitive(
         {}, {}));
 
     symbolType->m_constantBitSize = bitSize;
+
+    return symbolType;
+}
+
+SymbolTypeRef SymbolType::Enum(
+    const String& name,
+    const SymbolTypeRef& underlyingType,
+    const Array<SymbolTypeMember>& members)
+{
+    Assert(underlyingType != nullptr);
+    Assert(underlyingType->IsIntegral());
+
+    SymbolTypeRef symbolType(new SymbolType(
+        name,
+        TYPE_ENUM,
+        underlyingType,
+        nullptr,
+        {},
+        members));
 
     return symbolType;
 }
@@ -1127,7 +1174,7 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
 
             if (resultSize == CBS_64)
             {
-                return BuiltinTypes::s_floatType; // BuiltinTypes::s_doubleType;
+                return BuiltinTypes::s_doubleType;
             }
             else
             {

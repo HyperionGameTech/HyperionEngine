@@ -72,7 +72,7 @@ SymbolTypeRef TypeIdToSymbolTypeImpl(TypeId typeId)
         { g_typeIdU32, BuiltinTypes::s_uint32Type },
         { g_typeIdU64, BuiltinTypes::s_uint64Type },
         { g_typeIdF32, BuiltinTypes::s_floatType },
-        { g_typeIdF64, BuiltinTypes::s_floatType },
+        { g_typeIdF64, BuiltinTypes::s_doubleType },
         { g_typeIdBool, BuiltinTypes::s_boolType },
         { g_typeIdString, BuiltinTypes::s_stringType }
     };

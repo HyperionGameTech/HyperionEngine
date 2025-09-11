@@ -78,17 +78,6 @@ const SymbolTypeRef BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
     "MapBase",
     nullptr);
 
-const SymbolTypeRef BuiltinTypes::s_enumBaseType = SymbolType::Primitive(
-    "EnumBase",
-    nullptr);
-
-const SymbolTypeRef BuiltinTypes::s_enumType = SymbolType::GenericInstance(
-    "Enum",
-    BuiltinTypes::s_enumBaseType,
-    {},
-    {},
-    GenericInstanceTypeInfo { { { "underlyingType", SymbolType::GenericParameter("T") } } });
-
 const SymbolTypeRef BuiltinTypes::s_int8Type = SymbolType::Primitive(
     "int8",
     RC<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::eof)),
@@ -133,6 +122,11 @@ const SymbolTypeRef BuiltinTypes::s_floatType = SymbolType::Primitive(
     "float",
     RC<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::eof)),
     CBS_32);
+
+const SymbolTypeRef BuiltinTypes::s_doubleType = SymbolType::Primitive(
+    "double",
+    RC<AstFloat>(new AstFloat(0.0, CBS_64, SourceLocation::eof)),
+    CBS_64);
 
 const SymbolTypeRef BuiltinTypes::s_boolType = SymbolType::Primitive(
     "bool",
@@ -230,7 +224,6 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
     static SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
         BuiltinTypes::s_objectType,
-        BuiltinTypes::s_enumType,
         BuiltinTypes::s_voidType,
         BuiltinTypes::s_int8Type,
         BuiltinTypes::s_int16Type,
@@ -241,6 +234,7 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
         BuiltinTypes::s_uint32Type,
         BuiltinTypes::s_uint64Type,
         BuiltinTypes::s_floatType,
+        BuiltinTypes::s_doubleType,
         BuiltinTypes::s_boolType,
         BuiltinTypes::s_stringType,
         BuiltinTypes::s_functionType,

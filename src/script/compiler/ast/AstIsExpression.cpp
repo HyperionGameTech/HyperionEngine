@@ -40,7 +40,11 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         if (const auto heldType = m_typeSpecification->GetHeldType())
         {
-            if (targetType->TypeCompatible(*heldType, /* strictNumbers */ true, /* strictAny */ false))
+            if (targetType->TypeCompatible(
+                    *heldType,
+                    /* strictNumbers */ true,
+                    /* strictAny */ false,
+                    /* strictEnum */ true))
             {
                 m_isType = TRI_TRUE;
             }
