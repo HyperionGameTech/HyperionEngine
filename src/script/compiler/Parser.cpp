@@ -2508,7 +2508,7 @@ RC<AstClass> Parser::ParseClass(
             }
         }
 
-        IdentifierFlagBits flags = IdentifierFlags::FLAG_MEMBER;
+        IdentifierFlagBits flags = 0;
 
         // read ident
         bool isStatic = false,
@@ -2631,12 +2631,16 @@ RC<AstClass> Parser::ParseClass(
                 flags,
                 location));
 
-            if (isStatic || (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY]))
-            { // <--- all methods for proxy classes are static
+            if (isStatic || (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])) // <--- all methods for proxy classes are static
+            {
+                member->ApplyIdentifierFlags(IdentifierFlags::FLAG_STATIC_MEMBER);
+
                 staticFunctions.PushBack(std::move(member));
             }
             else
             {
+                member->ApplyIdentifierFlags(IdentifierFlags::FLAG_MEMBER);
+
                 memberFunctions.PushBack(std::move(member));
             }
         }
@@ -2645,17 +2649,21 @@ RC<AstClass> Parser::ParseClass(
             // rollback
             m_tokenStream->SetPosition(positionBefore);
 
-            if (auto member = ParseVariableDeclaration(
+            if (RC<AstVariableDeclaration> member = ParseVariableDeclaration(
                     true, // allow keyword names
                     true, // allow quoted names
                     flags))
             {
                 if (isStatic)
                 {
+                    member->ApplyIdentifierFlags(IdentifierFlags::FLAG_STATIC_MEMBER);
+
                     staticVariables.PushBack(member);
                 }
                 else
                 {
+                    member->ApplyIdentifierFlags(IdentifierFlags::FLAG_MEMBER);
+
                     memberVariables.PushBack(member);
                 }
             }
@@ -2746,7 +2754,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
                 ident.GetValue(),
                 typeSpec,
                 assignment,
-                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_MEMBER | IdentifierFlags::FLAG_ACCESS_PUBLIC,
+                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_STATIC_MEMBER | IdentifierFlags::FLAG_ACCESS_PUBLIC,
                 ident.GetLocation()));
 
             entries.PushBack(std::move(entry));

@@ -11,6 +11,8 @@
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
+#include <script/compiler/ast/AstUnsignedInteger.hpp>
+#include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -29,7 +31,10 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypMethod.hpp>
 
+#include <core/containers/HashMap.hpp>
+
 #include <core/utilities/Optional.hpp>
+#include <core/utilities/Format.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -220,6 +225,14 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
+        union
+        {
+            int64 intValue;
+            uint64 uintValue;
+        } nextEnumValue = { 0 };
+
+        HashMap<uint64, Array<String>> revEnumMembers;
+
         // ===== STATIC DATA MEMBERS ======
         {
             for (const RC<AstVariableDeclaration>& decl : m_staticMembers)
@@ -229,14 +242,81 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     continue;
                 }
 
+                if (!m_preRegister && IsEnum())
+                {
+                    Assert(m_baseType != nullptr);
+
+                    if (!decl->GetAssignment())
+                    {
+                        // auto assign the next value
+                        if (m_baseType->IsUnsignedIntegral())
+                        {
+                            decl->SetAssignment(RC<AstExpression>(new AstUnsignedInteger(
+                                nextEnumValue.uintValue,
+                                m_baseType->GetConstantBitSize(),
+                                decl->GetLocation())));
+                        }
+                        else
+                        {
+                            decl->SetAssignment(RC<AstExpression>(new AstInteger(
+                                nextEnumValue.intValue,
+                                m_baseType->GetConstantBitSize(),
+                                decl->GetLocation())));
+                        }
+                    }
+                }
+
                 if (IsExternClass())
                 {
                     decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
                 }
 
                 decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
-
                 decl->Visit(visitor, mod);
+
+                // Update the next enum value
+                if (!m_preRegister && IsEnum())
+                {
+                    const RC<AstExpression>& realAssignment = decl->GetRealAssignment();
+                    Assert(realAssignment != nullptr);
+
+                    // so we can pre-evaluate the constant value
+                    realAssignment->Optimize(visitor, mod);
+
+                    const AstExpression* assignment = realAssignment->GetDeepValueOf();
+                    Assert(assignment != nullptr);
+
+                    if (!assignment->IsLiteral())
+                    {
+                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_enum_assignment_not_constant,
+                            assignment->GetLocation(),
+                            decl->GetName()));
+
+                        continue;
+                    }
+
+                    const AstConstant* constant = dynamic_cast<const AstConstant*>(assignment);
+                    Assert(constant != nullptr);
+
+                    Assert(m_baseType != nullptr);
+
+                    if (m_baseType->IsUnsignedIntegral())
+                    {
+                        const uint64 value = constant->UnsignedValue();
+                        nextEnumValue.uintValue = value + 1;
+
+                        revEnumMembers[value].PushBack(decl->GetName());
+                    }
+                    else
+                    {
+                        const int64 value = constant->IntValue();
+                        nextEnumValue.intValue = value + 1;
+
+                        revEnumMembers[std::bit_cast<uint64>(value)].PushBack(decl->GetName());
+                    }
+                }
 
                 const String& memberName = decl->GetName();
 
@@ -251,6 +331,28 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->GetRealAssignment() });
             }
         }
+
+        if (!m_preRegister && IsEnum())
+        {
+            for (const auto& [value, names] : revEnumMembers)
+            {
+                if (names.Size() <= 1)
+                {
+                    continue;
+                }
+
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_enum_value_already_used,
+                    m_location,
+                    m_name,
+                    String::ToString(m_baseType->IsUnsignedIntegral() ? value : std::bit_cast<int64>(value)),
+                    String::Join(names, ", ")));
+            }
+        }
+
+        // won't be needing this anymore
+        revEnumMembers.Clear();
 
         // ===== INSTANCE DATA MEMBERS =====
 
@@ -319,7 +421,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 m_symbolType->GetMembers().PushBack(std::move(member));
             }
 
-            if (m_preRegister && !IsExternClass() && !IsProxyClass())
+            if (m_preRegister && !IsExternClass() && !IsProxyClass() && !IsEnum())
             {
                 // add a $construct member. It'll need to call the user-defined constructor (if any).
                 // user-defined constructor is a function member with the same name as the class

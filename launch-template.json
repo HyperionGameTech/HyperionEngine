@@ -13,7 +13,8 @@
             "externalConsole": false,
             "MIMode": "lldb",
             "visualizerFile": "${workspaceRoot}/src/Hyperion.natvis",
-            "showDisplayString": true
+            "showDisplayString": true,
+            "preLaunchTask": "Build Hyperion"
         }
     ]
 }

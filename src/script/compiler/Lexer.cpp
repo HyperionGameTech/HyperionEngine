@@ -577,11 +577,11 @@ Token Lexer::ReadHexNumberLiteral()
         break;
     }
 
+    /// @FIXME: Need to be able to read unsigned 64 or signed 64 hex values!
+    /// needs support for larger numbers.
     int64 num = std::strtoll(value.Data(), 0, 16);
-    std::stringstream ss;
-    ss << num;
 
-    return Token(TK_INTEGER, value, tokenFlags, location);
+    return Token(TK_INTEGER, String::ToString(num), tokenFlags, location);
 }
 
 Token Lexer::ReadLineComment()

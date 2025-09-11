@@ -29,6 +29,7 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_ARGUMENT = 0x200,
     FLAG_REF = 0x400,
     FLAG_MEMBER = 0x1000,
+    FLAG_STATIC_MEMBER = 0x2000,
     FLAG_CONSTRUCTOR = 0x4000,
     FLAG_FUNCTION = 0x10000,
     FLAG_EXTERN = 0x20000,

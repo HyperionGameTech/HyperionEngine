@@ -58,6 +58,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_placeholder_resolution_failed, "Could not resolve placeholder type '%'" },
     { Msg_generic_parameter_resolution_failed, "Could not resolve generic parameter '%'" },
     { Msg_enum_assignment_not_constant, "Assignment for enum member '%' is not a constant." },
+    { Msg_enum_value_already_used, "Enum type '%' contains duplicate members with the value `%`: %" },
     { Msg_enum_underlying_type_must_be_integer, "Enum underlying type must be an integer type, got '%'" },
     { Msg_generic_arg_may_not_have_side_effects, "Generic argument may not have side effects" },
     { Msg_reserved_identifier, "'%' is a reserved identifier and may not be used" },

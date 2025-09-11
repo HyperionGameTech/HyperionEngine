@@ -74,6 +74,7 @@ enum ErrorMessage
     Msg_placeholder_resolution_failed,
     Msg_generic_parameter_resolution_failed,
     Msg_enum_assignment_not_constant,
+    Msg_enum_value_already_used,
     Msg_enum_underlying_type_must_be_integer,
     Msg_generic_arg_may_not_have_side_effects,
     Msg_reserved_identifier,

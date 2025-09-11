@@ -48,7 +48,8 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         const bool isArgument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
         const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
         const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
-        const bool isMember = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
+
+        const bool isMember = (IdentifierFlags::FLAG_MEMBER == (m_properties.GetIdentifier()->GetFlags() & (IdentifierFlags::FLAG_MEMBER | IdentifierFlags::FLAG_STATIC_MEMBER)));
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
         // clone the AST node so we don't double-visit
