@@ -92,11 +92,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         if (hasUserSpecifiedType)
         {
             m_typeSpec->Visit(visitor, mod);
-
-            SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_typeSpec->GetHeldType(), m_location);
-            Assert(resolvedType != nullptr);
-
-            m_symbolType = std::move(resolvedType);
+            m_symbolType = m_typeSpec->GetHeldType();
 
             // if no assignment provided, set the assignment to be the default value of the provided type
             if (m_realAssignment == nullptr)
@@ -122,23 +118,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         {
             // no assignment found - set to undefined (instead of a null pointer)
             m_realAssignment.Reset(new AstUndefined(m_location));
-        }
-
-        // // Set identifier current value in advance,
-        // // so from type declarations we can use the current type.
-        // // Note: m_identifier will only be nullptr if declaration has failed.
-        // if (m_identifier != nullptr) {
-        //     auto *expressionValueOf = m_realAssignment->GetDeepValueOf();
-        //     Assert(expressionValueOf != nullptr);
-
-        //     m_identifier->SetCurrentValue(CloneAstNode(expressionValueOf));
-        // }
-
-        // if the variable has been assigned to an anonymous type,
-        // rename the type to be the name of this variable
-        if (AstClass* asClass = dynamic_cast<AstClass*>(m_realAssignment.Get()))
-        {
-            asClass->SetName(m_name);
         }
 
         // do this only within the scope of the assignment being visited.
@@ -209,10 +188,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                 m_symbolType = symbolTypePromoted->GetUnaliased();
 #endif
 
-                SymbolTypeRef promotedType = SymbolType::TypePromotion(m_symbolType, m_realAssignment->GetExprType());
-                Assert(promotedType != nullptr);
-
-                if (!promotedType->TypeEqual(*m_symbolType))
+                if (!m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
                 {
                     // Allow literals to be promoted to the specified type without as strict checking,
                     // as long as we can prove that the literal can fit in the specified type.
@@ -222,39 +198,49 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                     if (rightConstantValue)
                     {
-                        if (m_symbolType->IsSignedIntegral())
+                        SymbolType* lhsType = m_symbolType.Get();
+                        SymbolType* rhsType = m_realAssignment->GetExprType().Get();
+
+                        if (m_symbolType->IsEnumType())
                         {
-                            if (m_realAssignment->GetExprType()->IsSignedIntegral())
+                            lhsType = m_symbolType->GetBaseType().Get();
+                        }
+
+                        Assert(lhsType != nullptr && rhsType != nullptr);
+
+                        if (lhsType->IsSignedIntegral())
+                        {
+                            if (rhsType->IsSignedIntegral())
                             {
-                                doLiteralConversion |= rightConstantValue.AsInt() >= CBS_Min_Signed(m_symbolType->GetConstantBitSize())
-                                    && rightConstantValue.AsInt() <= CBS_Max_Signed(m_symbolType->GetConstantBitSize());
+                                doLiteralConversion |= rightConstantValue.AsInt() >= CBS_Min_Signed(lhsType->GetConstantBitSize())
+                                    && rightConstantValue.AsInt() <= CBS_Max_Signed(lhsType->GetConstantBitSize());
                             }
-                            else if (m_realAssignment->GetExprType()->IsUnsignedIntegral())
+                            else if (rhsType->IsUnsignedIntegral())
                             {
-                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Signed(m_symbolType->GetConstantBitSize()));
+                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Signed(lhsType->GetConstantBitSize()));
                             }
-                            else if (m_realAssignment->GetExprType()->IsFloat())
+                            else if (rhsType->IsFloat())
                             {
-                                doLiteralConversion |= (rightConstantValue.AsFloat() >= float64(CBS_Min_Signed(m_symbolType->GetConstantBitSize()))
-                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Signed(m_symbolType->GetConstantBitSize()))
+                                doLiteralConversion |= (rightConstantValue.AsFloat() >= float64(CBS_Min_Signed(lhsType->GetConstantBitSize()))
+                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Signed(lhsType->GetConstantBitSize()))
                                     && MathUtil::Floor(rightConstantValue.AsFloat()) == rightConstantValue.AsFloat());
                             }
                         }
-                        else if (m_symbolType->IsUnsignedIntegral())
+                        else if (lhsType->IsUnsignedIntegral())
                         {
-                            if (m_realAssignment->GetExprType()->IsUnsignedIntegral())
+                            if (rhsType->IsUnsignedIntegral())
                             {
-                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Unsigned(m_symbolType->GetConstantBitSize()));
+                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()));
                             }
-                            else if (m_realAssignment->GetExprType()->IsSignedIntegral())
+                            else if (rhsType->IsSignedIntegral())
                             {
                                 doLiteralConversion |= rightConstantValue.AsInt() >= 0
-                                    && uint64(rightConstantValue.AsInt()) <= uint64(CBS_Max_Unsigned(m_symbolType->GetConstantBitSize()));
+                                    && uint64(rightConstantValue.AsInt()) <= uint64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()));
                             }
-                            else if (m_realAssignment->GetExprType()->IsFloat())
+                            else if (rhsType->IsFloat())
                             {
                                 doLiteralConversion |= (rightConstantValue.AsFloat() >= 0.0
-                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Unsigned(m_symbolType->GetConstantBitSize()))
+                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()))
                                     && MathUtil::Floor(rightConstantValue.AsFloat()) == rightConstantValue.AsFloat());
                             }
                         }
@@ -265,28 +251,13 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     // more fine-grained checking for non-literals, or when literal conversion didn't work
                     if (!doLiteralConversion)
                     {
-                        // special case for enum members: we need to allow assignment for exprs of the underlying type
-                        if (m_flags & IdentifierFlags::FLAG_ENUM_MEMBER)
-                        {
-                            const SymbolTypeRef& underlyingType = m_symbolType->GetUnaliased()->GetBaseType();
-                            Assert(underlyingType != nullptr);
-
-                            SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
-                                visitor,
-                                mod,
-                                underlyingType,
-                                m_realAssignment->GetExprType(),
-                                m_realAssignment->GetLocation());
-                        }
-                        else
-                        {
-                            SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
-                                visitor,
-                                mod,
-                                m_symbolType,
-                                m_realAssignment->GetExprType(),
-                                m_realAssignment->GetLocation());
-                        }
+                        SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
+                            visitor,
+                            mod,
+                            m_symbolType,
+                            m_realAssignment->GetExprType(),
+                            /* strictEnum */ false,
+                            m_realAssignment->GetLocation());
                     }
 
                     // insert cast if needed

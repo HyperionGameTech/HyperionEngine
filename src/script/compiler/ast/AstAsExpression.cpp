@@ -42,29 +42,8 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_typeSpecification != nullptr);
     m_typeSpecification->Visit(visitor, mod);
 
-    auto* targetValueOf = m_target->GetDeepValueOf();
-    Assert(targetValueOf != nullptr);
-
-    SymbolTypeRef targetType = targetValueOf->GetExprType();
-    if (targetType == nullptr)
-    {
-        return; // should be caught by the type specification
-    }
-
-    targetType = targetType->GetUnaliased();
-
-    SymbolTypeRef heldType = m_typeSpecification->GetHeldType();
-
-    if (!heldType)
-    {
-        return; // should be caught by the type specification
-    }
-
-    m_resultType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
-        visitor,
-        mod,
-        heldType,
-        m_location);
+    m_resultType = m_typeSpecification->GetHeldType();
+    Assert(m_resultType != nullptr);
 
     if (m_resultType->IsAnyType())
     {
@@ -72,6 +51,19 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
 
         return;
     }
+
+    const AstExpression* targetValueOf = m_target->GetDeepValueOf();
+    Assert(targetValueOf != nullptr);
+
+    SymbolTypeRef targetType = targetValueOf->GetExprType();
+    if (!targetType)
+    {
+        m_resultType = BuiltinTypes::s_errorType;
+
+        return; // should be caught by the type specification
+    }
+
+    targetType = targetType->GetUnaliased();
 
     if (targetType->TypeEqual(*m_resultType))
     {
@@ -151,30 +143,79 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
 
     Assert(m_resultType != nullptr);
 
-    if (m_resultType->IsSignedIntegral())
+    SymbolType* resultType = m_resultType;
+
+    if (m_resultType->IsEnumType())
     {
-        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I32, dstRegister, srcRegister));
+        resultType = m_resultType->GetBaseType();
     }
-    else if (m_resultType->IsUnsignedIntegral())
+
+    if (resultType->IsSignedIntegral())
     {
-        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_U32, dstRegister, srcRegister));
+        switch (resultType->GetConstantBitSize())
+        {
+        case CBS_8:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I32, dstRegister, srcRegister)); // @TODO
+            break;
+        case CBS_16:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I32, dstRegister, srcRegister)); // @TODO
+            break;
+        case CBS_32:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I32, dstRegister, srcRegister));
+            break;
+        case CBS_64:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_I64, dstRegister, srcRegister));
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
     }
-    else if (m_resultType->IsFloat())
+    else if (resultType->IsUnsignedIntegral())
     {
-        chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_F32, dstRegister, srcRegister));
+        switch (resultType->GetConstantBitSize())
+        {
+        case CBS_8:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_U32, dstRegister, srcRegister)); // @TODO
+            break;
+        case CBS_16:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_U32, dstRegister, srcRegister)); // @TODO
+            break;
+        case CBS_32:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_U32, dstRegister, srcRegister));
+            break;
+        case CBS_64:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_U64, dstRegister, srcRegister));
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
     }
-    else if (m_resultType->IsBoolean())
+    else if (resultType->IsFloat())
+    {
+        switch (resultType->GetConstantBitSize())
+        {
+        case CBS_32:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_F32, dstRegister, srcRegister));
+            break;
+        case CBS_64:
+            chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_F64, dstRegister, srcRegister));
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+    }
+    else if (resultType->IsBoolean())
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_BOOL, dstRegister, srcRegister));
     }
-    else if (m_resultType->IsOrHasBase(*BuiltinTypes::s_stringType))
+    else if (resultType->IsOrHasBase(*BuiltinTypes::s_stringType))
     {
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_STRING, dstRegister, srcRegister));
     }
-    else if (m_resultType->IsObject())
+    else if (resultType->IsObject())
     {
         // dynamic type needs to load the class into a register (reuse dstRegister)
-        const String className = m_resultType->GetName();
+        const String className = resultType->GetName();
 
         chunk->Append(BytecodeUtil::Make<LoadClass>(dstRegister, CreateNameFromDynamicString(className)));
         chunk->Append(BytecodeUtil::Make<CastOperation>(CastOperation::CAST_DYNAMIC, dstRegister, srcRegister));
@@ -185,11 +226,11 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
         DebugLog(
             LogType::Error,
             "AstAsExpression::Build: Type casting not implemented for type '%s'\n",
-            m_resultType->ToString().Data());
+            resultType->ToString().Data());
 
         // log type chain
         {
-            SymbolTypeRef type = m_resultType;
+            SymbolType* type = resultType;
             while (type != nullptr)
             {
                 DebugLog(

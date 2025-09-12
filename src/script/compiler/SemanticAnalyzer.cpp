@@ -1000,6 +1000,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     Module* mod,
     const SymbolTypeRef& symbolType,
     const SymbolTypeRef& assignmentType,
+    bool strictEnum,
     const SourceLocation& location)
 {
     Assert(symbolType != nullptr);
@@ -1017,7 +1018,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
             *assignmentTypeUnaliased,
             /* strictNumbers */ true,
             /* strictAny */ true,
-            /* strictEnum */ true,
+            /* strictEnum */ strictEnum,
             &incompatibilities))
     {
         if (incompatibilities.Any())

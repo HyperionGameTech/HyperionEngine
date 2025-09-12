@@ -52,21 +52,10 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    heldType = heldType->GetUnaliased();
+    SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, heldType, m_location);
+    Assert(resolvedType != nullptr);
 
-    if (heldType->IsEnumType())
-    {
-        SymbolTypeRef enumUnderlyingType = heldType->GetBaseType();
-        Assert(enumUnderlyingType != nullptr);
-
-        enumUnderlyingType = enumUnderlyingType->GetUnaliased();
-
-        // for enum types, we use the underlying type.
-        heldType = enumUnderlyingType;
-    }
-
-    m_symbolType = heldType;
-
+    m_symbolType = resolvedType->GetUnaliased();
     Assert(m_symbolType != nullptr);
 }
 

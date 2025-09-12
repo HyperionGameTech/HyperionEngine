@@ -101,6 +101,7 @@ public:
             Module* mod,
             const SymbolTypeRef& symbolType,
             const SymbolTypeRef& assignmentType,
+            bool strictEnum,
             const SourceLocation& location);
     };
 

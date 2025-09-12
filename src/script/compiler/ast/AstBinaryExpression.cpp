@@ -187,9 +187,11 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     SymbolTypeRef leftType = m_left->GetExprType();
     Assert(leftType != nullptr);
+    leftType = leftType->GetUnaliased();
 
     SymbolTypeRef rightType = m_right->GetExprType();
     Assert(rightType != nullptr);
+    rightType = rightType->GetUnaliased();
 
     if (!leftType->IsAnyType() && !rightType->IsAnyType())
     {
@@ -197,8 +199,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
         {
             // no bitwise operators on floats allowed.
             visitor->AddErrorIfFalse(
-                (leftType->IsIntegral() || leftType->IsEnumType())
-                    && (rightType->IsIntegral() || rightType->IsEnumType()),
+                (leftType->IsIntegral() || leftType->IsEnumType()) && (rightType->IsIntegral() || rightType->IsEnumType()),
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operands_must_be_int,
@@ -228,6 +229,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             mod,
             leftType,
             rightType,
+            /* strictEnum */ true,
             m_location);
     }
     else

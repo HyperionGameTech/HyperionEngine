@@ -164,7 +164,7 @@ void HyperionEditor::Init()
               "    }\n"
               "}\n"
               "class Fart { i: int = 9949; }\n"
-              "enum Fupa { MEOW = 3 }\n"
+              "enum Fupa : uint8 { MEOW = 3 }\n"
               "ins := new MyClass();\n"
               "testArray2 : Array<int32> = [9,9,34]\n"
               "testArray2[0]++\n"
