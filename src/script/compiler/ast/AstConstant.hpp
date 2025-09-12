@@ -37,9 +37,7 @@ public:
 
     virtual bool IsNumber() const = 0;
 
-    virtual Optional<ConstantInt> IntValue() const override = 0;
-    virtual Optional<ConstantUInt> UnsignedValue() const override;
-    virtual Optional<ConstantFloat> FloatValue() const override;
+    virtual ConstantValue GetConstantValue() const override = 0;
 
     virtual HashCode GetHashCode() const override
     {

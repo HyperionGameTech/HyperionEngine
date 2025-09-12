@@ -46,19 +46,9 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-Optional<ConstantInt> AstNil::IntValue() const
+ConstantValue AstNil::GetConstantValue() const
 {
-    return ConstantInt(0, CBS_32);
-}
-
-Optional<ConstantUInt> AstNil::UnsignedValue() const
-{
-    return ConstantUInt(0, CBS_32);
-}
-
-Optional<ConstantFloat> AstNil::FloatValue() const
-{
-    return ConstantFloat(0.0, CBS_32);
+    return ConstantValue(int64(0), CBS_32);
 }
 
 SymbolTypeRef AstNil::GetExprType() const

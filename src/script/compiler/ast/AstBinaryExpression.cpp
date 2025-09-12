@@ -807,49 +807,19 @@ bool AstBinaryExpression::MayHaveSideEffects() const
     return leftSideEffects || rightSideEffects;
 }
 
-Optional<ConstantInt> AstBinaryExpression::IntValue() const
+ConstantValue AstBinaryExpression::GetConstantValue() const
 {
     if (m_overrideExpr != nullptr)
     {
-        return m_overrideExpr->IntValue();
+        return m_overrideExpr->GetConstantValue();
     }
 
     if (m_right != nullptr)
     {
-        return {};
+        return ConstantValue(INVALID_CONSTANT_NUMBER);
     }
 
-    return m_left->IntValue();
-}
-
-Optional<ConstantUInt> AstBinaryExpression::UnsignedValue() const
-{
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->UnsignedValue();
-    }
-
-    if (m_right != nullptr)
-    {
-        return {};
-    }
-
-    return m_left->UnsignedValue();
-}
-
-Optional<ConstantFloat> AstBinaryExpression::FloatValue() const
-{
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->FloatValue();
-    }
-
-    if (m_right != nullptr)
-    {
-        return {};
-    }
-
-    return m_left->FloatValue();
+    return m_left->GetConstantValue();
 }
 
 SymbolTypeRef AstBinaryExpression::GetExprType() const

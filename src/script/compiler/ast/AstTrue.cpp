@@ -38,14 +38,9 @@ bool AstTrue::IsNumber() const
     return false;
 }
 
-Optional<ConstantInt> AstTrue::IntValue() const
+ConstantValue AstTrue::GetConstantValue() const
 {
-    return ConstantInt(1, CBS_8);
-}
-
-Optional<ConstantFloat> AstTrue::FloatValue() const
-{
-    return ConstantFloat(1.0, CBS_32);
+    return ConstantValue(true, CBS_8);
 }
 
 SymbolTypeRef AstTrue::GetExprType() const

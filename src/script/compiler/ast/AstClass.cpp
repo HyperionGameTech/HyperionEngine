@@ -287,44 +287,31 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                     Assert(m_baseType != nullptr);
 
+                    ConstantValue constantValue = realAssignment->GetConstantValue();
+
+                    if (!constantValue.IsValid())
+                    {
+                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_enum_assignment_not_constant,
+                            realAssignment->GetLocation(),
+                            decl->GetName()));
+
+                        continue;
+                    }
+
                     if (m_baseType->IsUnsignedIntegral())
                     {
-                        const ConstantUInt* pConstantValue = realAssignment->UnsignedValue().TryGet();
 
-                        if (!pConstantValue)
-                        {
-                            HYP_BREAKPOINT;
-                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                                LEVEL_ERROR,
-                                Msg_enum_assignment_not_constant,
-                                realAssignment->GetLocation(),
-                                decl->GetName()));
+                        nextEnumValue.uintValue = constantValue.AsUInt() + 1;
 
-                            continue;
-                        }
-
-                        nextEnumValue.uintValue = pConstantValue->value + 1;
-
-                        revEnumMembers[pConstantValue->value].PushBack(decl->GetName());
+                        revEnumMembers[constantValue.AsUInt()].PushBack(decl->GetName());
                     }
                     else
                     {
-                        const ConstantInt* pConstantValue = realAssignment->IntValue().TryGet();
+                        nextEnumValue.intValue = constantValue.AsInt() + 1;
 
-                        if (!pConstantValue)
-                        {
-                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                                LEVEL_ERROR,
-                                Msg_enum_assignment_not_constant,
-                                realAssignment->GetLocation(),
-                                decl->GetName()));
-
-                            continue;
-                        }
-
-                        nextEnumValue.intValue = pConstantValue->value + 1;
-
-                        revEnumMembers[std::bit_cast<uint64>(pConstantValue->value)].PushBack(decl->GetName());
+                        revEnumMembers[std::bit_cast<uint64>(constantValue.AsInt())].PushBack(decl->GetName());
                     }
                 }
 

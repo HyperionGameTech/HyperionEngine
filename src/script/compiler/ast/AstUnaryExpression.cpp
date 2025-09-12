@@ -304,49 +304,19 @@ bool AstUnaryExpression::MayHaveSideEffects() const
     return m_expr->MayHaveSideEffects();
 }
 
-Optional<ConstantInt> AstUnaryExpression::IntValue() const
+ConstantValue AstUnaryExpression::GetConstantValue() const
 {
     if (m_binExpr != nullptr)
     {
-        return m_binExpr->IntValue();
+        return m_binExpr->GetConstantValue();
     }
 
     if (m_folded)
     {
-        return m_expr->IntValue();
+        return m_expr->GetConstantValue();
     }
 
-    return {};
-}
-
-Optional<ConstantUInt> AstUnaryExpression::UnsignedValue() const
-{
-    if (m_binExpr != nullptr)
-    {
-        return m_binExpr->UnsignedValue();
-    }
-
-    if (m_folded)
-    {
-        return m_expr->UnsignedValue();
-    }
-
-    return {};
-}
-
-Optional<ConstantFloat> AstUnaryExpression::FloatValue() const
-{
-    if (m_binExpr != nullptr)
-    {
-        return m_binExpr->FloatValue();
-    }
-
-    if (m_folded)
-    {
-        return m_expr->FloatValue();
-    }
-
-    return {};
+    return ConstantValue(INVALID_CONSTANT_NUMBER);
 }
 
 SymbolTypeRef AstUnaryExpression::GetExprType() const

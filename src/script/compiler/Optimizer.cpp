@@ -4,8 +4,16 @@
 #include <script/compiler/ast/AstUnaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
+#include <script/compiler/ast/AstInteger.hpp>
+#include <script/compiler/ast/AstUnsignedInteger.hpp>
+#include <script/compiler/ast/AstFloat.hpp>
+#include <script/compiler/ast/AstTrue.hpp>
+#include <script/compiler/ast/AstFalse.hpp>
 
 #include <core/debug/Debug.hpp>
+#include <core/math/MathUtil.hpp>
+
+#include <cmath>
 
 namespace hyperion {
 
@@ -18,16 +26,265 @@ RC<AstConstant> Optimizer::ConstantFold(
     Assert(left != nullptr);
     Assert(right != nullptr);
 
-    const AstConstant* leftAsConstant = dynamic_cast<const AstConstant*>(left->GetValueOf());
-    const AstConstant* rightAsConstant = dynamic_cast<const AstConstant*>(right->GetValueOf());
+    ConstantValue leftValue = left->GetValueOf()->GetConstantValue();
+    ConstantValue rightValue = right->GetValueOf()->GetConstantValue();
 
     RC<AstConstant> result;
 
-    if (leftAsConstant != nullptr && rightAsConstant != nullptr)
+    if (leftValue.IsValid() && rightValue.IsValid())
     {
-        result = leftAsConstant->HandleOperator(opType, rightAsConstant);
-        // don't have to worry about assignment operations,
-        // because at this point both sides are const and literal.
+        // Perform constant folding based on the operator type
+        switch (opType)
+        {
+        case OP_add:
+            if (leftValue.IsFloat() || rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
+                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() + rightValue.AsFloat(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = MathUtil::Min(leftValue.bitSize > rightValue.bitSize ? leftValue.bitSize : ConstantBitSize(rightValue.bitSize << 1), CBS_64);
+                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() + rightValue.AsUInt(), bitSize, left->GetLocation()));
+            }
+            else
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() + rightValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+
+        case OP_subtract:
+            if (leftValue.IsFloat() || rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
+                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() - rightValue.AsFloat(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = MathUtil::Min(leftValue.bitSize > rightValue.bitSize ? leftValue.bitSize : ConstantBitSize(rightValue.bitSize << 1), CBS_64);
+                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() - rightValue.AsUInt(), bitSize, left->GetLocation()));
+            }
+            else
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() - rightValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+
+        case OP_multiply:
+            if (leftValue.IsFloat() || rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
+                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() * rightValue.AsFloat(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() * rightValue.AsUInt(), bitSize, left->GetLocation()));
+            }
+            else
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() * rightValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+
+        case OP_divide:
+            if (rightValue.AsFloat() == 0.0 || (rightValue.IsInt() && rightValue.AsInt() == 0) || (rightValue.IsUInt() && rightValue.AsUInt() == 0))
+            {
+                // Division by zero - don't fold
+                break;
+            }
+            if (leftValue.IsFloat() || rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
+                result = RC<AstFloat>(new AstFloat(leftValue.AsFloat() / rightValue.AsFloat(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() / rightValue.AsUInt(), bitSize, left->GetLocation()));
+            }
+            else
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() / rightValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+
+        case OP_modulus:
+            if (rightValue.AsFloat() == 0.0 || (rightValue.IsInt() && rightValue.AsInt() == 0) || (rightValue.IsUInt() && rightValue.AsUInt() == 0))
+            {
+                // Modulus by zero - don't fold
+                break;
+            }
+            if (leftValue.IsFloat() || rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize, CBS_32);
+                result = RC<AstFloat>(new AstFloat(std::fmod(leftValue.AsFloat(), rightValue.AsFloat()), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() % rightValue.AsUInt(), bitSize, left->GetLocation()));
+            }
+            else
+            {
+                const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                result = RC<AstInteger>(new AstInteger(leftValue.AsInt() % rightValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+
+        case OP_equals:
+            if (leftValue.AsFloat() == rightValue.AsFloat())
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+            break;
+
+        case OP_not_eql:
+            if (leftValue.AsFloat() != rightValue.AsFloat())
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+            break;
+
+        case OP_less:
+            if (leftValue.AsFloat() < rightValue.AsFloat())
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+            break;
+
+        case OP_greater:
+            if (leftValue.AsFloat() > rightValue.AsFloat())
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+            break;
+
+        case OP_less_eql:
+            if (leftValue.AsFloat() <= rightValue.AsFloat())
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+            break;
+
+        case OP_greater_eql:
+            if (leftValue.AsFloat() >= rightValue.AsFloat())
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+            break;
+
+        // Add bitwise operations for integer types only
+        case OP_bitwise_and:
+            if (!leftValue.IsFloat() && !rightValue.IsFloat())
+            {
+                if (leftValue.IsUInt() || rightValue.IsUInt())
+                {
+                    const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() & rightValue.AsUInt(), bitSize, left->GetLocation()));
+                }
+                else
+                {
+                    const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() & rightValue.AsInt(), bitSize, left->GetLocation()));
+                }
+            }
+            break;
+
+        case OP_bitwise_or:
+            if (!leftValue.IsFloat() && !rightValue.IsFloat())
+            {
+                if (leftValue.IsUInt() || rightValue.IsUInt())
+                {
+                    const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() | rightValue.AsUInt(), bitSize, left->GetLocation()));
+                }
+                else
+                {
+                    const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() | rightValue.AsInt(), bitSize, left->GetLocation()));
+                }
+            }
+            break;
+
+        case OP_bitwise_xor:
+            if (!leftValue.IsFloat() && !rightValue.IsFloat())
+            {
+                if (leftValue.IsUInt() || rightValue.IsUInt())
+                {
+                    const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() ^ rightValue.AsUInt(), bitSize, left->GetLocation()));
+                }
+                else
+                {
+                    const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
+                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() ^ rightValue.AsInt(), bitSize, left->GetLocation()));
+                }
+            }
+            break;
+
+        // Add logical operations for boolean values
+        case OP_logical_and:
+        {
+            const bool leftBool = leftValue.AsBool();
+            const bool rightBool = rightValue.AsBool();
+            if (leftBool && rightBool)
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+        }
+        break;
+
+        case OP_logical_or:
+        {
+            const bool leftBool = leftValue.AsBool();
+            const bool rightBool = rightValue.AsBool();
+            if (leftBool || rightBool)
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+        }
+        break;
+        default:
+            // Unsupported operator for constant folding
+            break;
+        }
     }
 
     // one or both of the sides are not a constant

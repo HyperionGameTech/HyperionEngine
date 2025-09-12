@@ -38,28 +38,4 @@ bool AstConstant::MayHaveSideEffects() const
     return false;
 }
 
-Optional<ConstantUInt> AstConstant::UnsignedValue() const
-{
-    Optional<ConstantInt> constantValue = IntValue();
-
-    if (constantValue.HasValue() && constantValue->value >= 0)
-    {
-        return ConstantUInt(uint64(constantValue->value), constantValue->bitSize);
-    }
-
-    return AstExpression::UnsignedValue();
-}
-
-Optional<ConstantFloat> AstConstant::FloatValue() const
-{
-    Optional<ConstantInt> constantValue = IntValue();
-
-    if (constantValue.HasValue())
-    {
-        return ConstantFloat(float64(constantValue->value), constantValue->bitSize);
-    }
-
-    return AstExpression::FloatValue();
-}
-
 } // namespace hyperion

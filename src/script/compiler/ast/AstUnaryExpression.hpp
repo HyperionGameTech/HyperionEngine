@@ -31,9 +31,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
 
-    virtual Optional<ConstantInt> IntValue() const override;
-    virtual Optional<ConstantUInt> UnsignedValue() const override;
-    virtual Optional<ConstantFloat> FloatValue() const override;
+    virtual ConstantValue GetConstantValue() const override;
 
     virtual SymbolTypeRef GetExprType() const override;
 

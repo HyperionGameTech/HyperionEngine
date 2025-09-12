@@ -251,25 +251,11 @@ bool AstAsExpression::IsLiteral() const
     return m_target->IsLiteral();
 }
 
-Optional<ConstantInt> AstAsExpression::IntValue() const
+ConstantValue AstAsExpression::GetConstantValue() const
 {
     Assert(m_target != nullptr);
 
-    return m_target->IntValue();
-}
-
-Optional<ConstantUInt> AstAsExpression::UnsignedValue() const
-{
-    Assert(m_target != nullptr);
-
-    return m_target->UnsignedValue();
-}
-
-Optional<ConstantFloat> AstAsExpression::FloatValue() const
-{
-    Assert(m_target != nullptr);
-
-    return m_target->FloatValue();
+    return m_target->GetConstantValue();
 }
 
 Tribool AstAsExpression::IsTrue() const

@@ -16,9 +16,9 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual Optional<ConstantInt> IntValue() const override
+    virtual ConstantValue GetConstantValue() const override
     {
-        return {};
+        return ConstantValue(INVALID_CONSTANT_NUMBER);
     }
 
     virtual SymbolTypeRef GetExprType() const override;

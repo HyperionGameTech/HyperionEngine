@@ -54,19 +54,9 @@ bool AstFloat::IsNumber() const
     return true;
 }
 
-Optional<ConstantInt> AstFloat::IntValue() const
+ConstantValue AstFloat::GetConstantValue() const
 {
-    return ConstantInt(int64(m_value), m_bitSize);
-}
-
-Optional<ConstantUInt> AstFloat::UnsignedValue() const
-{
-    return ConstantUInt(uint64(m_value), m_bitSize);
-}
-
-Optional<ConstantFloat> AstFloat::FloatValue() const
-{
-    return ConstantFloat(m_value, m_bitSize);
+    return ConstantValue(m_value, m_bitSize);
 }
 
 SymbolTypeRef AstFloat::GetExprType() const
@@ -92,10 +82,15 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             return nullptr;
         }
 
-        return RC<AstFloat>(new AstFloat(
-            FloatValue()->value + right->FloatValue()->value,
-            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
-            m_location));
+        {
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            return RC<AstFloat>(new AstFloat(
+                leftValue.AsFloat() + rightValue.AsFloat(),
+                MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
+                m_location));
+        }
 
     case OP_subtract:
         if (!right->IsNumber())
@@ -103,10 +98,15 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             return nullptr;
         }
 
-        return RC<AstFloat>(new AstFloat(
-            FloatValue()->value - right->FloatValue()->value,
-            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
-            m_location));
+        {
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            return RC<AstFloat>(new AstFloat(
+                leftValue.AsFloat() - rightValue.AsFloat(),
+                MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
+                m_location));
+        }
 
     case OP_multiply:
         if (!right->IsNumber())
@@ -114,10 +114,15 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             return nullptr;
         }
 
-        return RC<AstFloat>(new AstFloat(
-            FloatValue()->value * right->FloatValue()->value,
-            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
-            m_location));
+        {
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            return RC<AstFloat>(new AstFloat(
+                leftValue.AsFloat() * rightValue.AsFloat(),
+                MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
+                m_location));
+        }
 
     case OP_divide:
     {
@@ -126,7 +131,10 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             return nullptr;
         }
 
-        auto rightFloat = right->FloatValue()->value;
+        const ConstantValue leftValue = GetConstantValue();
+        const ConstantValue rightValue = right->GetConstantValue();
+        double rightFloat = rightValue.AsFloat();
+
         if (rightFloat == 0.0)
         {
             // division by zero
@@ -134,8 +142,8 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         }
 
         return RC<AstFloat>(new AstFloat(
-            FloatValue()->value / rightFloat,
-            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            leftValue.AsFloat() / rightFloat,
+            MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
             m_location));
     }
 
@@ -146,7 +154,10 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
             return nullptr;
         }
 
-        auto rightFloat = right->FloatValue()->value;
+        const ConstantValue leftValue = GetConstantValue();
+        const ConstantValue rightValue = right->GetConstantValue();
+        double rightFloat = rightValue.AsFloat();
+
         if (rightFloat == 0.0)
         {
             // division by zero
@@ -154,8 +165,8 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         }
 
         return RC<AstFloat>(new AstFloat(
-            std::fmod(FloatValue()->value, rightFloat),
-            MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
+            std::fmod(leftValue.AsFloat(), rightFloat),
+            MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
             m_location));
     }
 
@@ -232,13 +243,19 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return nullptr;
         }
-        if (FloatValue()->value < right->FloatValue()->value)
+
         {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            if (leftValue.AsFloat() < rightValue.AsFloat())
+            {
+                return RC<AstTrue>(new AstTrue(m_location));
+            }
+            else
+            {
+                return RC<AstFalse>(new AstFalse(m_location));
+            }
         }
 
     case OP_greater:
@@ -246,13 +263,19 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return nullptr;
         }
-        if (FloatValue()->value > right->FloatValue()->value)
+
         {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            if (leftValue.AsFloat() > rightValue.AsFloat())
+            {
+                return RC<AstTrue>(new AstTrue(m_location));
+            }
+            else
+            {
+                return RC<AstFalse>(new AstFalse(m_location));
+            }
         }
 
     case OP_less_eql:
@@ -260,13 +283,19 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return nullptr;
         }
-        if (FloatValue()->value <= right->FloatValue()->value)
+
         {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            if (leftValue.AsFloat() <= rightValue.AsFloat())
+            {
+                return RC<AstTrue>(new AstTrue(m_location));
+            }
+            else
+            {
+                return RC<AstFalse>(new AstFalse(m_location));
+            }
         }
 
     case OP_greater_eql:
@@ -274,13 +303,19 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return nullptr;
         }
-        if (FloatValue()->value >= right->FloatValue()->value)
+
         {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            if (leftValue.AsFloat() >= rightValue.AsFloat())
+            {
+                return RC<AstTrue>(new AstTrue(m_location));
+            }
+            else
+            {
+                return RC<AstFalse>(new AstFalse(m_location));
+            }
         }
 
     case OP_equals:
@@ -288,20 +323,31 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return nullptr;
         }
-        if (FloatValue()->value == right->FloatValue()->value)
+
         {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
+            const ConstantValue leftValue = GetConstantValue();
+            const ConstantValue rightValue = right->GetConstantValue();
+
+            if (leftValue.AsFloat() == rightValue.AsFloat())
+            {
+                return RC<AstTrue>(new AstTrue(m_location));
+            }
+            else
+            {
+                return RC<AstFalse>(new AstFalse(m_location));
+            }
         }
 
     case OP_negative:
-        return RC<AstFloat>(new AstFloat(-FloatValue()->value, m_bitSize, m_location));
+    {
+        const ConstantValue leftValue = GetConstantValue();
+        return RC<AstFloat>(new AstFloat(-leftValue.AsFloat(), m_bitSize, m_location));
+    }
 
     case OP_logical_not:
-        if (FloatValue()->value == 0.0)
+    {
+        const ConstantValue leftValue = GetConstantValue();
+        if (leftValue.AsFloat() == 0.0)
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -309,6 +355,7 @@ RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* ri
         {
             return RC<AstFalse>(new AstFalse(m_location));
         }
+    }
 
     default:
         return nullptr;

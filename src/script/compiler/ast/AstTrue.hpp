@@ -16,8 +16,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual Optional<ConstantInt> IntValue() const override;
-    virtual Optional<ConstantFloat> FloatValue() const override;
+    virtual ConstantValue GetConstantValue() const override;
 
     virtual SymbolTypeRef GetExprType() const override;
 

@@ -37,7 +37,7 @@ enum InvalidConstantNumberTag
 
 struct ConstantValue
 {
-    Variant<int64, uint64, float64> value;
+    Variant<int64, uint64, float64, bool> value;
     ConstantBitSize bitSize;
 
     explicit ConstantValue(InvalidConstantNumberTag)
@@ -64,6 +64,12 @@ struct ConstantValue
     {
     }
 
+    ConstantValue(bool value, ConstantBitSize bitSize)
+        : value(value),
+          bitSize(bitSize)
+    {
+    }
+
     explicit operator bool() const
     {
         return value.HasValue() && bitSize != CBS_INVALID;
@@ -82,6 +88,31 @@ struct ConstantValue
     bool operator!=(const ConstantValue& other) const
     {
         return !operator==(other);
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return value.HasValue() && bitSize != CBS_INVALID;
+    }
+
+    HYP_FORCE_INLINE bool IsInt() const
+    {
+        return value.Is<int64>();
+    }
+
+    HYP_FORCE_INLINE bool IsUInt() const
+    {
+        return value.Is<uint64>();
+    }
+
+    HYP_FORCE_INLINE bool IsFloat() const
+    {
+        return value.Is<float64>();
+    }
+
+    HYP_FORCE_INLINE bool IsBool() const
+    {
+        return value.Is<bool>();
     }
 
     int64 AsInt() const
@@ -118,6 +149,25 @@ struct ConstantValue
             });
 
         return f;
+    }
+
+    bool AsBool() const
+    {
+        bool b = false;
+
+        value.Visit([&](auto&& arg)
+            {
+                if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, bool>)
+                {
+                    b = arg;
+                }
+                else
+                {
+                    b = (arg != 0);
+                }
+            });
+
+        return b;
     }
 
     HashCode GetHashCode() const
