@@ -24,7 +24,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual Optional<hyperion::int64> IntValue() const override
+    virtual Optional<ConstantInt> IntValue() const override
     {
         return {};
     }

@@ -59,19 +59,24 @@ bool AstInteger::IsNumber() const
     return true;
 }
 
-Optional<int64> AstInteger::IntValue() const
+Optional<ConstantInt> AstInteger::IntValue() const
 {
-    return m_value;
+    return ConstantInt(m_value, m_bitSize);
 }
 
-Optional<uint64> AstInteger::UnsignedValue() const
+Optional<ConstantUInt> AstInteger::UnsignedValue() const
 {
-    return (hyperion::uint64)m_value;
+    return ConstantUInt(uint64(m_value), m_bitSize);
 }
 
-Optional<double> AstInteger::FloatValue() const
+Optional<ConstantFloat> AstInteger::FloatValue() const
 {
-    return (double)m_value;
+    return ConstantFloat(float64(m_value), m_bitSize);
+}
+
+ConstantValue AstInteger::GetConstantValue() const
+{
+    return ConstantValue::Create(m_value);
 }
 
 SymbolTypeRef AstInteger::GetExprType() const
@@ -105,21 +110,21 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                *FloatValue() + *right->FloatValue(),
+                GetConstantValue().AsFloat() + right->GetConstantValue().AsFloat(),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() + int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() + int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() + *right->IntValue(),
+                GetConstantValue().AsInt() + right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -134,21 +139,21 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                *FloatValue() - *right->FloatValue(),
+                GetConstantValue().AsFloat() - right->GetConstantValue().AsFloat(),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() - int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() - int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() - *right->IntValue(),
+                GetConstantValue().AsInt() - right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -163,21 +168,21 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                *FloatValue() * *right->FloatValue(),
+                GetConstantValue().AsFloat() * right->GetConstantValue().AsFloat(),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() * int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() * int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() * *right->IntValue(),
+                GetConstantValue().AsInt() * right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -193,13 +198,13 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         {
             double result;
             auto rightFloat = *right->FloatValue();
-            if (rightFloat == 0.0)
+            if (rightFloat.value == 0.0)
             {
                 result = NAN;
             }
             else
             {
-                result = *FloatValue() / rightFloat;
+                result = FloatValue()->value / rightFloat.value;
             }
 
             return RC<AstFloat>(new AstFloat(
@@ -210,14 +215,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         else if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             auto rightInt = *right->UnsignedValue();
-            if (rightInt == 0)
+            if (rightInt.value == 0)
             {
                 return RC<AstUndefined>(new AstUndefined(m_location));
             }
             else
             {
                 return RC<AstInteger>(new AstInteger(
-                    *IntValue() / int64(rightInt),
+                    IntValue()->value / int64(rightInt.value),
                     MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                     m_location));
             }
@@ -225,14 +230,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         else
         {
             auto rightInt = *right->IntValue();
-            if (rightInt == 0)
+            if (rightInt.value == 0)
             {
                 return RC<AstUndefined>(new AstUndefined(m_location));
             }
             else
             {
                 return RC<AstInteger>(new AstInteger(
-                    *IntValue() / rightInt,
+                    IntValue()->value / rightInt.value,
                     MathUtil::Max(m_bitSize, right->GetBitSize()),
                     m_location));
             }
@@ -247,21 +252,21 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                std::fmod(*FloatValue(), *right->FloatValue()),
+                std::fmod(GetConstantValue().AsFloat(), right->GetConstantValue().AsFloat()),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() % int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() % int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() % *right->IntValue(),
+                GetConstantValue().AsInt() % right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -275,14 +280,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() ^ int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() ^ int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() ^ *right->IntValue(),
+                GetConstantValue().AsInt() ^ right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -296,14 +301,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() & int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() & int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() & *right->IntValue(),
+                GetConstantValue().AsInt() & right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -317,14 +322,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() | int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() | int64(right->GetConstantValue().AsUInt()),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(right->GetBitSize() << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() | *right->IntValue(),
+                GetConstantValue().AsInt() | right->GetConstantValue().AsInt(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -338,14 +343,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() << int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() << int64(right->GetConstantValue().AsUInt()),
                 m_bitSize,
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() << *right->IntValue(),
+                GetConstantValue().AsInt() << right->GetConstantValue().AsInt(),
                 m_bitSize,
                 m_location));
         }
@@ -359,14 +364,14 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         if (dynamic_cast<const AstUnsignedInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() >> int64(*right->UnsignedValue()),
+                GetConstantValue().AsInt() >> int64(right->GetConstantValue().AsUInt()),
                 m_bitSize,
                 m_location));
         }
         else
         {
             return RC<AstInteger>(new AstInteger(
-                *IntValue() >> *right->IntValue(),
+                GetConstantValue().AsInt() >> right->GetConstantValue().AsInt(),
                 m_bitSize,
                 m_location));
         }
@@ -447,7 +452,7 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
             return nullptr;
         }
 
-        if (*IntValue() < *right->IntValue())
+        if (GetConstantValue().AsInt() < right->GetConstantValue().AsInt())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -462,7 +467,7 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
             return nullptr;
         }
 
-        if (*IntValue() > *right->IntValue())
+        if (GetConstantValue().AsInt() > right->GetConstantValue().AsInt())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -477,7 +482,7 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
             return nullptr;
         }
 
-        if (*IntValue() <= *right->IntValue())
+        if (GetConstantValue().AsInt() <= right->GetConstantValue().AsInt())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -492,7 +497,7 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
             return nullptr;
         }
 
-        if (*IntValue() >= *right->IntValue())
+        if (GetConstantValue().AsInt() >= right->GetConstantValue().AsInt())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -507,7 +512,7 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
             return nullptr;
         }
 
-        if (*IntValue() == *right->IntValue())
+        if (GetConstantValue().AsInt() == right->GetConstantValue().AsInt())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -517,13 +522,13 @@ RC<AstConstant> AstInteger::HandleOperator(Operators opType, const AstConstant* 
         }
 
     case OP_negative:
-        return RC<AstInteger>(new AstInteger(-(*IntValue()), m_bitSize, m_location));
+        return RC<AstInteger>(new AstInteger(-GetConstantValue().AsInt(), m_bitSize, m_location));
 
     case OP_bitwise_complement:
-        return RC<AstInteger>(new AstInteger(~(*IntValue()), m_bitSize, m_location));
+        return RC<AstInteger>(new AstInteger(~GetConstantValue().AsInt(), m_bitSize, m_location));
 
     case OP_logical_not:
-        if (*IntValue() == 0)
+        if (GetConstantValue().AsInt() == 0)
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }

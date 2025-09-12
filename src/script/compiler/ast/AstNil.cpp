@@ -46,19 +46,19 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-Optional<int64> AstNil::IntValue() const
+Optional<ConstantInt> AstNil::IntValue() const
 {
-    return 0;
+    return ConstantInt(0, CBS_32);
 }
 
-Optional<uint64> AstNil::UnsignedValue() const
+Optional<ConstantUInt> AstNil::UnsignedValue() const
 {
-    return 0;
+    return ConstantUInt(0, CBS_32);
 }
 
-Optional<double> AstNil::FloatValue() const
+Optional<ConstantFloat> AstNil::FloatValue() const
 {
-    return 0.0;
+    return ConstantFloat(0.0, CBS_32);
 }
 
 SymbolTypeRef AstNil::GetExprType() const
@@ -71,48 +71,72 @@ RC<AstConstant> AstNil::HandleOperator(Operators opType, const AstConstant* righ
     switch (opType)
     {
     case OP_logical_and:
-        // logical operations still work, so that we can do
-        // things like testing for null in an if statement.
-        return RC<AstFalse>(new AstFalse(m_location));
+    {
+        int thisTrue = IsTrue();
+        int rightTrue = right->IsTrue();
 
-    case OP_logical_or:
         if (!right->IsNumber())
         {
             // this operator is valid to compare against null
-            if (dynamic_cast<const AstNil*>(right) != nullptr)
+            if (dynamic_cast<const AstNil*>(right))
             {
+                // rhs is null, return false
                 return RC<AstFalse>(new AstFalse(m_location));
             }
             return nullptr;
         }
 
-        // Return the right operand if it's truthy, otherwise return false
-        if (right->IsTrue() == Tribool::True())
+        if (thisTrue == 1 && rightTrue == 1)
         {
-            if (dynamic_cast<const AstInteger*>(right))
+            return RC<AstTrue>(new AstTrue(m_location));
+        }
+        else if (thisTrue == 0 && rightTrue == 0)
+        {
+            return RC<AstFalse>(new AstFalse(m_location));
+        }
+        else
+        {
+            // indeterminate
+            return nullptr;
+        }
+    }
+
+    case OP_logical_or:
+    {
+        int thisTrue = IsTrue();
+        int rightTrue = right->IsTrue();
+
+        if (!right->IsNumber())
+        {
+            // this operator is valid to compare against null
+            if (dynamic_cast<const AstNil*>(right))
             {
-                return RC<AstInteger>(new AstInteger(
-                    *right->IntValue(),
-                    right->GetBitSize(),
-                    m_location));
+                if (thisTrue == 1)
+                {
+                    return RC<AstTrue>(new AstTrue(m_location));
+                }
+                else if (thisTrue == 0)
+                {
+                    return RC<AstFalse>(new AstFalse(m_location));
+                }
             }
-            else if (dynamic_cast<const AstUnsignedInteger*>(right))
-            {
-                return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                    *right->UnsignedValue(),
-                    right->GetBitSize(),
-                    m_location));
-            }
-            else if (dynamic_cast<const AstFloat*>(right))
-            {
-                return RC<AstFloat>(new AstFloat(
-                    *right->FloatValue(),
-                    right->GetBitSize(),
-                    m_location));
-            }
+            return nullptr;
         }
 
-        return RC<AstFalse>(new AstFalse(m_location));
+        if (thisTrue == 1 || rightTrue == 1)
+        {
+            return RC<AstTrue>(new AstTrue(m_location));
+        }
+        else if (thisTrue == 0 || rightTrue == 0)
+        {
+            return RC<AstFalse>(new AstFalse(m_location));
+        }
+        else
+        {
+            // indeterminate
+            return nullptr;
+        }
+    }
 
     case OP_equals:
         if (dynamic_cast<const AstNil*>(right) != nullptr)

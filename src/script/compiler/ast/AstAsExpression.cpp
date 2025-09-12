@@ -251,21 +251,21 @@ bool AstAsExpression::IsLiteral() const
     return m_target->IsLiteral();
 }
 
-Optional<int64> AstAsExpression::IntValue() const
+Optional<ConstantInt> AstAsExpression::IntValue() const
 {
     Assert(m_target != nullptr);
 
     return m_target->IntValue();
 }
 
-Optional<uint64> AstAsExpression::UnsignedValue() const
+Optional<ConstantUInt> AstAsExpression::UnsignedValue() const
 {
     Assert(m_target != nullptr);
 
     return m_target->UnsignedValue();
 }
 
-Optional<double> AstAsExpression::FloatValue() const
+Optional<ConstantFloat> AstAsExpression::FloatValue() const
 {
     Assert(m_target != nullptr);
 

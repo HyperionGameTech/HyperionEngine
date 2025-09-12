@@ -246,72 +246,44 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     // as long as we can prove that the literal can fit in the specified type.
                     bool doLiteralConversion = false;
 
-                    if (m_realAssignment->IsLiteral())
+                    const ConstantValue rightConstantValue = m_realAssignment->GetConstantValue();
+
+                    if (rightConstantValue)
                     {
                         if (m_symbolType->IsSignedIntegral())
                         {
                             if (m_realAssignment->GetExprType()->IsSignedIntegral())
                             {
-                                const int64* asSigned = m_realAssignment->IntValue().TryGet();
-
-                                if (asSigned != nullptr)
-                                {
-                                    doLiteralConversion |= (*asSigned >= (int64)CBS_Min_Signed(m_symbolType->GetConstantBitSize())
-                                        && *asSigned <= (int64)CBS_Max_Signed(m_symbolType->GetConstantBitSize()));
-                                }
+                                doLiteralConversion |= rightConstantValue.AsInt() >= CBS_Min_Signed(m_symbolType->GetConstantBitSize())
+                                    && rightConstantValue.AsInt() <= CBS_Max_Signed(m_symbolType->GetConstantBitSize());
                             }
                             else if (m_realAssignment->GetExprType()->IsUnsignedIntegral())
                             {
-                                const uint64* asUnsigned = m_realAssignment->UnsignedValue().TryGet();
-
-                                if (asUnsigned != nullptr)
-                                {
-                                    doLiteralConversion |= (*asUnsigned <= (uint64)CBS_Max_Signed(m_symbolType->GetConstantBitSize()));
-                                }
+                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Signed(m_symbolType->GetConstantBitSize()));
                             }
                             else if (m_realAssignment->GetExprType()->IsFloat())
                             {
-                                const float64* asFloat = m_realAssignment->FloatValue().TryGet();
-
-                                if (asFloat != nullptr)
-                                {
-                                    doLiteralConversion |= (*asFloat >= (float64)CBS_Min_Signed(m_symbolType->GetConstantBitSize())
-                                        && *asFloat <= (float64)CBS_Max_Signed(m_symbolType->GetConstantBitSize())
-                                        && MathUtil::Floor(*asFloat) == *asFloat);
-                                }
+                                doLiteralConversion |= (rightConstantValue.AsFloat() >= float64(CBS_Min_Signed(m_symbolType->GetConstantBitSize()))
+                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Signed(m_symbolType->GetConstantBitSize()))
+                                    && MathUtil::Floor(rightConstantValue.AsFloat()) == rightConstantValue.AsFloat());
                             }
                         }
                         else if (m_symbolType->IsUnsignedIntegral())
                         {
                             if (m_realAssignment->GetExprType()->IsUnsignedIntegral())
                             {
-                                const uint64* asUnsigned = m_realAssignment->UnsignedValue().TryGet();
-
-                                if (asUnsigned != nullptr)
-                                {
-                                    doLiteralConversion |= *asUnsigned <= (uint64)CBS_Max_Unsigned(m_symbolType->GetConstantBitSize());
-                                }
+                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Unsigned(m_symbolType->GetConstantBitSize()));
                             }
                             else if (m_realAssignment->GetExprType()->IsSignedIntegral())
                             {
-                                const int64* asSigned = m_realAssignment->IntValue().TryGet();
-
-                                if (asSigned != nullptr)
-                                {
-                                    doLiteralConversion |= *asSigned >= 0
-                                        && (uint64)(*asSigned) <= (uint64)CBS_Max_Unsigned(m_symbolType->GetConstantBitSize());
-                                }
+                                doLiteralConversion |= rightConstantValue.AsInt() >= 0
+                                    && uint64(rightConstantValue.AsInt()) <= uint64(CBS_Max_Unsigned(m_symbolType->GetConstantBitSize()));
                             }
                             else if (m_realAssignment->GetExprType()->IsFloat())
                             {
-                                const float64* asFloat = m_realAssignment->FloatValue().TryGet();
-
-                                if (asFloat != nullptr)
-                                {
-                                    doLiteralConversion |= (*asFloat >= 0.0
-                                        && *asFloat <= (float64)CBS_Max_Unsigned(m_symbolType->GetConstantBitSize())
-                                        && MathUtil::Floor(*asFloat) == *asFloat);
-                                }
+                                doLiteralConversion |= (rightConstantValue.AsFloat() >= 0.0
+                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Unsigned(m_symbolType->GetConstantBitSize()))
+                                    && MathUtil::Floor(rightConstantValue.AsFloat()) == rightConstantValue.AsFloat());
                             }
                         }
 

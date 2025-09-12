@@ -289,9 +289,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                     if (m_baseType->IsUnsignedIntegral())
                     {
-                        const uint64* pValue = realAssignment->UnsignedValue().TryGet();
+                        const ConstantUInt* pConstantValue = realAssignment->UnsignedValue().TryGet();
 
-                        if (!pValue)
+                        if (!pConstantValue)
                         {
                             HYP_BREAKPOINT;
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -303,15 +303,15 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                             continue;
                         }
 
-                        nextEnumValue.uintValue = *pValue + 1;
+                        nextEnumValue.uintValue = pConstantValue->value + 1;
 
-                        revEnumMembers[*pValue].PushBack(decl->GetName());
+                        revEnumMembers[pConstantValue->value].PushBack(decl->GetName());
                     }
                     else
                     {
-                        const int64* pValue = realAssignment->IntValue().TryGet();
+                        const ConstantInt* pConstantValue = realAssignment->IntValue().TryGet();
 
-                        if (!pValue)
+                        if (!pConstantValue)
                         {
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                                 LEVEL_ERROR,
@@ -322,9 +322,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                             continue;
                         }
 
-                        nextEnumValue.intValue = *pValue + 1;
+                        nextEnumValue.intValue = pConstantValue->value + 1;
 
-                        revEnumMembers[std::bit_cast<uint64>(*pValue)].PushBack(decl->GetName());
+                        revEnumMembers[std::bit_cast<uint64>(pConstantValue->value)].PushBack(decl->GetName());
                     }
                 }
 

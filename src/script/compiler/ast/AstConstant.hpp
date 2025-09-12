@@ -7,8 +7,6 @@
 
 namespace hyperion {
 
-enum ConstantBitSize : uint8;
-
 class AstConstant : public AstExpression
 {
 protected:
@@ -39,9 +37,9 @@ public:
 
     virtual bool IsNumber() const = 0;
 
-    virtual Optional<hyperion::int64> IntValue() const override = 0;
-    virtual Optional<hyperion::uint64> UnsignedValue() const override;
-    virtual Optional<double> FloatValue() const override;
+    virtual Optional<ConstantInt> IntValue() const override = 0;
+    virtual Optional<ConstantUInt> UnsignedValue() const override;
+    virtual Optional<ConstantFloat> FloatValue() const override;
 
     virtual HashCode GetHashCode() const override
     {

@@ -807,7 +807,7 @@ bool AstBinaryExpression::MayHaveSideEffects() const
     return leftSideEffects || rightSideEffects;
 }
 
-Optional<int64> AstBinaryExpression::IntValue() const
+Optional<ConstantInt> AstBinaryExpression::IntValue() const
 {
     if (m_overrideExpr != nullptr)
     {
@@ -822,7 +822,7 @@ Optional<int64> AstBinaryExpression::IntValue() const
     return m_left->IntValue();
 }
 
-Optional<uint64> AstBinaryExpression::UnsignedValue() const
+Optional<ConstantUInt> AstBinaryExpression::UnsignedValue() const
 {
     if (m_overrideExpr != nullptr)
     {
@@ -837,7 +837,7 @@ Optional<uint64> AstBinaryExpression::UnsignedValue() const
     return m_left->UnsignedValue();
 }
 
-Optional<double> AstBinaryExpression::FloatValue() const
+Optional<ConstantFloat> AstBinaryExpression::FloatValue() const
 {
     if (m_overrideExpr != nullptr)
     {

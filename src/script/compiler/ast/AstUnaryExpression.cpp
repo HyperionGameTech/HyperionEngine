@@ -304,7 +304,7 @@ bool AstUnaryExpression::MayHaveSideEffects() const
     return m_expr->MayHaveSideEffects();
 }
 
-Optional<int64> AstUnaryExpression::IntValue() const
+Optional<ConstantInt> AstUnaryExpression::IntValue() const
 {
     if (m_binExpr != nullptr)
     {
@@ -319,7 +319,7 @@ Optional<int64> AstUnaryExpression::IntValue() const
     return {};
 }
 
-Optional<uint64> AstUnaryExpression::UnsignedValue() const
+Optional<ConstantUInt> AstUnaryExpression::UnsignedValue() const
 {
     if (m_binExpr != nullptr)
     {
@@ -334,7 +334,7 @@ Optional<uint64> AstUnaryExpression::UnsignedValue() const
     return {};
 }
 
-Optional<double> AstUnaryExpression::FloatValue() const
+Optional<ConstantFloat> AstUnaryExpression::FloatValue() const
 {
     if (m_binExpr != nullptr)
     {

@@ -6,6 +6,7 @@
 #include <script/Tribool.hpp>
 
 #include <core/utilities/Optional.hpp>
+#include <core/utilities/Variant.hpp>
 
 #include <core/HashCode.hpp>
 
@@ -27,6 +28,106 @@ enum ExpressionFlagBits : ExpressionFlags
 {
     EXPR_FLAGS_NONE = 0x0,
     EXPR_FLAGS_CONSTRUCTOR_DEFINITION = 0x1
+};
+
+enum InvalidConstantNumberTag
+{
+    INVALID_CONSTANT_NUMBER
+};
+
+struct ConstantValue
+{
+    Variant<int64, uint64, float64> value;
+    ConstantBitSize bitSize;
+
+    explicit ConstantValue(InvalidConstantNumberTag)
+        : value(),
+          bitSize(CBS_INVALID)
+    {
+    }
+
+    ConstantValue(int64 value, ConstantBitSize bitSize)
+        : value(value),
+          bitSize(bitSize)
+    {
+    }
+
+    ConstantValue(uint64 value, ConstantBitSize bitSize)
+        : value(value),
+          bitSize(bitSize)
+    {
+    }
+
+    ConstantValue(float64 value, ConstantBitSize bitSize)
+        : value(value),
+          bitSize(bitSize)
+    {
+    }
+
+    explicit operator bool() const
+    {
+        return value.HasValue() && bitSize != CBS_INVALID;
+    }
+
+    bool operator!() const
+    {
+        return !operator bool();
+    }
+
+    bool operator==(const ConstantValue& other) const
+    {
+        return value == other.value && bitSize == other.bitSize;
+    }
+
+    bool operator!=(const ConstantValue& other) const
+    {
+        return !operator==(other);
+    }
+
+    int64 AsInt() const
+    {
+        int64 i = 0;
+
+        value.Visit([&](auto&& arg)
+            {
+                i = int64(arg);
+            });
+
+        return i;
+    }
+
+    uint64 AsUInt() const
+    {
+        uint64 u = 0;
+
+        value.Visit([&](auto&& arg)
+            {
+                u = uint64(arg);
+            });
+
+        return u;
+    }
+
+    float64 AsFloat() const
+    {
+        float64 f = 0.0;
+
+        value.Visit([&](auto&& arg)
+            {
+                f = float64(arg);
+            });
+
+        return f;
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(value);
+        hc.Add(bitSize);
+
+        return hc;
+    }
 };
 
 class AstExpression : public AstStatement
@@ -86,19 +187,9 @@ public:
         return nullptr;
     }
 
-    virtual Optional<hyperion::int64> IntValue() const
+    virtual ConstantValue GetConstantValue() const
     {
-        return {};
-    }
-
-    virtual Optional<hyperion::uint64> UnsignedValue() const
-    {
-        return {};
-    }
-
-    virtual Optional<double> FloatValue() const
-    {
-        return {};
+        return ConstantValue(INVALID_CONSTANT_NUMBER);
     }
 
     /** Determine whether the expression would evaluate to true.
