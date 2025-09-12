@@ -220,6 +220,44 @@ bool SymbolType::TypeCompatible(
     bool strictEnum,
     SymbolTypeIncompatibilities* outIncompatibilities) const
 {
+    if (m_typeClass == TYPE_ALIAS)
+    {
+        SymbolTypeRef aliasee = m_aliasInfo.m_aliasee.Lock();
+
+        if (!aliasee)
+        {
+            ADD_INCOMPATIBILITY(IT_UNKNOWN, "Internal error occurred while attempting to resolve alias type of left-hand side");
+
+            return false;
+        }
+
+        return aliasee->TypeCompatible(
+            right,
+            strictNumbers,
+            strictAny,
+            strictEnum,
+            outIncompatibilities);
+    }
+
+    if (right.m_typeClass == TYPE_ALIAS)
+    {
+        SymbolTypeRef aliasee = right.m_aliasInfo.m_aliasee.Lock();
+
+        if (!aliasee)
+        {
+            ADD_INCOMPATIBILITY(IT_UNKNOWN, "Internal error occurred while attempting to resolve alias type of right-hand side");
+
+            return false;
+        }
+
+        return TypeCompatible(
+            *aliasee,
+            strictNumbers,
+            strictAny,
+            strictEnum,
+            outIncompatibilities);
+    }
+
     if (TypeEqual(*BuiltinTypes::s_errorType) || right.TypeEqual(*BuiltinTypes::s_errorType))
     {
         ADD_INCOMPATIBILITY(IT_UNDEFINED_TYPE, "one of the types was the result of an errored expression");
@@ -245,22 +283,21 @@ bool SymbolType::TypeCompatible(
         return false;
     }
 
-    if (IsAnyType() || (!strictAny && right.IsAnyType()))
+    if (IsAnyType())
     {
-        // Add error message for right as any type. Right will need to be cast to the left type explicitly.
-        // Otherwise, reference types that are returned will not be properly deref'd if left is a non-ref type. (e.g int)
-        if (right.IsAnyType())
-        {
-            ADD_INCOMPATIBILITY(IT_IMPLICIT_ANY, "right-hand side of expression is 'any' and must be cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
-        }
-
         return true;
     }
-    else if (strictAny && right.IsAnyType())
+    else if (right.IsAnyType())
     {
-        ADD_INCOMPATIBILITY(IT_IMPLICIT_ANY, "right-hand side of expression is 'any' and must be explicitly cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
+        if (strictAny)
+        {
+            ADD_INCOMPATIBILITY(IT_IMPLICIT_ANY, "right-hand side of expression is 'any' and must be explicitly cast to " + ToString(false) + " using the as operator, e.g `<expr> as " + ToString(false) + "`");
 
-        return false;
+            return false;
+        }
+
+        // can assign to RHS any if not strictAny
+        return true;
     }
 
     if (IsVarArgsType())
@@ -310,8 +347,15 @@ bool SymbolType::TypeCompatible(
         return true;
     }
 
-    if (IsEnumType() && !right.IsEnumType() && !strictEnum)
+    if (IsEnumType() && !right.IsEnumType())
     {
+        if (strictEnum)
+        {
+            ADD_INCOMPATIBILITY(IT_TYPE_CLASS_MISMATCH, "Cannot directly assign enum type to non-enum type in this context");
+
+            return false;
+        }
+
         // use the underlying type for compatibility checks
         const SymbolTypeRef& underlyingType = m_base;
         Assert(underlyingType != nullptr);
@@ -324,8 +368,15 @@ bool SymbolType::TypeCompatible(
             outIncompatibilities);
     }
 
-    if (right.IsEnumType() && IsEnumType() && !strictEnum)
+    if (right.IsEnumType() && !IsEnumType())
     {
+        if (strictEnum)
+        {
+            ADD_INCOMPATIBILITY(IT_TYPE_CLASS_MISMATCH, "Cannot directly assign non-enum type to enum type in this context");
+
+            return false;
+        }
+
         // use the underlying type for compatibility checks
         const SymbolTypeRef& underlyingType = right.m_base;
         Assert(underlyingType != nullptr);
@@ -340,7 +391,9 @@ bool SymbolType::TypeCompatible(
 
     if (m_typeClass != right.m_typeClass)
     {
-        ADD_INCOMPATIBILITY(IT_TYPE_CLASS_MISMATCH, "type classes do not match");
+        ADD_INCOMPATIBILITY(
+            IT_TYPE_CLASS_MISMATCH,
+            String("Incompatible type classes: ") + SymbolTypeClassToString(m_typeClass) + " <-> " + SymbolTypeClassToString(right.m_typeClass));
 
         return false;
     }
@@ -348,23 +401,14 @@ bool SymbolType::TypeCompatible(
     switch (m_typeClass)
     {
     case TYPE_ALIAS:
-    {
-        SymbolTypeRef sp = m_aliasInfo.m_aliasee.Lock();
-        Assert(sp != nullptr);
-
-        return sp->TypeCompatible(
-            right,
-            strictNumbers,
-            strictAny,
-            strictEnum,
-            outIncompatibilities);
-    }
+        // should not hit here due to earlier checks
+        HYP_UNREACHABLE();
     case TYPE_GENERIC_INSTANCE:
     {
         // check all params
         if (m_genericInstanceInfo.m_genericArgs.Size() != right.m_genericInstanceInfo.m_genericArgs.Size())
         {
-            ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "generic argument count does not match");
+            ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "Generic argument count does not match");
 
             return false;
         }
@@ -380,7 +424,7 @@ bool SymbolType::TypeCompatible(
 
             if (!paramType->TypeEqual(*otherParamType))
             {
-                ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "generic parameter types do not match: " + paramType->ToString(false) + " != " + otherParamType->ToString(false));
+                ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "Generic parameter types do not match: " + paramType->ToString(false) + " != " + otherParamType->ToString(false));
 
                 return false;
             }
@@ -402,7 +446,7 @@ bool SymbolType::TypeCompatible(
 
             if (!right.FindMember(leftMember.name, rightMember))
             {
-                ADD_INCOMPATIBILITY(IT_MEMBER_MISMATCH, "member '" + leftMember.name + "' not found in " + right.GetName());
+                ADD_INCOMPATIBILITY(IT_MEMBER_MISMATCH, "Member '" + leftMember.name + "' not found in " + right.GetName());
 
                 return false;
             }
@@ -411,7 +455,7 @@ bool SymbolType::TypeCompatible(
 
             if (!rightMember.type->TypeEqual(*leftMemberType))
             {
-                ADD_INCOMPATIBILITY(IT_MEMBER_MISMATCH, "member '" + leftMember.name + "' type mismatch: " + leftMemberType->ToString(false) + " != " + rightMember.type->ToString(false));
+                ADD_INCOMPATIBILITY(IT_MEMBER_MISMATCH, "Member '" + leftMember.name + "' type mismatch: " + leftMemberType->ToString(false) + " != " + rightMember.type->ToString(false));
 
                 return false;
             }
@@ -433,7 +477,7 @@ bool SymbolType::TypeCompatible(
 
             if (!right.FindMember(leftMember.name, rightMember))
             {
-                ADD_INCOMPATIBILITY(IT_STATIC_MEMBER_MISMATCH, "static member '" + leftMember.name + "' not found in " + right.GetName());
+                ADD_INCOMPATIBILITY(IT_STATIC_MEMBER_MISMATCH, "Static member '" + leftMember.name + "' not found in " + right.GetName());
 
                 return false;
             }
@@ -442,7 +486,7 @@ bool SymbolType::TypeCompatible(
 
             if (!rightMember.type->TypeEqual(*leftMemberType))
             {
-                ADD_INCOMPATIBILITY(IT_STATIC_MEMBER_MISMATCH, "static member '" + leftMember.name + "' type mismatch: " + leftMemberType->ToString(false) + " != " + rightMember.type->ToString(false));
+                ADD_INCOMPATIBILITY(IT_STATIC_MEMBER_MISMATCH, "Static member '" + leftMember.name + "' type mismatch: " + leftMemberType->ToString(false) + " != " + rightMember.type->ToString(false));
 
                 return false;
             }

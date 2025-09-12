@@ -49,7 +49,8 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
         const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
 
-        const bool isMember = (IdentifierFlags::FLAG_MEMBER == (m_properties.GetIdentifier()->GetFlags() & (IdentifierFlags::FLAG_MEMBER | IdentifierFlags::FLAG_STATIC_MEMBER)));
+        const bool isMember = (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER)
+            && !(m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_STATIC_MEMBER);
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
         // clone the AST node so we don't double-visit
@@ -176,7 +177,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
             m_name));
         break;
     case IDENTIFIER_TYPE_NOT_FOUND:
-        HYP_BREAKPOINT;
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_undeclared_identifier,

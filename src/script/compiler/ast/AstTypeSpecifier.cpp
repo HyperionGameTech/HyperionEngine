@@ -46,9 +46,8 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
-            Msg_not_a_type,
-            m_location,
-            m_expr->GetExprType()->ToString()));
+            Msg_invalid_type_specifier,
+            m_location));
 
         return;
     }

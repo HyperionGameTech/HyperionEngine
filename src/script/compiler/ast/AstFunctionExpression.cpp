@@ -199,14 +199,15 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     }
                     else if (m_returnType->TypeCompatible(
                                  *symbolType,
-                                 /* strictNumbers */ false,
+                                 /* strictNumbers */ true,
                                  /* strictAny */ false,
-                                 /* strictEnum */ false))
+                                 /* strictEnum */ true))
                     {
                         needsCast = true;
                     }
                     else
                     {
+                        HYP_BREAKPOINT;
                         // error; does not match what user specified
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
@@ -225,7 +226,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     }
                     else if (m_returnType->IsAnyType())
                     {
-                        // first return type found, take it
+                        // first potential return type found to deduce to, take it
                         m_returnType = symbolType;
                     }
                     else if (m_returnType->TypeCompatible(
@@ -266,11 +267,15 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                         if (m_returnTypeSpecification != nullptr)
                         {
                             // strict mode, because user specifically stated the intended return type
-                            if (!m_returnType->TypeCompatible(
+                            if (m_returnType->TypeCompatible(
                                     *lastExprType,
                                     /* strictNumbers */ true,
-                                    /* strictAny */ true,
+                                    /* strictAny */ false,
                                     /* strictEnum */ true))
+                            {
+                                needsCast = true;
+                            }
+                            else
                             {
                                 // error; does not match what user specified
                                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -294,6 +299,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     {
                         if (m_returnType != BuiltinTypes::s_voidType)
                         {
+                            HYP_BREAKPOINT;
                             // error; does not match what user specified
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                                 LEVEL_ERROR,

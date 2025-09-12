@@ -2754,7 +2754,10 @@ RC<AstStatement> Parser::ParseEnumDefinition()
                 ident.GetValue(),
                 typeSpec,
                 assignment,
-                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_STATIC_MEMBER | IdentifierFlags::FLAG_ACCESS_PUBLIC,
+                IdentifierFlags::FLAG_STATIC_MEMBER
+                    | IdentifierFlags::FLAG_ENUM_MEMBER
+                    | IdentifierFlags::FLAG_CONST
+                    | IdentifierFlags::FLAG_ACCESS_PUBLIC,
                 ident.GetLocation()));
 
             entries.PushBack(std::move(entry));

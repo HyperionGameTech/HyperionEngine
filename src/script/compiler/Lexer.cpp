@@ -488,8 +488,8 @@ Token Lexer::ReadNumberLiteral()
 
                 ch = m_sourceStream.Peek();
 
-                // Handle negative exponent
-                if (ch == (u32char)'-')
+                // Handle negative, positive exponent
+                if (ch == '-' || ch == '+')
                 {
                     value.Append(ch);
 

@@ -449,15 +449,15 @@ Token Lexer::ReadNumberLiteral()
 
                 ch = m_sourceStream.Peek();
 
-                // Handle negative exponent
-                if (ch == (u32char)'-')
+                // Handle negative, positive exponent
+                if (ch == '-' || ch == '+')
                 {
                     value.Append(utf::asUtf8Char(ch));
 
                     int posChange = 0;
                     m_sourceStream.Next(posChange);
 
-                    m_sourceLocation.GetColumn() += 2;
+                    m_sourceLocation.GetColumn()++;
                 }
             }
         }

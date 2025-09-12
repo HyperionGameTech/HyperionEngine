@@ -1026,8 +1026,8 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 LEVEL_ERROR,
                 Msg_mismatched_types_assignment_more_info,
                 location,
-                assignmentTypeUnaliased->ToString(),
                 symbolTypeUnaliased->ToString(),
+                assignmentTypeUnaliased->ToString(),
                 (incompatibilities.Size() > 1
                         ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
                         : " " + incompatibilities[0].details)));
@@ -1038,8 +1038,8 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 LEVEL_ERROR,
                 Msg_mismatched_types_assignment,
                 location,
-                assignmentTypeUnaliased->ToString(),
-                symbolTypeUnaliased->ToString()));
+                symbolTypeUnaliased->ToString(),
+                assignmentTypeUnaliased->ToString()));
         }
     }
 }

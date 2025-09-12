@@ -24,30 +24,24 @@ namespace hyperion {
 
 AstVariableDeclaration::AstVariableDeclaration(
     const String& name,
-    const RC<AstTypeSpecifier>& proto,
+    const RC<AstTypeSpecifier>& typeSpec,
     const RC<AstExpression>& assignment,
     IdentifierFlagBits flags,
     const SourceLocation& location)
     : AstDeclaration(name, flags, location),
-      m_proto(proto),
+      m_typeSpec(typeSpec),
       m_assignment(assignment)
 {
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
     m_symbolType = BuiltinTypes::s_errorType;
 
-    const bool hasUserSpecifiedType = m_proto != nullptr;
-
-    if (hasUserSpecifiedType)
-    {
-        m_proto->Visit(visitor, mod);
-    }
-
     if (m_flags & IdentifierFlags::FLAG_PREREGISTER)
     {
-        m_symbolType = hasUserSpecifiedType ? m_proto->GetHeldType() : BuiltinTypes::s_anyType;
+        m_symbolType = BuiltinTypes::s_anyType;
 
         AstDeclaration::Visit(visitor, mod);
 
@@ -69,6 +63,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
+    const bool hasUserSpecifiedType = m_typeSpec != nullptr;
     const bool hasUserAssigned = m_assignment != nullptr;
 
     bool isDefaultAssigned = false;
@@ -96,35 +91,12 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         /* ===== handle type specification ===== */
         if (hasUserSpecifiedType)
         {
-            SymbolTypeRef heldType = m_proto->GetHeldType();
+            m_typeSpec->Visit(visitor, mod);
 
-            if (!heldType)
-            {
-                // Add error that invalid type was specified.
+            SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_typeSpec->GetHeldType(), m_location);
+            Assert(resolvedType != nullptr);
 
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_not_a_type,
-                    m_proto->GetLocation(),
-                    m_proto->GetExprType()->ToString()));
-
-                m_symbolType = BuiltinTypes::s_errorType;
-            }
-            else
-            {
-                m_symbolType = heldType;
-            }
-
-#if HYP_SCRIPT_ANY_ONLY_FUNCTION_PARAMATERS
-            if (m_symbolType->IsAnyType())
-            {
-                // Any type is reserved for method parameters
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_any_reserved_for_parameters,
-                    m_location));
-            }
-#endif
+            m_symbolType = std::move(resolvedType);
 
             // if no assignment provided, set the assignment to be the default value of the provided type
             if (m_realAssignment == nullptr)
@@ -293,12 +265,28 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     // more fine-grained checking for non-literals, or when literal conversion didn't work
                     if (!doLiteralConversion)
                     {
-                        SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
-                            visitor,
-                            mod,
-                            m_symbolType,
-                            m_realAssignment->GetExprType(),
-                            m_realAssignment->GetLocation());
+                        // special case for enum members: we need to allow assignment for exprs of the underlying type
+                        if (m_flags & IdentifierFlags::FLAG_ENUM_MEMBER)
+                        {
+                            const SymbolTypeRef& underlyingType = m_symbolType->GetUnaliased()->GetBaseType();
+                            Assert(underlyingType != nullptr);
+
+                            SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
+                                visitor,
+                                mod,
+                                underlyingType,
+                                m_realAssignment->GetExprType(),
+                                m_realAssignment->GetLocation());
+                        }
+                        else
+                        {
+                            SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
+                                visitor,
+                                mod,
+                                m_symbolType,
+                                m_realAssignment->GetExprType(),
+                                m_realAssignment->GetLocation());
+                        }
                     }
 
                     // insert cast if needed
@@ -306,7 +294,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     {
                         RC<AstAsExpression> asExpr(new AstAsExpression(
                             CloneAstNode(m_realAssignment),
-                            m_proto,
+                            m_typeSpec,
                             m_realAssignment->GetLocation()));
 
                         asExpr->Visit(visitor, mod);
@@ -326,8 +314,8 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_type_no_default_assignment,
-                m_proto != nullptr
-                    ? m_proto->GetLocation()
+                m_typeSpec != nullptr
+                    ? m_typeSpec->GetLocation()
                     : m_location,
                 m_symbolType->ToString()));
         }
@@ -382,6 +370,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* mod)
 {
@@ -399,9 +388,9 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
         if (!(m_flags & IdentifierFlags::FLAG_EXTERN))
         {
             // if the type specification has side effects, compile it in
-            if (m_proto != nullptr && m_proto->MayHaveSideEffects())
+            if (m_typeSpec != nullptr && m_typeSpec->MayHaveSideEffects())
             {
-                chunk->Append(m_proto->Build(visitor, mod));
+                chunk->Append(m_typeSpec->Build(visitor, mod));
             }
 
             chunk->Append(m_realAssignment->Build(visitor, mod));

@@ -49,6 +49,31 @@ enum SymbolTypeClass : uint8
     TYPE_PLACEHOLDER
 };
 
+static inline constexpr const char* SymbolTypeClassToString(SymbolTypeClass typeClass)
+{
+    switch (typeClass)
+    {
+    case TYPE_INVALID:
+        return "<invalid>";
+    case TYPE_BUILTIN:
+        return "<builtin>";
+    case TYPE_USER_DEFINED:
+        return "<class>";
+    case TYPE_ENUM:
+        return "<enum>";
+    case TYPE_ALIAS:
+        return "<alias>";
+    case TYPE_GENERIC_INSTANCE:
+        return "<generic>";
+    case TYPE_GENERIC_PARAMETER:
+        return "<generic parameter>";
+    case TYPE_PLACEHOLDER:
+        return "<placeholder>";
+    default:
+        return "<unknown>";
+    }
+}
+
 using SymbolTypeFlags = uint32;
 
 enum SymbolTypeFlagsBits : SymbolTypeFlags

@@ -110,15 +110,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
         if (SymbolTypeRef baseTypeInner = m_baseSpec->GetHeldType())
         {
-            m_baseType = baseTypeInner;
-        }
-        else
-        {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_not_a_type,
-                m_location,
-                m_baseSpec->GetExprType()->ToString()));
+            m_baseType = std::move(baseTypeInner);
         }
     }
 

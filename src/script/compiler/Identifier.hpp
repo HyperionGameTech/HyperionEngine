@@ -23,14 +23,21 @@ enum IdentifierFlags : IdentifierFlagBits
     FLAG_GENERIC = 0x8,
     FLAG_DECLARED_IN_FUNCTION = 0x10,
     FLAG_PLACEHOLDER = 0x20,
+
     FLAG_ACCESS_PRIVATE = 0x40,
     FLAG_ACCESS_PUBLIC = 0x80,
     FLAG_ACCESS_PROTECTED = 0x100,
+
     FLAG_ARGUMENT = 0x200,
     FLAG_REF = 0x400,
+
     FLAG_MEMBER = 0x1000,
     FLAG_STATIC_MEMBER = 0x2000,
-    FLAG_CONSTRUCTOR = 0x4000,
+    FLAG_ENUM_MEMBER = 0x4000,
+
+    FLAG_MEMBER_ALL = (FLAG_MEMBER | FLAG_STATIC_MEMBER | FLAG_ENUM_MEMBER),
+
+    FLAG_CONSTRUCTOR = 0x8000,
     FLAG_FUNCTION = 0x10000,
     FLAG_EXTERN = 0x20000,
     FLAG_LAX = 0x80000, //!< except from many analyses, this identifier should be hidden from the user

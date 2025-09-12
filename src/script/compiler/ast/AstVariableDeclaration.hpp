@@ -18,7 +18,7 @@ class AstVariableDeclaration : public AstDeclaration
 public:
     AstVariableDeclaration(
         const String& name,
-        const RC<AstTypeSpecifier>& proto,
+        const RC<AstTypeSpecifier>& typeSpec,
         const RC<AstExpression>& assignment,
         IdentifierFlagBits flags,
         const SourceLocation& location);
@@ -27,12 +27,12 @@ public:
 
     const RC<AstTypeSpecifier>& GetTypeSpecifier() const
     {
-        return m_proto;
+        return m_typeSpec;
     }
 
-    void SetTypeSpecifier(const RC<AstTypeSpecifier>& proto)
+    void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
     {
-        m_proto = proto;
+        m_typeSpec = typeSpec;
     }
 
     const RC<AstExpression>& GetAssignment() const
@@ -65,14 +65,14 @@ public:
     {
         HashCode hc = AstDeclaration::GetHashCode().Add(TypeName<AstVariableDeclaration>());
         hc.Add(AstDeclaration::GetHashCode());
-        hc.Add(m_proto ? m_proto->GetHashCode() : HashCode());
+        hc.Add(m_typeSpec ? m_typeSpec->GetHashCode() : HashCode());
         hc.Add(m_assignment ? m_assignment->GetHashCode() : HashCode());
 
         return hc;
     }
 
 protected:
-    RC<AstTypeSpecifier> m_proto;
+    RC<AstTypeSpecifier> m_typeSpec;
     RC<AstExpression> m_assignment;
 
     // set while analyzing
@@ -84,7 +84,7 @@ protected:
     {
         return RC<AstVariableDeclaration>(new AstVariableDeclaration(
             m_name,
-            CloneAstNode(m_proto),
+            CloneAstNode(m_typeSpec),
             CloneAstNode(m_assignment),
             m_flags,
             m_location));

@@ -74,9 +74,7 @@ enum ErrorMessage
 
     /* FUNCTIONS */
     Msg_multiple_return_types,
-    Msg_mismatched_return_type,
     Msg_must_be_explicitly_marked_any,
-    Msg_any_reserved_for_parameters,
     Msg_return_outside_function,
     Msg_yield_outside_function,
     Msg_yield_outside_generator_function,
@@ -88,7 +86,6 @@ enum ErrorMessage
     Msg_invalid_subscript,
 
     /* TYPES */
-    Msg_not_a_type,
     Msg_undefined_type,
     Msg_redefined_type,
     Msg_redefined_builtin_type,

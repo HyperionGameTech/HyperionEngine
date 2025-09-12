@@ -60,12 +60,6 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_not_a_type,
-            m_location,
-            exprType->ToString()));
-
         return;
     }
 
