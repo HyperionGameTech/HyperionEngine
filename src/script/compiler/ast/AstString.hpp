@@ -24,8 +24,10 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual hyperion::int64 IntValue() const override;
-    virtual double FloatValue() const override;
+    virtual Optional<hyperion::int64> IntValue() const override
+    {
+        return {};
+    }
 
     virtual SymbolTypeRef GetExprType() const override;
 

@@ -220,6 +220,75 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
 {
     static const SymbolTypeRef s_intType = SymbolType::Alias("int", { BuiltinTypes::s_int32Type });
     static const SymbolTypeRef s_uintType = SymbolType::Alias("uint", { BuiltinTypes::s_uint32Type });
+    static const SymbolTypeRef s_uintptrType = SymbolType::Alias("UIntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_uint32Type : BuiltinTypes::s_uint64Type });
+    static const SymbolTypeRef s_intptrType = SymbolType::Alias("IntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_int32Type : BuiltinTypes::s_int64Type });
+
+    static const SymbolTypeRef s_vec2iType = SymbolType::Object(
+        "Vec2i", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_int32Type },
+            SymbolTypeMember { "y", BuiltinTypes::s_int32Type } },
+        {});
+
+    static const SymbolTypeRef s_vec2uType = SymbolType::Object(
+        "Vec2u", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_uint32Type },
+            SymbolTypeMember { "y", BuiltinTypes::s_uint32Type } },
+        {});
+
+    static const SymbolTypeRef s_vec2fType = SymbolType::Object(
+        "Vec2f", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_floatType },
+            SymbolTypeMember { "y", BuiltinTypes::s_floatType } },
+        {});
+
+    static const SymbolTypeRef s_vec3iType = SymbolType::Object(
+        "Vec3i", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_int32Type },
+            SymbolTypeMember { "y", BuiltinTypes::s_int32Type },
+            SymbolTypeMember { "z", BuiltinTypes::s_int32Type } },
+        {});
+
+    static const SymbolTypeRef s_vec3uType = SymbolType::Object(
+        "Vec3u", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_uint32Type },
+            SymbolTypeMember { "y", BuiltinTypes::s_uint32Type },
+            SymbolTypeMember { "z", BuiltinTypes::s_uint32Type } },
+        {});
+
+    static const SymbolTypeRef s_vec3fType = SymbolType::Object(
+        "Vec3f", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_floatType },
+            SymbolTypeMember { "y", BuiltinTypes::s_floatType },
+            SymbolTypeMember { "z", BuiltinTypes::s_floatType } },
+        {});
+
+    static const SymbolTypeRef s_vec4iType = SymbolType::Object(
+        "Vec4i", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_int32Type },
+            SymbolTypeMember { "y", BuiltinTypes::s_int32Type },
+            SymbolTypeMember { "z", BuiltinTypes::s_int32Type },
+            SymbolTypeMember { "w", BuiltinTypes::s_int32Type } },
+        {});
+
+    static const SymbolTypeRef s_vec4uType = SymbolType::Object(
+        "Vec4u", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_uint32Type },
+            SymbolTypeMember { "y", BuiltinTypes::s_uint32Type },
+            SymbolTypeMember { "z", BuiltinTypes::s_uint32Type },
+            SymbolTypeMember { "w", BuiltinTypes::s_uint32Type } },
+        {});
+
+    static const SymbolTypeRef s_vec4fType = SymbolType::Object(
+        "Vec4f", nullptr,
+        { SymbolTypeMember { "x", BuiltinTypes::s_floatType },
+            SymbolTypeMember { "y", BuiltinTypes::s_floatType },
+            SymbolTypeMember { "z", BuiltinTypes::s_floatType },
+            SymbolTypeMember { "w", BuiltinTypes::s_floatType } },
+        {});
+
+    static const SymbolTypeRef s_nameType = SymbolType::Primitive(
+        "Name",
+        nullptr);
 
     static SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
@@ -241,7 +310,19 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
         BuiltinTypes::s_arrayType,
         BuiltinTypes::s_mapType,
         s_intType,
-        s_uintType
+        s_uintType,
+        s_uintptrType,
+        s_intptrType,
+        s_vec2iType,
+        s_vec2uType,
+        s_vec2fType,
+        s_vec3iType,
+        s_vec3uType,
+        s_vec3fType,
+        s_vec4iType,
+        s_vec4uType,
+        s_vec4fType,
+        s_nameType
     };
 
     for (SymbolType* type : s_globalVisibleTypes)

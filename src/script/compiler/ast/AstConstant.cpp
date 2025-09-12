@@ -38,9 +38,28 @@ bool AstConstant::MayHaveSideEffects() const
     return false;
 }
 
-uint64 AstConstant::UnsignedValue() const
+Optional<uint64> AstConstant::UnsignedValue() const
 {
-    return (uint64)IntValue();
+    Optional<int64> intValue = IntValue();
+
+    if (intValue.HasValue() && *intValue >= 0)
+    {
+        return uint64(*intValue);
+    }
+
+    return AstExpression::UnsignedValue();
+}
+
+Optional<double> AstConstant::FloatValue() const
+{
+    Optional<int64> intValue = IntValue();
+
+    if (intValue.HasValue() && *intValue <= static_cast<int64>(DBL_MAX) && *intValue >= static_cast<int64>(-DBL_MAX))
+    {
+        return double(*intValue);
+    }
+
+    return AstExpression::FloatValue();
 }
 
 } // namespace hyperion

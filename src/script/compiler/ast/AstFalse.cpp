@@ -40,12 +40,12 @@ bool AstFalse::IsNumber() const
     return false;
 }
 
-hyperion::int64 AstFalse::IntValue() const
+Optional<int64> AstFalse::IntValue() const
 {
     return 0;
 }
 
-double AstFalse::FloatValue() const
+Optional<double> AstFalse::FloatValue() const
 {
     return 0.0;
 }

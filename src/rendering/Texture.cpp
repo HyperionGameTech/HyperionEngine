@@ -34,7 +34,7 @@ namespace hyperion {
 class Texture;
 class TextureMipmapRenderer;
 
-const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::cubemapDirections = {
+const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::s_cubemapDirections = {
     Pair<Vec3f, Vec3f> { Vec3f { 1, 0, 0 }, Vec3f { 0, 1, 0 } },
     Pair<Vec3f, Vec3f> { Vec3f { -1, 0, 0 }, Vec3f { 0, 1, 0 } },
     Pair<Vec3f, Vec3f> { Vec3f { 0, 1, 0 }, Vec3f { 0, 0, -1 } },
@@ -362,7 +362,7 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
             renderQueue << InsertBarrier(gpuBuffer, RS_COPY_DST);
 
             renderQueue << CopyImageToBuffer(m_gpuImage, gpuBuffer);
-            
+
             if (previousResourceState != RS_UNDEFINED && previousResourceState != RS_PRE_INITIALIZED)
             {
                 renderQueue << InsertBarrier(m_gpuImage, previousResourceState);

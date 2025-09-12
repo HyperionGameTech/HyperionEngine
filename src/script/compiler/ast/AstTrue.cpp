@@ -38,12 +38,12 @@ bool AstTrue::IsNumber() const
     return false;
 }
 
-hyperion::int64 AstTrue::IntValue() const
+Optional<int64> AstTrue::IntValue() const
 {
     return 1;
 }
 
-double AstTrue::FloatValue() const
+Optional<double> AstTrue::FloatValue() const
 {
     return 1.0;
 }

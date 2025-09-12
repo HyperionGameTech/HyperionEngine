@@ -11,10 +11,14 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #include <core/io/ByteWriter.hpp>
 
 namespace hyperion {
 namespace buildtool {
+
+HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {

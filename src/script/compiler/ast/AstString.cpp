@@ -44,18 +44,6 @@ bool AstString::IsNumber() const
     return false;
 }
 
-hyperion::int64 AstString::IntValue() const
-{
-    // not valid
-    return 0;
-}
-
-double AstString::FloatValue() const
-{
-    // not valid
-    return 0.0;
-}
-
 SymbolTypeRef AstString::GetExprType() const
 {
     return BuiltinTypes::s_stringType;

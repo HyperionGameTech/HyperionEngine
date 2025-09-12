@@ -30,8 +30,8 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, con
     {
         viewMatrices[i] = Matrix4::LookAt(
             origin,
-            origin + Texture::cubemapDirections[i].first,
-            Texture::cubemapDirections[i].second);
+            origin + Texture::s_cubemapDirections[i].first,
+            Texture::s_cubemapDirections[i].second);
     }
 
     return viewMatrices;
@@ -292,16 +292,16 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
     {
         m_aabb.SetCenter(origin);
     }
-    
+
     if (IsInitCalled() && !IsControlledByEnvGrid())
     {
         AssertDebug(m_camera != nullptr);
-        
+
         m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
     }
 
     Invalidate();
-    
+
     SetNeedsRenderProxyUpdate();
 }
 

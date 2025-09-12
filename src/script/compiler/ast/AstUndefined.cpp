@@ -29,16 +29,6 @@ bool AstUndefined::IsNumber() const
     return false;
 }
 
-hyperion::int64 AstUndefined::IntValue() const
-{
-    return 0;
-}
-
-double AstUndefined::FloatValue() const
-{
-    return 0.0f;
-}
-
 SymbolTypeRef AstUndefined::GetExprType() const
 {
     return BuiltinTypes::s_errorType;

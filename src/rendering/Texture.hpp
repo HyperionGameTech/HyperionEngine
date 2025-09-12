@@ -37,7 +37,7 @@ class HYP_API Texture final : public HypObjectBase
     HYP_OBJECT_BODY(Texture);
 
 public:
-    static const FixedArray<Pair<Vec3f, Vec3f>, 6> cubemapDirections;
+    static const FixedArray<Pair<Vec3f, Vec3f>, 6> s_cubemapDirections;
 
     Texture();
 

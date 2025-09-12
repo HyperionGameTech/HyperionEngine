@@ -7,6 +7,7 @@
 
 namespace hyperion {
 
+HYP_ENUM()
 enum RenderBucket : uint32
 {
     RB_NONE = 0,

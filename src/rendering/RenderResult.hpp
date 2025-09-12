@@ -9,6 +9,7 @@
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
 class RendererError final : public Error
 {
 public:
@@ -62,7 +63,7 @@ using RendererResult = TResult<void, RendererError>;
     while (0)
 
 /// On error, exits the current functon returning the result
-#define HYP_GFX_CHECK(result)                 \
+#define HYP_GFX_CHECK(result)                          \
     do                                                 \
     {                                                  \
         ::hyperion::RendererResult _result = (result); \
@@ -71,17 +72,17 @@ using RendererResult = TResult<void, RendererError>;
     }                                                  \
     while (0)
 
-#define HYP_GFX_ASSERT(cond, ...)                                                                          \
-    do                                                                                                     \
-    {                                                                                                      \
-        if (HYP_UNLIKELY(!(cond)))                                                                         \
-        {                                                                                                  \
-            std::printf(                                                                                   \
+#define HYP_GFX_ASSERT(cond, ...)                                                                  \
+    do                                                                                             \
+    {                                                                                              \
+        if (HYP_UNLIKELY(!(cond)))                                                                 \
+        {                                                                                          \
+            std::printf(                                                                           \
                 "Assertion failed in renderer!\n\tCondition: " #cond "\n\tMessage: " __VA_ARGS__); \
-            HYP_PRINT_STACK_TRACE();                                                                       \
-            std::terminate();                                                                              \
-        }                                                                                                  \
-    }                                                                                                      \
+            HYP_PRINT_STACK_TRACE();                                                               \
+            std::terminate();                                                                      \
+        }                                                                                          \
+    }                                                                                              \
     while (0)
 
 #define HYPERION_IGNORE_ERRORS(result)                 \

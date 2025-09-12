@@ -23,27 +23,25 @@ namespace hyperion {
 
 /** Attempts to evaluate the optimized expression at compile-time. */
 static RC<AstConstant> ConstantFold(
-    RC<AstExpression>& target,
+    RC<AstExpression>& expr,
     Operators opType,
     AstVisitor* visitor)
 {
-    RC<AstConstant> result;
-
-    if (const AstConstant* targetAsConstant = dynamic_cast<const AstConstant*>(target.Get()))
+    if (const AstConstant* asConstant = dynamic_cast<const AstConstant*>(expr.Get()))
     {
-        result = targetAsConstant->HandleOperator(opType, nullptr);
+        return asConstant->HandleOperator(opType, nullptr);
     }
 
-    return result;
+    return nullptr;
 }
 
 AstUnaryExpression::AstUnaryExpression(
-    const RC<AstExpression>& target,
+    const RC<AstExpression>& expr,
     const Operator* op,
     bool isPostfixVersion,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
-      m_target(target),
+      m_expr(expr),
       m_op(op),
       m_isPostfixVersion(isPostfixVersion),
       m_folded(false)
@@ -86,7 +84,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
             RC<AstVariableDeclaration> tempVarDecl(new AstVariableDeclaration(
                 tempVarName,
                 nullptr,
-                CloneAstNode(m_target),
+                CloneAstNode(m_expr),
                 IdentifierFlags::FLAG_NONE,
                 m_location));
 
@@ -94,7 +92,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
             m_overrideBlock->AddChild(tempVarDecl);
         }
 
-        m_binExpr.Reset(new AstBinaryExpression(m_target, expr, binOp, m_location));
+        m_binExpr.Reset(new AstBinaryExpression(m_expr, expr, binOp, m_location));
 
         m_overrideBlock->AddChild(m_binExpr);
 
@@ -109,9 +107,9 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    m_target->Visit(visitor, mod);
+    m_expr->Visit(visitor, mod);
 
-    SymbolTypeRef type = m_target->GetExprType();
+    SymbolTypeRef type = m_expr->GetExprType();
 
     if (!type->IsAnyType() && !type->IsGenericParameter())
     {
@@ -124,7 +122,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_bitwise_operand_must_be_int,
-                    m_target->GetLocation(),
+                    m_expr->GetLocation(),
                     type->ToString()));
         }
         else if (m_op->GetType() & ARITHMETIC)
@@ -134,7 +132,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 CompilerError(
                     LEVEL_ERROR,
                     Msg_invalid_operator_for_type,
-                    m_target->GetLocation(),
+                    m_expr->GetLocation(),
                     m_op->GetOperatorType(),
                     type->ToString()));
         }
@@ -142,21 +140,21 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_op->ModifiesValue())
     {
-        if (!m_target->IsMutable())
+        if (!m_expr->IsMutable())
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_expression_cannot_be_modified,
-                m_target->GetLocation()));
+                m_expr->GetLocation()));
         }
 
-        if (!(m_target->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE))
+        if (!(m_expr->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE))
         {
             // cannot modify an rvalue
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_cannot_modify_rvalue,
-                m_target->GetLocation()));
+                m_expr->GetLocation()));
         }
     }
 }
@@ -174,8 +172,8 @@ UniquePtr<Buildable> AstUnaryExpression::Build(AstVisitor* visitor, Module* mod)
         return m_overrideBlock->Build(visitor, mod);
     }
 
-    Assert(m_target != nullptr);
-    chunk->Append(m_target->Build(visitor, mod));
+    Assert(m_expr != nullptr);
+    chunk->Append(m_expr->Build(visitor, mod));
 
     if (!m_folded)
     {
@@ -253,7 +251,7 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    m_target->Optimize(visitor, mod);
+    m_expr->Optimize(visitor, mod);
 
     if (!m_folded)
     {
@@ -265,11 +263,11 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
             // nothing to do for unary plus
         }
         else if (RC<AstConstant> constantValue = ConstantFold(
-                     m_target,
+                     m_expr,
                      m_op->GetOperatorType(),
                      visitor))
         {
-            m_target = constantValue;
+            m_expr = constantValue;
         }
 
         m_folded = true;
@@ -290,7 +288,7 @@ Tribool AstUnaryExpression::IsTrue() const
 
     if (m_folded)
     {
-        return m_target->IsTrue();
+        return m_expr->IsTrue();
     }
 
     return Tribool::Indeterminate();
@@ -303,7 +301,52 @@ bool AstUnaryExpression::MayHaveSideEffects() const
         return m_binExpr->MayHaveSideEffects();
     }
 
-    return m_target->MayHaveSideEffects();
+    return m_expr->MayHaveSideEffects();
+}
+
+Optional<int64> AstUnaryExpression::IntValue() const
+{
+    if (m_binExpr != nullptr)
+    {
+        return m_binExpr->IntValue();
+    }
+
+    if (m_folded)
+    {
+        return m_expr->IntValue();
+    }
+
+    return {};
+}
+
+Optional<uint64> AstUnaryExpression::UnsignedValue() const
+{
+    if (m_binExpr != nullptr)
+    {
+        return m_binExpr->UnsignedValue();
+    }
+
+    if (m_folded)
+    {
+        return m_expr->UnsignedValue();
+    }
+
+    return {};
+}
+
+Optional<double> AstUnaryExpression::FloatValue() const
+{
+    if (m_binExpr != nullptr)
+    {
+        return m_binExpr->FloatValue();
+    }
+
+    if (m_folded)
+    {
+        return m_expr->FloatValue();
+    }
+
+    return {};
 }
 
 SymbolTypeRef AstUnaryExpression::GetExprType() const
@@ -313,7 +356,7 @@ SymbolTypeRef AstUnaryExpression::GetExprType() const
         return m_binExpr->GetExprType();
     }
 
-    return m_target->GetExprType();
+    return m_expr->GetExprType();
 }
 
 } // namespace hyperion

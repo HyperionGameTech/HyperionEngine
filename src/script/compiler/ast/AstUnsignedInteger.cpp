@@ -59,17 +59,17 @@ bool AstUnsignedInteger::IsNumber() const
     return true;
 }
 
-hyperion::int64 AstUnsignedInteger::IntValue() const
+Optional<int64> AstUnsignedInteger::IntValue() const
 {
     return (hyperion::int64)m_value;
 }
 
-hyperion::uint64 AstUnsignedInteger::UnsignedValue() const
+Optional<uint64> AstUnsignedInteger::UnsignedValue() const
 {
     return m_value;
 }
 
-double AstUnsignedInteger::FloatValue() const
+Optional<double> AstUnsignedInteger::FloatValue() const
 {
     return (double)m_value;
 }
@@ -105,21 +105,21 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                FloatValue() + right->FloatValue(),
+                *FloatValue() + *right->FloatValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) + right->IntValue(),
+                int64(*UnsignedValue()) + *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() + right->UnsignedValue(),
+                *UnsignedValue() + *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -134,21 +134,21 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                FloatValue() - right->FloatValue(),
+                *FloatValue() - *right->FloatValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) - right->IntValue(),
+                int64(*UnsignedValue()) - *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() - right->UnsignedValue(),
+                *UnsignedValue() - *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -163,21 +163,21 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                FloatValue() * right->FloatValue(),
+                *FloatValue() * *right->FloatValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) * right->IntValue(),
+                int64(*UnsignedValue()) * *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() * right->UnsignedValue(),
+                *UnsignedValue() * *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -192,14 +192,14 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstFloat*>(right))
         {
             double result;
-            auto rightFloat = right->FloatValue();
+            auto rightFloat = *right->FloatValue();
             if (rightFloat == 0.0)
             {
                 result = NAN;
             }
             else
             {
-                result = FloatValue() / rightFloat;
+                result = *FloatValue() / rightFloat;
             }
 
             return RC<AstFloat>(new AstFloat(
@@ -209,7 +209,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         }
         else if (dynamic_cast<const AstInteger*>(right))
         {
-            auto rightInt = right->IntValue();
+            auto rightInt = *right->IntValue();
             if (rightInt == 0)
             {
                 return RC<AstUndefined>(new AstUndefined(m_location));
@@ -217,14 +217,14 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             else
             {
                 return RC<AstInteger>(new AstInteger(
-                    int64(UnsignedValue()) / rightInt,
+                    int64(*UnsignedValue()) / rightInt,
                     MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                     m_location));
             }
         }
         else
         {
-            auto rightInt = right->UnsignedValue();
+            auto rightInt = *right->UnsignedValue();
             if (rightInt == 0)
             {
                 return RC<AstUndefined>(new AstUndefined(m_location));
@@ -232,7 +232,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             else
             {
                 return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                    UnsignedValue() / rightInt,
+                    *UnsignedValue() / rightInt,
                     MathUtil::Max(m_bitSize, right->GetBitSize()),
                     m_location));
             }
@@ -247,21 +247,21 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstFloat*>(right))
         {
             return RC<AstFloat>(new AstFloat(
-                std::fmod(FloatValue(), right->FloatValue()),
+                std::fmod(*FloatValue(), *right->FloatValue()),
                 MathUtil::Max(m_bitSize, right->GetBitSize(), CBS_32),
                 m_location));
         }
         else if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) % right->IntValue(),
+                int64(*UnsignedValue()) % *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() % right->UnsignedValue(),
+                *UnsignedValue() % *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -275,14 +275,14 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) ^ right->IntValue(),
+                int64(*UnsignedValue()) ^ *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() ^ right->UnsignedValue(),
+                *UnsignedValue() ^ *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -296,14 +296,14 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) & right->IntValue(),
+                int64(*UnsignedValue()) & *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() & right->UnsignedValue(),
+                *UnsignedValue() & *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -317,14 +317,14 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         if (dynamic_cast<const AstInteger*>(right))
         {
             return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) | right->IntValue(),
+                int64(*UnsignedValue()) | *right->IntValue(),
                 MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
                 m_location));
         }
         else
         {
             return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() | right->UnsignedValue(),
+                *UnsignedValue() | *right->UnsignedValue(),
                 MathUtil::Max(m_bitSize, right->GetBitSize()),
                 m_location));
         }
@@ -335,20 +335,10 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (dynamic_cast<const AstInteger*>(right))
-        {
-            return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) << right->IntValue(),
-                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
-                m_location));
-        }
-        else
-        {
-            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() << right->UnsignedValue(),
-                MathUtil::Max(m_bitSize, right->GetBitSize()),
-                m_location));
-        }
+        return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+            *UnsignedValue() << *right->UnsignedValue(),
+            m_bitSize,
+            m_location));
 
     case OP_bitshift_right:
         if (!right->GetExprType()->IsIntegral())
@@ -356,20 +346,10 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (dynamic_cast<const AstInteger*>(right))
-        {
-            return RC<AstInteger>(new AstInteger(
-                int64(UnsignedValue()) >> right->IntValue(),
-                MathUtil::Min(m_bitSize > right->GetBitSize() ? m_bitSize : ConstantBitSize(m_bitSize << 1), CBS_64),
-                m_location));
-        }
-        else
-        {
-            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                UnsignedValue() >> right->UnsignedValue(),
-                MathUtil::Max(m_bitSize, right->GetBitSize()),
-                m_location));
-        }
+        return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+            *UnsignedValue() >> *right->UnsignedValue(),
+            m_bitSize,
+            m_location));
 
     case OP_logical_and:
     {
@@ -447,7 +427,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (UnsignedValue() < right->UnsignedValue())
+        if (*UnsignedValue() < *right->UnsignedValue())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -462,7 +442,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (UnsignedValue() > right->UnsignedValue())
+        if (*UnsignedValue() > *right->UnsignedValue())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -477,7 +457,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (UnsignedValue() <= right->UnsignedValue())
+        if (*UnsignedValue() <= *right->UnsignedValue())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -492,7 +472,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (UnsignedValue() >= right->UnsignedValue())
+        if (*UnsignedValue() >= *right->UnsignedValue())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -507,7 +487,7 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
             return nullptr;
         }
 
-        if (UnsignedValue() == right->UnsignedValue())
+        if (*UnsignedValue() == *right->UnsignedValue())
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }
@@ -517,13 +497,13 @@ RC<AstConstant> AstUnsignedInteger::HandleOperator(Operators opType, const AstCo
         }
 
     case OP_negative:
-        return RC<AstUnsignedInteger>(new AstUnsignedInteger(-UnsignedValue(), m_bitSize, m_location));
+        return RC<AstUnsignedInteger>(new AstUnsignedInteger(-(*UnsignedValue()), m_bitSize, m_location));
 
     case OP_bitwise_complement:
-        return RC<AstUnsignedInteger>(new AstUnsignedInteger(~UnsignedValue(), m_bitSize, m_location));
+        return RC<AstUnsignedInteger>(new AstUnsignedInteger(~(*UnsignedValue()), m_bitSize, m_location));
 
     case OP_logical_not:
-        if (UnsignedValue() == 0)
+        if (*UnsignedValue() == 0)
         {
             return RC<AstTrue>(new AstTrue(m_location));
         }

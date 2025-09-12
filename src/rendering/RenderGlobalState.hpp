@@ -107,7 +107,7 @@ struct ResourceBindings;
 HYP_ENUM()
 enum GlobalRenderBuffer : uint8
 {
-    GRB_INVALID = uint8(-1),
+    GRB_INVALID = UINT8_MAX,
 
     GRB_WORLDS = 0,
     GRB_CAMERAS,

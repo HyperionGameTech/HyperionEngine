@@ -120,7 +120,6 @@ enum ErrorMessage
     Msg_generic_expression_requires_assignment,
     Msg_generic_argument_must_be_literal,
     Msg_not_a_data_member,
-    Msg_not_a_constant_type,
     Msg_cannot_instantiate_non_object,
     Msg_invalid_base_class,
     Msg_cannot_inline_variable,

@@ -84,6 +84,7 @@ AstClass::AstClass(
     m_baseType = baseType;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
@@ -282,40 +283,48 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     Assert(realAssignment != nullptr);
 
                     // so we can pre-evaluate the constant value
-                    RC<AstExpression> optimizedExpr = Optimizer::OptimizeExpr(
-                        realAssignment,
-                        visitor,
-                        mod);
-
-                    if (!optimizedExpr || !optimizedExpr->IsLiteral())
-                    {
-                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                            LEVEL_ERROR,
-                            Msg_enum_assignment_not_constant,
-                            realAssignment->GetLocation(),
-                            decl->GetName()));
-
-                        continue;
-                    }
-
-                    const AstConstant* constant = dynamic_cast<const AstConstant*>(optimizedExpr.Get());
-                    Assert(constant != nullptr);
+                    realAssignment->Optimize(visitor, mod);
 
                     Assert(m_baseType != nullptr);
 
                     if (m_baseType->IsUnsignedIntegral())
                     {
-                        const uint64 value = constant->UnsignedValue();
-                        nextEnumValue.uintValue = value + 1;
+                        const uint64* pValue = realAssignment->UnsignedValue().TryGet();
 
-                        revEnumMembers[value].PushBack(decl->GetName());
+                        if (!pValue)
+                        {
+                            HYP_BREAKPOINT;
+                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                                LEVEL_ERROR,
+                                Msg_enum_assignment_not_constant,
+                                realAssignment->GetLocation(),
+                                decl->GetName()));
+
+                            continue;
+                        }
+
+                        nextEnumValue.uintValue = *pValue + 1;
+
+                        revEnumMembers[*pValue].PushBack(decl->GetName());
                     }
                     else
                     {
-                        const int64 value = constant->IntValue();
-                        nextEnumValue.intValue = value + 1;
+                        const int64* pValue = realAssignment->IntValue().TryGet();
 
-                        revEnumMembers[std::bit_cast<uint64>(value)].PushBack(decl->GetName());
+                        if (!pValue)
+                        {
+                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                                LEVEL_ERROR,
+                                Msg_enum_assignment_not_constant,
+                                realAssignment->GetLocation(),
+                                decl->GetName()));
+
+                            continue;
+                        }
+
+                        nextEnumValue.intValue = *pValue + 1;
+
+                        revEnumMembers[std::bit_cast<uint64>(*pValue)].PushBack(decl->GetName());
                     }
                 }
 
@@ -332,7 +341,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->GetRealAssignment() });
             }
         }
-
+#if 0
         if (!m_preRegister && IsEnum())
         {
             for (const auto& [value, names] : revEnumMembers)
@@ -351,6 +360,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     String::Join(names, ", ")));
             }
         }
+#endif
 
         // won't be needing this anymore
         revEnumMembers.Clear();
@@ -422,7 +432,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 m_symbolType->GetMembers().PushBack(std::move(member));
             }
 
-            if (m_preRegister && !IsExternClass() && !IsProxyClass() && !IsEnum())
+            if (!m_preRegister && !IsExternClass() && !IsProxyClass() && !IsEnum())
             {
                 // add a $construct member. It'll need to call the user-defined constructor (if any).
                 // user-defined constructor is a function member with the same name as the class
@@ -558,6 +568,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
 }
 
+HYP_ENABLE_OPTIMIZATION;
+
 UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_symbolType != nullptr);
@@ -578,6 +590,39 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         INSTRUCTION_STREAM_CONTEXT_DEFAULT);
 
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    Array<ClassTable::StaticFieldInfo> staticFields;
+
+    for (const RC<AstVariableDeclaration>& decl : m_staticMembers)
+    {
+        Assert(decl != nullptr);
+
+        ClassTable::StaticFieldInfo staticFieldInfo {};
+        staticFieldInfo.name = decl->GetName();
+        staticFieldInfo.typeId = TypeId::ForType<HypData>();
+        staticFieldInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
+
+        Assert(decl->GetRealAssignment() != nullptr);
+
+        auto staticFieldExprChunk = decl->GetRealAssignment()->Build(visitor, mod);
+        Assert(staticFieldExprChunk != nullptr);
+        chunk->Append(std::move(staticFieldExprChunk));
+
+        // push the value to stack
+        {
+            uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+            auto instrPush = BytecodeUtil::Make<RawOperation<>>();
+            instrPush->opcode = PUSH;
+            instrPush->Accept<uint8>(rp);
+            chunk->Append(std::move(instrPush));
+        }
+
+        staticFieldInfo.stackOffset = uint16(m_staticMembers.Size() - staticFields.Size()); // reverse order because stack
+
+        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+        staticFields.PushBack(staticFieldInfo);
+    }
 
     // Build methods and store their values on the stack.
     // Then, pass those stack locations to the ClassTable instruction,
@@ -628,22 +673,25 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
     fieldOffset += sizeof(HypClassRef);
 
-    // iterate through parent types and add up their fields to get offset
-    SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
-
-    while (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
+    if (!IsEnum())
     {
-        for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
-        {
-            if (!member.type->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they don't take up space on the instance
-            {
-                // align field offset
-                fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
-                fieldOffset += sizeof(HypData);
-            }
-        }
+        // iterate through parent types and add up their fields to get offset
+        SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
 
-        baseTypeRef = baseTypeRef->GetBaseType();
+        while (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
+        {
+            for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
+            {
+                if (!member.type->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they don't take up space on the instance
+                {
+                    // align field offset
+                    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
+                    fieldOffset += sizeof(HypData);
+                }
+            }
+
+            baseTypeRef = baseTypeRef->GetBaseType();
+        }
     }
 
     // Add all fields from our class
@@ -675,12 +723,15 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     if (IsEnum())
     {
         chunk->Append(BytecodeUtil::Make<Comment>("Begin enum " + m_symbolType->GetName()));
+
+        // no base type
+        chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
     }
     else
     {
         chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
 
-        baseTypeRef = m_symbolType->GetBaseType();
+        const SymbolTypeRef& baseTypeRef = m_symbolType->GetBaseType();
 
         if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
         {
@@ -705,6 +756,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         auto instrType = BytecodeUtil::Make<ClassTable>();
         instrType->reg = objReg;
         instrType->name = m_symbolType->GetName();
+        instrType->staticFields = std::move(staticFields);
         instrType->fields = std::move(fields);
         instrType->methods = std::move(methods);
 

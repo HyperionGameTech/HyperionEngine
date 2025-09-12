@@ -159,18 +159,19 @@ void HyperionEditor::Init()
               "       jet = val as int32\n"
               "       return jet\n"
               "    }\n"
-              "    modValue(inValue : Array<int>, farts: Fart...) -> void {\n"
-              "        farts[0]\n"
+              "    modValue(inValue : Array<int>, farts: Fart...) -> int {\n"
+              "        farts[0].i\n"
               "    }\n"
               "}\n"
-              "class Fart { i: int32; }\n"
+              "class Fart { i: int = 9949; }\n"
+              "enum Fupa { MEOW = 3 }\n"
               "ins := new MyClass();\n"
               "testArray2 : Array<int32> = [9,9,34]\n"
               "testArray2[0]++\n"
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { return () { ins }; };\n"
+              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { return () { return blah; }; };\n"
               "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

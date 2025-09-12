@@ -1,6 +1,8 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/ast/AstClass.hpp>
+#include <script/compiler/ast/AstConstant.hpp>
+#include <script/compiler/ast/AstAsExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Configuration.hpp>
@@ -223,6 +225,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
             if (hasUserSpecifiedType)
             {
+#if 0
                 SymbolTypeRef symbolTypePromoted = SemanticAnalyzer::Helpers::GenericPromotion(
                     visitor,
                     mod,
@@ -232,13 +235,113 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                 Assert(symbolTypePromoted != nullptr);
                 m_symbolType = symbolTypePromoted->GetUnaliased();
+#endif
 
-                SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
-                    visitor,
-                    mod,
-                    m_symbolType,
-                    m_realAssignment->GetExprType(),
-                    m_realAssignment->GetLocation());
+                SymbolTypeRef promotedType = SymbolType::TypePromotion(m_symbolType, m_realAssignment->GetExprType());
+                Assert(promotedType != nullptr);
+
+                if (!promotedType->TypeEqual(*m_symbolType))
+                {
+                    // Allow literals to be promoted to the specified type without as strict checking,
+                    // as long as we can prove that the literal can fit in the specified type.
+                    bool doLiteralConversion = false;
+
+                    if (m_realAssignment->IsLiteral())
+                    {
+                        if (m_symbolType->IsSignedIntegral())
+                        {
+                            if (m_realAssignment->GetExprType()->IsSignedIntegral())
+                            {
+                                const int64* asSigned = m_realAssignment->IntValue().TryGet();
+
+                                if (asSigned != nullptr)
+                                {
+                                    doLiteralConversion |= (*asSigned >= (int64)CBS_Min_Signed(m_symbolType->GetConstantBitSize())
+                                        && *asSigned <= (int64)CBS_Max_Signed(m_symbolType->GetConstantBitSize()));
+                                }
+                            }
+                            else if (m_realAssignment->GetExprType()->IsUnsignedIntegral())
+                            {
+                                const uint64* asUnsigned = m_realAssignment->UnsignedValue().TryGet();
+
+                                if (asUnsigned != nullptr)
+                                {
+                                    doLiteralConversion |= (*asUnsigned <= (uint64)CBS_Max_Signed(m_symbolType->GetConstantBitSize()));
+                                }
+                            }
+                            else if (m_realAssignment->GetExprType()->IsFloat())
+                            {
+                                const float64* asFloat = m_realAssignment->FloatValue().TryGet();
+
+                                if (asFloat != nullptr)
+                                {
+                                    doLiteralConversion |= (*asFloat >= (float64)CBS_Min_Signed(m_symbolType->GetConstantBitSize())
+                                        && *asFloat <= (float64)CBS_Max_Signed(m_symbolType->GetConstantBitSize())
+                                        && MathUtil::Floor(*asFloat) == *asFloat);
+                                }
+                            }
+                        }
+                        else if (m_symbolType->IsUnsignedIntegral())
+                        {
+                            if (m_realAssignment->GetExprType()->IsUnsignedIntegral())
+                            {
+                                const uint64* asUnsigned = m_realAssignment->UnsignedValue().TryGet();
+
+                                if (asUnsigned != nullptr)
+                                {
+                                    doLiteralConversion |= *asUnsigned <= (uint64)CBS_Max_Unsigned(m_symbolType->GetConstantBitSize());
+                                }
+                            }
+                            else if (m_realAssignment->GetExprType()->IsSignedIntegral())
+                            {
+                                const int64* asSigned = m_realAssignment->IntValue().TryGet();
+
+                                if (asSigned != nullptr)
+                                {
+                                    doLiteralConversion |= *asSigned >= 0
+                                        && (uint64)(*asSigned) <= (uint64)CBS_Max_Unsigned(m_symbolType->GetConstantBitSize());
+                                }
+                            }
+                            else if (m_realAssignment->GetExprType()->IsFloat())
+                            {
+                                const float64* asFloat = m_realAssignment->FloatValue().TryGet();
+
+                                if (asFloat != nullptr)
+                                {
+                                    doLiteralConversion |= (*asFloat >= 0.0
+                                        && *asFloat <= (float64)CBS_Max_Unsigned(m_symbolType->GetConstantBitSize())
+                                        && MathUtil::Floor(*asFloat) == *asFloat);
+                                }
+                            }
+                        }
+
+                        /// @TODO: Add more literal conversion rules later as needed
+                    }
+
+                    // more fine-grained checking for non-literals, or when literal conversion didn't work
+                    if (!doLiteralConversion)
+                    {
+                        SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
+                            visitor,
+                            mod,
+                            m_symbolType,
+                            m_realAssignment->GetExprType(),
+                            m_realAssignment->GetLocation());
+                    }
+
+                    // insert cast if needed
+                    if (doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
+                    {
+                        RC<AstAsExpression> asExpr(new AstAsExpression(
+                            CloneAstNode(m_realAssignment),
+                            m_proto,
+                            m_realAssignment->GetLocation()));
+
+                        asExpr->Visit(visitor, mod);
+
+                        m_realAssignment = asExpr;
+                    }
+                }
             }
             else
             {

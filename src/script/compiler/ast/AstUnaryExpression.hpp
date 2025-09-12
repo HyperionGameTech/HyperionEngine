@@ -12,10 +12,15 @@ class AstUnaryExpression : public AstExpression
 {
 public:
     AstUnaryExpression(
-        const RC<AstExpression>& target,
+        const RC<AstExpression>& expr,
         const Operator* op,
         bool isPostfixVersion,
         const SourceLocation& location);
+
+    HYP_FORCE_INLINE const RC<AstExpression>& GetExpr() const
+    {
+        return m_expr;
+    }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
@@ -25,12 +30,17 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
+
+    virtual Optional<int64> IntValue() const override;
+    virtual Optional<uint64> UnsignedValue() const override;
+    virtual Optional<double> FloatValue() const override;
+
     virtual SymbolTypeRef GetExprType() const override;
 
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstUnaryExpression>());
-        hc.Add(m_target ? m_target->GetHashCode() : HashCode());
+        hc.Add(m_expr ? m_expr->GetHashCode() : HashCode());
         hc.Add(m_op ? m_op->GetHashCode() : HashCode());
         hc.Add(m_isPostfixVersion);
 
@@ -38,7 +48,7 @@ public:
     }
 
 private:
-    RC<AstExpression> m_target;
+    RC<AstExpression> m_expr;
     const Operator* m_op;
     bool m_isPostfixVersion;
 
@@ -51,7 +61,7 @@ private:
     RC<AstUnaryExpression> CloneImpl() const
     {
         return RC<AstUnaryExpression>(new AstUnaryExpression(
-            CloneAstNode(m_target),
+            CloneAstNode(m_expr),
             m_op,
             m_isPostfixVersion,
             m_location));

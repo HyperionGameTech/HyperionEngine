@@ -1,6 +1,7 @@
 #include <script/compiler/Optimizer.hpp>
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
+#include <script/compiler/ast/AstUnaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
 
@@ -53,6 +54,7 @@ RC<AstExpression> Optimizer::OptimizeExpr(
                 {
                     // decrement use count because it would have been incremented by Visit()
                     ident->DecUseCount();
+
                     return Optimizer::OptimizeExpr(currentValue, visitor, mod);
                 }
             }

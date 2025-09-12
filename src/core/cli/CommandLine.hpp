@@ -40,7 +40,7 @@ enum class CommandLineParserFlags : uint32
 HYP_MAKE_ENUM_FLAGS(CommandLineParserFlags)
 
 HYP_ENUM()
-enum class CommandLineArgumentType
+enum class CommandLineArgumentType : uint8
 {
     STRING,
     INTEGER,

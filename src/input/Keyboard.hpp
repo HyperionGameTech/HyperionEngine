@@ -10,7 +10,7 @@ class InputManager;
 HYP_ENUM()
 enum class KeyCode : uint16
 {
-    UNKNOWN = uint16(-1),
+    UNKNOWN = UINT16_MAX,
 
     KEY_A = 97,
     KEY_B,

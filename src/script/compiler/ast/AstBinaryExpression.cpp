@@ -358,7 +358,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
                 // attempt to constant fold the values
                 RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
 
-                if (auto constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
+                if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
                 {
                     foldedValues[0] = constantFolded->IsTrue();
                     folded = foldedValues[0] == 1 || foldedValues[1] == 0;
@@ -398,7 +398,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
                 // attempt to constant fold the values
                 RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
 
-                if (auto constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
+                if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
                 {
                     foldedValues[1] = constantFolded->IsTrue();
                     folded = foldedValues[1] == 1 || foldedValues[1] == 0;
@@ -460,7 +460,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
                 // attempt to constant fold the values
                 RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
 
-                if (auto constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
+                if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
                 {
                     int foldedValue = constantFolded->IsTrue();
                     folded = foldedValue == 1 || foldedValue == 0;
@@ -496,7 +496,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
                 { // attempt to constant fold the values
                     RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
 
-                    if (auto constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
+                    if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
                     {
                         Tribool foldedValue = constantFolded->IsTrue();
 
@@ -752,7 +752,7 @@ void AstBinaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     // binary expression by optimizing away the right
     // side, and combining the resulting value into
     // the left side of the operation.
-    auto constantValue = Optimizer::ConstantFold(
+    RC<AstConstant> constantValue = Optimizer::ConstantFold(
         m_left,
         m_right,
         m_op->GetOperatorType(),
@@ -761,8 +761,8 @@ void AstBinaryExpression::Optimize(AstVisitor* visitor, Module* mod)
     if (constantValue != nullptr)
     {
         // compile-time evaluation was successful
-        m_left = constantValue;
-        m_right = nullptr;
+        m_left = std::move(constantValue);
+        m_right.Reset();
     }
 }
 
@@ -807,6 +807,51 @@ bool AstBinaryExpression::MayHaveSideEffects() const
     return leftSideEffects || rightSideEffects;
 }
 
+Optional<int64> AstBinaryExpression::IntValue() const
+{
+    if (m_overrideExpr != nullptr)
+    {
+        return m_overrideExpr->IntValue();
+    }
+
+    if (m_right != nullptr)
+    {
+        return {};
+    }
+
+    return m_left->IntValue();
+}
+
+Optional<uint64> AstBinaryExpression::UnsignedValue() const
+{
+    if (m_overrideExpr != nullptr)
+    {
+        return m_overrideExpr->UnsignedValue();
+    }
+
+    if (m_right != nullptr)
+    {
+        return {};
+    }
+
+    return m_left->UnsignedValue();
+}
+
+Optional<double> AstBinaryExpression::FloatValue() const
+{
+    if (m_overrideExpr != nullptr)
+    {
+        return m_overrideExpr->FloatValue();
+    }
+
+    if (m_right != nullptr)
+    {
+        return {};
+    }
+
+    return m_left->FloatValue();
+}
+
 SymbolTypeRef AstBinaryExpression::GetExprType() const
 {
     if (m_overrideExpr != nullptr)
@@ -819,6 +864,15 @@ SymbolTypeRef AstBinaryExpression::GetExprType() const
     if ((m_op->GetType() & LOGICAL) || (m_op->GetType() & COMPARISON))
     {
         return BuiltinTypes::s_boolType;
+    }
+
+    if (m_op->GetOperatorType() == OP_bitshift_right
+        || m_op->GetOperatorType() == OP_bitshift_left)
+    {
+        // bitshift operators always return the LHS type
+        Assert(m_left != nullptr);
+
+        return m_left->GetExprType();
     }
 
     Assert(m_left != nullptr);

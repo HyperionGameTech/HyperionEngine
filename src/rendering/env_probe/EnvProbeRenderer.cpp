@@ -49,8 +49,8 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, con
     {
         viewMatrices[i] = Matrix4::LookAt(
             origin,
-            origin + Texture::cubemapDirections[i].first,
-            Texture::cubemapDirections[i].second);
+            origin + Texture::s_cubemapDirections[i].first,
+            Texture::s_cubemapDirections[i].second);
     }
 
     return viewMatrices;
@@ -327,7 +327,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     }
 
     uniforms.numBoundLights = numBoundLights;
-    
+
     HYP_LOG_TEMP("Num bound lights for env probe : {}", uniforms.numBoundLights);
 
     GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));

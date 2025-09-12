@@ -96,7 +96,6 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_generic_expression_requires_assignment, "'%' is missing assignment (all generics must have a value)" },
     { Msg_generic_argument_must_be_literal, "Generic argument is not resolvable at compile-time" },
     { Msg_not_a_data_member, "'%' not found in %" },
-    { Msg_not_a_constant_type, "% is not a constant. An exception will be thrown at runtime if this object is not a class." },
     { Msg_cannot_instantiate_non_object, "Cannot use `new` with non-object type '%'" },
     { Msg_invalid_base_class, "'%' is not suitable to be used as a base class" },
     { Msg_cannot_inline_variable, "Unable to inline variable which is marked as force inline" },

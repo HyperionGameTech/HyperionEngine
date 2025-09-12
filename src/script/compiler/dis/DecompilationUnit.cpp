@@ -1098,7 +1098,7 @@ void DecompilationUnit::DecodeNext(
                 switch (memberType)
                 {
                 case (uint8)HypMemberType::TYPE_CONSTANT:
-                    memberTypeStr = "constant";
+                    memberTypeStr = "static_field";
                     break;
                 case (uint8)HypMemberType::TYPE_PROPERTY:
                     memberTypeStr = "property";
@@ -1216,6 +1216,17 @@ void DecompilationUnit::DecodeNext(
                 // Read member-type-specific data
                 switch ((HypMemberType)memberType)
                 {
+                case HypMemberType::TYPE_CONSTANT:
+                {
+                    uint32 valueSize;
+                    bs.Read(&valueSize);
+
+                    if (os != nullptr)
+                    {
+                        (*os) << "\t\t\tstatic_field [typeId(" << memberTypeIdValue << "), size(" << valueSize << ")]" << std::endl;
+                    }
+                    break;
+                }
                 case HypMemberType::TYPE_FIELD:
                 {
                     TypeId::ValueType targetTypeIdValue;
@@ -1257,17 +1268,6 @@ void DecompilationUnit::DecodeNext(
                     if (os != nullptr)
                     {
                         (*os) << "\t\t\tproperty [typeId(" << memberTypeIdValue << ")]" << std::endl;
-                    }
-                    break;
-                }
-                case HypMemberType::TYPE_CONSTANT:
-                {
-                    uint32 valueSize;
-                    bs.Read(&valueSize);
-
-                    if (os != nullptr)
-                    {
-                        (*os) << "\t\t\tconstant [typeId(" << memberTypeIdValue << "), size(" << valueSize << ")]" << std::endl;
                     }
                     break;
                 }

@@ -230,11 +230,6 @@ void AstAsExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_typeSpecification->Optimize(visitor, mod);
 }
 
-RC<AstStatement> AstAsExpression::Clone() const
-{
-    return CloneImpl();
-}
-
 SymbolTypeRef AstAsExpression::GetExprType() const
 {
     Assert(m_target != nullptr);
@@ -246,6 +241,35 @@ SymbolTypeRef AstAsExpression::GetExprType() const
     }
 
     return BuiltinTypes::s_errorType;
+}
+
+bool AstAsExpression::IsLiteral() const
+{
+    Assert(m_target != nullptr);
+    Assert(m_typeSpecification != nullptr);
+
+    return m_target->IsLiteral();
+}
+
+Optional<int64> AstAsExpression::IntValue() const
+{
+    Assert(m_target != nullptr);
+
+    return m_target->IntValue();
+}
+
+Optional<uint64> AstAsExpression::UnsignedValue() const
+{
+    Assert(m_target != nullptr);
+
+    return m_target->UnsignedValue();
+}
+
+Optional<double> AstAsExpression::FloatValue() const
+{
+    Assert(m_target != nullptr);
+
+    return m_target->FloatValue();
 }
 
 Tribool AstAsExpression::IsTrue() const
@@ -260,6 +284,11 @@ bool AstAsExpression::MayHaveSideEffects() const
 
     return m_target->MayHaveSideEffects()
         || m_typeSpecification->MayHaveSideEffects();
+}
+
+RC<AstStatement> AstAsExpression::Clone() const
+{
+    return CloneImpl();
 }
 
 } // namespace hyperion

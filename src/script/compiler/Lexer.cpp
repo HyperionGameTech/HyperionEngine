@@ -504,12 +504,47 @@ Token Lexer::ReadNumberLiteral()
         ch = m_sourceStream.Peek();
     }
 
-    switch ((char)ch)
+    switch (tolower(ch))
     {
-    case 'u':
-    case 'f':
+    case 'u': // fallthrough
     case 'i':
+    {
+        tokenFlags[0] = tolower(ch);
+        value.Append(utf::asUtf8Char(ch));
+        m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
+
+        if (m_sourceStream.HasNext())
+        {
+            ch = m_sourceStream.Peek();
+
+            if (ch == 'l' || ch == 'L')
+            {
+                tokenFlags[1] = 'l';
+                value.Append(utf::asUtf8Char(ch));
+                m_sourceStream.Next();
+                m_sourceLocation.GetColumn()++;
+
+                if (m_sourceStream.HasNext())
+                {
+                    ch = m_sourceStream.Peek();
+
+                    if (ch == 'l' || ch == 'L')
+                    {
+                        tokenFlags[2] = 'l';
+                        value.Append(utf::asUtf8Char(ch));
+                        m_sourceStream.Next();
+                        m_sourceLocation.GetColumn()++;
+                    }
+                }
+            }
+        }
+
+        break;
+    }
+    case 'f':
         tokenFlags[0] = (char)ch;
+        value.Append(utf::asUtf8Char(ch));
 
         if (m_sourceStream.HasNext())
         {

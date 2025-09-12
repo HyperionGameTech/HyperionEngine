@@ -805,6 +805,10 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                 {
                     definition.friendlyName = StringUtil::ToSnakeCase(nameWithoutPrefix).ToUpper();
                 }
+                else if (definition.cxxType->IsScriptableDelegate())
+                {
+                    definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
+                }
                 else
                 {
                     definition.friendlyName = StringUtil::ToCamelCase(nameWithoutPrefix, preserveCase);

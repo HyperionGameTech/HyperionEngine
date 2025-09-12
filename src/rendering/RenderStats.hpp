@@ -13,6 +13,7 @@
 
 namespace hyperion {
 
+HYP_ENUM()
 enum RenderStatsCountType : uint32
 {
     ERS_DRAW_CALLS = 0,
@@ -33,6 +34,7 @@ enum RenderStatsCountType : uint32
 
 static_assert(ERS_MAX <= 16, "RenderStatsCountType must not exceed 16 types");
 
+HYP_STRUCT()
 struct RenderStatsCounts
 {
     uint32 counts[16] = { 0 };

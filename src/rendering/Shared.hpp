@@ -774,6 +774,7 @@ struct BlendFunction
     }
 };
 
+HYP_ENUM()
 enum StencilCompareOp : uint8
 {
     SCO_ALWAYS,
@@ -782,6 +783,7 @@ enum StencilCompareOp : uint8
     SCO_NOT_EQUAL
 };
 
+HYP_ENUM()
 enum StencilOp : uint8
 {
     SO_KEEP,

@@ -465,13 +465,12 @@ Token Lexer::ReadNumberLiteral()
         ch = m_sourceStream.Peek();
     }
 
-    switch ((char)ch)
+    switch (tolower(ch))
     {
-    case 'u':
+    case 'u': // fallthrough
+    case 'i':
     {
-        // handle u, ul, ull
-
-        tokenFlags[0] = 'u';
+        tokenFlags[0] = tolower(ch);
         value.Append(utf::asUtf8Char(ch));
         m_sourceStream.Next();
         m_sourceLocation.GetColumn()++;
@@ -505,7 +504,6 @@ Token Lexer::ReadNumberLiteral()
         break;
     }
     case 'f':
-    case 'i':
         tokenFlags[0] = (char)ch;
         value.Append(utf::asUtf8Char(ch));
 

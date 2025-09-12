@@ -20,11 +20,17 @@ public:
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
-    virtual RC<AstStatement> Clone() const override;
+    virtual bool IsLiteral() const override;
+
+    virtual Optional<int64> IntValue() const override;
+    virtual Optional<uint64> UnsignedValue() const override;
+    virtual Optional<double> FloatValue() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypeRef GetExprType() const override;
+
+    virtual RC<AstStatement> Clone() const override;
 
     virtual HashCode GetHashCode() const override
     {

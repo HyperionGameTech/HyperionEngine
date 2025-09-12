@@ -39,9 +39,9 @@ public:
 
     virtual bool IsNumber() const = 0;
 
-    virtual hyperion::int64 IntValue() const = 0;
-    virtual hyperion::uint64 UnsignedValue() const;
-    virtual double FloatValue() const = 0;
+    virtual Optional<hyperion::int64> IntValue() const override = 0;
+    virtual Optional<hyperion::uint64> UnsignedValue() const override;
+    virtual Optional<double> FloatValue() const override;
 
     virtual HashCode GetHashCode() const override
     {

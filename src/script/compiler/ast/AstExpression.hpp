@@ -5,6 +5,8 @@
 #include <script/compiler/Enums.hpp>
 #include <script/Tribool.hpp>
 
+#include <core/utilities/Optional.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -63,21 +65,40 @@ public:
     {
         return false;
     }
+
     virtual const AstExpression* GetValueOf() const
     {
         return this;
     }
+
     virtual const AstExpression* GetDeepValueOf() const
     {
         return GetValueOf();
     }
+
     virtual AstExpression* GetTarget() const
     {
         return nullptr;
     }
+
     virtual const AstExpression* GetHeldGenericExpr() const
     {
         return nullptr;
+    }
+
+    virtual Optional<hyperion::int64> IntValue() const
+    {
+        return {};
+    }
+
+    virtual Optional<hyperion::uint64> UnsignedValue() const
+    {
+        return {};
+    }
+
+    virtual Optional<double> FloatValue() const
+    {
+        return {};
     }
 
     /** Determine whether the expression would evaluate to true.

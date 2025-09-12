@@ -308,6 +308,8 @@ void CodeGenerator::Visit(ClassTable* node)
     uint8 flags = (uint8)node->flags;
     m_ibs.Put(flags);
 
+    Assert(flags != 0);
+
     // begin members. write member type (uint8) and count (uint16)
     auto writeMembers = [&](const auto& members, HypMemberType memberType)
     {
@@ -410,6 +412,13 @@ void CodeGenerator::Visit(ClassTable* node)
                     Assert(methodInfo.stackOffset != UINT16_MAX, "Method stack offset not set");
                     m_ibs.Put(reinterpret_cast<const ubyte*>(&methodInfo.stackOffset), sizeof(methodInfo.stackOffset));
                 }
+                else if (memberType == HypMemberType::TYPE_CONSTANT)
+                {
+                    const ClassTable::StaticFieldInfo& staticFieldInfo = static_cast<const ClassTable::StaticFieldInfo&>(member);
+
+                    uint32 size = staticFieldInfo.size;
+                    m_ibs.Put(reinterpret_cast<ubyte*>(&size), sizeof(size));
+                }
                 else
                 {
                     HYP_NOT_IMPLEMENTED();
@@ -418,6 +427,7 @@ void CodeGenerator::Visit(ClassTable* node)
         }
     };
 
+    writeMembers(node->staticFields, HypMemberType::TYPE_CONSTANT);
     writeMembers(node->fields, HypMemberType::TYPE_FIELD);
     writeMembers(node->methods, HypMemberType::TYPE_METHOD);
 

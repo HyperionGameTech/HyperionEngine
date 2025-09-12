@@ -92,6 +92,71 @@ enum ConstantBitSize : uint8
     CBS_64 = 64
 };
 
+static inline constexpr int64 CBS_Max_Signed(ConstantBitSize cbs)
+{
+    constexpr int64 s_table[] = {
+        0,
+        INT8_MAX,
+        INT16_MAX,
+        INT32_MAX,
+        INT64_MAX
+    };
+
+    return s_table[MathUtil::FastLog2_Pow2(int(cbs))];
+}
+
+static inline constexpr int64 CBS_Min_Signed(ConstantBitSize cbs)
+{
+    constexpr int64 s_table[] = {
+        0,
+        INT8_MIN,
+        INT16_MIN,
+        INT32_MIN,
+        INT64_MIN
+    };
+
+    return s_table[MathUtil::FastLog2_Pow2(int(cbs))];
+}
+
+static inline constexpr uint64 CBS_Max_Unsigned(ConstantBitSize cbs)
+{
+    constexpr uint64 s_table[] = {
+        0,
+        UINT8_MAX,
+        UINT16_MAX,
+        UINT32_MAX,
+        UINT64_MAX
+    };
+
+    return s_table[MathUtil::FastLog2_Pow2(int(cbs))];
+}
+
+static inline constexpr double CBS_Max_Float(ConstantBitSize cbs)
+{
+    constexpr double s_table[] = {
+        0.0,
+        0.0,
+        0.0,
+        FLT_MAX,
+        DBL_MAX
+    };
+
+    return s_table[MathUtil::FastLog2_Pow2(int(cbs))];
+}
+
+static inline constexpr double CBS_Min_Float(ConstantBitSize cbs)
+{
+    constexpr double s_table[] = {
+        0.0,
+        0.0,
+        0.0,
+        -FLT_MAX,
+        -DBL_MAX
+    };
+
+    return s_table[MathUtil::FastLog2_Pow2(int(cbs))];
+}
+
 struct AliasTypeInfo
 {
     SymbolTypeWeakRef m_aliasee;

@@ -46,12 +46,17 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-hyperion::int64 AstNil::IntValue() const
+Optional<int64> AstNil::IntValue() const
 {
     return 0;
 }
 
-double AstNil::FloatValue() const
+Optional<uint64> AstNil::UnsignedValue() const
+{
+    return 0;
+}
+
+Optional<double> AstNil::FloatValue() const
 {
     return 0.0;
 }
@@ -87,21 +92,21 @@ RC<AstConstant> AstNil::HandleOperator(Operators opType, const AstConstant* righ
             if (dynamic_cast<const AstInteger*>(right))
             {
                 return RC<AstInteger>(new AstInteger(
-                    right->IntValue(),
+                    *right->IntValue(),
                     right->GetBitSize(),
                     m_location));
             }
             else if (dynamic_cast<const AstUnsignedInteger*>(right))
             {
                 return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                    right->UnsignedValue(),
+                    *right->UnsignedValue(),
                     right->GetBitSize(),
                     m_location));
             }
             else if (dynamic_cast<const AstFloat*>(right))
             {
                 return RC<AstFloat>(new AstFloat(
-                    right->FloatValue(),
+                    *right->FloatValue(),
                     right->GetBitSize(),
                     m_location));
             }

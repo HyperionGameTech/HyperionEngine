@@ -11,13 +11,13 @@ namespace buildtool {
 
 Optional<String> ExtractCXXClassName(const String& line)
 {
-    static const std::regex pattern(
+    static const std::regex s_pattern(
         "(?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)");
 
     std::string str = line.Data();
     std::smatch match;
 
-    if (std::regex_search(str, match, pattern))
+    if (std::regex_search(str, match, s_pattern))
     {
         return match[1].str().c_str();
     }
@@ -27,15 +27,15 @@ Optional<String> ExtractCXXClassName(const String& line)
 
 Array<String> ExtractCXXBaseClasses(const String& line)
 {
-    static const std::regex pattern(
-        "((?:class|struct)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(?:\\w+)\\s*(?:final)?\\s*:\\s*((?:public|private|protected)?\\s*(?:\\w+\\s*,?\\s*)+))");
+    static const std::regex s_pattern(
+        "((?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(?:\\w+)\\s*(?:final)?\\s*:\\s*((?:public|private|protected)?\\s*(?:\\w+\\s*,?\\s*)+))");
 
     Array<String> results;
 
     std::string str = line.Data();
     std::smatch match;
 
-    if (std::regex_search(str, match, pattern))
+    if (std::regex_search(str, match, s_pattern))
     {
         std::string baseClasses = match[1].str();
         std::stringstream ss(baseClasses);

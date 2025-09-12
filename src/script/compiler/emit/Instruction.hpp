@@ -301,10 +301,17 @@ struct ClassTable final : public Buildable
         HypMethodFlags flags = (HypMethodFlags)0;
     };
 
+    struct StaticFieldInfo : MemberInfo
+    {
+        TypeId targetTypeId;
+        uint32 size = 0;
+    };
+
     RegIndex reg;
     String name;
     Array<FieldInfo> fields;
     Array<MethodInfo> methods;
+    Array<StaticFieldInfo> staticFields;
     HypClassFlags flags = (HypClassFlags)0;
 
     ~ClassTable() override = default;

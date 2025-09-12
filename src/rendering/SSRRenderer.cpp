@@ -24,9 +24,8 @@
 
 namespace hyperion {
 
-static constexpr bool useTemporalBlending = true;
-
-static constexpr TextureFormat ssrFormat = TF_RGBA8;
+static constexpr bool g_useTemporalBlending = true;
+static constexpr TextureFormat g_ssrFormat = TF_RGBA8;
 
 struct SSRUniforms
 {
@@ -120,7 +119,7 @@ void SSRRenderer::Create()
 
     m_sampledResultTexture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
-        ssrFormat,
+        g_ssrFormat,
         Vec3u(m_config.extent, 1),
         TFM_NEAREST,
         TFM_NEAREST,
@@ -133,11 +132,11 @@ void SSRRenderer::Create()
 
     CreateUniformBuffers();
 
-    if (useTemporalBlending)
+    if (g_useTemporalBlending)
     {
         m_temporalBlending = MakeUnique<TemporalBlending>(
             m_config.extent,
-            ssrFormat,
+            g_ssrFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             g_renderBackend->GetTextureImageView(m_sampledResultTexture),
@@ -170,7 +169,7 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     shaderProperties.Set(NAME("CONE_TRACING"), m_config.coneTracing);
     shaderProperties.Set(NAME("ROUGHNESS_SCATTERING"), m_config.roughnessScattering);
 
-    switch (ssrFormat)
+    switch (g_ssrFormat)
     {
     case TF_RGBA8:
         shaderProperties.Set(NAME("OUTPUT_RGBA8"));
@@ -353,7 +352,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << InsertBarrier(m_sampledResultTexture->GetGpuImage(), RS_SHADER_RESOURCE);
     }
 
-    if (useTemporalBlending && m_temporalBlending != nullptr)
+    if (g_useTemporalBlending && m_temporalBlending != nullptr)
     {
         m_temporalBlending->Render(frame, renderSetup);
     }
