@@ -225,6 +225,7 @@ struct ShaderProperty
     }
 };
 
+HYP_STRUCT()
 class ShaderProperties
 {
     friend class ShaderCompiler;
@@ -987,9 +988,13 @@ struct DescriptorUsageSet
     }
 };
 
+HYP_STRUCT()
 struct ShaderDefinition
 {
+    HYP_FIELD()
     Name name;
+
+    HYP_FIELD()
     ShaderProperties properties;
 
     HYP_FORCE_INLINE Name GetName() const

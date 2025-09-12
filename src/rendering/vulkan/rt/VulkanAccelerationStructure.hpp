@@ -199,7 +199,7 @@ protected:
 using VulkanAccelerationStructureRef = Handle<VulkanAccelerationStructureBase>;
 using VulkanAccelerationStructureWeakRef = WeakHandle<VulkanAccelerationStructureBase>;
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class VulkanBLAS final : public BLASBase, public VulkanAccelerationStructureBase
 {
     HYP_OBJECT_BODY(VulkanBLAS);

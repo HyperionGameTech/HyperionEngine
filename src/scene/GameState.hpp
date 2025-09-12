@@ -3,9 +3,11 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Types.hpp>
 
 namespace hyperion {
 
+HYP_ENUM()
 enum class GameStateMode : uint32
 {
     EDITOR = 0,

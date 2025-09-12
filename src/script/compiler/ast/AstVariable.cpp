@@ -93,15 +93,6 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
             const bool forceInline = isAlias;
 
-            if (forceInline && m_inlineValue == nullptr)
-            {
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_cannot_inline_variable,
-                    m_location,
-                    m_name));
-            }
-
             // don't inline arguments.
             // can run into an issue with a param is const with default assignment,
             // where it would inline the default assignment instead of the passed in value

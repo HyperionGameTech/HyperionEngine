@@ -89,8 +89,20 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
 
+    // classes can only be defined at global scope
+    if (!mod->IsInGlobalScope())
+    {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_classes_may_only_be_defined_in_global_scope,
+            m_location,
+            m_name));
+
+        return;
+    }
+
     // Create scope
-    ScopeGuard scopeGuard(mod, SCOPE_TYPE_CLASS_DEFINITION, IsEnum() ? ENUM_MEMBERS_FLAG : 0);
+    ScopeGuard scopeGuard(mod, SCOPE_TYPE_CLASS_DEFINITION);
 
     if (m_baseSpec != nullptr)
     {
@@ -227,11 +239,19 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        union
+        ConstantValue nextEnumValue(INVALID_CONSTANT_NUMBER);
+
+        if (m_baseType != nullptr)
         {
-            int64 intValue;
-            uint64 uintValue;
-        } nextEnumValue = { 0 };
+            if (m_baseType->IsUnsignedIntegral())
+            {
+                nextEnumValue = ConstantValue { uint64(0), m_baseType->GetConstantBitSize() };
+            }
+            else
+            {
+                nextEnumValue = ConstantValue { int64(0), m_baseType->GetConstantBitSize() };
+            }
+        }
 
         HashMap<uint64, Array<String>> revEnumMembers;
 

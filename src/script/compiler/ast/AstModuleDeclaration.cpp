@@ -102,7 +102,6 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
         // update current module
         mod = m_module.Get();
-        Assert(mod == visitor->GetCompilationUnit()->GetCurrentModule());
 
         // Pre-register all class types so forward references work
         PreRegisterClassTypes(visitor, mod);
@@ -127,7 +126,7 @@ UniquePtr<Buildable> AstModuleDeclaration::Build(AstVisitor* visitor, Module* mo
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     // build all children
-    for (auto& child : m_children)
+    for (const RC<AstStatement>& child : m_children)
     {
         if (child != nullptr)
         {
@@ -143,7 +142,7 @@ void AstModuleDeclaration::Optimize(AstVisitor* visitor, Module* mod)
     Assert(m_module != nullptr);
 
     // optimize all children
-    for (auto& child : m_children)
+    for (const RC<AstStatement>& child : m_children)
     {
         if (child)
         {
