@@ -18,21 +18,34 @@
 namespace hyperion {
 
 RC<AstConstant> Optimizer::ConstantFold(
-    RC<AstExpression>& left,
-    RC<AstExpression>& right,
+    AstExpression* left,
+    AstExpression* right,
     Operators opType,
     AstVisitor* visitor)
 {
     Assert(left != nullptr);
-    Assert(right != nullptr);
+
+    const bool isBinOp = Operator::FindBinaryOperator(opType) != nullptr;
+
+    if (isBinOp)
+    {
+        Assert(right != nullptr);
+    }
 
     ConstantValue leftValue = left->GetValueOf()->GetConstantValue();
-    ConstantValue rightValue = right->GetValueOf()->GetConstantValue();
+    ConstantValue rightValue = right != nullptr
+        ? right->GetValueOf()->GetConstantValue()
+        : ConstantValue(INVALID_CONSTANT_NUMBER);
 
     RC<AstConstant> result;
 
-    if (leftValue.IsValid() && rightValue.IsValid())
+    if (leftValue.IsValid())
     {
+        if (isBinOp && !rightValue.IsValid())
+        {
+            return nullptr;
+        }
+
         // Perform constant folding based on the operator type
         switch (opType)
         {
@@ -47,7 +60,7 @@ RC<AstConstant> Optimizer::ConstantFold(
                 const ConstantBitSize bitSize = MathUtil::Min(leftValue.bitSize > rightValue.bitSize ? leftValue.bitSize : ConstantBitSize(rightValue.bitSize << 1), CBS_64);
                 result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() + rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
-            else
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstInteger>(new AstInteger(leftValue.AsInt() + rightValue.AsInt(), bitSize, left->GetLocation()));
@@ -65,11 +78,12 @@ RC<AstConstant> Optimizer::ConstantFold(
                 const ConstantBitSize bitSize = MathUtil::Min(leftValue.bitSize > rightValue.bitSize ? leftValue.bitSize : ConstantBitSize(rightValue.bitSize << 1), CBS_64);
                 result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() - rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
-            else
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstInteger>(new AstInteger(leftValue.AsInt() - rightValue.AsInt(), bitSize, left->GetLocation()));
             }
+
             break;
 
         case OP_multiply:
@@ -83,7 +97,7 @@ RC<AstConstant> Optimizer::ConstantFold(
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() * rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
-            else
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstInteger>(new AstInteger(leftValue.AsInt() * rightValue.AsInt(), bitSize, left->GetLocation()));
@@ -106,7 +120,7 @@ RC<AstConstant> Optimizer::ConstantFold(
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() / rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
-            else
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstInteger>(new AstInteger(leftValue.AsInt() / rightValue.AsInt(), bitSize, left->GetLocation()));
@@ -129,7 +143,7 @@ RC<AstConstant> Optimizer::ConstantFold(
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() % rightValue.AsUInt(), bitSize, left->GetLocation()));
             }
-            else
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
             {
                 const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                 result = RC<AstInteger>(new AstInteger(leftValue.AsInt() % rightValue.AsInt(), bitSize, left->GetLocation()));
@@ -137,68 +151,288 @@ RC<AstConstant> Optimizer::ConstantFold(
             break;
 
         case OP_equals:
-            if (leftValue.AsFloat() == rightValue.AsFloat())
+            if (leftValue.IsFloat() || rightValue.IsFloat())
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                if (leftValue.AsFloat() == rightValue.AsFloat())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
-            else
+            else if (leftValue.IsBool() && rightValue.IsBool())
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                if (leftValue.AsBool() == rightValue.AsBool())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                if (leftValue.AsUInt() == rightValue.AsUInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
+            {
+                if (leftValue.AsInt() == rightValue.AsInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
             break;
 
         case OP_not_eql:
-            if (leftValue.AsFloat() != rightValue.AsFloat())
+            if (leftValue.IsFloat() || rightValue.IsFloat())
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                if (leftValue.AsFloat() != rightValue.AsFloat())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
-            else
+            else if (leftValue.IsBool() && rightValue.IsBool())
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                if (leftValue.AsBool() != rightValue.AsBool())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
+            {
+                if (leftValue.AsUInt() != rightValue.AsUInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
+            {
+                if (leftValue.AsInt() != rightValue.AsInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
             break;
 
         case OP_less:
-            if (leftValue.AsFloat() < rightValue.AsFloat())
+            if (leftValue.IsFloat() || rightValue.IsFloat())
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                if (leftValue.AsFloat() < rightValue.AsFloat())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
-            else
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                if (leftValue.AsUInt() < rightValue.AsUInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
+            {
+                if (leftValue.AsInt() < rightValue.AsInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsBool() && rightValue.IsBool())
+            {
+                // false < true
+                if (!leftValue.AsBool() && rightValue.AsBool())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
             break;
 
         case OP_greater:
-            if (leftValue.AsFloat() > rightValue.AsFloat())
+            if (leftValue.IsFloat() || rightValue.IsFloat())
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                if (leftValue.AsFloat() > rightValue.AsFloat())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
-            else
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                if (leftValue.AsUInt() > rightValue.AsUInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
+            {
+                if (leftValue.AsInt() > rightValue.AsInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsBool() && rightValue.IsBool())
+            {
+                // true > false
+                if (leftValue.AsBool() && !rightValue.AsBool())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
             break;
 
         case OP_less_eql:
-            if (leftValue.AsFloat() <= rightValue.AsFloat())
+            if (leftValue.IsFloat() || rightValue.IsFloat())
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                if (leftValue.AsFloat() <= rightValue.AsFloat())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
-            else
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                if (leftValue.AsUInt() <= rightValue.AsUInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
+            {
+                if (leftValue.AsInt() <= rightValue.AsInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsBool() && rightValue.IsBool())
+            {
+                // false <= true and false <= false and true <= true
+                if ((!leftValue.AsBool() && rightValue.AsBool()) || (leftValue.AsBool() == rightValue.AsBool()))
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
             break;
 
         case OP_greater_eql:
-            if (leftValue.AsFloat() >= rightValue.AsFloat())
+            if (leftValue.IsFloat() || rightValue.IsFloat())
             {
-                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                if (leftValue.AsFloat() >= rightValue.AsFloat())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
-            else
+            else if (leftValue.IsUInt() || rightValue.IsUInt())
             {
-                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                if (leftValue.AsUInt() >= rightValue.AsUInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsNumber() && rightValue.IsNumber())
+            {
+                if (leftValue.AsInt() >= rightValue.AsInt())
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
+            }
+            else if (leftValue.IsBool() && rightValue.IsBool())
+            {
+                // true >= false and false >= false and true >= true
+                if ((leftValue.AsBool() && !rightValue.AsBool()) || (leftValue.AsBool() == rightValue.AsBool()))
+                {
+                    result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+                }
+                else
+                {
+                    result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+                }
             }
             break;
 
@@ -211,7 +445,7 @@ RC<AstConstant> Optimizer::ConstantFold(
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                     result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() & rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
-                else
+                else if (leftValue.IsInt() || rightValue.IsInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                     result = RC<AstInteger>(new AstInteger(leftValue.AsInt() & rightValue.AsInt(), bitSize, left->GetLocation()));
@@ -227,7 +461,7 @@ RC<AstConstant> Optimizer::ConstantFold(
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                     result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() | rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
-                else
+                else if (leftValue.IsInt() || rightValue.IsInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                     result = RC<AstInteger>(new AstInteger(leftValue.AsInt() | rightValue.AsInt(), bitSize, left->GetLocation()));
@@ -243,10 +477,42 @@ RC<AstConstant> Optimizer::ConstantFold(
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                     result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() ^ rightValue.AsUInt(), bitSize, left->GetLocation()));
                 }
-                else
+                else if (leftValue.IsInt() || rightValue.IsInt())
                 {
                     const ConstantBitSize bitSize = MathUtil::Max(leftValue.bitSize, rightValue.bitSize);
                     result = RC<AstInteger>(new AstInteger(leftValue.AsInt() ^ rightValue.AsInt(), bitSize, left->GetLocation()));
+                }
+            }
+            break;
+
+        case OP_bitshift_left:
+            if (!leftValue.IsFloat() && !rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+
+                if (leftValue.IsUInt())
+                {
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() << rightValue.AsUInt(), bitSize, left->GetLocation()));
+                }
+                else if (leftValue.IsInt())
+                {
+                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() << rightValue.AsInt(), bitSize, left->GetLocation()));
+                }
+            }
+            break;
+
+        case OP_bitshift_right:
+            if (!leftValue.IsFloat() && !rightValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+
+                if (leftValue.IsUInt())
+                {
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(leftValue.AsUInt() >> rightValue.AsUInt(), bitSize, left->GetLocation()));
+                }
+                else if (leftValue.IsInt())
+                {
+                    result = RC<AstInteger>(new AstInteger(leftValue.AsInt() >> rightValue.AsInt(), bitSize, left->GetLocation()));
                 }
             }
             break;
@@ -281,13 +547,104 @@ RC<AstConstant> Optimizer::ConstantFold(
             }
         }
         break;
+        case OP_logical_not:
+        {
+            const bool leftBool = leftValue.AsBool();
+            if (!leftBool)
+            {
+                result = RC<AstTrue>(new AstTrue(left->GetLocation()));
+            }
+            else
+            {
+                result = RC<AstFalse>(new AstFalse(left->GetLocation()));
+            }
+        }
+        case OP_negative:
+            if (leftValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                result = RC<AstFloat>(new AstFloat(-leftValue.AsFloat(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                switch (bitSize)
+                {
+                case CBS_8:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint8(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                case CBS_16:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint16(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                case CBS_32:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint32(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                case CBS_64:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(-uint64(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                default:
+                    HYP_UNREACHABLE();
+                    break;
+                }
+            }
+            else if (leftValue.IsInt())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                result = RC<AstInteger>(new AstInteger(-leftValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+        case OP_positive:
+            if (leftValue.IsFloat())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                result = RC<AstFloat>(new AstFloat(+leftValue.AsFloat(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                switch (bitSize)
+                {
+                case CBS_8:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint8(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                case CBS_16:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint16(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                case CBS_32:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint32(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                case CBS_64:
+                    result = RC<AstUnsignedInteger>(new AstUnsignedInteger(+uint64(leftValue.AsUInt()), bitSize, left->GetLocation()));
+                    break;
+                default:
+                    HYP_UNREACHABLE();
+                    break;
+                }
+            }
+            else if (leftValue.IsInt())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                result = RC<AstInteger>(new AstInteger(+leftValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
+        case OP_bitwise_complement:
+            if (leftValue.IsUInt())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                result = RC<AstUnsignedInteger>(new AstUnsignedInteger(~leftValue.AsUInt(), bitSize, left->GetLocation()));
+            }
+            else if (leftValue.IsInt())
+            {
+                const ConstantBitSize bitSize = leftValue.bitSize;
+                result = RC<AstInteger>(new AstInteger(~leftValue.AsInt(), bitSize, left->GetLocation()));
+            }
+            break;
         default:
             // Unsupported operator for constant folding
             break;
         }
     }
 
-    // one or both of the sides are not a constant
     return result;
 }
 

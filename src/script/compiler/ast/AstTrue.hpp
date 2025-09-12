@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-class AstTrue : public AstConstant
+class AstTrue final : public AstConstant
 {
 public:
     AstTrue(const SourceLocation& location);
@@ -16,11 +16,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual ConstantValue GetConstantValue() const override;
-
     virtual SymbolTypeRef GetExprType() const override;
-
-    virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
 
     virtual HashCode GetHashCode() const override
     {

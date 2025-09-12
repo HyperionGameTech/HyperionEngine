@@ -6,10 +6,10 @@
 
 namespace hyperion {
 
-class AstUnsignedInteger : public AstConstant
+class AstUnsignedInteger final : public AstConstant
 {
 public:
-    AstUnsignedInteger(hyperion::uint64 value, ConstantBitSize bitSize, const SourceLocation& location);
+    AstUnsignedInteger(uint64 value, ConstantBitSize bitSize, const SourceLocation& location);
 
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
 
@@ -18,28 +18,19 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual ConstantValue GetConstantValue() const override;
-
     virtual SymbolTypeRef GetExprType() const override;
-
-    virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
 
     virtual HashCode GetHashCode() const override
     {
-        HashCode hc = AstConstant::GetHashCode().Add(TypeName<AstUnsignedInteger>());
-        hc.Add(m_value);
-
-        return hc;
+        return AstConstant::GetHashCode().Add(TypeName<AstUnsignedInteger>());
     }
 
 private:
-    hyperion::uint64 m_value;
-
     RC<AstUnsignedInteger> CloneImpl() const
     {
         return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-            m_value,
-            m_bitSize,
+            m_constantValue.AsUInt(),
+            m_constantValue.bitSize,
             m_location));
     }
 };

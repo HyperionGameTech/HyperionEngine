@@ -11,7 +11,7 @@
 namespace hyperion {
 
 AstTrue::AstTrue(const SourceLocation& location)
-    : AstConstant(CBS_8, location)
+    : AstConstant(ConstantValue(true, CBS_8), location)
 {
 }
 
@@ -38,48 +38,9 @@ bool AstTrue::IsNumber() const
     return false;
 }
 
-ConstantValue AstTrue::GetConstantValue() const
-{
-    return ConstantValue(true, CBS_8);
-}
-
 SymbolTypeRef AstTrue::GetExprType() const
 {
     return BuiltinTypes::s_boolType;
-}
-
-RC<AstConstant> AstTrue::HandleOperator(Operators opType, const AstConstant* right) const
-{
-    switch (opType)
-    {
-    case OP_logical_and:
-        switch (right->IsTrue())
-        {
-        case TRI_TRUE:
-            return RC<AstTrue>(new AstTrue(m_location));
-        case TRI_FALSE:
-            return RC<AstFalse>(new AstFalse(m_location));
-        case TRI_INDETERMINATE:
-            return nullptr;
-        }
-
-    case OP_logical_or:
-        return RC<AstTrue>(new AstTrue(m_location));
-
-    case OP_equals:
-        if (dynamic_cast<const AstTrue*>(right) != nullptr)
-        {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-
-        return RC<AstFalse>(new AstFalse(m_location));
-
-    case OP_logical_not:
-        return RC<AstFalse>(new AstFalse(m_location));
-
-    default:
-        return nullptr;
-    }
 }
 
 } // namespace hyperion

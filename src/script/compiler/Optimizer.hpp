@@ -17,8 +17,8 @@ class Optimizer : public AstVisitor
 public:
     /** Attemps to evaluate the optimized expression at compile-time. */
     static RC<AstConstant> ConstantFold(
-        RC<AstExpression>& left,
-        RC<AstExpression>& right,
+        AstExpression* left,
+        AstExpression* right,
         Operators opType,
         AstVisitor* visitor);
 

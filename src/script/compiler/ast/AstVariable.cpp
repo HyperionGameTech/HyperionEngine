@@ -176,6 +176,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
             m_name));
         break;
     case IDENTIFIER_TYPE_NOT_FOUND:
+        HYP_BREAKPOINT;
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_undeclared_identifier,

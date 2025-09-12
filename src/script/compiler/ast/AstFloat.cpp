@@ -17,8 +17,7 @@
 namespace hyperion {
 
 AstFloat::AstFloat(double value, ConstantBitSize bitSize, const SourceLocation& location)
-    : AstConstant(bitSize, location),
-      m_value(value)
+    : AstConstant(ConstantValue(value, bitSize), location)
 {
 }
 
@@ -27,12 +26,12 @@ UniquePtr<Buildable> AstFloat::Build(AstVisitor* visitor, Module* mod)
     // get active register
     const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-    switch (m_bitSize)
+    switch (m_constantValue.bitSize)
     {
     case CBS_32:
-        return BytecodeUtil::Make<ConstF32>(rp, float32(m_value));
+        return BytecodeUtil::Make<ConstF32>(rp, float32(m_constantValue.AsFloat()));
     case CBS_64:
-        return BytecodeUtil::Make<ConstF64>(rp, m_value);
+        return BytecodeUtil::Make<ConstF64>(rp, m_constantValue.AsFloat());
     default:
         HYP_UNREACHABLE();
     }
@@ -46,7 +45,7 @@ RC<AstStatement> AstFloat::Clone() const
 Tribool AstFloat::IsTrue() const
 {
     // any non-zero value is considered true
-    return Tribool(m_value != 0.0f);
+    return Tribool(m_constantValue.AsFloat() != 0.0f);
 }
 
 bool AstFloat::IsNumber() const
@@ -54,14 +53,9 @@ bool AstFloat::IsNumber() const
     return true;
 }
 
-ConstantValue AstFloat::GetConstantValue() const
-{
-    return ConstantValue(m_value, m_bitSize);
-}
-
 SymbolTypeRef AstFloat::GetExprType() const
 {
-    switch (m_bitSize)
+    switch (m_constantValue.bitSize)
     {
     case CBS_32:
         return BuiltinTypes::s_floatType;
@@ -71,300 +65,4 @@ SymbolTypeRef AstFloat::GetExprType() const
         HYP_UNREACHABLE();
     }
 }
-
-RC<AstConstant> AstFloat::HandleOperator(Operators opType, const AstConstant* right) const
-{
-    switch (opType)
-    {
-    case OP_add:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            return RC<AstFloat>(new AstFloat(
-                leftValue.AsFloat() + rightValue.AsFloat(),
-                MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
-                m_location));
-        }
-
-    case OP_subtract:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            return RC<AstFloat>(new AstFloat(
-                leftValue.AsFloat() - rightValue.AsFloat(),
-                MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
-                m_location));
-        }
-
-    case OP_multiply:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            return RC<AstFloat>(new AstFloat(
-                leftValue.AsFloat() * rightValue.AsFloat(),
-                MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
-                m_location));
-        }
-
-    case OP_divide:
-    {
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        const ConstantValue leftValue = GetConstantValue();
-        const ConstantValue rightValue = right->GetConstantValue();
-        double rightFloat = rightValue.AsFloat();
-
-        if (rightFloat == 0.0)
-        {
-            // division by zero
-            return nullptr;
-        }
-
-        return RC<AstFloat>(new AstFloat(
-            leftValue.AsFloat() / rightFloat,
-            MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
-            m_location));
-    }
-
-    case OP_modulus:
-    {
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        const ConstantValue leftValue = GetConstantValue();
-        const ConstantValue rightValue = right->GetConstantValue();
-        double rightFloat = rightValue.AsFloat();
-
-        if (rightFloat == 0.0)
-        {
-            // division by zero
-            return nullptr;
-        }
-
-        return RC<AstFloat>(new AstFloat(
-            std::fmod(leftValue.AsFloat(), rightFloat),
-            MathUtil::Max(m_bitSize, rightValue.bitSize, CBS_32),
-            m_location));
-    }
-
-    case OP_logical_and:
-    {
-        int thisTrue = IsTrue();
-        int rightTrue = right->IsTrue();
-
-        if (!right->IsNumber())
-        {
-            // this operator is valid to compare against null
-            if (dynamic_cast<const AstNil*>(right))
-            {
-                // rhs is null, return false
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-            return nullptr;
-        }
-
-        if (thisTrue == 1 && rightTrue == 1)
-        {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else if (thisTrue == 0 && rightTrue == 0)
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
-        }
-        else
-        {
-            // indeterminate
-            return nullptr;
-        }
-    }
-
-    case OP_logical_or:
-    {
-        int thisTrue = IsTrue();
-        int rightTrue = right->IsTrue();
-
-        if (!right->IsNumber())
-        {
-            // this operator is valid to compare against null
-            if (dynamic_cast<const AstNil*>(right))
-            {
-                if (thisTrue == 1)
-                {
-                    return RC<AstTrue>(new AstTrue(m_location));
-                }
-                else if (thisTrue == 0)
-                {
-                    return RC<AstFalse>(new AstFalse(m_location));
-                }
-            }
-            return nullptr;
-        }
-
-        if (thisTrue == 1 || rightTrue == 1)
-        {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else if (thisTrue == 0 || rightTrue == 0)
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
-        }
-        else
-        {
-            // indeterminate
-            return nullptr;
-        }
-    }
-
-    case OP_less:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            if (leftValue.AsFloat() < rightValue.AsFloat())
-            {
-                return RC<AstTrue>(new AstTrue(m_location));
-            }
-            else
-            {
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-        }
-
-    case OP_greater:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            if (leftValue.AsFloat() > rightValue.AsFloat())
-            {
-                return RC<AstTrue>(new AstTrue(m_location));
-            }
-            else
-            {
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-        }
-
-    case OP_less_eql:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            if (leftValue.AsFloat() <= rightValue.AsFloat())
-            {
-                return RC<AstTrue>(new AstTrue(m_location));
-            }
-            else
-            {
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-        }
-
-    case OP_greater_eql:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            if (leftValue.AsFloat() >= rightValue.AsFloat())
-            {
-                return RC<AstTrue>(new AstTrue(m_location));
-            }
-            else
-            {
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-        }
-
-    case OP_equals:
-        if (!right->IsNumber())
-        {
-            return nullptr;
-        }
-
-        {
-            const ConstantValue leftValue = GetConstantValue();
-            const ConstantValue rightValue = right->GetConstantValue();
-
-            if (leftValue.AsFloat() == rightValue.AsFloat())
-            {
-                return RC<AstTrue>(new AstTrue(m_location));
-            }
-            else
-            {
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-        }
-
-    case OP_negative:
-    {
-        const ConstantValue leftValue = GetConstantValue();
-        return RC<AstFloat>(new AstFloat(-leftValue.AsFloat(), m_bitSize, m_location));
-    }
-
-    case OP_logical_not:
-    {
-        const ConstantValue leftValue = GetConstantValue();
-        if (leftValue.AsFloat() == 0.0)
-        {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
-        }
-    }
-
-    default:
-        return nullptr;
-    }
-}
-
-String AstFloat::ToString() const
-{
-    return HYP_FORMAT("{}", m_value);
-}
-
 } // namespace hyperion

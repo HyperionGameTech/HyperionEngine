@@ -19,7 +19,7 @@
 namespace hyperion {
 
 AstNil::AstNil(const SourceLocation& location)
-    : AstConstant(CBS_INVALID, location)
+    : AstConstant(ConstantValue(int64(0), CBS_32), location)
 {
 }
 
@@ -46,103 +46,9 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-ConstantValue AstNil::GetConstantValue() const
-{
-    return ConstantValue(int64(0), CBS_32);
-}
-
 SymbolTypeRef AstNil::GetExprType() const
 {
     return BuiltinTypes::s_nullType;
-}
-
-RC<AstConstant> AstNil::HandleOperator(Operators opType, const AstConstant* right) const
-{
-    switch (opType)
-    {
-    case OP_logical_and:
-    {
-        int thisTrue = IsTrue();
-        int rightTrue = right->IsTrue();
-
-        if (!right->IsNumber())
-        {
-            // this operator is valid to compare against null
-            if (dynamic_cast<const AstNil*>(right))
-            {
-                // rhs is null, return false
-                return RC<AstFalse>(new AstFalse(m_location));
-            }
-            return nullptr;
-        }
-
-        if (thisTrue == 1 && rightTrue == 1)
-        {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else if (thisTrue == 0 && rightTrue == 0)
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
-        }
-        else
-        {
-            // indeterminate
-            return nullptr;
-        }
-    }
-
-    case OP_logical_or:
-    {
-        int thisTrue = IsTrue();
-        int rightTrue = right->IsTrue();
-
-        if (!right->IsNumber())
-        {
-            // this operator is valid to compare against null
-            if (dynamic_cast<const AstNil*>(right))
-            {
-                if (thisTrue == 1)
-                {
-                    return RC<AstTrue>(new AstTrue(m_location));
-                }
-                else if (thisTrue == 0)
-                {
-                    return RC<AstFalse>(new AstFalse(m_location));
-                }
-            }
-            return nullptr;
-        }
-
-        if (thisTrue == 1 || rightTrue == 1)
-        {
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        else if (thisTrue == 0 || rightTrue == 0)
-        {
-            return RC<AstFalse>(new AstFalse(m_location));
-        }
-        else
-        {
-            // indeterminate
-            return nullptr;
-        }
-    }
-
-    case OP_equals:
-        if (dynamic_cast<const AstNil*>(right) != nullptr)
-        {
-            // only another null value should be equal
-            return RC<AstTrue>(new AstTrue(m_location));
-        }
-        // other values never equal to null
-        return RC<AstFalse>(new AstFalse(m_location));
-
-    case OP_logical_not:
-        return RC<AstTrue>(new AstTrue(m_location));
-
-    default:
-        return nullptr;
-    }
 }
 
 } // namespace hyperion

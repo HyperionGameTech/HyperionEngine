@@ -21,20 +21,6 @@
 
 namespace hyperion {
 
-/** Attempts to evaluate the optimized expression at compile-time. */
-static RC<AstConstant> ConstantFold(
-    RC<AstExpression>& expr,
-    Operators opType,
-    AstVisitor* visitor)
-{
-    if (const AstConstant* asConstant = dynamic_cast<const AstConstant*>(expr.Get()))
-    {
-        return asConstant->HandleOperator(opType, nullptr);
-    }
-
-    return nullptr;
-}
-
 AstUnaryExpression::AstUnaryExpression(
     const RC<AstExpression>& expr,
     const Operator* op,
@@ -262,10 +248,7 @@ void AstUnaryExpression::Optimize(AstVisitor* visitor, Module* mod)
         {
             // nothing to do for unary plus
         }
-        else if (RC<AstConstant> constantValue = ConstantFold(
-                     m_expr,
-                     m_op->GetOperatorType(),
-                     visitor))
+        else if (RC<AstConstant> constantValue = Optimizer::ConstantFold(m_expr, nullptr, m_op->GetOperatorType(), visitor))
         {
             m_expr = constantValue;
         }

@@ -21,14 +21,6 @@
 #include <core/threading/AtomicVar.hpp>
 
 namespace hyperion {
-
-enum class LogChannelFlags : uint32
-{
-    NONE = 0x0
-};
-
-HYP_MAKE_ENUM_FLAGS(LogChannelFlags)
-
 namespace logging {
 
 struct LogMessage
@@ -122,9 +114,6 @@ public:
     Name name;
 
     HYP_FIELD()
-    EnumFlags<LogChannelFlags> flags;
-
-    HYP_FIELD()
     LogChannel* parentChannel;
 
     HYP_FIELD(NoScriptBindings)
@@ -133,7 +122,6 @@ public:
     LogChannel()
         : id(0),
           name(),
-          flags(LogChannelFlags::NONE),
           parentChannel(nullptr),
           maskBitset()
     {

@@ -43,7 +43,8 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     }
 
     const bool skipShadowingCheck = m_name.StartsWith("$")
-        || (m_flags & IdentifierFlags::FLAG_LAX);
+        || (m_flags & IdentifierFlags::FLAG_LAX)
+        || mod->IsInScopeOfType(SCOPE_TYPE_CLASS_DEFINITION, EXTERN_CLASS_FLAG, /* thisScopeOnly */ false);
 
     if (!skipShadowingCheck)
     {

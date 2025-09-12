@@ -20,9 +20,9 @@ HYP_ENUM()
 enum class MouseButtonState : uint32
 {
     NONE = 0x0,
-    LEFT = 1u << MB_LEFT,
-    MIDDLE = 1u << MB_MIDDLE,
-    RIGHT = 1u << MB_RIGHT
+    LEFT = 0x1,
+    MIDDLE = 0x2,
+    RIGHT = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(MouseButtonState)

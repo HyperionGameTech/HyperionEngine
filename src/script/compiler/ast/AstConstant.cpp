@@ -4,15 +4,9 @@
 
 namespace hyperion {
 
-AstConstant::AstConstant(const SourceLocation& location)
+AstConstant::AstConstant(const ConstantValue& constantValue, const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
-      m_bitSize(CBS_INVALID)
-{
-}
-
-AstConstant::AstConstant(ConstantBitSize bitSize, const SourceLocation& location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_bitSize(bitSize)
+      m_constantValue(constantValue)
 {
 }
 
@@ -36,6 +30,18 @@ bool AstConstant::MayHaveSideEffects() const
 {
     // constants do not have side effects
     return false;
+}
+
+String AstConstant::ToString() const
+{
+    String str = "<invalid constant>";
+
+    m_constantValue.value.Visit([&](auto&& arg)
+        {
+            str = HYP_FORMAT("{}", arg);
+        });
+
+    return str;
 }
 
 } // namespace hyperion

@@ -668,6 +668,7 @@ enum BlendModeFactor : uint32
 
 static_assert(uint32(BMF_MAX) <= 15, "BlendModeFactor enum too large to fit in 4 bits");
 
+HYP_STRUCT()
 struct BlendFunction
 {
     uint32 value;

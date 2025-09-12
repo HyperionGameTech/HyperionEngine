@@ -102,7 +102,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // Create scope
-    ScopeGuard scopeGuard(mod, SCOPE_TYPE_CLASS_DEFINITION);
+    ScopeGuard scopeGuard(mod, SCOPE_TYPE_CLASS_DEFINITION, IsExternClass() ? EXTERN_CLASS_FLAG : 0);
 
     if (m_baseSpec != nullptr)
     {
@@ -274,15 +274,15 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                         if (m_baseType->IsUnsignedIntegral())
                         {
                             decl->SetAssignment(RC<AstExpression>(new AstUnsignedInteger(
-                                nextEnumValue.uintValue,
-                                m_baseType->GetConstantBitSize(),
+                                nextEnumValue.AsUInt(),
+                                nextEnumValue.bitSize,
                                 decl->GetLocation())));
                         }
                         else
                         {
                             decl->SetAssignment(RC<AstExpression>(new AstInteger(
-                                nextEnumValue.intValue,
-                                m_baseType->GetConstantBitSize(),
+                                nextEnumValue.AsInt(),
+                                nextEnumValue.bitSize,
                                 decl->GetLocation())));
                         }
                     }
@@ -322,14 +322,13 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                     if (m_baseType->IsUnsignedIntegral())
                     {
-
-                        nextEnumValue.uintValue = constantValue.AsUInt() + 1;
+                        nextEnumValue = ConstantValue(constantValue.AsUInt() + 1, nextEnumValue.bitSize);
 
                         revEnumMembers[constantValue.AsUInt()].PushBack(decl->GetName());
                     }
                     else
                     {
-                        nextEnumValue.intValue = constantValue.AsInt() + 1;
+                        nextEnumValue = ConstantValue(constantValue.AsInt() + 1, nextEnumValue.bitSize);
 
                         revEnumMembers[std::bit_cast<uint64>(constantValue.AsInt())].PushBack(decl->GetName());
                     }

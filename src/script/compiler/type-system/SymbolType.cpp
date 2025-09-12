@@ -1181,71 +1181,57 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
                 return BuiltinTypes::s_floatType;
             }
         }
-        else if (lptr->IsIntegral() && rptr->IsIntegral())
+        else if (lptr->GetConstantBitSize() < CBS_32 && rptr->GetConstantBitSize() < CBS_32)
         {
-            bool leftIsSigned = lptr->IsSignedIntegral();
-            bool rightIsSigned = rptr->IsSignedIntegral();
-
+            // Both sides are < 32-bit, promote to int32
+            return BuiltinTypes::s_int32Type;
+        }
+        else
+        {
+            // Integer promotion - use the larger bit size
             ConstantBitSize leftSize = lptr->GetConstantBitSize();
             ConstantBitSize rightSize = rptr->GetConstantBitSize();
+            ConstantBitSize resultSize = MathUtil::Max(leftSize, rightSize);
 
-            // If mixing signed and unsigned, promote to signed with potentially larger size
-            if (leftIsSigned != rightIsSigned)
+            bool isLeftUnsigned = lptr->IsUnsignedIntegral();
+            bool isRightUnsigned = rptr->IsUnsignedIntegral();
+
+            if (isLeftUnsigned || isRightUnsigned)
             {
-                ConstantBitSize resultSize = MathUtil::Min(leftSize > rightSize ? leftSize : ConstantBitSize(leftSize << 1), CBS_64);
-
-                switch (resultSize)
+                if (resultSize == CBS_8)
                 {
-                case CBS_8:
-                    return BuiltinTypes::s_int8Type;
-                case CBS_16:
-                    return BuiltinTypes::s_int16Type;
-                case CBS_32:
-                    return BuiltinTypes::s_int32Type;
-                case CBS_64:
-                    return BuiltinTypes::s_int64Type;
-                default:
-                    return BuiltinTypes::s_int32Type;
+                    return BuiltinTypes::s_uint8Type;
+                }
+                else if (resultSize == CBS_16)
+                {
+                    return BuiltinTypes::s_uint16Type;
+                }
+                else if (resultSize == CBS_32)
+                {
+                    return BuiltinTypes::s_uint32Type;
+                }
+                else if (resultSize == CBS_64)
+                {
+                    return BuiltinTypes::s_uint64Type;
                 }
             }
             else
             {
-                // Same signedness, use the larger size
-                ConstantBitSize resultSize = MathUtil::Max(leftSize, rightSize);
-
-                if (leftIsSigned)
+                if (resultSize == CBS_8)
                 {
-                    // Both signed
-                    switch (resultSize)
-                    {
-                    case CBS_8:
-                        return BuiltinTypes::s_int8Type;
-                    case CBS_16:
-                        return BuiltinTypes::s_int16Type;
-                    case CBS_32:
-                        return BuiltinTypes::s_int32Type;
-                    case CBS_64:
-                        return BuiltinTypes::s_int64Type;
-                    default:
-                        return BuiltinTypes::s_int32Type;
-                    }
+                    return BuiltinTypes::s_int8Type;
                 }
-                else
+                else if (resultSize == CBS_16)
                 {
-                    // Both unsigned
-                    switch (resultSize)
-                    {
-                    case CBS_8:
-                        return BuiltinTypes::s_uint8Type;
-                    case CBS_16:
-                        return BuiltinTypes::s_uint16Type;
-                    case CBS_32:
-                        return BuiltinTypes::s_uint32Type;
-                    case CBS_64:
-                        return BuiltinTypes::s_uint64Type;
-                    default:
-                        return BuiltinTypes::s_uint32Type;
-                    }
+                    return BuiltinTypes::s_int16Type;
+                }
+                else if (resultSize == CBS_32)
+                {
+                    return BuiltinTypes::s_int32Type;
+                }
+                else if (resultSize == CBS_64)
+                {
+                    return BuiltinTypes::s_int64Type;
                 }
             }
         }

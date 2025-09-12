@@ -373,7 +373,6 @@ DynamicLogChannelHandle& DynamicLogChannelHandle::operator=(DynamicLogChannelHan
 LogChannel::LogChannel(Name name, LogChannel* parentChannel)
     : id(~0u),
       name(name),
-      flags(LogChannelFlags::NONE),
       parentChannel(parentChannel),
       maskBitset(0)
 {

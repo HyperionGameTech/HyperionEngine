@@ -5,7 +5,7 @@
 namespace hyperion {
 
 AstUndefined::AstUndefined(const SourceLocation& location)
-    : AstConstant(CBS_INVALID, location)
+    : AstConstant(ConstantValue(INVALID_CONSTANT_NUMBER), location)
 {
 }
 
@@ -32,11 +32,6 @@ bool AstUndefined::IsNumber() const
 SymbolTypeRef AstUndefined::GetExprType() const
 {
     return BuiltinTypes::s_errorType;
-}
-
-RC<AstConstant> AstUndefined::HandleOperator(Operators opType, const AstConstant* right) const
-{
-    return nullptr;
 }
 
 } // namespace hyperion

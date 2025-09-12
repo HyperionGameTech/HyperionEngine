@@ -6,11 +6,11 @@
 
 namespace hyperion {
 
-class AstInteger : public AstConstant
+class AstInteger final : public AstConstant
 {
 public:
     AstInteger(
-        hyperion::int64 value,
+        int64 value,
         ConstantBitSize bitSize,
         const SourceLocation& location);
 
@@ -21,33 +21,19 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual ConstantValue GetConstantValue() const override;
-
     virtual SymbolTypeRef GetExprType() const override;
-
-    virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
 
     virtual HashCode GetHashCode() const override
     {
-        HashCode hc = AstConstant::GetHashCode().Add(TypeName<AstInteger>());
-        hc.Add(m_value);
-
-        return hc;
-    }
-
-    virtual String ToString() const override
-    {
-        return String::ToString(m_value);
+        return AstConstant::GetHashCode().Add(TypeName<AstInteger>());
     }
 
 private:
-    hyperion::int64 m_value;
-
     RC<AstInteger> CloneImpl() const
     {
         return RC<AstInteger>(new AstInteger(
-            m_value,
-            m_bitSize,
+            m_constantValue.AsInt(),
+            m_constantValue.bitSize,
             m_location));
     }
 };

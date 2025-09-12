@@ -115,6 +115,11 @@ struct ConstantValue
         return value.Is<bool>();
     }
 
+    HYP_FORCE_INLINE bool IsNumber() const
+    {
+        return IsInt() || IsUInt() || IsFloat();
+    }
+
     int64 AsInt() const
     {
         int64 i = 0;
@@ -157,14 +162,7 @@ struct ConstantValue
 
         value.Visit([&](auto&& arg)
             {
-                if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, bool>)
-                {
-                    b = arg;
-                }
-                else
-                {
-                    b = (arg != 0);
-                }
+                b = !!arg;
             });
 
         return b;
@@ -228,11 +226,6 @@ public:
     }
 
     virtual AstExpression* GetTarget() const
-    {
-        return nullptr;
-    }
-
-    virtual const AstExpression* GetHeldGenericExpr() const
     {
         return nullptr;
     }

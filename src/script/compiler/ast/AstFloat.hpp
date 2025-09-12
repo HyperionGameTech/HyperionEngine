@@ -4,10 +4,11 @@
 
 namespace hyperion {
 
-class AstFloat : public AstConstant
+class AstFloat final : public AstConstant
 {
 public:
-    AstFloat(double value,
+    AstFloat(
+        double value,
         ConstantBitSize bitSize,
         const SourceLocation& location);
 
@@ -18,30 +19,19 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual ConstantValue GetConstantValue() const override;
-
     virtual SymbolTypeRef GetExprType() const override;
-
-    virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
 
     virtual HashCode GetHashCode() const override
     {
-        HashCode hc = AstConstant::GetHashCode().Add(TypeName<AstFloat>());
-        hc.Add(m_value);
-
-        return hc;
+        return AstConstant::GetHashCode().Add(TypeName<AstFloat>());
     }
 
-    virtual String ToString() const override;
-
 private:
-    double m_value;
-
     RC<AstFloat> CloneImpl() const
     {
         return RC<AstFloat>(new AstFloat(
-            m_value,
-            m_bitSize,
+            m_constantValue.AsFloat(),
+            m_constantValue.bitSize,
             m_location));
     }
 };

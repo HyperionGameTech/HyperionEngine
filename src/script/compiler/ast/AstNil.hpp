@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-class AstNil : public AstConstant
+class AstNil final : public AstConstant
 {
 public:
     AstNil(const SourceLocation& location);
@@ -16,11 +16,12 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual ConstantValue GetConstantValue() const override;
-
     virtual SymbolTypeRef GetExprType() const override;
 
-    virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
+    virtual String ToString() const override
+    {
+        return "null";
+    }
 
 private:
     RC<AstNil> CloneImpl() const

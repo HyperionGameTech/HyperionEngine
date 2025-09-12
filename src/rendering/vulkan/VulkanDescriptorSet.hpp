@@ -83,7 +83,7 @@ protected:
     Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;
 };
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class VulkanDescriptorTable final : public DescriptorTableBase
 {
     HYP_OBJECT_BODY(VulkanDescriptorTable);

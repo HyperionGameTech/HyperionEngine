@@ -290,6 +290,10 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
         "Name",
         nullptr);
 
+    static const SymbolTypeRef s_byteBufferType = SymbolType::Object(
+        "ByteBuffer", nullptr,
+        {}, {});
+
     static SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
         BuiltinTypes::s_objectType,
@@ -322,7 +326,8 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
         s_vec4iType,
         s_vec4uType,
         s_vec4fType,
-        s_nameType
+        s_nameType,
+        s_byteBufferType
     };
 
     for (SymbolType* type : s_globalVisibleTypes)

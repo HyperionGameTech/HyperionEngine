@@ -16,14 +16,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
 
-    virtual ConstantValue GetConstantValue() const override
-    {
-        return ConstantValue(INVALID_CONSTANT_NUMBER);
-    }
-
     virtual SymbolTypeRef GetExprType() const override;
-
-    virtual RC<AstConstant> HandleOperator(Operators opType, const AstConstant* right) const override;
 
 private:
     RC<AstUndefined> CloneImpl() const
