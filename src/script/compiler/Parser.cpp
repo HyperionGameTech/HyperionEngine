@@ -910,6 +910,20 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
     {
         bool breakout = false;
 
+        // If we see a '>>' here, split it into two '>' so the first one can close this instantiation
+        if (MatchOperator(">>", false))
+        {
+            // replace current token with two '>' tokens at current position
+            const SourceLocation loc = m_tokenStream->Peek().GetLocation();
+            auto& tokens = m_tokenStream->m_tokens;
+            const SizeType pos = m_tokenStream->m_position;
+            // erase the '>>' token
+            tokens.Erase(tokens.Begin() + pos);
+            // insert two '>' tokens in its place
+            tokens.Insert(tokens.Begin() + pos, Token(TK_OPERATOR, ">", loc));
+            tokens.Insert(tokens.Begin() + pos + 1, Token(TK_OPERATOR, ">", loc));
+        }
+
         if (MatchOperator(">", true))
         {
             return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
@@ -967,13 +981,27 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
 
         --m_templateArgumentDepth;
 
-        if (!breakout && MatchOperator(">", true))
+        if (!breakout)
         {
-            return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
-                expr,
-                args,
-                parseFunctionReturnType(),
-                token.GetLocation()));
+            // If we see a '>>' here, split it so we can consume one '>' and leave the other for the outer template
+            if (MatchOperator(">>", false))
+            {
+                const SourceLocation loc = m_tokenStream->Peek().GetLocation();
+                auto& tokens = m_tokenStream->m_tokens;
+                const SizeType pos = m_tokenStream->m_position;
+                tokens.Erase(tokens.Begin() + pos);
+                tokens.Insert(tokens.Begin() + pos, Token(TK_OPERATOR, ">", loc));
+                tokens.Insert(tokens.Begin() + pos + 1, Token(TK_OPERATOR, ">", loc));
+            }
+
+            if (MatchOperator(">", true))
+            {
+                return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
+                    expr,
+                    args,
+                    parseFunctionReturnType(),
+                    token.GetLocation()));
+            }
         }
 
         // no closing bracket found, revert to start.
@@ -1866,7 +1894,7 @@ RC<AstExpression> Parser::ParseExpression(
         if (Match(TK_OPERATOR, false))
         {
             // drop out of expression, return to parent call
-            if (MatchOperator(">", false) && m_templateArgumentDepth > 0)
+            if ((MatchOperator(">", false) || MatchOperator(">>", false)) && m_templateArgumentDepth > 0)
             {
                 return term;
             }
