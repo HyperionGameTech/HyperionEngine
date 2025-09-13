@@ -73,9 +73,16 @@ struct EnumFlags
         }
     };
 
-    UnderlyingType value {};
+    union
+    {
+        UnderlyingType value;
+        EnumType enumValue;
+    };
 
-    constexpr EnumFlags() = default;
+    constexpr EnumFlags()
+        : value {}
+    {
+    }
 
     constexpr EnumFlags(EnumType value)
         : value(static_cast<UnderlyingType>(value))

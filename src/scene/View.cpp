@@ -556,7 +556,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, visibilityStateComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (!(visibilityStateComponent.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+                    if (!(visibilityStateComponent.flags & VisibilityStateFlags::ALWAYS_VISIBLE))
                     {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
                         if (!visibilityStateComponent.visibilityState)
@@ -644,7 +644,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (!(visibilityStateComponent.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+                    if (!(visibilityStateComponent.flags & VisibilityStateFlags::ALWAYS_VISIBLE))
                     {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
                         if (!visibilityStateComponent.visibilityState)
@@ -732,7 +732,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             {
                 for (auto [entity, meshComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
-                    if (!(visibilityStateComponent.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+                    if (!(visibilityStateComponent.flags & VisibilityStateFlags::ALWAYS_VISIBLE))
                     {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
                         if (!visibilityStateComponent.visibilityState)
@@ -802,7 +802,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
         for (Entity* entity : added)
         {
             AssertDebug(entity->InstanceClass() == Entity::Class());
-            
+
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
             AssertDebug(meshComponent != nullptr);
 

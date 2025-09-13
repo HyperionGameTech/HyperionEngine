@@ -9,7 +9,7 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-namespace hyperion::physics {
+namespace hyperion {
 
 RigidBody::RigidBody()
     : RigidBody(nullptr, {})
@@ -63,4 +63,4 @@ void RigidBody::ApplyForce(const Vector3& force)
     g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().ApplyForceToBody(this, force);
 }
 
-} // namespace hyperion::physics
+} // namespace hyperion

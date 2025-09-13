@@ -18,6 +18,7 @@ class Assembly;
 class ScriptObjectResource;
 class ScriptAsset;
 
+HYP_ENUM()
 enum class ScriptComponentFlags : uint32
 {
     NONE = 0x0,
@@ -36,10 +37,10 @@ struct ScriptComponent
     HYP_FIELD()
     Handle<ScriptAsset> scriptAsset;
 
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     RC<dotnet::Assembly> assembly;
 
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     ScriptObjectResource* scriptObjectResource = nullptr;
 
     HYP_FIELD()

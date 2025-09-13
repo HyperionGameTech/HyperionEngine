@@ -672,11 +672,11 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
                 if (visibilityState)
                 {
-                    visibilityState->flags |= VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE;
+                    visibilityState->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
                 }
                 else
                 {
-                    childEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+                    childEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
                 }
 
                 MeshComponent* meshComponent = childEntity->TryGetComponent<MeshComponent>();
@@ -1348,7 +1348,7 @@ void EditorSubsystem::CreateHighlightNode()
     // m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
     //     entity,
     //     VisibilityStateComponent {
-    //         VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+    //         VisibilityStateFlags::ALWAYS_VISIBLE
     //     }
     // );
 

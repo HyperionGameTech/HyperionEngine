@@ -26,7 +26,7 @@ AstVariableDeclaration::AstVariableDeclaration(
     const String& name,
     const RC<AstTypeSpecifier>& typeSpec,
     const RC<AstExpression>& assignment,
-    IdentifierFlagBits flags,
+    EnumFlags<IdentifierFlags> flags,
     const SourceLocation& location)
     : AstDeclaration(name, flags, location),
       m_typeSpec(typeSpec),
@@ -39,7 +39,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
     m_symbolType = BuiltinTypes::s_errorType;
 
-    if (m_flags & IdentifierFlags::FLAG_PREREGISTER)
+    if (m_flags & IdentifierFlags::PREREGISTER)
     {
         m_symbolType = BuiltinTypes::s_anyType;
 
@@ -49,14 +49,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         {
             m_identifier->GetFlags() |= m_flags;
             m_identifier->SetSymbolType(m_symbolType);
-
-            // set current value to be the assignment
-            if (!m_identifier->GetCurrentValue())
-            {
-                // Note: we do not call CloneAstNode() on the assignment,
-                // because we need to use GetExprType(), which requires that the node has been visited.
-                m_identifier->SetCurrentValue(m_realAssignment);
-            }
+            m_identifier->SetCurrentValue(m_realAssignment);
         }
 
         // if pre-registering, do not visit assignment
@@ -280,7 +273,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (noDefaultAssignment && !(m_flags & (IdentifierFlags::FLAG_LAX | IdentifierFlags::FLAG_EXTERN)))
+        if (noDefaultAssignment && !(m_flags & (IdentifierFlags::LAX | IdentifierFlags::EXTERN)))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -331,14 +324,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
     {
         m_identifier->GetFlags() |= m_flags;
         m_identifier->SetSymbolType(m_symbolType);
-
-        // set current value to be the assignment
-        if (!m_identifier->GetCurrentValue())
-        {
-            // Note: we do not call CloneAstNode() on the assignment,
-            // because we need to use GetExprType(), which requires that the node has been visited.
-            m_identifier->SetCurrentValue(m_realAssignment);
-        }
+        m_identifier->SetCurrentValue(m_realAssignment);
     }
 }
 HYP_ENABLE_OPTIMIZATION;
@@ -351,12 +337,12 @@ UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* 
 
     if (!Config::cullUnusedObjects
         || m_identifier->GetUseCount() > 0
-        || (m_flags & (IdentifierFlags::FLAG_EXTERN | IdentifierFlags::FLAG_PLACEHOLDER)))
+        || (m_flags & (IdentifierFlags::EXTERN | IdentifierFlags::PLACEHOLDER)))
     {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
 
-        if (!(m_flags & IdentifierFlags::FLAG_EXTERN))
+        if (!(m_flags & IdentifierFlags::EXTERN))
         {
             // if the type specification has side effects, compile it in
             if (m_typeSpec != nullptr && m_typeSpec->MayHaveSideEffects())

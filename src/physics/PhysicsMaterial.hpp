@@ -7,10 +7,8 @@
 #include <core/HashCode.hpp>
 
 namespace hyperion {
-namespace physics {
 
 HYP_STRUCT()
-
 struct PhysicsMaterial
 {
     HYP_FIELD(Serialize, Property = "Mass")
@@ -35,9 +33,5 @@ struct PhysicsMaterial
         return hashCode;
     }
 };
-
-} // namespace physics
-
-using physics::PhysicsMaterial;
 
 } // namespace hyperion

@@ -32,7 +32,7 @@ const RC<Identifier>& IdentifierTable::AddAlias(const String& name, Identifier* 
     return identifiers.PushBack(RC<Identifier>(new Identifier(
         name,
         aliasee->GetIndex(),
-        aliasee->GetFlags() | FLAG_ALIAS,
+        aliasee->GetFlags() | IdentifierFlags::ALIAS,
         aliasee)));
 }
 

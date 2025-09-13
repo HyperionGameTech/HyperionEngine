@@ -292,13 +292,6 @@ bool AstAsExpression::IsLiteral() const
     return m_target->IsLiteral();
 }
 
-ConstantValue AstAsExpression::GetConstantValue() const
-{
-    Assert(m_target != nullptr);
-
-    return m_target->GetConstantValue();
-}
-
 Tribool AstAsExpression::IsTrue() const
 {
     return TRI_INDETERMINATE;
@@ -306,11 +299,62 @@ Tribool AstAsExpression::IsTrue() const
 
 bool AstAsExpression::MayHaveSideEffects() const
 {
-    Assert(
-        m_target != nullptr && m_typeSpecification != nullptr);
+    Assert(m_target != nullptr && m_typeSpecification != nullptr);
 
     return m_target->MayHaveSideEffects()
         || m_typeSpecification->MayHaveSideEffects();
+}
+
+ConstantValue AstAsExpression::GetConstantValue() const
+{
+    Assert(m_target != nullptr);
+    Assert(m_resultType != nullptr);
+
+    const ConstantValue targetValue = m_target->GetConstantValue();
+
+    if (!targetValue.IsValid())
+    {
+        return ConstantValue(INVALID_CONSTANT_NUMBER);
+    }
+
+    SymbolTypeRef resultType = m_resultType;
+    Assert(resultType != nullptr);
+    resultType = resultType->GetUnaliased();
+
+    if (resultType->IsAnyType())
+    {
+        return targetValue;
+    }
+
+    if (resultType->IsEnumType())
+    {
+        SymbolTypeRef baseType = resultType->GetBaseType();
+        Assert(baseType != nullptr);
+
+        resultType = baseType->GetUnaliased();
+    }
+
+    if (resultType->IsSignedIntegral())
+    {
+        return ConstantValue(targetValue.AsInt(), resultType->GetConstantBitSize());
+    }
+
+    if (resultType->IsUnsignedIntegral())
+    {
+        return ConstantValue(targetValue.AsUInt(), resultType->GetConstantBitSize());
+    }
+
+    if (resultType->IsFloat())
+    {
+        return ConstantValue(targetValue.AsFloat(), resultType->GetConstantBitSize());
+    }
+
+    if (resultType->IsBoolean())
+    {
+        return ConstantValue(targetValue.AsBool(), CBS_8);
+    }
+
+    return ConstantValue(INVALID_CONSTANT_NUMBER);
 }
 
 RC<AstStatement> AstAsExpression::Clone() const

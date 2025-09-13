@@ -18,13 +18,13 @@ AstModuleDeclaration::AstModuleDeclaration(
     const String& name,
     const Array<RC<AstStatement>>& children,
     const SourceLocation& location)
-    : AstDeclaration(name, IdentifierFlags::FLAG_MODULE, location),
+    : AstDeclaration(name, IdentifierFlags::MODULE, location),
       m_children(children)
 {
 }
 
 AstModuleDeclaration::AstModuleDeclaration(const String& name, const SourceLocation& location)
-    : AstDeclaration(name, IdentifierFlags::FLAG_MODULE, location)
+    : AstDeclaration(name, IdentifierFlags::MODULE, location)
 {
 }
 

@@ -8,7 +8,7 @@ namespace hyperion {
 
 class AstTypeRef;
 
-class AstVariable : public AstIdentifier
+class AstVariable final : public AstIdentifier
 {
 public:
     AstVariable(const String& name, const SourceLocation& location);
@@ -19,7 +19,6 @@ public:
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
     virtual bool IsLiteral() const override;
-    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -28,6 +27,8 @@ public:
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
+
+    virtual RC<AstStatement> Clone() const override;
 
 private:
     // set while analyzing

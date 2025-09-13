@@ -164,7 +164,7 @@ void HyperionEditor::Init()
               "    }\n"
               "}\n"
               "class Fart { i: int = 9949; }\n"
-              "enum Fupa : uint8 { MEOW = 3 }\n"
+              "enum Fupa : uint8 { MEOW = -1 as uint8 }\n"
               "ins := new MyClass();\n"
               "testArray2 : Array<int32> = [9,9,34]\n"
               "testArray2[0]++\n"
@@ -311,7 +311,7 @@ void HyperionEditor::Init()
         skydomeNode->SetName(NAME("Sky"));
 
         scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
-        scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE };
+        scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
     }
 
 #if 1
@@ -358,7 +358,7 @@ void HyperionEditor::Init()
                     //     InitObject(meshComponent->material);
                     // }
 
-                    // zombie->AddComponent<AudioComponent>(AudioComponent { .audioSource = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(), .playbackState = { .loopMode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE, .speed = 2.0f } });
+                    // zombie->AddComponent<AudioComponent>(AudioComponent { .audioSource = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(), .playbackState = { .loopMode = AudioLoopMode::ALM_ONCE, .speed = 2.0f } });
 
                     // temp: add test script component
 

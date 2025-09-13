@@ -197,7 +197,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             for (const RC<AstVariableDeclaration>& member : *members)
             {
-                if (member->GetIdentifierFlags() & IdentifierFlags::FLAG_LAX)
+                if (member->GetIdentifierFlags() & IdentifierFlags::LAX)
                 {
                     continue;
                 }
@@ -282,10 +282,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 if (IsExternClass())
                 {
-                    decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
+                    decl->ApplyIdentifierFlags(IdentifierFlags::EXTERN);
                 }
 
-                decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
+                decl->ApplyIdentifierFlags(IdentifierFlags::PREREGISTER, m_preRegister);
                 decl->Visit(visitor, mod);
 
                 // Update the next enum value
@@ -299,10 +299,11 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                     Assert(m_baseType != nullptr);
 
-                    ConstantValue constantValue = realAssignment->GetConstantValue();
+                    const ConstantValue constantValue = realAssignment->GetConstantValue();
 
                     if (!constantValue.IsValid())
                     {
+                        HYP_BREAKPOINT;
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
                             Msg_enum_assignment_not_constant,
@@ -378,10 +379,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 if (IsExternClass())
                 {
-                    decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
+                    decl->ApplyIdentifierFlags(IdentifierFlags::EXTERN);
                 }
 
-                decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
+                decl->ApplyIdentifierFlags(IdentifierFlags::PREREGISTER, m_preRegister);
 
                 decl->Visit(visitor, mod);
 
@@ -407,10 +408,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 if (IsExternClass())
                 {
-                    decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_EXTERN);
+                    decl->ApplyIdentifierFlags(IdentifierFlags::EXTERN);
                 }
 
-                decl->ApplyIdentifierFlags(IdentifierFlags::FLAG_PREREGISTER, m_preRegister);
+                decl->ApplyIdentifierFlags(IdentifierFlags::PREREGISTER, m_preRegister);
 
                 decl->Visit(visitor, mod);
 
@@ -459,7 +460,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                         m_location)),
                     nullptr,
                     false, /* variadic */
-                    IdentifierFlags::FLAG_CONST,
+                    IdentifierFlags::CONST,
                     m_location)));
 
                 RC<AstBlock> constructorBody(new AstBlock(m_location));
@@ -536,7 +537,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     "$construct",
                     nullptr,
                     constructorExpr,
-                    IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_LAX,
+                    IdentifierFlags::CONST | IdentifierFlags::LAX,
                     m_location));
 
                 constructMemberDecl->Visit(visitor, mod);

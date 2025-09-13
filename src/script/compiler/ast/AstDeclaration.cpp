@@ -6,7 +6,7 @@ namespace hyperion {
 
 AstDeclaration::AstDeclaration(
     const String& name,
-    IdentifierFlagBits flags,
+    EnumFlags<IdentifierFlags> flags,
     const SourceLocation& location)
     : AstStatement(location),
       m_name(name),
@@ -43,7 +43,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
     }
 
     const bool skipShadowingCheck = m_name.StartsWith("$")
-        || (m_flags & IdentifierFlags::FLAG_LAX)
+        || (m_flags & IdentifierFlags::LAX)
         || mod->IsInScopeOfType(SCOPE_TYPE_CLASS_DEFINITION, EXTERN_CLASS_FLAG, /* thisScopeOnly */ false);
 
     if (!skipShadowingCheck)
@@ -73,7 +73,7 @@ void AstDeclaration::Visit(AstVisitor* visitor, Module* mod)
         if (top->Get().scopeType == SCOPE_TYPE_FUNCTION)
         {
             // set declared in function flag
-            m_identifier->GetFlags() |= FLAG_DECLARED_IN_FUNCTION;
+            m_identifier->GetFlags() |= IdentifierFlags::DECLARED_IN_FUNCTION;
             break;
         }
 

@@ -20,7 +20,7 @@ public:
         const String& name,
         const RC<AstTypeSpecifier>& typeSpec,
         const RC<AstExpression>& assignment,
-        IdentifierFlagBits flags,
+        EnumFlags<IdentifierFlags> flags,
         const SourceLocation& location);
 
     virtual ~AstVariableDeclaration() = default;

@@ -71,7 +71,7 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 tempVarName,
                 nullptr,
                 CloneAstNode(m_expr),
-                IdentifierFlags::FLAG_NONE,
+                IdentifierFlags::NONE,
                 m_location));
 
             // add the variable declaration to the block so  it gets stored

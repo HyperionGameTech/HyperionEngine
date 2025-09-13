@@ -212,7 +212,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
                     RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_anyType, m_location)),
                     m_location)),
                 nullptr, // no initializer
-                IdentifierFlags::FLAG_LAX,
+                IdentifierFlags::LAX,
                 m_location));
 
             m_tempArrayStoreVarDecl->Visit(visitor, mod);

@@ -369,7 +369,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
 
     Handle<Entity> entity = entityManager->AddEntity();
     entityManager->GetComponent<TransformComponent>(entity) = TransformComponent { transform };
-    entityManager->GetComponent<VisibilityStateComponent>(entity) = VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE };
+    entityManager->GetComponent<VisibilityStateComponent>(entity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
 
     entityManager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { m_mesh->GetAABB() });
 

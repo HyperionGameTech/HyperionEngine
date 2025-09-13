@@ -56,7 +56,7 @@ void PhysicsSystem::Process(float delta)
 {
     for (auto [entity, rigidBodyComponent, transformComponent] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
     {
-        Handle<physics::RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
+        Handle<RigidBody>& rigidBody = rigidBodyComponent.rigidBody;
         Transform& transform = transformComponent.transform;
 
         if (!rigidBody)

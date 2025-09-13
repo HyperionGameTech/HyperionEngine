@@ -136,7 +136,7 @@ public:
     RC<AstVariableDeclaration> ParseVariableDeclaration(
         bool allowKeywordNames = false,
         bool allowQuotedNames = false,
-        IdentifierFlagBits flags = 0);
+        EnumFlags<IdentifierFlags> flags = IdentifierFlags::NONE);
     RC<AstStatement> ParseFunctionDefinition(bool requireKeyword = true);
     RC<AstFunctionExpression> ParseFunctionExpression(
         bool requireKeyword = true,

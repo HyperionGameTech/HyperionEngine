@@ -44,7 +44,7 @@ struct MeshComponent
 
     // 128
 
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     RenderProxyMesh* UNUSED_proxy = nullptr;
 
     // 136
@@ -59,12 +59,12 @@ struct MeshComponent
 
     // 208
 
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     MeshRaytracingData* UNUSED_raytracingData = nullptr;
 
     // 224
 
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     MeshComponentUserData userData;
 
     // 256

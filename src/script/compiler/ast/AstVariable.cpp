@@ -44,25 +44,16 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         // if alias or const, load direct value.
         // if it's an alias then it will just refer to whatever other variable
         // is being referenced. if it is const, load the direct value held in the variable
-        const bool isAlias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
-        const bool isArgument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
-        const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
-        const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
+        const bool isAlias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::ALIAS;
+        const bool isArgument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::ARGUMENT;
+        const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::CONST;
+        const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::REF;
 
-        const bool isMember = (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER)
-            && !(m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_STATIC_MEMBER);
+        const bool isMember = (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::MEMBER)
+            && !(m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::STATIC_MEMBER);
 
 #if HYP_SCRIPT_ENABLE_VARIABLE_INLINING
-        // clone the AST node so we don't double-visit
-        if (auto currentValue = m_properties.GetIdentifier()->GetCurrentValue())
-        {
-            const AstConstant* constantValue = nullptr;
-
-            if (currentValue->IsLiteral() && (constantValue = dynamic_cast<const AstConstant*>(currentValue->GetDeepValueOf())))
-            {
-                m_inlineValue = CloneAstNode(constantValue);
-            }
-        }
+#error "Variable inlining is no longer supported. Remove HYP_SCRIPT_ENABLE_VARIABLE_INLINING related code."
 #endif
 
         if (isMember) // add 'self' prefix for member access
@@ -137,11 +128,11 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
 
             if (m_properties.IsInFunction())
             {
-                const SymbolTypeFlags flags = m_properties.GetIdentifier()->GetFlags();
+                const EnumFlags<IdentifierFlags> identifierFlags = m_properties.GetIdentifier()->GetFlags();
 
                 // if the variable is declared in a function, and is not a generic substitution,
                 // we add it to the closure capture list.
-                if ((flags & FLAG_DECLARED_IN_FUNCTION))
+                if (identifierFlags[IdentifierFlags::DECLARED_IN_FUNCTION])
                 {
                     // lookup the variable by depth to make sure it was declared in the current function
                     if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth()))
@@ -149,9 +140,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
                         Scope* functionScope = m_properties.GetFunctionScope();
                         Assert(functionScope != nullptr);
 
-                        functionScope->AddClosureCapture(
-                            m_name,
-                            m_properties.GetIdentifier());
+                        functionScope->AddClosureCapture(m_name, m_properties.GetIdentifier());
 
                         // closures are objects with a method named '$invoke',
                         // because we are in the '$invoke' method currently,
@@ -252,9 +241,9 @@ UniquePtr<Buildable> AstVariable::Build(AstVisitor* visitor, Module* mod)
         uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         // if we are a reference, we deference it before doing anything
-        const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
+        const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::REF;
 
-        if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION)
+        if (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::DECLARED_IN_FUNCTION)
         {
             if (m_accessMode == ACCESS_MODE_LOAD)
             {
@@ -398,58 +387,7 @@ bool AstVariable::MayHaveSideEffects() const
 
 bool AstVariable::IsLiteral() const
 {
-    if (SymbolTypeRef exprType = GetExprType())
-    {
-        exprType = exprType->GetUnaliased();
-
-        if (exprType->IsObject())
-        {
-            return false;
-        }
-
-        if (exprType->IsAnyType())
-        {
-            return false;
-        }
-
-        if (!(exprType->IsIntegral() || exprType->IsFloat()))
-        {
-            return false;
-        }
-    }
-    else
-    {
-        // undefined
-        return false;
-    }
-
-    if (m_typeRef != nullptr)
-    {
-        return m_typeRef->IsLiteral();
-    }
-
-    if (m_inlineValue != nullptr)
-    {
-        return m_inlineValue->IsLiteral();
-    }
-
-    if (m_selfMemberAccess != nullptr)
-    {
-        return m_selfMemberAccess->IsLiteral();
-    }
-
-    if (const RC<Identifier>& ident = m_properties.GetIdentifier())
-    {
-        const Identifier* identUnaliased = ident->Unalias();
-        Assert(identUnaliased != nullptr);
-
-        const bool isConst = identUnaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
-        const bool isArgument = identUnaliased->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
-
-        return !isArgument && isConst;
-    }
-
-    return false;
+    return GetConstantValue().IsValid();
 }
 
 SymbolTypeRef AstVariable::GetExprType() const
@@ -512,7 +450,7 @@ bool AstVariable::IsMutable() const
         const Identifier* identUnaliased = ident->Unalias();
         Assert(identUnaliased != nullptr);
 
-        const bool isConst = identUnaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
+        const bool isConst = identUnaliased->GetFlags() & IdentifierFlags::CONST;
 
         if (isConst)
         {

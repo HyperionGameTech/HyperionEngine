@@ -15,7 +15,7 @@
 #ifdef HYP_BULLET_PHYSICS
 #include "btBulletDynamicsCommon.h"
 
-namespace hyperion::physics {
+namespace hyperion {
 
 static inline btVector3 ToBtVector(const Vec3f& vec)
 {
@@ -279,6 +279,6 @@ void BulletPhysicsAdapter::ApplyForceToBody(const RigidBody* rigidBody, const Ve
     internalData->rigidBody->applyCentralForce(ToBtVector(force));
 }
 
-} // namespace hyperion::physics
+} // namespace hyperion
 
 #endif

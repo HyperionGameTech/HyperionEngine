@@ -7,7 +7,7 @@ namespace hyperion {
 Identifier::Identifier(
     const String& name,
     int index,
-    IdentifierFlagBits flags,
+    EnumFlags<IdentifierFlags> flags,
     Identifier* aliasee)
     : m_name(name),
       m_index(index),

@@ -23,10 +23,10 @@ HYP_STRUCT(Component, Label = "Rigid Body Component", Description = "Controls th
 struct RigidBodyComponent
 {
     HYP_FIELD(Serialize, Property = "RigidBody")
-    Handle<physics::RigidBody> rigidBody;
+    Handle<RigidBody> rigidBody;
 
     HYP_FIELD(Serialize, Property = "PhysicsMaterial")
-    physics::PhysicsMaterial physicsMaterial;
+    PhysicsMaterial physicsMaterial;
 
     HYP_FIELD()
     RigidBodyComponentFlags flags = RIGID_BODY_COMPONENT_FLAG_NONE;

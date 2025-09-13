@@ -91,9 +91,9 @@ void VisibilityStateUpdaterSystem::Process(float delta)
 
     const auto updateVisbilityState = [&octree, &updatedEntities](Entity* entity, VisibilityStateComponent& visibilityStateComponent, BoundingBoxComponent& boundingBoxComponent)
     {
-        const bool visibilityStateInvalidated = visibilityStateComponent.flags & VISIBILITY_STATE_FLAG_INVALIDATED;
+        const bool visibilityStateInvalidated = visibilityStateComponent.flags & VisibilityStateFlags::INVALIDATED;
 
-        visibilityStateComponent.flags &= ~VISIBILITY_STATE_FLAG_INVALIDATED;
+        visibilityStateComponent.flags &= ~VisibilityStateFlags::INVALIDATED;
 
         // if entity is not in the octree, try to insert it
         if (visibilityStateComponent.octantId == OctantId::Invalid())

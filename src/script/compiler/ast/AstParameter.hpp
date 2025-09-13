@@ -15,7 +15,7 @@ public:
         const RC<AstTypeSpecifier>& typeSpec,
         const RC<AstExpression>& defaultParam,
         bool isVariadic,
-        IdentifierFlagBits flags,
+        EnumFlags<IdentifierFlags> flags,
         const SourceLocation& location);
 
     virtual ~AstParameter() override = default;

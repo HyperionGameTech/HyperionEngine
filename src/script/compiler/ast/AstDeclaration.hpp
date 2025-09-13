@@ -12,7 +12,7 @@ class AstDeclaration : public AstStatement
 public:
     AstDeclaration(
         const String& name,
-        IdentifierFlagBits flags,
+        EnumFlags<IdentifierFlags> flags,
         const SourceLocation& location);
     virtual ~AstDeclaration() = default;
 
@@ -28,25 +28,25 @@ public:
 
     bool IsConst() const
     {
-        return m_flags & IdentifierFlags::FLAG_CONST;
+        return m_flags & IdentifierFlags::CONST;
     }
 
     bool IsRef() const
     {
-        return m_flags & IdentifierFlags::FLAG_REF;
+        return m_flags & IdentifierFlags::REF;
     }
 
-    IdentifierFlagBits GetIdentifierFlags() const
+    EnumFlags<IdentifierFlags> GetIdentifierFlags() const
     {
         return m_flags;
     }
 
-    void SetIdentifierFlags(IdentifierFlagBits flags)
+    void SetIdentifierFlags(EnumFlags<IdentifierFlags> flags)
     {
         m_flags = flags;
     }
 
-    void ApplyIdentifierFlags(IdentifierFlagBits flags, bool set = true)
+    void ApplyIdentifierFlags(EnumFlags<IdentifierFlags> flags, bool set = true)
     {
         if (set)
         {
@@ -79,7 +79,7 @@ public:
 protected:
     String m_name;
     RC<Identifier> m_identifier;
-    IdentifierFlagBits m_flags;
+    EnumFlags<IdentifierFlags> m_flags;
 };
 
 } // namespace hyperion

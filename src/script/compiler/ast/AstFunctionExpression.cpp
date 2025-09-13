@@ -91,7 +91,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             nullptr,
             nullptr,
             false, /* variadic */
-            IdentifierFlags::FLAG_CONST,
+            IdentifierFlags::CONST,
             m_location));
     }
 
@@ -438,7 +438,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     CloneAstNode(m_block),
                     false, // do not enable closure
                     m_location)),
-                IdentifierFlags::FLAG_PLACEHOLDER,
+                IdentifierFlags::PLACEHOLDER,
                 m_location)) },
             {},
             ClassFlags::CLASS_FLAG_ANONYMOUS,
@@ -451,8 +451,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
                     RC<AstTypeRef>(new AstTypeRef(member.type, m_location)),
                     m_location)),
-                RC<AstNil>(new AstNil(m_location)),                            // placeholder; set later
-                IdentifierFlags::FLAG_PLACEHOLDER | IdentifierFlags::FLAG_LAX, // don't emit errors for null assignment
+                RC<AstNil>(new AstNil(m_location)),                  // placeholder; set later
+                IdentifierFlags::PLACEHOLDER | IdentifierFlags::LAX, // don't emit errors for null assignment
                 m_location)));
         }
 
@@ -467,7 +467,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 nullptr, // no constructor args
                 false,   // enable constructor call
                 m_location)),
-            IdentifierFlags::FLAG_NONE,
+            IdentifierFlags::NONE,
             m_location));
 
         m_closureBlock->AddChild(closureInstanceDecl);

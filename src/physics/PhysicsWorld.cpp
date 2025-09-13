@@ -2,6 +2,6 @@
 
 #include <physics/PhysicsWorld.hpp>
 
-namespace hyperion::physics {
+namespace hyperion {
 
-} // namespace hyperion::physics
+} // namespace hyperion

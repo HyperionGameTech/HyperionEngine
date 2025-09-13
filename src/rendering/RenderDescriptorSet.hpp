@@ -37,6 +37,7 @@ namespace hyperion {
 
 class RenderResourceBase;
 
+HYP_ENUM()
 enum class DescriptorSetDeclarationFlags : uint8
 {
     NONE = 0x0,
@@ -156,7 +157,7 @@ struct DescriptorSetOffsetMap
 struct DescriptorTableOffsetMap
 {
     static constexpr uint32 g_maxSets = 4;
-    
+
     WeakName setNames[g_maxSets];
     DescriptorSetOffsetMap setOffsets[g_maxSets];
     uint32 count;
@@ -258,11 +259,19 @@ struct DescriptorSetElementTypeInfo<TLASBase>
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
 };
 
+HYP_STRUCT()
 struct DescriptorSetLayoutElement
 {
+    HYP_FIELD()
     DescriptorSetElementType type = DescriptorSetElementType::UNSET;
+
+    HYP_FIELD()
     uint32 binding = ~0u; // has to be set
-    uint32 count = 1;     // Set to -1 for bindless
+
+    HYP_FIELD()
+    uint32 count = 1; // Set to -1 for bindless
+
+    HYP_FIELD()
     uint32 size = ~0u;
 
     HYP_FORCE_INLINE bool IsBindless() const
@@ -283,6 +292,7 @@ struct DescriptorSetLayoutElement
     }
 };
 
+HYP_ENUM()
 enum DescriptorSlot : uint32
 {
     DESCRIPTOR_SLOT_NONE,

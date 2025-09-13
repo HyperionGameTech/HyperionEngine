@@ -21,11 +21,11 @@ public:
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
     virtual bool IsLiteral() const override;
+    virtual Tribool IsTrue() const override;
+    virtual bool MayHaveSideEffects() const override;
 
     virtual ConstantValue GetConstantValue() const override;
 
-    virtual Tribool IsTrue() const override;
-    virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypeRef GetExprType() const override;
 
     virtual RC<AstStatement> Clone() const override;
@@ -44,7 +44,6 @@ protected:
     RC<AstTypeSpecifier> m_typeSpecification;
 
     // set while analyzing
-    RC<AstExpression> m_dynamicTypeExpr;
     SymbolTypeRef m_resultType;
     Tribool m_isType;
 

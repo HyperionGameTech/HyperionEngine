@@ -20,9 +20,9 @@ AstParameter::AstParameter(
     const RC<AstTypeSpecifier>& typeSpec,
     const RC<AstExpression>& defaultParam,
     bool isVariadic,
-    IdentifierFlagBits flags,
+    EnumFlags<IdentifierFlags> flags,
     const SourceLocation& location)
-    : AstDeclaration(name, flags | IdentifierFlags::FLAG_ARGUMENT, location),
+    : AstDeclaration(name, flags | IdentifierFlags::ARGUMENT, location),
       m_typeSpec(typeSpec),
       m_defaultParam(defaultParam),
       m_isVariadic(isVariadic)

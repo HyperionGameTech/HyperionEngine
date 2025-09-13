@@ -22,8 +22,8 @@
 #include <type_traits>
 
 namespace hyperion {
-namespace physics {
 
+HYP_ENUM()
 enum class PhysicsShapeType : uint32
 {
     NONE,
@@ -266,15 +266,6 @@ private:
 
     UniquePtr<void> m_handle;
 };
-
-} // namespace physics
-
-using physics::BoxPhysicsShape;
-using physics::ConvexHullPhysicsShape;
-using physics::PhysicsShape;
-using physics::PlanePhysicsShape;
-using physics::RigidBody;
-using physics::SpherePhysicsShape;
 
 } // namespace hyperion
 

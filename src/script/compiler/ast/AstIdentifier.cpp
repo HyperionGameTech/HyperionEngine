@@ -112,8 +112,8 @@ const AstExpression* AstIdentifier::GetValueOf() const
 {
     if (const RC<Identifier>& ident = m_properties.GetIdentifier())
     {
-        if (((ident->GetFlags() & IdentifierFlags::FLAG_CONST) || (ident->GetFlags() & IdentifierFlags::FLAG_GENERIC))
-            && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT))
+        if (((ident->GetFlags() & IdentifierFlags::CONST) || (ident->GetFlags() & IdentifierFlags::GENERIC))
+            && !(ident->GetFlags() & IdentifierFlags::ARGUMENT))
         {
             if (const auto currentValue = ident->GetCurrentValue())
             {
@@ -134,8 +134,8 @@ const AstExpression* AstIdentifier::GetDeepValueOf() const
 {
     if (const RC<Identifier>& ident = m_properties.GetIdentifier())
     {
-        if (((ident->GetFlags() & IdentifierFlags::FLAG_CONST) || (ident->GetFlags() & IdentifierFlags::FLAG_GENERIC))
-            && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT))
+        if (((ident->GetFlags() & IdentifierFlags::CONST) || (ident->GetFlags() & IdentifierFlags::GENERIC))
+            && !(ident->GetFlags() & IdentifierFlags::ARGUMENT))
         {
             if (const auto currentValue = ident->GetCurrentValue())
             {
@@ -155,6 +155,34 @@ const AstExpression* AstIdentifier::GetDeepValueOf() const
 const String& AstIdentifier::GetName() const
 {
     return m_name;
+}
+
+ConstantValue AstIdentifier::GetConstantValue() const
+{
+    if (const RC<Identifier>& identifier = m_properties.GetIdentifier())
+    {
+        const Identifier* unaliased = identifier->Unalias();
+        Assert(unaliased != nullptr);
+
+        if (!(unaliased->GetFlags() & IdentifierFlags::CONST))
+        {
+            // cannot get constant value of non-const variable
+            return ConstantValue(INVALID_CONSTANT_NUMBER);
+        }
+
+        if (unaliased->GetFlags() & IdentifierFlags::ARGUMENT)
+        {
+            // cannot get constant value of argument
+            return ConstantValue(INVALID_CONSTANT_NUMBER);
+        }
+
+        if (const RC<AstExpression>& currentValue = unaliased->GetCurrentValue())
+        {
+            return currentValue->GetConstantValue();
+        }
+    }
+
+    return ConstantValue(INVALID_CONSTANT_NUMBER);
 }
 
 SymbolTypeRef AstIdentifier::GetHeldType() const

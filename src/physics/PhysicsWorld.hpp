@@ -8,7 +8,6 @@
 #include <core/math/Vector3.hpp>
 
 namespace hyperion {
-namespace physics {
 
 class HYP_API PhysicsWorldBase
 {
@@ -47,15 +46,15 @@ protected:
 };
 
 template <class Adapter>
-class HYP_API PhysicsWorld : public PhysicsWorldBase
+class HYP_API TPhysicsWorld : public PhysicsWorldBase
 {
 public:
-    PhysicsWorld()
+    TPhysicsWorld()
         : PhysicsWorldBase()
     {
     }
 
-    ~PhysicsWorld()
+    ~TPhysicsWorld()
     {
     }
 
@@ -114,7 +113,6 @@ private:
     Adapter m_adapter;
 };
 
-} // namespace physics
 } // namespace hyperion
 
 #ifdef HYP_BULLET_PHYSICS
@@ -122,7 +120,7 @@ private:
 #include <physics/bullet/Adapter.hpp>
 
 namespace hyperion {
-using PhysicsWorld = physics::PhysicsWorld<physics::BulletPhysicsAdapter>;
+using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
 } // namespace hyperion
 
 #else
@@ -130,7 +128,7 @@ using PhysicsWorld = physics::PhysicsWorld<physics::BulletPhysicsAdapter>;
 #include <physics/null/Adapter.hpp>
 
 namespace hyperion {
-using PhysicsWorld = physics::PhysicsWorld<physics::NullPhysicsAdapter>;
+using PhysicsWorld = TPhysicsWorld<NullPhysicsAdapter>;
 } // namespace hyperion
 
 #endif

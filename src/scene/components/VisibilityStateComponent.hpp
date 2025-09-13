@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/memory/RefCountedPtr.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <scene/VisibilityState.hpp>
 #include <scene/SceneOctree.hpp>
@@ -11,20 +12,20 @@
 
 namespace hyperion {
 
-using VisibilityStateFlags = uint32;
-
-enum VisibilityStateFlagBits : VisibilityStateFlags
+enum class VisibilityStateFlags : uint32
 {
-    VISIBILITY_STATE_FLAG_NONE = 0x0,
-    VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE = 0x1,
-    VISIBILITY_STATE_FLAG_INVALIDATED = 0x2
+    NONE = 0x0,
+    ALWAYS_VISIBLE = 0x1,
+    INVALIDATED = 0x2
 };
+
+HYP_MAKE_ENUM_FLAGS(VisibilityStateFlags)
 
 HYP_STRUCT(Component, Size = 32, Serialize = false, Editor = false)
 struct VisibilityStateComponent
 {
     HYP_FIELD()
-    VisibilityStateFlags flags = VISIBILITY_STATE_FLAG_NONE;
+    EnumFlags<VisibilityStateFlags> flags = VisibilityStateFlags::NONE;
 
     HYP_FIELD()
     OctantId octantId = OctantId::Invalid();

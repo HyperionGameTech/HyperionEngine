@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <core/containers/String.hpp>
+#include <core/utilities/EnumFlags.hpp>
 #include <core/Types.hpp>
 
 #include <string>
@@ -12,50 +13,51 @@ namespace hyperion {
 
 class Scope;
 
-using IdentifierFlagBits = uint32;
-
-enum IdentifierFlags : IdentifierFlagBits
+enum class IdentifierFlags : uint32
 {
-    FLAG_NONE = 0x0,
-    FLAG_CONST = 0x1,
-    FLAG_ALIAS = 0x2,
-    FLAG_MODULE = 0x4,
-    FLAG_GENERIC = 0x8,
-    FLAG_DECLARED_IN_FUNCTION = 0x10,
-    FLAG_PLACEHOLDER = 0x20,
+    NONE = 0x0,
+    CONST = 0x1,
+    ALIAS = 0x2,
+    MODULE = 0x4,
+    GENERIC = 0x8,
+    DECLARED_IN_FUNCTION = 0x10,
+    PLACEHOLDER = 0x20,
 
-    FLAG_ACCESS_PRIVATE = 0x40,
-    FLAG_ACCESS_PUBLIC = 0x80,
-    FLAG_ACCESS_PROTECTED = 0x100,
+    ACCESS_PRIVATE = 0x40,
+    ACCESS_PUBLIC = 0x80,
+    ACCESS_PROTECTED = 0x100,
 
-    FLAG_ARGUMENT = 0x200,
-    FLAG_REF = 0x400,
+    ARGUMENT = 0x200,
+    REF = 0x400,
 
-    FLAG_MEMBER = 0x1000,
-    FLAG_STATIC_MEMBER = 0x2000,
-    FLAG_ENUM_MEMBER = 0x4000,
+    MEMBER = 0x1000,
+    STATIC_MEMBER = 0x2000,
+    ENUM_MEMBER = 0x4000,
 
-    FLAG_MEMBER_ALL = (FLAG_MEMBER | FLAG_STATIC_MEMBER | FLAG_ENUM_MEMBER),
+    MEMBER_ALL = (MEMBER | STATIC_MEMBER | ENUM_MEMBER),
 
-    FLAG_CONSTRUCTOR = 0x8000,
-    FLAG_FUNCTION = 0x10000,
-    FLAG_EXTERN = 0x20000,
-    FLAG_LAX = 0x80000, //!< except from many analyses, this identifier should be hidden from the user
-    FLAG_PREREGISTER = 0x100000
+    CONSTRUCTOR = 0x8000,
+    FUNCTION = 0x10000,
+    EXTERN = 0x20000,
+    LAX = 0x80000, //!< except from many analyses, this identifier should be hidden from the user
+    PREREGISTER = 0x100000
 };
+
+HYP_MAKE_ENUM_FLAGS(IdentifierFlags)
 
 class Identifier
 {
 public:
-    Identifier(const String& name, int index, IdentifierFlagBits flags, Identifier* aliasee = nullptr);
+    Identifier(const String& name, int index, EnumFlags<IdentifierFlags> flags, Identifier* aliasee = nullptr);
     Identifier(const Identifier& other) = delete;
     Identifier& operator=(const Identifier& other) = delete;
-    ~Identifier() = default;
+    virtual ~Identifier() = default;
 
     const String& GetName() const
     {
         return m_name;
     }
+
     int GetIndex() const
     {
         return Unalias()->m_index;
@@ -89,17 +91,17 @@ public:
         return Unalias()->m_usecount;
     }
 
-    IdentifierFlagBits GetFlags() const
+    EnumFlags<IdentifierFlags> GetFlags() const
     {
         return m_flags;
     }
 
-    IdentifierFlagBits& GetFlags()
+    EnumFlags<IdentifierFlags>& GetFlags()
     {
         return m_flags;
     }
 
-    void SetFlags(IdentifierFlagBits flags)
+    void SetFlags(EnumFlags<IdentifierFlags> flags)
     {
         m_flags = flags;
     }
@@ -149,7 +151,7 @@ private:
     int m_index;
     int m_stackLocation;
     mutable int m_usecount;
-    IdentifierFlagBits m_flags;
+    EnumFlags<IdentifierFlags> m_flags;
     Identifier* m_aliasee;
     RC<AstExpression> m_currentValue;
     SymbolTypeRef m_symbolType;

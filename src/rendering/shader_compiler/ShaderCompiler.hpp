@@ -906,6 +906,7 @@ struct DescriptorUsage
     }
 };
 
+HYP_STRUCT()
 struct DescriptorUsageSet
 {
     FlatSet<DescriptorUsage> elements;

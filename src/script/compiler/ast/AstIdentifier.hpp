@@ -98,6 +98,8 @@ public:
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override = 0;
 
+    virtual ConstantValue GetConstantValue() const override final;
+
     virtual SymbolTypeRef GetExprType() const override = 0;
     virtual SymbolTypeRef GetHeldType() const override;
 

@@ -32,6 +32,7 @@ namespace hyperion {
  *
  * The maximum depth of an octree using this scheme is 64 bits / 3 bits for index = 21 octants.
  */
+HYP_STRUCT()
 struct OctantId
 {
     //! This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer

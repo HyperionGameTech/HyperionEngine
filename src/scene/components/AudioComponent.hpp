@@ -3,41 +3,48 @@
 #pragma once
 
 #include <audio/AudioSource.hpp>
+
 #include <core/object/Handle.hpp>
+#include <core/object/HypObject.hpp>
+
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/HashCode.hpp>
 
 namespace hyperion {
 
-using AudioComponentFlags = uint32;
-
-enum AudioComponentFlagBits : AudioComponentFlags
+HYP_ENUM()
+enum class AudioComponentFlags : uint8
 {
-    AUDIO_COMPONENT_FLAG_NONE = 0x0,
-    AUDIO_COMPONENT_FLAG_INIT = 0x1,
+    NONE = 0x0,
+    INIT = 0x1
 };
 
-enum AudioPlaybackStatus
+HYP_MAKE_ENUM_FLAGS(AudioComponentFlags);
+
+HYP_ENUM()
+enum AudioPlaybackStatus : uint8
 {
-    AUDIO_PLAYBACK_STATUS_STOPPED,
-    AUDIO_PLAYBACK_STATUS_PAUSED,
-    AUDIO_PLAYBACK_STATUS_PLAYING
+    APS_STOPPED,
+    APS_PAUSED,
+    APS_PLAYING
 };
 
-enum AudioLoopMode
+HYP_ENUM()
+enum AudioLoopMode : uint8
 {
-    AUDIO_LOOP_MODE_ONCE,
-    AUDIO_LOOP_MODE_REPEAT
+    ALM_ONCE,
+    ALM_REPEAT
 };
 
 HYP_STRUCT()
 struct AudioPlaybackState
 {
     HYP_FIELD(Property = "Status", Serialize = true, Editor = true)
-    AudioPlaybackStatus status = AUDIO_PLAYBACK_STATUS_STOPPED;
+    AudioPlaybackStatus status = APS_STOPPED;
 
     HYP_FIELD(Property = "LoopMode", Serialize = true, Editor = true)
-    AudioLoopMode loopMode = AUDIO_LOOP_MODE_ONCE;
+    AudioLoopMode loopMode = ALM_ONCE;
 
     HYP_FIELD(Property = "Speed", Serialize = true, Editor = true)
     float speed = 1.0f;
@@ -67,7 +74,7 @@ struct AudioComponent
     AudioPlaybackState playbackState;
 
     HYP_FIELD()
-    AudioComponentFlags flags = AUDIO_COMPONENT_FLAG_NONE;
+    EnumFlags<AudioComponentFlags> flags = AudioComponentFlags::NONE;
 
     HYP_FIELD()
     Vec3f lastPosition;

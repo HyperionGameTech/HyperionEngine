@@ -6,7 +6,8 @@ namespace Hyperion
     public enum VisibilityStateFlags : uint
     {
         None = 0x0,
-        AlwaysVisible = 0x1
+        AlwaysVisible = 0x1,
+        Invalidated = 0x2
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 16)]

@@ -22,7 +22,7 @@ void AudioSystem::OnEntityAdded(Entity* entity)
     {
         InitObject(audioComponent.audioSource);
 
-        audioComponent.flags |= AUDIO_COMPONENT_FLAG_INIT;
+        audioComponent.flags |= AudioComponentFlags::INIT;
     }
 }
 
@@ -46,20 +46,20 @@ void AudioSystem::Process(float delta)
     {
         if (!audioComponent.audioSource.IsValid())
         {
-            audioComponent.playbackState.status = AUDIO_PLAYBACK_STATUS_STOPPED;
+            audioComponent.playbackState.status = APS_STOPPED;
             audioComponent.playbackState.currentTime = 0.0f;
 
             continue;
         }
 
-        if (audioComponent.playbackState.status == AUDIO_PLAYBACK_STATUS_PLAYING)
+        if (audioComponent.playbackState.status == APS_PLAYING)
         {
             switch (audioComponent.playbackState.loopMode)
             {
-            case AUDIO_LOOP_MODE_ONCE:
+            case ALM_ONCE:
                 if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
                 {
-                    audioComponent.playbackState.status = AUDIO_PLAYBACK_STATUS_STOPPED;
+                    audioComponent.playbackState.status = APS_STOPPED;
                     audioComponent.playbackState.currentTime = 0.0f;
 
                     audioComponent.audioSource->Stop();
@@ -68,7 +68,7 @@ void AudioSystem::Process(float delta)
                 continue;
 
                 break;
-            case AUDIO_LOOP_MODE_REPEAT:
+            case ALM_REPEAT:
                 if (audioComponent.playbackState.currentTime > audioComponent.audioSource->GetDuration())
                 {
                     audioComponent.playbackState.currentTime = 0.0f;
@@ -86,7 +86,7 @@ void AudioSystem::Process(float delta)
             case AudioSourceState::PAUSED: // fallthrough
             case AudioSourceState::STOPPED:
                 audioComponent.audioSource->SetPitch(audioComponent.playbackState.speed);
-                audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == AUDIO_LOOP_MODE_REPEAT);
+                audioComponent.audioSource->SetLoop(audioComponent.playbackState.loopMode == ALM_REPEAT);
 
                 audioComponent.audioSource->Play();
                 break;
@@ -108,14 +108,14 @@ void AudioSystem::Process(float delta)
                 audioComponent.lastPosition = position;
             }
         }
-        else if (audioComponent.playbackState.status == AUDIO_PLAYBACK_STATUS_PAUSED)
+        else if (audioComponent.playbackState.status == APS_PAUSED)
         {
             if (audioComponent.audioSource->GetState() != AudioSourceState::PAUSED)
             {
                 audioComponent.audioSource->Pause();
             }
         }
-        else if (audioComponent.playbackState.status == AUDIO_PLAYBACK_STATUS_STOPPED)
+        else if (audioComponent.playbackState.status == APS_STOPPED)
         {
             if (audioComponent.audioSource->GetState() != AudioSourceState::STOPPED)
             {

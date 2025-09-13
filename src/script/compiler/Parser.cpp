@@ -1963,14 +1963,14 @@ RC<AstExpression> Parser::ParseAssignment()
 RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     bool allowKeywordNames,
     bool allowQuotedNames,
-    IdentifierFlagBits flags)
+    EnumFlags<IdentifierFlags> flags)
 {
     const SourceLocation location = CurrentLocation();
 
     static const HashMap<Keywords, IdentifierFlags> s_prefixKeywordMap = {
-        { Keyword_extern, IdentifierFlags::FLAG_EXTERN },
-        { Keyword_const, IdentifierFlags::FLAG_CONST },
-        { Keyword_ref, IdentifierFlags::FLAG_REF }
+        { Keyword_extern, IdentifierFlags::EXTERN },
+        { Keyword_const, IdentifierFlags::CONST },
+        { Keyword_ref, IdentifierFlags::REF }
     };
 
     HashSet<Keywords> usedSpecifiers;
@@ -2013,7 +2013,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
         }
     }
 
-    const bool isExtern = (flags & IdentifierFlags::FLAG_EXTERN) != 0;
+    const bool isExtern = flags[IdentifierFlags::EXTERN];
 
     Token identifier = Token::EMPTY;
 
@@ -2075,12 +2075,12 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 {
     const SourceLocation location = CurrentLocation();
 
-    IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST
-        | IdentifierFlags::FLAG_FUNCTION;
+    EnumFlags<IdentifierFlags> flags = IdentifierFlags::CONST
+        | IdentifierFlags::FUNCTION;
 
     if (MatchKeyword(Keyword_extern, true))
     {
-        flags |= IdentifierFlags::FLAG_EXTERN;
+        flags |= IdentifierFlags::EXTERN;
     }
 
     if (requireKeyword)
@@ -2108,8 +2108,8 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
         }
 
         assignment = ParseFunctionExpression(
-            false,                                   /* requireKeyword */
-            !(flags & IdentifierFlags::FLAG_EXTERN), /* parseBody - externs have no body */
+            false,                              /* requireKeyword */
+            !(flags & IdentifierFlags::EXTERN), /* parseBody - externs have no body */
             params);
 
         if (!assignment)
@@ -2354,16 +2354,16 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
             break;
         }
 
-        IdentifierFlagBits flags = IdentifierFlags::FLAG_NONE;
+        EnumFlags<IdentifierFlags> flags = IdentifierFlags::NONE;
 
         if (MatchKeyword(Keyword_const, true))
         {
-            flags |= IdentifierFlags::FLAG_CONST;
+            flags |= IdentifierFlags::CONST;
         }
 
         if (MatchKeyword(Keyword_ref, true))
         {
-            flags |= IdentifierFlags::FLAG_REF;
+            flags |= IdentifierFlags::REF;
         }
 
         if ((token = ExpectIdentifier(true, true)))
@@ -2508,7 +2508,7 @@ RC<AstClass> Parser::ParseClass(
             }
         }
 
-        IdentifierFlagBits flags = 0;
+        EnumFlags<IdentifierFlags> flags = IdentifierFlags::NONE;
 
         // read ident
         bool isStatic = false,
@@ -2529,14 +2529,14 @@ RC<AstClass> Parser::ParseClass(
         {
             isVariable = true;
 
-            flags |= IdentifierFlags::FLAG_REF;
+            flags |= IdentifierFlags::REF;
         }
 
         if (MatchKeyword(Keyword_const, true))
         {
             isVariable = true;
 
-            flags |= IdentifierFlags::FLAG_CONST;
+            flags |= IdentifierFlags::CONST;
         }
 
         if (MatchKeyword(Keyword_func, true))
@@ -2574,15 +2574,15 @@ RC<AstClass> Parser::ParseClass(
 
         if (currentAccessSpecifier == Keyword::ToString(Keyword_public).Get())
         {
-            flags |= IdentifierFlags::FLAG_ACCESS_PUBLIC;
+            flags |= IdentifierFlags::ACCESS_PUBLIC;
         }
         else if (currentAccessSpecifier == Keyword::ToString(Keyword_private).Get())
         {
-            flags |= IdentifierFlags::FLAG_ACCESS_PRIVATE;
+            flags |= IdentifierFlags::ACCESS_PRIVATE;
         }
         else if (currentAccessSpecifier == Keyword::ToString(Keyword_protected).Get())
         {
-            flags |= IdentifierFlags::FLAG_ACCESS_PROTECTED;
+            flags |= IdentifierFlags::ACCESS_PROTECTED;
         }
 
         if (!isVariable && (isFunction || Match(TK_OPEN_PARENTH)))
@@ -2603,7 +2603,7 @@ RC<AstClass> Parser::ParseClass(
                     selfTypeSpec,
                     nullptr,
                     false, /* variadic */
-                    IdentifierFlags::FLAG_CONST,
+                    IdentifierFlags::CONST,
                     location)));
             }
 #endif
@@ -2633,13 +2633,13 @@ RC<AstClass> Parser::ParseClass(
 
             if (isStatic || (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])) // <--- all methods for proxy classes are static
             {
-                member->ApplyIdentifierFlags(IdentifierFlags::FLAG_STATIC_MEMBER);
+                member->ApplyIdentifierFlags(IdentifierFlags::STATIC_MEMBER);
 
                 staticFunctions.PushBack(std::move(member));
             }
             else
             {
-                member->ApplyIdentifierFlags(IdentifierFlags::FLAG_MEMBER);
+                member->ApplyIdentifierFlags(IdentifierFlags::MEMBER);
 
                 memberFunctions.PushBack(std::move(member));
             }
@@ -2656,13 +2656,13 @@ RC<AstClass> Parser::ParseClass(
             {
                 if (isStatic)
                 {
-                    member->ApplyIdentifierFlags(IdentifierFlags::FLAG_STATIC_MEMBER);
+                    member->ApplyIdentifierFlags(IdentifierFlags::STATIC_MEMBER);
 
                     staticVariables.PushBack(member);
                 }
                 else
                 {
-                    member->ApplyIdentifierFlags(IdentifierFlags::FLAG_MEMBER);
+                    member->ApplyIdentifierFlags(IdentifierFlags::MEMBER);
 
                     memberVariables.PushBack(member);
                 }
@@ -2754,10 +2754,10 @@ RC<AstStatement> Parser::ParseEnumDefinition()
                 ident.GetValue(),
                 typeSpec,
                 assignment,
-                IdentifierFlags::FLAG_STATIC_MEMBER
-                    | IdentifierFlags::FLAG_ENUM_MEMBER
-                    | IdentifierFlags::FLAG_CONST
-                    | IdentifierFlags::FLAG_ACCESS_PUBLIC,
+                IdentifierFlags::STATIC_MEMBER
+                    | IdentifierFlags::ENUM_MEMBER
+                    | IdentifierFlags::CONST
+                    | IdentifierFlags::ACCESS_PUBLIC,
                 ident.GetLocation()));
 
             entries.PushBack(std::move(entry));

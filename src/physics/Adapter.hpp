@@ -4,7 +4,7 @@
 
 #include <core/object/Handle.hpp>
 
-namespace hyperion::physics {
+namespace hyperion {
 
 class PhysicsWorldBase;
 class RigidBody;
@@ -64,4 +64,4 @@ public:
     }
 };
 
-} // namespace hyperion::physics
+} // namespace hyperion

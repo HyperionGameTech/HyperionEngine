@@ -41,7 +41,7 @@ class ShadowMap;
 HYP_STRUCT()
 struct MeshRaytracingData
 {
-    HYP_FIELD()
+    HYP_FIELD(NoScriptBindings)
     BLASRef blas;
 
     ~MeshRaytracingData();
