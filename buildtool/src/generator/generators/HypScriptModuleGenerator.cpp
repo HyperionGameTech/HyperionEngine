@@ -273,11 +273,11 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     return HYP_MAKE_ERROR(Error, "Enum types may only have one underlying type");
                 }
 
-                writer.WriteString(HYP_FORMAT("enum {} : {}", hypClass->name, hypClass->baseClassNames[0]) + " {");
+                writer.WriteString(HYP_FORMAT("extern enum {} : {}", hypClass->name, hypClass->baseClassNames[0]) + " {");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("enum {}", hypClass->name) + " {");
+                writer.WriteString(HYP_FORMAT("extern enum {}", hypClass->name) + " {");
             }
 
             HYP_DEFER({ writer.WriteString("\n}\n"); });

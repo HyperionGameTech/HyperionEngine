@@ -1587,6 +1587,32 @@ struct HypDataHelper<utilities::StringView<StringType>> : HypDataHelper<containe
 };
 
 template <>
+struct HypDataHelperDecl<const char*>
+{
+};
+
+template <>
+struct HypDataHelper<const char*> : HypDataHelper<String>
+{
+    using ConvertibleFrom = Tuple<String>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        return HypDataHelper<String>::Is(value);
+    }
+
+    HYP_FORCE_INLINE const char* Get(const Any& value) const
+    {
+        return HypDataHelper<String>::Get(value).Data();
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const char* value) const
+    {
+        HypDataHelper<String>::Set(hypData, String(value));
+    }
+};
+
+template <>
 struct HypDataHelperDecl<FilePath>
 {
 };

@@ -49,7 +49,7 @@ static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions
     { g_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
     { g_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
     { g_typeIdBool, [](const void* p) -> String { return g_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
-    { g_typeIdString, [](const void* p) -> String { return reinterpret_cast<const Script_String*>(p)->GetString(); } }
+    { g_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
 };
 // clang-format on
 
@@ -96,7 +96,7 @@ bool ValueDataToString(const HypData& data, Script_String& outString)
 
     constexpr int maxArrayDepth = 2;
 
-    if (const Script_ValueArray* pArray = data.TryGet<Script_ValueArray>().TryGet())
+    if (const Script_Array* pArray = data.TryGet<Script_Array>().TryGet())
     {
         std::stringstream ss;
         GetRepresentation(*pArray, ss, false, maxArrayDepth);
@@ -913,7 +913,7 @@ const char* Script_Value::GetTypeString() const
     {
         return "string";
     }
-    else if (typeId == TypeId::ForType<Script_ValueArray>())
+    else if (typeId == TypeId::ForType<Script_Array>())
     {
         return "array";
     }
@@ -1015,7 +1015,7 @@ void Script_Value::ToRepresentation(
         ss << GetTypeString() << "(";
     }
 
-    ss << ToString().GetData();
+    ss << ToString().Data();
 
     if (addTypeName)
     {

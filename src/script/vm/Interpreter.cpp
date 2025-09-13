@@ -720,7 +720,7 @@ public:
 
     HYP_FORCE_INLINE void OpLoadConstantString(BCRegister reg, uint32 len, const char* str)
     {
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(Script_String(str));
+        instance->thread.m_regs[reg] = ScriptApi_MakeValue(str != nullptr ? Script_String(str, str + len) : Script_String());
     }
 
     HYP_FORCE_INLINE void OpLoadAddr(BCRegister reg, Script_FunctionAddress addr)
@@ -756,7 +756,7 @@ public:
             return;
         }
 
-        if (Script_ValueArray* array = src.GetHypData()->TryGet<Script_ValueArray>().TryGet())
+        if (Script_Array* array = src.GetHypData()->TryGet<Script_Array>().TryGet())
         {
             if (key.flags & Number::FLAG_SIGNED)
             {
@@ -894,13 +894,13 @@ public:
     {
         Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
 
-        if (!src.GetHypData()->Is<Script_ValueArray>())
+        if (!src.GetHypData()->Is<Script_Array>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
             return;
         }
 
-        Script_ValueArray& array = src.GetHypData()->Get<Script_ValueArray>();
+        Script_Array& array = src.GetHypData()->Get<Script_Array>();
 
         if (index >= array.Size())
         {
@@ -923,13 +923,13 @@ public:
     {
         Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
 
-        if (!src.GetHypData()->Is<Script_ValueArray>())
+        if (!src.GetHypData()->Is<Script_Array>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
             return;
         }
 
-        Script_ValueArray& array = src.GetHypData()->Get<Script_ValueArray>();
+        Script_Array& array = src.GetHypData()->Get<Script_Array>();
 
         Number index;
         Script_Value& indexRegisterValue = instance->thread.m_regs[indexReg];
@@ -1142,13 +1142,13 @@ public:
     {
         Script_Value& dst = *instance->thread.m_regs[dstReg].Deref();
 
-        if (!dst.GetHypData()->Is<Script_ValueArray>())
+        if (!dst.GetHypData()->Is<Script_Array>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("PUSH_ARRAY", dst.GetTypeString()));
             return;
         }
 
-        Script_ValueArray& array = dst.GetHypData()->Get<Script_ValueArray>();
+        Script_Array& array = dst.GetHypData()->Get<Script_Array>();
 
         array.PushBack(ScriptApi_ShallowCopy(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC()));
         array.Back().Mark();
@@ -1285,7 +1285,7 @@ public:
     HYP_FORCE_INLINE void OpNewArray(BCRegister dst, uint32 size)
     {
         // assign register value to the allocated object
-        instance->thread.m_regs[dst] = ScriptApi_MakeValue(Script_ValueArray(size));
+        instance->thread.m_regs[dst] = ScriptApi_MakeValue(Script_Array(size));
     }
 
     HYP_FORCE_INLINE void OpBeginClass(BCRegister reg)
@@ -3575,7 +3575,8 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
 
             for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
-                argsHypData[argIndex] = instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - argIndex - 1].GetHypData();
+                argsHypData[argIndex] = instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].GetHypData();
+                DebugLog(LogType::Debug, "arg %d: %s\n", argIndex, LookupTypeName(argsHypData[argIndex]->GetTypeId()));
             }
 
             // @TODO: Implement
@@ -3631,7 +3632,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
                 previousAddr.call.varargsPush = varargsAmt - 1;
 
                 // create an array to hold variadic args
-                Script_ValueArray arr;
+                Script_Array arr;
                 arr.Resize(varargsAmt);
 
                 for (int i = varargsAmt - 1; i >= 0; i--)

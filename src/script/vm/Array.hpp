@@ -7,10 +7,10 @@
 
 namespace hyperion {
 
-using Script_ValueArray = Array<Script_Value>;
+using Script_Array = Array<Script_Value>;
 
 void GetRepresentation(
-    const Script_ValueArray& value,
+    const Script_Array& value,
     std::stringstream& ss,
     bool addTypeName = true,
     int depth = 3);

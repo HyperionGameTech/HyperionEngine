@@ -3,7 +3,7 @@
 namespace hyperion {
 
 void GetRepresentation(
-    const Script_ValueArray& value,
+    const Script_Array& value,
     std::stringstream& ss,
     bool addTypeName,
     int depth)

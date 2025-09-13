@@ -432,7 +432,7 @@ RC<AstStatement> Parser::ParseStatement(
         }
         else if (MatchKeyword(Keyword_const, false)
             || MatchKeyword(Keyword_ref, false)
-            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1) && !MatchKeywordAhead(Keyword_class, 1)))
+            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1) && !MatchKeywordAhead(Keyword_class, 1) && !MatchKeywordAhead(Keyword_enum, 1)))
         {
             res = ParseVariableDeclaration();
         }
@@ -453,7 +453,8 @@ RC<AstStatement> Parser::ParseStatement(
         {
             res = ParseClassDefinition();
         }
-        else if (MatchKeyword(Keyword_enum, false))
+        else if (MatchKeyword(Keyword_enum, false)
+            || (MatchKeyword(Keyword_extern, false) && MatchKeywordAhead(Keyword_enum, 1)))
         {
             res = ParseEnumDefinition();
         }
@@ -2733,8 +2734,13 @@ RC<AstClass> Parser::ParseClass(
 RC<AstStatement> Parser::ParseEnumDefinition()
 {
     String enumName;
-
+    EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_IS_ENUM;
     const SourceLocation location = CurrentLocation();
+
+    if (Token externToken = MatchKeyword(Keyword_extern, true))
+    {
+        classFlags |= ClassFlags::CLASS_FLAG_EXTERN;
+    }
 
     if (!ExpectKeyword(Keyword_enum, true))
     {
@@ -2810,7 +2816,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
         {}, // no member variables
         {}, // no member functions
         entries,
-        ClassFlags::CLASS_FLAG_IS_ENUM,
+        classFlags,
         location));
 }
 
