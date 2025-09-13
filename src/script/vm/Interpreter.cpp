@@ -1139,66 +1139,6 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpGetStaticMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
-    {
-        Script_Value& classValue = *instance->thread.m_regs[srcReg].Deref();
-
-        const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
-        Assert(classRef.IsValid());
-
-        const HypClass* hypClass = classRef;
-
-        if (!hypClass)
-        {
-            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(&classValue));
-
-            return;
-        }
-
-        IHypMember* member = hypClass->GetMember(WeakName(NameID(hash)));
-
-        if (!member)
-        {
-            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(&classValue, hash));
-
-            return;
-        }
-
-        if (member->GetMemberType() == HypMemberType::TYPE_CONSTANT)
-        {
-            HypConstant* constant = static_cast<HypConstant*>(member);
-
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(constant->Get());
-        }
-        else if (member->GetMemberType() == HypMemberType::TYPE_METHOD)
-        {
-            HypMethod* method = static_cast<HypMethod*>(member);
-
-            Script_VMData vmData;
-
-            if (method->IsScriptFunction())
-            {
-                Assert(method->GetParameters().Size() <= UINT8_MAX);
-
-                vmData.type = Script_VMData::FUNCTION;
-                vmData.func.m_addr = method->GetScriptAddress();
-                vmData.func.m_nargs = (uint8)method->GetParameters().Size();
-                vmData.func.m_flags = (uint8)method->GetFlags();
-            }
-            else
-            {
-                vmData.type = Script_VMData::NATIVE_FUNCTION;
-                vmData.nativeFunc = method;
-            }
-
-            instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(vmData);
-        }
-        else
-        {
-            vm->ThrowException(instance, Script_Exception("Member is not a static field or method"));
-        }
-    }
-
     HYP_FORCE_INLINE void OpPush(BCRegister reg)
     {
         // Move value from register to top of stack
@@ -3602,8 +3542,6 @@ void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_
 
 void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
-    static const HashCode::ValueType invokeHash = HashCode::GetHashCode("$invoke").Value();
-
     Script_ExecutionThread* thread = &instance->thread;
     Script_Stream* bs = &instance->stream;
 
@@ -3618,7 +3556,6 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
             for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
                 argsHypData[argIndex] = instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].GetHypData();
-                DebugLog(LogType::Debug, "arg %d: %s\n", argIndex, LookupTypeName(argsHypData[argIndex]->GetTypeId()));
             }
 
             // @TODO: Implement

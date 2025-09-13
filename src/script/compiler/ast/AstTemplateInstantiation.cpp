@@ -94,6 +94,12 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes,
         m_location);
 
+    genericInstanceType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        visitor,
+        mod,
+        genericInstanceType,
+        m_location);
+
     mod->scopeTree.Close();
 
     if (!genericInstanceType)

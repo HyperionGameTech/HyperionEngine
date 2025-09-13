@@ -193,33 +193,32 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(rightType != nullptr);
     rightType = rightType->GetUnaliased();
 
-    if (!leftType->IsAnyType() && !rightType->IsAnyType())
+    if (m_op->GetType() & BITWISE)
     {
-        if (m_op->GetType() & BITWISE)
-        {
-            // no bitwise operators on floats allowed.
-            visitor->AddErrorIfFalse(
-                (leftType->IsIntegral() || leftType->IsEnumType()) && (rightType->IsIntegral() || rightType->IsEnumType()),
-                CompilerError(
-                    LEVEL_ERROR,
-                    Msg_bitwise_operands_must_be_int,
-                    m_location,
-                    leftType->GetName(),
-                    rightType->GetName()));
-        }
-        else if (m_op->GetType() & ARITHMETIC)
-        {
-            // arithmetic operators are only for numbers
-            visitor->AddErrorIfFalse(
-                leftType->IsNumber() && rightType->IsNumber(),
-                CompilerError(
-                    LEVEL_ERROR,
-                    Msg_arithmetic_operands_must_be_numbers,
-                    m_location,
-                    m_op->LookupStringValue(),
-                    leftType->GetName(),
-                    rightType->GetName()));
-        }
+        // no bitwise operators on floats allowed.
+        visitor->AddErrorIfFalse(
+            (leftType->IsAnyType() || leftType->IsIntegral() || leftType->IsEnumType())
+                && (rightType->IsAnyType() || rightType->IsIntegral() || rightType->IsEnumType()),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_bitwise_operands_must_be_int,
+                m_location,
+                leftType->GetName(),
+                rightType->GetName()));
+    }
+    else if (m_op->GetType() & ARITHMETIC)
+    {
+        // arithmetic operators are only for numbers
+        visitor->AddErrorIfFalse(
+            (leftType->IsAnyType() || leftType->IsNumber())
+                && (rightType->IsAnyType() || rightType->IsNumber()),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_arithmetic_operands_must_be_numbers,
+                m_location,
+                m_op->LookupStringValue(),
+                leftType->GetName(),
+                rightType->GetName()));
     }
 
     if (m_op->ModifiesValue())

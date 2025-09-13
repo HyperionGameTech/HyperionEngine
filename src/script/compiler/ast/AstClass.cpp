@@ -89,8 +89,8 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
 
-    // classes can only be defined at global scope
-    if (!mod->IsInGlobalScope())
+    // classes can only be defined at global scope (except for anonymous classes, as they don't register a type at runtime)
+    if (!mod->IsInGlobalScope() && !(m_flags & CLASS_FLAG_ANONYMOUS))
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -370,12 +370,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         {
             // Do data members first so we can use them all in functions.
 
-            for (const RC<AstVariableDeclaration>& decl : m_dataMembers)
+            for (SizeType i = 0; i < m_dataMembers.Size(); i++)
             {
-                if (!decl)
-                {
-                    continue;
-                }
+                const RC<AstVariableDeclaration>& decl = m_dataMembers[i];
+                Assert(decl != nullptr);
 
                 if (IsExternClass())
                 {
@@ -399,12 +397,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->GetRealAssignment() });
             }
 
-            for (const RC<AstVariableDeclaration>& decl : m_functionMembers)
+            for (SizeType i = 0; i < m_functionMembers.Size(); i++)
             {
-                if (!decl)
-                {
-                    continue;
-                }
+                const RC<AstVariableDeclaration>& decl = m_functionMembers[i];
+                Assert(decl != nullptr);
 
                 if (IsExternClass())
                 {

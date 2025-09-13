@@ -371,48 +371,52 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     // close parameter scope
     mod->scopeTree.Close();
 
-    SymbolTypeRef closureSelfType = SymbolType::Temp();
+    SymbolTypeRef functionType;
 
-    // set object type to be an instance of function
-    Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
-    genericParamTypes.Reserve(paramSymbolTypes.Size() + 1);
-    genericParamTypes.EmplaceBack("@return", m_returnType, nullptr, false, false);
-
-    // perform checking to see if it should still be considered a closure
-    if (m_isClosure)
     {
-        Assert(m_closureSelfParam != nullptr);
-        Assert(m_closureSelfParam->GetIdentifier() != nullptr);
+        // set object type to be an instance of function
+        Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
+        genericParamTypes.Reserve(paramSymbolTypes.Size() + 1);
+        genericParamTypes.EmplaceBack("@return", m_returnType, nullptr, false, false);
 
-        if (closureObjMembers.Any() || m_closureSelfParam->GetIdentifier()->GetUseCount() > 0)
+        // perform checking to see if it should still be considered a closure
+        if (m_isClosure)
         {
-            genericParamTypes.EmplaceBack(
-                m_closureSelfParam->GetName(),
-                closureSelfType,
-                nullptr,
-                /* isRef */ false,
-                /* isConst */ false);
+            Assert(m_closureSelfParam != nullptr);
+            Assert(m_closureSelfParam->GetIdentifier() != nullptr);
+
+            if (closureObjMembers.Any() || m_closureSelfParam->GetIdentifier()->GetUseCount() > 0)
+            {
+                genericParamTypes.EmplaceBack(
+                    m_closureSelfParam->GetName(),
+                    SymbolType::Placeholder("ClosureSelfType"),
+                    nullptr,
+                    /* isRef */ false,
+                    /* isConst */ false);
+            }
+            else
+            {
+                // unset m_isClosure, as closure 'self' param is unused.
+                m_isClosure = false;
+            }
         }
-        else
+
+        for (auto& it : paramSymbolTypes)
         {
-            // unset m_isClosure, as closure 'self' param is unused.
-            m_isClosure = false;
+            genericParamTypes.PushBack(it);
         }
+
+        functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+            visitor, mod,
+            BuiltinTypes::s_functionType,
+            genericParamTypes,
+            m_location);
     }
 
-    for (auto& it : paramSymbolTypes)
-    {
-        genericParamTypes.PushBack(it);
-    }
-
-    SymbolTypeRef functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
-        visitor, mod,
-        BuiltinTypes::s_functionType,
-        genericParamTypes,
-        m_location);
-
     if (m_isClosure)
     {
+        ScopeGuard closureScope(mod, SCOPE_TYPE_NORMAL);
+
         Array<RC<AstParameter>> closureParams;
         closureParams.Reserve(m_parameters.Size() + 1);
         closureParams.PushBack(CloneAstNode(m_closureSelfParam));
@@ -456,21 +460,26 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                 m_location)));
         }
 
+        closureClassDecl->Visit(visitor, mod);
+
+        Assert(closureClassDecl->GetHeldType() != nullptr);
+        closureScope->identifierTable.AddSymbolType(SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType().ToWeak() }));
+
         m_closureBlock.Reset(new AstBlock(m_location));
 
         // create new instance of closure class
-        RC<AstVariableDeclaration> closureInstanceDecl(new AstVariableDeclaration(
+        m_closureBlock->AddChild(RC<AstVariableDeclaration>(new AstVariableDeclaration(
             "$__closure_instance",
             nullptr,
             RC<AstNewExpression>(new AstNewExpression(
-                RC<AstTypeSpecifier>(new AstTypeSpecifier(closureClassDecl, m_location)),
+                RC<AstTypeSpecifier>(new AstTypeSpecifier(
+                    RC<AstTypeRef>(new AstTypeRef(closureClassDecl->GetHeldType(), m_location)),
+                    m_location)),
                 nullptr, // no constructor args
                 false,   // enable constructor call
                 m_location)),
             IdentifierFlags::NONE,
-            m_location));
-
-        m_closureBlock->AddChild(closureInstanceDecl);
+            m_location)));
 
         // init each member of the closure object
         for (const SymbolTypeMember& member : closureObjMembers)
@@ -490,14 +499,22 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_closureBlock->AddChild(RC<AstVariable>(new AstVariable("$__closure_instance", m_location)));
         m_closureBlock->Visit(visitor, mod);
 
-        closureSelfType->Assign(*closureClassDecl->GetHeldType());
+        m_closureBlock->PrependChild(closureClassDecl);
 
-        m_symbolType = std::move(closureSelfType);
+        m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+            visitor,
+            mod,
+            closureClassDecl->GetHeldType(),
+            m_location);
 
         return;
     }
 
-    m_symbolType = std::move(functionType);
+    m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        visitor,
+        mod,
+        functionType,
+        m_location);
 
     if (m_parameters.Size() > MathUtil::MaxSafeValue<uint8>())
     {

@@ -246,10 +246,10 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     SymbolTypeRef unaliasedInputType = inputType->GetUnaliased();
     Assert(unaliasedInputType != nullptr);
 
-    if (unaliasedInputType->IsPlaceholderType())
-    {
-        return ResolvePlaceholderType(visitor, mod, unaliasedInputType, location);
-    }
+    // if (unaliasedInputType->IsPlaceholderType())
+    // {
+    //     return ResolvePlaceholderType(visitor, mod, unaliasedInputType, location);
+    // }
 
     const TypeInstanceCache::Key cacheKey = TypeInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
 
@@ -268,9 +268,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     switch (targetType->GetTypeClass())
     {
-    case TYPE_PLACEHOLDER:
-        HYP_FAIL("Should not encounter placeholder type here");
-        return BuiltinTypes::s_errorType;
+    case TYPE_PLACEHOLDER: // fallthrough
     case TYPE_BUILTIN:
         return targetType;
     case TYPE_GENERIC_PARAMETER:

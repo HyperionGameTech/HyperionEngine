@@ -37,8 +37,6 @@ AstVariableDeclaration::AstVariableDeclaration(
 HYP_DISABLE_OPTIMIZATION;
 void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
-    m_symbolType = BuiltinTypes::s_errorType;
-
     if (m_flags & IdentifierFlags::PREREGISTER)
     {
         m_symbolType = BuiltinTypes::s_anyType;
@@ -55,6 +53,8 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         // if pre-registering, do not visit assignment
         return;
     }
+
+    m_symbolType = BuiltinTypes::s_errorType;
 
     const bool hasUserSpecifiedType = m_typeSpec != nullptr;
     const bool hasUserAssigned = m_assignment != nullptr;
@@ -169,7 +169,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
             if (hasUserSpecifiedType)
             {
-#if 0
+#if 1
                 SymbolTypeRef symbolTypePromoted = SemanticAnalyzer::Helpers::GenericPromotion(
                     visitor,
                     mod,
@@ -253,7 +253,8 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                             m_realAssignment->GetLocation());
                     }
 
-                    // insert cast if needed
+#if 0 // temp
+      // insert cast if needed
                     if (doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
                     {
                         RC<AstAsExpression> asExpr(new AstAsExpression(
@@ -265,6 +266,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                         m_realAssignment = asExpr;
                     }
+#endif
                 }
             }
             else

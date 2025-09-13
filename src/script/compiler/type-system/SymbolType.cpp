@@ -424,6 +424,7 @@ bool SymbolType::TypeCompatible(
 
             if (!paramType->TypeEqual(*otherParamType))
             {
+                HYP_BREAKPOINT;
                 ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "Generic parameter types do not match: " + paramType->ToString(false) + " != " + otherParamType->ToString(false));
 
                 return false;
