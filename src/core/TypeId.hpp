@@ -52,6 +52,7 @@ struct TypeId_FromString_Impl
 };
 
 /*! \brief Simple 32-bit identifier for a given type. Stable across DLLs as the type hash is based on the name of the type. */
+HYP_STRUCT()
 struct TypeId
 {
     using ValueType = TypeIdValue;
