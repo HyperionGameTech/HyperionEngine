@@ -557,13 +557,14 @@ struct HashedShaderDefinition
     }
 };
 
-using DescriptorUsageFlags = uint32;
-
-enum DescriptorUsageFlagBits : DescriptorUsageFlags
+HYP_ENUM()
+enum class DescriptorUsageFlags : uint32
 {
-    DESCRIPTOR_USAGE_FLAG_NONE = 0x0,
-    DESCRIPTOR_USAGE_FLAG_DYNAMIC = 0x1
+    NONE = 0x0,
+    DYNAMIC = 0x1
 };
+
+HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
 
 HYP_STRUCT()
 struct DescriptorUsageType
@@ -722,7 +723,7 @@ struct DescriptorUsage
     DescriptorUsageType type;
 
     HYP_FIELD(Property = "Flags", Serialize = true)
-    DescriptorUsageFlags flags;
+    EnumFlags<DescriptorUsageFlags> flags;
 
     HYP_FIELD(Property = "Params", Serialize = true)
     HashMap<String, String> params;
@@ -730,11 +731,11 @@ struct DescriptorUsage
     DescriptorUsage()
         : slot(DESCRIPTOR_SLOT_NONE),
           setName(Name::Invalid()),
-          flags(DESCRIPTOR_USAGE_FLAG_NONE)
+          flags(DescriptorUsageFlags::NONE)
     {
     }
 
-    DescriptorUsage(DescriptorSlot slot, Name setName, Name descriptorName, DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE, HashMap<String, String> params = {})
+    DescriptorUsage(DescriptorSlot slot, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
         : slot(slot),
           setName(setName),
           descriptorName(descriptorName),
@@ -843,7 +844,7 @@ struct DescriptorUsage
 
         if (flags != other.flags)
         {
-            return flags < other.flags;
+            return uint32(flags) < uint32(other.flags);
         }
 
         return false;

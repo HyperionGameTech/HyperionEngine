@@ -993,23 +993,14 @@ void Node::AddTag(NodeTag&& value)
 {
     HYP_SCOPE;
 
-    m_tags.Set(std::move(value));
+    m_tags.Add(std::move(value));
 }
 
 bool Node::RemoveTag(WeakName key)
 {
     HYP_SCOPE;
 
-    auto it = m_tags.FindAs(key);
-
-    if (it == m_tags.End())
-    {
-        return false;
-    }
-
-    m_tags.Erase(it);
-
-    return true;
+    return m_tags.Remove(key);
 }
 
 const NodeTag& Node::GetTag(WeakName key) const
@@ -1018,21 +1009,16 @@ const NodeTag& Node::GetTag(WeakName key) const
 
     static const NodeTag emptyTag = NodeTag();
 
-    const auto it = m_tags.FindAs(key);
+    const NodeTag* pTag = m_tags.Get(key);
 
-    if (it == m_tags.End())
-    {
-        return emptyTag;
-    }
-
-    return *it;
+    return pTag != nullptr ? *pTag : emptyTag;
 }
 
 bool Node::HasTag(WeakName key) const
 {
     HYP_SCOPE;
 
-    return m_tags.FindAs(key) != m_tags.End();
+    return m_tags.Has(key);
 }
 
 Scene* Node::GetDefaultScene()

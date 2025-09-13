@@ -35,10 +35,10 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
-            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ> {},
+            ComponentDescriptor<MeshComponent, ComponentRWFlags::READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, ComponentRWFlags::READ> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ, false> {}
+            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, ComponentRWFlags::READ, false> {}
         };
     }
 };

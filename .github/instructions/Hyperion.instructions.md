@@ -1,3 +1,6 @@
+---
+applyTo: '**'
+---
 # Hyperion Engine - AI Assistant Instructions
 
 ## Project Overview

@@ -278,7 +278,7 @@ protected:
     HYP_FIELD(JsonIgnore)
     WeakHandle<AssetPackage> m_package;
 
-    HYP_FIELD(JsonIgnore)
+    HYP_FIELD(JsonIgnore, NoScriptBindings)
     IResource* m_resource;
 
     HYP_FIELD(JsonIgnore)

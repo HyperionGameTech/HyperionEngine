@@ -86,6 +86,7 @@ struct ShaderDataOffset
 struct DescriptorSetDeclaration;
 struct DescriptorTableDeclaration;
 
+HYP_ENUM()
 enum class DescriptorSetElementType : uint32
 {
     UNSET,
@@ -100,6 +101,7 @@ enum class DescriptorSetElementType : uint32
     MAX
 };
 
+HYP_STRUCT()
 struct DescriptorSetOffsetMap
 {
     static constexpr uint32 g_maxOffsets = 8;
@@ -154,6 +156,7 @@ struct DescriptorSetOffsetMap
     }
 };
 
+HYP_STRUCT()
 struct DescriptorTableOffsetMap
 {
     static constexpr uint32 g_maxSets = 4;

@@ -20,7 +20,6 @@ namespace hyperion {
 class Matrix3;
 
 HYP_STRUCT(Size = 64)
-
 class alignas(16) HYP_API Matrix4
 {
 public:

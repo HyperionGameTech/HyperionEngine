@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include <core/object/HypObject.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
 
 #include <scene/VisibilityState.hpp>
@@ -12,6 +15,7 @@
 
 namespace hyperion {
 
+HYP_ENUM()
 enum class VisibilityStateFlags : uint32
 {
     NONE = 0x0,

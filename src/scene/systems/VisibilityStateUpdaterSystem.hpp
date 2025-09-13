@@ -35,10 +35,10 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
-            ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ> {},
+            ComponentDescriptor<VisibilityStateComponent, ComponentRWFlags::READ_WRITE> {},
+            ComponentDescriptor<BoundingBoxComponent, ComponentRWFlags::READ> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, COMPONENT_RW_FLAGS_READ, false> {}
+            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, ComponentRWFlags::READ, false> {}
         };
     }
 };

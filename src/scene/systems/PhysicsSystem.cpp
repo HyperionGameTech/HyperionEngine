@@ -29,7 +29,7 @@ void PhysicsSystem::OnEntityAdded(Entity* entity)
         rigidBodyComponent.rigidBody->SetTransform(transformComponent.transform);
         rigidBodyComponent.transformHashCode = transformComponent.transform.GetHashCode();
 
-        rigidBodyComponent.flags |= RIGID_BODY_COMPONENT_FLAG_INIT;
+        rigidBodyComponent.flags |= RigidBodyComponentFlags::INIT;
 
         GetEntityManager().GetScene()->GetWorld()->GetPhysicsWorld().AddRigidBody(rigidBodyComponent.rigidBody);
     }

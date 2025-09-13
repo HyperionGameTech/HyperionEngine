@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/object/ObjId.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -12,6 +13,7 @@ namespace hyperion {
 
 class Camera;
 
+HYP_STRUCT()
 struct VisibilityStateSnapshot
 {
     uint16 validityMarker { 0u };
@@ -22,18 +24,22 @@ struct VisibilityStateSnapshot
     }
 };
 
+HYP_STRUCT()
 struct VisibilityState
 {
-    //static_assert(std::is_final_v<Camera>, "ObjId<Camera> must be final (to prevent ID index issues with derived types)");
-    
+    // static_assert(std::is_final_v<Camera>, "ObjId<Camera> must be final (to prevent ID index issues with derived types)");
+
     Array<VisibilityStateSnapshot, InlineAllocator<16>> snapshots;
     uint16 validityMarker { 0u };
 
     VisibilityState() = default;
-    VisibilityState(const VisibilityState& other) = delete;
-    VisibilityState& operator=(const VisibilityState& other) = delete;
+
+    VisibilityState(const VisibilityState& other) = default;
+    VisibilityState& operator=(const VisibilityState& other) = default;
+
     VisibilityState(VisibilityState&& other) noexcept = default;
     VisibilityState& operator=(VisibilityState&& other) noexcept = default;
+
     ~VisibilityState() = default;
 
     HYP_FORCE_INLINE void Next()

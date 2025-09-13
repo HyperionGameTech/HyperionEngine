@@ -29,8 +29,8 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<AudioComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
-            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ> {}
+            ComponentDescriptor<AudioComponent, ComponentRWFlags::READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, ComponentRWFlags::READ> {}
         };
     }
 };

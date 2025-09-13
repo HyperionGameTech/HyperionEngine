@@ -195,7 +195,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
             descriptorUsage.descriptorName,
             descriptorUsage.GetCount(),
             descriptorUsage.GetSize(),
-            bool(descriptorUsage.flags & DESCRIPTOR_USAGE_FLAG_DYNAMIC)
+            bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC)
         };
 
         if (auto* existingDecl = descriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName))
@@ -1917,7 +1917,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 }
 
                 DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
-                DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE;
+                EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE;
 
                 if (commandStr == "HYP_DESCRIPTOR_SRV")
                 {
@@ -1933,7 +1933,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                     if (commandStr == "HYP_DESCRIPTOR_CBUFF_DYNAMIC")
                     {
-                        flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                        flags |= DescriptorUsageFlags::DYNAMIC;
                     }
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_SSBO" || commandStr == "HYP_DESCRIPTOR_SSBO_DYNAMIC")
@@ -1942,7 +1942,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                     if (commandStr == "HYP_DESCRIPTOR_SSBO_DYNAMIC")
                     {
-                        flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                        flags |= DescriptorUsageFlags::DYNAMIC;
                     }
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE")

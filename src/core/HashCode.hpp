@@ -88,17 +88,20 @@ struct FNV1
     }
 };
 
+HYP_STRUCT()
 struct HashCode
 {
     using ValueType = uint64;
 
+    ValueType value;
+
     constexpr HashCode()
-        : m_hash(0)
+        : value(0)
     {
     }
 
     constexpr explicit HashCode(ValueType value)
-        : m_hash(value)
+        : value(value)
     {
     }
 
@@ -110,32 +113,32 @@ struct HashCode
 
     constexpr bool operator==(const HashCode& other) const
     {
-        return m_hash == other.m_hash;
+        return value == other.value;
     }
 
     constexpr bool operator!=(const HashCode& other) const
     {
-        return m_hash != other.m_hash;
+        return value != other.value;
     }
 
     constexpr bool operator<(const HashCode& other) const
     {
-        return m_hash < other.m_hash;
+        return value < other.value;
     }
 
     constexpr bool operator<=(const HashCode& other) const
     {
-        return m_hash <= other.m_hash;
+        return value <= other.value;
     }
 
     constexpr bool operator>(const HashCode& other) const
     {
-        return m_hash > other.m_hash;
+        return value > other.value;
     }
 
     constexpr bool operator>=(const HashCode& other) const
     {
-        return m_hash >= other.m_hash;
+        return value >= other.value;
     }
 
     template <class T>
@@ -147,7 +150,7 @@ struct HashCode
 
     constexpr ValueType Value() const
     {
-        return m_hash;
+        return value;
     }
 
     template <class T, class DecayedType = std::decay_t<T>>
@@ -245,14 +248,14 @@ struct HashCode
 
     constexpr HashCode Combine(const HashCode& other) const
     {
-        if (m_hash == 0)
+        if (value == 0)
         {
             return other;
         }
 
         HashCode hc;
-        hc.m_hash = m_hash;
-        hc.m_hash ^= other.m_hash + 0x9e3779b9 + (hc.m_hash << 6) + (hc.m_hash >> 2);
+        hc.value = value;
+        hc.value ^= other.value + 0x9e3779b9 + (hc.value << 6) + (hc.value >> 2);
         return hc;
     }
 
@@ -270,17 +273,15 @@ struct HashCode
 private:
     constexpr void HashCombine(const HashCode& other)
     {
-        if (m_hash == 0)
+        if (value == 0)
         {
-            m_hash = other.m_hash;
+            value = other.value;
 
             return;
         }
 
-        m_hash ^= other.m_hash + 0x9e3779b9 + (m_hash << 6) + (m_hash >> 2);
+        value ^= other.value + 0x9e3779b9 + (value << 6) + (value >> 2);
     }
-
-    ValueType m_hash;
 };
 } // namespace hyperion
 

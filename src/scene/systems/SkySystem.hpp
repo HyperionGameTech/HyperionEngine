@@ -34,14 +34,14 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<SkyComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<SkyComponent, ComponentRWFlags::READ_WRITE> {},
 
             // calling EnvProbe::Update() calls View::Update() which reads the following components on entities it processes.
-            ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false> {},
-            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ, false> {},
-            ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ, false> {},
+            ComponentDescriptor<MeshComponent, ComponentRWFlags::READ, false> {},
+            ComponentDescriptor<TransformComponent, ComponentRWFlags::READ, false> {},
+            ComponentDescriptor<BoundingBoxComponent, ComponentRWFlags::READ, false> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, COMPONENT_RW_FLAGS_READ, false> {}
+            ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, ComponentRWFlags::READ, false> {}
         };
     }
 

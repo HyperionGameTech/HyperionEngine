@@ -146,7 +146,7 @@ public:
             {
                 const ComponentInfo& componentInfo = systemPtr->GetComponentInfo(componentTypeId);
 
-                if (componentInfo.rwFlags & COMPONENT_RW_FLAGS_WRITE)
+                if (componentInfo.rwFlags & ComponentRWFlags::WRITE)
                 {
                     if (otherSystem->HasComponentTypeId(componentTypeId, true))
                     {

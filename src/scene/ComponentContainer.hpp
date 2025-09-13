@@ -4,6 +4,7 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FlatMap.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/TypeId.hpp>
@@ -25,17 +26,19 @@ class Entity;
 
 using ComponentId = uint32;
 using ComponentTypeId = uint32;
-using ComponentRWFlags = uint32;
 
-enum ComponentRWFlagBits : ComponentRWFlags
+HYP_ENUM()
+enum class ComponentRWFlags : uint32
 {
-    COMPONENT_RW_FLAGS_NONE = 0,
-    COMPONENT_RW_FLAGS_READ = 0x1,
-    COMPONENT_RW_FLAGS_WRITE = 0x2,
-    COMPONENT_RW_FLAGS_READ_WRITE = COMPONENT_RW_FLAGS_READ | COMPONENT_RW_FLAGS_WRITE
+    NONE = 0,
+    READ = 0x1,
+    WRITE = 0x2,
+    READ_WRITE = READ | WRITE
 };
 
-template <class T, ComponentRWFlags RWFlags = COMPONENT_RW_FLAGS_READ_WRITE, bool ReceivesEvents = true>
+HYP_MAKE_ENUM_FLAGS(ComponentRWFlags)
+
+template <class T, ComponentRWFlags RWFlags = ComponentRWFlags::READ_WRITE, bool ReceivesEvents = true>
 struct ComponentDescriptor
 {
     using Type = T;
@@ -51,19 +54,19 @@ struct ComponentInfo
     TypeId typeId;
 
     HYP_FIELD()
-    ComponentRWFlags rwFlags;
+    EnumFlags<ComponentRWFlags> rwFlags;
 
     HYP_FIELD()
     bool receivesEvents;
 
     ComponentInfo()
         : typeId(TypeId::Void()),
-          rwFlags(COMPONENT_RW_FLAGS_NONE),
+          rwFlags(ComponentRWFlags::NONE),
           receivesEvents(false)
     {
     }
 
-    ComponentInfo(TypeId typeId, ComponentRWFlags rwFlags = COMPONENT_RW_FLAGS_NONE, bool receivesEvents = false)
+    ComponentInfo(TypeId typeId, EnumFlags<ComponentRWFlags> rwFlags = ComponentRWFlags::NONE, bool receivesEvents = false)
         : typeId(typeId),
           rwFlags(rwFlags),
           receivesEvents(receivesEvents)

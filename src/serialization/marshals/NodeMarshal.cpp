@@ -69,7 +69,7 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        Node::NodeTagSet tags;
+        NodeTagSet tags;
 
         if (FBOMResult err = HypData::Deserialize(context, in.GetProperty("Tags"), tags))
         {

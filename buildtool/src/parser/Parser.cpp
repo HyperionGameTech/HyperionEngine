@@ -227,20 +227,38 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
 
         static const HashMap<String, HypScriptTypeMapping> s_mapping {
             { "int", { "int" } },
-            { "uint32", { "uint" } },
+            { "int8", { "int8" } },
+            { "int16", { "int16" } },
+            { "int32", { "int32" } },
+            { "int64", { "int64" } },
+            { "uint", { "uint" } },
+            { "uint8", { "uint8" } },
+            { "uint16", { "uint16" } },
+            { "uint32", { "uint32" } },
+            { "uint64", { "uint64" } },
             { "float", { "float" } },
             { "double", { "double" } },
             { "bool", { "bool" } },
             { "void", { "void" } },
+            { "Vec2i", { "Vec2i" } },
+            { "Vec3i", { "Vec3i" } },
+            { "Vec4i", { "Vec4i" } },
+            { "Vec2u", { "Vec2u" } },
+            { "Vec3u", { "Vec3u" } },
+            { "Vec4u", { "Vec4u" } },
+            { "Vec2f", { "Vec2f" } },
+            { "Vec3f", { "Vec3f" } },
+            { "Vec4f", { "Vec4f" } },
+            { "TypeId", { "TypeId" } },
+            { "ByteBuffer", { "ByteBuffer" } },
+            { "HypData", g_hypscriptAnyTypeMapping },
             { "string", { "string" } },
             { "String", { "string" } },
-            { "HypData", g_hypscriptAnyTypeMapping },
             { "ANSIString", { "string" } },
             { "UTF8StringView", { "string" } },
             { "ANSIStringView", { "string" } },
             { "FilePath", { "string" } },
             { "Name", { "Name" } },
-            { "WeakName", { "Name" } },
             { "HypObjectBase", { "object" } },
             { "AnyHandle", g_hypscriptAnyTypeMapping },
             { "AnyRef", g_hypscriptAnyTypeMapping },
@@ -314,8 +332,6 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
         {
             return HypScriptTypeMapping { definition->name };
         }
-
-        return HypScriptTypeMapping { typeNameString };
     }
 
     return HYP_MAKE_ERROR(Error, "Type is unable to be mapped to a HypScript type");

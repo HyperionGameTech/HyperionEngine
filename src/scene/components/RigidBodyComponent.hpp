@@ -3,21 +3,26 @@
 #pragma once
 
 #include <core/object/Handle.hpp>
-#include <physics/RigidBody.hpp>
-#include <physics/PhysicsMaterial.hpp>
+#include <core/object/HypObject.hpp>
+
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/HashCode.hpp>
 
+#include <physics/RigidBody.hpp>
+#include <physics/PhysicsMaterial.hpp>
+
 namespace hyperion {
 
-using RigidBodyComponentFlags = uint32;
-
-enum RigidBodyComponentFlagBits : RigidBodyComponentFlags
+HYP_ENUM()
+enum class RigidBodyComponentFlags : uint32
 {
-    RIGID_BODY_COMPONENT_FLAG_NONE = 0x0,
-    RIGID_BODY_COMPONENT_FLAG_INIT = 0x1,
-    RIGID_BODY_COMPONENT_FLAG_DIRTY = 0x2
+    NONE = 0x0,
+    INIT = 0x1,
+    DIRTY = 0x2
 };
+
+HYP_MAKE_ENUM_FLAGS(RigidBodyComponentFlags)
 
 HYP_STRUCT(Component, Label = "Rigid Body Component", Description = "Controls the properties of an object with rigid body physics.", Editor = true)
 struct RigidBodyComponent
@@ -29,7 +34,7 @@ struct RigidBodyComponent
     PhysicsMaterial physicsMaterial;
 
     HYP_FIELD()
-    RigidBodyComponentFlags flags = RIGID_BODY_COMPONENT_FLAG_NONE;
+    EnumFlags<RigidBodyComponentFlags> flags = RigidBodyComponentFlags::NONE;
 
     HYP_FIELD()
     HashCode transformHashCode;

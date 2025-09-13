@@ -34,8 +34,8 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<RigidBodyComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
-            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE> {}
+            ComponentDescriptor<RigidBodyComponent, ComponentRWFlags::READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, ComponentRWFlags::READ_WRITE> {}
         };
     }
 };

@@ -127,7 +127,7 @@ public:
             const ComponentInfo& componentInfo = GetComponentInfo(componentTypeId);
 
             // skip observe-only components
-            if (!(componentInfo.rwFlags & COMPONENT_RW_FLAGS_READ) && !(componentInfo.rwFlags & COMPONENT_RW_FLAGS_WRITE))
+            if (!(componentInfo.rwFlags & ComponentRWFlags::READ) && !(componentInfo.rwFlags & ComponentRWFlags::WRITE))
             {
                 continue;
             }
@@ -170,7 +170,7 @@ public:
 
         const ComponentInfo& componentInfo = GetComponentInfo(componentTypeId);
 
-        return !!(componentInfo.rwFlags & COMPONENT_RW_FLAGS_WRITE);
+        return !!(componentInfo.rwFlags & ComponentRWFlags::WRITE);
     }
 
     /*! \brief Returns the ComponentInfo of the component with the given TypeId.

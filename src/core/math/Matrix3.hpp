@@ -13,7 +13,6 @@
 namespace hyperion {
 
 HYP_STRUCT(Size = 48)
-
 class HYP_API Matrix3
 {
 public:

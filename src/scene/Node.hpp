@@ -169,6 +169,120 @@ struct NodeUnlockTransformScope;
 
 HYP_API extern void Node_OnPostLoad(Node& node);
 
+HYP_STRUCT()
+class NodeTagSet : HashSet<NodeTag, &NodeTag::name>
+{
+public:
+    using Base = HashSet<NodeTag, &NodeTag::name>;
+
+    using Iterator = typename Base::Iterator;
+    using ConstIterator = typename Base::ConstIterator;
+
+    NodeTagSet() = default;
+
+    NodeTagSet(const NodeTagSet& other) = default;
+    NodeTagSet& operator=(const NodeTagSet& other) = default;
+
+    NodeTagSet(NodeTagSet&& other) noexcept = default;
+    NodeTagSet& operator=(NodeTagSet&& other) noexcept = default;
+
+    HYP_FORCE_INLINE bool Has(WeakName name) const
+    {
+        return Base::Contains(Name(name));
+    }
+
+    HYP_FORCE_INLINE const NodeTag* Get(WeakName name) const
+    {
+        const auto it = Base::Find(Name(name));
+
+        if (it != Base::End())
+        {
+            return &(*it);
+        }
+
+        return nullptr;
+    }
+
+    HYP_FORCE_INLINE NodeTag* Get(Name name)
+    {
+        return const_cast<NodeTag*>(static_cast<const NodeTagSet*>(this)->Get(name));
+    }
+
+    template <class T, class... Args>
+    NodeTag* Add(Name name, Args&&... args)
+    {
+        auto [it, inserted] = Base::Insert(NodeTag { name, NodeTag::VariantType(std::forward<Args>(args)...) });
+
+        if (!inserted)
+        {
+            // update existing tag
+            it->data = NodeTag::VariantType(std::forward<Args>(args)...);
+        }
+
+        return &(*it);
+    }
+
+    NodeTag* Add(const NodeTag& tag)
+    {
+        NodeTag* pExistingTag = Get(tag.name);
+
+        if (pExistingTag != nullptr)
+        {
+            // update existing tag
+            pExistingTag->data = tag.data;
+
+            return pExistingTag;
+        }
+
+        auto [it, inserted] = Base::Insert(tag);
+
+        return &(*it);
+    }
+
+    NodeTag* Add(NodeTag&& tag)
+    {
+        NodeTag* pExistingTag = Get(tag.name);
+
+        if (pExistingTag != nullptr)
+        {
+            // update existing tag
+            pExistingTag->data = std::move(tag.data);
+
+            return pExistingTag;
+        }
+
+        auto [it, inserted] = Base::Insert(std::move(tag));
+
+        return &(*it);
+    }
+
+    bool Remove(WeakName name)
+    {
+        return Base::Erase(Name(name));
+    }
+
+    void Clear()
+    {
+        Base::Clear();
+    }
+
+    String ToString() const
+    {
+        String result = "{ ";
+
+        for (const auto& tag : *this)
+        {
+            result += tag.ToString() + " ";
+        }
+
+        result += "}";
+
+        return result;
+    }
+
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
+};
+
 HYP_CLASS(PostLoad = "Node_OnPostLoad")
 class HYP_API Node : public HypObjectBase
 {
@@ -185,8 +299,6 @@ public:
     };
 
     using NodeList = Array<Handle<Node>, DynamicAllocator>;
-
-    using NodeTagSet = HashSet<NodeTag, &NodeTag::name>;
 
     enum class Type : uint32
     {
