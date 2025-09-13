@@ -512,13 +512,18 @@ public:
         return !operator==(other);
     }
 
-    SymbolTypeRef FindMember(const String& name) const;
-    bool FindMember(const String& name, SymbolTypeMember& out) const;
-    bool FindMember(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
-    SymbolTypeRef FindMemberDeep(const String& name) const;
-    bool FindMemberDeep(const String& name, SymbolTypeMember& out) const;
-    bool FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex) const;
-    bool FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const;
+    SymbolTypeRef FindMember(UTF8StringView name) const;
+    bool FindMember(UTF8StringView name, SymbolTypeMember& out) const;
+    bool FindMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
+
+    SymbolTypeRef FindMemberDeep(UTF8StringView name) const;
+    bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out) const;
+    bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
+    bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const;
+
+    SymbolTypeRef FindStaticMember(UTF8StringView name) const;
+    bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out) const;
+    bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
 
     bool HasTrait(const SymbolTypeTrait& trait) const;
     bool HasTraitDeep(const SymbolTypeTrait& trait) const;

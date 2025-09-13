@@ -70,7 +70,6 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_generic_expression_no_arguments_provided, "'%' is generic, which requires argument(s) provided within <> (may also be empty)" },
     { Msg_generic_expression_requires_assignment, "'%' is missing assignment (all generics must have a value)" },
     { Msg_generic_argument_must_be_literal, "Generic argument is not resolvable at compile-time" },
-    { Msg_not_a_data_member, "'%' not found in %" },
     { Msg_bitwise_operands_must_be_int, "Bitwise operands must both be 'int', got '%' and '%'" },
     { Msg_bitwise_operand_must_be_int, "Bitwise operand must be 'int', got '%'" },
     { Msg_arithmetic_operands_must_be_numbers, "Operands of arithmetic operator '%', % and %, are not numeric and no overload was found" },

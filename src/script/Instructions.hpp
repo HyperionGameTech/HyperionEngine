@@ -77,10 +77,6 @@ enum Instructions : hyperion::uint8
        setting a boolean value in %dst
     */
     CHECK_HAS_MEMBER, // checkHasMember [% dst, % src, u64 hash]
-    /* Assign register value to object member (using hashcode) */
-    SET_FIELD, // SET_FIELD [% dstObj, u64 hash, % src]
-    /* Get member value and store it in a register (using hashcode) */
-    GET_MEMBER, // getMember      [% reg, % src, u64 hash]
 
     /* Push a value from register to the stack */
     PUSH, // push [% src]
@@ -207,7 +203,6 @@ enum MoveSrcType : hyperion::uint8
     MSRC_ARRAYIDX = 0x01,     // Array index (immediate)
     MSRC_ARRAYIDX_REG = 0x02, // Array index (register)
     MSRC_MEMBER = 0x03        // Object member
-    // Reserved slots for future use
 };
 
 // Cast sub-command format (8 bits):

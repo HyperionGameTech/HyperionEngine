@@ -54,24 +54,33 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_insertSelf)
     {
-        auto* valueOf = m_expr->GetValueOf();
+        const AstExpression* valueOf = m_expr->GetValueOf();
         Assert(valueOf != nullptr);
 
-        if (const auto* leftTarget = m_expr->GetTarget())
+        if (const AstExpression* leftTarget = m_expr->GetTarget())
         {
-            const auto selfTarget = CloneAstNode(leftTarget);
-            Assert(selfTarget != nullptr);
+            if (leftTarget->GetHeldType() != nullptr)
+            {
+                // static call, don't insert self
+                m_insertSelf = false;
+            }
+            else
+            {
+                /// @TODO: Store self in a temporary variable instead of cloning so we don't evaluate it multiple times
+                RC<AstExpression> selfTarget = CloneAstNode(leftTarget);
+                Assert(selfTarget != nullptr);
 
-            RC<AstArgument> selfArg(new AstArgument(
-                selfTarget,
-                false,
-                false,
-                false,
-                false,
-                "self",
-                selfTarget->GetLocation()));
+                RC<AstArgument> selfArg(new AstArgument(
+                    selfTarget,
+                    false,
+                    false,
+                    false,
+                    false,
+                    "self",
+                    selfTarget->GetLocation()));
 
-            argsWithSelf.PushFront(std::move(selfArg));
+                argsWithSelf.PushFront(std::move(selfArg));
+            }
         }
     }
 

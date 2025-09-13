@@ -456,30 +456,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case GET_MEMBER:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint8 src;
-        bs.Read(&src);
-
-        uint64 hash;
-        bs.Read(&hash);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "GET_MEMBER ["
-                << "%r" << (int)reg << ", "
-                << "%r" << (int)src << ", "
-                << "u64(" << hash << ")"
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case LOAD_ARRAYIDX:
     {
         uint8 reg;
@@ -663,30 +639,6 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "MOV_STATIC ["
                 << "static[" << dst << "], "
-                << "%r" << (int)src
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case SET_FIELD:
-    {
-        uint8 reg;
-        bs.Read(&reg);
-
-        uint64 hash;
-        bs.Read(&hash);
-
-        uint8 src;
-        bs.Read(&src);
-
-        if (os != nullptr)
-        {
-            (*os)
-                << "SET_FIELD ["
-                << "%r" << (int)reg << ", "
-                << "u64(" << hash << "), "
                 << "%r" << (int)src
                 << "]"
                 << std::endl;

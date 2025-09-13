@@ -34,7 +34,8 @@ AstMember::AstMember(
       m_fieldName(fieldName),
       m_target(target),
       m_foundIndex(~0u),
-      m_enableGenericMemberSubstitution(true)
+      m_isStaticField(false),
+      m_isStaticMethod(false)
 {
 }
 
@@ -49,7 +50,23 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
     m_accessOptions = m_target->GetAccessOptions();
 
-    m_targetType = m_target->GetExprType();
+    bool isStaticMemberAccess = false;
+
+    if (SymbolTypeRef heldType = m_target->GetHeldType())
+    {
+        // static member access
+        m_targetType = std::move(heldType);
+
+        // disable store access for static member access since we don't support it currently
+        m_accessOptions &= ~ACCESS_MODE_STORE;
+
+        isStaticMemberAccess = true;
+    }
+    else
+    {
+        m_targetType = m_target->GetExprType();
+    }
+
     Assert(m_targetType != nullptr);
 
     m_targetType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
@@ -107,9 +124,31 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
         {
             uint32 fieldIndex = ~0u;
+            bool findMemberResult = false;
 
-            if (m_targetType->FindMember(m_fieldName, member, fieldIndex))
+            if (isStaticMemberAccess)
             {
+                findMemberResult = m_targetType->FindStaticMember(m_fieldName, member, fieldIndex);
+            }
+            else
+            {
+                findMemberResult = m_targetType->FindMember(m_fieldName, member, fieldIndex);
+            }
+
+            if (findMemberResult)
+            {
+                if (isStaticMemberAccess)
+                {
+                    if (member.type != nullptr && member.type->HasBase(*BuiltinTypes::s_functionBaseType))
+                    {
+                        m_isStaticMethod = true;
+                    }
+                    else
+                    {
+                        m_isStaticField = true;
+                    }
+                }
+
                 // only set m_foundIndex if found in first level.
                 // for members from base objects,
                 // we load based on hash.
@@ -124,14 +163,18 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (const SymbolTypeRef& base = m_targetType->GetBaseType())
+        if (!isStaticMemberAccess)
         {
-            m_targetType = base->GetUnaliased();
+            // continue up the base type chain for non-static member access
+            if (const SymbolTypeRef& base = m_targetType->GetBaseType())
+            {
+                m_targetType = base->GetUnaliased();
+
+                continue;
+            }
         }
-        else
-        {
-            break;
-        }
+
+        break;
     }
 
     Assert(m_targetType != nullptr);
@@ -139,12 +182,24 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
     if (fieldType != nullptr)
     {
         m_symbolType = fieldType;
+
+        return;
+    }
+
+    if (isStaticMemberAccess)
+    {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_static_member_not_found,
+            m_location,
+            m_fieldName,
+            originalType->ToString()));
     }
     else
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
-            Msg_not_a_data_member,
+            Msg_instance_member_not_found,
             m_location,
             m_fieldName,
             originalType->ToString()));
@@ -153,40 +208,40 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
 {
-    if (m_overrideExpr != nullptr)
-    {
-        m_overrideExpr->SetAccessMode(m_accessMode);
-        return m_overrideExpr->Build(visitor, mod);
-    }
-
-    // if (m_typeSpec != nullptr) {
-    //     m_typeSpec->SetAccessMode(m_accessMode);
-    //     return m_typeSpec->Build(visitor, mod);
-    // }
-
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (m_typeSpec != nullptr)
     {
         chunk->Append(m_typeSpec->Build(visitor, mod));
     }
-    else
+
+    const bool isStaticMember = m_isStaticField || m_isStaticMethod;
+
+    if (isStaticMember)
     {
-        Assert(m_target != nullptr);
+        Assert(m_targetType != nullptr && m_targetType->IsObject());
+
+        const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        const String className = m_targetType->GetName();
+
+        chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(className)));
+    }
+    else if (m_target != nullptr)
+    {
         chunk->Append(m_target->Build(visitor, mod));
     }
 
-    // no exact index of member found, have to load from hash.
     const HashCode::ValueType hash = HashCode::GetHashCode(m_fieldName.Data()).Value();
 
     switch (m_accessMode)
     {
     case ACCESS_MODE_LOAD:
-        chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_fieldName));
+        chunk->Append(BytecodeUtil::Make<Comment>((isStaticMember ? "Load static member " : "Load member ") + m_fieldName));
         chunk->Append(Compiler::LoadMemberFromHash(visitor, mod, hash));
         break;
     case ACCESS_MODE_STORE:
-        chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_fieldName));
+        chunk->Append(BytecodeUtil::Make<Comment>((isStaticMember ? "Store static member " : "Store member ") + m_fieldName));
         chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
         break;
     default:
@@ -199,13 +254,6 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
 
 void AstMember::Optimize(AstVisitor* visitor, Module* mod)
 {
-    if (m_overrideExpr != nullptr)
-    {
-        m_overrideExpr->Optimize(visitor, mod);
-
-        return;
-    }
-
     if (m_typeSpec != nullptr)
     {
         m_typeSpec->Optimize(visitor, mod);
@@ -216,9 +264,6 @@ void AstMember::Optimize(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
 
     m_target->Optimize(visitor, mod);
-
-    // TODO: check if the member being accessed is constant and can
-    // be optimized
 }
 
 RC<AstStatement> AstMember::Clone() const
@@ -228,25 +273,11 @@ RC<AstStatement> AstMember::Clone() const
 
 Tribool AstMember::IsTrue() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->IsTrue();
-    }
-
-    // if (m_typeSpec != nullptr) {
-    //     return m_typeSpec->IsTrue();
-    // }
-
     return Tribool::Indeterminate();
 }
 
 bool AstMember::MayHaveSideEffects() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->MayHaveSideEffects();
-    }
-
     if (m_typeSpec != nullptr && m_typeSpec->MayHaveSideEffects())
     {
         return true;
@@ -274,42 +305,16 @@ SymbolTypeRef AstMember::GetHeldType() const
 
 const AstExpression* AstMember::GetValueOf() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->GetValueOf();
-    }
-
-    // if (m_typeSpec != nullptr) {
-    //     return m_typeSpec->GetValueOf();
-    // }
-
     return AstExpression::GetValueOf();
 }
 
 const AstExpression* AstMember::GetDeepValueOf() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->GetDeepValueOf();
-    }
-
-    // if (m_typeSpec != nullptr) {
-    //     return m_typeSpec->GetDeepValueOf();
-    // }
-
     return AstExpression::GetDeepValueOf();
 }
 
 AstExpression* AstMember::GetTarget() const
 {
-    // if (m_overrideExpr != nullptr) {
-    //     return m_overrideExpr->GetTarget();
-    // }
-
-    // if (m_typeSpec != nullptr) {
-    //     return m_typeSpec->GetTarget();
-    // }
-
     if (m_target != nullptr)
     {
         return m_target.Get();
@@ -320,11 +325,6 @@ AstExpression* AstMember::GetTarget() const
 
 bool AstMember::IsMutable() const
 {
-    if (m_overrideExpr != nullptr)
-    {
-        return m_overrideExpr->IsMutable();
-    }
-
     if (m_typeSpec != nullptr && !m_typeSpec->IsMutable())
     {
         return false;

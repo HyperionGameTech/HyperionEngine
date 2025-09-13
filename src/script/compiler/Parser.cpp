@@ -2714,17 +2714,17 @@ RC<AstClass> Parser::ParseClass(
         SkipStatementTerminators();
     }
 
-    Array<RC<AstVariableDeclaration>> allStatics;
-    allStatics.Reserve(staticVariables.Size() + staticFunctions.Size());
-    allStatics.Concat(std::move(staticVariables));
-    allStatics.Concat(std::move(staticFunctions));
+    Array<RC<AstVariableDeclaration>> allFunctions;
+    allFunctions.Reserve(staticFunctions.Size() + memberFunctions.Size());
+    allFunctions.Concat(std::move(staticFunctions));
+    allFunctions.Concat(std::move(memberFunctions));
 
     return RC<AstClass>(new AstClass(
         typeName,
         baseSpec,
         memberVariables,
-        memberFunctions,
-        allStatics,
+        allFunctions,
+        staticVariables,
         classFlags,
         location));
 

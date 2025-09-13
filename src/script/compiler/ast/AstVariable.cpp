@@ -177,7 +177,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         break;
     }
 
-    if (auto heldType = GetHeldType())
+    if (SymbolTypeRef heldType = GetHeldType())
     {
         heldType = heldType->GetUnaliased();
 

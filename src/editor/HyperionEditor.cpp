@@ -148,6 +148,7 @@ void HyperionEditor::Init()
               "        jet = 4\n"
               "        return self\n"
               "    }\n"
+              "    static TestStaticFunc(a: int32) { return a * 9; }\n"
               "    operator[](i: int32) -> any {\n"
               "       for (j := 1; j < i; j++) {\n"
               "           if (jet > 10000.0) { break }\n"
@@ -171,7 +172,7 @@ void HyperionEditor::Init()
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { return () { return blah; }; };\n"
+              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { return () { return MyClass.TestStaticFunc(9); }; };\n"
               "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

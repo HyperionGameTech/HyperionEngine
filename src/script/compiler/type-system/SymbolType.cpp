@@ -541,7 +541,7 @@ bool SymbolType::TypeCompatible(
     return false;
 }
 
-SymbolTypeRef SymbolType::FindMember(const String& name) const
+SymbolTypeRef SymbolType::FindMember(UTF8StringView name) const
 {
     for (const SymbolTypeMember& member : m_members)
     {
@@ -554,7 +554,7 @@ SymbolTypeRef SymbolType::FindMember(const String& name) const
     return nullptr;
 }
 
-bool SymbolType::FindMember(const String& name, SymbolTypeMember& out) const
+bool SymbolType::FindMember(UTF8StringView name, SymbolTypeMember& out) const
 {
     for (const SymbolTypeMember& member : m_members)
     {
@@ -568,7 +568,7 @@ bool SymbolType::FindMember(const String& name, SymbolTypeMember& out) const
     return false;
 }
 
-bool SymbolType::FindMember(const String& name, SymbolTypeMember& out, uint32& outIndex) const
+bool SymbolType::FindMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const
 {
     // get member index from name
     for (SizeType i = 0; i < m_members.Size(); i++)
@@ -590,7 +590,7 @@ bool SymbolType::FindMember(const String& name, SymbolTypeMember& out, uint32& o
     return false;
 }
 
-SymbolTypeRef SymbolType::FindMemberDeep(const String& name) const
+SymbolTypeRef SymbolType::FindMemberDeep(UTF8StringView name) const
 {
     SymbolTypeMember out;
     uint32 outIndex;
@@ -604,7 +604,7 @@ SymbolTypeRef SymbolType::FindMemberDeep(const String& name) const
     return nullptr;
 }
 
-bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out) const
+bool SymbolType::FindMemberDeep(UTF8StringView name, SymbolTypeMember& out) const
 {
     uint32 outIndex;
     uint32 outDepth;
@@ -612,14 +612,14 @@ bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out) const
     return FindMemberDeep(name, out, outIndex, outDepth);
 }
 
-bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex) const
+bool SymbolType::FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const
 {
     uint32 outDepth;
 
     return FindMemberDeep(name, out, outIndex, outDepth);
 }
 
-bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const
+bool SymbolType::FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const
 {
     outDepth = 0;
 
@@ -642,6 +642,52 @@ bool SymbolType::FindMemberDeep(const String& name, SymbolTypeMember& out, uint3
         basePtr = basePtr->GetBaseType();
 
         outDepth++;
+    }
+
+    return false;
+}
+
+SymbolTypeRef SymbolType::FindStaticMember(UTF8StringView name) const
+{
+    for (const SymbolTypeMember& member : m_staticMembers)
+    {
+        if (member.name == name)
+        {
+            return member.type;
+        }
+    }
+
+    return nullptr;
+}
+
+bool SymbolType::FindStaticMember(UTF8StringView name, SymbolTypeMember& out) const
+{
+    for (const SymbolTypeMember& member : m_staticMembers)
+    {
+        if (member.name == name)
+        {
+            out = member;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool SymbolType::FindStaticMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const
+{
+    // get member index from name
+    for (SizeType i = 0; i < m_staticMembers.Size(); i++)
+    {
+        const SymbolTypeMember& member = m_staticMembers[i];
+
+        if (member.name == name)
+        {
+            outIndex = uint32(i);
+            out = member;
+
+            return true;
+        }
     }
 
     return false;

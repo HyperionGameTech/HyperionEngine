@@ -16,6 +16,16 @@ public:
         const SourceLocation& location);
     virtual ~AstMember() = default;
 
+    HYP_FORCE_INLINE bool IsStaticField() const
+    {
+        return m_isStaticField;
+    }
+
+    HYP_FORCE_INLINE bool IsStaticMethod() const
+    {
+        return m_isStaticMethod;
+    }
+
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
@@ -51,9 +61,9 @@ protected:
     SymbolTypeRef m_targetType;
     SymbolTypeRef m_heldType;
     RC<AstTypeSpecifier> m_typeSpec;
-    RC<AstExpression> m_overrideExpr;
     uint32 m_foundIndex;
-    bool m_enableGenericMemberSubstitution;
+    bool m_isStaticField : 1;
+    bool m_isStaticMethod : 1;
 
     RC<AstMember> CloneImpl() const
     {

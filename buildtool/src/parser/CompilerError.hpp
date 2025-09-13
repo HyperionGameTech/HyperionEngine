@@ -102,7 +102,6 @@ enum ErrorMessage
     Msg_generic_expression_must_be_const,
     Msg_generic_expression_requires_assignment,
     Msg_generic_argument_must_be_literal,
-    Msg_not_a_data_member,
 
     Msg_bitwise_operands_must_be_int,
     Msg_bitwise_operand_must_be_int,

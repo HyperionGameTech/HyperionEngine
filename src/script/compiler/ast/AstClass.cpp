@@ -428,7 +428,16 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     decl->GetRealAssignment()
                 };
 
-                m_symbolType->GetMembers().PushBack(std::move(member));
+                const bool isStaticMethod = decl->GetIdentifierFlags() & IdentifierFlags::STATIC_MEMBER;
+
+                if (isStaticMethod)
+                {
+                    m_symbolType->GetStaticMembers().PushBack(std::move(member));
+                }
+                else
+                {
+                    m_symbolType->GetMembers().PushBack(std::move(member));
+                }
             }
 
             if (!m_preRegister && !IsExternClass() && !IsProxyClass() && !IsEnum())
@@ -622,7 +631,18 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         methodInfo.name = decl->GetName();
         methodInfo.typeId = TypeId::ForType<HypData>();
         methodInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
-        methodInfo.flags = HypMethodFlags::MEMBER; // flags will be combined with the function's other flags (e.g VARIDIC) with the member is created during execution
+
+        // flags will be combined with the function's other flags (e.g VARIDIC) with the member is created during execution
+        if (decl->GetIdentifierFlags() & IdentifierFlags::STATIC_MEMBER)
+        {
+            // static method
+            methodInfo.flags = HypMethodFlags::STATIC;
+        }
+        else
+        {
+            // instance method
+            methodInfo.flags = HypMethodFlags::MEMBER;
+        }
 
         chunk->Append(decl->Build(visitor, mod));
 

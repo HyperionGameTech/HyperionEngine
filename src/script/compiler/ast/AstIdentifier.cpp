@@ -19,7 +19,7 @@ AstIdentifier::AstIdentifier(const String& name, const SourceLocation& location)
 
 void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
 {
-    // only look up types if we're in a type specification scope
+    // if we're in a type specification scope, we only want to look up types
     if (mod->IsInScopeOfType(SCOPE_TYPE_TYPE_SPECIFICATION, /* thisScopeOnly */ true))
     {
         if (SymbolTypeRef type = mod->LookupSymbolType(m_name))
