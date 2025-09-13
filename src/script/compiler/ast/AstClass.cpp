@@ -601,25 +601,9 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         staticFieldInfo.typeId = TypeId::ForType<HypData>();
         staticFieldInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
 
-        Assert(decl->GetRealAssignment() != nullptr);
-
-        auto staticFieldExprChunk = decl->GetRealAssignment()->Build(visitor, mod);
-        Assert(staticFieldExprChunk != nullptr);
-        chunk->Append(std::move(staticFieldExprChunk));
-
-        // push the value to stack
-        {
-            uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-            auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-            instrPush->opcode = PUSH;
-            instrPush->Accept<uint8>(rp);
-            chunk->Append(std::move(instrPush));
-        }
+        chunk->Append(decl->Build(visitor, mod));
 
         staticFieldInfo.stackOffset = uint16(m_staticMembers.Size() - staticFields.Size()); // reverse order because stack
-
-        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
         staticFields.PushBack(staticFieldInfo);
     }
 
@@ -640,25 +624,9 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         methodInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
         methodInfo.flags = HypMethodFlags::MEMBER; // flags will be combined with the function's other flags (e.g VARIDIC) with the member is created during execution
 
-        Assert(decl->GetRealAssignment() != nullptr);
-
-        auto methodExprChunk = decl->GetRealAssignment()->Build(visitor, mod);
-        Assert(methodExprChunk != nullptr);
-        chunk->Append(std::move(methodExprChunk));
-
-        // push the value to stack
-        {
-            uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-            auto instrPush = BytecodeUtil::Make<RawOperation<>>();
-            instrPush->opcode = PUSH;
-            instrPush->Accept<uint8>(rp);
-            chunk->Append(std::move(instrPush));
-        }
+        chunk->Append(decl->Build(visitor, mod));
 
         methodInfo.stackOffset = uint16(m_functionMembers.Size() - functionMemberIndex); // reverse order because stack
-
-        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
         methods.PushBack(methodInfo);
     }
 

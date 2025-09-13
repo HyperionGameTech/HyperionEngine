@@ -444,7 +444,7 @@ private:
 
             if (!hypscriptModuleWriter.IsOpen())
             {
-                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypScript output file: {}", {}, -1, m_analyzer.GetHypScriptOutputDirectory() / "Hyperion.hyp"));
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypScript output file: {}", {}, -1, m_analyzer.GetHypScriptOutputDirectory() / "Lib.hyp"));
             }
 
             hypscriptModuleWriter.WriteString(*g_hypscriptPreamble);

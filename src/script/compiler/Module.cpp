@@ -243,26 +243,46 @@ SymbolTypeRef Module::LookupSymbolType(const String& name, bool includePlacehold
         });
 }
 
-Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(const String& name, bool includePlaceholderTypes)
+Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(
+    const String& name,
+    bool includePlaceholderTypes,
+    bool thisScopeOnly,
+    bool outsideModules)
 {
+    TreeNode<Scope>* top = scopeTree.TopNode();
+
     return PerformLookup<Variant<RC<Identifier>, SymbolTypeRef>>(
-        [&name, includePlaceholderTypes](TreeNode<Scope>* top) -> Variant<RC<Identifier>, SymbolTypeRef>
+        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> Variant<RC<Identifier>, SymbolTypeRef>
         {
-            if (RC<Identifier> result = top->Get().identifierTable.LookUpIdentifier(name))
+            if (thisScopeOnly && node != top)
             {
-                return Variant<RC<Identifier>, SymbolTypeRef>(result);
+                return {};
             }
 
-            if (SymbolTypeRef symbolType = top->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes))
+            if (RC<Identifier> result = node->Get().identifierTable.LookUpIdentifier(name))
             {
-                return Variant<RC<Identifier>, SymbolTypeRef>(symbolType);
+                return std::move(result);
             }
 
-            return Variant<RC<Identifier>, SymbolTypeRef>();
+            if (SymbolTypeRef symbolType = node->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes))
+            {
+                return std::move(symbolType);
+            }
+
+            return {};
         },
-        [&name, includePlaceholderTypes](Module* mod) -> Variant<RC<Identifier>, SymbolTypeRef>
+        [&name, includePlaceholderTypes, thisScopeOnly, outsideModules](Module* mod) -> Variant<RC<Identifier>, SymbolTypeRef>
         {
-            return mod->LookUpIdentifierOrSymbolType(name, includePlaceholderTypes);
+            if (!outsideModules)
+            {
+                return {};
+            }
+
+            return mod->LookUpIdentifierOrSymbolType(
+                name,
+                includePlaceholderTypes,
+                thisScopeOnly,
+                outsideModules);
         });
 }
 

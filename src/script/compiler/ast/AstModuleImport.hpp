@@ -1,13 +1,18 @@
 #pragma once
 
 #include <script/compiler/ast/AstImport.hpp>
+
 #include <core/containers/String.hpp>
 
-#include <string>
+#include <core/utilities/Variant.hpp>
 
 namespace hyperion {
 
 class Identifier;
+class SymbolType;
+
+using SymbolTypeRef = RC<SymbolType>;
+using Symbol = Variant<RC<Identifier>, SymbolTypeRef>;
 
 class AstModuleImportPart : public AstStatement
 {
@@ -33,14 +38,9 @@ public:
         m_pullInModules = pullInModules;
     }
 
-    Array<RC<Identifier>>& GetIdentifiers()
+    const Array<Symbol>& GetFoundSymbols() const
     {
-        return m_identifiers;
-    }
-
-    const Array<RC<Identifier>>& GetIdentifiers() const
-    {
-        return m_identifiers;
+        return m_foundSymbols;
     }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -69,7 +69,7 @@ private:
 
     // set while analyzing
     bool m_pullInModules;
-    Array<RC<Identifier>> m_identifiers;
+    Array<Symbol> m_foundSymbols;
 
     RC<AstModuleImportPart> CloneImpl() const
     {

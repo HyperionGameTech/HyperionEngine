@@ -28,7 +28,7 @@ void AstModuleImportPart::Visit(AstVisitor* visitor, Module* mod)
     Assert(visitor != nullptr);
     Assert(mod != nullptr);
 
-    RC<Identifier> leftIdentifier;
+    Symbol foundSymbol;
 
     if (Module* thisModule = mod->LookupNestedModule(m_left))
     {
@@ -48,20 +48,20 @@ void AstModuleImportPart::Visit(AstVisitor* visitor, Module* mod)
                 Assert(part != nullptr);
                 part->Visit(visitor, thisModule);
 
-                if (part->GetIdentifiers().Any())
+                if (part->GetFoundSymbols().Any())
                 {
-                    for (const auto& identifier : part->GetIdentifiers())
-                    {
-                        m_identifiers.PushBack(identifier);
-                    }
+                    m_foundSymbols.Concat(part->GetFoundSymbols());
                 }
             }
         }
     }
-    else if (m_rightParts.Empty() && (leftIdentifier = mod->LookUpIdentifier(m_left, false)))
+    else if (m_rightParts.Empty() && (foundSymbol = mod->LookUpIdentifierOrSymbolType(m_left,
+                                          /* includePlaceholderTypes */ false,
+                                          /* thisScopeOnly */ true,
+                                          /* outsideModules */ false)))
     {
         // pull the identifier into local scope
-        m_identifiers.PushBack(std::move(leftIdentifier));
+        m_foundSymbols.PushBack(std::move(foundSymbol));
     }
     else
     {
@@ -202,28 +202,51 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
 
     if (opened)
     {
-        Array<RC<Identifier>> pulledInIdentifiers;
+        Array<Symbol> pulledInSymbols;
 
         for (const RC<AstModuleImportPart>& part : m_parts)
         {
             Assert(part != nullptr);
             part->Visit(visitor, mod);
 
-            for (const RC<Identifier>& identifier : part->GetIdentifiers())
-            {
-                pulledInIdentifiers.PushBack(identifier);
-            }
+            pulledInSymbols.Concat(part->GetFoundSymbols());
         }
 
-        for (auto& identifier : pulledInIdentifiers)
+        for (const Symbol& symbol : pulledInSymbols)
         {
-            if (!mod->scopeTree.Top().identifierTable.AddIdentifier(identifier))
+            if (symbol.Is<RC<Identifier>>())
             {
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_redeclared_identifier,
-                    m_location,
-                    identifier->GetName()));
+                const RC<Identifier>& identifier = symbol.Get<RC<Identifier>>();
+
+                if (!mod->scopeTree.Top().identifierTable.AddIdentifier(identifier))
+                {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_redeclared_identifier,
+                        m_location,
+                        identifier->GetName()));
+                }
+            }
+            else if (symbol.Is<SymbolTypeRef>())
+            {
+                const SymbolTypeRef& symbolType = symbol.Get<SymbolTypeRef>();
+
+                if (mod->scopeTree.Top().identifierTable.LookupSymbolType(symbolType->GetName()) != nullptr)
+                {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_redeclared_identifier_type,
+                        m_location,
+                        symbolType->GetName()));
+
+                    continue;
+                }
+
+                mod->scopeTree.Top().identifierTable.AddSymbolType(symbolType);
+            }
+            else
+            {
+                HYP_UNREACHABLE();
             }
         }
     }

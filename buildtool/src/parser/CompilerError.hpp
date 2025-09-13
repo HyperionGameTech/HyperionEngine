@@ -120,7 +120,6 @@ enum ErrorMessage
     Msg_module_declared_in_block,
     Msg_could_not_open_file,
     Msg_could_not_find_module,
-    Msg_could_not_find_nested_module,
     Msg_identifier_is_module,
     Msg_import_outside_global,
     Msg_import_current_file,

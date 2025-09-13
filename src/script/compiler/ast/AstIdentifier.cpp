@@ -35,7 +35,7 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (auto identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
+    if (Variant<RC<Identifier>, SymbolTypeRef> identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
     {
         if (identifierOrSymbolType.Is<RC<Identifier>>())
         {

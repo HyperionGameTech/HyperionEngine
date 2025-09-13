@@ -85,7 +85,10 @@ public:
         If thisScopeOnly is set to true, only the current scope will be
         searched.
     */
-    RC<Identifier> LookUpIdentifier(const String& name, bool thisScopeOnly, bool outsideModules = HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
+    RC<Identifier> LookUpIdentifier(
+        const String& name,
+        bool thisScopeOnly,
+        bool outsideModules = HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
 
     /** Check to see if the identifier exists in this scope or above this one.
         Will only search the number of depth levels it is given.
@@ -96,7 +99,11 @@ public:
     /** Look up a symbol in this module by name */
     SymbolTypeRef LookupSymbolType(const String& name, bool includePlaceholderTypes = true);
 
-    Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(const String& name, bool includePlaceholderTypes = true);
+    Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(
+        const String& name,
+        bool includePlaceholderTypes = true,
+        bool thisScopeOnly = false,
+        bool outsideModules = HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
 
     SymbolTypeRef LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep = true);
     void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type);
