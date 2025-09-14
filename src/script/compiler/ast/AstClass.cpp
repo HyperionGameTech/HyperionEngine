@@ -214,7 +214,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // Re-register the symbol type and add SelfType alias for member processing
     mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
     mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { m_symbolType }));
 
@@ -559,12 +558,15 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // resolve placeholders in members:
-    SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location);
-    Assert(resolvedType != nullptr);
+    if (!m_preRegister)
+    {
+        // resolve placeholders in members
+        SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location);
+        Assert(resolvedType != nullptr);
 
-    m_symbolType->Assign(*resolvedType);
-    resolvedType.Reset();
+        m_symbolType->Assign(*resolvedType);
+        resolvedType.Reset();
+    }
 
     { // create a type ref for the symbol type
         m_typeRef.Reset(new AstTypeRef(m_symbolType, m_location));

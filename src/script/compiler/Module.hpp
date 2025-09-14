@@ -97,7 +97,10 @@ public:
     RC<Identifier> LookUpIdentifierDepth(const String& name, int depthLevel);
 
     /** Look up a symbol in this module by name */
-    SymbolTypeRef LookupSymbolType(const String& name, bool includePlaceholderTypes = true);
+    SymbolTypeRef LookupSymbolType(
+        const String& name,
+        bool includePlaceholderTypes = true,
+        bool thisScopeOnly = false);
 
     Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(
         const String& name,

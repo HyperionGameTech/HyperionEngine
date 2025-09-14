@@ -230,14 +230,24 @@ RC<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
     return nullptr;
 }
 
-SymbolTypeRef Module::LookupSymbolType(const String& name, bool includePlaceholderTypes)
+SymbolTypeRef Module::LookupSymbolType(
+    const String& name,
+    bool includePlaceholderTypes,
+    bool thisScopeOnly)
 {
+    TreeNode<Scope>* top = scopeTree.TopNode();
+
     return PerformLookup<SymbolTypeRef>(
-        [&name, includePlaceholderTypes](TreeNode<Scope>* top)
+        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> SymbolTypeRef
         {
-            return top->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes);
+            if (thisScopeOnly && node != top)
+            {
+                return nullptr;
+            }
+
+            return node->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes);
         },
-        [&name](Module* mod)
+        [&name](Module* mod) -> SymbolTypeRef
         {
             return mod->LookupSymbolType(name);
         });

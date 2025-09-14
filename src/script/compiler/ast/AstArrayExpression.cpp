@@ -125,15 +125,15 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         replacedMember->Visit(visitor, mod);
     }
 
-    RC<AstTemplateInstantiation> templateInstantiation(new AstTemplateInstantiation(
+    AstTemplateInstantiation genericInst(
         RC<AstTypeRef>(new AstTypeRef(BuiltinTypes::s_arrayType, m_location)),
         { RC<AstTypeSpecifier>(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_heldType, m_location)), m_location)) },
         nullptr, // no function return type
-        m_location));
+        m_location);
 
-    templateInstantiation->Visit(visitor, mod);
+    genericInst.Visit(visitor, mod);
 
-    const SymbolTypeRef& arrayType = templateInstantiation->GetHeldType();
+    const SymbolTypeRef arrayType = genericInst.GetHeldType();
 
     if (!arrayType)
     {
@@ -141,7 +141,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    m_exprType = arrayType;
+    m_exprType = std::move(arrayType);
 }
 
 UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)

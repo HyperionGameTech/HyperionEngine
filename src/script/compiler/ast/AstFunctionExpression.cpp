@@ -415,7 +415,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_isClosure)
     {
+        SymbolTypeRef closureSelfType = SymbolType::Temp();
+
         ScopeGuard closureScope(mod, SCOPE_TYPE_NORMAL);
+        closureScope->identifierTable.AddSymbolType(SymbolType::Alias("ClosureSelfType", { closureSelfType }));
 
         Array<RC<AstParameter>> closureParams;
         closureParams.Reserve(m_parameters.Size() + 1);
@@ -463,7 +466,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         closureClassDecl->Visit(visitor, mod);
 
         Assert(closureClassDecl->GetHeldType() != nullptr);
-        closureScope->identifierTable.AddSymbolType(SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType().ToWeak() }));
+        closureSelfType->Assign(*SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType().ToWeak() }));
 
         m_closureBlock.Reset(new AstBlock(m_location));
 
@@ -473,7 +476,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             nullptr,
             RC<AstNewExpression>(new AstNewExpression(
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(closureClassDecl->GetHeldType(), m_location)),
+                    RC<AstTypeRef>(new AstTypeRef(closureSelfType, m_location)),
                     m_location)),
                 nullptr, // no constructor args
                 false,   // enable constructor call
@@ -504,7 +507,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
             mod,
-            closureClassDecl->GetHeldType(),
+            closureSelfType,
             m_location);
 
         return;

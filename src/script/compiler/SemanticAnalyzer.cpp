@@ -12,6 +12,7 @@
 
 namespace hyperion {
 
+    HYP_DISABLE_OPTIMIZATION;
 SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     AstVisitor* visitor,
     Module* mod,
@@ -36,33 +37,39 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         // (e.g members)
         return cachedPlaceholderType;
     }
-    bool changed = false;
 
     // cache the placeholder type before resolving members to prevent infinite recursion
     mod->CacheTypeInstance(key, unaliasedInputType);
+
+    bool changed = false;
+
+    static const auto shouldSkipNestedResolution = [](SymbolType* type) -> bool
+    {
+        Assert(type);
+
+        return type->IsObject()
+            || type->HasBase(*BuiltinTypes::s_arrayBaseType)
+            || type->HasBase(*BuiltinTypes::s_mapBaseType);
+    };
 
     if (!unaliasedInputType->IsPlaceholderType())
     {
         SymbolTypeRef newType;
 
         // Check if type has members, static members, or base types that need resolution
-        if (unaliasedInputType->GetMembers().Any() || unaliasedInputType->GetStaticMembers().Any() || unaliasedInputType->GetBaseType())
+        if (unaliasedInputType->GetMembers().Any() || unaliasedInputType->GetStaticMembers().Any() || unaliasedInputType->IsGenericInstanceType())
         {
             newType = unaliasedInputType->Clone();
-
-            if (SymbolTypeRef baseType = newType->GetBaseType())
-            {
-                SymbolTypeRef resolvedBaseType = ResolvePlaceholderType(visitor, mod, baseType, location);
-                if (!resolvedBaseType->TypeEqual(*baseType))
-                {
-                    newType->SetBaseType(resolvedBaseType);
-                    changed = true;
-                }
-            }
 
             for (SizeType memberIndex = 0; memberIndex < newType->GetMembers().Size(); memberIndex++)
             {
                 const SymbolTypeMember& srcMember = newType->GetMembers()[memberIndex];
+                Assert(srcMember.type != nullptr);
+
+                if (shouldSkipNestedResolution(srcMember.type))
+                {
+                    continue;
+                }
 
                 SymbolTypeRef resolvedMemberType = ResolvePlaceholderType(visitor, mod, srcMember.type, location);
                 if (!srcMember.type->TypeEqual(*resolvedMemberType))
@@ -75,6 +82,12 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             for (SizeType memberIndex = 0; memberIndex < newType->GetStaticMembers().Size(); memberIndex++)
             {
                 const SymbolTypeMember& srcMember = newType->GetStaticMembers()[memberIndex];
+                Assert(srcMember.type != nullptr);
+
+                if (shouldSkipNestedResolution(srcMember.type))
+                {
+                    continue;
+                }
 
                 SymbolTypeRef resolvedMemberType = ResolvePlaceholderType(visitor, mod, srcMember.type, location);
                 if (!srcMember.type->TypeEqual(*resolvedMemberType))
@@ -83,12 +96,48 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                     changed = true;
                 }
             }
+
+            if (unaliasedInputType->IsGenericInstanceType())
+            {
+                bool genericArgsChanged = false;
+
+                GenericInstanceTypeInfo gi = unaliasedInputType->GetGenericInstanceInfo();
+
+                for (SizeType i = 0; i < gi.m_genericArgs.Size(); i++)
+                {
+                    SymbolTypeRef& argType = gi.m_genericArgs[i].m_type;
+                    Assert(argType != nullptr);
+
+                    if (shouldSkipNestedResolution(argType))
+                    {
+                        continue;
+                    }
+
+                    SymbolTypeRef resolvedArgType = ResolvePlaceholderType(visitor, mod, argType, location);
+
+                    if (!argType->TypeEqual(*resolvedArgType))
+                    {
+                        argType = resolvedArgType;
+                        genericArgsChanged = true;
+                    }
+                }
+
+                if (genericArgsChanged)
+                {
+                    changed = true;
+
+                    newType->GetGenericInstanceInfo() = std::move(gi);
+                }
+            }
         }
 
         if (changed)
         {
+            // mutate the cached placeholder type in-place
             unaliasedInputType->Assign(*newType);
         }
+
+        newType.Reset();
 
         return unaliasedInputType;
     }
@@ -112,6 +161,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
 
     return BuiltinTypes::s_errorType;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     AstVisitor* visitor,

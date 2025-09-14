@@ -726,16 +726,16 @@ bool SymbolType::IsOrHasBase(const SymbolType& baseType) const
 
 bool SymbolType::HasBase(const SymbolType& baseType) const
 {
-    if (SymbolTypeRef thisBase = GetBaseType())
+    SymbolType* currentBase = m_base;
+
+    while (currentBase != nullptr)
     {
-        if (thisBase->TypeEqual(baseType))
+        if (currentBase->TypeEqual(baseType))
         {
             return true;
         }
-        else
-        {
-            return thisBase->HasBase(baseType);
-        }
+
+        currentBase = currentBase->GetBaseType();
     }
 
     return false;

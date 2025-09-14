@@ -52,11 +52,13 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, heldType, m_location);
+    m_symbolType = heldType->GetUnaliased();
+
+    /*SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, heldType, m_location);
     Assert(resolvedType != nullptr);
 
     m_symbolType = resolvedType->GetUnaliased();
-    Assert(m_symbolType != nullptr);
+    Assert(m_symbolType != nullptr);*/
 }
 
 UniquePtr<Buildable> AstTypeSpecifier::Build(AstVisitor* visitor, Module* mod)

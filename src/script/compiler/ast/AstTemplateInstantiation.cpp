@@ -62,12 +62,11 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    SymbolTypeRef newType = SymbolType::Temp();
-
-    Scope& scope = mod->scopeTree.Open(SCOPE_TYPE_NORMAL);
+    ScopeGuard scopeGuard(mod, SCOPE_TYPE_NORMAL);
 
     // supplant "SelfType" placeholder type with the actual target type
-    scope.identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { newType }));
+    SymbolTypeRef newType = SymbolType::Temp();
+    scopeGuard->identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { newType }));
 
     Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
     genericParamTypes.Reserve(m_genericArgs.Size() + (m_functionReturnType ? 1 : 0));
@@ -103,12 +102,8 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericInstanceType,
         m_location);
 
-    mod->scopeTree.Close();
-
     if (!genericInstanceType)
     {
-        genericInstanceType = BuiltinTypes::s_errorType;
-
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_internal_error,

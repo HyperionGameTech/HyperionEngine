@@ -3859,12 +3859,6 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
                 Script_Value& srcValue = *instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].Deref();
 
                 argsHypData[argIndex] = srcValue.GetHypData();
-
-                DebugLog(
-                    LogType::Debug,
-                    "arg %d: repr = %s\n",
-                    argIndex,
-                    srcValue.ToString().Data());
             }
 
             // @TODO: Implement

@@ -157,6 +157,7 @@ const SymbolTypeRef BuiltinTypes::s_functionType = SymbolType::Generic(
         { { "@return", SymbolType::GenericParameter("ReturnType") },
             { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) } } });
 
+// See ScriptArrayWrapper.cpp in Hyperion Engine for implementation of array methods
 const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
     "Array",
     BuiltinTypes::s_arrayBaseType,
@@ -169,7 +170,7 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_int32Type } } }) },
+                        { "index", BuiltinTypes::s_uint64Type } } }) },
         SymbolTypeMember {
             "operator[]=",
             SymbolType::GenericInstance(
@@ -178,7 +179,7 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                 GenericInstanceTypeInfo {
                     { { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_int32Type },
+                        { "index", BuiltinTypes::s_uint64Type },
                         { "value", SymbolType::GenericParameter("T") } } }) },
         SymbolTypeMember {
             "PushBack",
@@ -186,9 +187,34 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_voidType },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") },
                         { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "PopBack",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "Clear",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_voidType },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+        SymbolTypeMember {
+            "Resize",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_voidType },
+                        { "self", SymbolType::Placeholder("SelfType") },
+                        { "newSize", BuiltinTypes::s_uint64Type } } }) },
         SymbolTypeMember {
             "Size",
             SymbolType::GenericInstance(
@@ -196,7 +222,7 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                 {}, {},
                 GenericInstanceTypeInfo {
                     { { "@return", BuiltinTypes::s_uint64Type },
-                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType } } }) } }, // @TODO make this T
+                        { "self", SymbolType::Placeholder("SelfType") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
