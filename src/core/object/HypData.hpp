@@ -593,6 +593,79 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
     }
 };
 
+template <>
+struct HypDataHelperDecl<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>>
+{
+};
+
+template <>
+struct HypDataHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>> : HypDataHelper<uint64>
+{
+    using StorageType = uint64;
+    using ConvertibleFrom = Tuple<
+        int8,
+        int16,
+        int32,
+        int64,
+        uint8,
+        uint16,
+        uint32,
+        uint64,
+        char,
+        float,
+        double,
+        bool>;
+
+    HYP_FORCE_INLINE bool Is(SizeType value) const
+    {
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, SizeType>>>
+    HYP_FORCE_INLINE bool Is(OtherT value) const
+    {
+        return std::is_fundamental_v<OtherT>;
+    }
+
+    HYP_FORCE_INLINE constexpr SizeType Get(SizeType value) const
+    {
+        return value;
+    }
+
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, SizeType>>>
+    HYP_FORCE_INLINE constexpr SizeType Get(OtherT value) const
+    {
+        return static_cast<SizeType>(value);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, SizeType value) const
+    {
+        hypData.Set_Internal(static_cast<uint64>(value));
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Serialize(SizeType value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        out = FBOMData(static_cast<uint64>(value), flags);
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        uint64 value;
+
+        if (FBOMResult err = data.Read(&value))
+        {
+            return err;
+        }
+
+        out = HypData(static_cast<SizeType>(value));
+
+        return FBOMResult::FBOM_OK;
+    }
+};
+
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_enum_v<T>>>
 {

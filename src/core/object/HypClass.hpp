@@ -615,14 +615,6 @@ public:
         return false;
     }
 
-    HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
-    {
-        HYP_CORE_ASSERT(ref.GetTypeId() == GetTypeId(), "Expected HypClass instance to have type Id %u but got type Id %u",
-            ref.GetTypeId().Value(), GetTypeId().Value());
-
-        return GetInstanceHashCode_Internal(ref);
-    }
-
     void PostLoad(void* objectPtr) const
     {
         if (!objectPtr)
@@ -654,8 +646,6 @@ protected:
     {
         return false;
     }
-
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
     void AddProperty(HypProperty* property);
     void AddMethod(HypMethod* method);
@@ -903,18 +893,6 @@ protected:
         }
     }
 
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
-    {
-        if constexpr (HYP_HAS_METHOD(T, GetHashCode))
-        {
-            return HashCode::GetHashCode(ref.Get<T>());
-        }
-        else
-        {
-            HYP_NOT_IMPLEMENTED();
-        }
-    }
-
 protected:
 };
 
@@ -963,7 +941,6 @@ protected:
     virtual void PostLoad_Internal(void* objectPtr) const override;
     virtual bool CreateInstance_Internal(HypData& out) const override;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
 
     TypeId m_enumUnderlyingTypeId;
 

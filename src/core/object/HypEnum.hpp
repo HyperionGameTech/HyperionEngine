@@ -43,8 +43,6 @@ public:
 protected:
     virtual bool CreateInstance_Internal(HypData& out) const override = 0;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override = 0;
-
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
 };
 
 template <class T>
@@ -116,11 +114,6 @@ protected:
         out = HypData(std::move(array));
 
         return true;
-    }
-
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
-    {
-        return HashCode::GetHashCode(ref.Get<T>());
     }
 };
 

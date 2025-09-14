@@ -179,7 +179,24 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                     { { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::s_int32Type },
-                        { "value", SymbolType::GenericParameter("T") } } }) } },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "PushBack",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_voidType },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "Size",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_uint64Type },
+                        { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType } } }) } }, // @TODO make this T
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 

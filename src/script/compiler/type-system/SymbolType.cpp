@@ -1333,52 +1333,6 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
     return BuiltinTypes::s_errorType;
 }
 
-SymbolTypeRef SymbolType::SubstituteGenericParams(
-    const SymbolTypeRef& lptr,
-    const SymbolTypeRef& placeholder,
-    const SymbolTypeRef& substitute)
-{
-    Assert(lptr != nullptr);
-    Assert(placeholder != nullptr);
-    Assert(substitute != nullptr);
-
-    if (lptr->TypeEqual(*placeholder))
-    {
-        return substitute;
-    }
-
-    switch (lptr->GetTypeClass())
-    {
-    case TYPE_GENERIC_INSTANCE:
-    {
-        SymbolTypeRef baseType = lptr->GetBaseType();
-        Assert(baseType != nullptr);
-
-        Array<GenericInstanceTypeInfo::Arg> newGenericTypes;
-
-        for (const GenericInstanceTypeInfo::Arg& arg : lptr->GetGenericInstanceInfo().m_genericArgs)
-        {
-            GenericInstanceTypeInfo::Arg newArg {};
-            newArg.m_name = arg.m_name;
-            newArg.m_defaultValue = CloneAstNode(arg.m_defaultValue);
-            newArg.m_type = SubstituteGenericParams(arg.m_type, placeholder, substitute);
-            newArg.m_isConst = arg.m_isConst;
-            newArg.m_isRef = arg.m_isRef;
-
-            newGenericTypes.PushBack(std::move(newArg));
-        }
-
-        return SymbolType::GenericInstance(
-            baseType,
-            lptr->GetMembers(),
-            lptr->GetStaticMembers(),
-            GenericInstanceTypeInfo { newGenericTypes });
-    }
-    }
-
-    return lptr;
-}
-
 HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const
 {
     if (IsAlias())

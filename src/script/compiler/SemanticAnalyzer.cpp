@@ -246,11 +246,6 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     SymbolTypeRef unaliasedInputType = inputType->GetUnaliased();
     Assert(unaliasedInputType != nullptr);
 
-    // if (unaliasedInputType->IsPlaceholderType())
-    // {
-    //     return ResolvePlaceholderType(visitor, mod, unaliasedInputType, location);
-    // }
-
     const TypeInstanceCache::Key cacheKey = TypeInstanceCache::MakeKey(unaliasedInputType, GenericInstanceTypeInfo { inArgs });
 
     if (SymbolTypeRef cachedType = mod->LookupTypeInstance(cacheKey))
@@ -379,7 +374,6 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 }
 
                 GenericInstanceTypeInfo::Arg& resolvedArg = resolvedArgs.EmplaceBack();
-
                 resolvedArg = {};
                 resolvedArg.m_name = genericArg.m_name;
                 resolvedArg.m_defaultValue = CloneAstNode(genericArg.m_defaultValue);
@@ -391,28 +385,32 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
         SymbolTypeRef tmpGenericInstance = SymbolType::GenericInstance(
             targetType,
-            {}, {},
+            targetType->GetMembers(),
+            targetType->GetStaticMembers(),
             GenericInstanceTypeInfo { std::move(resolvedArgs) });
 
         targetType = std::move(tmpGenericInstance);
         changed = true;
 
-        break;
-    }
-    default:
-        break;
-    }
-
-#if 0
-    if (SymbolTypeRef baseType = unaliasedInputType->GetBaseType())
-    {
-        baseType = baseType->GetUnaliased();
-        Assert(baseType != nullptr);
-
-        SymbolTypeRef substitutedBaseType = SubstituteGenericParameters(visitor, mod, baseType, {}, location);
-
-        if (substitutedBaseType != baseType)
+#if 1
+        // handle members
+        for (SizeType memberIndex = 0; memberIndex < targetType->GetMembers().Size(); memberIndex++)
         {
+            Assert(memberIndex < targetType->GetMembers().Size());
+
+            const SymbolTypeMember& member = targetType->GetMembers()[memberIndex];
+
+            SymbolTypeRef memberType = member.type->GetUnaliased();
+            Assert(memberType != nullptr);
+
+            SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, memberType, {}, location);
+
+            if (substitutedMemberType == memberType)
+            {
+                // no change, skip
+                continue;
+            }
+
             if (!changed)
             {
                 targetType = targetType->Clone();
@@ -423,76 +421,50 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 changed = true;
             }
 
-            targetType->SetBaseType(substitutedBaseType);
+            SymbolTypeMember& newMember = targetType->GetMembers()[memberIndex];
+            newMember.type = substitutedMemberType;
+            newMember.expr = CloneAstNode(member.expr);
         }
-    }
 
-    // handle members
-    for (SizeType memberIndex = 0; memberIndex < unaliasedInputType->GetMembers().Size(); memberIndex++)
-    {
-        Assert(memberIndex < targetType->GetMembers().Size());
-
-        const SymbolTypeMember& member = targetType->GetMembers()[memberIndex];
-
-        SymbolTypeRef memberType = member.type->GetUnaliased();
-        Assert(memberType != nullptr);
-
-        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, memberType, {}, location);
-
-        if (substitutedMemberType == memberType)
+        // handle static members
+        for (SizeType memberIndex = 0; memberIndex < targetType->GetStaticMembers().Size(); memberIndex++)
         {
-            // no change, skip
-            continue;
+            Assert(memberIndex < targetType->GetStaticMembers().Size());
+
+            const SymbolTypeMember& member = targetType->GetStaticMembers()[memberIndex];
+
+            SymbolTypeRef memberType = member.type->GetUnaliased();
+            Assert(memberType != nullptr);
+
+            SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, memberType, {}, location);
+
+            if (substitutedMemberType == memberType)
+            {
+                // no change, skip
+                continue;
+            }
+
+            if (!changed)
+            {
+                targetType = targetType->Clone();
+
+                newType = SymbolType::Temp();
+                mod->CacheTypeInstance(cacheKey, newType);
+
+                changed = true;
+            }
+
+            SymbolTypeMember& newMember = targetType->GetStaticMembers()[memberIndex];
+            newMember.type = substitutedMemberType;
+            newMember.expr = CloneAstNode(member.expr);
         }
-
-        if (!changed)
-        {
-            targetType = targetType->Clone();
-
-            newType = SymbolType::Temp();
-            mod->CacheTypeInstance(cacheKey, newType);
-
-            changed = true;
-        }
-
-        SymbolTypeMember& newMember = targetType->GetMembers()[memberIndex];
-        newMember.type = substitutedMemberType;
-        newMember.expr = CloneAstNode(member.expr);
-    }
-
-    // handle static members
-    for (SizeType memberIndex = 0; memberIndex < unaliasedInputType->GetStaticMembers().Size(); memberIndex++)
-    {
-        Assert(memberIndex < targetType->GetStaticMembers().Size());
-
-        const SymbolTypeMember& member = targetType->GetStaticMembers()[memberIndex];
-
-        SymbolTypeRef memberType = member.type->GetUnaliased();
-        Assert(memberType != nullptr);
-
-        SymbolTypeRef substitutedMemberType = SubstituteGenericParameters(visitor, mod, memberType, {}, location);
-
-        if (substitutedMemberType == memberType)
-        {
-            // no change, skip
-            continue;
-        }
-
-        if (!changed)
-        {
-            targetType = targetType->Clone();
-
-            newType = SymbolType::Temp();
-            mod->CacheTypeInstance(cacheKey, newType);
-
-            changed = true;
-        }
-
-        SymbolTypeMember& newMember = targetType->GetStaticMembers()[memberIndex];
-        newMember.type = substitutedMemberType;
-        newMember.expr = CloneAstNode(member.expr);
-    }
 #endif
+
+        break;
+    }
+    default:
+        break;
+    }
 
     if (newType != nullptr)
     {

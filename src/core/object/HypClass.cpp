@@ -1422,11 +1422,6 @@ bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> element
     HYP_NOT_IMPLEMENTED();
 }
 
-HashCode DynamicHypClassInstance::GetInstanceHashCode_Internal(ConstAnyRef ref) const
-{
-    HYP_NOT_IMPLEMENTED();
-}
-
 void DynamicHypClassInstance::SetField(uint32 index, HypField* field)
 {
     HYP_CORE_ASSERT(field != nullptr, "Cannot set null field to DynamicHypClass %s", GetName().LookupString());

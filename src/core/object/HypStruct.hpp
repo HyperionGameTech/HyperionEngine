@@ -54,8 +54,6 @@ protected:
     virtual bool CreateInstance_Internal(HypData& out) const override = 0;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override = 0;
 
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
-
     HYP_API bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, SizeType size) const;
 };
 
@@ -285,18 +283,6 @@ protected:
 
         return true;
     }
-
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
-    {
-        if constexpr (HYP_HAS_METHOD(T, GetHashCode))
-        {
-            return HashCode::GetHashCode(ref.Get<T>());
-        }
-        else
-        {
-            HYP_NOT_IMPLEMENTED();
-        }
-    }
 };
 
 using DynamicHypStructInstance_CopyFunction = void* (*)(const void*);
@@ -355,11 +341,6 @@ protected:
         HYP_NOT_IMPLEMENTED();
 
         return false;
-    }
-
-    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
-    {
-        HYP_NOT_IMPLEMENTED();
     }
 
     DynamicHypStructInstance_CopyFunction m_copyFunction;
