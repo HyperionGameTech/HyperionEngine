@@ -1,0 +1,141 @@
+// External declarations for interfacing with the engine
+
+// External basic types
+extern class UUID {
+    ToString() -> string
+}
+
+extern class Vec3f {
+    x: float
+    y: float
+    z: float
+    
+    Vec3f(x: float, y: float, z: float)
+    Length() -> float
+    Normalize() -> Vec3f
+    Dot(other: Vec3f) -> float
+    Cross(other: Vec3f) -> Vec3f
+}
+
+extern class Quaternion {
+    x: float
+    y: float
+    z: float
+    w: float
+    
+    Quaternion(x: float, y: float, z: float, w: float)
+    static Identity() -> Quaternion
+    static FromEuler(euler: Vec3f) -> Quaternion
+    ToEuler() -> Vec3f
+}
+
+extern class Name {
+    ToString() -> string
+    static Create(str: string) -> Name
+}
+
+// External scene types
+extern class Transform {
+    position: Vec3f
+    rotation: Quaternion
+    scale: Vec3f
+    
+    Transform(position: Vec3f, rotation: Quaternion, scale: Vec3f)
+}
+
+extern class Node {
+    GetName() -> Name
+    SetName(name: Name) -> void
+    GetTransform() -> Transform
+    SetTransform(transform: Transform) -> void
+    GetParent() -> Node
+    GetChild(index: int32) -> Node
+    GetChildCount() -> int32
+    AddChild(child: Node) -> void
+}
+
+extern class Entity : Node {
+    GetUUID() -> UUID
+    GetWorldTranslation() -> Vec3f
+    SetWorldTranslation(translation: Vec3f) -> void
+    GetWorldRotation() -> Quaternion
+    SetWorldRotation(rotation: Quaternion) -> void
+}
+
+extern class Scene {
+    GetName() -> Name
+    SetName(name: Name) -> void
+    GetRoot() -> Node
+    AddEntity(entity: Entity) -> void
+    RemoveEntity(entity: Entity) -> void
+    FindEntityByName(name: Name) -> Entity
+}
+
+// Helper functions for working with external types
+createEntity := (name: string, position: Vec3f) -> Entity {
+    entity := new Entity()
+    entity.SetName(Name.Create(name))
+    entity.SetWorldTranslation(position)
+    return entity
+}
+
+moveEntitySmoothly := (entity: Entity, targetPosition: Vec3f, speed: float, deltaTime: float) {
+    currentPos := entity.GetWorldTranslation()
+    direction := new Vec3f(
+        targetPosition.x - currentPos.x,
+        targetPosition.y - currentPos.y,
+        targetPosition.z - currentPos.z
+    )
+    
+    distance := direction.Length()
+    if (distance > 0.1) {
+        normalizedDir := direction.Normalize()
+        moveDistance := speed * deltaTime
+        
+        if (moveDistance >= distance) {
+            entity.SetWorldTranslation(targetPosition)
+        } else {
+            newPosition := new Vec3f(
+                currentPos.x + normalizedDir.x * moveDistance,
+                currentPos.y + normalizedDir.y * moveDistance,
+                currentPos.z + normalizedDir.z * moveDistance
+            )
+            entity.SetWorldTranslation(newPosition)
+        }
+    }
+}
+
+rotateEntityTowards := (entity: Entity, targetDirection: Vec3f) {
+    normalizedDir := targetDirection.Normalize()
+    // Simple rotation - in reality would calculate proper quaternion
+    targetRotation := Quaternion.FromEuler(new Vec3f(0.0, 0.0, 0.0))
+    entity.SetWorldRotation(targetRotation)
+}
+
+// Scene management functions
+setupScene := (scene: Scene) {
+    scene.SetName(Name.Create("GameScene"))
+    
+    // Create some entities
+    player := createEntity("Player", new Vec3f(0.0, 0.0, 0.0))
+    enemy1 := createEntity("Enemy1", new Vec3f(5.0, 0.0, 5.0))
+    enemy2 := createEntity("Enemy2", new Vec3f(-5.0, 0.0, 5.0))
+    
+    scene.AddEntity(player)
+    scene.AddEntity(enemy1)
+    scene.AddEntity(enemy2)
+}
+
+findAndMovePlayer := (scene: Scene, newPosition: Vec3f) {
+    player := scene.FindEntityByName(Name.Create("Player"))
+    if (player != null) {
+        player.SetWorldTranslation(newPosition)
+    }
+}
+
+// Example usage would require actual external objects
+// This demonstrates the interface pattern
+export demoFunction := (scene: Scene, deltaTime: float) -> string {
+    // In a real script, this would work with actual engine objects
+    return "External interface demo"
+}

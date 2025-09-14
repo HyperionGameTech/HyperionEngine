@@ -1,0 +1,102 @@
+// Variadic functions (functions with variable arguments)
+
+// Simple variadic function
+sum := (numbers: int32...) -> int32 {
+    total := 0
+    for (i := 0; i < numbers.Length(); i++) {
+        total += numbers[i]
+    }
+    return total
+}
+
+// Variadic function with regular parameters
+format := (template: string, values: string...) -> string {
+    result := template
+    for (i := 0; i < values.Length(); i++) {
+        placeholder := "{" + i + "}"
+        // In a real implementation, this would replace placeholders
+        result += " " + values[i]
+    }
+    return result
+}
+
+// Class with variadic constructor and methods
+class Logger {
+    prefix: string
+    
+    Logger(prefix: string = "LOG") {
+        self.prefix = prefix
+        return self
+    }
+    
+    // Variadic method
+    log(level: string, messages: string...) {
+        output := prefix + " [" + level + "]: "
+        for (i := 0; i < messages.Length(); i++) {
+            output += messages[i]
+            if (i < messages.Length() - 1) {
+                output += " "
+            }
+        }
+        // In a real implementation, this would output the log
+    }
+    
+    info(messages: string...) {
+        log("INFO", messages...)
+    }
+    
+    error(messages: string...) {
+        log("ERROR", messages...)
+    }
+}
+
+// Collection class with variadic methods
+class Collection {
+    items: Array<int32>
+    
+    Collection() {
+        items = []
+        return self
+    }
+    
+    add(values: int32...) {
+        for (i := 0; i < values.Length(); i++) {
+            items.Add(values[i])
+        }
+    }
+    
+    contains(searchValues: int32...) -> bool {
+        for (i := 0; i < searchValues.Length(); i++) {
+            found := false
+            for (j := 0; j < items.Length(); j++) {
+                if (items[j] == searchValues[i]) {
+                    found = true
+                    break
+                }
+            }
+            if (!found) {
+                return false
+            }
+        }
+        return true
+    }
+}
+
+// Using variadic functions
+result1 := sum(1, 2, 3, 4, 5)
+result2 := sum(10, 20)
+result3 := sum(100)
+
+message := format("Hello {0}, you have {1} messages", "Alice", "5")
+
+// Using variadic methods
+logger := new Logger("APP")
+logger.info("Application", "started", "successfully")
+logger.error("Failed", "to", "connect")
+
+collection := new Collection()
+collection.add(1, 2, 3, 4, 5)
+collection.add(6, 7)
+hasValues := collection.contains(1, 3, 5)
+
+export result := result1

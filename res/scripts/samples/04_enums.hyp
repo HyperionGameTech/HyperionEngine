@@ -1,0 +1,69 @@
+// Enumerations and their usage
+
+// Basic enum
+enum Color : uint8 {
+    RED = 0,
+    GREEN = 1,
+    BLUE = 2
+}
+
+// Enum with explicit values
+enum Status : int32 {
+    PENDING = -1,
+    ACTIVE = 1,
+    INACTIVE = 0,
+    COMPLETED = 100
+}
+
+// Enum with type casting
+enum Priority : uint8 {
+    LOW = 1,
+    MEDIUM = 5,
+    HIGH = 10,
+    CRITICAL = -1 as uint8  // Explicit cast for negative value
+}
+
+// Using enums
+currentColor := Color.RED
+taskStatus := Status.ACTIVE
+importantTask := Priority.HIGH
+
+// Function using enum
+getColorName := (color: Color) -> string {
+    if (color == Color.RED) {
+        return "Red"
+    } else if (color == Color.GREEN) {
+        return "Green"
+    } else if (color == Color.BLUE) {
+        return "Blue"
+    }
+    return "Unknown"
+}
+
+// Class with enum property
+class Task {
+    name: string
+    priority: Priority
+    status: Status
+    
+    Task(name: string, priority: Priority) {
+        self.name = name
+        self.priority = priority
+        self.status = Status.PENDING
+        return self
+    }
+    
+    complete() {
+        status = Status.COMPLETED
+    }
+    
+    isHighPriority() -> bool {
+        return priority == Priority.HIGH || priority == Priority.CRITICAL
+    }
+}
+
+task := new Task("Implement feature", Priority.HIGH)
+task.complete()
+isImportant := task.isHighPriority()
+
+export result := getColorName(currentColor)

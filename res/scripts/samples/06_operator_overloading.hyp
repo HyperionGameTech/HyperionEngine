@@ -1,0 +1,91 @@
+// Operator overloading examples
+
+class Vector2 {
+    x: float = 0.0
+    y: float = 0.0
+    
+    Vector2(x: float, y: float) {
+        self.x = x
+        self.y = y
+        return self
+    }
+    
+    // Addition operator
+    operator+(other: Vector2) -> Vector2 {
+        return new Vector2(x + other.x, y + other.y)
+    }
+    
+    // Subtraction operator
+    operator-(other: Vector2) -> Vector2 {
+        return new Vector2(x - other.x, y - other.y)
+    }
+    
+    // Scalar multiplication
+    operator*(scalar: float) -> Vector2 {
+        return new Vector2(x * scalar, y * scalar)
+    }
+    
+    // Equality operator
+    operator==(other: Vector2) -> bool {
+        return x == other.x && y == other.y
+    }
+    
+    // Array access operator (get)
+    operator[](index: int32) -> float {
+        if (index == 0) {
+            return x
+        } else if (index == 1) {
+            return y
+        }
+        return 0.0
+    }
+    
+    // Array access operator (set)
+    operator[]=(index: int32, value: float) {
+        if (index == 0) {
+            x = value
+        } else if (index == 1) {
+            y = value
+        }
+    }
+    
+    // Unary minus
+    operator-() -> Vector2 {
+        return new Vector2(-x, -y)
+    }
+    
+    magnitude() -> float {
+        return Math.Sqrt(x * x + y * y)
+    }
+    
+    normalize() -> Vector2 {
+        mag := magnitude()
+        if (mag > 0.0) {
+            return new Vector2(x / mag, y / mag)
+        }
+        return new Vector2(0.0, 0.0)
+    }
+}
+
+// Using the operators
+v1 := new Vector2(3.0, 4.0)
+v2 := new Vector2(1.0, 2.0)
+
+// Arithmetic operations
+sum := v1 + v2
+difference := v1 - v2
+scaled := v1 * 2.0
+negated := -v1
+
+// Comparison
+areEqual := v1 == v2
+
+// Array-style access
+xComponent := v1[0]
+v1[1] = 10.0
+
+// Method calls
+magnitude := v1.magnitude()
+normalized := v1.normalize()
+
+export result := magnitude

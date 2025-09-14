@@ -1,0 +1,59 @@
+// Basic class definition and inheritance
+
+class Vehicle {
+    brand: string = "Unknown"
+    year: int32 = 0
+    isRunning: bool = false
+    
+    // Constructor
+    Vehicle(brand: string, year: int32) {
+        self.brand = brand
+        self.year = year
+        return self
+    }
+    
+    // Methods
+    start() {
+        isRunning = true
+        return "Vehicle started"
+    }
+    
+    stop() {
+        isRunning = false
+        return "Vehicle stopped"
+    }
+    
+    getInfo() -> string {
+        return brand + " (" + year + ")"
+    }
+}
+
+class Car : Vehicle {
+    doors: int32 = 4
+    
+    Car(brand: string, year: int32, doors: int32) {
+        Vehicle(brand, year)
+        self.doors = doors
+        return self
+    }
+    
+    honk() -> string {
+        return "Beep beep!"
+    }
+    
+    // Override parent method
+    getInfo() -> string {
+        return super.getInfo() + " - " + doors + " doors"
+    }
+}
+
+// Create instances
+vehicle := new Vehicle("Generic", 2020)
+car := new Car("Toyota", 2023, 4)
+
+// Use methods
+vehicle.start()
+carInfo := car.getInfo()
+sound := car.honk()
+
+export result := carInfo

@@ -1,0 +1,26 @@
+// Basic variable declarations and assignments
+
+// Implicit type inference
+i := 42
+name := "Hyperion"
+pi := 3.14159
+isActive := true
+
+// Explicit type declarations
+count : int32 = 100
+temperature : float = 98.6
+message : string = "Hello, World!"
+
+// Arrays
+numbers : Array<int32> = [1, 2, 3, 4, 5]
+names : Array<string> = ["Alice", "Bob", "Charlie"]
+
+// Array access and modification
+firstNumber := numbers[0]
+numbers[1] = 10
+
+// Reference variables
+ref numberRef := numbers
+numberRef[2] = 99
+
+export x := (args...) => i + count

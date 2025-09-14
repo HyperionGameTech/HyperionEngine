@@ -1,0 +1,98 @@
+// Lambda functions and closures
+
+// Basic lambda
+add := (a: int32, b: int32) { return a + b }
+
+// Lambda with capture
+createMultiplier := (factor: int32) {
+    return (value: int32) { return value * factor }
+}
+
+// Higher-order functions using lambdas
+applyOperation := (arr: Array<int32>, operation: (int32) -> int32) -> Array<int32> {
+    result : Array<int32> = []
+    for (i := 0; i < arr.Length(); i++) {
+        result.Add(operation(arr[i]))
+    }
+    return result
+}
+
+// Function that returns a configured function
+createValidator := (min: int32, max: int32) {
+    return (value: int32) -> bool {
+        return value >= min && value <= max
+    }
+}
+
+// Function factory with multiple operations
+createCalculator := (initialValue: int32) {
+    current := initialValue
+    
+    return {
+        add: (value: int32) { current += value; return current },
+        subtract: (value: int32) { current -= value; return current },
+        multiply: (value: int32) { current *= value; return current },
+        divide: (value: int32) { 
+            if (value != 0) {
+                current /= value
+            }
+            return current
+        },
+        getValue: () { return current },
+        reset: () { current = initialValue; return current }
+    }
+}
+
+// Event system using lambdas
+class EventEmitter {
+    listeners: Array<() -> void>
+    
+    EventEmitter() {
+        listeners = []
+        return self
+    }
+    
+    on(callback: () -> void) {
+        listeners.Add(callback)
+    }
+    
+    emit() {
+        for (i := 0; i < listeners.Length(); i++) {
+            listeners[i]()
+        }
+    }
+}
+
+// Using lambdas and closures
+numbers : Array<int32> = [1, 2, 3, 4, 5]
+
+// Create multiplier functions
+double := createMultiplier(2)
+triple := createMultiplier(3)
+
+doubled := applyOperation(numbers, double)
+tripled := applyOperation(numbers, triple)
+
+// Inline lambda
+squared := applyOperation(numbers, (n: int32) { return n * n })
+
+// Validators
+rangeValidator := createValidator(1, 10)
+isValid1 := rangeValidator(5)   // true
+isValid2 := rangeValidator(15)  // false
+
+// Calculator with closures
+calc := createCalculator(10)
+result1 := calc.add(5)        // 15
+result2 := calc.multiply(2)   // 30
+result3 := calc.subtract(10)  // 20
+current := calc.getValue()    // 20
+reset := calc.reset()         // 10
+
+// Event system
+emitter := new EventEmitter()
+emitter.on(() { /* Handle event 1 */ })
+emitter.on(() { /* Handle event 2 */ })
+emitter.emit()
+
+export result := current

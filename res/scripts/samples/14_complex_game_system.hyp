@@ -1,0 +1,350 @@
+// Complex example combining multiple language features
+
+// Event system with callbacks and state management
+enum EventType : int32 {
+    PLAYER_SPAWN = 0,
+    PLAYER_MOVE = 1,
+    PLAYER_ATTACK = 2,
+    ENEMY_SPAWN = 3,
+    ENEMY_DEATH = 4
+}
+
+class EventData {
+    type: EventType
+    timestamp: float
+    data: any
+    
+    EventData(type: EventType, timestamp: float, data: any) {
+        self.type = type
+        self.timestamp = timestamp
+        self.data = data
+        return self
+    }
+}
+
+class EventManager {
+    static instance: EventManager = null
+    listeners: Array<(EventData) -> void>
+    eventHistory: Array<EventData>
+    
+    EventManager() {
+        listeners = []
+        eventHistory = []
+        return self
+    }
+    
+    static getInstance() -> EventManager {
+        if (instance == null) {
+            instance = new EventManager()
+        }
+        return instance
+    }
+    
+    subscribe(callback: (EventData) -> void) {
+        listeners.Add(callback)
+    }
+    
+    emit(eventType: EventType, data: any) {
+        eventData := new EventData(eventType, getCurrentTime(), data)
+        eventHistory.Add(eventData)
+        
+        for (i := 0; i < listeners.Length(); i++) {
+            listeners[i](eventData)
+        }
+    }
+    
+    getEventHistory(eventType: EventType) -> Array<EventData> {
+        result : Array<EventData> = []
+        for (i := 0; i < eventHistory.Length(); i++) {
+            if (eventHistory[i].type == eventType) {
+                result.Add(eventHistory[i])
+            }
+        }
+        return result
+    }
+}
+
+// Game entities with behavior
+class GameObject {
+    id: string
+    position: Vec3f
+    health: float
+    maxHealth: float
+    isAlive: bool
+    
+    GameObject(id: string, position: Vec3f, maxHealth: float) {
+        self.id = id
+        self.position = position
+        self.maxHealth = maxHealth
+        self.health = maxHealth
+        self.isAlive = true
+        return self
+    }
+    
+    takeDamage(amount: float) {
+        if (!isAlive) return
+        
+        health -= amount
+        if (health <= 0.0) {
+            health = 0.0
+            isAlive = false
+            onDeath()
+        }
+    }
+    
+    heal(amount: float) {
+        if (!isAlive) return
+        
+        health += amount
+        if (health > maxHealth) {
+            health = maxHealth
+        }
+    }
+    
+    moveTo(newPosition: Vec3f) {
+        if (!isAlive) return
+        
+        position = newPosition
+        EventManager.getInstance().emit(EventType.PLAYER_MOVE, {
+            id: id,
+            oldPosition: position,
+            newPosition: newPosition
+        })
+    }
+    
+    virtual onDeath() {
+        // Override in derived classes
+    }
+    
+    getHealthPercentage() -> float {
+        return health / maxHealth * 100.0
+    }
+}
+
+class Player : GameObject {
+    experience: int32
+    level: int32
+    inventory: Array<string>
+    
+    Player(id: string, position: Vec3f) {
+        GameObject(id, position, 100.0)
+        experience = 0
+        level = 1
+        inventory = []
+        
+        EventManager.getInstance().emit(EventType.PLAYER_SPAWN, {
+            id: id,
+            position: position
+        })
+        
+        return self
+    }
+    
+    attack(target: GameObject, damage: float) {
+        if (!isAlive || !target.isAlive) return
+        
+        target.takeDamage(damage)
+        gainExperience(10)
+        
+        EventManager.getInstance().emit(EventType.PLAYER_ATTACK, {
+            attackerId: id,
+            targetId: target.id,
+            damage: damage
+        })
+    }
+    
+    gainExperience(amount: int32) {
+        experience += amount
+        checkLevelUp()
+    }
+    
+    checkLevelUp() {
+        expForNextLevel := level * 100
+        if (experience >= expForNextLevel) {
+            level++
+            experience -= expForNextLevel
+            maxHealth += 10.0
+            heal(maxHealth)  // Full heal on level up
+        }
+    }
+    
+    addToInventory(item: string) {
+        inventory.Add(item)
+    }
+    
+    hasItem(item: string) -> bool {
+        for (i := 0; i < inventory.Length(); i++) {
+            if (inventory[i] == item) {
+                return true
+            }
+        }
+        return false
+    }
+}
+
+class Enemy : GameObject {
+    aggroRange: float
+    damage: float
+    
+    Enemy(id: string, position: Vec3f, health: float, aggroRange: float, damage: float) {
+        GameObject(id, position, health)
+        self.aggroRange = aggroRange
+        self.damage = damage
+        
+        EventManager.getInstance().emit(EventType.ENEMY_SPAWN, {
+            id: id,
+            position: position
+        })
+        
+        return self
+    }
+    
+    override onDeath() {
+        EventManager.getInstance().emit(EventType.ENEMY_DEATH, {
+            id: id,
+            position: position
+        })
+    }
+    
+    isPlayerInRange(player: Player) -> bool {
+        if (!player.isAlive) return false
+        
+        distance := calculateDistance(position, player.position)
+        return distance <= aggroRange
+    }
+    
+    attackPlayer(player: Player) {
+        if (!isAlive || !player.isAlive) return
+        
+        if (isPlayerInRange(player)) {
+            player.takeDamage(damage)
+        }
+    }
+}
+
+// Game state manager
+class GameState {
+    players: Array<Player>
+    enemies: Array<Enemy>
+    gameTime: float
+    isRunning: bool
+    
+    GameState() {
+        players = []
+        enemies = []
+        gameTime = 0.0
+        isRunning = false
+        setupEventListeners()
+        return self
+    }
+    
+    setupEventListeners() {
+        eventManager := EventManager.getInstance()
+        
+        eventManager.subscribe((eventData: EventData) {
+            if (eventData.type == EventType.ENEMY_DEATH) {
+                removeDeadEnemies()
+            }
+        })
+    }
+    
+    addPlayer(player: Player) {
+        players.Add(player)
+    }
+    
+    addEnemy(enemy: Enemy) {
+        enemies.Add(enemy)
+    }
+    
+    removeDeadEnemies() {
+        aliveEnemies : Array<Enemy> = []
+        for (i := 0; i < enemies.Length(); i++) {
+            if (enemies[i].isAlive) {
+                aliveEnemies.Add(enemies[i])
+            }
+        }
+        enemies = aliveEnemies
+    }
+    
+    update(deltaTime: float) {
+        if (!isRunning) return
+        
+        gameTime += deltaTime
+        
+        // Update enemy AI
+        for (i := 0; i < enemies.Length(); i++) {
+            enemy := enemies[i]
+            if (!enemy.isAlive) continue
+            
+            for (j := 0; j < players.Length(); j++) {
+                player := players[j]
+                if (enemy.isPlayerInRange(player)) {
+                    enemy.attackPlayer(player)
+                    break
+                }
+            }
+        }
+    }
+    
+    start() {
+        isRunning = true
+    }
+    
+    stop() {
+        isRunning = false
+    }
+    
+    getGameStats() -> any {
+        return {
+            gameTime: gameTime,
+            playerCount: players.Length(),
+            enemyCount: enemies.Length(),
+            totalEvents: EventManager.getInstance().eventHistory.Length()
+        }
+    }
+}
+
+// Utility functions
+calculateDistance := (pos1: Vec3f, pos2: Vec3f) -> float {
+    dx := pos2.x - pos1.x
+    dy := pos2.y - pos1.y
+    dz := pos2.z - pos1.z
+    return Math.Sqrt(dx * dx + dy * dy + dz * dz)
+}
+
+getCurrentTime := () -> float {
+    // In reality, this would get actual game time
+    return 0.0
+}
+
+// Example game setup and usage
+setupGame := () -> GameState {
+    gameState := new GameState()
+    
+    // Create player
+    player := new Player("player1", new Vec3f(0.0, 0.0, 0.0))
+    player.addToInventory("sword")
+    player.addToInventory("potion")
+    gameState.addPlayer(player)
+    
+    // Create enemies
+    enemy1 := new Enemy("goblin1", new Vec3f(5.0, 0.0, 0.0), 50.0, 3.0, 15.0)
+    enemy2 := new Enemy("orc1", new Vec3f(-3.0, 0.0, 2.0), 80.0, 4.0, 25.0)
+    gameState.addEnemy(enemy1)
+    gameState.addEnemy(enemy2)
+    
+    gameState.start()
+    return gameState
+}
+
+// Export main function
+export runGameDemo := () -> any {
+    gameState := setupGame()
+    
+    // Simulate some game time
+    for (i := 0; i < 10; i++) {
+        gameState.update(0.1)
+    }
+    
+    return gameState.getGameStats()
+}

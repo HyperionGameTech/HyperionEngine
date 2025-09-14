@@ -1,0 +1,139 @@
+// Type casting and any type usage
+
+// Basic type casting
+intValue := 42
+floatValue := intValue as float
+stringValue := intValue as string
+
+// Casting with any type
+storeValue := (value: any) -> any {
+    return value
+}
+
+getValue := (container: any, expectedType: string) -> any {
+    if (expectedType == "int") {
+        return container as int32
+    } else if (expectedType == "float") {
+        return container as float
+    } else if (expectedType == "string") {
+        return container as string
+    }
+    return container
+}
+
+// Generic container using any
+class Container {
+    value: any
+    type: string
+    
+    Container(value: any, type: string) {
+        self.value = value
+        self.type = type
+        return self
+    }
+    
+    get() -> any {
+        return value
+    }
+    
+    set(newValue: any) {
+        value = newValue
+    }
+    
+    getAsInt() -> int32 {
+        return value as int32
+    }
+    
+    getAsFloat() -> float {
+        return value as float
+    }
+    
+    getAsString() -> string {
+        return value as string
+    }
+    
+    canCastTo(targetType: string) -> bool {
+        if (type == targetType) {
+            return true
+        }
+        
+        // Simple type compatibility checks
+        if (type == "int" && (targetType == "float" || targetType == "string")) {
+            return true
+        }
+        if (type == "float" && targetType == "string") {
+            return true
+        }
+        
+        return false
+    }
+}
+
+// Dynamic array with mixed types
+class DynamicArray {
+    items: Array<any>
+    
+    DynamicArray() {
+        items = []
+        return self
+    }
+    
+    add(item: any) {
+        items.Add(item)
+    }
+    
+    get(index: int32) -> any {
+        if (index >= 0 && index < items.Length()) {
+            return items[index]
+        }
+        return null
+    }
+    
+    getAsInt(index: int32) -> int32 {
+        item := get(index)
+        return item as int32
+    }
+    
+    getAsString(index: int32) -> string {
+        item := get(index)
+        return item as string
+    }
+    
+    size() -> int32 {
+        return items.Length()
+    }
+}
+
+// Using type casting and any
+container1 := new Container(42, "int")
+container2 := new Container(3.14, "float")
+container3 := new Container("Hello", "string")
+
+intFromContainer := container1.getAsInt()
+floatFromContainer := container2.getAsFloat()
+stringFromContainer := container3.getAsString()
+
+// Cross-type casting
+floatFromInt := container1.getAsFloat()
+stringFromInt := container1.getAsString()
+
+// Dynamic array usage
+dynArray := new DynamicArray()
+dynArray.add(100)
+dynArray.add(2.5)
+dynArray.add("World")
+dynArray.add(true)
+
+firstAsInt := dynArray.getAsInt(0)
+secondAsString := dynArray.getAsString(1)
+thirdAsString := dynArray.getAsString(2)
+
+// Store and retrieve any values
+storedInt := storeValue(42)
+storedFloat := storeValue(3.14)
+storedString := storeValue("Test")
+
+retrievedInt := getValue(storedInt, "int") as int32
+retrievedFloat := getValue(storedFloat, "float") as float
+
+export result := retrievedInt

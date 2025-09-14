@@ -1,0 +1,141 @@
+// Reference types and memory management
+
+// Reference variables
+createAndModifyArray := () -> Array<int32> {
+    arr : Array<int32> = [1, 2, 3, 4, 5]
+    ref arrRef := arr
+    
+    // Modify through reference
+    arrRef[0] = 100
+    arrRef.Add(6)
+    
+    return arr  // Returns modified array
+}
+
+// Reference parameters
+modifyArrayInPlace := (ref arr: Array<int32>, multiplier: int32) {
+    for (i := 0; i < arr.Length(); i++) {
+        arr[i] *= multiplier
+    }
+}
+
+swapValues := (ref a: int32, ref b: int32) {
+    temp := a
+    a = b
+    b = temp
+}
+
+// Object references
+class Node {
+    value: int32
+    next: Node = null
+    
+    Node(value: int32) {
+        self.value = value
+        return self
+    }
+    
+    setNext(nextNode: Node) {
+        next = nextNode
+    }
+    
+    hasNext() -> bool {
+        return next != null
+    }
+}
+
+class LinkedList {
+    head: Node = null
+    size: int32 = 0
+    
+    LinkedList() {
+        return self
+    }
+    
+    add(value: int32) {
+        newNode := new Node(value)
+        
+        if (head == null) {
+            head = newNode
+        } else {
+            current := head
+            while (current.hasNext()) {
+                current = current.next
+            }
+            current.setNext(newNode)
+        }
+        size++
+    }
+    
+    get(index: int32) -> int32 {
+        if (index < 0 || index >= size) {
+            return -1
+        }
+        
+        current := head
+        for (i := 0; i < index; i++) {
+            current = current.next
+        }
+        return current.value
+    }
+    
+    contains(value: int32) -> bool {
+        current := head
+        while (current != null) {
+            if (current.value == value) {
+                return true
+            }
+            current = current.next
+        }
+        return false
+    }
+}
+
+// Shared reference example
+class SharedCounter {
+    count: int32 = 0
+    
+    SharedCounter() {
+        return self
+    }
+    
+    increment() {
+        count++
+    }
+    
+    getValue() -> int32 {
+        return count
+    }
+}
+
+shareCounter := (counter: SharedCounter) -> SharedCounter {
+    counter.increment()
+    return counter
+}
+
+// Using references
+numbers := createAndModifyArray()  // [100, 2, 3, 4, 5, 6]
+
+testArray : Array<int32> = [2, 4, 6, 8]
+modifyArrayInPlace(testArray, 3)  // [6, 12, 18, 24]
+
+a := 10
+b := 20
+swapValues(a, b)  // a=20, b=10
+
+// Linked list with object references
+list := new LinkedList()
+list.add(1)
+list.add(2)
+list.add(3)
+
+firstValue := list.get(0)
+hasValue := list.contains(2)
+
+// Shared counter
+sharedCounter := new SharedCounter()
+counter1 := shareCounter(sharedCounter)
+counter2 := shareCounter(sharedCounter)
+finalCount := sharedCounter.getValue()  // 2
+
+export result := finalCount
