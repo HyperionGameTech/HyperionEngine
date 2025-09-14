@@ -125,12 +125,12 @@ public:
         SetKey(key, false);
     }
 
-    void MouseButtonDown(MouseButton btn)
+    void MouseButtonDown(MouseButtonKey btn)
     {
         SetMouseButton(btn, true);
     }
 
-    void MouseButtonUp(MouseButton btn)
+    void MouseButtonUp(MouseButtonKey btn)
     {
         SetMouseButton(btn, false);
     }
@@ -163,12 +163,12 @@ public:
     }
 
     HYP_METHOD()
-    HYP_API bool IsButtonDown(MouseButton btn) const;
+    HYP_API bool IsButtonDown(MouseButtonKey btn) const;
 
     HYP_API EnumFlags<MouseButtonState> GetButtonStates() const;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsButtonUp(MouseButton btn) const
+    HYP_FORCE_INLINE bool IsButtonUp(MouseButtonKey btn) const
     {
         return !IsButtonDown(btn);
     }
@@ -190,7 +190,7 @@ private:
     void UpdateWindowSize(Vec2i newSize);
 
     void SetKey(KeyCode key, bool pressed);
-    void SetMouseButton(MouseButton btn, bool pressed);
+    void SetMouseButton(MouseButtonKey btn, bool pressed);
 
     void ApplyMouseLockState(const InputMouseLockState* mouseLockState);
     void RemoveMouseLockState(const InputMouseLockState* mouseLockState);

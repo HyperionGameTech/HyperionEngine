@@ -7,13 +7,13 @@ namespace hyperion {
 class InputManager;
 
 HYP_ENUM()
-enum MouseButton : uint32
+enum MouseButtonKey : uint32
 {
-    MB_INVALID = ~0u,
-    MB_LEFT = 0,
-    MB_MIDDLE,
-    MB_RIGHT,
-    MB_MAX
+    MBK_INVALID = ~0u,
+    MBK_LEFT = 0,
+    MBK_MIDDLE,
+    MBK_RIGHT,
+    MBK_MAX
 };
 
 HYP_ENUM()

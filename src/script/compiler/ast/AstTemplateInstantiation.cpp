@@ -14,6 +14,9 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <core/debug/Debug.hpp>
+
+#include <core/utilities/Format.hpp>
+
 #include <util/UTF8.hpp>
 
 namespace hyperion {
@@ -84,7 +87,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         SymbolTypeRef argType = m_genericArgs[i]->GetHeldType();
         Assert(argType != nullptr);
 
-        genericParamTypes.EmplaceBack(HYP_FORMAT("@arg{}", i), argType, nullptr, false, false);
+        genericParamTypes.EmplaceBack(HYP_FORMAT("Arg{}", i), argType, nullptr, false, false);
     }
 
     SymbolTypeRef genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(

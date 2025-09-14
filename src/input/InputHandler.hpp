@@ -63,8 +63,8 @@ public:
     bool IsKeyDown(KeyCode key) const;
     bool IsKeyUp(KeyCode key) const;
     
-    bool IsMouseButtonDown(MouseButton btn) const;
-    bool IsMouseButtonUp(MouseButton btn) const;
+    bool IsMouseButtonDown(MouseButtonKey btn) const;
+    bool IsMouseButtonUp(MouseButtonKey btn) const;
 
 protected:
     HYP_METHOD()

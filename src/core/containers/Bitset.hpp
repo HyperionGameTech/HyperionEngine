@@ -19,7 +19,7 @@ namespace containers {
  *  It supports operations such as setting, clearing, flipping bits, and iterating over set bits.
  *  The bitset can be resized dynamically, and it provides a range of bitwise operations.
  */
-class Bitset
+class HYP_API Bitset
 {
 public:
     using BlockType = uint32;
@@ -92,15 +92,17 @@ public:
         }
     };
 
-    HYP_API Bitset();
+    Bitset();
 
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
-    HYP_API explicit Bitset(uint64 value);
+    explicit Bitset(uint64 value);
 
     Bitset(const Bitset& other) = default;
     Bitset& operator=(const Bitset& other) = default;
-    HYP_API Bitset(Bitset&& other) noexcept;
-    HYP_API Bitset& operator=(Bitset&& other) noexcept;
+    
+    Bitset(Bitset&& other) noexcept;
+    Bitset& operator=(Bitset&& other) noexcept;
+    
     ~Bitset() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -131,19 +133,19 @@ public:
     /*! \brief Returns a Bitset with all bits flipped.
         Note, that the number of bits in the returned bitset is the same as
         the number of bits in the original bitset. */
-    HYP_API Bitset operator~() const;
+    Bitset operator~() const;
 
-    HYP_API Bitset operator<<(uint32 pos) const;
-    HYP_API Bitset& operator<<=(uint32 pos);
+    Bitset operator<<(uint32 pos) const;
+    Bitset& operator<<=(uint32 pos);
 
-    HYP_API Bitset operator&(const Bitset& other) const;
-    HYP_API Bitset& operator&=(const Bitset& other);
+    Bitset operator&(const Bitset& other) const;
+    Bitset& operator&=(const Bitset& other);
 
-    HYP_API Bitset operator|(const Bitset& other) const;
-    HYP_API Bitset& operator|=(const Bitset& other);
+    Bitset operator|(const Bitset& other) const;
+    Bitset& operator|=(const Bitset& other);
 
-    HYP_API Bitset operator^(const Bitset& other) const;
-    HYP_API Bitset& operator^=(const Bitset& other);
+    Bitset operator^(const Bitset& other) const;
+    Bitset& operator^=(const Bitset& other);
 
     HYP_FORCE_INLINE const ubyte* Data() const
     {
@@ -312,12 +314,12 @@ public:
     /*! \brief Set the value of the bit at the given index.
         \param index The index of the bit to set.
         \param value True to set the bit, false to unset the bit. */
-    HYP_API void Set(BitIndex index, bool value);
+    void Set(BitIndex index, bool value);
 
     /*! \brief Clear the entire bitset.
      *  \details The bitset is cleared by setting it to its default state,
      *  deallocating any memory that was allocated. */
-    HYP_API void Clear();
+    void Clear();
 
     /*! \brief Returns the total number of bits in the bitset.
         \returns The total number of bits in the bitset. */
@@ -328,7 +330,7 @@ public:
 
     /*! \brief Resizes the bitset to the given number of bits.
         \param numBits The new number of bits in the bitset.*/
-    HYP_API Bitset& SetNumBits(SizeType numBits);
+    Bitset& SetNumBits(SizeType numBits);
 
     /*! \brief Returns the number of ones in the bitset.
         \returns The number of ones in the bitset. */

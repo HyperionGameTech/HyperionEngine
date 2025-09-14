@@ -179,7 +179,7 @@ NameRegistry* Name::GetRegistry()
     return (s_registry = &nameRegistry);
 }
 
-Name Name::Unique(ANSIStringView prefix)
+Name Name::Unique(const ANSIStringView& prefix)
 {
     return GetRegistry()->RegisterUniqueName(prefix, /* lock */ true);
 }

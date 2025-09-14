@@ -131,14 +131,14 @@ void InputManager::CheckEvent(SystemEvent* event)
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
         for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
         {
-            MouseButtonDown(MouseButton(index));
+            MouseButtonDown(MouseButtonKey(index));
         }
 
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_UP:
         for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
         {
-            MouseButtonUp(MouseButton(index));
+            MouseButtonUp(MouseButtonKey(index));
         }
 
         break;
@@ -288,7 +288,7 @@ void InputManager::SetKey(KeyCode key, bool pressed)
     }
 }
 
-void InputManager::SetMouseButton(MouseButton btn, bool pressed)
+void InputManager::SetMouseButton(MouseButtonKey btn, bool pressed)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -319,7 +319,7 @@ bool InputManager::IsKeyDown(KeyCode key) const
     return false;
 }
 
-bool InputManager::IsButtonDown(MouseButton btn) const
+bool InputManager::IsButtonDown(MouseButtonKey btn) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);

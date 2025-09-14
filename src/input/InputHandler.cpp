@@ -34,12 +34,12 @@ bool InputHandlerBase::IsKeyUp(KeyCode key) const
     return !m_inputState->keyStates.Test(uint32(key));
 }
 
-bool InputHandlerBase::IsMouseButtonDown(MouseButton btn) const
+bool InputHandlerBase::IsMouseButtonDown(MouseButtonKey btn) const
 {
     return m_inputState->mouseButtonStates & MouseButtonState(1u << uint32(btn));
 }
 
-bool InputHandlerBase::IsMouseButtonUp(MouseButton btn) const
+bool InputHandlerBase::IsMouseButtonUp(MouseButtonKey btn) const
 {
     return !(m_inputState->mouseButtonStates & MouseButtonState(1u << uint32(btn)));
 }
