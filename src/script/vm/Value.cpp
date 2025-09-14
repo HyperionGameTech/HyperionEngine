@@ -19,8 +19,10 @@ namespace hyperion {
 
 extern HYP_API const char* LookupTypeName(TypeId typeId);
 
+extern const char* ScriptApi_GetTypeString(const HypData& data);
+extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);
+
 static const String g_nullString = "null";
-static const String g_boolStrings[2] = { "false", "true" };
 static const String g_referenceString = "<reference>";
 
 static const TypeId g_typeIdI8 = TypeId::ForType<int8>();
@@ -35,171 +37,6 @@ static const TypeId g_typeIdF32 = TypeId::ForType<float32>();
 static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
 static const TypeId g_typeIdBool = TypeId::ForType<bool>();
 static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
-
-// clang-format off
-static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions = {
-    { g_typeIdI8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int8*>(p)); } },
-    { g_typeIdI16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int16*>(p)); } },
-    { g_typeIdI32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int32*>(p)); } },
-    { g_typeIdI64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int64*>(p)); } },
-    { g_typeIdU8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint8*>(p)); } },
-    { g_typeIdU16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint16*>(p)); } },
-    { g_typeIdU32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint32*>(p)); } },
-    { g_typeIdU64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint64*>(p)); } },
-    { g_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
-    { g_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
-    { g_typeIdBool, [](const void* p) -> String { return g_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
-    { g_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
-};
-// clang-format on
-
-bool ValueDataToString(const HypData& data, Script_String& outString);
-
-bool ValueDataToString(const HypData& data, Script_String& outString)
-{
-    constexpr SizeType bufSize = 256;
-
-    char buf[bufSize] = { 0 };
-
-    if (!data.IsValid())
-    {
-        outString = Script_String(g_nullString);
-
-        return true;
-    }
-
-    auto formatIt = g_builtinToStringFunctions.Find(data.GetTypeId());
-    if (formatIt != g_builtinToStringFunctions.End())
-    {
-        outString = Script_String(formatIt->second(data.ToRef().GetPointer()));
-
-        return true;
-    }
-
-    // // object type, check for ToString() method
-    // if (data.Is<AnyHandle>())
-    // {
-    //     const AnyHandle& object = data.Get<AnyHandle>();
-
-    //     if (!object.IsValid())
-    //     {
-    //         outString = Script_String(g_nullString);
-
-    //         return true;
-    //     }
-
-    //     const HypClass* hypClass = object.ptr->InstanceClass();
-    //     Assert(hypClass != nullptr);
-
-    //     return true;
-    // }
-
-    constexpr int maxArrayDepth = 2;
-
-    if (const Script_Array* pArray = data.TryGet<Script_Array>().TryGet())
-    {
-        std::stringstream ss;
-        GetRepresentation(*pArray, ss, false, maxArrayDepth);
-
-        outString = Script_String(ss.str().c_str());
-
-        return true;
-    }
-
-    if (const Script_HashMap* pMap = data.TryGet<Script_HashMap>().TryGet())
-    {
-        std::stringstream ss;
-        pMap->GetRepresentation(ss, false, maxArrayDepth);
-
-        outString = Script_String(ss.str().c_str());
-
-        return true;
-    }
-
-    if (const HypClass* hypClass = GetClass(data.GetTypeId()))
-    {
-        const HypMethod* toStringMethod = hypClass->GetMethod("ToString");
-
-        if (toStringMethod != nullptr)
-        {
-            HypData result = toStringMethod->Invoke(Span<HypData> { const_cast<HypData*>(&data), 1 });
-
-            if (const Script_String* str = result.TryGet<Script_String>().TryGet())
-            {
-                outString = *str;
-
-                return true;
-            }
-
-            if (const String* str = result.TryGet<String>().TryGet())
-            {
-                outString = Script_String(*str);
-
-                return true;
-            }
-
-            // not a string, try again recursively
-            if (ValueDataToString(result, outString))
-            {
-                return true;
-            }
-        }
-
-        constexpr const char* objectFormatString = "<%s @ %p>";
-
-        int n = std::snprintf(
-            buf,
-            bufSize,
-            objectFormatString,
-            hypClass->GetName().LookupString(),
-            data.ToRef().GetPointer());
-
-        // if the class name is too long, dynamically allocate a larger buffer
-        if (n < 0)
-        {
-            outString = Script_String("<Error formatting object>");
-
-            return true;
-        }
-
-        if (static_cast<SizeType>(n) >= bufSize)
-        {
-            const SizeType newBufSize = static_cast<SizeType>(n) + 1;
-
-            char* newBuf = static_cast<char*>(Memory::Allocate(newBufSize));
-            Assert(newBuf != nullptr);
-
-            n = std::snprintf(
-                newBuf,
-                newBufSize,
-                objectFormatString,
-                hypClass->GetName().LookupString(),
-                data.ToRef().GetPointer());
-
-            if (n < 0 || static_cast<SizeType>(n) >= newBufSize)
-            {
-                Memory::Free(newBuf);
-
-                outString = Script_String("<Error formatting object>");
-
-                return true;
-            }
-
-            Script_String result(newBuf);
-            Memory::Free(newBuf);
-
-            outString = result;
-
-            return true;
-        }
-
-        outString = Script_String(buf);
-
-        return true;
-    }
-
-    return false;
-}
 
 const Script_Value Script_Value::s_uninitializedValue = Script_Value(MAKE_GARBAGE_TAG);
 
@@ -856,100 +693,10 @@ int Script_Value::CompareAsNativeFunctions(Script_Value* lhs, Script_Value* rhs)
 
 const char* Script_Value::GetTypeString() const
 {
-    const HypData& data = *GetHypData();
-
-    if (!data.IsValid())
-    {
-        return "<Uninitialized data>";
-    }
-
-    const TypeId typeId = data.GetTypeId();
-
-    if (typeId == TypeId::ForType<int8>())
-    {
-        return "int8";
-    }
-    else if (typeId == TypeId::ForType<int16>())
-    {
-        return "int16";
-    }
-    else if (typeId == TypeId::ForType<int32>())
-    {
-        return "int32";
-    }
-    else if (typeId == TypeId::ForType<int64>())
-    {
-        return "int64";
-    }
-    else if (typeId == TypeId::ForType<uint8>())
-    {
-        return "uint8";
-    }
-    else if (typeId == TypeId::ForType<uint16>())
-    {
-        return "uint16";
-    }
-    else if (typeId == TypeId::ForType<uint32>())
-    {
-        return "uint32";
-    }
-    else if (typeId == TypeId::ForType<uint64>())
-    {
-        return "uint64";
-    }
-    else if (typeId == TypeId::ForType<float32>())
-    {
-        return "float";
-    }
-    else if (typeId == TypeId::ForType<float64>())
-    {
-        return "double";
-    }
-    else if (typeId == TypeId::ForType<bool>())
-    {
-        return "bool";
-    }
-    else if (typeId == TypeId::ForType<Script_String>())
-    {
-        return "string";
-    }
-    else if (typeId == TypeId::ForType<Script_Array>())
-    {
-        return "array";
-    }
-    else if (const Script_VMData* vmData = GetVMData())
-    {
-        switch (vmData->type)
-        {
-        case Script_VMData::FUNCTION: // fallthrough
-        case Script_VMData::NATIVE_FUNCTION:
-            return "Function";
-        case Script_VMData::ADDRESS:
-            return "<Function address>";
-        case Script_VMData::FUNCTION_CALL:
-            return "<Stack frame>";
-        case Script_VMData::TRY_CATCH_INFO:
-            return "<Try catch info>";
-        case Script_VMData::USER_DATA:
-            return "UserData";
-        case Script_VMData::VALUE_REF:
-            return "Reference";
-        default:
-            HYP_UNREACHABLE();
-        }
-    }
-
-    const char* typeName = LookupTypeName(typeId);
-
-    if (typeName != nullptr)
-    {
-        return typeName;
-    }
-
-    return "<Unknown type>";
+    return ScriptApi_GetTypeString(*GetHypData());
 }
 
-Script_String Script_Value::ToString() const
+String Script_Value::ToString() const
 {
     if (IsRef())
     {
@@ -968,59 +715,7 @@ Script_String Script_Value::ToString() const
 
     const HypData& hypData = *GetHypData();
 
-    Script_String result("<error>");
-    if (ValueDataToString(hypData, result))
-    {
-        return result;
-    }
-
-    // internal data
-    if (const Script_VMData* vmData = GetVMData())
-    {
-        constexpr SizeType bufSize = 256;
-        char buf[bufSize] = { 0 };
-
-        switch (vmData->type)
-        {
-        case Script_VMData::FUNCTION:
-            return Script_String("<Function>");
-        case Script_VMData::NATIVE_FUNCTION:
-            return Script_String("<Native Function>");
-        case Script_VMData::ADDRESS:
-            std::snprintf(buf, bufSize, "<Function address @ %p>", (void*)vmData->func.m_addr);
-            return Script_String(buf);
-        case Script_VMData::FUNCTION_CALL:
-            return Script_String("<Stack frame>");
-        case Script_VMData::TRY_CATCH_INFO:
-            return Script_String("<Try catch info>");
-        case Script_VMData::USER_DATA:
-            std::snprintf(buf, bufSize, "<User data @ %p>", vmData->userData);
-            return Script_String(buf);
-        default:
-            HYP_UNREACHABLE();
-        }
-    }
-
-    return Script_String(HYP_FORMAT("<{} @ {}>", LookupTypeName(hypData.GetTypeId()), hypData.ToRef().GetPointer()));
-}
-
-void Script_Value::ToRepresentation(
-    std::stringstream& ss,
-    bool addTypeName,
-    int depth) const
-{
-    // just use ToString for now
-    if (addTypeName)
-    {
-        ss << GetTypeString() << "(";
-    }
-
-    ss << ToString().Data();
-
-    if (addTypeName)
-    {
-        ss << ")";
-    }
+    return ScriptApi_ValueToString(hypData);
 }
 
 } // namespace hyperion

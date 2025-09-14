@@ -2,6 +2,7 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/Array.hpp>
 #include <script/vm/String.hpp>
+#include <script/vm/HashMap.hpp>
 #include <script/vm/GC.hpp>
 #include <script/vm/Exception.hpp>
 
@@ -479,6 +480,39 @@ using BCRegister = uint8;
 
 #pragma region ScriptApi
 
+static const String g_nullString = "null";
+static const String g_boolStrings[2] = { "false", "true" };
+
+static const TypeId g_typeIdI8 = TypeId::ForType<int8>();
+static const TypeId g_typeIdI16 = TypeId::ForType<int16>();
+static const TypeId g_typeIdI32 = TypeId::ForType<int32>();
+static const TypeId g_typeIdI64 = TypeId::ForType<int64>();
+static const TypeId g_typeIdU8 = TypeId::ForType<uint8>();
+static const TypeId g_typeIdU16 = TypeId::ForType<uint16>();
+static const TypeId g_typeIdU32 = TypeId::ForType<uint32>();
+static const TypeId g_typeIdU64 = TypeId::ForType<uint64>();
+static const TypeId g_typeIdF32 = TypeId::ForType<float32>();
+static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
+static const TypeId g_typeIdBool = TypeId::ForType<bool>();
+static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
+
+// clang-format off
+static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions = {
+    { g_typeIdI8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int8*>(p)); } },
+    { g_typeIdI16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int16*>(p)); } },
+    { g_typeIdI32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int32*>(p)); } },
+    { g_typeIdI64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int64*>(p)); } },
+    { g_typeIdU8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint8*>(p)); } },
+    { g_typeIdU16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint16*>(p)); } },
+    { g_typeIdU32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint32*>(p)); } },
+    { g_typeIdU64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint64*>(p)); } },
+    { g_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
+    { g_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
+    { g_typeIdBool, [](const void* p) -> String { return g_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
+    { g_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
+};
+// clang-format on
+
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
 static inline Script_Value ScriptApi_MakeValue(T&& data)
 {
@@ -533,7 +567,8 @@ Script_Value ScriptApi_MakeTrackedRef(Script_Value* pValue, Script_GC* gc)
     return *pValue;
 }
 
-#define PASS_AS_REF(data) ((data).GetHypData()->Is<Any>())
+#define PASS_AS_REF(value) ((value).GetHypData()->Is<Any>())
+#define PASS_AS_REF_DATA(data) ((data).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
 Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
@@ -571,6 +606,297 @@ bool ScriptApi_ShouldValuePassByRef(const Script_Value& value)
     }
 
     return PASS_AS_REF(value);
+}
+
+const char* ScriptApi_GetTypeString(const HypData& data)
+{
+    if (!data.IsValid())
+    {
+        return "<Uninitialized data>";
+    }
+
+    const TypeId typeId = data.GetTypeId();
+
+    if (typeId == TypeId::ForType<int8>())
+    {
+        return "int8";
+    }
+    else if (typeId == TypeId::ForType<int16>())
+    {
+        return "int16";
+    }
+    else if (typeId == TypeId::ForType<int32>())
+    {
+        return "int32";
+    }
+    else if (typeId == TypeId::ForType<int64>())
+    {
+        return "int64";
+    }
+    else if (typeId == TypeId::ForType<uint8>())
+    {
+        return "uint8";
+    }
+    else if (typeId == TypeId::ForType<uint16>())
+    {
+        return "uint16";
+    }
+    else if (typeId == TypeId::ForType<uint32>())
+    {
+        return "uint32";
+    }
+    else if (typeId == TypeId::ForType<uint64>())
+    {
+        return "uint64";
+    }
+    else if (typeId == TypeId::ForType<float32>())
+    {
+        return "float";
+    }
+    else if (typeId == TypeId::ForType<float64>())
+    {
+        return "double";
+    }
+    else if (typeId == TypeId::ForType<bool>())
+    {
+        return "bool";
+    }
+    else if (typeId == TypeId::ForType<Script_String>())
+    {
+        return "string";
+    }
+    else if (typeId == TypeId::ForType<Script_Array>())
+    {
+        return "array";
+    }
+    else if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet()))
+    {
+        switch (vmData->type)
+        {
+        case Script_VMData::FUNCTION: // fallthrough
+        case Script_VMData::NATIVE_FUNCTION:
+            return "Function";
+        case Script_VMData::ADDRESS:
+            return "<Function address>";
+        case Script_VMData::FUNCTION_CALL:
+            return "<Stack frame>";
+        case Script_VMData::TRY_CATCH_INFO:
+            return "<Try catch info>";
+        case Script_VMData::USER_DATA:
+            return "UserData";
+        case Script_VMData::VALUE_REF:
+            return "Reference";
+        default:
+            HYP_UNREACHABLE();
+        }
+    }
+
+    const char* typeName = LookupTypeName(typeId);
+
+    if (typeName != nullptr)
+    {
+        return typeName;
+    }
+
+    return "<Unknown type>";
+}
+
+bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int maxDepth, int currDepth);
+
+bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int maxDepth, int currDepth)
+{
+    if (currDepth >= maxDepth && maxDepth >= 0)
+    {
+        outString = Script_String("...");
+        return true;
+    }
+
+    constexpr SizeType bufSize = 256;
+
+    char buf[bufSize] = { 0 };
+
+    if (!data.IsValid())
+    {
+        outString = Script_String(g_nullString);
+
+        return true;
+    }
+
+    auto formatIt = g_builtinToStringFunctions.Find(data.GetTypeId());
+    if (formatIt != g_builtinToStringFunctions.End())
+    {
+        outString = Script_String(formatIt->second(data.ToRef().GetPointer()));
+
+        return true;
+    }
+
+    constexpr int maxArrayDepth = 2;
+
+    if (const Script_Array* pArray = data.TryGet<Script_Array>().TryGet())
+    {
+        outString = "[";
+
+        for (int i = 0; i < pArray->Size(); i++)
+        {
+            if (i > 0)
+            {
+                outString += Script_String(", ");
+            }
+
+            outString += ScriptApi_ValueToString(*(*pArray)[i].GetHypData(), currDepth + 1);
+        }
+
+        outString += "]";
+
+        return true;
+    }
+
+    if (const Script_HashMap* pMap = data.TryGet<Script_HashMap>().TryGet())
+    {
+        auto& map = pMap->GetMap();
+
+        outString = "{";
+
+        int i = 0;
+
+        for (auto& kv : map)
+        {
+            if (i > 0)
+            {
+                outString += Script_String(", ");
+            }
+            outString += ScriptApi_ValueToString(*kv.first.key.GetHypData(), currDepth + 1);
+            outString += " => ";
+            outString += ScriptApi_ValueToString(*kv.second.GetHypData(), currDepth + 1);
+            i++;
+        }
+
+        return true;
+    }
+
+    if (const HypClass* hypClass = GetClass(data.GetTypeId()))
+    {
+        const HypMethod* toStringMethod = hypClass->GetMethod("ToString");
+
+        if (toStringMethod != nullptr)
+        {
+            HypData result = toStringMethod->Invoke(Span<HypData> { const_cast<HypData*>(&data), 1 });
+
+            if (const Script_String* str = result.TryGet<Script_String>().TryGet())
+            {
+                outString = *str;
+
+                return true;
+            }
+
+            if (const String* str = result.TryGet<String>().TryGet())
+            {
+                outString = Script_String(*str);
+
+                return true;
+            }
+
+            // not a string, try again recursively
+            if (ScriptApi_StringifyData(result, outString, maxDepth, currDepth + 1))
+            {
+                return true;
+            }
+        }
+
+        constexpr const char* objectFormatString = "<%s @ %p>";
+
+        int n = std::snprintf(
+            buf,
+            bufSize,
+            objectFormatString,
+            hypClass->GetName().LookupString(),
+            data.ToRef().GetPointer());
+
+        // if the class name is too long, dynamically allocate a larger buffer
+        if (n < 0)
+        {
+            outString = Script_String("<Error formatting object>");
+
+            return true;
+        }
+
+        if (static_cast<SizeType>(n) >= bufSize)
+        {
+            const SizeType newBufSize = static_cast<SizeType>(n) + 1;
+
+            char* newBuf = static_cast<char*>(Memory::Allocate(newBufSize));
+            Assert(newBuf != nullptr);
+
+            n = std::snprintf(
+                newBuf,
+                newBufSize,
+                objectFormatString,
+                hypClass->GetName().LookupString(),
+                data.ToRef().GetPointer());
+
+            if (n < 0 || static_cast<SizeType>(n) >= newBufSize)
+            {
+                Memory::Free(newBuf);
+
+                outString = Script_String("<Error formatting object>");
+
+                return true;
+            }
+
+            Script_String result(newBuf);
+            Memory::Free(newBuf);
+
+            outString = result;
+
+            return true;
+        }
+
+        outString = Script_String(buf);
+
+        return true;
+    }
+
+    return false;
+}
+
+String ScriptApi_ValueToString(const HypData& data, int currDepth)
+{
+    static const int s_maxDepth = 3;
+
+    Script_String result("<error>");
+    if (ScriptApi_StringifyData(data, result, s_maxDepth, currDepth))
+    {
+        return result;
+    }
+
+    // internal data
+    if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet()))
+    {
+        constexpr SizeType bufSize = 256;
+        char buf[bufSize] = { 0 };
+
+        switch (vmData->type)
+        {
+        case Script_VMData::FUNCTION:
+            return Script_String("<Function>");
+        case Script_VMData::NATIVE_FUNCTION:
+            return Script_String("<Native Function>");
+        case Script_VMData::ADDRESS:
+            std::snprintf(buf, bufSize, "<Function address @ %p>", (void*)vmData->func.m_addr);
+            return Script_String(buf);
+        case Script_VMData::FUNCTION_CALL:
+            return Script_String("<Stack frame>");
+        case Script_VMData::TRY_CATCH_INFO:
+            return Script_String("<Try catch info>");
+        case Script_VMData::USER_DATA:
+            std::snprintf(buf, bufSize, "<User data @ %p>", vmData->userData);
+            return Script_String(buf);
+        default:
+            HYP_UNREACHABLE();
+        }
+    }
+
+    return Script_String(HYP_FORMAT("<{} @ {}>", LookupTypeName(data.GetTypeId()), data.ToRef().GetPointer()));
 }
 
 #pragma endregion ScriptApi
@@ -1988,54 +2314,11 @@ public:
 
         Number num;
 
-        Number result;
-        result.flags = num.flags;
-
         // we only allow bitwise NOT on integers
         if (value.GetNumber(&num) && (num.flags & (Number::FLAG_SIGNED | Number::FLAG_UNSIGNED)))
         {
-            if (num.flags & Number::FLAG_SIGNED)
-            {
-                if (num.flags & Number::FLAG_8_BIT)
-                {
-                    result.i = int64(~int8(num.i));
-                }
-                else if (num.flags & Number::FLAG_16_BIT)
-                {
-                    result.i = int64(~int16(num.i));
-                }
-                else if (num.flags & Number::FLAG_32_BIT)
-                {
-                    result.i = int64(~int32(num.i));
-                }
-                else
-                {
-                    result.i = ~num.i;
-                }
-            }
-            else if (num.flags & Number::FLAG_UNSIGNED)
-            {
-                if (num.flags & Number::FLAG_8_BIT)
-                {
-                    result.u = uint64(~uint8(num.u));
-                }
-                else if (num.flags & Number::FLAG_16_BIT)
-                {
-                    result.u = uint64(~uint16(num.u));
-                }
-                else if (num.flags & Number::FLAG_32_BIT)
-                {
-                    result.u = uint64(~uint32(num.u));
-                }
-                else
-                {
-                    result.u = ~num.u;
-                }
-            }
-            else
-            {
-                HYP_UNREACHABLE();
-            }
+            // signedness and bitwidth don't change result
+            num.u = ~num.u;
         }
         else
         {
@@ -2044,7 +2327,7 @@ public:
             return;
         }
 
-        instance->thread.m_regs[reg] = ScriptApi_MakeValue(result);
+        instance->thread.m_regs[reg] = ScriptApi_MakeValue(num);
     }
 
     HYP_FORCE_INLINE void OpThrow(BCRegister reg)
@@ -2094,8 +2377,26 @@ public:
         }
         else if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.u = uint64(-int64(num.u));
-            result.flags = Number::FLAG_SIGNED | (num.flags & (Number::FLAG_8_BIT | Number::FLAG_16_BIT | Number::FLAG_32_BIT));
+            // handle unsigned wraparound correctly:
+            // e.g. for uint8: 0 -> 0, 1 -> 255, 2 -> 254, ..., 255 -> 1
+            switch (num.flags & Number::FLAG_BIT_WIDTH_MASK)
+            {
+            case Number::FLAG_8_BIT:
+                result.u = uint8(~uint8(num.u) + 1);
+                break;
+            case Number::FLAG_16_BIT:
+                result.u = uint16(~uint16(num.u) + 1);
+                break;
+            case Number::FLAG_32_BIT:
+                result.u = uint32(~uint32(num.u) + 1);
+                break;
+            case Number::FLAG_64_BIT:
+                result.u = uint64(~uint64(num.u) + 1);
+                break;
+            default:
+                HYP_UNREACHABLE();
+                break;
+            }
         }
         else
         {

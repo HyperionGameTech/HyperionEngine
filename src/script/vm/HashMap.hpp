@@ -8,8 +8,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <sstream>
-
 namespace hyperion {
 
 class Script_HashMap
@@ -69,11 +67,6 @@ public:
 
     Script_Value* GetElement(const VMMapKey& key);
     const Script_Value* GetElement(const VMMapKey& key) const;
-
-    void GetRepresentation(
-        std::stringstream& ss,
-        bool addTypeName = true,
-        int depth = 3) const;
 
 private:
     InternalMapType m_map;

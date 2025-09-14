@@ -64,7 +64,9 @@ struct Number
         FLAG_8_BIT = 0x08,
         FLAG_16_BIT = 0x10,
         FLAG_32_BIT = 0x20,
-        FLAG_64_BIT = 0x40
+        FLAG_64_BIT = 0x40,
+
+        FLAG_BIT_WIDTH_MASK = FLAG_8_BIT | FLAG_16_BIT | FLAG_32_BIT | FLAG_64_BIT
     };
 
     union
@@ -310,11 +312,7 @@ public:
     void Mark();
 
     const char* GetTypeString() const;
-    Script_String ToString() const;
-    void ToRepresentation(
-        std::stringstream& ss,
-        bool addTypeName = true,
-        int depth = 3) const;
+    String ToString() const;
 };
 
 } // namespace hyperion

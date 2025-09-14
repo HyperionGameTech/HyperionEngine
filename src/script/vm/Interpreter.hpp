@@ -41,6 +41,8 @@ extern Script_Value ScriptApi_MakeRef(Script_Value* refValue);
 extern Script_Value ScriptApi_MakeTrackedRef(Script_Value* refValue, Script_GC* gc);
 extern Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc);
 extern bool ScriptApi_ShouldValuePassByRef(const Script_Value& value);
+extern const char* ScriptApi_GetTypeString(const HypData& data);
+extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);
 
 class Script_GC;
 
