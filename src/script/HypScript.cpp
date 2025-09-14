@@ -393,13 +393,13 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
     // add local path as well
     compilationUnit.GetGlobalModule()->AddScanPath(CoreApi_GetExecutablePath());
 
-    BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->scopeTree.Top().identifierTable);
-
     Lexer lex(sourceStream, &tokenStream, &compilationUnit);
     lex.Analyze();
 
     AstIterator astIterator;
+
     SemanticAnalyzer semanticAnalyzer(&astIterator, &compilationUnit);
+    BuiltinTypes::AddToSymbolTable(&semanticAnalyzer);
 
     Parser parser(&astIterator, &tokenStream, &compilationUnit);
     parser.Parse();

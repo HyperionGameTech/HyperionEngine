@@ -1,9 +1,3 @@
-extension class string {
-    operator+(other: string) -> string {
-        return "blah test"
-    }
-}
-
 // Function definitions and expressions
 
 // Simple function with explicit types
@@ -17,18 +11,18 @@ multiply := (x: float, y: float) {
 }
 
 // Function with default parameters
-greet := (name: string = "World", prefix: string = "Hello") -> string {
-    return prefix + ", " + name + "!"
+divide := (a : float, b : float) -> float {
+    return (a / b)
 }
 
 // Lambda function (function expression)
 square := (n: int32) { return n * n }
 
 // Higher-order function
-applyToArray := (arr: Array<int32>, func: (int32) -> int32) -> Array<int32> {
-    result : Array<int32> = []
-    for (i := 0; i < arr.Length(); i++) {
-        result.Add(func(arr[i]))
+applyToArray := (arr: Array<int32>, f) -> Array<int32> {
+    result : Array<int32> = [1]
+    for (i := 0; i < arr.Size(); i++) {
+        result.Push(f(arr[i]))
     }
     return result
 }
@@ -36,8 +30,7 @@ applyToArray := (arr: Array<int32>, func: (int32) -> int32) -> Array<int32> {
 // Using the functions
 sum := add(5, 3)
 product := multiply(2.5, 4.0)
-greeting := greet("Hyperion")
-defaultGreeting := greet()
+quotient := divide(b : 10.0, a : 2.0)
 
 numbers : Array<int32> = [1, 2, 3, 4]
 squared := applyToArray(numbers, square)

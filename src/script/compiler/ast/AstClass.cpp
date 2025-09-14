@@ -168,9 +168,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 {}, {});
         }
 
-        if (IsProxyClass())
+        if (IsExtensionClass())
         {
-            newType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+            newType->GetFlags() |= SYMBOL_TYPE_FLAGS_EXTENSION_CLASS;
         }
     }
 
@@ -214,12 +214,32 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    // Re-register the symbol type and add SelfType alias for member processing
-    mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
     mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { m_symbolType }));
 
-    if (IsProxyClass())
+    if (IsExtensionClass())
     {
+        SymbolTypeRef sourceType;
+
+        RC<AstTypeSpecifier> sourceTypeSpec(new AstTypeSpecifier(
+            RC<AstVariable>(new AstVariable(m_name, m_location)),
+            m_location));
+
+        sourceTypeSpec->Visit(visitor, mod);
+
+        sourceType = sourceTypeSpec->GetHeldType();
+        Assert(sourceType != nullptr);
+
+        if (!sourceType->IsOrHasBase(*BuiltinTypes::s_objectType))
+        {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_invalid_extension_class_source_type,
+                m_location,
+                sourceType->ToString()));
+
+            return;
+        }
+
         // Proxy classes cannot have data members or function members
         if (!m_dataMembers.Empty())
         {
@@ -227,10 +247,16 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 LEVEL_ERROR,
                 Msg_proxy_class_may_only_contain_methods,
                 m_dataMembers.Front()->GetLocation()));
+
+            return;
         }
+
+        sourceType->GetExtensionClasses().PushBack(m_symbolType);
     }
     else
     {
+        mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
+
         ConstantValue nextEnumValue(INVALID_CONSTANT_NUMBER);
 
         if (m_baseType != nullptr)
@@ -435,7 +461,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 }
             }
 
-            if (!m_preRegister && !IsExternClass() && !IsProxyClass() && !IsEnum())
+            if (!m_preRegister && !IsExternClass() && !IsExtensionClass() && !IsEnum())
             {
                 // add a $construct member. It'll need to call the user-defined constructor (if any).
                 // user-defined constructor is a function member with the same name as the class
@@ -577,10 +603,10 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_symbolType != nullptr);
 
-    if (IsProxyClass() || IsExternClass())
+    if (IsExtensionClass() || IsExternClass())
     {
-        // add a comment indicating that this is a proxy or extern class, nothing else to build
-        const String classTypeStr = IsProxyClass() ? " <Proxy>" : (IsExternClass() ? " <Extern>" : "");
+        // add a comment indicating that this is an extension or extern class, nothing else to build
+        const String classTypeStr = IsExtensionClass() ? " <Extension>" : (IsExternClass() ? " <Extern>" : "");
 
         UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
         chunk->Append(BytecodeUtil::Make<Comment>("Void class table for " + m_symbolType->GetName() + classTypeStr));
@@ -711,7 +737,7 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
+        chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsExtensionClass() ? " <Extension class>" : "")));
 
         const SymbolTypeRef& baseTypeRef = m_symbolType->GetBaseType();
 

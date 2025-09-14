@@ -131,7 +131,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                     m_location)), // use right hand side as arg
                 m_location));
 
-            if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
+            if (targetType->IsExtensionClass() && targetType->FindMember(overloadFunctionName))
             {
                 m_overrideExpr.Reset(new AstCallExpression(
                     RC<AstMember>(new AstMember(

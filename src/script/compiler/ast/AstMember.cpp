@@ -46,7 +46,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
-    bool isProxyClass = false;
+    bool isExtensionClass = false;
 
     m_accessOptions = m_target->GetAccessOptions();
 
@@ -103,9 +103,9 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             break;
         }
 
-        isProxyClass = m_targetType->IsProxyClass();
+        isExtensionClass = m_targetType->IsExtensionClass();
 
-        if (isProxyClass)
+        if (isExtensionClass)
         {
             // load the type by name
             m_typeSpec.Reset(new AstTypeSpecifier(RC<AstTypeRef>(new AstTypeRef(m_targetType, m_location)), m_location));

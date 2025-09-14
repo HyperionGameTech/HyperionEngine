@@ -12,6 +12,10 @@
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 
+#include <script/compiler/SemanticAnalyzer.hpp>
+#include <script/compiler/AstVisitor.hpp>
+#include <script/compiler/CompilationUnit.hpp>
+
 namespace hyperion {
 
 const SymbolTypeRef BuiltinTypes::s_primitiveType = SymbolTypeRef(new SymbolType(
@@ -179,7 +183,24 @@ const SymbolTypeRef BuiltinTypes::s_arrayType = SymbolType::Generic(
                     { { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::s_int32Type },
-                        { "value", SymbolType::GenericParameter("T") } } }) } },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "Push",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_voidType },
+                        { "self", SymbolType::Placeholder("SelfType") },
+                        { "value", SymbolType::GenericParameter("T") } } }) },
+        SymbolTypeMember {
+            "Size",
+            SymbolType::GenericInstance(
+                BuiltinTypes::s_functionType,
+                {}, {},
+                GenericInstanceTypeInfo {
+                    { { "@return", BuiltinTypes::s_int32Type },
+                        { "self", SymbolType::Placeholder("SelfType") } } }) } },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
@@ -216,7 +237,7 @@ void BuiltinTypes::Initialize()
     // do nothing for now
 }
 
-void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
+void BuiltinTypes::AddToSymbolTable(AstVisitor* visitor)
 {
     static const SymbolTypeRef s_intType = SymbolType::Alias("int", { BuiltinTypes::s_int32Type });
     static const SymbolTypeRef s_uintType = SymbolType::Alias("uint", { BuiltinTypes::s_uint32Type });
@@ -330,9 +351,24 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
         s_byteBufferType
     };
 
+    Module* mod = visitor->GetCompilationUnit()->GetGlobalModule();
+    Assert(mod != nullptr);
+
     for (SymbolType* type : s_globalVisibleTypes)
     {
-        table.AddSymbolType(type->RefCountedPtrFromThis());
+        SymbolTypeRef typeRef = type->RefCountedPtrFromThis();
+
+        ScopeGuard scopeGuard(mod, SCOPE_TYPE_NORMAL);
+        scopeGuard->identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { typeRef.ToWeak() }));
+
+        SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+            visitor,
+            mod,
+            typeRef,
+            SourceLocation::eof);
+
+        IdentifierTable& table = mod->scopeTree.Root().identifierTable;
+        table.AddSymbolType(typeRef);
     }
 }
 

@@ -142,7 +142,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
             argumentList, // use right hand side as arg
             m_location));
 
-        if (targetType->IsProxyClass() && targetType->FindMember(overloadFunctionName))
+        if (targetType->IsExtensionClass() && targetType->FindMember(overloadFunctionName))
         {
             RC<AstCallExpression> callExpr(new AstCallExpression(
                 RC<AstMember>(new AstMember(
