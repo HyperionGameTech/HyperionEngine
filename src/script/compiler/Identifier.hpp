@@ -3,20 +3,20 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <core/containers/String.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/Types.hpp>
 
-#include <string>
-#include <memory>
+#include <core/utilities/EnumFlags.hpp>
+
+#include <core/Types.hpp>
 
 namespace hyperion {
 
 class Scope;
+class AstExpression;
 
 enum class IdentifierFlags : uint32
 {
     NONE = 0x0,
-    CONST = 0x1,
+    CONSTANT = 0x1,
     ALIAS = 0x2,
     MODULE = 0x4,
     GENERIC = 0x8,

@@ -91,7 +91,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             nullptr,
             nullptr,
             false, /* variadic */
-            IdentifierFlags::CONST,
+            IdentifierFlags::CONSTANT,
             m_location));
     }
 

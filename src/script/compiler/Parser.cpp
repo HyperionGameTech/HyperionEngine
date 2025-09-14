@@ -1998,7 +1998,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
     static const HashMap<Keywords, IdentifierFlags> s_prefixKeywordMap = {
         { Keyword_extern, IdentifierFlags::EXTERN },
-        { Keyword_const, IdentifierFlags::CONST },
+        { Keyword_const, IdentifierFlags::CONSTANT },
         { Keyword_ref, IdentifierFlags::REF }
     };
 
@@ -2104,7 +2104,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool requireKeyword)
 {
     const SourceLocation location = CurrentLocation();
 
-    EnumFlags<IdentifierFlags> flags = IdentifierFlags::CONST
+    EnumFlags<IdentifierFlags> flags = IdentifierFlags::CONSTANT
         | IdentifierFlags::FUNCTION;
 
     if (MatchKeyword(Keyword_extern, true))
@@ -2387,7 +2387,7 @@ Array<RC<AstParameter>> Parser::ParseFunctionParameters()
 
         if (MatchKeyword(Keyword_const, true))
         {
-            flags |= IdentifierFlags::CONST;
+            flags |= IdentifierFlags::CONSTANT;
         }
 
         if (MatchKeyword(Keyword_ref, true))
@@ -2565,7 +2565,7 @@ RC<AstClass> Parser::ParseClass(
         {
             isVariable = true;
 
-            flags |= IdentifierFlags::CONST;
+            flags |= IdentifierFlags::CONSTANT;
         }
 
         if (MatchKeyword(Keyword_func, true))
@@ -2632,7 +2632,7 @@ RC<AstClass> Parser::ParseClass(
                     selfTypeSpec,
                     nullptr,
                     false, /* variadic */
-                    IdentifierFlags::CONST,
+                    IdentifierFlags::CONSTANT,
                     location)));
             }
 #endif
@@ -2790,7 +2790,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
                 assignment,
                 IdentifierFlags::STATIC_MEMBER
                     | IdentifierFlags::ENUM_MEMBER
-                    | IdentifierFlags::CONST
+                    | IdentifierFlags::CONSTANT
                     | IdentifierFlags::ACCESS_PUBLIC,
                 ident.GetLocation()));
 

@@ -20,8 +20,8 @@
 namespace hyperion {
 namespace buildtool {
 
-class ASTType;
-class ASTMemberDecl;
+struct ASTType;
+struct ASTMemberDecl;
 class Analyzer;
 
 enum class HypClassDefinitionType

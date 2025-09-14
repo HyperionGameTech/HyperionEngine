@@ -46,7 +46,7 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         // is being referenced. if it is const, load the direct value held in the variable
         const bool isAlias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::ALIAS;
         const bool isArgument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::ARGUMENT;
-        const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::CONST;
+        const bool isConst = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::CONSTANT;
         const bool isRef = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::REF;
 
         const bool isMember = (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::MEMBER)
@@ -450,7 +450,7 @@ bool AstVariable::IsMutable() const
         const Identifier* identUnaliased = ident->Unalias();
         Assert(identUnaliased != nullptr);
 
-        const bool isConst = identUnaliased->GetFlags() & IdentifierFlags::CONST;
+        const bool isConst = identUnaliased->GetFlags() & IdentifierFlags::CONSTANT;
 
         if (isConst)
         {

@@ -86,14 +86,14 @@ bool DynamicLibrary::Load()
 #ifdef HYP_WINDOWS
     WideString wpath = m_impl->path.ToWide();
 
-    HMODULE handle = reinterpret_cast<UIntPtr>(LoadLibraryW(wpath.Data()));
+    HMODULE handle = reinterpret_cast<HMODULE>(LoadLibraryW(wpath.Data()));
 
     if (!handle)
     {
         return false;
     }
 
-    m_impl->handle = handle;
+    m_impl->handle = reinterpret_cast<UIntPtr>(handle);
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     m_impl->handle = reinterpret_cast<UIntPtr>(dlopen(m_impl->path.Data(), RTLD_NOW));
 

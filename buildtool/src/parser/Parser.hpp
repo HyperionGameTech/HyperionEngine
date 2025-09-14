@@ -28,7 +28,7 @@ struct QualifiedName
     String ToString(bool includeNamespace = true) const;
 };
 
-class ASTType;
+struct ASTType;
 
 struct CSharpTypeMapping
 {

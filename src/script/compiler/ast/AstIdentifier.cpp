@@ -112,7 +112,7 @@ const AstExpression* AstIdentifier::GetValueOf() const
 {
     if (const RC<Identifier>& ident = m_properties.GetIdentifier())
     {
-        if (((ident->GetFlags() & IdentifierFlags::CONST) || (ident->GetFlags() & IdentifierFlags::GENERIC))
+        if (((ident->GetFlags() & IdentifierFlags::CONSTANT) || (ident->GetFlags() & IdentifierFlags::GENERIC))
             && !(ident->GetFlags() & IdentifierFlags::ARGUMENT))
         {
             if (const auto currentValue = ident->GetCurrentValue())
@@ -134,7 +134,7 @@ const AstExpression* AstIdentifier::GetDeepValueOf() const
 {
     if (const RC<Identifier>& ident = m_properties.GetIdentifier())
     {
-        if (((ident->GetFlags() & IdentifierFlags::CONST) || (ident->GetFlags() & IdentifierFlags::GENERIC))
+        if (((ident->GetFlags() & IdentifierFlags::CONSTANT) || (ident->GetFlags() & IdentifierFlags::GENERIC))
             && !(ident->GetFlags() & IdentifierFlags::ARGUMENT))
         {
             if (const auto currentValue = ident->GetCurrentValue())
@@ -164,7 +164,7 @@ ConstantValue AstIdentifier::GetConstantValue() const
         const Identifier* unaliased = identifier->Unalias();
         Assert(unaliased != nullptr);
 
-        if (!(unaliased->GetFlags() & IdentifierFlags::CONST))
+        if (!(unaliased->GetFlags() & IdentifierFlags::CONSTANT))
         {
             // cannot get constant value of non-const variable
             return ConstantValue(INVALID_CONSTANT_NUMBER);

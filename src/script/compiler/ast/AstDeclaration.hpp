@@ -28,7 +28,7 @@ public:
 
     bool IsConst() const
     {
-        return m_flags & IdentifierFlags::CONST;
+        return m_flags & IdentifierFlags::CONSTANT;
     }
 
     bool IsRef() const

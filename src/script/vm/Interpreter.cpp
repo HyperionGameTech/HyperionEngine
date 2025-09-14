@@ -1998,15 +1998,15 @@ public:
             {
                 if (num.flags & Number::FLAG_8_BIT)
                 {
-                    result.i = ~static_cast<int8>(num.i);
+                    result.i = int64(~int8(num.i));
                 }
                 else if (num.flags & Number::FLAG_16_BIT)
                 {
-                    result.i = ~static_cast<int16>(num.i);
+                    result.i = int64(~int16(num.i));
                 }
                 else if (num.flags & Number::FLAG_32_BIT)
                 {
-                    result.i = ~static_cast<int32>(num.i);
+                    result.i = int64(~int32(num.i));
                 }
                 else
                 {
@@ -2017,15 +2017,15 @@ public:
             {
                 if (num.flags & Number::FLAG_8_BIT)
                 {
-                    result.u = ~static_cast<uint8>(num.u);
+                    result.u = uint64(~uint8(num.u));
                 }
                 else if (num.flags & Number::FLAG_16_BIT)
                 {
-                    result.u = ~static_cast<uint16>(num.u);
+                    result.u = uint64(~uint16(num.u));
                 }
                 else if (num.flags & Number::FLAG_32_BIT)
                 {
-                    result.u = ~static_cast<uint32>(num.u);
+                    result.u = uint64(~uint32(num.u));
                 }
                 else
                 {
@@ -2094,7 +2094,7 @@ public:
         }
         else if (num.flags & Number::FLAG_UNSIGNED)
         {
-            result.u = static_cast<uint64>(-static_cast<int64>(num.u));
+            result.u = uint64(-int64(num.u));
             result.flags = Number::FLAG_SIGNED | (num.flags & (Number::FLAG_8_BIT | Number::FLAG_16_BIT | Number::FLAG_32_BIT));
         }
         else

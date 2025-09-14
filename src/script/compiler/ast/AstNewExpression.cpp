@@ -112,7 +112,7 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
                         nullptr, // no args
                         false,   // do not enable constructor call
                         m_location)),
-                    IdentifierFlags::CONST,
+                    IdentifierFlags::CONSTANT,
                     m_location));
 
                 m_constructorBlock->AddChild(tempVarDecl);

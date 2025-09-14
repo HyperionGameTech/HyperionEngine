@@ -465,7 +465,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                         m_location)),
                     nullptr,
                     false, /* variadic */
-                    IdentifierFlags::CONST,
+                    IdentifierFlags::CONSTANT,
                     m_location)));
 
                 RC<AstBlock> constructorBody(new AstBlock(m_location));
@@ -542,7 +542,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     "$construct",
                     nullptr,
                     constructorExpr,
-                    IdentifierFlags::CONST | IdentifierFlags::LAX,
+                    IdentifierFlags::CONSTANT | IdentifierFlags::LAX,
                     m_location));
 
                 constructMemberDecl->Visit(visitor, mod);
