@@ -123,6 +123,7 @@ enum ErrorMessage
     Msg_cannot_instantiate_non_object,
     Msg_invalid_base_class,
     Msg_classes_may_only_be_defined_in_global_scope,
+    Msg_invalid_extension_class_source_type,
 
     Msg_bitwise_operands_must_be_int,
     Msg_bitwise_operand_must_be_int,

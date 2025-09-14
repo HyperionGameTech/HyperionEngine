@@ -223,6 +223,23 @@ Token Parser::ExpectOperator(const String& op, bool read)
     return token;
 }
 
+Token Parser::MatchIdentifier(const String& identifier, bool allowKeyword, bool read)
+{
+    Token ident = MatchIdentifier(allowKeyword, /* read */ false);
+
+    if (ident && ident.GetValue() == identifier)
+    {
+        if (read)
+        {
+            m_tokenStream->Next();
+        }
+
+        return ident;
+    }
+
+    return Token::EMPTY;
+}
+
 Token Parser::MatchIdentifier(bool allowKeyword, bool read)
 {
     Token ident = Match(TK_IDENT, read);
@@ -448,7 +465,7 @@ RC<AstStatement> Parser::ParseStatement(
             }
         }
         else if (MatchKeyword(Keyword_class, false)
-            || (MatchKeyword(Keyword_proxy, false) && MatchKeywordAhead(Keyword_class, 1))
+            || (MatchIdentifier("extension", false) && MatchKeywordAhead(Keyword_class, 1))
             || (MatchKeyword(Keyword_extern, false) && MatchKeywordAhead(Keyword_class, 1)))
         {
             res = ParseClassDefinition();
@@ -2456,13 +2473,13 @@ RC<AstClass> Parser::ParseClassDefinition()
 {
     EnumFlags<ClassFlags> classFlags = ClassFlags::CLASS_FLAG_NONE;
 
-    if (Token externToken = MatchKeyword(Keyword_extern, true))
+    if (Token externToken = MatchKeyword(Keyword_extern, /* read */ true))
     {
         classFlags |= ClassFlags::CLASS_FLAG_EXTERN;
     }
-    else if (Token proxyToken = MatchKeyword(Keyword_proxy, true))
+    else if (Token extensionToken = MatchIdentifier("extension", /* allowKeyword */ true, /* read */ true))
     {
-        classFlags |= ClassFlags::CLASS_FLAG_IS_PROXY;
+        classFlags |= ClassFlags::CLASS_FLAG_EXTENSION;
     }
 
     if (Token token = ExpectKeyword(Keyword_class, true))
@@ -2660,7 +2677,7 @@ RC<AstClass> Parser::ParseClass(
                 flags,
                 location));
 
-            if (isStatic || (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])) // <--- all methods for proxy classes are static
+            if (isStatic)
             {
                 member->ApplyIdentifierFlags(IdentifierFlags::STATIC_MEMBER);
 
@@ -2701,7 +2718,7 @@ RC<AstClass> Parser::ParseClass(
                 break;
             }
 
-            if (classFlags[ClassFlags::CLASS_FLAG_IS_PROXY])
+            if (classFlags[ClassFlags::CLASS_FLAG_EXTENSION])
             {
                 m_compilationUnit->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,

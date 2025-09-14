@@ -391,6 +391,7 @@ bool SymbolType::TypeCompatible(
 
     if (m_typeClass != right.m_typeClass)
     {
+        HYP_BREAKPOINT;
         ADD_INCOMPATIBILITY(
             IT_TYPE_CLASS_MISMATCH,
             String("Incompatible type classes: ") + SymbolTypeClassToString(m_typeClass) + " <-> " + SymbolTypeClassToString(right.m_typeClass));
@@ -592,13 +593,22 @@ bool SymbolType::FindMember(UTF8StringView name, SymbolTypeMember& out, uint32& 
 
 SymbolTypeRef SymbolType::FindMemberDeep(UTF8StringView name) const
 {
-    SymbolTypeMember out;
-    uint32 outIndex;
-    uint32 outDepth;
-
-    if (FindMemberDeep(name, out, outIndex, outDepth))
+    if (SymbolTypeRef member = FindMember(name))
     {
-        return out.type;
+        return member;
+    }
+
+    // try base classes
+    SymbolTypeRef basePtr = GetBaseType();
+
+    while (basePtr != nullptr)
+    {
+        if (SymbolTypeRef member = basePtr->FindMember(name))
+        {
+            return member;
+        }
+
+        basePtr = basePtr->GetBaseType();
     }
 
     return nullptr;
@@ -688,31 +698,6 @@ bool SymbolType::FindStaticMember(UTF8StringView name, SymbolTypeMember& out, ui
 
             return true;
         }
-    }
-
-    return false;
-}
-
-bool SymbolType::HasTrait(const SymbolTypeTrait& trait) const
-{
-    SymbolTypeMember member;
-
-    // trait names are prefixed with '@'
-    if (FindMember(trait.name, member))
-    {
-        return true;
-    }
-
-    return false;
-}
-
-bool SymbolType::HasTraitDeep(const SymbolTypeTrait& trait) const
-{
-    SymbolTypeMember member;
-
-    if (FindMemberDeep(trait.name, member))
-    {
-        return true;
     }
 
     return false;
@@ -1330,52 +1315,6 @@ SymbolTypeRef SymbolType::TypePromotion(const SymbolTypeRef& lptr, const SymbolT
     // @TODO Check for common base
 
     return BuiltinTypes::s_errorType;
-}
-
-SymbolTypeRef SymbolType::SubstituteGenericParams(
-    const SymbolTypeRef& lptr,
-    const SymbolTypeRef& placeholder,
-    const SymbolTypeRef& substitute)
-{
-    Assert(lptr != nullptr);
-    Assert(placeholder != nullptr);
-    Assert(substitute != nullptr);
-
-    if (lptr->TypeEqual(*placeholder))
-    {
-        return substitute;
-    }
-
-    switch (lptr->GetTypeClass())
-    {
-    case TYPE_GENERIC_INSTANCE:
-    {
-        SymbolTypeRef baseType = lptr->GetBaseType();
-        Assert(baseType != nullptr);
-
-        Array<GenericInstanceTypeInfo::Arg> newGenericTypes;
-
-        for (const GenericInstanceTypeInfo::Arg& arg : lptr->GetGenericInstanceInfo().m_genericArgs)
-        {
-            GenericInstanceTypeInfo::Arg newArg {};
-            newArg.m_name = arg.m_name;
-            newArg.m_defaultValue = CloneAstNode(arg.m_defaultValue);
-            newArg.m_type = SubstituteGenericParams(arg.m_type, placeholder, substitute);
-            newArg.m_isConst = arg.m_isConst;
-            newArg.m_isRef = arg.m_isRef;
-
-            newGenericTypes.PushBack(std::move(newArg));
-        }
-
-        return SymbolType::GenericInstance(
-            baseType,
-            lptr->GetMembers(),
-            lptr->GetStaticMembers(),
-            GenericInstanceTypeInfo { newGenericTypes });
-    }
-    }
-
-    return lptr;
 }
 
 HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const

@@ -9,9 +9,9 @@ namespace hyperion {
 class SymbolType;
 using SymbolTypeRef = RC<SymbolType>;
 
-class SymbolTypeTrait;
-
 class IdentifierTable;
+
+class AstVisitor;
 
 struct BuiltinTypes
 {
@@ -45,7 +45,7 @@ struct BuiltinTypes
     static const SymbolTypeRef s_mapType;
 
     static void Initialize();
-    static void AddToSymbolTable(IdentifierTable& table);
+    static void AddToSymbolTable(AstVisitor* visitor);
 };
 
 } // namespace hyperion

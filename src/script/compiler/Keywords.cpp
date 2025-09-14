@@ -14,7 +14,6 @@ const HashMap<String, Keywords> Keyword::keywordStrings = {
     { "ref", Keyword_ref },
     { "func", Keyword_func },
     { "class", Keyword_class },
-    { "proxy", Keyword_proxy },
     { "mixin", Keyword_mixin },
     { "enum", Keyword_enum },
     { "as", Keyword_as },

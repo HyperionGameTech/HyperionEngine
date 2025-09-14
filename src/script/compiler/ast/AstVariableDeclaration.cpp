@@ -169,7 +169,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
             if (hasUserSpecifiedType)
             {
-#if 1
+#if 0
                 SymbolTypeRef symbolTypePromoted = SemanticAnalyzer::Helpers::GenericPromotion(
                     visitor,
                     mod,

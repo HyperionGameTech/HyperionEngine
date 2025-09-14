@@ -176,6 +176,7 @@ private:
     Token Expect(TokenClass tokenClass, bool read = false);
     Token ExpectKeyword(Keywords keyword, bool read = false);
     Token ExpectOperator(const String& op, bool read = false);
+    Token MatchIdentifier(const String& identifier, bool allowKeyword = false, bool read = false);
     Token MatchIdentifier(bool allowKeyword = false, bool read = false);
     Token ExpectIdentifier(bool allowKeyword = false, bool read = false);
     bool ExpectEndOfStmt();

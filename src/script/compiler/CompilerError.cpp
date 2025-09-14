@@ -99,6 +99,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_cannot_instantiate_non_object, "Cannot use `new` with non-object type '%'" },
     { Msg_invalid_base_class, "'%' is not suitable to be used as a base class" },
     { Msg_classes_may_only_be_defined_in_global_scope, "Class '%' defined in a local scope; classes may only be defined in the global scope" },
+    { Msg_invalid_extension_class_source_type, "Extension class source type must be an object type, got '%'" },
     { Msg_bitwise_operands_must_be_int, "Bitwise operands must both be integer types, got '%' and '%'" },
     { Msg_bitwise_operand_must_be_int, "Bitwise operand must be an integer type, got '%'" },
     { Msg_arithmetic_operands_must_be_numbers, "Operands of arithmetic operator '%', % and %, are not numeric and no overload was found" },

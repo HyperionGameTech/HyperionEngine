@@ -22,7 +22,6 @@ enum Keywords
     Keyword_val,
     Keyword_func,
     Keyword_class,
-    Keyword_proxy,
     Keyword_mixin,
     Keyword_enum,
     Keyword_as,

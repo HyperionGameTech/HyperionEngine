@@ -12,7 +12,7 @@ namespace hyperion {
 enum ClassFlags : uint8
 {
     CLASS_FLAG_NONE = 0x0,
-    CLASS_FLAG_IS_PROXY = 0x1,
+    CLASS_FLAG_EXTENSION = 0x1,
     CLASS_FLAG_IS_ENUM = 0x2,
     CLASS_FLAG_ANONYMOUS = 0x4,
     CLASS_FLAG_EXTERN = 0x8
@@ -88,9 +88,9 @@ public:
         return m_flags[CLASS_FLAG_IS_ENUM];
     }
 
-    bool IsProxyClass() const
+    bool IsExtensionClass() const
     {
-        return m_flags[CLASS_FLAG_IS_PROXY];
+        return m_flags[CLASS_FLAG_EXTENSION];
     }
 
     bool IsAnonymous() const

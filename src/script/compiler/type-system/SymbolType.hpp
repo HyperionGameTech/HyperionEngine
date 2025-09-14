@@ -79,7 +79,7 @@ using SymbolTypeFlags = uint32;
 enum SymbolTypeFlagsBits : SymbolTypeFlags
 {
     SYMBOL_TYPE_FLAGS_NONE = 0x0,
-    SYMBOL_TYPE_FLAGS_PROXY = 0x1,
+    SYMBOL_TYPE_FLAGS_EXTENSION_CLASS = 0x1,
     SYMBOL_TYPE_FLAGS_NATIVE = 0x4
 };
 
@@ -243,29 +243,6 @@ struct GenericParameterTypeInfo
 {
 };
 
-struct SymbolTypeTrait
-{
-    String name;
-
-    HYP_FORCE_INLINE bool operator==(const SymbolTypeTrait& other) const
-    {
-        return name == other.name;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const SymbolTypeTrait& other) const
-    {
-        return !operator==(other);
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name);
-
-        return hc;
-    }
-};
-
 class SymbolType : public EnableRefCountedPtrFromThis<SymbolType>
 {
     friend class IdentifierTable;
@@ -350,13 +327,6 @@ public:
     static SymbolTypeRef TypePromotion(
         const SymbolTypeRef& lptr,
         const SymbolTypeRef& rptr);
-
-    /** Substitute this or any generic parameters of this object which
-        are the given generic type with the supplied substitution */
-    static SymbolTypeRef SubstituteGenericParams(
-        const SymbolTypeRef& lptr,
-        const SymbolTypeRef& placeholder,
-        const SymbolTypeRef& substitute);
 
 public:
     SymbolType(
@@ -457,9 +427,20 @@ public:
     {
         return m_genericParamInfo;
     }
+
     const GenericParameterTypeInfo& GetGenericParameterInfo() const
     {
         return m_genericParamInfo;
+    }
+
+    Array<SymbolTypeRef>& GetExtensionClasses()
+    {
+        return m_extensionClasses;
+    }
+
+    const Array<SymbolTypeRef>& GetExtensionClasses() const
+    {
+        return m_extensionClasses;
     }
 
     SymbolTypeFlags GetFlags() const
@@ -525,9 +506,6 @@ public:
     bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
 
-    bool HasTrait(const SymbolTypeTrait& trait) const;
-    bool HasTraitDeep(const SymbolTypeTrait& trait) const;
-
     bool IsOrHasBase(const SymbolType& baseType) const;
     /** Search the inheritance chain to see if the given type
         is a base of this type. */
@@ -560,9 +538,9 @@ public:
     /*! \brief Is this an enum type? */
     bool IsEnumType() const;
 
-    bool IsProxyClass() const
+    bool IsExtensionClass() const
     {
-        return m_flags & SYMBOL_TYPE_FLAGS_PROXY;
+        return m_flags & SYMBOL_TYPE_FLAGS_EXTENSION_CLASS;
     }
 
     ConstantBitSize GetConstantBitSize() const
@@ -633,6 +611,8 @@ private:
     GenericInstanceTypeInfo m_genericInstanceInfo;
     // if this is a generic param
     GenericParameterTypeInfo m_genericParamInfo;
+
+    Array<SymbolTypeRef> m_extensionClasses;
 
     ConstantBitSize m_constantBitSize;
     SymbolTypeFlags m_flags;
