@@ -106,6 +106,7 @@ void HyperionEditor::Init()
 
 #if 1
     { // script 2
+#if 0
         String str;
 #if 0
         str = "extern class UUID {\n"
@@ -175,9 +176,20 @@ void HyperionEditor::Init()
               "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 
-        ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
+#endif
+        const String sampleScriptPath = "../../res/scripts/samples/02_functions.hyp";
 
-        SourceFile sourceFile("<temp>", byteBuffer.Size());
+        FileBufferedReaderSource source { sampleScriptPath };
+        BufferedByteReader reader { &source };
+
+        if (!reader.IsOpen())
+        {
+            HYP_FAIL("Failed to open script file: {}", sampleScriptPath.Data());
+        }
+
+        ByteBuffer byteBuffer = reader.ReadBytes();
+
+        SourceFile sourceFile(sampleScriptPath, byteBuffer.Size());
         sourceFile.ReadIntoBuffer(byteBuffer);
 
         ErrorList errorList;
