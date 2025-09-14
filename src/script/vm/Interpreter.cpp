@@ -3555,13 +3555,15 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
 
             for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
-                argsHypData[argIndex] = instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].GetHypData();
+                Script_Value& srcValue = *instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].Deref();
+
+                argsHypData[argIndex] = srcValue.GetHypData();
 
                 DebugLog(
                     LogType::Debug,
-                    "arg %d: string=\"%s\"\n",
+                    "arg %d: repr = %s\n",
                     argIndex,
-                    instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].ToString().Data());
+                    srcValue.ToString().Data());
             }
 
             // @TODO: Implement

@@ -593,6 +593,8 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
     }
 };
 
+#ifndef HYP_WINDOWS
+
 template <>
 struct HypDataHelperDecl<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>>
 {
@@ -665,6 +667,8 @@ struct HypDataHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64
         return FBOMResult::FBOM_OK;
     }
 };
+
+#endif
 
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_enum_v<T>>>

@@ -267,6 +267,18 @@
       <ExpandedItem>($T1 *)(&amp;((Allocation *)m_allocation)-&gt;storage)</ExpandedItem>
     </Expand>
   </Type>
+	
+	<Type Name="hyperion::memory::Any">
+		<DisplayString Condition="m_block == nullptr">EMPTY</DisplayString>
+		<DisplayString Condition="m_block != nullptr">{{ TypeId={((Block*)m_block)-&gt;typeId.m_value} Value={((Block*)m_block)-&gt;objectPtr} }}</DisplayString>
+		
+		<Expand>
+			<Item Name="[HasValue]">(m_block != nullptr)</Item>
+			<Item Name="[TypeId]" Condition="m_block != nullptr">((Block*)m_block)-&gt;typeId</Item>
+			<Item Name="[ObjectPtr]" Condition="m_block != nullptr">((Block*)m_block)-&gt;objectPtr</Item>
+			<Item Name="[Value]" Condition="m_block != nullptr">((Block*)m_block)-&gt;objectPtr</Item>
+		</Expand>
+	</Type>
 
   <Type Name="hyperion::utilities::Optional&lt;*&gt;">
 
