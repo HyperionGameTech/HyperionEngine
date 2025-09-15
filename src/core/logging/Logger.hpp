@@ -32,8 +32,6 @@ struct LogMessage
 
 HYP_API extern ANSIStringView GetCurrentThreadName();
 
-HYP_API extern Handle<Logger> g_logger;
-
 template <LogLevel Level>
 static constexpr auto LogLevelToString()
 {
@@ -205,7 +203,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Logger : public HypObject
+class HYP_API Logger final : public HypObjectBase
 {
     HYP_OBJECT_BODY(Logger);
 
@@ -214,31 +212,31 @@ public:
 
     static constexpr uint32 maxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
-    static const Handle<Logger>& GetInstance();
-
     Logger();
     Logger(ILoggerOutputStream& outputStream);
 
     Logger(const Logger& other) = delete;
     Logger& operator=(const Logger& other) = delete;
+    
     Logger(Logger&& other) noexcept = delete;
     Logger& operator=(Logger&& other) noexcept = delete;
+
     ~Logger();
 
     ILoggerOutputStream* GetOutputStream() const;
 
     void RegisterChannel(LogChannel* channel);
 
+    HYP_METHOD()
     const LogChannel* FindLogChannel(WeakName name) const;
 
-    DynamicLogChannelHandle CreateDynamicLogChannel(Name name, LogChannel* parentChannel = nullptr);
     DynamicLogChannelHandle CreateDynamicLogChannel(LogChannel& channel);
-    void RemoveDynamicLogChannel(Name name);
     void RemoveDynamicLogChannel(LogChannel* channel);
-    void RemoveDynamicLogChannel(DynamicLogChannelHandle& channelHandle);
 
+    HYP_METHOD()
     bool IsChannelEnabled(const LogChannel& channel) const;
 
+    HYP_METHOD()
     void SetChannelEnabled(const LogChannel& channel, bool enabled);
 
     void Log(const LogChannel& channel, const LogMessage& message);
@@ -255,9 +253,9 @@ struct LogOnceHelper
     template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogCategory Category, auto ChannelArg, auto LogOnceFormatString, class... LogOnceArgTypes>
     static void ExecuteLogOnce(Logger& logger, LogOnceArgTypes&&... args)
     {
-        static volatile int64 timesExecutedCounter = 0;
+        static volatile int64 s_timesExecutedCounter = 0;
 
-        int64 count = AtomicIncrement(&timesExecutedCounter) - 1;
+        int64 count = AtomicIncrement(&s_timesExecutedCounter) - 1;
 
         if (count == 0)
         {
@@ -411,7 +409,7 @@ public:
         m_channels.PushBack(channel);
     }
 
-    void RegisterAll();
+    void RegisterAll(const Handle<Logger>& logger);
 
 private:
     Array<LogChannel*> m_channels;

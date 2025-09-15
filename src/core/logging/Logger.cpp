@@ -29,6 +29,8 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DECLARE_LOG_CHANNEL(Misc);
 HYP_DECLARE_LOG_CHANNEL(Temp);
 
+HYP_API extern Handle<Logger> g_logger;
+
 namespace logging {
 
 static volatile int32 g_maxLogChannelId = -1;
@@ -36,7 +38,9 @@ static bool g_registerAllCalled = false;
 
 HYP_API Logger& GetLogger()
 {
-    return Logger::GetInstance();
+    Assert(g_logger != nullptr);
+
+    return *g_logger;
 }
 
 HYP_API ANSIStringView GetCurrentThreadName()
@@ -327,9 +331,17 @@ private:
 
 DynamicLogChannelHandle::~DynamicLogChannelHandle()
 {
+    if (!m_channel)
+    {
+        return;
+    }
+
     if (m_logger != nullptr)
     {
-        m_logger->RemoveDynamicLogChannel(*this);
+        m_logger->RemoveDynamicLogChannel(m_channel);
+
+        m_logger = nullptr;
+        m_channel = nullptr;
     }
 
     if (m_ownsAllocation)
@@ -345,9 +357,9 @@ DynamicLogChannelHandle& DynamicLogChannelHandle::operator=(DynamicLogChannelHan
         return *this;
     }
 
-    if (m_logger != nullptr)
+    if (m_logger != nullptr && m_channel != nullptr)
     {
-        m_logger->RemoveDynamicLogChannel(*this);
+        m_logger->RemoveDynamicLogChannel(m_channel);
     }
 
     if (m_ownsAllocation)
@@ -382,8 +394,10 @@ LogChannel::LogChannel(Name name, LogChannel* parentChannel)
 
 #pragma region LogChannelRegistrar
 
-void LogChannelRegistrar::RegisterAll()
+void LogChannelRegistrar::RegisterAll(const Handle<Logger>& logger)
 {
+    Assert(logger != nullptr);
+
     if (g_registerAllCalled)
     {
         return;
@@ -475,7 +489,7 @@ void LogChannelRegistrar::RegisterAll()
         }
 
         // out of slots, need to store dynamic
-        s_dynamicLogChannelHandles.PushBack(Logger::GetInstance().CreateDynamicLogChannel(*channel));
+        s_dynamicLogChannelHandles.PushBack(logger->CreateDynamicLogChannel(*channel));
     }
 
     m_channels.Clear();
@@ -512,11 +526,6 @@ private:
 #pragma endregion LoggerImpl
 
 #pragma region Logger
-
-const Handle<Logger>& Logger::GetInstance()
-{
-    return g_logger;
-}
 
 Logger::Logger()
     : Logger(BasicLoggerOutputStream::GetDefaultInstance())
@@ -576,28 +585,6 @@ void Logger::RegisterChannel(LogChannel* channel)
     m_pImpl->m_logChannels[channel->id] = channel;
 }
 
-DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* parentChannel)
-{
-    AssertDebug(g_registerAllCalled);
-
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
-
-    LogChannel* channel = m_pImpl->m_dynamicLogChannels.PushBack(new LogChannel(name));
-
-    channel->id = AtomicIncrement(&g_maxLogChannelId);
-    channel->maskBitset = Bitset(1ull << channel->id);
-
-    if (parentChannel)
-    {
-        AssertDebug(parentChannel->id != ~0u, "Parent channel must be registered if it exists!");
-
-        channel->parentChannel = parentChannel;
-        channel->maskBitset |= parentChannel->maskBitset;
-    }
-
-    return DynamicLogChannelHandle(this, channel, /* ownsAllocation */ true);
-}
-
 DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
 {
     Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
@@ -616,23 +603,6 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
     return DynamicLogChannelHandle(this, &channel, /* ownsAllocation */ false);
 }
 
-void Logger::RemoveDynamicLogChannel(Name name)
-{
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
-
-    auto it = m_pImpl->m_dynamicLogChannels.FindIf([name](LogChannel* channel)
-        {
-            return channel->name == name;
-        });
-
-    if (it == m_pImpl->m_dynamicLogChannels.End())
-    {
-        return;
-    }
-
-    m_pImpl->m_dynamicLogChannels.Erase(it);
-}
-
 void Logger::RemoveDynamicLogChannel(LogChannel* channel)
 {
     Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
@@ -645,19 +615,6 @@ void Logger::RemoveDynamicLogChannel(LogChannel* channel)
     }
 
     m_pImpl->m_dynamicLogChannels.Erase(it);
-}
-
-void Logger::RemoveDynamicLogChannel(DynamicLogChannelHandle& channelHandle)
-{
-    if (!channelHandle.m_channel)
-    {
-        return;
-    }
-
-    RemoveDynamicLogChannel(channelHandle.m_channel);
-
-    channelHandle.m_logger = nullptr;
-    channelHandle.m_channel = nullptr;
 }
 
 bool Logger::IsChannelEnabled(const LogChannel& channel) const
