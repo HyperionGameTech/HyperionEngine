@@ -191,6 +191,7 @@ protected:
 public:
     static constexpr int invalidTypeIndex = -1;
     static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
+    static constexpr SizeType typeCount = sizeof...(Types);
 
     VariantBase()
         : m_currentIndex(-1)
@@ -710,6 +711,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
 
     // we do sizeof...(Types) + 1 so getting type id from index is just accessing the element at type index + 1.
     static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
+    static constexpr SizeType typeCount = sizeof...(Types);
 
     // template <class ...Args>
     // Variant(Args &&... args)
