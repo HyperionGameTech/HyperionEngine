@@ -72,19 +72,8 @@ struct HypDataGetReturnTypeHelper
 
 using HypDataSerializeFunction = FBOMResult (*)(const HypData& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags);
 
-template <class T>
-struct DefaultHypDataSerializeFunction;
-
-template <>
-struct DefaultHypDataSerializeFunction<void>
-{
-    static inline FBOMResult Serialize(const HypData& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        out = FBOMData();
-
-        return { FBOMResult::FBOM_ERR, "No serialization function provided" };
-    }
-};
+extern HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeId);
+extern HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFunction func);
 
 /*! \brief A struct that can hold 128 bits (16 bytes) of user data.
  *  Useful for storing small amounts of data directly in HypData without heap allocation.
@@ -96,6 +85,10 @@ struct alignas(std::max_align_t) HypData_UserData128
 };
 
 struct HypDataArray;
+
+#ifdef HYP_SCRIPT
+enum class GCIndex : uint32;
+#endif
 
 /*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
@@ -158,11 +151,22 @@ struct HypData
         || std::is_same_v<T, HypData_UserData128>;
 
     VariantType value;
-    HypDataSerializeFunction serializeFunction;
+
+    union
+    {
+        struct alignas(8)
+        {
+#ifdef HYP_SCRIPT
+            GCIndex scriptGcIndex; // HypScript only - index into the pool of tracked objects
+#endif
+        };
+
+        uint64 num;
+    } extData;
 
     HypData()
-        : serializeFunction(&DefaultHypDataSerializeFunction<void>::Serialize)
     {
+        Memory::MemSet(&extData, 0, sizeof(extData));
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<T, HypData>>>
@@ -175,9 +179,9 @@ struct HypData
     }
 
     HypData(const HypData& other)
-        : value(other.value),
-          serializeFunction(other.serializeFunction)
+        : value(other.value)
     {
+        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
     }
 
     HypData& operator=(const HypData& other)
@@ -188,16 +192,17 @@ struct HypData
         }
 
         value = other.value;
-        serializeFunction = other.serializeFunction;
+
+        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
 
         return *this;
     }
 
     HypData(HypData&& other) noexcept
-        : value(std::move(other.value)),
-          serializeFunction(other.serializeFunction)
+        : value(std::move(other.value))
     {
-        other.serializeFunction = &DefaultHypDataSerializeFunction<void>::Serialize;
+        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
+        Memory::MemSet(&other.extData, 0, sizeof(extData));
     }
 
     HypData& operator=(HypData&& other) noexcept
@@ -208,8 +213,9 @@ struct HypData
         }
 
         value = std::move(other.value);
-        serializeFunction = other.serializeFunction;
-        other.serializeFunction = &DefaultHypDataSerializeFunction<void>::Serialize;
+
+        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
+        Memory::MemSet(&other.extData, 0, sizeof(extData));
 
         return *this;
     }
@@ -405,7 +411,16 @@ struct HypData
      */
     FBOMResult Serialize(FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) const
     {
-        if (serializeFunction == nullptr)
+        if (!IsValid())
+        {
+            out = FBOMData();
+
+            return {};
+        }
+
+        const HypDataSerializeFunction serializeFunction = GetHypDataSerializeFunction(GetTypeId());
+
+        if (!serializeFunction)
         {
             return { FBOMResult::FBOM_ERR, "No serialization function provided" };
         }
@@ -437,8 +452,20 @@ struct HypData
     template <class T>
     void Set_Internal(T&& value)
     {
+        static struct InitializeSerializeFunction
+        {
+            InitializeSerializeFunction()
+            {
+                RegisterHypDataSerializeFunction(
+                    TypeId::ForType<NormalizedType<T>>(),
+                    [](const HypData& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> FBOMResult
+                    {
+                        return HypDataHelper<NormalizedType<T>>::Serialize(data.Get<NormalizedType<T>>(), out, flags);
+                    });
+            }
+        } s_initializeSerializeFunction;
+
         this->value.Set<NormalizedType<T>>(std::forward<T>(value));
-        serializeFunction = &DefaultHypDataSerializeFunction<NormalizedType<T>>::Serialize;
     }
 };
 

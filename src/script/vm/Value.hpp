@@ -215,7 +215,6 @@ class alignas(8) Script_Value
     friend class Script_GC;
 
     char m_internal[32];
-    GCIndex m_gcIndex;
 
     enum MakeGarbageTag
     {
@@ -249,11 +248,6 @@ public:
     HYP_FORCE_INLINE const HypData* GetHypData() const
     {
         return reinterpret_cast<const HypData*>(m_internal);
-    }
-
-    HYP_FORCE_INLINE GCIndex GetGCIndex() const
-    {
-        return m_gcIndex;
     }
 
     Script_VMData* GetVMData();

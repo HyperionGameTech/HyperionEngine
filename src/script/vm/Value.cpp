@@ -43,11 +43,9 @@ const Script_Value Script_Value::s_uninitializedValue = Script_Value(MAKE_GARBAG
 Script_Value::Script_Value(MakeGarbageTag)
 {
     Memory::MemSet(m_internal, 0xFFu, sizeof(m_internal));
-    m_gcIndex = INVALID_GC_INDEX;
 }
 
 Script_Value::Script_Value()
-    : m_gcIndex(INVALID_GC_INDEX)
 {
     static_assert(sizeof(m_internal) == sizeof(HypData), "Size of m_internal must match size of HypData");
     static_assert(alignof(decltype(m_internal)) <= alignof(HypData), "Alignment of m_internal must be less than or equal to alignment of HypData");
@@ -56,13 +54,11 @@ Script_Value::Script_Value()
 }
 
 Script_Value::Script_Value(HypData&& data)
-    : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(std::move(data));
 }
 
 Script_Value::Script_Value(Number number)
-    : m_gcIndex(INVALID_GC_INDEX)
 {
     if (number.flags & Number::FLAG_FLOATING_POINT)
     {
@@ -120,7 +116,6 @@ Script_Value::Script_Value(Number number)
 }
 
 Script_Value::Script_Value(const Script_VMData& vmData)
-    : m_gcIndex(INVALID_GC_INDEX)
 {
     static_assert(sizeof(Script_VMData) == sizeof(HypData_UserData128));
     static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128));
@@ -132,13 +127,11 @@ Script_Value::Script_Value(const Script_VMData& vmData)
 }
 
 Script_Value::Script_Value(const Script_Value& other)
-    : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(*other.GetHypData());
 }
 
 Script_Value::Script_Value(Script_Value&& other) noexcept
-    : m_gcIndex(INVALID_GC_INDEX)
 {
     new (m_internal) HypData(std::move(*other.GetHypData()));
 }
@@ -167,7 +160,7 @@ Script_Value& Script_Value::operator=(Script_Value&& other) noexcept
 
 Script_Value::~Script_Value()
 {
-    Assert(m_gcIndex == INVALID_GC_INDEX); // should not be destroyed if it is tracked by the Script_GC
+    Assert(GetHypData()->extData.scriptGcIndex == INVALID_GC_INDEX); // should not be destroyed if it is tracked by the Script_GC
 
     // have to manually call destructor because we used placement new
     GetHypData()->~HypData();
@@ -291,7 +284,7 @@ void Script_Value::AssignValue(Script_Value&& other, bool assignRef)
 {
     Script_Value* ref;
 
-    Assert(other.GetGCIndex() == INVALID_GC_INDEX);
+    Assert(other.GetHypData()->extData.scriptGcIndex == INVALID_GC_INDEX);
 
     if (assignRef && (ref = Deref()) != nullptr)
     {

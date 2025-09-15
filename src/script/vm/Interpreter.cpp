@@ -554,7 +554,7 @@ Script_Value ScriptApi_MakeTrackedRef(Script_Value* pValue, Script_GC* gc)
     Assert(gc != nullptr);
     Assert(pValue != nullptr);
 
-    if (pValue->GetGCIndex() != INVALID_GC_INDEX)
+    if (pValue->GetHypData()->extData.scriptGcIndex != INVALID_GC_INDEX)
     {
         // already in tracked memory, make a reference to this value
         return ScriptApi_MakeRef(pValue);
@@ -578,7 +578,7 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
         return refValue; // already a reference, return as-is
     }
 
-    if (refValue.GetGCIndex() != INVALID_GC_INDEX)
+    if (refValue.GetHypData()->extData.scriptGcIndex != INVALID_GC_INDEX)
     {
         // in tracked memory, make a reference to it
         return ScriptApi_MakeRef(&refValue);
@@ -592,8 +592,6 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
         {
             newHypData.value.Set<NormalizedType<decltype(val)>>(val);
         });
-
-    newHypData.serializeFunction = hypData.serializeFunction;
 
     return Script_Value(std::move(newHypData));
 }
@@ -1427,6 +1425,11 @@ public:
         {
             // static member access on class reference
             hypClass = *classRef;
+        }
+        // temp special case for arrays
+        else if (const HypDataArray* array = pValue->GetHypData()->TryGet<HypDataArray>().TryGet())
+        {
+            hypClass = GetClass(TypeId::ForType<Script_Array>());
         }
         else
         {
