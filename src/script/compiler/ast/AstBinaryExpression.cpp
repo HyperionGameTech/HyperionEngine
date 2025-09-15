@@ -209,9 +209,13 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
     }
     else if (m_op->GetType() & ARITHMETIC)
     {
+        // for string '+' handling, we need handle the edgecase of `<any> + <string>`, allowing typecheck to be defered to runtime
+        const bool isStringConcat = m_op->GetOperatorType() == OP_add
+            && (leftType->IsString() || leftType->IsAnyType()) && rightType->IsString();
+
         // arithmetic operators are only for numbers
         visitor->AddErrorIfFalse(
-            (leftType->IsAnyType() || leftType->IsNumber()) && (rightType->IsAnyType() || rightType->IsNumber()),
+            ((leftType->IsAnyType() || leftType->IsNumber()) && (rightType->IsAnyType() || rightType->IsNumber())) || isStringConcat,
             CompilerError(
                 LEVEL_ERROR,
                 Msg_arithmetic_operands_must_be_numbers,
