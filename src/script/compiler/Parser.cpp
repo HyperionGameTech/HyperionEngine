@@ -1,5 +1,6 @@
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/Lexer.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
@@ -1016,43 +1017,98 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
 {
     if (Token token = Expect(TK_INTEGER, true))
     {
-        std::istringstream ss(token.GetValue().Data());
-
-        if (token.GetFlags()[0] == '\0' || token.GetFlags()[0] == 'i')
+        if (token.GetFlags()[0] != '\0')
         {
-            hyperion::int64 value;
-            ss >> value;
+            auto suffixIt = Lexer::s_numericSuffixes.Find(String(token.GetFlags()));
+            Assert(suffixIt != Lexer::s_numericSuffixes.End());
 
-            return RC<AstInteger>(new AstInteger(
-                value,
-                CBS_32, // @TODO: determine size from value
-                token.GetLocation()));
-        }
-        else if (token.GetFlags()[0] == 'u')
-        {
-            hyperion::uint64 value;
-            ss >> value;
+            if (token.GetFlags()[0] == 'i' || token.GetFlags()[0] == 'l')
+            {
+                char* endPtr = nullptr;
+                const int64 value = std::strtoll(token.GetValue().Begin(), &endPtr, 10);
 
-            return RC<AstUnsignedInteger>(new AstUnsignedInteger(
-                value,
-                CBS_32, // @TODO: determine size from value
-                token.GetLocation()));
-        }
-        else if (token.GetFlags()[0] == 'f')
-        {
-            double value;
-            ss >> value;
+                if (!endPtr || endPtr != token.GetValue().End())
+                {
+                    m_compilationUnit->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_illegal_expression,
+                        token.GetLocation()));
 
-            return RC<AstFloat>(new AstFloat(
-                value,
-                CBS_32, // @TODO: determine size from value
-                token.GetLocation()));
+                    return nullptr;
+                }
+
+                return RC<AstInteger>(new AstInteger(
+                    value,
+                    suffixIt->second.cbs,
+                    token.GetLocation()));
+            }
+            else if (token.GetFlags()[0] == 'u')
+            {
+                char* endPtr = nullptr;
+                const uint64 value = std::strtoull(token.GetValue().Begin(), &endPtr, 10);
+
+                if (!endPtr || endPtr != token.GetValue().End())
+                {
+                    m_compilationUnit->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_illegal_expression,
+                        token.GetLocation()));
+
+                    return nullptr;
+                }
+
+                return RC<AstUnsignedInteger>(new AstUnsignedInteger(
+                    value,
+                    suffixIt->second.cbs,
+                    token.GetLocation()));
+            }
+            else if (token.GetFlags()[0] == 'f')
+            {
+                char* endPtr = nullptr;
+                const double value = std::strtod(token.GetValue().Data(), &endPtr);
+
+                if (!endPtr || endPtr != token.GetValue().End())
+                {
+                    m_compilationUnit->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_illegal_expression,
+                        token.GetLocation()));
+
+                    return nullptr;
+                }
+
+                return RC<AstFloat>(new AstFloat(
+                    value,
+                    suffixIt->second.cbs,
+                    token.GetLocation()));
+            }
+            else
+            {
+                m_compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_unrecognized_numeric_suffix,
+                    token.GetLocation(),
+                    String(token.GetFlags())));
+            }
         }
         else
         {
-            m_compilationUnit->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_illegal_expression,
+            char* endPtr = nullptr;
+            const int64 value = std::strtoll(token.GetValue().Begin(), &endPtr, 10);
+
+            if (!endPtr || endPtr != token.GetValue().End())
+            {
+                m_compilationUnit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_illegal_expression,
+                    token.GetLocation()));
+
+                return nullptr;
+            }
+
+            return RC<AstInteger>(new AstInteger(
+                value,
+                CBS_32,
                 token.GetLocation()));
         }
     }
@@ -1064,11 +1120,19 @@ RC<AstFloat> Parser::ParseFloatLiteral()
 {
     if (Token token = Expect(TK_FLOAT, true))
     {
-        float value = std::atof(token.GetValue().Data());
+        const double value = std::atof(token.GetValue().Data());
+
+        if (token.GetFlags()[0] == 'f')
+        {
+            return RC<AstFloat>(new AstFloat(
+                value,
+                CBS_32,
+                token.GetLocation()));
+        }
 
         return RC<AstFloat>(new AstFloat(
             value,
-            CBS_32, // @TODO: determine size from value
+            CBS_64,
             token.GetLocation()));
     }
 

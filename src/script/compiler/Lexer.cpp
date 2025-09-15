@@ -7,6 +7,15 @@ namespace hyperion {
 
 using namespace utf;
 
+const HashMap<String, Lexer::NumericSuffixInfo> Lexer::s_numericSuffixes = {
+    { "u", { "u", CBS_32 } },
+    { "i", { "i", CBS_32 } },
+    { "l", { "l", CBS_64 } },
+    { "il", { "il", CBS_64 } },
+    { "ul", { "ul", CBS_64 } },
+    { "f", { "f", CBS_32, /* hex */ false } }
+};
+
 Lexer::Lexer(
     const SourceStream& sourceStream,
     TokenStream* tokenStream,
@@ -437,7 +446,7 @@ Token Lexer::ReadNumberLiteral()
     }
 
     Token::Flags tokenFlags;
-    std::memset(tokenFlags, 0, sizeof(tokenFlags));
+    Memory::MemSet(tokenFlags, 0, sizeof(tokenFlags));
 
     u32char ch = m_sourceStream.Peek();
 
@@ -504,55 +513,42 @@ Token Lexer::ReadNumberLiteral()
         ch = m_sourceStream.Peek();
     }
 
-    switch (tolower(ch))
+    String suffix;
+    ch = m_sourceStream.Peek();
+    while (m_sourceStream.HasNext() && utf::utf32Isalpha(ch))
     {
-    case 'u': // fallthrough
-    case 'i':
-    {
-        tokenFlags[0] = tolower(ch);
-        value.Append(utf::asUtf8Char(ch));
+        suffix.Append(utf::asUtf8Char(ch));
         m_sourceStream.Next();
         m_sourceLocation.GetColumn()++;
+        ch = m_sourceStream.Peek();
+    }
 
-        if (m_sourceStream.HasNext())
+    if (!suffix.Empty())
+    {
+        const String lowerSuffix = suffix.ToLower();
+        bool isValidSuffix = false;
+
+        for (const auto& it : s_numericSuffixes)
         {
-            ch = m_sourceStream.Peek();
-
-            if (ch == 'l' || ch == 'L')
+            if (lowerSuffix == it.first)
             {
-                tokenFlags[1] = 'l';
-                value.Append(utf::asUtf8Char(ch));
-                m_sourceStream.Next();
-                m_sourceLocation.GetColumn()++;
+                isValidSuffix = true;
 
-                if (m_sourceStream.HasNext())
-                {
-                    ch = m_sourceStream.Peek();
+                Memory::StrCpy(&tokenFlags[0], it.second.flags, sizeof(tokenFlags));
 
-                    if (ch == 'l' || ch == 'L')
-                    {
-                        tokenFlags[2] = 'l';
-                        value.Append(utf::asUtf8Char(ch));
-                        m_sourceStream.Next();
-                        m_sourceLocation.GetColumn()++;
-                    }
-                }
+                break;
             }
         }
 
-        break;
-    }
-    case 'f':
-        tokenFlags[0] = (char)ch;
-        value.Append(utf::asUtf8Char(ch));
-
-        if (m_sourceStream.HasNext())
+        if (!isValidSuffix)
         {
-            m_sourceStream.Next();
-            ch = m_sourceStream.Peek();
+            // Unknown suffix - report error
+            m_compilationUnit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_unrecognized_numeric_suffix,
+                location,
+                suffix));
         }
-
-        break;
     }
 
     return Token(tokenClass, value, tokenFlags, location);
@@ -582,7 +578,7 @@ Token Lexer::ReadHexNumberLiteral()
     }
 
     Token::Flags tokenFlags;
-    std::memset(tokenFlags, 0, sizeof(tokenFlags));
+    Memory::MemSet(tokenFlags, 0, sizeof(tokenFlags));
 
     u32char ch = m_sourceStream.Peek();
 
@@ -597,23 +593,48 @@ Token Lexer::ReadHexNumberLiteral()
         ch = m_sourceStream.Peek();
     }
 
-    switch ((char)ch)
+    // suffix
+
+    String suffix;
+
+    ch = m_sourceStream.Peek();
+
+    while (m_sourceStream.HasNext() && utf::utf32Isalpha(ch))
     {
-    case 'u':
-    case 'i':
-        tokenFlags[0] = (char)ch;
-
-        if (m_sourceStream.HasNext())
-        {
-            m_sourceStream.Next();
-            ch = m_sourceStream.Peek();
-        }
-
-        break;
+        suffix.Append(utf::asUtf8Char(ch));
+        m_sourceStream.Next();
+        m_sourceLocation.GetColumn()++;
+        ch = m_sourceStream.Peek();
     }
 
-    /// @FIXME: Need to be able to read unsigned 64 or signed 64 hex values!
-    /// needs support for larger numbers.
+    if (!suffix.Empty())
+    {
+        const String lowerSuffix = suffix.ToLower();
+        bool isValidSuffix = false;
+
+        for (const auto& it : s_numericSuffixes)
+        {
+            if (lowerSuffix == it.first && it.second.hex)
+            {
+                isValidSuffix = true;
+
+                Memory::StrCpy(&tokenFlags[0], it.second.flags, sizeof(tokenFlags));
+
+                break;
+            }
+        }
+
+        if (!isValidSuffix)
+        {
+            // Unknown suffix - report error
+            m_compilationUnit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_unrecognized_numeric_suffix,
+                location,
+                suffix));
+        }
+    }
+
     int64 num = std::strtoll(value.Data(), 0, 16);
 
     return Token(TK_INTEGER, String::ToString(num), tokenFlags, location);

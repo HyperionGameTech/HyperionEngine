@@ -84,7 +84,6 @@ AstClass::AstClass(
     m_baseType = baseType;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void AstClass::Visit(AstVisitor* visitor, Module* mod)
 {
     Assert(visitor != nullptr && mod != nullptr);
@@ -573,8 +572,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         m_typeRef->Visit(visitor, mod);
     }
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
 {

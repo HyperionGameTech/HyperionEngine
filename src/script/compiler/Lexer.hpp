@@ -9,9 +9,20 @@
 
 namespace hyperion {
 
+enum ConstantBitSize : uint8;
+
 class Lexer
 {
 public:
+    struct NumericSuffixInfo
+    {
+        const char* flags;
+        ConstantBitSize cbs;
+        bool hex : 1 = true;
+    };
+
+    static const HashMap<String, NumericSuffixInfo> s_numericSuffixes;
+
     Lexer(
         const SourceStream& sourceStream,
         TokenStream* tokenStream,

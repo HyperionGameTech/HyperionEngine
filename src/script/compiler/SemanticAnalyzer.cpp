@@ -12,7 +12,6 @@
 
 namespace hyperion {
 
-    HYP_DISABLE_OPTIMIZATION;
 SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     AstVisitor* visitor,
     Module* mod,
@@ -161,7 +160,6 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
 
     return BuiltinTypes::s_errorType;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
     AstVisitor* visitor,

@@ -28,6 +28,7 @@ enum ErrorMessage
     Msg_illegal_operator,
     Msg_invalid_operator_for_type,
     Msg_cannot_overload_operator,
+    Msg_unrecognized_numeric_suffix,
     Msg_expression_cannot_be_modified,
     Msg_const_missing_assignment,
     Msg_ref_missing_assignment,
