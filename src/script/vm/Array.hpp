@@ -5,6 +5,8 @@
 
 namespace hyperion {
 
+struct HypDataArray;
+
 using Script_Array = Array<Script_Value>;
 
 } // namespace hyperion

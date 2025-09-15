@@ -608,15 +608,10 @@ bool ScriptApi_ShouldValuePassByRef(const Script_Value& value)
     return PASS_AS_REF(value);
 }
 
-const char* ScriptApi_GetTypeString(const HypData& data)
+static const const char* g_unknownTypeString = "<Unknown type>";
+
+const char* ScriptApi_GetTypeString(TypeId typeId)
 {
-    if (!data.IsValid())
-    {
-        return "<Uninitialized data>";
-    }
-
-    const TypeId typeId = data.GetTypeId();
-
     if (typeId == TypeId::ForType<int8>())
     {
         return "int8";
@@ -669,7 +664,26 @@ const char* ScriptApi_GetTypeString(const HypData& data)
     {
         return "array";
     }
-    else if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet()))
+
+    const char* typeName = LookupTypeName(typeId);
+
+    if (typeName != nullptr)
+    {
+        return typeName;
+    }
+
+    return g_unknownTypeString;
+}
+
+const char* ScriptApi_GetTypeString(const HypData& data)
+{
+    if (!data.IsValid())
+    {
+        return "<Uninitialized data>";
+    }
+
+#if 0
+    if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet()))
     {
         switch (vmData->type)
         {
@@ -690,15 +704,18 @@ const char* ScriptApi_GetTypeString(const HypData& data)
             HYP_UNREACHABLE();
         }
     }
+#endif
 
-    const char* typeName = LookupTypeName(typeId);
+    const TypeId typeId = data.GetTypeId();
 
-    if (typeName != nullptr)
+    const char* typeIdString = ScriptApi_GetTypeString(typeId);
+
+    if (typeIdString && typeIdString != g_unknownTypeString)
     {
-        return typeName;
+        return typeIdString;
     }
 
-    return "<Unknown type>";
+    return g_unknownTypeString;
 }
 
 bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int maxDepth, int currDepth);
@@ -732,21 +749,28 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
     constexpr int maxArrayDepth = 2;
 
-    if (const Script_Array* pArray = data.TryGet<Script_Array>().TryGet())
+    if (const HypDataArray* pArray = data.TryGet<HypDataArray>().TryGet())
     {
-        outString = "[";
-
-        for (int i = 0; i < pArray->Size(); i++)
+        if (pArray->CanGetElementByIndex())
         {
-            if (i > 0)
+            outString = "[";
+
+            for (SizeType i = 0; i < pArray->Size(); i++)
             {
-                outString += Script_String(", ");
+                if (i > 0)
+                {
+                    outString += Script_String(", ");
+                }
+
+                outString += ScriptApi_ValueToString(HypData(pArray->ElementAt(i)), currDepth + 1);
             }
 
-            outString += ScriptApi_ValueToString(*(*pArray)[i].GetHypData(), currDepth + 1);
+            outString += "]";
         }
-
-        outString += "]";
+        else
+        {
+            outString = Script_String("Array" + HYP_FORMAT(" (size = {})", pArray->Size()));
+        }
 
         return true;
     }
