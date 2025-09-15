@@ -16,6 +16,8 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 HYP_DECLARE_LOG_CHANNEL(Console);
 
+HYP_API extern Handle<Logger> g_logger;
+
 #pragma region ConsoleHistory
 
 enum class ConsoleHistoryEntryType : uint32
@@ -144,7 +146,7 @@ ConsoleUI::ConsoleUI()
     SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
 
-    m_loggerRedirectId = Logger::GetInstance().GetOutputStream()->AddRedirect(
+    m_loggerRedirectId = g_logger->GetOutputStream()->AddRedirect(
         g_logChannel_Console.maskBitset,
         (void*)this,
         [](void* context, const LogChannel& channel, const LogMessage& message)
@@ -185,7 +187,7 @@ ConsoleUI::~ConsoleUI()
 {
     if (m_loggerRedirectId != -1)
     {
-        Logger::GetInstance().GetOutputStream()->RemoveRedirect(m_loggerRedirectId);
+        g_logger->GetOutputStream()->RemoveRedirect(m_loggerRedirectId);
     }
 }
 

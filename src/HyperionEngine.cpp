@@ -105,10 +105,9 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 {
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
-
     InitObject(g_logger);
 
-    LogChannelRegistrar::GetInstance().RegisterAll();
+    LogChannelRegistrar::GetInstance().RegisterAll(g_logger);
 
     Threads::SetCurrentThreadId(g_mainThread);
 

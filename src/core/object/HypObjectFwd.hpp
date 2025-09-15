@@ -31,9 +31,6 @@ class HypClass;
 class HypObjectBase;
 
 template <class T>
-class HypObject;
-
-template <class T>
 struct Handle;
 
 template <class T>
