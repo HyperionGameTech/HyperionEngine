@@ -256,7 +256,34 @@ const SymbolTypeRef BuiltinTypes::s_mapType = SymbolType::Generic(
 
 void BuiltinTypes::Initialize()
 {
-    // do nothing for now
+#pragma region String
+    s_stringType->GetMembers().PushBack(SymbolTypeMember {
+        "operator+",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                {
+                    { "@return", BuiltinTypes::s_stringType },
+                    { "self", BuiltinTypes::s_stringType },
+                    { "other", BuiltinTypes::s_stringType }
+                }
+            })
+    });
+
+    s_stringType->GetMembers().PushBack(SymbolTypeMember {
+        "Length",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                {
+                    { "@return", BuiltinTypes::s_uint64Type },
+                    { "self", BuiltinTypes::s_stringType }
+                }
+            })
+    });
+#pragma endregion String
 }
 
 void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)

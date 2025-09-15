@@ -87,6 +87,9 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
             if (nonAssignmentOp != m_op)
             {
+                // ensure it won't cause infinite recursion due to creating nested override exprs:
+                Assert(!nonAssignmentOp->ModifiesValue());
+
                 RC<AstBinaryExpression> subBinExpr(new AstBinaryExpression(
                     CloneAstNode(m_left),
                     RC<AstBinaryExpression>(new AstBinaryExpression(
@@ -96,8 +99,6 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                         m_location)),
                     Operator::FindBinaryOperator(Operators::OP_assign),
                     m_location));
-
-                subBinExpr->SetEnableOverrideExpr(false);
 
                 m_overrideExpr = std::move(subBinExpr);
             }
@@ -210,8 +211,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
     {
         // arithmetic operators are only for numbers
         visitor->AddErrorIfFalse(
-            (leftType->IsAnyType() || leftType->IsNumber())
-                && (rightType->IsAnyType() || rightType->IsNumber()),
+            (leftType->IsAnyType() || leftType->IsNumber()) && (rightType->IsAnyType() || rightType->IsNumber()),
             CompilerError(
                 LEVEL_ERROR,
                 Msg_arithmetic_operands_must_be_numbers,

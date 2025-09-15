@@ -299,7 +299,9 @@ public:
     static SymbolTypeRef Primitive(
         const String& name,
         const RC<AstExpression>& defaultValue,
-        ConstantBitSize bitSize = CBS_INVALID);
+        ConstantBitSize bitSize = CBS_INVALID,
+        const Array<SymbolTypeMember>& members = {},
+        const Array<SymbolTypeMember>& staticMembers = {});
 
     static SymbolTypeRef Enum(
         const String& name,
@@ -540,6 +542,7 @@ public:
     bool IsNullType() const;
     bool IsNullableType() const;
     bool IsVarArgsType() const;
+    bool IsString() const;
 
     /*! \brief Is this type an uninstantiated generic parameter? (e.g. T) */
     bool IsGenericParameter() const;

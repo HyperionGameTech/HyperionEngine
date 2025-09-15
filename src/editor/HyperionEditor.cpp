@@ -171,7 +171,7 @@ void HyperionEditor::Init()
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { testArray2.PushBack(343);\ntestArray2.PushBack(1111);\nreturn () { return obj[20]; }; };\n"
+              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { testArray2.PushBack(343);\ntestArray2.PushBack(1111);\nreturn () { return \"hello \" + \"world\" + \" 123 \"; }; };\n"
               "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

@@ -47,6 +47,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         Assert(type);
 
         return type->IsObject()
+            || type->TypeEqual(*BuiltinTypes::s_stringType)
             || type->HasBase(*BuiltinTypes::s_arrayBaseType)
             || type->HasBase(*BuiltinTypes::s_mapBaseType);
     };

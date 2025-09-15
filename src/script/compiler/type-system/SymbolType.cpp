@@ -829,6 +829,11 @@ bool SymbolType::IsVarArgsType() const
     return IsOrHasBase(*BuiltinTypes::s_varArgsBaseType);
 }
 
+bool SymbolType::IsString() const
+{
+    return this == BuiltinTypes::s_stringType;
+}
+
 bool SymbolType::IsGenericParameter() const
 {
     return m_typeClass == TYPE_GENERIC_PARAMETER;
@@ -880,14 +885,17 @@ SymbolTypeRef SymbolType::Placeholder(
 SymbolTypeRef SymbolType::Primitive(
     const String& name,
     const RC<AstExpression>& defaultValue,
-    ConstantBitSize bitSize)
+    ConstantBitSize bitSize,
+    const Array<SymbolTypeMember>& members,
+    const Array<SymbolTypeMember>& staticMembers)
 {
     SymbolTypeRef symbolType(new SymbolType(
         name,
         TYPE_BUILTIN,
         BuiltinTypes::s_primitiveType,
         defaultValue,
-        {}, {}));
+        members,
+        staticMembers));
 
     symbolType->m_constantBitSize = bitSize;
 
