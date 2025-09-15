@@ -168,7 +168,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
             if (hasUserSpecifiedType)
             {
-#if 1
                 SymbolTypeRef symbolTypePromoted = SemanticAnalyzer::Helpers::GenericPromotion(
                     visitor,
                     mod,
@@ -178,7 +177,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                 Assert(symbolTypePromoted != nullptr);
                 m_symbolType = symbolTypePromoted->GetUnaliased();
-#endif
 
                 if (!m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
                 {
@@ -211,12 +209,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                             {
                                 doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Signed(lhsType->GetConstantBitSize()));
                             }
-                            else if (rhsType->IsFloat())
-                            {
-                                doLiteralConversion |= (rightConstantValue.AsFloat() >= float64(CBS_Min_Signed(lhsType->GetConstantBitSize()))
-                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Signed(lhsType->GetConstantBitSize()))
-                                    && MathUtil::Floor(rightConstantValue.AsFloat()) == rightConstantValue.AsFloat());
-                            }
                         }
                         else if (lhsType->IsUnsignedIntegral())
                         {
@@ -229,15 +221,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                                 doLiteralConversion |= rightConstantValue.AsInt() >= 0
                                     && uint64(rightConstantValue.AsInt()) <= uint64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()));
                             }
-                            else if (rhsType->IsFloat())
-                            {
-                                doLiteralConversion |= (rightConstantValue.AsFloat() >= 0.0
-                                    && rightConstantValue.AsFloat() <= float64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()))
-                                    && MathUtil::Floor(rightConstantValue.AsFloat()) == rightConstantValue.AsFloat());
-                            }
                         }
-
-                        /// @TODO: Add more literal conversion rules later as needed
                     }
 
                     // more fine-grained checking for non-literals, or when literal conversion didn't work

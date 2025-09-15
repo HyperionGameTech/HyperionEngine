@@ -512,13 +512,12 @@ bool SymbolType::TypeCompatible(
                 return true;
             }
 
-            if (promotedType->IsFloat())
+            if (promotedType->IsFloat() && IsFloat())
             {
-                ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause precision loss. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
-
-                return false;
+                // allow implicit conversion between float types
+                return true;
             }
-
+            
             if (right.IsUnsignedIntegral() && IsSignedIntegral())
             {
                 ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause a signed integer overflow. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
