@@ -81,7 +81,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         Assert(data != nullptr);
 
         HypScript& hs = HypScript::GetInstance();
-            
+
         Script_Value functionValue;
         if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
@@ -89,7 +89,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         }
 
         Script_Value returnValue = hs.CallFunction(data->instance, functionValue);
-        
+
         if constexpr (!std::is_void_v<ReturnType>)
         {
             Assert(returnValue.IsValid());
@@ -277,7 +277,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptData->path);
                 return;
             }
-            
+
             FileBufferedReaderSource source { path };
             BufferedByteReader reader { &source };
 
@@ -286,7 +286,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptData->path);
                 return;
             }
-            
+
             ByteBuffer byteBuffer = reader.ReadBytes();
 
             SourceFile sourceFile(path, byteBuffer.Size());
@@ -299,7 +299,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             if (errorList.HasFatalErrors())
             {
                 HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to compile script file '{}'!", scriptData->path);
-                
+
                 return;
             }
 

@@ -207,7 +207,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     }
                     else
                     {
-                        HYP_BREAKPOINT;
                         // error; does not match what user specified
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
@@ -299,7 +298,6 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     {
                         if (m_returnType != BuiltinTypes::s_voidType)
                         {
-                            HYP_BREAKPOINT;
                             // error; does not match what user specified
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                                 LEVEL_ERROR,

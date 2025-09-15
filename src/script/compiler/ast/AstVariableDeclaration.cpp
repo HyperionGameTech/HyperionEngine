@@ -34,6 +34,7 @@ AstVariableDeclaration::AstVariableDeclaration(
 {
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
     if (m_flags & IdentifierFlags::PREREGISTER)
@@ -168,15 +169,20 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
             if (hasUserSpecifiedType)
             {
-                SymbolTypeRef symbolTypePromoted = SemanticAnalyzer::Helpers::GenericPromotion(
+                m_symbolType = SemanticAnalyzer::Helpers::GenericPromotion(
                     visitor,
                     mod,
                     m_symbolType,
                     m_realAssignment->GetExprType(),
                     m_realAssignment->GetLocation());
 
-                Assert(symbolTypePromoted != nullptr);
-                m_symbolType = symbolTypePromoted->GetUnaliased();
+                m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+                    visitor,
+                    mod,
+                    m_symbolType,
+                    m_location);
+
+                Assert(m_symbolType != nullptr);
 
                 if (!m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
                 {
@@ -186,17 +192,23 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                     const ConstantValue rightConstantValue = m_realAssignment->GetConstantValue();
 
-                    if (rightConstantValue)
-                    {
-                        SymbolType* lhsType = m_symbolType.Get();
-                        SymbolType* rhsType = m_realAssignment->GetExprType().Get();
+                    SymbolTypeRef lhsType;
+                    SymbolTypeRef rhsType;
 
-                        if (m_symbolType->IsEnumType())
+                    if (rightConstantValue.IsValid())
+                    {
+                        lhsType = m_symbolType->GetUnaliased();
+                        rhsType = m_realAssignment->GetExprType();
+
+                        if (lhsType->IsEnumType())
                         {
-                            lhsType = m_symbolType->GetBaseType().Get();
+                            lhsType = lhsType->GetBaseType();
                         }
 
                         Assert(lhsType != nullptr && rhsType != nullptr);
+
+                        lhsType = lhsType->GetUnaliased();
+                        rhsType = rhsType->GetUnaliased();
 
                         if (lhsType->IsSignedIntegral())
                         {
@@ -236,8 +248,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                             m_realAssignment->GetLocation());
                     }
 
-#if 0 // temp
-      // insert cast if needed
+                    // insert cast if needed
                     if (doLiteralConversion || !m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
                     {
                         RC<AstAsExpression> asExpr(new AstAsExpression(
@@ -249,7 +260,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                         m_realAssignment = asExpr;
                     }
-#endif
                 }
             }
             else
@@ -312,6 +322,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         m_identifier->SetCurrentValue(m_realAssignment);
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* mod)
 {

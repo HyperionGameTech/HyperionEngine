@@ -32,6 +32,8 @@ struct LogMessage
 
 HYP_API extern ANSIStringView GetCurrentThreadName();
 
+HYP_API extern Handle<Logger> g_logger;
+
 template <LogLevel Level>
 static constexpr auto LogLevelToString()
 {
@@ -202,14 +204,17 @@ private:
     bool m_ownsAllocation : 1;
 };
 
-class HYP_API Logger
+HYP_CLASS()
+class HYP_API Logger : public HypObject
 {
+    HYP_OBJECT_BODY(Logger);
+
 public:
     using ChannelMask = uint64;
 
     static constexpr uint32 maxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
-    static Logger& GetInstance();
+    static const Handle<Logger>& GetInstance();
 
     Logger();
     Logger(ILoggerOutputStream& outputStream);

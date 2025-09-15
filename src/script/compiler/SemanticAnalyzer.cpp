@@ -963,16 +963,16 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     Assert(symbolType != nullptr);
     Assert(assignmentType != nullptr);
 
-    SymbolTypeRef symbolTypeUnaliased = ResolvePlaceholderType(visitor, mod, symbolType->GetUnaliased(), location);
-    Assert(symbolTypeUnaliased != nullptr);
+    SymbolTypeRef resolvedSymbolType = ResolvePlaceholderType(visitor, mod, symbolType, location);
+    Assert(resolvedSymbolType != nullptr);
 
-    SymbolTypeRef assignmentTypeUnaliased = ResolvePlaceholderType(visitor, mod, assignmentType->GetUnaliased(), location);
-    Assert(assignmentTypeUnaliased != nullptr);
+    SymbolTypeRef resolvedAssignmentType = ResolvePlaceholderType(visitor, mod, assignmentType, location);
+    Assert(resolvedAssignmentType != nullptr);
 
     SymbolTypeIncompatibilities incompatibilities;
 
-    if (!symbolTypeUnaliased->TypeCompatible(
-            *assignmentTypeUnaliased,
+    if (!resolvedSymbolType->TypeCompatible(
+            *resolvedAssignmentType,
             /* strictNumbers */ true,
             /* strictAny */ true,
             /* strictEnum */ strictEnum,
@@ -984,8 +984,8 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 LEVEL_ERROR,
                 Msg_mismatched_types_assignment_more_info,
                 location,
-                symbolTypeUnaliased->ToString(),
-                assignmentTypeUnaliased->ToString(),
+                resolvedSymbolType->ToString(),
+                resolvedAssignmentType->ToString(),
                 (incompatibilities.Size() > 1
                         ? "\n\t* " + String::Join(Map(incompatibilities, &SymbolTypeIncompatibility::details), "\n\t* ")
                         : " " + incompatibilities[0].details)));
@@ -996,8 +996,8 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
                 LEVEL_ERROR,
                 Msg_mismatched_types_assignment,
                 location,
-                symbolTypeUnaliased->ToString(),
-                assignmentTypeUnaliased->ToString()));
+                resolvedSymbolType->ToString(),
+                resolvedAssignmentType->ToString()));
         }
     }
 }

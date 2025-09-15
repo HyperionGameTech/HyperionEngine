@@ -424,7 +424,6 @@ bool SymbolType::TypeCompatible(
 
             if (!paramType->TypeEqual(*otherParamType))
             {
-                HYP_BREAKPOINT;
                 ADD_INCOMPATIBILITY(IT_GENERIC_ARG_MISMATCH, "Generic parameter types do not match: " + paramType->ToString(false) + " != " + otherParamType->ToString(false));
 
                 return false;
@@ -517,7 +516,7 @@ bool SymbolType::TypeCompatible(
                 // allow implicit conversion between float types
                 return true;
             }
-            
+
             if (right.IsUnsignedIntegral() && IsSignedIntegral())
             {
                 ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause a signed integer overflow. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
@@ -527,6 +526,7 @@ bool SymbolType::TypeCompatible(
 
             if (right.GetConstantBitSize() > GetConstantBitSize())
             {
+                HYP_BREAKPOINT;
                 ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause data loss. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
 
                 return false;
@@ -744,14 +744,18 @@ SymbolTypeRef SymbolType::GetUnaliased() const
 {
     if (m_typeClass == TYPE_ALIAS)
     {
-        if (SymbolTypeRef aliasee = m_aliasInfo.m_aliasee.Lock())
+        if (m_aliasInfo.m_aliasee.IsValid())
         {
-            if (aliasee.Get() == this)
+            // prevent infinite recursion
+            if (m_aliasInfo.m_aliasee.GetUnsafe() == this)
             {
-                return aliasee;
+                return RefCountedPtrFromThis();
             }
 
-            return aliasee->GetUnaliased();
+            if (SymbolTypeRef aliasee = m_aliasInfo.m_aliasee.Lock())
+            {
+                return aliasee->GetUnaliased();
+            }
         }
     }
 

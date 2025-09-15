@@ -513,11 +513,9 @@ private:
 
 #pragma region Logger
 
-Logger& Logger::GetInstance()
+const Handle<Logger>& Logger::GetInstance()
 {
-    static Logger s_instance;
-
-    return s_instance;
+    return g_logger;
 }
 
 Logger::Logger()

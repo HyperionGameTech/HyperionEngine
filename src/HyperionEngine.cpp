@@ -56,16 +56,17 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
-Handle<EngineDriver> g_engineDriver {};
-Handle<AssetManager> g_assetManager {};
-Handle<EditorState> g_editorState {};
-Handle<AppContextBase> g_appContext {};
-ShaderManager* g_shaderManager = nullptr;
-MaterialCache* g_materialSystem = nullptr;
-SafeDeleter* g_safeDeleter = nullptr;
-IRenderBackend* g_renderBackend = nullptr;
-RenderGlobalState* g_renderGlobalState = nullptr;
-ShaderCompiler* g_shaderCompiler = nullptr;
+Handle<EngineDriver> g_engineDriver;
+Handle<AssetManager> g_assetManager;
+Handle<EditorState> g_editorState;
+Handle<AppContextBase> g_appContext;
+Handle<Logger> g_logger;
+ShaderManager* g_shaderManager;
+MaterialCache* g_materialSystem;
+SafeDeleter* g_safeDeleter;
+IRenderBackend* g_renderBackend;
+RenderGlobalState* g_renderGlobalState;
+ShaderCompiler* g_shaderCompiler;
 
 static void HandleFatalError(const char* message)
 {
@@ -102,7 +103,11 @@ HYP_API const FilePath& GetResourceDirectory()
 
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
-    Logger::GetInstance().fatalErrorHook = &HandleFatalError;
+    g_logger = CreateObject<Logger>();
+    g_logger->fatalErrorHook = &HandleFatalError;
+
+    InitObject(g_logger);
+
     LogChannelRegistrar::GetInstance().RegisterAll();
 
     Threads::SetCurrentThreadId(g_mainThread);

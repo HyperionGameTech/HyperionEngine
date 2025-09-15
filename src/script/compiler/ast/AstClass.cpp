@@ -301,7 +301,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                     if (!constantValue.IsValid())
                     {
-                        HYP_BREAKPOINT;
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
                             Msg_enum_assignment_not_constant,

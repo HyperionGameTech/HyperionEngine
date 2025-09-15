@@ -181,7 +181,6 @@ Script_Exception Script_Exception::MemberNotFoundException(Script_Value* pValue,
 
 Script_Exception Script_Exception::InvalidMemberAccessException(Script_Value* pValue)
 {
-    HYP_BREAKPOINT;
     return FormattedException(
         HYP_STATIC_STRING("Invalid member access on type `%s`!"),
         pValue ? pValue->GetTypeString() : "<null>");
