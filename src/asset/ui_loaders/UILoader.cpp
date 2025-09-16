@@ -763,24 +763,16 @@ public:
                     {
                     case HypMemberType::TYPE_FIELD:
                     {
-                        const HypField* hypField = dynamic_cast<const HypField*>(&member);
-
-                        if (!hypField)
-                        {
-                            HYP_LOG(Assets, Error, "Cannot set HypClass field: {}", member.GetName());
-
-                            return false;
-                        }
-
+                        const HypField* hypField = static_cast<const HypField*>(&member);
                         hypField->Set(targetValue, data);
 
                         return true;
                     }
                     case HypMemberType::TYPE_PROPERTY:
                     {
-                        const HypProperty* hypProperty = dynamic_cast<const HypProperty*>(&member);
+                        const HypProperty* hypProperty = static_cast<const HypProperty*>(&member);
 
-                        if (!hypProperty || !hypProperty->CanSet())
+                        if (!hypProperty->CanSet())
                         {
                             HYP_LOG(Assets, Error, "Cannot set HypClass property: {}", member.GetName());
 

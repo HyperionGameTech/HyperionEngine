@@ -60,7 +60,7 @@ Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
 Handle<EditorState> g_editorState;
 Handle<AppContextBase> g_appContext;
-Handle<Logger> g_logger;
+Logger* g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialSystem;
 SafeDeleter* g_safeDeleter;
@@ -103,9 +103,8 @@ HYP_API const FilePath& GetResourceDirectory()
 
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
-    g_logger = CreateObject<Logger>();
+    g_logger = new Logger();
     g_logger->fatalErrorHook = &HandleFatalError;
-    InitObject(g_logger);
 
     LogChannelRegistrar::GetInstance().RegisterAll(g_logger);
 
@@ -242,6 +241,12 @@ HYP_API void DestroyEngine()
 
     delete g_renderBackend;
     g_renderBackend = nullptr;
+
+    delete g_safeDeleter;
+    g_safeDeleter = nullptr;
+
+    delete g_logger;
+    g_logger = nullptr;
 }
 
 } // namespace hyperion

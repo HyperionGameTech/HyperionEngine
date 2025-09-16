@@ -739,7 +739,7 @@ private:
 
 } // namespace buildtool
 
-HYP_API Handle<Logger> g_logger;
+HYP_API Logger* g_logger;
 
 } // namespace hyperion
 
@@ -750,8 +750,8 @@ int main(int argc, char** argv)
 {
     Threads::SetCurrentThreadId(g_mainThread);
 
-    g_logger = CreateObject<Logger>();
-    InitObject(g_logger);
+    static Logger s_buildToolLogger;
+    g_logger = &s_buildToolLogger;
 
     LogChannelRegistrar::GetInstance().RegisterAll(g_logger);
 

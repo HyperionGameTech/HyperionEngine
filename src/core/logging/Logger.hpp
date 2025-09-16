@@ -202,11 +202,8 @@ private:
     bool m_ownsAllocation : 1;
 };
 
-HYP_CLASS()
-class HYP_API Logger final : public HypObjectBase
+class HYP_API Logger final
 {
-    HYP_OBJECT_BODY(Logger);
-
 public:
     using ChannelMask = uint64;
 
@@ -217,7 +214,7 @@ public:
 
     Logger(const Logger& other) = delete;
     Logger& operator=(const Logger& other) = delete;
-    
+
     Logger(Logger&& other) noexcept = delete;
     Logger& operator=(Logger&& other) noexcept = delete;
 
@@ -227,16 +224,12 @@ public:
 
     void RegisterChannel(LogChannel* channel);
 
-    HYP_METHOD()
     const LogChannel* FindLogChannel(WeakName name) const;
 
     DynamicLogChannelHandle CreateDynamicLogChannel(LogChannel& channel);
     void RemoveDynamicLogChannel(LogChannel* channel);
 
-    HYP_METHOD()
     bool IsChannelEnabled(const LogChannel& channel) const;
-
-    HYP_METHOD()
     void SetChannelEnabled(const LogChannel& channel, bool enabled);
 
     void Log(const LogChannel& channel, const LogMessage& message);
@@ -409,7 +402,7 @@ public:
         m_channels.PushBack(channel);
     }
 
-    void RegisterAll(const Handle<Logger>& logger);
+    void RegisterAll(Logger* logger);
 
 private:
     Array<LogChannel*> m_channels;

@@ -8,7 +8,7 @@
 using namespace hyperion;
 
 namespace hyperion {
-HYP_API extern Handle<Logger> g_logger;
+HYP_API extern Logger* g_logger;
 } // namespace hyperion
 
 extern "C"

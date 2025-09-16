@@ -58,7 +58,7 @@ class Any final : public AnyBase
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(T);
         constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr SizeType totalSize = objOffset + sizeof(T);
+        constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
 
         void* raw = HYP_ALLOC_ALIGNED(totalSize, alignment);
 
@@ -357,7 +357,7 @@ public:
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(U);
         constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr SizeType totalSize = objOffset + sizeof(U);
+        constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(U), alignment);
 
         void* raw = HYP_ALLOC_ALIGNED(totalSize, alignment);
 

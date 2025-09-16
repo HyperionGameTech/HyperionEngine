@@ -104,7 +104,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 1
+#if 0
     { // script 2
         String str;
 #if 0
@@ -395,7 +395,10 @@ void HyperionEditor::Init()
         .Detach();
 
     batch->LoadAsync();
-    HYP_BREAKPOINT;
+    auto* block = static_cast<EnableRefCountedPtrFromThisBase<AtomicVar<uint32>>*>(batch.Get())->weakThis.GetBlock_Internal();
+    DebugLog(LogType::Debug, "Ref count after batch load async: %u\n", block->strong.Get(MemoryOrder::ACQUIRE));
+    batch.Reset();
+    DebugLog(LogType::Debug, "Ref count after batch reset: %u\n", block->strong.Get(MemoryOrder::ACQUIRE));
 #endif
 }
 
