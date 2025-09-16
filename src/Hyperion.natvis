@@ -245,19 +245,18 @@
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T1&gt;*)m_ptr)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T1&gt;*)m_ptr)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
+      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
   <Type Name="hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
     <Expand>
-      <Item Name="[Alive]">(m_ref-&gt;strongCount.m_value._Storage._Value != 0)</Item>
-      <Item Name="[Strong Refs]">(m_ref-&gt;strongCount)</Item>
-      <Item Name="[Weak Refs]">(m_ref-&gt;weakCount)</Item>
-      <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
+      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 

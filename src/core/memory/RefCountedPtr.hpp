@@ -52,136 +52,131 @@ class RefCountedPtrBase;
 template <class CountType>
 struct RcBlock
 {
-    void* obj;
+    void* pObj;
     TypeId typeId;
     CountType strong;
     CountType weak;
-    void (*objectDtor)(void*); // destroys/deletes obj
-    void (*freeBlock)(void*);  // frees this block
+
+    void (*pFnDestructObj)(void*); // destructs and/or deletes pObj (decided based on allocation strategy)
+    void (*pFnFreeBlock)(void*);  // frees this block
 };
 
 namespace detail {
 
 // increment/decrement helpers for CountType (integral or AtomicVar)
-template <class C>
-HYP_FORCE_INLINE uint32 Inc(C& c)
+template <class CountType>
+static inline uint32 Inc(CountType& count)
 {
-    if constexpr (std::is_integral_v<C>)
-        return ++c;
+    if constexpr (std::is_integral_v<CountType>)
+        return ++count;
     else
-        return c.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
+        return count.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
 }
 
-template <class C>
-HYP_FORCE_INLINE uint32 Dec(C& c)
+template <class CountType>
+static inline uint32 Dec(CountType& count)
 {
-    if constexpr (std::is_integral_v<C>)
-        return --c;
+    if constexpr (std::is_integral_v<CountType>)
+        return --count;
     else
-        return c.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) - 1;
+        return count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) - 1;
 }
 
-HYP_FORCE_INLINE void DefaultFreeBlock(void* blk)
+static inline void DefaultFreeBlock(void* blk)
 {
     HYP_FREE_ALIGNED(blk);
 }
 
-// inline object destroyer
-template <class T>
-HYP_FORCE_INLINE void DestroyInPlace(void* p)
+static inline void ExternalBlockDeleter(void* blk)
 {
-    static_cast<T*>(p)->~T();
-}
+    RcBlock<AtomicVar<uint32>>* block = reinterpret_cast<RcBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
 
-// external-pointer deleter (mirrors Any::ExternalBlockDeleter behavior)
-HYP_FORCE_INLINE void ExternalBlockDeleter(void* blk)
-{
-    auto* b = reinterpret_cast<RcBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
-    if (b->obj && b->objectDtor)
-        b->objectDtor(b->obj);
-    HYP_FREE_ALIGNED(blk);
+    if (block->pObj && block->pFnDestructObj)
+    {
+        block->pFnDestructObj(block->pObj);
+    }
+
+    HYP_FREE_ALIGNED(block);
 }
 
 template <class CountType, class T, class... Args>
-HYP_NODISCARD HYP_FORCE_INLINE RcBlock<CountType>* NewInlineBlock(Args&&... args)
+HYP_NODISCARD static inline RcBlock<CountType>* NewInlineBlock(Args&&... args)
 {
     using U = NormalizedType<T>;
+
     constexpr SizeType headerSize = sizeof(RcBlock<CountType>);
     constexpr SizeType objAlign = alignof(U);
     constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
     constexpr SizeType totalSize = objOffset + sizeof(U);
     constexpr SizeType alignment = (alignof(RcBlock<CountType>) > objAlign ? alignof(RcBlock<CountType>) : objAlign);
 
-    void* raw = HYP_ALLOC_ALIGNED(totalSize, alignment);
-    void* objMem = reinterpret_cast<void*>(UIntPtr(raw) + objOffset);
+    void* ptr = HYP_ALLOC_ALIGNED(totalSize, alignment);
 
-    auto* b = new (raw) RcBlock<CountType> {
+    // object is stored in the block
+    void* pObj = reinterpret_cast<void*>(UIntPtr(ptr) + objOffset);
+
+    RcBlock<CountType>* block = new (ptr) RcBlock<CountType> {
+        static_cast<U*>(pObj),
         TypeId::ForType<U>(),
-        nullptr,
         CountType(1),
         CountType(1),
-        &DestroyInPlace<U>,
+        &Memory::Destruct<U>,
         &DefaultFreeBlock
     };
 
-    try
-    {
-        U* obj = new (objMem) U(std::forward<Args>(args)...);
-        b->obj = obj;
-    }
-    catch (...)
-    {
-        // roll back header alloc
-        b->freeBlock(b);
-        throw;
-    }
-    return b;
+    new (pObj) U(std::forward<Args>(args)...);
+
+    return block;
 }
 
 template <class CountType, class T>
-HYP_NODISCARD HYP_FORCE_INLINE RcBlock<CountType>* NewExternalOwnedBlock(T* ptr)
+HYP_NODISCARD static inline RcBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
     using U = NormalizedType<T>;
 
-    void* raw = HYP_ALLOC_ALIGNED(sizeof(RcBlock<CountType>), alignof(RcBlock<CountType>));
+    void* ptr = HYP_ALLOC_ALIGNED(sizeof(RcBlock<CountType>), alignof(RcBlock<CountType>));
 
-    auto* b = new (raw) RcBlock<CountType> {
-        TypeId::ForType<U>(),
+    return new (ptr) RcBlock<CountType> {
         ptr,
+        TypeId::ForType<U>(),
         CountType(1),
         CountType(1),
         &Memory::Delete<U>,
         &DefaultFreeBlock
     };
-
-    return b;
 }
 
 template <class CountType>
-HYP_FORCE_INLINE uint32 DecWeakAndMaybeFree(RcBlock<CountType>* block)
+static inline uint32 DecWeakAndMaybeFree(RcBlock<CountType>* block)
 {
     uint32 count;
 
-    if ((count = Dec(block->weak)) == 0 && block->freeBlock)
-        block->freeBlock(block);
+    if ((count = Dec(block->weak)) == 0 && block->pFnFreeBlock)
+    {
+        block->pFnFreeBlock(block);
+    }
 
     return count;
 }
 
 template <class CountType>
-HYP_FORCE_INLINE uint32 ReleaseStrong(RcBlock<CountType>* block)
+static inline uint32 ReleaseStrong(RcBlock<CountType>* block)
 {
     if (!block)
+    {
         return 0;
+    }
 
     uint32 count;
 
     if ((count = Dec(block->strong)) == 0)
     {
-        if (block->objectDtor && block->obj)
-            block->objectDtor(block->obj);
+        if (block->pFnDestructObj && block->pObj)
+        {
+            block->pFnDestructObj(block->pObj);
+        }
 
-        block->obj = nullptr;
+        block->pObj = nullptr;
 
         DecWeakAndMaybeFree(block);
     }
@@ -190,7 +185,7 @@ HYP_FORCE_INLINE uint32 ReleaseStrong(RcBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_FORCE_INLINE uint32 IncStrong(RcBlock<CountType>* block)
+static inline uint32 IncStrong(RcBlock<CountType>* block)
 {
     if (block)
         return Inc(block->strong);
@@ -199,7 +194,7 @@ HYP_FORCE_INLINE uint32 IncStrong(RcBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_FORCE_INLINE uint32 IncWeak(RcBlock<CountType>* block)
+static inline uint32 IncWeak(RcBlock<CountType>* block)
 {
     if (block)
         return Inc(block->weak);
@@ -208,7 +203,7 @@ HYP_FORCE_INLINE uint32 IncWeak(RcBlock<CountType>* block)
 }
 
 template <class CountType>
-HYP_FORCE_INLINE uint32 ReleaseWeak(RcBlock<CountType>* block)
+static inline uint32 ReleaseWeak(RcBlock<CountType>* block)
 {
     if (block)
         return DecWeakAndMaybeFree(block);
@@ -297,7 +292,7 @@ public:
 
     HYP_FORCE_INLINE void* GetVoid() const
     {
-        return m_block ? m_block->obj : nullptr;
+        return m_block ? m_block->pObj : nullptr;
     }
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
@@ -462,9 +457,10 @@ public:
     template <class... Args>
     static RefCountedPtr Construct(Args&&... args)
     {
-        RefCountedPtr r;
-        r.Base::m_block = detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...);
-        return r;
+        RefCountedPtr result;
+        result.Base::m_block = detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...);
+
+        return result;
     }
 
     RefCountedPtr()
@@ -567,7 +563,7 @@ public:
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return Base::GetVoid() != nullptr;
+        return Get() != nullptr;
     }
 
     HYP_FORCE_INLINE operator T*() const
@@ -577,67 +573,67 @@ public:
 
     HYP_FORCE_INLINE bool operator!() const
     {
-        return Base::GetVoid() == nullptr;
+        return Get() == nullptr;
     }
 
     HYP_FORCE_INLINE bool operator==(const RefCountedPtr& other) const
     {
-        return Base::GetVoid() == other.GetVoid();
+        return Get() == other.Get()();
     }
 
     HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtr<T, CountType>& other) const
     {
-        return Base::GetVoid() == other.GetVoid();
+        return Get() == other.Get()();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
     {
-        return Base::GetVoid() == nullptr;
+        return Get() == nullptr;
     }
 
     HYP_FORCE_INLINE bool operator==(const T* ptr) const
     {
-        return Base::GetVoid() == ptr;
+        return Get() == ptr;
     }
 
     HYP_FORCE_INLINE bool operator==(T* ptr) const
     {
-        return Base::GetVoid() == ptr;
+        return Get() == ptr;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RefCountedPtr& other) const
     {
-        return Base::GetVoid() != other.GetVoid();
+        return Get() != other.Get()();
     }
 
     HYP_FORCE_INLINE bool operator!=(const WeakRefCountedPtr<T, CountType>& other) const
     {
-        return Base::GetVoid() != other.GetVoid();
+        return Get() != other.Get()();
     }
 
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
     {
-        return Base::GetVoid() != nullptr;
+        return Get() != nullptr;
     }
 
     HYP_FORCE_INLINE bool operator!=(T* ptr) const
     {
-        return Base::GetVoid() != ptr;
+        return Get() != ptr;
     }
 
     HYP_FORCE_INLINE bool operator!=(const T* ptr) const
     {
-        return Base::GetVoid() != ptr;
+        return Get() != ptr;
     }
 
     HYP_FORCE_INLINE bool operator<(const RefCountedPtr& other) const
     {
-        return Base::GetVoid() < other.GetVoid();
+        return Get() < other.Get()();
     }
 
     HYP_FORCE_INLINE bool operator<(const WeakRefCountedPtr<T, CountType>& other) const
     {
-        return Base::GetVoid() < other.GetVoid();
+        return Get() < other.Get()();
     }
 
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
@@ -702,12 +698,10 @@ public:
     {
         if (Is<U>())
         {
-            RefCountedPtr<U, CountType> r;
-            r.Base::SetBlock_Internal(Base::GetBlock_Internal(), true);
+            RefCountedPtr<U, CountType> result;
+            result.Base::SetBlock_Internal(Base::GetBlock_Internal(), true);
 
-            Base::Reset();
-
-            return r;
+            return result;
         }
 
         return {};
@@ -716,10 +710,10 @@ public:
     template <class U>
     HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<U, CountType> CastUnchecked() const
     {
-        RefCountedPtr<U, CountType> r;
-        r.Base::SetBlock_Internal(Base::GetBlock_Internal(), true);
+        RefCountedPtr<U, CountType> result;
+        result.Base::SetBlock_Internal(Base::GetBlock_Internal(), true);
 
-        return r;
+        return result;
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeak() const
@@ -858,11 +852,12 @@ public:
     template <class U>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId q = TypeId::ForType<U>();
-        const void* ptr = Base::GetVoid();
-        const TypeId held = Base::GetTypeId();
+        constexpr TypeId typeId = TypeId::ForType<U>();
 
-        return std::is_same_v<U, void> || held == q || IsA(GetClass(q), ptr, held);
+        const void* ptr = Base::GetVoid();
+        const TypeId currentTypeId = Base::GetTypeId();
+
+        return std::is_same_v<U, void> || currentTypeId == typeId || IsA(GetClass(typeId), ptr, currentTypeId);
     }
 
     template <class U>
@@ -870,10 +865,10 @@ public:
     {
         if (Is<U>())
         {
-            RefCountedPtr<U, CountType> r;
-            r.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::GetBlock_Internal(), true);
+            RefCountedPtr<U, CountType> result;
+            result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::GetBlock_Internal(), true);
 
-            return r;
+            return result;
         }
 
         return {};
@@ -882,10 +877,10 @@ public:
     template <class U>
     HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<U, CountType> CastUnchecked() const
     {
-        RefCountedPtr<U, CountType> r;
-        r.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::GetBlock_Internal(), true);
+        RefCountedPtr<U, CountType> result;
+        result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::GetBlock_Internal(), true);
 
-        return r;
+        return result;
     }
 
     template <class U>
@@ -958,7 +953,7 @@ public:
     {
         Block* block = Base::GetBlock_Internal();
 
-        return block ? static_cast<T*>(block->obj) : nullptr;
+        return block ? reinterpret_cast<T*>(block->pObj) : nullptr;
     }
 
     HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtr& other) const
@@ -1093,8 +1088,9 @@ public:
 
     HYP_FORCE_INLINE void* GetUnsafe() const
     {
-        auto* b = Base::GetBlock_Internal();
-        return b ? b->obj : nullptr;
+        auto* block = Base::GetBlock_Internal();
+
+        return block ? block->pObj : nullptr;
     }
 
     HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtr& other) const
@@ -1168,8 +1164,8 @@ public:
 
         void* raw = HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
         BlockType* block = new (raw) BlockType {
-            TypeId::ForType<T>(),
             static_cast<T*>(this),
+            TypeId::ForType<T>(),
             CountType(0),
             CountType(1),
             &Memory::Delete<T>,
