@@ -585,12 +585,12 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const RefCountedPtr& other) const
     {
-        return Get() == other.Get()();
+        return Get() == other.Get();
     }
 
     HYP_FORCE_INLINE bool operator==(const WeakRefCountedPtr<T, CountType>& other) const
     {
-        return Get() == other.Get()();
+        return Get() == other.Get();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -610,12 +610,12 @@ public:
 
     HYP_FORCE_INLINE bool operator!=(const RefCountedPtr& other) const
     {
-        return Get() != other.Get()();
+        return Get() != other.Get();
     }
 
     HYP_FORCE_INLINE bool operator!=(const WeakRefCountedPtr<T, CountType>& other) const
     {
-        return Get() != other.Get()();
+        return Get() != other.Get();
     }
 
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
@@ -635,12 +635,12 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const RefCountedPtr& other) const
     {
-        return Get() < other.Get()();
+        return Get() < other.Get();
     }
 
     HYP_FORCE_INLINE bool operator<(const WeakRefCountedPtr<T, CountType>& other) const
     {
-        return Get() < other.Get()();
+        return Get() < other.Get();
     }
 
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
