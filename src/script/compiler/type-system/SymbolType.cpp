@@ -526,7 +526,6 @@ bool SymbolType::TypeCompatible(
 
             if (right.GetConstantBitSize() > GetConstantBitSize())
             {
-                HYP_BREAKPOINT;
                 ADD_INCOMPATIBILITY(IT_DATA_LOSS, "Conversion may cause data loss. Use the `as` operator to perform an explicit cast, e.g. `<expr> as " + ToString(false) + "`");
 
                 return false;

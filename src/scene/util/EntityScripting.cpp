@@ -305,6 +305,9 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             Assert(instance != nullptr);
 
+            InstructionStream* is = HypScript::GetInstance().Decompile(instance, &std::cout);
+            delete is;
+
             // run the script to initialize classes, functions, etc.
             hs.Run(instance);
 

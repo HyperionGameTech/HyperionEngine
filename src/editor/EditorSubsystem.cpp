@@ -739,8 +739,6 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
     HYP_LOG(Editor, Error, "Failed to load axis arrows: {}", result.GetError().GetMessage());
 
-    HYP_BREAKPOINT;
-
     return Handle<Node>::empty;
 }
 

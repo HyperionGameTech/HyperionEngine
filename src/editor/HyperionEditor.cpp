@@ -104,7 +104,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 1
+#if 0
     { // script 2
         String str;
 #if 0

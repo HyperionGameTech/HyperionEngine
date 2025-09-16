@@ -102,6 +102,7 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
     if (it == m_map.End())
     {
         HYP_BREAKPOINT;
+
         return nullptr;
     }
 

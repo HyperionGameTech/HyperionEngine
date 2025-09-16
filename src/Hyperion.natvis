@@ -971,12 +971,11 @@
 
   <Type Name="hyperion::utilities::TypeId">
     <DisplayString Condition="value == 0">Void</DisplayString>
-    <DisplayString Condition="value != 0">{{ Value={value} }}</DisplayString>
+    <DisplayString Condition="value != 0">{{ Value={m_value} }}</DisplayString>
 
     <Expand>
-      <Item Name="[Value]">value</Item>
-      <Item Name="[Flags]">value &amp; 3</Item>
-      <Item Name="[DynamicType]">bool((value &amp; 3) &amp; 1)</Item>
+      <Item Name="[Value]">m_value</Item>
+      <Item Name="[IsDynamicType]">bool((m_value &amp; 1) &amp; 1)</Item>
     </Expand>
   </Type>
 
