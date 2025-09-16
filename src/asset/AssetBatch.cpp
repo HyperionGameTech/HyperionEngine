@@ -104,9 +104,9 @@ void AssetBatch::LoadAsync(uint32 numBatches)
 
     TaskSystem::GetInstance().EnqueueBatch(this);
 
-    HYP_BREAKPOINT;
+    DebugLog(LogType::Debug, "Ref count 1: %u\n", EnableRefCountedPtrFromThis::weakThis.GetBlock_Internal()->strong.Get(MemoryOrder::ACQUIRE));
     m_assetManager->AddPendingBatch(RefCountedPtrFromThis());
-    HYP_BREAKPOINT;
+    DebugLog(LogType::Debug, "Ref count 2: %u\n", EnableRefCountedPtrFromThis::weakThis.GetBlock_Internal()->strong.Get(MemoryOrder::ACQUIRE));
 }
 
 AssetMap AssetBatch::AwaitResults()
@@ -138,15 +138,15 @@ void AssetBatch::Add(const String& key, const String& path)
 {
     Assert(IsCompleted(), "Cannot add assets while loading!");
     Assert(m_assetMap != nullptr, "AssetBatch is in invalid state");
-    
+
     UniquePtr<ProcessAssetFunctorBase> functorPtr = m_assetManager->CreateProcessAssetFunctor(
         m_identifier, key, path, &m_callbacks);
-    
+
     if (!functorPtr)
     {
         HYP_LOG(Assets, Warning, "Cannot handle asset with path {} -- perhaps the asset type is not registered or the path is invalid",
             path);
-        
+
         return;
     }
 

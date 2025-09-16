@@ -448,8 +448,7 @@ extern "C"
             return false;
         }
 
-        const HypStruct* hypStruct = dynamic_cast<const HypStruct*>(hypClass);
-        Assert(hypStruct != nullptr);
+        const HypStruct* hypStruct = static_cast<const HypStruct*>(hypClass);
         
         if (size != hypStruct->GetSize())
         {

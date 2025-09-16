@@ -29,7 +29,7 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DECLARE_LOG_CHANNEL(Misc);
 HYP_DECLARE_LOG_CHANNEL(Temp);
 
-HYP_API extern Handle<Logger> g_logger;
+HYP_API extern Logger* g_logger;
 
 namespace logging {
 
@@ -394,7 +394,7 @@ LogChannel::LogChannel(Name name, LogChannel* parentChannel)
 
 #pragma region LogChannelRegistrar
 
-void LogChannelRegistrar::RegisterAll(const Handle<Logger>& logger)
+void LogChannelRegistrar::RegisterAll(Logger* logger)
 {
     Assert(logger != nullptr);
 

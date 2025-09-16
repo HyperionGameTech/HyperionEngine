@@ -293,7 +293,6 @@ Result AssetObject::Save() const
 
     if (!dir.Exists() || !dir.IsDirectory())
     {
-        HYP_BREAKPOINT;
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 

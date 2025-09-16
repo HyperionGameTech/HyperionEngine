@@ -1310,13 +1310,13 @@ void RenderApi_EndFrame_RenderThread()
     }
 
     g_safeDeleter->UpdateEntryListQueue();
-    
+
     // update render stats and copy to frame data so the game thread can read it
     // do this after calling UpdateEntryListQueue() on SafeDeleter so we can get the total
     // number of deletion queue items for our stats
     g_renderStatsCalculator.Advance(g_renderStats);
     frameData.renderStats = g_renderStats;
-    
+
     g_safeDeleter->Iterate();
 
     g_frameIndex[CONSUMER] = (g_frameIndex[CONSUMER] + 1) % g_numFrames;
@@ -1383,7 +1383,10 @@ RenderGlobalState::RenderGlobalState()
     mainRenderer = new DeferredRenderer();
     mainRenderer->Initialize();
 
-    Memory::MemSet(globalRenderers, 0, sizeof(globalRenderers));
+    for (uint32 i = 0; i < GRT_MAX; i++)
+    {
+        globalRenderers[i] = Array<RendererBase*>();
+    }
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer();

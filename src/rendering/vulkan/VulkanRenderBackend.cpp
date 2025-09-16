@@ -191,7 +191,16 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     static VulkanDynamicFunctions instance;
     g_vulkanDynamicFunctions = &instance;
 
-#define HYP_LOAD_FN(function) instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function))
+#define HYP_LOAD_FN(function)                                                                                      \
+    do                                                                                                             \
+    {                                                                                                              \
+        instance.function = reinterpret_cast<PFN_##function>(vkGetDeviceProcAddr(device->GetDevice(), #function)); \
+        if (!instance.function)                                                                                    \
+        {                                                                                                          \
+            HYP_LOG(RenderingBackend, Warning, "Failed to load Vulkan function {}", #function);                    \
+        }                                                                                                          \
+    }                                                                                                              \
+    while (0)
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
     HYP_LOAD_FN(vkGetBufferDeviceAddressKHR); // currently only used for RT
@@ -446,7 +455,7 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* de
 
     HYP_GFX_ASSERT(m_descriptorPoolUsageCounts[descriptorPoolIndex] > 0, "miscount of descriptor pool usage counts; should never be less than 0");
     --m_descriptorPoolUsageCounts[descriptorPoolIndex];
-    
+
     HYP_LOG(RenderingBackend, Debug, "Descriptor pool {} current usage count: {} descriptor sets", descriptorPoolIndex, m_descriptorPoolUsageCounts[descriptorPoolIndex]);
 
     return RendererResult {};
