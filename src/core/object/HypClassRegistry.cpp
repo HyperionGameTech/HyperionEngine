@@ -191,7 +191,16 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
 
     HYP_CORE_ASSERT(typeId.IsDynamicType() == hypClass->IsDynamic());
 
-    Mutex::Guard guard(m_mutex);
+    m_mutex.Lock();
+
+    HYP_DEFER({
+        m_mutex.Unlock();
+
+        if (m_isInitialized)
+        {
+            hypClass->Initialize();
+        }
+    });
 
     if (hypClass->IsDynamic())
     {
@@ -201,11 +210,6 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
         }
 
         m_dynamicClasses.Set(typeId, hypClass);
-
-        if (m_isInitialized)
-        {
-            hypClass->Initialize();
-        }
 
         return;
     }
