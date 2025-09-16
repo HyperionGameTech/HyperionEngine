@@ -155,8 +155,7 @@ extern "C"
 
         if (hypClass != nullptr && hypClass->IsDynamic())
         {
-            const DynamicHypClassInstance* dynamicHypClass = dynamic_cast<const DynamicHypClassInstance*>(hypClass);
-            Assert(dynamicHypClass != nullptr, "Dynamic hyp class is not of type DynamicHypClassInstance!");
+            const DynamicHypClassInstance* dynamicHypClass = static_cast<const DynamicHypClassInstance*>(hypClass);
 
             if ((classObject->GetFlags() & ManagedClassFlags::ABSTRACT) && !dynamicHypClass->IsAbstract())
             {

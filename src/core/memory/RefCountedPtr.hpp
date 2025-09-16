@@ -58,7 +58,7 @@ struct ControlBlock
     CountType weak;
 
     void (*pFnDestructObj)(void*); // destructs and/or deletes pObj (decided based on allocation strategy)
-    void (*pFnFreeBlock)(void*);  // frees this block
+    void (*pFnFreeBlock)(void*);   // frees this block
 };
 
 namespace detail {
@@ -107,8 +107,8 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
     constexpr SizeType headerSize = sizeof(ControlBlock<CountType>);
     constexpr SizeType objAlign = alignof(U);
     constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-    constexpr SizeType totalSize = objOffset + sizeof(U);
     constexpr SizeType alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
+    constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(U), alignment);
 
     void* pBlock = HYP_ALLOC_ALIGNED(totalSize, alignment);
 
@@ -469,7 +469,17 @@ public:
     static RefCountedPtr Construct(Args&&... args)
     {
         RefCountedPtr result;
-        result.Base::m_block = detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...);
+
+        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
+        {
+            T* obj = new T(std::forward<Args>(args)...);
+
+            result.SetBlock_Internal(obj->template EnableRefCountedPtrFromThisBase<CountType>::weakThis.GetBlock_Internal(), /* incStrong */ false);
+        }
+        else
+        {
+            result.SetBlock_Internal(detail::NewInlineBlock<CountType, T>(std::forward<Args>(args)...), /* incStrong */ false);
+        }
 
         return result;
     }
@@ -1142,11 +1152,7 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<Ty, CountType> CastUnchecked() const
     {
         WeakRefCountedPtr<Ty, CountType> weak;
-
-        if (Base::IsValid())
-        {
-            weak.SetBlock_Internal(Base::GetBlock_Internal(), true);
-        }
+        weak.SetBlock_Internal(Base::GetBlock_Internal(), true);
 
         return weak;
     }
@@ -1183,12 +1189,12 @@ public:
             static_cast<T*>(this),
             TypeId::ForType<T>(),
             CountType(1),
-            CountType(1),
-            &Memory::Delete<T>,
+            CountType(2),
+            &Memory::Destruct<T>,
             &detail::DefaultFreeBlock
         };
 
-        Base::weakThis.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(reinterpret_cast<BlockType*>(pBlock), /*incWeak*/ false);
+        Base::weakThis.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(reinterpret_cast<BlockType*>(pBlock), /* incWeak */ false);
     }
 
     RefCountedPtr<T, CountType> RefCountedPtrFromThis() const

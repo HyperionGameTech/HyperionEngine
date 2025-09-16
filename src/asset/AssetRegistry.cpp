@@ -1166,7 +1166,8 @@ void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
                 {
                     promise->Fulfill(fn());
                 }
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
     }
     else
     {
@@ -1220,7 +1221,7 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 
                         return;
                     }
-                    
+
                     Handle<AssetPackage> package = std::move(*subpackageResult);
 
                     if (!package.IsValid())
@@ -1431,7 +1432,7 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
                 mergeInto(existing, package);
 
                 // update reference
-                //package = existing;
+                // package = existing;
 
                 return {};
             }
@@ -1503,7 +1504,8 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
             }
 
             return {};
-        }, &future);
+        },
+        &future);
 
     return future;
 }
@@ -1917,7 +1919,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                     }
                 }
             }
-            
+
             // Load subpackages after assets (if requested)
             // Each subpackage will be loaded with loadSubpackages=true to recursively load their children
             if (loadSubpackages)
@@ -1936,7 +1938,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                                 HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", entry, subpackageResult.GetError().GetMessage());
                                 break;
                             }
-                            
+
                             Handle<AssetPackage> subpackage = std::move(*subpackageResult);
 
                             if (subpackage.IsValid())
@@ -1959,7 +1961,8 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             }
 
             return outPackage;
-        }, &future);
+        },
+        &future);
 
     return future;
 }
@@ -2065,7 +2068,8 @@ Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Hand
             }
 
             return assetPackage->AddAssetObject(assetObject).Await();
-        }, &future);
+        },
+        &future);
 
     return future;
 }
