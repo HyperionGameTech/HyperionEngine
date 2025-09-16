@@ -73,8 +73,8 @@ public:
         uniqueDrawCallPerMaterial = true;
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
-        indirectRendering = CoreApi_GetGlobalConfig().Get("rendering.indirect").ToBool(true);
-        parallelRendering = CoreApi_GetGlobalConfig().Get("rendering.parallel").ToBool(true);
+        indirectRendering = CoreApi_GetGlobalConfig().Get("rendering.indirectRendering").ToBool(/* defaultValue */ true);
+        parallelRendering = CoreApi_GetGlobalConfig().Get("rendering.parallelCollection").ToBool(/* defaultValue */ true);
         dynamicDescriptorIndexing = false;
     }
 };
@@ -664,15 +664,21 @@ AsyncComputeBase* VulkanRenderBackend::GetAsyncCompute() const
 
 RendererResult VulkanRenderBackend::Initialize()
 {
+#ifdef HYP_DEBUG_MODE
     static const ConfigurationValue& cfgDebugLayers = CoreApi_GetGlobalConfig().Get("rendering.vulkan.debugLayers");
 
     if (cfgDebugLayers.ToBool(false))
     {
-        HYP_LOG(RenderingBackend, Info, "Vulkan debug layers enabled");
+        HYP_LOG(RenderingBackend, Debug, "Vulkan debug layers enabled");
     }
 
+    const bool enableDebugLayers = cfgDebugLayers.ToBool(false);
+#else
+    const bool enableDebugLayers = false;
+#endif
+
     m_instance = new VulkanInstance();
-    HYP_GFX_CHECK(m_instance->Initialize(cfgDebugLayers.ToBool(false)));
+    HYP_GFX_CHECK(m_instance->Initialize(enableDebugLayers));
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
 

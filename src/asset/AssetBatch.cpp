@@ -104,9 +104,7 @@ void AssetBatch::LoadAsync(uint32 numBatches)
 
     TaskSystem::GetInstance().EnqueueBatch(this);
 
-    DebugLog(LogType::Debug, "Ref count 1: %u\n", EnableRefCountedPtrFromThis::weakThis.GetBlock_Internal()->strong.Get(MemoryOrder::ACQUIRE));
     m_assetManager->AddPendingBatch(RefCountedPtrFromThis());
-    DebugLog(LogType::Debug, "Ref count 2: %u\n", EnableRefCountedPtrFromThis::weakThis.GetBlock_Internal()->strong.Get(MemoryOrder::ACQUIRE));
 }
 
 AssetMap AssetBatch::AwaitResults()

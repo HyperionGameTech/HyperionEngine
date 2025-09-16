@@ -102,13 +102,11 @@ static inline void ExternalBlockDeleter(void* blk)
 template <class CountType, class T, class... Args>
 HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... args)
 {
-    using U = NormalizedType<T>;
-
     constexpr SizeType headerSize = sizeof(ControlBlock<CountType>);
-    constexpr SizeType objAlign = alignof(U);
+    constexpr SizeType objAlign = alignof(T);
     constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
     constexpr SizeType alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
-    constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(U), alignment);
+    constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
 
     void* pBlock = HYP_ALLOC_ALIGNED(totalSize, alignment);
 
@@ -116,15 +114,15 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
     void* pObj = reinterpret_cast<void*>(UIntPtr(pBlock) + objOffset);
 
     new (pBlock) ControlBlock<CountType> {
-        static_cast<U*>(pObj),
-        TypeId::ForType<U>(),
+        static_cast<T*>(pObj),
+        TypeId::ForType<T>(),
         CountType(1),
         CountType(1),
-        &Memory::Destruct<U>,
+        &Memory::Destruct<T>,
         &DefaultFreeBlock
     };
 
-    new (pObj) U(std::forward<Args>(args)...);
+    new (pObj) T(std::forward<Args>(args)...);
 
     return static_cast<ControlBlock<CountType>*>(pBlock);
 }
@@ -132,16 +130,14 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
 template <class CountType, class T>
 HYP_NODISCARD static inline ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
-    using U = NormalizedType<T>;
-
     void* pBlock = HYP_ALLOC_ALIGNED(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
 
     return new (pBlock) ControlBlock<CountType> {
         ptr,
-        TypeId::ForType<U>(),
+        TypeId::ForType<T>(),
         CountType(1),
         CountType(1),
-        &Memory::Delete<U>,
+        &Memory::Delete<T>,
         &DefaultFreeBlock
     };
 }
@@ -321,7 +317,7 @@ public:
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
         {
             // share object's block
-            m_block = ptr->template EnableRefCountedPtrFromThisBase<CountType>::weakThis.GetBlock_Internal();
+            m_block = ptr->template EnableRefCountedPtrFromThisBase<CountType>::m_block;
 
             detail::IncStrong(m_block);
         }
@@ -474,7 +470,7 @@ public:
         {
             T* obj = new T(std::forward<Args>(args)...);
 
-            result.SetBlock_Internal(obj->template EnableRefCountedPtrFromThisBase<CountType>::weakThis.GetBlock_Internal(), /* incStrong */ false);
+            result.SetBlock_Internal(obj->template EnableRefCountedPtrFromThisBase<CountType>::m_block, /* incStrong */ false);
         }
         else
         {
@@ -1165,12 +1161,19 @@ class EnableRefCountedPtrFromThis;
 template <class CountType>
 class EnableRefCountedPtrFromThisBase
 {
-public:
-    WeakRefCountedPtr<void, CountType> weakThis;
-
+    template <class OtherCountType>
+    friend class RefCountedPtrBase;
+    
+    template <class OtherT, class OtherCountType>
+    friend class RefCountedPtr;
+    
 protected:
+    using BlockType = ControlBlock<CountType>;
+
     EnableRefCountedPtrFromThisBase() = default;
     virtual ~EnableRefCountedPtrFromThisBase() = default;
+    
+    BlockType* m_block;
 };
 
 template <class T, class CountType>
@@ -1181,33 +1184,34 @@ class EnableRefCountedPtrFromThis : public EnableRefCountedPtrFromThisBase<Count
 public:
     EnableRefCountedPtrFromThis()
     {
-        using BlockType = ControlBlock<CountType>;
+        using BlockType = typename Base::BlockType;
+        
+        Base::m_block = (BlockType*)HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
 
-        void* pBlock = HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
-
-        new (pBlock) BlockType {
+        new (Base::m_block) BlockType {
             static_cast<T*>(this),
             TypeId::ForType<T>(),
             CountType(1),
-            CountType(2),
+            CountType(1),
             &Memory::Destruct<T>,
             &detail::DefaultFreeBlock
         };
-
-        Base::weakThis.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(reinterpret_cast<BlockType*>(pBlock), /* incWeak */ false);
     }
 
     RefCountedPtr<T, CountType> RefCountedPtrFromThis() const
     {
-        return Base::weakThis.template CastUnchecked<T>().Lock();
+        RefCountedPtr<T, CountType> result;
+        result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incStrong */ true);
+        
+        return result;
     }
 
     WeakRefCountedPtr<T, CountType> WeakRefCountedPtrFromThis() const
     {
-        WeakRefCountedPtr<T, CountType> weak;
-        weak.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(Base::weakThis.WeakRefCountedPtrBase<CountType>::GetBlock_Internal(), true);
-
-        return weak;
+        WeakRefCountedPtr<T, CountType> result;
+        result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incWeak */ true);
+        
+        return result;
     }
 };
 
