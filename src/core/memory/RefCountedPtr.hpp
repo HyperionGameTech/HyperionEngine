@@ -696,12 +696,12 @@ public:
         if constexpr (std::is_void_v<U>)
             return true;
 
-        constexpr TypeId q = TypeId::ForType<U>();
+        constexpr TypeId typeId = TypeId::ForType<U>();
 
         const void* ptr = Base::GetVoid();
-        const TypeId held = Base::GetTypeId();
+        const TypeId currentTypeId = Base::GetTypeId();
 
-        return held == q || IsA(GetClass(q), ptr, held);
+        return currentTypeId == typeId || IsA(GetClass(typeId), ptr, currentTypeId);
     }
 
     template <class U>
@@ -1016,9 +1016,13 @@ public:
     HYP_FORCE_INLINE RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> result;
+
         Block* block = Base::GetBlock_Internal();
+
         if (!block)
+        {
             return result;
+        }
 
         // @TODO: Fix thread safety issue, check Handle.hpp for proper handling.
         uint32 count;
@@ -1173,17 +1177,18 @@ public:
     {
         using BlockType = ControlBlock<CountType>;
 
-        void* raw = HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
-        BlockType* block = new (raw) BlockType {
+        void* pBlock = HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
+
+        new (pBlock) BlockType {
             static_cast<T*>(this),
             TypeId::ForType<T>(),
-            CountType(0),
+            CountType(1),
             CountType(1),
             &Memory::Delete<T>,
             &detail::DefaultFreeBlock
         };
 
-        Base::weakThis.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(block, /*incWeak*/ false);
+        Base::weakThis.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(reinterpret_cast<BlockType*>(pBlock), /*incWeak*/ false);
     }
 
     RefCountedPtr<T, CountType> RefCountedPtrFromThis() const
