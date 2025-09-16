@@ -51,40 +51,45 @@ class Any final : public AnyBase
     template <class T>
     static void* BlockCopyConstruct(const void* block)
     {
-        const Block* src = static_cast<const Block*>(block);
-        const T& val = *static_cast<const T*>(src->objectPtr);
+        const Block* src = reinterpret_cast<const Block*>(block);
+        const T& val = *reinterpret_cast<const T*>(src->objectPtr);
 
-        constexpr SizeType align = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
+        constexpr SizeType alignment = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(T);
-        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        const SizeType totalSize = objOffset + sizeof(T);
+        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        constexpr SizeType totalSize = objOffset + sizeof(T);
 
-        void* raw = ::operator new(totalSize, std::align_val_t(align));
-        char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { TypeId::ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
-        T* obj = ::new (base + objOffset) T(val);
+        void* raw = HYP_ALLOC_ALIGNED(totalSize, alignment);
+
+        Block* hdr = new (raw) Block { TypeId::ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
+
+        T* obj = new (reinterpret_cast<void*>(UIntPtr(raw) + objOffset)) T(val);
         hdr->objectPtr = obj;
+
         return hdr;
     }
 
     template <class T>
     static void BlockDeleter(void* block)
     {
-        constexpr SizeType kAlign = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
-        Block* hdr = static_cast<Block*>(block);
-        static_cast<T*>(hdr->objectPtr)->~T();
-        ::operator delete(block, std::align_val_t(kAlign));
+        Block* hdr = reinterpret_cast<Block*>(block);
+
+        reinterpret_cast<T*>(hdr->objectPtr)->~T();
+
+        HYP_FREE_ALIGNED(block);
     }
 
     static void ExternalBlockDeleter(void* block)
     {
-        Block* hdr = static_cast<Block*>(block);
+        Block* hdr = reinterpret_cast<Block*>(block);
+
         if (hdr->objectPtr && hdr->objectDtor)
         {
             hdr->objectDtor(hdr->objectPtr);
         }
-        ::operator delete(block, std::align_val_t(alignof(Block)));
+
+        HYP_FREE_ALIGNED(block);
     }
 
 public:
@@ -342,24 +347,26 @@ public:
     T& Emplace(Args&&... args)
     {
         using U = NormalizedType<T>;
+
         if (HasValue())
         {
             reinterpret_cast<Block*>(m_block)->dtor(m_block);
         }
 
-        constexpr SizeType align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
+        constexpr SizeType alignment = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(U);
-        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        const SizeType totalSize = objOffset + sizeof(U);
+        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        constexpr SizeType totalSize = objOffset + sizeof(U);
 
-        void* raw = ::operator new(totalSize, std::align_val_t(align));
-        char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { TypeId::ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
-        U* obj = ::new (base + objOffset) U(std::forward<Args>(args)...);
+        void* raw = HYP_ALLOC_ALIGNED(totalSize, alignment);
+
+        Block* hdr = new (raw) Block { TypeId::ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
+        U* obj = new (reinterpret_cast<void*>(UIntPtr(raw) + objOffset)) U(std::forward<Args>(args)...);
         hdr->objectPtr = obj;
 
         m_block = hdr;
+
         return *obj;
     }
 
@@ -370,6 +377,7 @@ public:
     HYP_FORCE_INLINE void Reset(T* ptr)
     {
         using U = NormalizedType<T>;
+
         if (HasValue())
         {
             reinterpret_cast<Block*>(m_block)->dtor(m_block);
@@ -377,7 +385,7 @@ public:
 
         if (ptr)
         {
-            void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
+            void* raw = HYP_ALLOC_ALIGNED(sizeof(Block), alignof(Block));
             Block* hdr = new (raw) Block { TypeId::ForType<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
             m_block = hdr;
         }
@@ -390,12 +398,14 @@ public:
     static Any FromVoidPointer(TypeId typeId, void* ptr, CopyConstructor copyCtor, DeleteFunction dtor)
     {
         Any result;
+
         if (ptr)
         {
-            void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
+            void* raw = HYP_ALLOC_ALIGNED(sizeof(Block), alignof(Block));
             Block* hdr = new (raw) Block { typeId, ptr, copyCtor, dtor, &Any::ExternalBlockDeleter };
             result.m_block = hdr;
         }
+
         return result;
     }
 
