@@ -286,16 +286,6 @@ public:
         return m_block != nullptr;
     }
 
-    HYP_FORCE_INLINE bool Any() const
-    {
-        return m_block && (std::is_integral_v<CountType> ? m_block->strong > 0 : m_block->strong.Get(MemoryOrder::ACQUIRE) != 0);
-    }
-
-    HYP_FORCE_INLINE bool Empty() const
-    {
-        return !Any();
-    }
-
     HYP_FORCE_INLINE void* GetVoid() const
     {
         return m_block ? m_block->pObj : nullptr;
@@ -321,7 +311,9 @@ public:
         m_block = nullptr;
 
         if (!ptr)
+        {
             return;
+        }
 
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
         {
@@ -348,14 +340,22 @@ public:
 
     HYP_FORCE_INLINE void SetBlock_Internal(Block* block, bool incStrong)
     {
+        if (m_block == block)
+        {
+            return;
+        }
+
         detail::ReleaseStrong(m_block);
 
         m_block = block;
 
         if (incStrong)
+        {
             detail::IncStrong(m_block);
+        }
     }
 
+private:
     Block* m_block;
 };
 
@@ -426,21 +426,22 @@ public:
     {
         return m_block != nullptr;
     }
-    HYP_FORCE_INLINE bool Any() const
-    {
-        return m_block && (std::is_integral_v<CountType> ? m_block->weak > 0 : m_block->weak.Get(MemoryOrder::ACQUIRE) != 0);
-    }
-    HYP_FORCE_INLINE bool Empty() const
-    {
-        return !Any();
-    }
 
-    HYP_FORCE_INLINE void SetBlock_Internal(Block* b, bool incWeak)
+    HYP_FORCE_INLINE void SetBlock_Internal(Block* block, bool incWeak)
     {
+        if (m_block == block)
+        {
+            return;
+        }
+
         detail::ReleaseWeak(m_block);
-        m_block = b;
+
+        m_block = block;
+
         if (incWeak)
+        {
             detail::IncWeak(m_block);
+        }
     }
 
     HYP_FORCE_INLINE Block* GetBlock_Internal() const
@@ -448,6 +449,7 @@ public:
         return m_block;
     }
 
+private:
     Block* m_block;
 };
 
