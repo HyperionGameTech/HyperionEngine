@@ -227,6 +227,9 @@ class RefCountedPtrBase
 {
     friend class WeakRefCountedPtrBase<CountType>;
 
+    template <class T, class OtherCountType>
+    friend class RefCountedPtr;
+
 public:
     using Block = ControlBlock<CountType>;
 
