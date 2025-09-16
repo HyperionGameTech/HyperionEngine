@@ -108,9 +108,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             // look for operator overloading
             SymbolTypeRef targetType = m_left->GetExprType();
             Assert(targetType != nullptr);
-
             targetType = targetType->GetUnaliased();
-            Assert(targetType != nullptr);
 
             const String operatorString = m_op->LookupStringValue();
             const String overloadFunctionName = "operator" + operatorString;
@@ -156,7 +154,7 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
             // we build in the condition as well
             else if (targetType->IsAnyType())
             {
-                RC<AstBinaryExpression> subBinExpr = Clone().CastUnsafe<AstBinaryExpression>();
+                RC<AstBinaryExpression> subBinExpr = Clone().CastUnchecked<AstBinaryExpression>();
                 subBinExpr->SetEnableOverrideExpr(false);
 
                 m_overrideExpr.Reset(new AstTernaryExpression(

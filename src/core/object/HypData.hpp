@@ -1692,7 +1692,7 @@ struct HypDataHelper<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v
     {
         HYP_CORE_ASSERT(value.Is<T>());
 
-        return value.CastUnsafe_Internal<T>();
+        return value.CastUnchecked<T>();
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T* value) const
@@ -3480,7 +3480,9 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
     {
         if constexpr (std::is_base_of_v<HypObjectBase, T>)
         {
-            return *value.Cast<T>().Get();
+            AssertDebug(value.IsValid() && value.Is<T>());
+
+            return *value.Cast<T>();
         }
         else
         {
@@ -3490,7 +3492,9 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
 
     HYP_FORCE_INLINE T& Get(const RC<void>& value) const
     {
-        return *value.CastUnsafe_Internal<T>();
+        AssertDebug(value.IsValid() && value.Is<T>());
+
+        return *value.CastUnchecked<T>();
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const T& value) const

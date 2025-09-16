@@ -23,8 +23,7 @@ namespace Hyperion
         Invalid = 0xFF,
 
         None = 0,
-        Handle = 1,
-        RefCountedPtr = 2
+        Handle = 1
     }
 
     public struct HypClass
@@ -158,7 +157,7 @@ namespace Hyperion
             {
                 HypClassAllocationMethod allocationMethod = AllocationMethod;
 
-                if (allocationMethod == HypClassAllocationMethod.Handle || allocationMethod == HypClassAllocationMethod.RefCountedPtr)
+                if (allocationMethod == HypClassAllocationMethod.Handle)
                 {
                     return true;
                 }
