@@ -30,7 +30,7 @@ namespace hyperion {
 
 namespace containers {
 
-template <class T, SizeType MaxInlineCapacityBytes = 256, class T2 = void>
+template <class T, SizeType MaxInlineCapacityBytes = 16, class T2 = void>
 struct ArrayDefaultAllocatorSelector;
 
 template <class T, SizeType MaxInlineCapacityBytes>

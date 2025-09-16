@@ -74,7 +74,7 @@ void AssetBatch::LoadAsync(uint32 numBatches)
         const uint32 maxIndex = MathUtil::Min(offsetIndex + itemsPerBatch, numItems);
         Assert(maxIndex >= offsetIndex);
 
-        Array<UniquePtr<ProcessAssetFunctorBase>, DynamicAllocator> batchProcs;
+        Array<UniquePtr<ProcessAssetFunctorBase>> batchProcs;
         batchProcs.Reserve(maxIndex - offsetIndex);
 
         for (uint32 i = offsetIndex; i < maxIndex; ++i)
@@ -104,7 +104,9 @@ void AssetBatch::LoadAsync(uint32 numBatches)
 
     TaskSystem::GetInstance().EnqueueBatch(this);
 
+    HYP_BREAKPOINT;
     m_assetManager->AddPendingBatch(RefCountedPtrFromThis());
+    HYP_BREAKPOINT;
 }
 
 AssetMap AssetBatch::AwaitResults()

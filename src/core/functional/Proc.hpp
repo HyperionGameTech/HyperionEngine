@@ -204,7 +204,7 @@ class ProcRef;
 template <class ReturnType, class... Args>
 class Proc<ReturnType(Args...)> : ProcBase
 {
-    static constexpr uint32 s_inlineStorageSizeBytes = 64;
+    static constexpr uint32 s_inlineStorageSizeBytes = 16;
 
     using InlineStorageType = ValueStorage<char, s_inlineStorageSizeBytes>;
     using Impl = Proc_Impl<ReturnType(Args...), InlineStorageType>;
