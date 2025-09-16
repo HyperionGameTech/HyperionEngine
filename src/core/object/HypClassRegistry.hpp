@@ -127,7 +127,7 @@ public:
 private:
     HashMap<TypeId, HypClass*> m_registeredClasses;
 
-    mutable Mutex m_dynamicClassesMutex;
+    mutable Mutex m_mutex;
     HashMap<TypeId, HypClass*> m_dynamicClasses;
 
     HashMap<HypClass*, RC<dotnet::Class>> m_managedClasses;

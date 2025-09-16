@@ -22,6 +22,9 @@
 #define HYP_DEBUG_OUTPUT_STREAM stdout
 
 namespace hyperion {
+
+HYP_API extern Handle<Logger> g_logger;
+
 namespace debug {
 
 char* GetErrorStringBuffer()
@@ -126,12 +129,24 @@ bool IsDebuggerAttached()
 
 void LogAssert(const char* str)
 {
+    if (HYP_UNLIKELY(!g_logger))
+    {
+        // will cause infinite recursion if no logger is defined yet
+        std::terminate();
+    }
+
 #ifdef HYP_DEBUG_MODE
     HYP_LOG_DYNAMIC(Core, Error, str);
-    HYP_BREAKPOINT;
-#else
-    HYP_LOG_DYNAMIC(Core, Fatal, str);
+
+    if (IsDebuggerAttached())
+    {
+        HYP_BREAKPOINT;
+
+        return;
+    }
 #endif
+
+    HYP_LOG_DYNAMIC(Core, Fatal, str);
 }
 
 } // namespace debug
