@@ -180,7 +180,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         {
             // if target is ANY, we need to clone this (without operator overloading enabled)
             // and conditionally call the operator overload if it exists
-            RC<AstArrayAccess> subExpr = Clone().CastUnsafe<AstArrayAccess>();
+            RC<AstArrayAccess> subExpr = Clone().CastUnchecked<AstArrayAccess>();
             subExpr->SetIsOperatorOverloadingEnabled(false); // don't look for operator[] again
 
             m_overrideExpr.Reset(new AstTernaryExpression(

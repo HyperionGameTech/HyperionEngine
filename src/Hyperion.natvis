@@ -245,8 +245,8 @@
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">(m_ref-&gt;strongCount)</Item>
-      <Item Name="[Weak Refs]">(m_ref-&gt;weakCount)</Item>
+      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T1&gt;*)m_ptr)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T1&gt;*)m_ptr)-&gt;weak</Item>
       <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
     </Expand>
   </Type>

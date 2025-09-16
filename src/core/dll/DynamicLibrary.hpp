@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Size = 16)
+HYP_STRUCT(Size = 8)
 class HYP_API DynamicLibrary
 {
 public:

@@ -76,7 +76,7 @@ typename std::enable_if<std::is_base_of_v<AstStatement, T>, RC<T>>::type
 CloneAstNode(const RC<T>& stmt)
 {
     return (stmt != nullptr)
-        ? stmt->Clone().template CastUnsafe<T>()
+        ? stmt->Clone().template CastUnchecked<T>()
         : nullptr;
 }
 
@@ -85,7 +85,7 @@ typename std::enable_if<std::is_base_of_v<AstStatement, T>, RC<T>>::type
 CloneAstNode(const T* stmt)
 {
     return (stmt != nullptr)
-        ? stmt->Clone().template CastUnsafe<T>()
+        ? stmt->Clone().template CastUnchecked<T>()
         : nullptr;
 }
 

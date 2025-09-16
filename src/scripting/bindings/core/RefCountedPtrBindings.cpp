@@ -5,69 +5,65 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 
+#include <core/debug/Debug.hpp>
+
 #include <core/Types.hpp>
 
 using namespace hyperion;
 
 extern "C"
 {
-
-    HYP_EXPORT const void* RefCountedPtr_GetNullCtrlBlock()
-    {
-        return nullptr; //&memory::RefCountedPtrBase<AtomicVar<uint32>>::emptyRefCountData;
-    }
-
-    HYP_EXPORT void RefCountedPtr_Get(UIntPtr ctrlBlock, UIntPtr address, ValueStorage<HypData>* outHypData)
+    HYP_EXPORT void RefCountedPtr_Get(UIntPtr address, ValueStorage<HypData>* outHypData)
     {
         Assert(outHypData != nullptr);
 
-        auto* refCountData = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
-        AssertDebug(refCountData != nullptr);
+        auto* base = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>*>(address);
+        AssertDebug(base != nullptr);
 
         RC<void> rc;
-        rc.SetRefCountData_Internal(reinterpret_cast<void*>(address), refCountData, /* incRef */ true);
+        rc.SetBlock_Internal(base->GetBlock_Internal(), /* incRef */ true);
 
         outHypData->Construct(std::move(rc));
     }
 
-    HYP_EXPORT void RefCountedPtr_IncRef(UIntPtr ctrlBlock, UIntPtr address)
+    HYP_EXPORT void RefCountedPtr_IncRef(UIntPtr address)
     {
-        auto* refCountData = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
-        AssertDebug(refCountData != nullptr);
+        auto* base = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>*>(address);
+        AssertDebug(base != nullptr);
 
-        refCountData->IncRefCount_Strong(reinterpret_cast<void*>(address));
+        memory::detail::IncStrong(base->GetBlock_Internal());
     }
 
-    HYP_EXPORT void RefCountedPtr_DecRef(UIntPtr ctrlBlock, UIntPtr address)
+    HYP_EXPORT void RefCountedPtr_DecRef(UIntPtr address)
     {
-        auto* refCountData = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
-        AssertDebug(refCountData != nullptr);
+        auto* base = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>*>(address);
+        AssertDebug(base != nullptr);
 
-        refCountData->DecRefCount_Strong(reinterpret_cast<void*>(address));
+        memory::detail::ReleaseStrong(base->GetBlock_Internal());
     }
 
-    HYP_EXPORT void WeakRefCountedPtr_IncRef(UIntPtr ctrlBlock, UIntPtr address)
+    HYP_EXPORT void WeakRefCountedPtr_IncRef(UIntPtr address)
     {
-        auto* refCountData = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
-        AssertDebug(refCountData != nullptr);
+        auto* base = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>*>(address);
+        AssertDebug(base != nullptr);
 
-        refCountData->IncRefCount_Weak(reinterpret_cast<void*>(address));
+        memory::detail::IncWeak(base->GetBlock_Internal());
     }
 
-    HYP_EXPORT void WeakRefCountedPtr_DecRef(UIntPtr ctrlBlock, UIntPtr address)
+    HYP_EXPORT void WeakRefCountedPtr_DecRef(UIntPtr address)
     {
-        auto* refCountData = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
-        AssertDebug(refCountData != nullptr);
+        auto* base = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>*>(address);
+        AssertDebug(base != nullptr);
 
-        refCountData->IncRefCount_Weak(reinterpret_cast<void*>(address));
+        memory::detail::ReleaseWeak(base->GetBlock_Internal());
     }
 
-    HYP_EXPORT uint32 WeakRefCountedPtr_Lock(UIntPtr ctrlBlock, UIntPtr address)
+    HYP_EXPORT uint32 WeakRefCountedPtr_Lock(UIntPtr address)
     {
-        auto* refCountData = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrlBlock);
-        AssertDebug(refCountData != nullptr);
+        auto* base = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>*>(address);
+        AssertDebug(base != nullptr);
 
-        return refCountData->IncRefCount_Strong(reinterpret_cast<void*>(address));
+        return memory::detail::IncStrong(base->GetBlock_Internal());
     }
 
 } // extern "C"

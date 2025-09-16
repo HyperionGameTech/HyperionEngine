@@ -22,7 +22,7 @@ namespace hyperion {
 class EnvProbe;
 class ReflectionProbeRenderer;
 
-HYP_STRUCT(Component, Size = 32, Label = "Reflection Probe Component", Description = "Handles cubemap reflection calculations for a single EnvProbe source", Editor = true)
+HYP_STRUCT(Component, Size = 24, Label = "Reflection Probe Component", Description = "Handles cubemap reflection calculations for a single EnvProbe source", Editor = true)
 struct ReflectionProbeComponent
 {
     HYP_STRUCT_BODY(ReflectionProbeComponent);
