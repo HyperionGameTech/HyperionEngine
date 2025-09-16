@@ -1,7 +1,7 @@
 {
   "rendering": {
-    "indirect": true,
-    "parallel": true,
+    "indirectRendering": true,
+    "parallelCollection": true,
     "ssr": {
       "coneTracing": false,
       "numIterations": 32,

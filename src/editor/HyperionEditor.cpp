@@ -395,10 +395,6 @@ void HyperionEditor::Init()
         .Detach();
 
     batch->LoadAsync();
-    auto* block = static_cast<EnableRefCountedPtrFromThisBase<AtomicVar<uint32>>*>(batch.Get())->weakThis.GetBlock_Internal();
-    DebugLog(LogType::Debug, "Ref count after batch load async: %u\n", block->strong.Get(MemoryOrder::ACQUIRE));
-    batch.Reset();
-    DebugLog(LogType::Debug, "Ref count after batch reset: %u\n", block->strong.Get(MemoryOrder::ACQUIRE));
 #endif
 }
 

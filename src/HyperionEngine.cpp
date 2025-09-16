@@ -103,6 +103,10 @@ HYP_API const FilePath& GetResourceDirectory()
 
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
+    static const FilePath s_basePath = FilePath{ argv[0] }.BasePath();
+    
+    CoreApi_SetExecutablePath(s_basePath);
+    
     g_logger = new Logger();
     g_logger->fatalErrorHook = &HandleFatalError;
 
@@ -120,10 +124,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
         return false;
     }
 
-    const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
-    CoreApi_SetExecutablePath(basePath);
-
-    dotnet::DotNetSystem::GetInstance().Initialize(basePath);
+    dotnet::DotNetSystem::GetInstance().Initialize(s_basePath);
     ConsoleCommandManager::GetInstance().Initialize();
     AudioManager::GetInstance().Initialize();
     TaskSystem::GetInstance().Start();
