@@ -3,6 +3,8 @@
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypClass.hpp>
 
+#include <core/threading/ThreadLocalStorage.hpp>
+#include <core/threading/Thread.hpp>
 #include <core/threading/ThreadId.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -14,9 +16,45 @@
 #include <dotnet/DotNetSystem.hpp>
 #endif
 
+#define HYP_CLASS_REGISTRY_USE_TLS 1
+
 namespace hyperion {
 
 #pragma region HypClassRegistry
+
+#if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
+
+using ThreadLocalCacheMap = HashMap<TypeId, const HypClass*>;
+
+static const ThreadLocalCacheMap g_dummyThreadLocalCache;
+thread_local ThreadLocalCacheMap* g_pThreadLocalCache;
+
+static void InitThreadLocalCache()
+{
+    ThreadBase* thisThread = Threads::CurrentThreadObject();
+
+    if (thisThread)
+    {
+        g_pThreadLocalCache = (ThreadLocalCacheMap*)thisThread->GetTLS().Alloc(sizeof(ThreadLocalCacheMap), alignof(ThreadLocalCacheMap));
+
+        if (g_pThreadLocalCache)
+        {
+            new (g_pThreadLocalCache) ThreadLocalCacheMap;
+
+            thisThread->AtExit([]()
+                {
+                    g_pThreadLocalCache->~ThreadLocalCacheMap();
+                });
+
+            return;
+        }
+    }
+
+    // not mutated, just used as a fallback for searching from (won't return any results)
+    g_pThreadLocalCache = const_cast<ThreadLocalCacheMap*>(&g_dummyThreadLocalCache);
+}
+
+#endif
 
 HypClassRegistry& HypClassRegistry::GetInstance()
 {
@@ -36,12 +74,28 @@ HypClassRegistry::~HypClassRegistry()
 
 const HypClass* HypClassRegistry::GetClass(TypeId typeId) const
 {
-    HYP_CORE_ASSERT(m_isInitialized, "Cannot use GetClass() - HypClassRegistry instance not yet initialized");
+    HYP_SCOPE;
+
+#if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
+    if (!typeId.IsDynamicType())
+    {
+        if (HYP_UNLIKELY(!g_pThreadLocalCache))
+        {
+            InitThreadLocalCache();
+        }
+
+        auto it = g_pThreadLocalCache->Find(typeId);
+        if (it != g_pThreadLocalCache->End())
+        {
+            return it->second;
+        }
+    }
+#endif
+
+    Mutex::Guard guard(m_mutex);
 
     if (typeId.IsDynamicType())
     {
-        Mutex::Guard guard(m_dynamicClassesMutex);
-
         auto dynamicIt = m_dynamicClasses.Find(typeId);
 
         if (dynamicIt != m_dynamicClasses.End())
@@ -59,12 +113,21 @@ const HypClass* HypClassRegistry::GetClass(TypeId typeId) const
         return nullptr;
     }
 
+#if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
+    if (g_pThreadLocalCache && g_pThreadLocalCache != &g_dummyThreadLocalCache)
+    {
+        (*g_pThreadLocalCache)[typeId] = it->second;
+    }
+#endif
+
     return it->second;
 }
 
 const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
 {
-    HYP_CORE_ASSERT(m_isInitialized, "Cannot use GetClass() - HypClassRegistry instance not yet initialized");
+    HYP_SCOPE;
+
+    Mutex::Guard guard(m_mutex);
 
     const auto it = m_registeredClasses.FindIf([typeName](auto&& item)
         {
@@ -73,8 +136,6 @@ const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
 
     if (it == m_registeredClasses.End())
     {
-        Mutex::Guard guard(m_dynamicClassesMutex);
-
         auto dynamicIt = m_dynamicClasses.FindIf([typeName](auto&& item)
             {
                 return item.second->GetName() == typeName;
@@ -93,6 +154,8 @@ const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
 
 const HypClass* HypClassRegistry::GetEnum(TypeId typeId) const
 {
+    HYP_SCOPE;
+
     const HypClass* hypClass = GetClass(typeId);
 
     if (!hypClass || !(hypClass->GetFlags() & HypClassFlags::ENUM_TYPE))
@@ -105,6 +168,8 @@ const HypClass* HypClassRegistry::GetEnum(TypeId typeId) const
 
 const HypClass* HypClassRegistry::GetEnum(WeakName typeName) const
 {
+    HYP_SCOPE;
+
     const HypClass* hypClass = GetClass(typeName);
 
     if (!hypClass || !(hypClass->GetFlags() & HypClassFlags::ENUM_TYPE))
@@ -117,38 +182,67 @@ const HypClass* HypClassRegistry::GetEnum(WeakName typeName) const
 
 void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
+    HYP_SCOPE;
 
-    if (typeId.IsDynamicType())
+    if (typeId == TypeId::Void() || !hypClass)
     {
-        HYP_CORE_ASSERT(hypClass->IsDynamic(), "TypeId %u is dynamic but HypClass %s is not dynamic", typeId.Value(), hypClass->GetName().LookupString());
+        return;
+    }
 
-        Mutex::Guard guard(m_dynamicClassesMutex);
+    HYP_CORE_ASSERT(typeId.IsDynamicType() == hypClass->IsDynamic());
 
-        HYP_LOG(Object, Debug, "Register dynamic class {}", hypClass->GetName());
+    Mutex::Guard guard(m_mutex);
 
-        HYP_CORE_ASSERT(!m_dynamicClasses.Contains(typeId), "Dynamic class already registered for type: %s", *hypClass->GetName());
+    if (hypClass->IsDynamic())
+    {
+        if (m_dynamicClasses.Contains(typeId))
+        {
+            return;
+        }
 
         m_dynamicClasses.Set(typeId, hypClass);
+
+        if (m_isInitialized)
+        {
+            hypClass->Initialize();
+        }
 
         return;
     }
 
-    HYP_CORE_ASSERT(!m_isInitialized, "Cannot register class - HypClassRegistry instance already initialized");
-
-    HYP_LOG(Object, Debug, "Register class {}", hypClass->GetName());
-
     const auto it = m_registeredClasses.Find(typeId);
-    HYP_CORE_ASSERT(it == m_registeredClasses.End(), "Class already registered for type: %s", *hypClass->GetName());
+    if (it != m_registeredClasses.End())
+    {
+        return;
+    }
 
     m_registeredClasses.Set(typeId, hypClass);
+
+#if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
+    if (HYP_UNLIKELY(!g_pThreadLocalCache))
+    {
+        InitThreadLocalCache();
+    }
+
+    if (g_pThreadLocalCache && g_pThreadLocalCache != &g_dummyThreadLocalCache)
+    {
+        (*g_pThreadLocalCache)[typeId] = hypClass;
+    }
+#endif
+
+    if (m_isInitialized)
+    {
+        hypClass->Initialize();
+    }
 }
 
 bool HypClassRegistry::UnregisterClass(const HypClass* hypClass)
 {
-    HYP_CORE_ASSERT(hypClass->GetTypeId().IsDynamicType(), "Cannot unregister class - must be a dynamic HypClass to unregister");
+    HYP_SCOPE;
 
-    Mutex::Guard guard(m_dynamicClassesMutex);
+    HYP_CORE_ASSERT(hypClass->IsDynamic(), "Cannot unregister class - must be a dynamic HypClass to unregister");
+
+    Mutex::Guard guard(m_mutex);
 
     auto it = m_dynamicClasses.FindIf([hypClass](auto&& item)
         {
@@ -169,26 +263,31 @@ bool HypClassRegistry::UnregisterClass(const HypClass* hypClass)
 
 void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass*)>& callback, bool includeDynamicClasses) const
 {
-    HYP_CORE_ASSERT(m_isInitialized, "Cannot use ForEachClass() - HypClassRegistry instance not yet initialized");
+    HYP_SCOPE;
 
-    for (auto&& it : m_registeredClasses)
+    Array<const HypClass*> classes;
+    classes.Reserve(m_registeredClasses.Size() + (includeDynamicClasses ? m_dynamicClasses.Size() : 0));
+
     {
-        if (callback(it.second) == IterationResult::STOP)
+        Mutex::Guard guard(m_mutex);
+
+        for (auto&& it : m_registeredClasses)
         {
-            return;
+            classes.PushBack(it.second);
+        }
+
+        if (includeDynamicClasses)
+        {
+            for (auto&& it : m_dynamicClasses)
+            {
+                classes.PushBack(it.second);
+            }
         }
     }
 
-    if (!includeDynamicClasses)
+    for (const HypClass* hypClass : classes)
     {
-        return;
-    }
-
-    Mutex::Guard guard(m_dynamicClassesMutex);
-
-    for (auto&& it : m_dynamicClasses)
-    {
-        if (callback(it.second) == IterationResult::STOP)
+        if (callback(hypClass) == IterationResult::STOP)
         {
             return;
         }
@@ -197,11 +296,10 @@ void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass
 
 void HypClassRegistry::Initialize()
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_mainThread);
 
     HYP_CORE_ASSERT(!m_isInitialized);
-
-    // Have to initialize here because HypClass::Initialize will call GetClass() for parent classes.
     m_isInitialized = true;
 
     for (auto&& it : m_registeredClasses)
