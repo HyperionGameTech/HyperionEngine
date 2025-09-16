@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name = "DynamicLibrary")]
-    [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct DynamicLibrary
     {
         [FieldOffset(0)]
