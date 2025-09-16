@@ -20,15 +20,16 @@ class VulkanInstance
 {
     static ExtensionMap GetExtensionMap();
 
-    /* Setup debug mode */
+#ifdef HYP_DEBUG_MODE
     RendererResult SetupDebug();
     RendererResult SetupDebugMessenger();
+#endif
 
 public:
     VulkanInstance();
     ~VulkanInstance();
 
-    RendererResult Initialize(bool enableDebugging = false);
+    RendererResult Initialize(bool enableDebugLayers);
 
     HYP_FORCE_INLINE VkInstance GetInstance() const
     {
@@ -50,8 +51,6 @@ public:
         return allocator;
     }
 
-    void SetValidationLayers(Array<const char*> validationLayers);
-
     RendererResult CreateDevice(VkPhysicalDevice _physical_device = nullptr);
     RendererResult CreateSwapchain();
     RendererResult RecreateSwapchain();
@@ -70,10 +69,9 @@ private:
     VulkanDeviceRef m_device;
     VulkanSwapchainRef m_swapchain;
 
-    Array<const char*> validationLayers;
-
-#ifndef HYPERION_BUILD_RELEASE
-    VkDebugUtilsMessengerEXT debugMessenger;
+#ifdef HYP_DEBUG_MODE
+    Array<const char*> m_validationLayers;
+    VkDebugUtilsMessengerEXT m_vkDebugMessenger;
 #endif
 };
 

@@ -117,6 +117,8 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
     return devices;
 }
 
+#ifdef HYP_DEBUG_MODE
+
 // Returns supported vulkan debug layers
 static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& requestedLayers)
 {
@@ -137,9 +139,10 @@ static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& 
 
         for (const auto& availableProperties : availableLayers)
         {
-            if (!strcmp(availableProperties.layerName, request))
+            if (Memory::StrCmp(availableProperties.layerName, request) == 0)
             {
                 layerFound = true;
+
                 break;
             }
         }
@@ -156,6 +159,7 @@ static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& 
 
     return supportedLayers;
 }
+#endif
 
 ExtensionMap VulkanInstance::GetExtensionMap()
 {
@@ -176,12 +180,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     };
 }
 
-void VulkanInstance::SetValidationLayers(Array<const char*> validationLayers)
-{
-    this->validationLayers = std::move(validationLayers);
-}
-
-#ifndef HYPERION_BUILD_RELEASE
+#ifdef HYP_DEBUG_MODE
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -248,6 +247,7 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 
 #endif
 
+#ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebug()
 {
     static const Array<const char*> layers {
@@ -258,12 +258,11 @@ RendererResult VulkanInstance::SetupDebug()
 #endif
     };
 
-    Array<const char*> supportedLayers = CheckValidationLayerSupport(layers);
-
-    SetValidationLayers(std::move(supportedLayers));
+    m_validationLayers = CheckValidationLayerSupport(layers);
 
     HYPERION_RETURN_OK;
 }
+#endif
 
 VulkanInstance::VulkanInstance()
     : m_surface(VK_NULL_HANDLE),
@@ -287,35 +286,40 @@ VulkanInstance::~VulkanInstance()
 
     m_device.Reset();
 
-#ifndef HYPERION_BUILD_RELEASE
-    DestroyDebugUtilsMessenger(m_instance, this->debugMessenger, nullptr);
+#ifdef HYP_DEBUG_MODE
+    if (m_vkDebugMessenger != VK_NULL_HANDLE)
+    {
+        DestroyDebugUtilsMessenger(m_instance, m_vkDebugMessenger, nullptr);
+        m_vkDebugMessenger = VK_NULL_HANDLE;
+    }
 #endif
 
     vkDestroyInstance(m_instance, nullptr);
     m_instance = VK_NULL_HANDLE;
 }
 
+#ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebugMessenger()
 {
-#ifndef HYPERION_BUILD_RELEASE
     VkDebugUtilsMessengerCreateInfoEXT messengerInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
     messengerInfo.messageSeverity = (VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
     messengerInfo.messageType = (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT);
     messengerInfo.pfnUserCallback = &DebugCallback;
     messengerInfo.pUserData = nullptr;
 
-    VULKAN_CHECK(CreateDebugUtilsMessenger(m_instance, &messengerInfo, nullptr, &this->debugMessenger));
+    VULKAN_CHECK(CreateDebugUtilsMessenger(m_instance, &messengerInfo, nullptr, &m_vkDebugMessenger));
 
     HYP_LOG(RenderingBackend, Info, "Enabling Vulkan debug messenger");
-#endif
+
     HYPERION_RETURN_OK;
 }
+#endif
 
-RendererResult VulkanInstance::Initialize(bool enableDebugging)
+RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 {
 #ifdef HYP_DEBUG_MODE
     /* Set up our debug and validation layers */
-    if (enableDebugging)
+    if (enableDebugLayers)
     {
         HYP_GFX_CHECK(SetupDebug());
     }
@@ -333,8 +337,10 @@ RendererResult VulkanInstance::Initialize(bool enableDebugging)
 
     VkInstanceCreateInfo createInfo { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledLayerCount = uint32(validationLayers.Size());
-    createInfo.ppEnabledLayerNames = validationLayers.Data();
+#ifdef HYP_DEBUG_MODE
+    createInfo.enabledLayerCount = uint32(m_validationLayers.Size());
+    createInfo.ppEnabledLayerNames = m_validationLayers.Data();
+#endif
     createInfo.flags = 0;
 
 #if 0
@@ -385,11 +391,13 @@ RendererResult VulkanInstance::Initialize(bool enableDebugging)
     HYP_GFX_CHECK(CreateDevice());
     HYP_GFX_CHECK(CreateSwapchain());
 
-    if (enableDebugging)
+#ifdef HYP_DEBUG_MODE
+    if (enableDebugLayers)
     {
         SetupDebugMessenger();
     }
-    
+#endif
+
     m_device->SetupAllocator(this);
 
     HYPERION_RETURN_OK;
