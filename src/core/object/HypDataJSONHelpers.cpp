@@ -85,8 +85,6 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONObject& obj = temp.AsObject();
 
-                HYP_BREAKPOINT;
-
                 outJson = std::move(obj);
             }
             else
