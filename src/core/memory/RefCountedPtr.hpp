@@ -50,7 +50,7 @@ template <class CountType>
 class RefCountedPtrBase;
 
 template <class CountType>
-struct RcBlock
+struct ControlBlock
 {
     void* pObj;
     TypeId typeId;
@@ -89,7 +89,7 @@ static inline void DefaultFreeBlock(void* blk)
 
 static inline void ExternalBlockDeleter(void* blk)
 {
-    RcBlock<AtomicVar<uint32>>* block = reinterpret_cast<RcBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
+    ControlBlock<AtomicVar<uint32>>* block = reinterpret_cast<ControlBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
 
     if (block->pObj && block->pFnDestructObj)
     {
@@ -100,22 +100,22 @@ static inline void ExternalBlockDeleter(void* blk)
 }
 
 template <class CountType, class T, class... Args>
-HYP_NODISCARD static inline RcBlock<CountType>* NewInlineBlock(Args&&... args)
+HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... args)
 {
     using U = NormalizedType<T>;
 
-    constexpr SizeType headerSize = sizeof(RcBlock<CountType>);
+    constexpr SizeType headerSize = sizeof(ControlBlock<CountType>);
     constexpr SizeType objAlign = alignof(U);
     constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
     constexpr SizeType totalSize = objOffset + sizeof(U);
-    constexpr SizeType alignment = (alignof(RcBlock<CountType>) > objAlign ? alignof(RcBlock<CountType>) : objAlign);
+    constexpr SizeType alignment = (alignof(ControlBlock<CountType>) > objAlign ? alignof(ControlBlock<CountType>) : objAlign);
 
-    void* ptr = HYP_ALLOC_ALIGNED(totalSize, alignment);
+    void* pBlock = HYP_ALLOC_ALIGNED(totalSize, alignment);
 
     // object is stored in the block
-    void* pObj = reinterpret_cast<void*>(UIntPtr(ptr) + objOffset);
+    void* pObj = reinterpret_cast<void*>(UIntPtr(pBlock) + objOffset);
 
-    RcBlock<CountType>* block = new (ptr) RcBlock<CountType> {
+    new (pBlock) ControlBlock<CountType> {
         static_cast<U*>(pObj),
         TypeId::ForType<U>(),
         CountType(1),
@@ -126,17 +126,17 @@ HYP_NODISCARD static inline RcBlock<CountType>* NewInlineBlock(Args&&... args)
 
     new (pObj) U(std::forward<Args>(args)...);
 
-    return block;
+    return static_cast<ControlBlock<CountType>*>(pBlock);
 }
 
 template <class CountType, class T>
-HYP_NODISCARD static inline RcBlock<CountType>* NewExternalOwnedBlock(T* ptr)
+HYP_NODISCARD static inline ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
     using U = NormalizedType<T>;
 
-    void* ptr = HYP_ALLOC_ALIGNED(sizeof(RcBlock<CountType>), alignof(RcBlock<CountType>));
+    void* pBlock = HYP_ALLOC_ALIGNED(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
 
-    return new (ptr) RcBlock<CountType> {
+    return new (pBlock) ControlBlock<CountType> {
         ptr,
         TypeId::ForType<U>(),
         CountType(1),
@@ -147,7 +147,7 @@ HYP_NODISCARD static inline RcBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 }
 
 template <class CountType>
-static inline uint32 DecWeakAndMaybeFree(RcBlock<CountType>* block)
+static inline uint32 DecWeakAndMaybeFree(ControlBlock<CountType>* block)
 {
     uint32 count;
 
@@ -160,7 +160,7 @@ static inline uint32 DecWeakAndMaybeFree(RcBlock<CountType>* block)
 }
 
 template <class CountType>
-static inline uint32 ReleaseStrong(RcBlock<CountType>* block)
+static inline uint32 ReleaseStrong(ControlBlock<CountType>* block)
 {
     if (!block)
     {
@@ -185,28 +185,34 @@ static inline uint32 ReleaseStrong(RcBlock<CountType>* block)
 }
 
 template <class CountType>
-static inline uint32 IncStrong(RcBlock<CountType>* block)
+static inline uint32 IncStrong(ControlBlock<CountType>* block)
 {
     if (block)
+    {
         return Inc(block->strong);
+    }
 
     return 0;
 }
 
 template <class CountType>
-static inline uint32 IncWeak(RcBlock<CountType>* block)
+static inline uint32 IncWeak(ControlBlock<CountType>* block)
 {
     if (block)
+    {
         return Inc(block->weak);
+    }
 
     return 0;
 }
 
 template <class CountType>
-static inline uint32 ReleaseWeak(RcBlock<CountType>* block)
+static inline uint32 ReleaseWeak(ControlBlock<CountType>* block)
 {
     if (block)
+    {
         return DecWeakAndMaybeFree(block);
+    }
 
     return 0;
 }
@@ -222,7 +228,7 @@ class RefCountedPtrBase
     friend class WeakRefCountedPtrBase<CountType>;
 
 public:
-    using Block = RcBlock<CountType>;
+    using Block = ControlBlock<CountType>;
 
     RefCountedPtrBase()
         : m_block(nullptr)
@@ -359,7 +365,7 @@ class WeakRefCountedPtrBase
     friend class RefCountedPtrBase<CountType>;
 
 public:
-    using Block = RcBlock<CountType>;
+    using Block = ControlBlock<CountType>;
 
     WeakRefCountedPtrBase()
         : m_block(nullptr)
@@ -1160,7 +1166,7 @@ class EnableRefCountedPtrFromThis : public EnableRefCountedPtrFromThisBase<Count
 public:
     EnableRefCountedPtrFromThis()
     {
-        using BlockType = RcBlock<CountType>;
+        using BlockType = ControlBlock<CountType>;
 
         void* raw = HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
         BlockType* block = new (raw) BlockType {
