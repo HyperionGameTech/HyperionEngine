@@ -29,7 +29,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
     virtual AstExpression* GetTarget() const override;
 
     virtual HashCode GetHashCode() const override
@@ -45,10 +45,10 @@ public:
 private:
     RC<AstTypeSpecifier> m_typeSpec;
     RC<AstArgumentList> m_argList;
-    bool m_enableConstructorCall;
+    bool m_enableConstructorCall : 1;
 
     /** Set while analyzing */
-    SymbolTypeRef m_instanceType;
+    const SymbolType* m_instanceType;
     RC<AstBlock> m_constructorBlock; // create a block to store temporary vars
     RC<AstExpression> m_constructorCall;
 

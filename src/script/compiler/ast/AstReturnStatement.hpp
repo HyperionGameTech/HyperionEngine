@@ -38,10 +38,9 @@ private:
 
     // set while analyzing
     RC<AstExpression> m_overrideExpr;
-    SymbolTypeRef m_exprType;
+    const SymbolType* m_exprType;
     uint32 m_numPops;
-    bool m_isVisited;
-    bool m_isConstructor;
+    bool m_isConstructor : 1;
 
     RC<AstReturnStatement> CloneImpl() const
     {

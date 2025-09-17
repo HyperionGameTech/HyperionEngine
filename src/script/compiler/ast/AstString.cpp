@@ -44,7 +44,7 @@ bool AstString::IsNumber() const
     return false;
 }
 
-SymbolTypeRef AstString::GetExprType() const
+const SymbolType* AstString::GetExprType() const
 {
     return BuiltinTypes::s_stringType;
 }

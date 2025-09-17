@@ -190,7 +190,7 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
     // add local path as well
     compilationUnit.GetGlobalModule()->AddScanPath(CoreApi_GetExecutablePath());
 
-    BuiltinTypes::AddToSymbolTable(compilationUnit.GetGlobalModule()->scopeTree.Top().identifierTable);
+    BuiltinTypes::RegisterTypes(&compilationUnit);
 
     Lexer lex(sourceStream, &tokenStream, &compilationUnit);
     lex.Analyze();

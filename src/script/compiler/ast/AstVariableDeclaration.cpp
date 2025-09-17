@@ -30,7 +30,8 @@ AstVariableDeclaration::AstVariableDeclaration(
     const SourceLocation& location)
     : AstDeclaration(name, flags, location),
       m_typeSpec(typeSpec),
-      m_assignment(assignment)
+      m_assignment(assignment),
+      m_symbolType(nullptr)
 {
 }
 
@@ -191,46 +192,46 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                     const ConstantValue rightConstantValue = m_realAssignment->GetConstantValue();
 
-                    SymbolTypeRef lhsType;
-                    SymbolTypeRef rhsType;
+                    const SymbolType* pLhsType = nullptr;
+                    const SymbolType* pRhsType = nullptr;
 
                     if (rightConstantValue.IsValid())
                     {
-                        lhsType = m_symbolType->GetUnaliased();
-                        rhsType = m_realAssignment->GetExprType();
+                        pLhsType = m_symbolType->GetUnaliased();
+                        pRhsType = m_realAssignment->GetExprType();
 
-                        if (lhsType->IsEnumType())
+                        if (pLhsType->IsEnumType())
                         {
-                            lhsType = lhsType->GetBaseType();
+                            pLhsType = pLhsType->GetBaseType();
                         }
 
-                        Assert(lhsType != nullptr && rhsType != nullptr);
+                        Assert(pLhsType != nullptr && pRhsType != nullptr);
 
-                        lhsType = lhsType->GetUnaliased();
-                        rhsType = rhsType->GetUnaliased();
+                        pLhsType = pLhsType->GetUnaliased();
+                        pRhsType = pRhsType->GetUnaliased();
 
-                        if (lhsType->IsSignedIntegral())
+                        if (pLhsType->IsSignedIntegral())
                         {
-                            if (rhsType->IsSignedIntegral())
+                            if (pRhsType->IsSignedIntegral())
                             {
-                                doLiteralConversion |= rightConstantValue.AsInt() >= CBS_Min_Signed(lhsType->GetConstantBitSize())
-                                    && rightConstantValue.AsInt() <= CBS_Max_Signed(lhsType->GetConstantBitSize());
+                                doLiteralConversion |= rightConstantValue.AsInt() >= CBS_Min_Signed(pLhsType->GetConstantBitSize())
+                                    && rightConstantValue.AsInt() <= CBS_Max_Signed(pLhsType->GetConstantBitSize());
                             }
-                            else if (rhsType->IsUnsignedIntegral())
+                            else if (pRhsType->IsUnsignedIntegral())
                             {
-                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Signed(lhsType->GetConstantBitSize()));
+                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Signed(pLhsType->GetConstantBitSize()));
                             }
                         }
-                        else if (lhsType->IsUnsignedIntegral())
+                        else if (pLhsType->IsUnsignedIntegral())
                         {
-                            if (rhsType->IsUnsignedIntegral())
+                            if (pRhsType->IsUnsignedIntegral())
                             {
-                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()));
+                                doLiteralConversion |= rightConstantValue.AsUInt() <= uint64(CBS_Max_Unsigned(pLhsType->GetConstantBitSize()));
                             }
-                            else if (rhsType->IsSignedIntegral())
+                            else if (pRhsType->IsSignedIntegral())
                             {
                                 doLiteralConversion |= rightConstantValue.AsInt() >= 0
-                                    && uint64(rightConstantValue.AsInt()) <= uint64(CBS_Max_Unsigned(lhsType->GetConstantBitSize()));
+                                    && uint64(rightConstantValue.AsInt()) <= uint64(CBS_Max_Unsigned(pLhsType->GetConstantBitSize()));
                             }
                         }
                     }

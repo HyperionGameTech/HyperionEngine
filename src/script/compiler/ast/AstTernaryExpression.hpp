@@ -25,7 +25,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual bool IsLiteral() const override;
     virtual bool IsMutable() const override;

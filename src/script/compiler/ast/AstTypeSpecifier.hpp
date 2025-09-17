@@ -29,12 +29,11 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
+    virtual const SymbolType* GetHeldType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
-
-    virtual SymbolTypeRef GetHeldType() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -48,7 +47,7 @@ protected:
     RC<AstExpression> m_expr;
 
     /** Set while analyzing */
-    SymbolTypeRef m_symbolType;
+    const SymbolType* m_symbolType;
 
 private:
     RC<AstTypeSpecifier> CloneImpl() const

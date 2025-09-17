@@ -18,6 +18,7 @@ AstBlock::AstBlock(
     : AstStatement(location),
       m_children(children),
       m_numLocals(0),
+      m_lastExprType(nullptr),
       m_lastIsReturn(false),
       m_lastIsExpr(false)
 {
@@ -26,6 +27,7 @@ AstBlock::AstBlock(
 AstBlock::AstBlock(const SourceLocation& location)
     : AstStatement(location),
       m_numLocals(0),
+      m_lastExprType(nullptr),
       m_lastIsReturn(false),
       m_lastIsExpr(false)
 {

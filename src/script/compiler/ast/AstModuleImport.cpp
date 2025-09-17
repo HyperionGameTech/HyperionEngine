@@ -227,9 +227,9 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
                         identifier->GetName()));
                 }
             }
-            else if (symbol.Is<SymbolTypeRef>())
+            else if (symbol.Is<const SymbolType*>())
             {
-                const SymbolTypeRef& symbolType = symbol.Get<SymbolTypeRef>();
+                const SymbolType* symbolType = symbol.Get<const SymbolType*>();
 
                 if (mod->scopeTree.Top().identifierTable.LookupSymbolType(symbolType->GetName()) != nullptr)
                 {
@@ -242,7 +242,10 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
                     continue;
                 }
 
-                mod->scopeTree.Top().identifierTable.AddSymbolType(symbolType);
+                SymbolType* newSymbolType = symbolType->Clone();
+                newSymbolType->Register(visitor->GetCompilationUnit());
+
+                mod->scopeTree.Top().identifierTable.AddSymbolType(newSymbolType);
             }
             else
             {

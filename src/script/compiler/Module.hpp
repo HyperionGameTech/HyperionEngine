@@ -97,19 +97,19 @@ public:
     RC<Identifier> LookUpIdentifierDepth(const String& name, int depthLevel);
 
     /** Look up a symbol in this module by name */
-    SymbolTypeRef LookupSymbolType(
+    const SymbolType* LookupSymbolType(
         const String& name,
         bool includePlaceholderTypes = true,
         bool thisScopeOnly = false);
 
-    Variant<RC<Identifier>, SymbolTypeRef> LookUpIdentifierOrSymbolType(
+    Variant<RC<Identifier>, const SymbolType*> LookUpIdentifierOrSymbolType(
         const String& name,
         bool includePlaceholderTypes = true,
         bool thisScopeOnly = false,
         bool outsideModules = HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
 
-    SymbolTypeRef LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep = true);
-    void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type);
+    const SymbolType* LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep = true);
+    void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolType* type);
 
     Tree<Scope> scopeTree;
     TreeNode<Module*>* importTreeNode;

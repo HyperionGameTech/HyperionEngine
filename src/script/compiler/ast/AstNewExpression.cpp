@@ -28,7 +28,8 @@ AstNewExpression::AstNewExpression(
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_typeSpec(typeSpec),
       m_argList(argList),
-      m_enableConstructorCall(enableConstructorCall)
+      m_enableConstructorCall(enableConstructorCall),
+      m_instanceType(nullptr)
 {
 }
 
@@ -45,16 +46,16 @@ void AstNewExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(m_enableConstructorCall, "Args provided for non-constructor call new expr");
     }
 
-    auto* valueOf = m_typeSpec->GetDeepValueOf();
+    const AstExpression* valueOf = m_typeSpec->GetDeepValueOf();
     Assert(valueOf != nullptr);
 
     m_instanceType = BuiltinTypes::s_errorType;
 
-    SymbolTypeRef exprType = valueOf->GetExprType();
+    const SymbolType* exprType = valueOf->GetExprType();
     Assert(exprType != nullptr);
     exprType = exprType->GetUnaliased();
 
-    if (SymbolTypeRef heldType = valueOf->GetHeldType())
+    if (const SymbolType* heldType = valueOf->GetHeldType())
     {
         m_instanceType = heldType->GetUnaliased();
     }
@@ -213,7 +214,7 @@ bool AstNewExpression::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypeRef AstNewExpression::GetExprType() const
+const SymbolType* AstNewExpression::GetExprType() const
 {
     return m_instanceType;
 }

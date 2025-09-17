@@ -33,7 +33,7 @@ public:
 
     virtual ConstantValue GetConstantValue() const override;
 
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -48,10 +48,10 @@ public:
 private:
     RC<AstExpression> m_expr;
     const Operator* m_op;
-    bool m_isPostfixVersion;
+    bool m_isPostfixVersion : 1;
 
     // set while analyzing
-    bool m_folded;
+    bool m_folded : 1;
 
     RC<AstBinaryExpression> m_binExpr; // for operators that modify their argument
     RC<AstBlock> m_overrideBlock;      // for postfix ++/--

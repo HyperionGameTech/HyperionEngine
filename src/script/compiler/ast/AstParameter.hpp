@@ -20,14 +20,35 @@ public:
 
     virtual ~AstParameter() override = default;
 
-    const RC<AstExpression>& GetDefaultValue() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetDefaultValue() const
     {
         return m_defaultParam;
     }
 
-    void SetDefaultValue(const RC<AstExpression>& defaultParam)
+    HYP_FORCE_INLINE void SetDefaultValue(const RC<AstExpression>& defaultParam)
     {
         m_defaultParam = defaultParam;
+    }
+
+    HYP_FORCE_INLINE bool IsVariadic() const
+    {
+        return m_isVariadic;
+    }
+
+    // used by AstTemplateExpression
+    HYP_FORCE_INLINE const RC<AstTypeSpecifier>& GetTypeSpecifier() const
+    {
+        return m_typeSpec;
+    }
+
+    HYP_FORCE_INLINE void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
+    {
+        m_typeSpec = typeSpec;
+    }
+
+    HYP_FORCE_INLINE const SymbolType* GetSymbolType() const
+    {
+        return m_symbolType;
     }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
@@ -35,24 +56,6 @@ public:
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;
 
     virtual RC<AstStatement> Clone() const override;
-
-    bool IsVariadic() const
-    {
-        return m_isVariadic;
-    }
-
-    // used by AstTemplateExpression
-    const RC<AstTypeSpecifier>& GetTypeSpecifier() const
-    {
-        return m_typeSpec;
-    }
-
-    void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
-    {
-        m_typeSpec = typeSpec;
-    }
-
-    SymbolTypeRef GetExprType() const;
 
     virtual HashCode GetHashCode() const override
     {
@@ -70,7 +73,7 @@ private:
     bool m_isVariadic : 1;
 
     // Set while analyzing
-    SymbolTypeRef m_symbolType;
+    const SymbolType* m_symbolType;
     RC<AstExpression> m_varargsTypeSpec;
 
     RC<AstParameter> CloneImpl() const

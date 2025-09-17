@@ -26,7 +26,7 @@ public:
 
     virtual ConstantValue GetConstantValue() const override;
 
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual RC<AstStatement> Clone() const override;
 
@@ -44,7 +44,7 @@ protected:
     RC<AstTypeSpecifier> m_typeSpecification;
 
     // set while analyzing
-    SymbolTypeRef m_resultType;
+    const SymbolType* m_resultType;
     Tribool m_isType;
 
 private:

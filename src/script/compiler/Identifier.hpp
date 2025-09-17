@@ -76,72 +76,72 @@ public:
         unaliased->m_stackLocation = stackLocation;
     }
 
-    void IncUseCount() const
+    HYP_FORCE_INLINE void IncUseCount() const
     {
         Unalias()->m_usecount++;
     }
 
-    void DecUseCount() const
+    HYP_FORCE_INLINE void DecUseCount() const
     {
         Unalias()->m_usecount--;
     }
 
-    int GetUseCount() const
+    HYP_FORCE_INLINE int GetUseCount() const
     {
         return Unalias()->m_usecount;
     }
 
-    EnumFlags<IdentifierFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<IdentifierFlags> GetFlags() const
     {
         return m_flags;
     }
 
-    EnumFlags<IdentifierFlags>& GetFlags()
+    HYP_FORCE_INLINE EnumFlags<IdentifierFlags>& GetFlags()
     {
         return m_flags;
     }
 
-    void SetFlags(EnumFlags<IdentifierFlags> flags)
+    HYP_FORCE_INLINE void SetFlags(EnumFlags<IdentifierFlags> flags)
     {
         m_flags = flags;
     }
 
-    const RC<AstExpression>& GetCurrentValue() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetCurrentValue() const
     {
         return Unalias()->m_currentValue;
     }
 
-    void SetCurrentValue(const RC<AstExpression>& expr)
+    HYP_FORCE_INLINE void SetCurrentValue(const RC<AstExpression>& expr)
     {
         Unalias()->m_currentValue = expr;
     }
 
-    const SymbolTypeRef& GetSymbolType() const
+    HYP_FORCE_INLINE const SymbolType* GetSymbolType() const
     {
         return Unalias()->m_symbolType;
     }
 
-    void SetSymbolType(const SymbolTypeRef& symbolType)
+    HYP_FORCE_INLINE void SetSymbolType(const SymbolType* symbolType)
     {
         Unalias()->m_symbolType = symbolType;
     }
 
-    Identifier* Unalias()
+    HYP_FORCE_INLINE Identifier* Unalias()
     {
         return (m_aliasee != nullptr) ? m_aliasee : this;
     }
 
-    const Identifier* Unalias() const
+    HYP_FORCE_INLINE const Identifier* Unalias() const
     {
         return (m_aliasee != nullptr) ? m_aliasee : this;
     }
 
-    Scope* GetDeclScope() const
+    HYP_FORCE_INLINE Scope* GetDeclScope() const
     {
         return Unalias()->m_declScope;
     }
 
-    void SetDeclScope(Scope* scope)
+    HYP_FORCE_INLINE void SetDeclScope(Scope* scope)
     {
         Unalias()->m_declScope = scope;
     }
@@ -154,7 +154,7 @@ private:
     EnumFlags<IdentifierFlags> m_flags;
     Identifier* m_aliasee;
     RC<AstExpression> m_currentValue;
-    SymbolTypeRef m_symbolType;
+    const SymbolType* m_symbolType;
     Scope* m_declScope;
 };
 

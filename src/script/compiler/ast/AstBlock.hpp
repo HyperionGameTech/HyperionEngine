@@ -21,67 +21,67 @@ public:
 
     virtual ~AstBlock() = default;
 
-    void PrependChild(const RC<AstStatement>& stmt)
+    HYP_FORCE_INLINE void PrependChild(const RC<AstStatement>& stmt)
     {
         m_children.PushFront(stmt);
     }
 
-    void AddChild(const RC<AstStatement>& stmt)
+    HYP_FORCE_INLINE void AddChild(const RC<AstStatement>& stmt)
     {
         m_children.PushBack(stmt);
     }
 
-    Array<RC<AstStatement>>& GetChildren()
+    HYP_FORCE_INLINE Array<RC<AstStatement>>& GetChildren()
     {
         return m_children;
     }
 
-    const Array<RC<AstStatement>>& GetChildren() const
+    HYP_FORCE_INLINE const Array<RC<AstStatement>>& GetChildren() const
     {
         return m_children;
     }
 
-    int NumLocals() const
+    HYP_FORCE_INLINE int NumLocals() const
     {
         return m_numLocals;
     }
 
-    bool IsLastStatementReturn() const
+    HYP_FORCE_INLINE bool IsLastStatementReturn() const
     {
         return m_lastIsReturn;
     }
 
-    bool IsLastStatementExpr() const
+    HYP_FORCE_INLINE bool IsLastStatementExpr() const
     {
         return m_lastIsExpr;
     }
 
-    const SymbolTypeRef& GetLastExprType() const
+    HYP_FORCE_INLINE const SymbolType* GetLastExprType() const
     {
         return m_lastExprType;
     }
 
-    Scope* GetScope() const
+    HYP_FORCE_INLINE Scope* GetScope() const
     {
         return m_scope;
     }
 
-    ScopeType GetScopeType() const
+    HYP_FORCE_INLINE ScopeType GetScopeType() const
     {
         return m_scopeType;
     }
 
-    void SetScopeType(ScopeType scopeType)
+    HYP_FORCE_INLINE void SetScopeType(ScopeType scopeType)
     {
         m_scopeType = scopeType;
     }
 
-    int ScopeFlags() const
+    HYP_FORCE_INLINE int ScopeFlags() const
     {
         return m_scopeFlags;
     }
 
-    void SetScopeFlags(int scopeFlags)
+    HYP_FORCE_INLINE void SetScopeFlags(int scopeFlags)
     {
         m_scopeFlags = scopeFlags;
     }
@@ -112,7 +112,7 @@ protected:
     int m_numLocals;
     bool m_lastIsReturn : 1;
     bool m_lastIsExpr : 1;
-    SymbolTypeRef m_lastExprType;
+    const SymbolType* m_lastExprType;
     Scope* m_scope = nullptr;
     ScopeType m_scopeType = ScopeType::SCOPE_TYPE_NORMAL;
     int m_scopeFlags = 0;

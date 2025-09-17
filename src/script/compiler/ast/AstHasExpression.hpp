@@ -24,7 +24,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -43,8 +43,8 @@ protected:
     Tribool m_hasMember;
     // is it a check if an expression has the member,
     // or is it a check if a type has a member?
-    bool m_isExpr;
-    bool m_hasSideEffects;
+    bool m_isExpr : 1;
+    bool m_hasSideEffects : 1;
 
 private:
     RC<AstHasExpression> CloneImpl() const

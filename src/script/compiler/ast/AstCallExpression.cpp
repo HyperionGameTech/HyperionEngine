@@ -41,13 +41,10 @@ AstCallExpression::AstCallExpression(
 
 void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 {
-    Assert(!m_isVisited);
-    m_isVisited = true;
-
     Assert(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    SymbolTypeRef targetType = m_expr->GetExprType();
+    const SymbolType* targetType = m_expr->GetExprType();
     Assert(targetType != nullptr);
 
     Array<RC<AstArgument>> argsWithSelf = m_args;
@@ -84,10 +81,10 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    SymbolTypeRef unaliased = targetType->GetUnaliased();
+    const SymbolType* unaliased = targetType->GetUnaliased();
     Assert(unaliased != nullptr);
 
-    SymbolTypeRef callMemberType = unaliased->FindMember("$invoke");
+    const SymbolType* callMemberType = unaliased->FindMember("$invoke");
     String callMemberName;
 
     // check if $invoke is found on the object or its prototype
@@ -215,8 +212,6 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstCallExpression::Build(AstVisitor* visitor, Module* mod)
 {
-    Assert(m_isVisited);
-
     if (m_overrideExpr != nullptr)
     {
         return m_overrideExpr->Build(visitor, mod);
@@ -298,7 +293,7 @@ bool AstCallExpression::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypeRef AstCallExpression::GetExprType() const
+const SymbolType* AstCallExpression::GetExprType() const
 {
     if (m_overrideExpr != nullptr)
     {

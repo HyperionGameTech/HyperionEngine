@@ -34,7 +34,10 @@ AstHashMap::AstHashMap(
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_keys(keys),
-      m_values(values)
+      m_values(values),
+      m_keyType(nullptr),
+      m_valueType(nullptr),
+      m_exprType(nullptr)
 {
 }
 
@@ -68,10 +71,10 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             keyValuePair.first->Visit(visitor, mod);
             keyValuePair.second->Visit(visitor, mod);
 
-            SymbolTypeRef keyType = keyValuePair.first->GetExprType();
-            SymbolTypeRef valueType = keyValuePair.second->GetExprType();
+            const SymbolType* keyType = keyValuePair.first->GetExprType();
+            const SymbolType* valueType = keyValuePair.second->GetExprType();
 
-            if (keyType == nullptr || valueType == nullptr)
+            if (!keyType || !valueType)
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
@@ -137,7 +140,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
         auto& replacedValue = m_replacedValues[i];
         Assert(replacedValue != nullptr);
 
-        if (SymbolTypeRef keyType = key->GetExprType())
+        if (const SymbolType* keyType = key->GetExprType())
         {
             if (!keyType->TypeEqual(*m_keyType))
             {
@@ -153,7 +156,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (SymbolTypeRef valueType = value->GetExprType())
+        if (const SymbolType* valueType = value->GetExprType())
         {
             if (!valueType->TypeEqual(*m_valueType))
             {
@@ -180,7 +183,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
 
     m_mapTypeExpr->Visit(visitor, mod);
 
-    SymbolTypeRef mapType = m_mapTypeExpr->GetHeldType();
+    const SymbolType* mapType = m_mapTypeExpr->GetHeldType();
 
     if (!mapType)
     {
@@ -328,9 +331,9 @@ bool AstHashMap::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypeRef AstHashMap::GetExprType() const
+const SymbolType* AstHashMap::GetExprType() const
 {
-    if (m_exprType == nullptr)
+    if (!m_exprType)
     {
         return BuiltinTypes::s_errorType;
     }

@@ -29,7 +29,7 @@ bool AstUndefined::IsNumber() const
     return false;
 }
 
-SymbolTypeRef AstUndefined::GetExprType() const
+const SymbolType* AstUndefined::GetExprType() const
 {
     return BuiltinTypes::s_errorType;
 }

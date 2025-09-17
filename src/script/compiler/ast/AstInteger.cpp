@@ -54,7 +54,7 @@ bool AstInteger::IsNumber() const
     return true;
 }
 
-SymbolTypeRef AstInteger::GetExprType() const
+const SymbolType* AstInteger::GetExprType() const
 {
     switch (m_constantValue.bitSize)
     {

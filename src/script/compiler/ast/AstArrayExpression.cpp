@@ -40,7 +40,8 @@ AstArrayExpression::AstArrayExpression(
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_members(members),
-      m_heldType(BuiltinTypes::s_anyType)
+      m_heldType(BuiltinTypes::s_anyType),
+      m_exprType(nullptr)
 {
 }
 
@@ -50,7 +51,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_replacedMembers.Reserve(m_members.Size());
 
-    FlatSet<SymbolTypeRef> heldTypes;
+    FlatSet<const SymbolType*> heldTypes;
 
     for (auto& member : m_members)
     {
@@ -108,7 +109,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         auto& member = m_members[index];
         Assert(member != nullptr);
 
-        if (SymbolTypeRef exprType = member->GetExprType())
+        if (const SymbolType* exprType = member->GetExprType())
         {
             if (!exprType->TypeEqual(*m_heldType))
             {
@@ -133,7 +134,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
 
     genericInst.Visit(visitor, mod);
 
-    const SymbolTypeRef arrayType = genericInst.GetHeldType();
+    const SymbolType* arrayType = genericInst.GetHeldType();
 
     if (!arrayType)
     {
@@ -141,7 +142,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    m_exprType = std::move(arrayType);
+    m_exprType = arrayType;
 }
 
 UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
@@ -292,7 +293,7 @@ bool AstArrayExpression::MayHaveSideEffects() const
     return sideEffects;
 }
 
-SymbolTypeRef AstArrayExpression::GetExprType() const
+const SymbolType* AstArrayExpression::GetExprType() const
 {
     if (m_exprType == nullptr)
     {

@@ -13,7 +13,7 @@ class AstIsExpression : public AstExpression
 public:
     AstIsExpression(
         const RC<AstExpression>& target,
-        const RC<AstTypeSpecifier>& typeSpecification,
+        const RC<AstTypeSpecifier>& typeSpec,
         const SourceLocation& location);
 
     virtual ~AstIsExpression() = default;
@@ -26,20 +26,20 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual HashCode GetHashCode() const override
     {
         HashCode hc = AstExpression::GetHashCode().Add(TypeName<AstIsExpression>());
         hc.Add(m_target ? m_target->GetHashCode() : HashCode());
-        hc.Add(m_typeSpecification ? m_typeSpecification->GetHashCode() : HashCode());
+        hc.Add(m_typeSpec ? m_typeSpec->GetHashCode() : HashCode());
 
         return hc;
     }
 
 protected:
     RC<AstExpression> m_target;
-    RC<AstTypeSpecifier> m_typeSpecification;
+    RC<AstTypeSpecifier> m_typeSpec;
 
     // set while analyzing
     RC<AstExpression> m_overrideExpr;
@@ -51,7 +51,7 @@ private:
     {
         return RC<AstIsExpression>(new AstIsExpression(
             CloneAstNode(m_target),
-            CloneAstNode(m_typeSpecification),
+            CloneAstNode(m_typeSpec),
             m_location));
     }
 };

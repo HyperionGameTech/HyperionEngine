@@ -34,7 +34,8 @@ AstArrayAccess::AstArrayAccess(
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_target(target),
       m_index(index),
-      m_operatorOverloadingEnabled(operatorOverloadingEnabled)
+      m_operatorOverloadingEnabled(operatorOverloadingEnabled),
+      m_exprType(nullptr)
 {
 }
 
@@ -48,7 +49,7 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
     m_target->Visit(visitor, mod);
     m_index->Visit(visitor, mod);
 
-    SymbolTypeRef targetType = m_target->GetExprType();
+    const SymbolType* targetType = m_target->GetExprType();
     Assert(targetType != nullptr);
     targetType = targetType->GetUnaliased();
 
@@ -72,11 +73,13 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
 
         Assert(targetType->GetGenericInstanceInfo().m_genericArgs.Size() == 1);
 
-        SymbolTypeRef elementType = targetType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
+        const SymbolType* elementType = targetType->GetGenericInstanceInfo().m_genericArgs.Front().m_type;
         Assert(elementType != nullptr);
 
         // supplant "SelfType" placeholder type with the actual target type
-        scope->identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { targetType }));
+        SymbolType* selfAliasType = SymbolType::Alias("SelfType", { targetType });
+        selfAliasType->Register(visitor->GetCompilationUnit());
+        scope->identifierTable.AddSymbolType(selfAliasType);
 
         elementType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
@@ -459,7 +462,7 @@ bool AstArrayAccess::MayHaveSideEffects() const
         || m_accessMode == ACCESS_MODE_STORE;
 }
 
-SymbolTypeRef AstArrayAccess::GetExprType() const
+const SymbolType* AstArrayAccess::GetExprType() const
 {
     return m_exprType;
 }

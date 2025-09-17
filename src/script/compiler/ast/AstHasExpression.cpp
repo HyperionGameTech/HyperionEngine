@@ -39,7 +39,7 @@ void AstHasExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
-    SymbolTypeRef targetType;
+    const SymbolType* targetType = nullptr;
 
     if (auto* ident = dynamic_cast<AstIdentifier*>(m_target.Get()))
     {
@@ -184,7 +184,7 @@ RC<AstStatement> AstHasExpression::Clone() const
     return CloneImpl();
 }
 
-SymbolTypeRef AstHasExpression::GetExprType() const
+const SymbolType* AstHasExpression::GetExprType() const
 {
     return BuiltinTypes::s_boolType;
 }

@@ -24,7 +24,7 @@ void AstTypeAlias::Visit(AstVisitor* visitor, Module* mod)
 
     m_aliasee->Visit(visitor, mod);
 
-    SymbolTypeRef aliaseeType = m_aliasee->GetHeldType();
+    const SymbolType* aliaseeType = m_aliasee->GetHeldType();
     Assert(aliaseeType != nullptr);
     aliaseeType = aliaseeType->GetUnaliased();
 
@@ -41,9 +41,8 @@ void AstTypeAlias::Visit(AstVisitor* visitor, Module* mod)
     }
     else
     {
-        SymbolTypeRef aliasType = SymbolType::Alias(m_name, { aliaseeType });
-
-        // add it
+        SymbolType* aliasType = SymbolType::Alias(m_name, { aliaseeType });
+        aliasType->Register(visitor->GetCompilationUnit());
         mod->scopeTree.Top().identifierTable.AddSymbolType(aliasType);
     }
 }
