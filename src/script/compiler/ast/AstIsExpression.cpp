@@ -19,11 +19,11 @@ namespace hyperion {
 
 AstIsExpression::AstIsExpression(
     const RC<AstExpression>& target,
-    const RC<AstTypeSpecifier>& typeSpecification,
+    const RC<AstTypeSpecifier>& typeSpec,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_target(target),
-      m_typeSpecification(typeSpecification),
+      m_typeSpec(typeSpec),
       m_isType(TRI_INDETERMINATE)
 {
 }
@@ -33,12 +33,12 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
-    Assert(m_typeSpecification != nullptr);
-    m_typeSpecification->Visit(visitor, mod);
+    Assert(m_typeSpec != nullptr);
+    m_typeSpec->Visit(visitor, mod);
 
     if (const auto targetType = m_target->GetExprType())
     {
-        if (const auto heldType = m_typeSpecification->GetHeldType())
+        if (const auto heldType = m_typeSpec->GetHeldType())
         {
             if (targetType->TypeCompatible(
                     *heldType,
@@ -63,7 +63,7 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
             .Module(Config::globalModuleName).Function("IsInstance")
             .Call({
                 RC<AstArgument>(new AstArgument(CloneAstNode(m_target), false, false, false, false, "", m_target->GetLocation())),
-                RC<AstArgument>(new AstArgument(CloneAstNode(m_typeSpecification->GetExpr()), false, false, false, false, "", m_typeSpecification->GetLocation())) });
+                RC<AstArgument>(new AstArgument(CloneAstNode(m_typeSpec->GetExpr()), false, false, false, false, "", m_typeSpec->GetLocation())) });
 
         // clang-format on
 
@@ -97,8 +97,8 @@ void AstIsExpression::Optimize(AstVisitor* visitor, Module* mod)
     Assert(m_target != nullptr);
     m_target->Optimize(visitor, mod);
 
-    Assert(m_typeSpecification != nullptr);
-    m_typeSpecification->Optimize(visitor, mod);
+    Assert(m_typeSpec != nullptr);
+    m_typeSpec->Optimize(visitor, mod);
 }
 
 RC<AstStatement> AstIsExpression::Clone() const
@@ -106,7 +106,7 @@ RC<AstStatement> AstIsExpression::Clone() const
     return CloneImpl();
 }
 
-SymbolTypeRef AstIsExpression::GetExprType() const
+const SymbolType* AstIsExpression::GetExprType() const
 {
     return BuiltinTypes::s_boolType;
 }
@@ -119,10 +119,10 @@ Tribool AstIsExpression::IsTrue() const
 bool AstIsExpression::MayHaveSideEffects() const
 {
     Assert(
-        m_target != nullptr && m_typeSpecification != nullptr);
+        m_target != nullptr && m_typeSpec != nullptr);
 
     return m_target->MayHaveSideEffects()
-        || m_typeSpecification->MayHaveSideEffects();
+        || m_typeSpec->MayHaveSideEffects();
 }
 
 } // namespace hyperion

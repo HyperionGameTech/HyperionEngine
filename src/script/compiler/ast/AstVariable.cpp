@@ -177,14 +177,11 @@ void AstVariable::Visit(AstVisitor* visitor, Module* mod)
         break;
     }
 
-    if (SymbolTypeRef heldType = GetHeldType())
+    if (const SymbolType* heldType = GetHeldType())
     {
         heldType = heldType->GetUnaliased();
 
-        m_typeRef.Reset(new AstTypeRef(
-            heldType,
-            m_location));
-
+        m_typeRef.Reset(new AstTypeRef(heldType, m_location));
         m_typeRef->Visit(visitor, mod);
     }
 }
@@ -390,7 +387,7 @@ bool AstVariable::IsLiteral() const
     return GetConstantValue().IsValid();
 }
 
-SymbolTypeRef AstVariable::GetExprType() const
+const SymbolType* AstVariable::GetExprType() const
 {
     if (m_typeRef != nullptr)
     {

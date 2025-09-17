@@ -29,7 +29,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
@@ -42,7 +42,7 @@ protected:
 
     // set while analyzing
     Array<RC<AstArgument>> m_substitutedArgs;
-    SymbolTypeRef m_returnType;
+    const SymbolType* m_returnType;
 
     RC<AstMemberCallExpression> CloneImpl() const
     {

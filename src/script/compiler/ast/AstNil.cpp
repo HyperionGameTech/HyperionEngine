@@ -46,7 +46,7 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-SymbolTypeRef AstNil::GetExprType() const
+const SymbolType* AstNil::GetExprType() const
 {
     return BuiltinTypes::s_nullType;
 }

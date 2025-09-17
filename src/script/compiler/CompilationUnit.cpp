@@ -61,7 +61,12 @@ CompilationUnit::CompilationUnit()
     m_moduleTree.TopNode()->Get() = m_globalModule.Get();
 }
 
-CompilationUnit::~CompilationUnit() = default;
+CompilationUnit::~CompilationUnit()
+{
+#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
+    CheckDanglingSymbolTypes();
+#endif
+}
 
 Module* CompilationUnit::LookupModule(const String& name)
 {
@@ -99,30 +104,33 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
         return;
     }
 
-    RegisterType(symbolType->GetBaseType());
+    if (const SymbolType* baseType = symbolType->GetBaseType())
+    {
+        Assert(baseType->IsRegistered());
+    }
 
     m_symbolTypeCache->Register(symbolType);
 
-    for (const auto& member : symbolType->GetMembers())
+    for (SymbolTypeMember& member : symbolType->GetMembers())
     {
-        RegisterType(member.type);
+        RegisterType(member.GetType());
     }
 
-    for (const auto& staticMember : symbolType->GetStaticMembers())
+    for (SymbolTypeMember& staticMember : symbolType->GetStaticMembers())
     {
-        RegisterType(staticMember.type);
+        RegisterType(staticMember.GetType());
     }
 
     if (symbolType->IsAlias())
     {
-        RegisterType(symbolType->GetAliasInfo().m_aliasee);
+        RegisterType(const_cast<SymbolType*>(symbolType->GetAliasInfo().m_aliasee));
     }
 
     if (symbolType->IsGenericInstanceType())
     {
-        for (const auto& arg : symbolType->GetGenericInstanceInfo().m_genericArgs)
+        for (GenericInstanceTypeInfo::Arg& arg : symbolType->GetGenericInstanceInfo().m_genericArgs)
         {
-            RegisterType(arg.m_type);
+            RegisterType(const_cast<SymbolType*>(arg.m_type));
         }
     }
 }

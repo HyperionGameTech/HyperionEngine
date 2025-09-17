@@ -343,13 +343,13 @@ WideString AstPrintVisitor::GetBasicNodeInfo(AstStatement* node) const
 
 WideString AstPrintVisitor::GetTypeInfo(AstStatement* node) const
 {
-    if (auto* expr = dynamic_cast<AstExpression*>(node))
+    if (AstExpression* expr = dynamic_cast<AstExpression*>(node))
     {
-        SymbolTypeRef type = expr->GetExprType();
+        const SymbolType* symbolType = expr->GetExprType();
 
-        if (type)
+        if (symbolType)
         {
-            return type->ToString(true).ToWide();
+            return symbolType->ToString(true).ToWide();
         }
     }
 

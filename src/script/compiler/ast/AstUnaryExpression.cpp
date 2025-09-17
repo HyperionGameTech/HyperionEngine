@@ -95,7 +95,8 @@ void AstUnaryExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_expr->Visit(visitor, mod);
 
-    SymbolTypeRef type = m_expr->GetExprType();
+    const SymbolType* type = m_expr->GetExprType();
+    Assert(type != nullptr);
 
     if (!type->IsAnyType() && !type->IsGenericParameter())
     {
@@ -302,7 +303,7 @@ ConstantValue AstUnaryExpression::GetConstantValue() const
     return ConstantValue(INVALID_CONSTANT_NUMBER);
 }
 
-SymbolTypeRef AstUnaryExpression::GetExprType() const
+const SymbolType* AstUnaryExpression::GetExprType() const
 {
     if (m_binExpr != nullptr)
     {

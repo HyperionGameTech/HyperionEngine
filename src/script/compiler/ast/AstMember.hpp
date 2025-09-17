@@ -35,8 +35,8 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
 
-    virtual SymbolTypeRef GetExprType() const override;
-    virtual SymbolTypeRef GetHeldType() const override;
+    virtual const SymbolType* GetExprType() const override;
+    virtual const SymbolType* GetHeldType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
@@ -57,9 +57,10 @@ protected:
     RC<AstExpression> m_target;
 
     // set while analyzing
-    SymbolTypeRef m_symbolType;
-    SymbolTypeRef m_targetType;
-    SymbolTypeRef m_heldType;
+    const SymbolType* m_symbolType;
+    const SymbolType* m_targetType;
+    const SymbolType* m_heldType;
+
     RC<AstTypeSpecifier> m_typeSpec;
     uint32 m_foundIndex;
     bool m_isStaticField : 1;

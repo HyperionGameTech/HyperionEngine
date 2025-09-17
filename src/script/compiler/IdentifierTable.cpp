@@ -40,7 +40,7 @@ const RC<Identifier>& IdentifierTable::AddIdentifier(
     const String& name,
     int flags,
     const RC<AstExpression>& currentValue,
-    const SymbolTypeRef& symbolType)
+    const SymbolType* symbolType)
 {
     RC<Identifier> identifier(new Identifier(
         name,
@@ -59,6 +59,8 @@ const RC<Identifier>& IdentifierTable::AddIdentifier(
 
     if (symbolType != nullptr)
     {
+        Assert(symbolType->IsRegistered());
+
         identifier->SetSymbolType(symbolType);
     }
 
@@ -109,9 +111,9 @@ RC<Identifier> IdentifierTable::LookUpIdentifier(const String& name)
     return nullptr;
 }
 
-SymbolTypeRef IdentifierTable::LookupSymbolType(const String& name, bool includePlaceholderTypes) const
+const SymbolType* IdentifierTable::LookupSymbolType(const String& name, bool includePlaceholderTypes) const
 {
-    for (const SymbolTypeRef& symbolType : symbolTypes)
+    for (const SymbolType* symbolType : symbolTypes)
     {
         if (symbolType != nullptr && symbolType->GetName() == name)
         {
@@ -127,19 +129,21 @@ SymbolTypeRef IdentifierTable::LookupSymbolType(const String& name, bool include
     return nullptr;
 }
 
-void IdentifierTable::AddSymbolType(const SymbolTypeRef& symbolType)
+void IdentifierTable::AddSymbolType(SymbolType* symbolType)
 {
     if (!symbolType)
     {
         return;
     }
 
+    Assert(symbolType->IsRegistered());
+
     if (!symbolType->m_declScope)
     {
         symbolType->m_declScope = scope;
     }
 
-    auto it = symbolTypes.FindIf([&](const SymbolTypeRef& other)
+    auto it = symbolTypes.FindIf([&](const SymbolType* other)
         {
             return other->GetName() == symbolType->GetName();
         });

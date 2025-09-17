@@ -53,7 +53,7 @@ bool AstFloat::IsNumber() const
     return true;
 }
 
-SymbolTypeRef AstFloat::GetExprType() const
+const SymbolType* AstFloat::GetExprType() const
 {
     switch (m_constantValue.bitSize)
     {

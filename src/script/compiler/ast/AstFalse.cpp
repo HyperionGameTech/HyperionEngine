@@ -40,7 +40,7 @@ bool AstFalse::IsNumber() const
     return false;
 }
 
-SymbolTypeRef AstFalse::GetExprType() const
+const SymbolType* AstFalse::GetExprType() const
 {
     return BuiltinTypes::s_boolType;
 }

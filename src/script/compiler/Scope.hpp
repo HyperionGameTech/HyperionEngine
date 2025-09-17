@@ -62,22 +62,22 @@ public:
         }
 
     private:
-        SymbolType* m_originalType;
+        const SymbolType* m_originalType;
         HashCode m_genericArgsHashCode;
     };
 
-    static Key MakeKey(const SymbolTypeRef& originalType, const GenericInstanceTypeInfo& genericInstanceTypeInfo)
+    static Key MakeKey(const SymbolType* originalType, const GenericInstanceTypeInfo& genericInstanceTypeInfo)
     {
         Assert(originalType != nullptr);
 
         Key key;
-        key.m_originalType = originalType.Get();
+        key.m_originalType = originalType;
         key.m_genericArgsHashCode = genericInstanceTypeInfo.GetHashCode();
 
         return key;
     }
 
-    SymbolTypeRef Lookup(const Key& key) const
+    const SymbolType* Lookup(const Key& key) const
     {
         Mutex::Guard guard(m_mutex);
 
@@ -85,29 +85,26 @@ public:
 
         if (it != m_cache.End())
         {
-            SymbolTypeRef type = it->second.Lock();
-
-            if (type.IsValid())
-            {
-                return type;
-            }
+            return it->second;
         }
 
-        return SymbolTypeRef();
+        return nullptr;
     }
 
-    void Put(const Key& key, const SymbolTypeRef& type)
+    void Put(const Key& key, const SymbolType* type)
     {
+        Assert(type != nullptr && type->IsRegistered());
+
         Mutex::Guard guard(m_mutex);
 
-        m_cache.Set(key, type.ToWeak());
+        m_cache.Set(key, type);
 
         Assert(m_cache.Size() <= s_maxCacheSize,
             "TypeInstanceCache exceeded max size! May indicate a logic error inserting infinite entries.");
     }
 
 private:
-    using CacheMap = HashMap<Key, SymbolTypeWeakRef, HashTable_DynamicNodeAllocator<KeyValuePair<Key, SymbolTypeWeakRef>>>;
+    using CacheMap = HashMap<Key, const SymbolType*, HashTable_DynamicNodeAllocator<KeyValuePair<Key, const SymbolType*>>>;
 
     mutable Mutex m_mutex;
     CacheMap m_cache;
@@ -158,7 +155,7 @@ public:
     IdentifierTable identifierTable;
     ScopeType scopeType;
     int scopeFlags;
-    Array<SymbolTypeRef> returnTypes;
+    Array<const SymbolType*> returnTypes;
     HashMap<String, RC<Identifier>> closureCaptures;
     TypeInstanceCache typeInstanceCache;
 };

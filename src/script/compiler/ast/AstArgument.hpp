@@ -26,37 +26,37 @@ public:
         return m_expr;
     }
 
-    bool IsSplat() const
+    HYP_FORCE_INLINE bool IsSplat() const
     {
         return m_isSplat;
     }
 
-    bool IsNamed() const
+    HYP_FORCE_INLINE bool IsNamed() const
     {
         return m_isNamed;
     }
 
-    bool IsPassConst() const
+    HYP_FORCE_INLINE bool IsPassConst() const
     {
         return m_isPassConst;
     }
 
-    void SetIsPassConst(bool isPassConst)
+    HYP_FORCE_INLINE void SetIsPassConst(bool isPassConst)
     {
         m_isPassConst = isPassConst;
     }
 
-    bool IsPassByRef() const
+    HYP_FORCE_INLINE bool IsPassByRef() const
     {
         return m_isPassByRef;
     }
 
-    void SetIsPassByRef(bool isPassByRef)
+    HYP_FORCE_INLINE void SetIsPassByRef(bool isPassByRef)
     {
         m_isPassByRef = isPassByRef;
     }
 
-    bool IsPlaceholderArgument() const
+    HYP_FORCE_INLINE bool IsPlaceholderArgument() const
     {
         return m_expr == nullptr;
     }
@@ -72,7 +72,7 @@ public:
     virtual bool IsLiteral() const override;
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
     virtual const String& GetName() const override;
@@ -94,13 +94,11 @@ public:
 
 private:
     RC<AstExpression> m_expr;
-    bool m_isSplat;
-    bool m_isNamed;
-    bool m_isPassByRef;
-    bool m_isPassConst;
+    bool m_isSplat : 1;
+    bool m_isNamed : 1;
+    bool m_isPassByRef : 1;
+    bool m_isPassConst : 1;
     String m_name;
-
-    bool m_isVisited = false;
 
     RC<AstArgument> CloneImpl() const
     {

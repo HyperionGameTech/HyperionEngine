@@ -63,6 +63,7 @@ AstFunctionExpression::AstFunctionExpression(
       m_enableClosure(enableClosure),
       m_isClosure(false),
       m_isConstructorDefinition(false),
+      m_symbolType(nullptr),
       m_returnType(BuiltinTypes::s_anyType),
       m_staticId(0)
 {
@@ -127,12 +128,16 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             m_returnType = BuiltinTypes::s_errorType;
         }
 
-        mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("ReturnType", { m_returnType }));
+        SymbolType* returnTypeAlias = SymbolType::Alias("ReturnType", { m_returnType });
+        returnTypeAlias->Register(visitor->GetCompilationUnit());
+        mod->scopeTree.Top().identifierTable.AddSymbolType(returnTypeAlias);
     }
     else
     {
         // add placeholder return type for AstReturnStatement nodes to use
-        SymbolTypeRef placeholderReturnType = SymbolType::Placeholder("ReturnType");
+        SymbolType* placeholderReturnType = SymbolType::Placeholder("ReturnType");
+        placeholderReturnType->Register(visitor->GetCompilationUnit());
+
         mod->scopeTree.Top().identifierTable.AddSymbolType(placeholderReturnType);
     }
 
@@ -185,7 +190,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         if (functionScope->returnTypes.Any())
         {
             // search through return types for ambiguities
-            for (const SymbolTypeRef& symbolType : functionScope->returnTypes)
+            for (const SymbolType* symbolType : functionScope->returnTypes)
             {
                 Assert(symbolType != nullptr);
 
@@ -259,7 +264,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
                 if (m_blockWithParameters->IsLastStatementExpr())
                 {
-                    const SymbolTypeRef& lastExprType = m_blockWithParameters->GetLastExprType();
+                    const SymbolType* lastExprType = m_blockWithParameters->GetLastExprType();
 
                     if (lastExprType != nullptr)
                     {
@@ -328,7 +333,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
             // @NOTE: do NOT use SCOPE_TYPE_FUNCTION, it'll treat it as a nested function and create closure captures.
             ScopeGuard newScope(mod, SCOPE_TYPE_NORMAL);
-            newScope->identifierTable.AddSymbolType(SymbolType::Alias("ReturnType", { m_returnType }));
+
+            SymbolType* returnTypeAlias = SymbolType::Alias("ReturnType", { m_returnType });
+            returnTypeAlias->Register(visitor->GetCompilationUnit());
+            newScope->identifierTable.AddSymbolType(returnTypeAlias);
 
             m_blockWithParameters->Visit(visitor, mod);
         }
@@ -362,14 +370,14 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
         closureObjMembers.PushBack(SymbolTypeMember {
             identifier->GetName(),
-            identifier->GetSymbolType(),
+            identifier->GetSymbolType()->Clone(),
             RC<AstVariable>(new AstVariable(name, m_location)) });
     }
 
     // close parameter scope
     mod->scopeTree.Close();
 
-    SymbolTypeRef functionType;
+    const SymbolType* functionType = nullptr;
 
     {
         // set object type to be an instance of function
@@ -413,10 +421,14 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_isClosure)
     {
-        SymbolTypeRef closureSelfType = SymbolType::Temp();
+        SymbolType* closureSelfType = SymbolType::Temp();
+        closureSelfType->Register(visitor->GetCompilationUnit());
 
         ScopeGuard closureScope(mod, SCOPE_TYPE_NORMAL);
-        closureScope->identifierTable.AddSymbolType(SymbolType::Alias("ClosureSelfType", { closureSelfType }));
+
+        SymbolType* closureSelfAliasType = SymbolType::Alias("ClosureSelfType", { closureSelfType });
+        closureSelfAliasType->Register(visitor->GetCompilationUnit());
+        closureScope->identifierTable.AddSymbolType(closureSelfAliasType);
 
         Array<RC<AstParameter>> closureParams;
         closureParams.Reserve(m_parameters.Size() + 1);
@@ -430,7 +442,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         // add $invoke to call this object
         RC<AstClass> closureClassDecl(new AstClass(
             visitor->GetCompilationUnit()->GetAnonClassName(),
-            SymbolTypeRef(nullptr),
+            nullptr,
             {},
             { RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 "$invoke",
@@ -452,9 +464,9 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         for (const SymbolTypeMember& member : closureObjMembers)
         {
             closureClassDecl->GetDataMembers().PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-                member.name,
+                member.GetName(),
                 RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(member.type, m_location)),
+                    RC<AstTypeRef>(new AstTypeRef(member.GetType(), m_location)),
                     m_location)),
                 RC<AstNil>(new AstNil(m_location)),                  // placeholder; set later
                 IdentifierFlags::PLACEHOLDER | IdentifierFlags::LAX, // don't emit errors for null assignment
@@ -464,7 +476,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         closureClassDecl->Visit(visitor, mod);
 
         Assert(closureClassDecl->GetHeldType() != nullptr);
-        closureSelfType->Assign(*SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType().ToWeak() }));
+
+        SymbolType* tmpAlias = SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType() });
+        closureSelfType->Assign(*tmpAlias);
+        delete tmpAlias;
 
         m_closureBlock.Reset(new AstBlock(m_location));
 
@@ -488,10 +503,10 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             // $__closure_instance.<member> = <value>;
             m_closureBlock->AddChild(RC<AstBinaryExpression>(new AstBinaryExpression(
                 RC<AstMember>(new AstMember(
-                    member.name,
+                    member.GetName(),
                     RC<AstVariable>(new AstVariable("$__closure_instance", m_location)),
                     m_location)),
-                CloneAstNode(member.expr),
+                CloneAstNode(member.GetExpr()),
                 Operator::FindBinaryOperator(Operators::OP_assign),
                 m_location)));
         }
@@ -502,20 +517,26 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
         m_closureBlock->PrependChild(closureClassDecl);
 
-        m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        // HACK
+        m_symbolType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
             mod,
             closureSelfType,
-            m_location);
+            m_location));
+
+        visitor->GetCompilationUnit()->RegisterType(m_symbolType);
 
         return;
     }
 
-    m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+    // HACK
+    m_symbolType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         visitor,
         mod,
         functionType,
-        m_location);
+        m_location));
+
+    visitor->GetCompilationUnit()->RegisterType(m_symbolType);
 
     if (m_parameters.Size() > MathUtil::MaxSafeValue<uint8>())
     {
@@ -707,7 +728,7 @@ bool AstFunctionExpression::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypeRef AstFunctionExpression::GetExprType() const
+const SymbolType* AstFunctionExpression::GetExprType() const
 {
     return m_symbolType;
 }

@@ -17,7 +17,13 @@ namespace hyperion {
 AstTypeOfExpression::AstTypeOfExpression(
     const RC<AstExpression>& expr,
     const SourceLocation& location)
-    : AstTypeSpecifier(expr, location)
+    : AstTypeSpecifier(expr, location),
+#if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
+      m_typeRef(nullptr),
+      m_heldType(nullptr)
+#else
+      m_stringExpr(nullptr)
+#endif
 {
 }
 
@@ -28,11 +34,11 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
 
     m_heldType = BuiltinTypes::s_errorType;
 
-    auto* valueOf = m_expr->GetDeepValueOf();
+    const AstExpression* valueOf = m_expr->GetDeepValueOf();
     Assert(valueOf != nullptr);
 
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
-    if (SymbolTypeRef exprType = valueOf->GetExprType())
+    if (const SymbolType* exprType = valueOf->GetExprType())
     {
         m_heldType = exprType->GetUnaliased();
     }
@@ -47,8 +53,8 @@ void AstTypeOfExpression::Visit(AstVisitor* visitor, Module* mod)
 #else
     m_symbolType = BuiltinTypes::s_stringType;
 
-    SymbolTypeRef exprType;
-    SymbolTypeRef unaliased;
+    const SymbolType* exprType = nullptr;
+    const SymbolType* unaliased = nullptr;
 
     if ((exprType = m_expr->GetExprType()) && (unaliased = exprType->GetUnaliased()))
     {
@@ -103,7 +109,7 @@ RC<AstStatement> AstTypeOfExpression::Clone() const
     return CloneImpl();
 }
 
-SymbolTypeRef AstTypeOfExpression::GetExprType() const
+const SymbolType* AstTypeOfExpression::GetExprType() const
 {
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     Assert(m_typeRef != nullptr);
@@ -114,7 +120,7 @@ SymbolTypeRef AstTypeOfExpression::GetExprType() const
 #endif
 }
 
-SymbolTypeRef AstTypeOfExpression::GetHeldType() const
+const SymbolType* AstTypeOfExpression::GetHeldType() const
 {
 #if HYP_SCRIPT_TYPEOF_RETURN_OBJECT
     Assert(m_typeRef != nullptr);

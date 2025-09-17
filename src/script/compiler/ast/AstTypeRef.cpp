@@ -17,7 +17,7 @@
 namespace hyperion {
 
 AstTypeRef::AstTypeRef(
-    const SymbolTypeRef& symbolType,
+    const SymbolType* symbolType,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_symbolType(symbolType),
@@ -59,15 +59,13 @@ bool AstTypeRef::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypeRef AstTypeRef::GetExprType() const
+const SymbolType* AstTypeRef::GetExprType() const
 {
     return BuiltinTypes::s_voidType;
 }
 
-SymbolTypeRef AstTypeRef::GetHeldType() const
+const SymbolType* AstTypeRef::GetHeldType() const
 {
-    Assert(m_symbolType != nullptr);
-
     return m_symbolType;
 }
 

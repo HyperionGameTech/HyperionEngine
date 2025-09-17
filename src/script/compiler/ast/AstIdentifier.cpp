@@ -22,9 +22,9 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
     // if we're in a type specification scope, we only want to look up types
     if (mod->IsInScopeOfType(SCOPE_TYPE_TYPE_SPECIFICATION, /* thisScopeOnly */ true))
     {
-        if (SymbolTypeRef type = mod->LookupSymbolType(m_name))
+        if (const SymbolType* foundType = mod->LookupSymbolType(m_name))
         {
-            m_properties.m_foundType = type;
+            m_properties.m_foundType = foundType;
             m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
         }
         else
@@ -35,16 +35,16 @@ void AstIdentifier::PerformLookup(AstVisitor* visitor, Module* mod)
         return;
     }
 
-    if (Variant<RC<Identifier>, SymbolTypeRef> identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
+    if (Variant<RC<Identifier>, const SymbolType*> identifierOrSymbolType = mod->LookUpIdentifierOrSymbolType(m_name); identifierOrSymbolType.HasValue())
     {
         if (identifierOrSymbolType.Is<RC<Identifier>>())
         {
             m_properties.m_identifier = identifierOrSymbolType.Get<RC<Identifier>>();
             m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
         }
-        else if (identifierOrSymbolType.Is<SymbolTypeRef>())
+        else if (identifierOrSymbolType.Is<const SymbolType*>())
         {
-            m_properties.m_foundType = identifierOrSymbolType.Get<SymbolTypeRef>();
+            m_properties.m_foundType = identifierOrSymbolType.Get<const SymbolType*>();
             m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
         }
         else
@@ -185,7 +185,7 @@ ConstantValue AstIdentifier::GetConstantValue() const
     return ConstantValue(INVALID_CONSTANT_NUMBER);
 }
 
-SymbolTypeRef AstIdentifier::GetHeldType() const
+const SymbolType* AstIdentifier::GetHeldType() const
 {
     if (m_properties.GetIdentifierType() == IDENTIFIER_TYPE_TYPE)
     {

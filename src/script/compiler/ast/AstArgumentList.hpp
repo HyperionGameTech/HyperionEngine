@@ -16,12 +16,12 @@ public:
         const SourceLocation& location);
     virtual ~AstArgumentList() = default;
 
-    Array<RC<AstArgument>>& GetArguments()
+    HYP_FORCE_INLINE Array<RC<AstArgument>>& GetArguments()
     {
         return m_args;
     }
 
-    const Array<RC<AstArgument>>& GetArguments() const
+    HYP_FORCE_INLINE const Array<RC<AstArgument>>& GetArguments() const
     {
         return m_args;
     }
@@ -34,7 +34,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual HashCode GetHashCode() const override
     {

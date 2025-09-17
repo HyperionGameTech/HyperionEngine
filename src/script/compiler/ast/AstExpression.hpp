@@ -186,17 +186,17 @@ public:
         int accessOptions);
     virtual ~AstExpression() = default;
 
-    int GetAccessOptions() const
+    HYP_FORCE_INLINE int GetAccessOptions() const
     {
         return m_accessOptions;
     }
 
-    AccessMode GetAccessMode() const
+    HYP_FORCE_INLINE AccessMode GetAccessMode() const
     {
         return m_accessMode;
     }
 
-    void SetAccessMode(AccessMode accessMode)
+    HYP_FORCE_INLINE void SetAccessMode(AccessMode accessMode)
     {
         m_accessMode = accessMode;
     }
@@ -242,8 +242,8 @@ public:
 
     /** Determine whether or not there is a possibility of side effects. */
     virtual bool MayHaveSideEffects() const = 0;
-    virtual SymbolTypeRef GetExprType() const = 0;
-    virtual SymbolTypeRef GetHeldType() const
+    virtual const SymbolType* GetExprType() const = 0;
+    virtual const SymbolType* GetHeldType() const
     {
         return nullptr;
     }

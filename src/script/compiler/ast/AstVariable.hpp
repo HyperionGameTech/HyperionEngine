@@ -22,7 +22,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
     virtual bool IsMutable() const override;
 
     virtual const AstExpression* GetValueOf() const override;
@@ -37,9 +37,9 @@ private:
     RC<AstMember> m_selfMemberAccess;
     RC<AstTypeRef> m_typeRef;
     RC<AstExpression> m_inlineValue;
-    bool m_shouldInline;
-    bool m_isInRefAssignment;
-    bool m_isInConstAssignment;
+    bool m_shouldInline : 1;
+    bool m_isInRefAssignment : 1;
+    bool m_isInConstAssignment : 1;
 
     RC<AstVariable> CloneImpl() const
     {

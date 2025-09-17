@@ -30,7 +30,8 @@ AstAsExpression::AstAsExpression(
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_target(target),
       m_typeSpecification(typeSpecification),
-      m_isType(TRI_INDETERMINATE)
+      m_isType(TRI_INDETERMINATE),
+      m_resultType(nullptr)
 {
 }
 
@@ -55,7 +56,8 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
     const AstExpression* targetValueOf = m_target->GetDeepValueOf();
     Assert(targetValueOf != nullptr);
 
-    SymbolTypeRef targetType = targetValueOf->GetExprType();
+    const SymbolType* targetType = targetValueOf->GetExprType();
+
     if (!targetType)
     {
         m_resultType = BuiltinTypes::s_errorType;
@@ -143,7 +145,7 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
 
     Assert(m_resultType != nullptr);
 
-    SymbolType* resultType = m_resultType;
+    const SymbolType* resultType = m_resultType;
 
     if (m_resultType->IsEnumType())
     {
@@ -230,7 +232,7 @@ UniquePtr<Buildable> AstAsExpression::Build(AstVisitor* visitor, Module* mod)
 
         // log type chain
         {
-            SymbolType* type = resultType;
+            const SymbolType* type = resultType;
             while (type != nullptr)
             {
                 DebugLog(
@@ -271,12 +273,12 @@ void AstAsExpression::Optimize(AstVisitor* visitor, Module* mod)
     m_typeSpecification->Optimize(visitor, mod);
 }
 
-SymbolTypeRef AstAsExpression::GetExprType() const
+const SymbolType* AstAsExpression::GetExprType() const
 {
     Assert(m_target != nullptr);
     Assert(m_typeSpecification != nullptr);
 
-    if (SymbolTypeRef heldType = m_typeSpecification->GetHeldType())
+    if (const SymbolType* heldType = m_typeSpecification->GetHeldType())
     {
         return heldType;
     }
@@ -317,7 +319,7 @@ ConstantValue AstAsExpression::GetConstantValue() const
         return ConstantValue(INVALID_CONSTANT_NUMBER);
     }
 
-    SymbolTypeRef resultType = m_resultType;
+    const SymbolType* resultType = m_resultType;
     Assert(resultType != nullptr);
     resultType = resultType->GetUnaliased();
 
@@ -328,7 +330,7 @@ ConstantValue AstAsExpression::GetConstantValue() const
 
     if (resultType->IsEnumType())
     {
-        SymbolTypeRef baseType = resultType->GetBaseType();
+        const SymbolType* baseType = resultType->GetBaseType();
         Assert(baseType != nullptr);
 
         resultType = baseType->GetUnaliased();

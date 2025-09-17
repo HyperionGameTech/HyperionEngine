@@ -21,8 +21,8 @@ AstReturnStatement::AstReturnStatement(
     const SourceLocation& location)
     : AstStatement(location),
       m_expr(expr),
+      m_exprType(nullptr),
       m_numPops(0),
-      m_isVisited(false),
       m_isConstructor(false)
 {
 }
@@ -39,7 +39,7 @@ void AstReturnStatement::Visit(AstVisitor* visitor, Module* mod)
         Assert(m_exprType != nullptr);
 
         // Find the ReturnType placeholder type:
-        SymbolTypeRef returnType = mod->LookupSymbolType("ReturnType", /* includePlaceholderTypes */ true);
+        const SymbolType* returnType = mod->LookupSymbolType("ReturnType", /* includePlaceholderTypes */ true);
 
         // should be defined as long as return is used in a valid function context.
         // it's an error otherwise, but could still happen so we need to do a null check.

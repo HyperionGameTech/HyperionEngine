@@ -30,7 +30,8 @@ AstMemberCallExpression::AstMemberCallExpression(
     const RC<AstArgumentList>& arguments,
     const SourceLocation& location)
     : AstMember(fieldName, target, location),
-      m_arguments(arguments)
+      m_arguments(arguments),
+      m_returnType(nullptr)
 {
 }
 
@@ -261,9 +262,8 @@ bool AstMemberCallExpression::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypeRef AstMemberCallExpression::GetExprType() const
+const SymbolType* AstMemberCallExpression::GetExprType() const
 {
-    Assert(m_returnType != nullptr);
     return m_returnType;
 }
 

@@ -29,9 +29,6 @@ AstArgument::AstArgument(
 
 void AstArgument::Visit(AstVisitor* visitor, Module* mod)
 {
-    Assert(!m_isVisited);
-    m_isVisited = true;
-
     if (m_isSplat)
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -85,8 +82,6 @@ UniquePtr<Buildable> AstArgument::Build(AstVisitor* visitor, Module* mod)
 {
     Assert(m_expr != nullptr);
 
-    Assert(m_isVisited);
-
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     chunk->Append(m_expr->Build(visitor, mod));
@@ -130,7 +125,7 @@ bool AstArgument::MayHaveSideEffects() const
     return m_expr->MayHaveSideEffects();
 }
 
-SymbolTypeRef AstArgument::GetExprType() const
+const SymbolType* AstArgument::GetExprType() const
 {
     Assert(m_expr != nullptr);
     return m_expr->GetExprType();

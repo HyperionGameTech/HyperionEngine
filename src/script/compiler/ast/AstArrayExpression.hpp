@@ -14,10 +14,10 @@ public:
         const SourceLocation& location);
     virtual ~AstArrayExpression() = default;
 
-    const Array<RC<AstExpression>>& GetMembers() const
+    HYP_FORCE_INLINE const Array<RC<AstExpression>>& GetMembers() const
     {
         return m_members;
-    };
+    }
 
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
@@ -27,7 +27,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
     virtual bool IsMutable() const override;
 
     virtual HashCode GetHashCode() const override
@@ -47,8 +47,8 @@ protected:
 
     // set while analyzing
     Array<RC<AstExpression>> m_replacedMembers;
-    SymbolTypeRef m_heldType;
-    SymbolTypeRef m_exprType;
+    const SymbolType* m_heldType;
+    const SymbolType* m_exprType;
     RC<AstExpression> m_arrayFromCall;
 
     RC<AstArrayExpression> CloneImpl() const

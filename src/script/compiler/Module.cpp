@@ -230,15 +230,15 @@ RC<Identifier> Module::LookUpIdentifierDepth(const String& name, int depthLevel)
     return nullptr;
 }
 
-SymbolTypeRef Module::LookupSymbolType(
+const SymbolType* Module::LookupSymbolType(
     const String& name,
     bool includePlaceholderTypes,
     bool thisScopeOnly)
 {
     TreeNode<Scope>* top = scopeTree.TopNode();
 
-    return PerformLookup<SymbolTypeRef>(
-        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> SymbolTypeRef
+    return PerformLookup<const SymbolType*>(
+        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> const SymbolType*
         {
             if (thisScopeOnly && node != top)
             {
@@ -247,13 +247,13 @@ SymbolTypeRef Module::LookupSymbolType(
 
             return node->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes);
         },
-        [&name](Module* mod) -> SymbolTypeRef
+        [&name](Module* mod) -> const SymbolType*
         {
             return mod->LookupSymbolType(name);
         });
 }
 
-Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(
+Variant<RC<Identifier>, const SymbolType*> Module::LookUpIdentifierOrSymbolType(
     const String& name,
     bool includePlaceholderTypes,
     bool thisScopeOnly,
@@ -261,8 +261,8 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(
 {
     TreeNode<Scope>* top = scopeTree.TopNode();
 
-    return PerformLookup<Variant<RC<Identifier>, SymbolTypeRef>>(
-        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> Variant<RC<Identifier>, SymbolTypeRef>
+    return PerformLookup<Variant<RC<Identifier>, const SymbolType*>>(
+        [&name, includePlaceholderTypes, thisScopeOnly, top](TreeNode<Scope>* node) -> Variant<RC<Identifier>, const SymbolType*>
         {
             if (thisScopeOnly && node != top)
             {
@@ -274,14 +274,14 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(
                 return std::move(result);
             }
 
-            if (SymbolTypeRef symbolType = node->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes))
+            if (const SymbolType* symbolType = node->Get().identifierTable.LookupSymbolType(name, includePlaceholderTypes))
             {
-                return std::move(symbolType);
+                return symbolType;
             }
 
             return {};
         },
-        [&name, includePlaceholderTypes, thisScopeOnly, outsideModules](Module* mod) -> Variant<RC<Identifier>, SymbolTypeRef>
+        [&name, includePlaceholderTypes, thisScopeOnly, outsideModules](Module* mod) -> Variant<RC<Identifier>, const SymbolType*>
         {
             if (!outsideModules)
             {
@@ -296,11 +296,11 @@ Variant<RC<Identifier>, SymbolTypeRef> Module::LookUpIdentifierOrSymbolType(
         });
 }
 
-SymbolTypeRef Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep)
+const SymbolType* Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep)
 {
     if (deep)
     {
-        return PerformLookup<SymbolTypeRef>(
+        return PerformLookup<const SymbolType*>(
             [&cacheKey](TreeNode<Scope>* top)
             {
                 return top->Get().typeInstanceCache.Lookup(cacheKey);
@@ -321,8 +321,10 @@ SymbolTypeRef Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey,
     return nullptr;
 }
 
-void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolTypeRef& type)
+void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolType* type)
 {
+    Assert(type != nullptr && type->IsRegistered());
+
     // cache in this module at topmost scope
     TreeNode<Scope>* top = scopeTree.TopNode();
 
