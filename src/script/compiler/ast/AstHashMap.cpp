@@ -87,7 +87,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
             keyType = keyType->GetUnaliased();
             valueType = valueType->GetUnaliased();
 
-            if (m_keyType == BuiltinTypes::s_errorType)
+            if (m_keyType->TypeEqual(*BuiltinTypes::s_errorType))
             {
                 m_keyType = keyType;
             }
@@ -96,7 +96,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
                 m_keyType = SymbolType::TypePromotion(m_keyType, keyType);
             }
 
-            if (m_valueType == BuiltinTypes::s_errorType)
+            if (m_valueType->TypeEqual(*BuiltinTypes::s_errorType))
             {
                 m_valueType = valueType;
             }
@@ -117,7 +117,7 @@ void AstHashMap::Visit(AstVisitor* visitor, Module* mod)
 
     // if either key or value type is undefined, set it to `Any`
 
-    if (m_keyType == BuiltinTypes::s_errorType || m_valueType == BuiltinTypes::s_errorType)
+    if (m_keyType->TypeEqual(*BuiltinTypes::s_errorType) || m_valueType->TypeEqual(*BuiltinTypes::s_errorType))
     {
         // add error
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

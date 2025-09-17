@@ -2695,8 +2695,11 @@ RC<AstClass> Parser::ParseClass(
 
             if (!isStatic)
             {
+                SymbolType* selfTypePlaceholder = SymbolType::Placeholder("SelfType");
+                selfTypePlaceholder->Register(m_compilationUnit);
+
                 RC<AstTypeSpecifier> selfTypeSpec(new AstTypeSpecifier(
-                    RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), location)),
+                    RC<AstTypeRef>(new AstTypeRef(selfTypePlaceholder, location)),
                     location));
 
                 params.PushBack(RC<AstParameter>(new AstParameter(
@@ -2845,8 +2848,11 @@ RC<AstStatement> Parser::ParseEnumDefinition()
     {
         if (const Token ident = Expect(TK_IDENT, true))
         {
+            SymbolType* selfTypePlaceholder = SymbolType::Placeholder("SelfType");
+            selfTypePlaceholder->Register(m_compilationUnit);
+
             RC<AstTypeSpecifier> typeSpec(new AstTypeSpecifier(
-                RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), ident.GetLocation())),
+                RC<AstTypeRef>(new AstTypeRef(selfTypePlaceholder, ident.GetLocation())),
                 ident.GetLocation()));
 
             RC<AstExpression> assignment;

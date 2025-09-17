@@ -20,16 +20,16 @@ AstTypeRef::AstTypeRef(
     const SymbolType* symbolType,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
-      m_symbolType(symbolType),
-      m_isVisited(false)
+      m_symbolType(symbolType)
 {
 }
 
 void AstTypeRef::Visit(AstVisitor* visitor, Module* mod)
 {
-    Assert(m_symbolType != nullptr);
+    AssertDebug(m_symbolType != nullptr);
 
-    m_isVisited = true;
+    // to catch early, if symbol type is not registered (would be mem leak):
+    AssertDebug(m_symbolType->IsRegistered());
 }
 
 UniquePtr<Buildable> AstTypeRef::Build(AstVisitor* visitor, Module* mod)

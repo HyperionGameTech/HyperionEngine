@@ -37,9 +37,6 @@ public:
 private:
     const SymbolType* m_symbolType;
 
-    // set while analyzing
-    bool m_isVisited;
-
     RC<AstTypeRef> CloneImpl() const
     {
         return RC<AstTypeRef>(new AstTypeRef(

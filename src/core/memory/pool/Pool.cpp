@@ -3,7 +3,10 @@
 namespace hyperion {
 namespace memory {
 
-Pool::~Pool() = default;
+Pool::~Pool()
+{
+    m_blocks.Clear();
+}
 
 HYP_NODISCARD void* Pool::Alloc(SizeType size, SizeType alignment)
 {

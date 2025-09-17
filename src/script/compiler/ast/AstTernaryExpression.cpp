@@ -45,7 +45,10 @@ void AstTernaryExpression::Visit(AstVisitor* visitor, Module* mod)
         m_right->Visit(visitor, mod);
     }
 
-    if (GetExprType() == BuiltinTypes::s_errorType)
+    const SymbolType* exprType = GetExprType();
+    Assert(exprType != nullptr);
+
+    if (exprType->TypeEqual(*BuiltinTypes::s_errorType))
     {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
