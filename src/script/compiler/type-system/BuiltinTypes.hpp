@@ -38,7 +38,11 @@ struct BuiltinTypes
     static const SymbolType* s_arrayType;
     static const SymbolType* s_mapType;
 
-    static void Initialize();
+    /*! \brief Initialize builtin types in the given global compilation unit. The
+     *   global compilation unit is used for shared library types and must have a lifetime that exists
+     *   for the entire duration of the program. (Or as long as HypScript is used.)
+     */
+    static void Initialize(CompilationUnit* globalCompilationUnit);
     static void RegisterTypes(CompilationUnit* compilationUnit);
 };
 

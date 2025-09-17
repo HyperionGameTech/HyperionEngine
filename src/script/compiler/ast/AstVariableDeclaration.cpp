@@ -35,7 +35,6 @@ AstVariableDeclaration::AstVariableDeclaration(
 {
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 {
     if (m_flags & IdentifierFlags::PREREGISTER)
@@ -323,7 +322,6 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
         m_identifier->SetCurrentValue(m_realAssignment);
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 UniquePtr<Buildable> AstVariableDeclaration::Build(AstVisitor* visitor, Module* mod)
 {

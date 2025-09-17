@@ -303,7 +303,7 @@ private:
     SymbolType* m_symbolType;
 };
 
-class SymbolType final : public EnableRefCountedPtrFromThis<SymbolType>
+class SymbolType
 {
     friend class SymbolTypeRegistration;
     friend class IdentifierTable;
@@ -312,72 +312,72 @@ class SymbolType final : public EnableRefCountedPtrFromThis<SymbolType>
 
 public:
     /*! \brief Create a temporary type to be filled in later. */
-    static SymbolType* Temp()
+    static HYP_NODISCARD SymbolType* Temp()
     {
         return new SymbolType();
     }
 
-    static SymbolType* Alias(
+    static HYP_NODISCARD SymbolType* Alias(
         const String& name,
         const AliasTypeInfo& info);
 
     /*! \brief Defer resolution of this type until usage.
      */
-    static SymbolType* Placeholder(const String& name);
+    static HYP_NODISCARD SymbolType* Placeholder(const String& name);
 
-    static SymbolType* Primitive(
+    static HYP_NODISCARD SymbolType* Primitive(
         const String& name,
         const RC<AstExpression>& defaultValue,
         ConstantBitSize bitSize = CBS_INVALID,
         Array<SymbolTypeMember>&& members = {},
         Array<SymbolTypeMember>&& staticMembers = {});
 
-    static SymbolType* Enum(
+    static HYP_NODISCARD SymbolType* Enum(
         const String& name,
         const SymbolType* underlyingType,
         Array<SymbolTypeMember>&& enumMembers);
 
-    static SymbolType* Object(
+    static HYP_NODISCARD SymbolType* Object(
         const String& name,
         const SymbolType* baseType,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers);
 
-    static SymbolType* Generic(
+    static HYP_NODISCARD SymbolType* Generic(
         const String& name,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolType* Generic(
+    static HYP_NODISCARD SymbolType* Generic(
         const String& name,
         const SymbolType* baseType,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolType* GenericInstance(
+    static HYP_NODISCARD SymbolType* GenericInstance(
         const SymbolType* genericType,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolType* GenericInstance(
+    static HYP_NODISCARD SymbolType* GenericInstance(
         const String& name,
         const SymbolType* genericType,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolType* GenericParameter(const String& name);
+    static HYP_NODISCARD SymbolType* GenericParameter(const String& name);
 
-    static SymbolType* Extend(
+    static HYP_NODISCARD SymbolType* Extend(
         const String& name,
         const SymbolType* baseType,
         Array<SymbolTypeMember>&& members,
         Array<SymbolTypeMember>&& staticMembers);
 
-    static const SymbolType* TypePromotion(
+    static HYP_NODISCARD const SymbolType* TypePromotion(
         const SymbolType* lptr,
         const SymbolType* rptr);
 
@@ -397,9 +397,11 @@ public:
 
     SymbolType(const SymbolType& other) = delete;
     SymbolType& operator=(const SymbolType& other) = delete;
+
     SymbolType(SymbolType&& other) noexcept = delete;
     SymbolType& operator=(SymbolType&& other) noexcept = delete;
-    ~SymbolType() override;
+
+    ~SymbolType();
 
     HYP_FORCE_INLINE bool operator==(const SymbolType& other) const
     {
@@ -456,6 +458,11 @@ public:
         m_members = members;
     }
 
+    void SetMembers(Array<SymbolTypeMember>&& members)
+    {
+        m_members = std::move(members);
+    }
+
     HYP_FORCE_INLINE Array<SymbolTypeMember>& GetStaticMembers()
     {
         return m_staticMembers;
@@ -464,6 +471,16 @@ public:
     HYP_FORCE_INLINE const Array<SymbolTypeMember>& GetStaticMembers() const
     {
         return m_staticMembers;
+    }
+
+    void SetStaticMembers(const Array<SymbolTypeMember>& staticMembers)
+    {
+        m_staticMembers = staticMembers;
+    }
+
+    void SetStaticMembers(Array<SymbolTypeMember>&& staticMembers)
+    {
+        m_staticMembers = std::move(staticMembers);
     }
 
     HYP_FORCE_INLINE AliasTypeInfo& GetAliasInfo()
@@ -642,6 +659,8 @@ public:
         the new instance. */
     void Assign(const SymbolType& other)
     {
+        // @TODO: Update registration of nested types if this type is registered.
+
         m_name = std::move(other.m_name);
         m_typeClass = other.m_typeClass;
         m_base = other.m_base;
@@ -654,7 +673,13 @@ public:
         m_constantBitSize = other.m_constantBitSize;
         m_flags = other.m_flags;
         m_declScope = nullptr; // do not copy scope
+
+        // do not copy registration
     }
+
+#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
+    String allocationTrace;
+#endif
 
 private:
     HashCode GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const;

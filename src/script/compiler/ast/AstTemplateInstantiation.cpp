@@ -100,73 +100,31 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes,
         m_location);
 
+    Assert(genericInstanceType != nullptr);
+    genericInstanceType->AssertRegistered();
+
     genericInstanceType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         visitor,
         mod,
         genericInstanceType,
         m_location);
 
-    if (!genericInstanceType)
-    {
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_internal_error,
-            m_location));
-
-        return;
-    }
+    Assert(genericInstanceType != nullptr);
+    genericInstanceType->AssertRegistered();
 
     newType->Assign(*genericInstanceType);
 
     m_symbolType = newType;
-    Assert(m_symbolType != nullptr);
 }
 
 UniquePtr<Buildable> AstTemplateInstantiation::Build(AstVisitor* visitor, Module* mod)
 {
-
+    // no bytecode to generate
     return nullptr;
-
-    // UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    // // Build the arguments
-    // chunk->Append(Compiler::BuildArgumentsStart(
-    //     visitor,
-    //     mod,
-    //     m_substitutedArgs
-    // ));
-
-    // const int stackSizeBefore = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
-    // // Build the original expression.
-    // // Usage of arguments in the expression will be replaced with the substituted arguments.
-    // chunk->Append(m_expr->Build(visitor, mod));
-
-    // const int stackSizeNow = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
-    // Assert(
-    //     stackSizeNow == stackSizeBefore,
-    //     "Stack size mismatch detected! Internal record of stack does not match. (%d != %d)",
-    //     stackSizeNow,
-    //     stackSizeBefore
-    // );
-
-    // chunk->Append(Compiler::BuildArgumentsEnd(
-    //     visitor,
-    //     mod,
-    //     m_substitutedArgs.Size()
-    // ));
-
-    // return chunk;
 }
 
 void AstTemplateInstantiation::Optimize(AstVisitor* visitor, Module* mod)
 {
-    // Assert(visitor != nullptr);
-    // Assert(mod != nullptr);
-
-    // Assert(m_block != nullptr);
-    // m_block->Optimize(visitor, mod);
 }
 
 RC<AstStatement> AstTemplateInstantiation::Clone() const

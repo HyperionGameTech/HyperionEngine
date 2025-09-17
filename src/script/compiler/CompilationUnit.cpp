@@ -18,25 +18,39 @@ class SymbolTypeCache
 {
 public:
     SymbolTypeCache()
+        : pool(new Pool())
     {
         ptrs.Reserve(1024);
     }
+
+    SymbolTypeCache(const SymbolTypeCache& other) = delete;
+    SymbolTypeCache& operator=(const SymbolTypeCache& other) = delete;
+
+    SymbolTypeCache(SymbolTypeCache&& other) noexcept = delete;
+    SymbolTypeCache& operator=(SymbolTypeCache&& other) noexcept = delete;
 
     ~SymbolTypeCache()
     {
         for (SizeType i = ptrs.Size(); i > 0; i--)
         {
             ptrs[i - 1]->~SymbolTypeRegistration();
+            pool->Free(ptrs[i - 1]);
         }
 
+        ptrs.Clear();
+
         // pool frees itself
+        delete pool;
+        pool = nullptr;
+
+        HYP_BREAKPOINT;
     }
 
     SymbolTypeRegistration* Register(SymbolType* symbolType)
     {
         Assert(symbolType != nullptr);
 
-        SymbolTypeRegistration* pRegistration = (SymbolTypeRegistration*)pool.Allocate(sizeof(SymbolTypeRegistration), alignof(SymbolTypeRegistration));
+        SymbolTypeRegistration* pRegistration = (SymbolTypeRegistration*)pool->Allocate(sizeof(SymbolTypeRegistration), alignof(SymbolTypeRegistration));
         new (pRegistration) SymbolTypeRegistration(symbolType);
 
         ptrs.PushBack(pRegistration);
@@ -44,14 +58,14 @@ public:
         return pRegistration;
     }
 
-    Pool pool;
+    Pool* pool;
     Array<SymbolTypeRegistration*> ptrs;
 };
 
 #pragma endregion SymbolTypeCache
 
 CompilationUnit::CompilationUnit()
-    : m_globalModule(new Module(hyperion::Config::globalModuleName, SourceLocation::eof)),
+    : m_globalModule(MakeRefCountedPtr<Module>(hyperion::Config::globalModuleName, SourceLocation::eof)),
       m_symbolTypeCache(MakePimpl<SymbolTypeCache>())
 {
     m_globalModule->SetImportTreeLink(m_moduleTree.TopNode());
@@ -63,8 +77,13 @@ CompilationUnit::CompilationUnit()
 
 CompilationUnit::~CompilationUnit()
 {
+    m_symbolTypeCache.Reset();
+    m_globalModule.Reset();
+
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     CheckDanglingSymbolTypes();
+
+    HYP_BREAKPOINT;
 #endif
 }
 
@@ -99,7 +118,12 @@ Module* CompilationUnit::LookupModule(const String& name)
 
 void CompilationUnit::RegisterType(SymbolType* symbolType)
 {
-    if (!symbolType || symbolType->IsRegistered())
+    if (!symbolType)
+    {
+        return;
+    }
+
+    if (symbolType->IsRegistered())
     {
         return;
     }

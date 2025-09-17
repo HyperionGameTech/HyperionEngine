@@ -220,7 +220,6 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     }
 
     m_symbolType->Register(visitor->GetCompilationUnit());
-
     mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
 
     SymbolType* selfAliasType = SymbolType::Alias("SelfType", { m_symbolType });
@@ -342,9 +341,12 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
 
+                SymbolType* newMemberType = memberType->Clone();
+                newMemberType->Register(visitor->GetCompilationUnit());
+
                 m_symbolType->GetStaticMembers().PushBack(SymbolTypeMember {
                     memberName,
-                    memberType->Clone(),
+                    newMemberType,
                     decl->GetRealAssignment() });
             }
         }
@@ -466,6 +468,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                     }
                 }
 
+                SymbolType* constructorSelfTypePlaceholder = SymbolType::Placeholder("SelfType");
+                constructorSelfTypePlaceholder->Register(visitor->GetCompilationUnit());
+
                 // add constructor
                 Array<RC<AstParameter>> constructorParams;
 
@@ -473,7 +478,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 constructorParams.PushBack(RC<AstParameter>(new AstParameter(
                     "self",
                     RC<AstTypeSpecifier>(new AstTypeSpecifier(
-                        RC<AstTypeRef>(new AstTypeRef(SymbolType::Placeholder("SelfType"), m_location)),
+                        RC<AstTypeRef>(new AstTypeRef(constructorSelfTypePlaceholder, m_location)),
                         m_location)),
                     nullptr,
                     false, /* variadic */

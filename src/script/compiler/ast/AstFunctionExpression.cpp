@@ -29,10 +29,10 @@
 #include <core/object/HypMethod.hpp>
 
 #include <core/debug/Debug.hpp>
-#include <util/UTF8.hpp>
 
-#include <vector>
-#include <iostream>
+#include <core/utilities/DeferredScope.hpp>
+
+#include <util/UTF8.hpp>
 
 namespace hyperion {
 
@@ -368,16 +368,25 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(identifier != nullptr);
         Assert(identifier->GetSymbolType() != nullptr);
 
+        SymbolType* newIdentifierType = identifier->GetSymbolType()->Clone();
+        newIdentifierType->Register(visitor->GetCompilationUnit());
+
         closureObjMembers.PushBack(SymbolTypeMember {
             identifier->GetName(),
-            identifier->GetSymbolType()->Clone(),
+            newIdentifierType,
             RC<AstVariable>(new AstVariable(name, m_location)) });
     }
 
     // close parameter scope
     mod->scopeTree.Close();
 
-    const SymbolType* functionType = nullptr;
+    SymbolType* functionType = nullptr;
+    HYP_DEFER({
+        if (functionType)
+        {
+            functionType->AssertRegistered();
+        }
+    });
 
     {
         // set object type to be an instance of function
@@ -393,9 +402,12 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
 
             if (closureObjMembers.Any() || m_closureSelfParam->GetIdentifier()->GetUseCount() > 0)
             {
+                SymbolType* closureSelfTypePlaceholder = SymbolType::Placeholder("ClosureSelfType");
+                closureSelfTypePlaceholder->Register(visitor->GetCompilationUnit());
+
                 genericParamTypes.EmplaceBack(
                     m_closureSelfParam->GetName(),
-                    SymbolType::Placeholder("ClosureSelfType"),
+                    closureSelfTypePlaceholder,
                     nullptr,
                     /* isRef */ false,
                     /* isConst */ false);
@@ -412,11 +424,13 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             genericParamTypes.PushBack(it);
         }
 
-        functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+        functionType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             visitor, mod,
             BuiltinTypes::s_functionType,
             genericParamTypes,
-            m_location);
+            m_location));
+
+        functionType->Register(visitor->GetCompilationUnit());
     }
 
     if (m_isClosure)
