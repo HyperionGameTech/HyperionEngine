@@ -50,7 +50,7 @@ public:
     {
         Assert(symbolType != nullptr);
 
-        SymbolTypeRegistration* pRegistration = (SymbolTypeRegistration*)pool->Allocate(sizeof(SymbolTypeRegistration), alignof(SymbolTypeRegistration));
+        SymbolTypeRegistration* pRegistration = pool->Alloc<SymbolTypeRegistration>();
         new (pRegistration) SymbolTypeRegistration(symbolType);
 
         ptrs.PushBack(pRegistration);

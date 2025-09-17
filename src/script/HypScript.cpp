@@ -133,11 +133,21 @@ Script_Instance* HypScript::GetGlobalInstance() const
 
 void HypScript::Initialize()
 {
-    BuiltinTypes::Initialize(&m_pImpl->globalCompilationUnit);
+    BuiltinTypes::Initialize(&m_impl->globalCompilationUnit);
 
     if (Result res = InitializeHypScriptLib(*this); res.HasError())
     {
         HYP_LOG(HypScript, Error, "Failed to initialize HypScript lib! {}", res.GetError().GetMessage());
+    }
+
+    FileBufferedReaderSource source { s_libPath };
+    BufferedByteReader reader { &source };
+
+    if (!reader.IsOpen())
+    {
+        HYP_LOG(HypScript, Error, "Failed to open Lib.hyp at path '{}'! Did the build tool run correctly?", s_libPath);
+
+        return;
     }
 
     ByteBuffer byteBuffer = reader.ReadBytes();
