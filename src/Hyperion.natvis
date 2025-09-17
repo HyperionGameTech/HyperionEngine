@@ -243,20 +243,20 @@
   </Type>
 
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
+    <DisplayString>{{ {($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;pObj</ExpandedItem>
+      <Item Name="[Strong Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
   <Type Name="hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
+    <DisplayString>{{ {($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;pObj</ExpandedItem>
+      <Item Name="[Strong Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
@@ -953,18 +953,6 @@
           <Item Name="StringValue">"???"</Item>
         </If>
       </CustomListItems>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::renderer::RenderObjectHandle_Strong&lt;*,*&gt;">
-    <DisplayString>{{ ID={index} Strong={s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value} Weak={s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
-
-    <Expand>
-      <Item Name="[Strong]">(s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
-      <Item Name="[Weak]">s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value</Item>
-      <!--<Item Name="[Name]">_container->m_debug_names.m_values[index]</Item>-->
-
-      <ExpandedItem>($T1 *)(&amp;(s_container-&gt;m_data.m_values[index - 1].storage))</ExpandedItem>
     </Expand>
   </Type>
 

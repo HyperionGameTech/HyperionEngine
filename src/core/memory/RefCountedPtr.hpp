@@ -737,6 +737,11 @@ public:
     {
         return WeakRefCountedPtr<T, CountType>(*this);
     }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(Get());
+    }
 };
 
 template <class CountType>
@@ -910,6 +915,11 @@ public:
     {
         Base::Reset();
     }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(Get());
+    }
 };
 
 template <class T, class CountType>
@@ -1051,6 +1061,11 @@ public:
 
         return result;
     }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(GetUnsafe());
+    }
 };
 
 // Weak<void> specialization
@@ -1152,6 +1167,11 @@ public:
 
         return weak;
     }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(GetUnsafe());
+    }
 };
 
 // enable-from-this using an external owned block pointing at `this`
@@ -1209,7 +1229,7 @@ public:
     WeakRefCountedPtr<T, CountType> WeakRefCountedPtrFromThis() const
     {
         WeakRefCountedPtr<T, CountType> result;
-        result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incWeak */ true);
+        result.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incWeak */ true);
         
         return result;
     }
