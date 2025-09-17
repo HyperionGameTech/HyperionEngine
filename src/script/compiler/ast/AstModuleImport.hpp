@@ -11,7 +11,7 @@ namespace hyperion {
 class Identifier;
 class SymbolType;
 
-using Symbol = Variant<RC<Identifier>, SymbolTypeRef>;
+using Symbol = Variant<RC<Identifier>, const SymbolType*>;
 
 class AstModuleImportPart : public AstStatement
 {
@@ -22,22 +22,22 @@ public:
         const SourceLocation& location);
     virtual ~AstModuleImportPart() = default;
 
-    const String& GetLeft() const
+    HYP_FORCE_INLINE const String& GetLeft() const
     {
         return m_left;
     }
 
-    const Array<RC<AstModuleImportPart>>& GetParts() const
+    HYP_FORCE_INLINE const Array<RC<AstModuleImportPart>>& GetParts() const
     {
         return m_rightParts;
     }
 
-    void SetPullInModules(bool pullInModules)
+    HYP_FORCE_INLINE void SetPullInModules(bool pullInModules)
     {
         m_pullInModules = pullInModules;
     }
 
-    const Array<Symbol>& GetFoundSymbols() const
+    HYP_FORCE_INLINE const Array<Symbol>& GetFoundSymbols() const
     {
         return m_foundSymbols;
     }
@@ -67,8 +67,8 @@ private:
     Array<RC<AstModuleImportPart>> m_rightParts;
 
     // set while analyzing
-    bool m_pullInModules;
     Array<Symbol> m_foundSymbols;
+    bool m_pullInModules : 1;
 
     RC<AstModuleImportPart> CloneImpl() const
     {

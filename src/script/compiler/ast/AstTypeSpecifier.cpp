@@ -21,7 +21,8 @@ AstTypeSpecifier::AstTypeSpecifier(
     const RC<AstExpression>& expr,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
-      m_expr(expr)
+      m_expr(expr),
+      m_symbolType(nullptr)
 {
 }
 
@@ -40,7 +41,7 @@ void AstTypeSpecifier::Visit(AstVisitor* visitor, Module* mod)
 
     m_symbolType = BuiltinTypes::s_errorType;
 
-    SymbolTypeRef heldType = m_expr->GetHeldType();
+    const SymbolType* heldType = m_expr->GetHeldType();
 
     if (!heldType)
     {
@@ -89,7 +90,7 @@ bool AstTypeSpecifier::MayHaveSideEffects() const
     return m_expr->MayHaveSideEffects();
 }
 
-SymbolTypeRef AstTypeSpecifier::GetExprType() const
+const SymbolType* AstTypeSpecifier::GetExprType() const
 {
     if (m_expr != nullptr)
     {
@@ -97,6 +98,11 @@ SymbolTypeRef AstTypeSpecifier::GetExprType() const
     }
 
     return nullptr;
+}
+
+const SymbolType* AstTypeSpecifier::GetHeldType() const
+{
+    return m_symbolType;
 }
 
 const AstExpression* AstTypeSpecifier::GetValueOf() const
@@ -117,11 +123,6 @@ const AstExpression* AstTypeSpecifier::GetDeepValueOf() const
     }
 
     return AstExpression::GetDeepValueOf();
-}
-
-SymbolTypeRef AstTypeSpecifier::GetHeldType() const
-{
-    return m_symbolType;
 }
 
 } // namespace hyperion

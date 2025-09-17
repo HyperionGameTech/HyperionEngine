@@ -44,7 +44,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
     virtual AstExpression* GetTarget() const override;
     virtual bool IsMutable() const override;
 
@@ -69,7 +69,7 @@ private:
     // set while analyzing
     RC<AstExpression> m_overrideExpr;
     RC<AstVariableDeclaration> m_tempArrayStoreVarDecl;
-    SymbolTypeRef m_exprType;
+    const SymbolType* m_exprType;
 
     RC<AstArrayAccess> CloneImpl() const
     {

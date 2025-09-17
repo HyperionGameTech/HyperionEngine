@@ -29,20 +29,22 @@ public:
     AstStatement(const SourceLocation& location);
     virtual ~AstStatement() = default;
 
-    SourceLocation& GetLocation()
-    {
-        return m_location;
-    }
-    const SourceLocation& GetLocation() const
+    HYP_FORCE_INLINE SourceLocation& GetLocation()
     {
         return m_location;
     }
 
-    uint32 GetScopeDepth() const
+    HYP_FORCE_INLINE const SourceLocation& GetLocation() const
+    {
+        return m_location;
+    }
+
+    HYP_FORCE_INLINE uint32 GetScopeDepth() const
     {
         return m_scopeDepth;
     }
-    void SetScopeDepth(uint32 depth)
+
+    HYP_FORCE_INLINE void SetScopeDepth(uint32 depth)
     {
         m_scopeDepth = depth;
     }

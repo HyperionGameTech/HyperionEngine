@@ -16,16 +16,17 @@ public:
         const Operator* op,
         const SourceLocation& location);
 
-    const RC<AstExpression>& GetLeft() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetLeft() const
     {
         return m_left;
     }
-    const RC<AstExpression>& GetRight() const
+
+    HYP_FORCE_INLINE const RC<AstExpression>& GetRight() const
     {
         return m_right;
     }
 
-    void SetEnableOverrideExpr(bool enable)
+    HYP_FORCE_INLINE void SetEnableOverrideExpr(bool enable)
     {
         m_enableOverrideExpr = enable;
     }
@@ -41,7 +42,7 @@ public:
 
     virtual ConstantValue GetConstantValue() const override;
 
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual String ToString() const override;
 
@@ -61,7 +62,7 @@ private:
     const Operator* m_op;
 
     RC<AstExpression> m_overrideExpr;
-    bool m_enableOverrideExpr;
+    bool m_enableOverrideExpr : 1;
 
 #if HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS
     // if the expression is lazy declaration

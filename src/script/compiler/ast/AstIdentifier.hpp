@@ -23,8 +23,8 @@ struct AstIdentifierProperties
     int m_depth = 0;
     Scope* m_functionScope = nullptr;
 
-    // if the found identifier was a type...
-    SymbolTypeRef m_foundType = nullptr;
+    // if the found identifier was a type:
+    const SymbolType* m_foundType = nullptr;
 
     // getters & setters
     RC<Identifier>& GetIdentifier()
@@ -100,8 +100,8 @@ public:
 
     virtual ConstantValue GetConstantValue() const override final;
 
-    virtual SymbolTypeRef GetExprType() const override = 0;
-    virtual SymbolTypeRef GetHeldType() const override;
+    virtual const SymbolType* GetExprType() const override = 0;
+    virtual const SymbolType* GetHeldType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;

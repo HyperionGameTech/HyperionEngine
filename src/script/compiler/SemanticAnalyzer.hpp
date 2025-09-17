@@ -17,7 +17,7 @@ class Module;
 
 struct SubstitutionResult
 {
-    Variant<SymbolTypeRef, RC<AstArgument>> value;
+    Variant<const SymbolType*, RC<AstArgument>> value;
     SizeType index = SizeType(-1);
 };
 
@@ -25,7 +25,7 @@ struct ArgInfo
 {
     bool isNamed;
     String name;
-    SymbolTypeRef type;
+    const SymbolType* type;
 };
 
 class SemanticAnalyzer : public AstVisitor
@@ -50,57 +50,59 @@ public:
             SizeType numSuppliedArgs = -1);
 
     public:
-        static SymbolTypeRef GetVarArgType(
+        static const SymbolType* GetVarArgType(
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs);
 
-        static SymbolTypeRef SubstituteGenericParameters(
+        /// Creates new types
+        static const SymbolType* SubstituteGenericParameters(
             AstVisitor* visitor,
             Module* mod,
-            const SymbolTypeRef& inputType,
+            const SymbolType* inputType,
             const Array<GenericInstanceTypeInfo::Arg>& inArgs,
             const SourceLocation& location);
 
-        static SymbolTypeRef GenericPromotion(
+        static const SymbolType* GenericPromotion(
             AstVisitor* visitor,
             Module* mod,
-            const SymbolTypeRef& lptr,
-            const SymbolTypeRef& rptr,
+            const SymbolType* lptr,
+            const SymbolType* rptr,
             const SourceLocation& location);
 
-        static SymbolTypeRef ResolvePlaceholderType(
+        /// Does NOT create new Types
+        static const SymbolType* ResolvePlaceholderType(
             AstVisitor* visitor,
             Module* mod,
-            const SymbolTypeRef& inputType,
+            const SymbolType* inputType,
             const SourceLocation& location);
 
         static void CheckArgTypeCompatible(
             AstVisitor* visitor,
             Module* mod,
             const SourceLocation& location,
-            const SymbolTypeRef& argType,
-            const SymbolTypeRef& paramType);
+            const SymbolType* argType,
+            const SymbolType* paramType);
 
         static bool SubstituteFunctionArgs(
             AstVisitor* visitor,
             Module* mod,
-            const SymbolTypeRef& symbolType,
+            const SymbolType* symbolType,
             const Array<RC<AstArgument>>& args,
             const SourceLocation& location,
-            SymbolTypeRef& outReturnType,
+            const SymbolType*& outReturnType,
             Array<RC<AstArgument>>& outArgs);
 
         static void EnsureFunctionArgCompatibility(
             AstVisitor* visitor,
             Module* mod,
-            const SymbolTypeRef& symbolType,
+            const SymbolType* symbolType,
             const Array<RC<AstArgument>>& args,
             const SourceLocation& location);
 
         static void EnsureTypeAssignmentCompatibility(
             AstVisitor* visitor,
             Module* mod,
-            const SymbolTypeRef& symbolType,
-            const SymbolTypeRef& assignmentType,
+            const SymbolType* symbolType,
+            const SymbolType* assignmentType,
             bool strictEnum,
             const SourceLocation& location);
     };

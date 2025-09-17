@@ -25,27 +25,27 @@ public:
 
     virtual ~AstVariableDeclaration() = default;
 
-    const RC<AstTypeSpecifier>& GetTypeSpecifier() const
+    HYP_FORCE_INLINE const RC<AstTypeSpecifier>& GetTypeSpecifier() const
     {
         return m_typeSpec;
     }
 
-    void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
+    HYP_FORCE_INLINE void SetTypeSpecifier(const RC<AstTypeSpecifier>& typeSpec)
     {
         m_typeSpec = typeSpec;
     }
 
-    const RC<AstExpression>& GetAssignment() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetAssignment() const
     {
         return m_assignment;
     }
 
-    void SetAssignment(const RC<AstExpression>& assignment)
+    HYP_FORCE_INLINE void SetAssignment(const RC<AstExpression>& assignment)
     {
         m_assignment = assignment;
     }
 
-    const RC<AstExpression>& GetRealAssignment() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetRealAssignment() const
     {
         return m_realAssignment;
     }
@@ -56,7 +56,7 @@ public:
 
     virtual RC<AstStatement> Clone() const override;
 
-    SymbolTypeRef GetExprType() const
+    HYP_FORCE_INLINE const SymbolType* GetSymbolType() const
     {
         return m_symbolType;
     }
@@ -78,7 +78,7 @@ protected:
     // set while analyzing
     RC<AstExpression> m_realAssignment;
 
-    SymbolTypeRef m_symbolType;
+    const SymbolType* m_symbolType;
 
     RC<AstVariableDeclaration> CloneImpl() const
     {

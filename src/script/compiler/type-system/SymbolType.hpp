@@ -8,6 +8,12 @@
 
 namespace hyperion {
 
+#define HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG 1
+
+#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
+extern void CheckDanglingSymbolTypes();
+#endif
+
 // forward declaration
 class SymbolType;
 class AstExpression;
@@ -15,11 +21,65 @@ class AstArgument;
 struct Scope;
 class CompilationUnit;
 
-struct SymbolTypeMember
+class SymbolTypeMember final
 {
-    String name;
-    SymbolType* type = nullptr;
-    RC<AstExpression> expr;
+public:
+    SymbolTypeMember()
+        : m_type(nullptr)
+    {
+    }
+
+    SymbolTypeMember(const String& name, SymbolType* type, const RC<AstExpression>& expr = nullptr)
+        : m_name(name),
+          m_type(type),
+          m_expr(expr)
+    {
+    }
+
+    HYP_FORCE_INLINE const String& GetName() const
+    {
+        return m_name;
+    }
+
+    HYP_FORCE_INLINE void SetName(const String& name)
+    {
+        m_name = name;
+    }
+
+    HYP_FORCE_INLINE SymbolType* GetType()
+    {
+        return m_type;
+    }
+
+    HYP_FORCE_INLINE const SymbolType* GetType() const
+    {
+        return m_type;
+    }
+
+    HYP_FORCE_INLINE void SetType(SymbolType* type)
+    {
+        m_type = type;
+    }
+
+    HYP_FORCE_INLINE const RC<AstExpression>& GetExpr() const
+    {
+        return m_expr;
+    }
+
+    HYP_FORCE_INLINE void SetExpr(const RC<AstExpression>& expr)
+    {
+        m_expr = expr;
+    }
+
+    HYP_FORCE_INLINE void SetExpr(RC<AstExpression>&& expr)
+    {
+        m_expr = std::move(expr);
+    }
+
+private:
+    String m_name;
+    SymbolType* m_type;
+    RC<AstExpression> m_expr;
 };
 
 enum SymbolTypeClass : uint8
@@ -170,7 +230,7 @@ static inline constexpr double CBS_Max_Float(ConstantBitSize cbs)
 
 struct AliasTypeInfo
 {
-    SymbolType* m_aliasee = nullptr;
+    const SymbolType* m_aliasee = nullptr;
 };
 
 struct GenericInstanceTypeInfo
@@ -178,7 +238,7 @@ struct GenericInstanceTypeInfo
     struct Arg
     {
         String m_name;
-        SymbolType* m_type;
+        const SymbolType* m_type;
         RC<AstExpression> m_defaultValue;
         bool m_isRef : 1;
         bool m_isConst : 1;
@@ -190,12 +250,12 @@ struct GenericInstanceTypeInfo
         {
         }
 
-        Arg(const String& name, SymbolType* type, const RC<AstExpression>& defaultValue = nullptr)
+        Arg(const String& name, const SymbolType* type, const RC<AstExpression>& defaultValue = nullptr)
             : Arg(name, type, defaultValue, /* isRef */ false, /* isConst */ false)
         {
         }
 
-        Arg(const String& name, SymbolType* type, const RC<AstExpression>& defaultValue, bool isRef, bool isConst)
+        Arg(const String& name, const SymbolType* type, const RC<AstExpression>& defaultValue, bool isRef, bool isConst)
             : m_name(name),
               m_type(type),
               m_defaultValue(defaultValue),
@@ -248,17 +308,7 @@ class SymbolType final : public EnableRefCountedPtrFromThis<SymbolType>
     friend class SymbolTypeRegistration;
     friend class IdentifierTable;
 
-    SymbolType()
-        : m_name("<temp>"),
-          m_typeClass(TYPE_INVALID),
-          m_base(nullptr),
-          m_defaultValue(nullptr),
-          m_constantBitSize(CBS_INVALID),
-          m_flags(SYMBOL_TYPE_FLAGS_NONE),
-          m_declScope(nullptr),
-          m_registration(nullptr)
-    {
-    }
+    SymbolType();
 
 public:
     /*! \brief Create a temporary type to be filled in later. */
@@ -273,61 +323,59 @@ public:
 
     /*! \brief Defer resolution of this type until usage.
      */
-    static SymbolType* Placeholder(
-        const String& name);
+    static SymbolType* Placeholder(const String& name);
 
     static SymbolType* Primitive(
         const String& name,
         const RC<AstExpression>& defaultValue,
         ConstantBitSize bitSize = CBS_INVALID,
-        const Array<SymbolTypeMember>& members = {},
-        const Array<SymbolTypeMember>& staticMembers = {});
+        Array<SymbolTypeMember>&& members = {},
+        Array<SymbolTypeMember>&& staticMembers = {});
 
     static SymbolType* Enum(
         const String& name,
-        SymbolType* underlyingType,
-        const Array<SymbolTypeMember>& members);
+        const SymbolType* underlyingType,
+        Array<SymbolTypeMember>&& enumMembers);
 
     static SymbolType* Object(
         const String& name,
-        SymbolType* base,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers);
+        const SymbolType* baseType,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers);
 
     static SymbolType* Generic(
         const String& name,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
     static SymbolType* Generic(
         const String& name,
-        SymbolType* baseType,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers,
+        const SymbolType* baseType,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
     static SymbolType* GenericInstance(
-        SymbolType* genericType,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers,
+        const SymbolType* genericType,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
     static SymbolType* GenericInstance(
         const String& name,
-        SymbolType* genericType,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers,
+        const SymbolType* genericType,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolType* GenericParameter(
-        const String& name);
+    static SymbolType* GenericParameter(const String& name);
 
     static SymbolType* Extend(
         const String& name,
-        SymbolType* base,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers);
+        const SymbolType* baseType,
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers);
 
     static const SymbolType* TypePromotion(
         const SymbolType* lptr,
@@ -344,8 +392,8 @@ public:
         SymbolTypeClass typeClass,
         const SymbolType* base,
         const RC<AstExpression>& defaultValue,
-        const Array<SymbolTypeMember>& members,
-        const Array<SymbolTypeMember>& staticMembers);
+        Array<SymbolTypeMember>&& members,
+        Array<SymbolTypeMember>&& staticMembers);
 
     SymbolType(const SymbolType& other) = delete;
     SymbolType& operator=(const SymbolType& other) = delete;
@@ -480,7 +528,7 @@ public:
 
     HYP_FORCE_INLINE void AssertRegistered() const
     {
-        Assert(m_registration != nullptr);
+        Assert(IsRegistered());
     }
 
     void Register(CompilationUnit* compilationUnit);
@@ -501,16 +549,16 @@ public:
         bool strictEnum,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
-    SymbolType* FindMember(UTF8StringView name) const;
+    const SymbolType* FindMember(UTF8StringView name) const;
     bool FindMember(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
 
-    SymbolType* FindMemberDeep(UTF8StringView name) const;
+    const SymbolType* FindMemberDeep(UTF8StringView name) const;
     bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
     bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const;
 
-    SymbolType* FindStaticMember(UTF8StringView name) const;
+    const SymbolType* FindStaticMember(UTF8StringView name) const;
     bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
 
@@ -631,6 +679,7 @@ private:
     SymbolTypeFlags m_flags;
     Scope* m_declScope;
 
+    // set to default empty registration upon creation so we can delete all unregistered types
     SymbolTypeRegistration* m_registration;
 };
 

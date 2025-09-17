@@ -488,14 +488,14 @@ static bool ShouldDerefType(const SymbolType& symbolType)
     // clang-format on
 }
 
-UniquePtr<Buildable> Compiler::DerefIfNeeded(AstVisitor* visitor, Module* mod, const SymbolTypeRef& symbolType)
+UniquePtr<Buildable> Compiler::DerefIfNeeded(AstVisitor* visitor, Module* mod, const SymbolType* symbolType)
 {
     if (!symbolType)
     {
         return nullptr;
     }
 
-    SymbolTypeRef symbolTypeUnaliased = symbolType->GetUnaliased();
+    const SymbolType* symbolTypeUnaliased = symbolType->GetUnaliased();
 
     // error occured, should have been caught earlier
     Assert(symbolTypeUnaliased != BuiltinTypes::s_errorType);

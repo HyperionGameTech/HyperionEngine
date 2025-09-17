@@ -65,8 +65,12 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
     ScopeGuard scopeGuard(mod, SCOPE_TYPE_NORMAL);
 
     // supplant "SelfType" placeholder type with the actual target type
-    SymbolTypeRef newType = SymbolType::Temp();
-    scopeGuard->identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { newType }));
+    SymbolType* newType = SymbolType::Temp();
+    newType->Register(visitor->GetCompilationUnit());
+
+    SymbolType* selfTypeAlias = SymbolType::Alias("SelfType", { newType });
+    selfTypeAlias->Register(visitor->GetCompilationUnit());
+    scopeGuard->identifierTable.AddSymbolType(selfTypeAlias);
 
     Array<GenericInstanceTypeInfo::Arg> genericParamTypes;
     genericParamTypes.Reserve(m_genericArgs.Size() + (m_functionReturnType ? 1 : 0));
@@ -75,7 +79,7 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
     {
         m_functionReturnType->Visit(visitor, mod);
 
-        SymbolTypeRef returnType = m_functionReturnType->GetHeldType();
+        const SymbolType* returnType = m_functionReturnType->GetHeldType();
         Assert(returnType != nullptr);
 
         genericParamTypes.EmplaceBack("@return", returnType, nullptr, false, false);
@@ -83,13 +87,13 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
 
     for (SizeType i = 0; i < m_genericArgs.Size(); i++)
     {
-        SymbolTypeRef argType = m_genericArgs[i]->GetHeldType();
+        const SymbolType* argType = m_genericArgs[i]->GetHeldType();
         Assert(argType != nullptr);
 
         genericParamTypes.EmplaceBack(HYP_FORMAT("Arg{}", i), argType, nullptr, false, false);
     }
 
-    SymbolTypeRef genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+    const SymbolType* genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         visitor,
         mod,
         m_symbolType,

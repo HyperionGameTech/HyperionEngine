@@ -32,7 +32,7 @@ public:
         const String& name,
         int flags = 0,
         const RC<AstExpression>& currentValue = nullptr,
-        const SymbolTypeRef& symbolType = nullptr);
+        const SymbolType* symbolType = nullptr);
 
     bool AddIdentifier(const RC<Identifier>& identifier);
 
@@ -40,9 +40,9 @@ public:
     RC<Identifier> LookUpIdentifier(const String& name);
 
     /** Look up symbol type by name */
-    SymbolTypeRef LookupSymbolType(const String& name, bool includePlaceholderTypes = true) const;
+    const SymbolType* LookupSymbolType(const String& name, bool includePlaceholderTypes = true) const;
 
-    void AddSymbolType(const SymbolTypeRef& type);
+    void AddSymbolType(SymbolType* symbolType);
 
     Scope* scope;
     /** To be incremented every time a new identifier is added */
@@ -51,7 +51,7 @@ public:
     Array<RC<Identifier>> identifiers;
 
     /** All types that are defined in this identifier table */
-    Array<SymbolTypeRef> symbolTypes;
+    Array<const SymbolType*> symbolTypes;
 };
 
 } // namespace hyperion

@@ -32,12 +32,12 @@ public:
 
     virtual ~AstFunctionExpression() override = default;
 
-    bool IsConstructorDefinition() const
+    HYP_FORCE_INLINE bool IsConstructorDefinition() const
     {
         return m_isConstructorDefinition;
     }
 
-    void SetIsConstructorDefinition(bool isConstructorDefinition)
+    HYP_FORCE_INLINE void SetIsConstructorDefinition(bool isConstructorDefinition)
     {
         m_isConstructorDefinition = isConstructorDefinition;
     }
@@ -50,14 +50,14 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
-    const SymbolTypeRef& GetReturnType() const
+    HYP_FORCE_INLINE const SymbolType* GetReturnType() const
     {
         return m_returnType;
     }
 
-    void SetReturnType(const SymbolTypeRef& returnType)
+    HYP_FORCE_INLINE void SetReturnType(const SymbolType* returnType)
     {
         m_returnType = returnType;
     }
@@ -92,8 +92,8 @@ protected:
 
     bool m_isConstructorDefinition;
 
-    SymbolTypeRef m_symbolType;
-    SymbolTypeRef m_returnType;
+    SymbolType* m_symbolType;
+    const SymbolType* m_returnType;
 
     int m_closureObjectLocation;
 

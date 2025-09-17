@@ -25,7 +25,8 @@ AstParameter::AstParameter(
     : AstDeclaration(name, flags | IdentifierFlags::ARGUMENT, location),
       m_typeSpec(typeSpec),
       m_defaultParam(defaultParam),
-      m_isVariadic(isVariadic)
+      m_isVariadic(isVariadic),
+      m_symbolType(nullptr)
 {
 }
 
@@ -36,7 +37,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
     // params are `Any` by default
     m_symbolType = BuiltinTypes::s_anyType;
 
-    SymbolTypeRef specifiedSymbolType;
+    const SymbolType* specifiedSymbolType = nullptr;
 
     if (m_typeSpec != nullptr)
     {
@@ -65,7 +66,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
 
         m_defaultParam->Visit(visitor, mod);
 
-        const SymbolTypeRef defaultParamType = m_defaultParam->GetExprType();
+        const SymbolType* defaultParamType = m_defaultParam->GetExprType();
         Assert(defaultParamType != nullptr);
 
         if (specifiedSymbolType == nullptr)
@@ -106,7 +107,7 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
 
         m_varargsTypeSpec->Visit(visitor, mod);
 
-        SymbolTypeRef heldType = m_varargsTypeSpec->GetHeldType();
+        const SymbolType* heldType = m_varargsTypeSpec->GetHeldType();
         Assert(heldType != nullptr);
         heldType = heldType->GetUnaliased();
 
@@ -157,11 +158,6 @@ void AstParameter::Optimize(AstVisitor* visitor, Module* mod)
 RC<AstStatement> AstParameter::Clone() const
 {
     return CloneImpl();
-}
-
-SymbolTypeRef AstParameter::GetExprType() const
-{
-    return m_symbolType;
 }
 
 } // namespace hyperion

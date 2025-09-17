@@ -33,6 +33,9 @@ AstMember::AstMember(
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_fieldName(fieldName),
       m_target(target),
+      m_symbolType(nullptr),
+      m_targetType(nullptr),
+      m_heldType(nullptr),
       m_foundIndex(~0u),
       m_isStaticField(false),
       m_isStaticMethod(false)
@@ -52,10 +55,10 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
     bool isStaticMemberAccess = false;
 
-    if (SymbolTypeRef heldType = m_target->GetHeldType())
+    if (const SymbolType* heldType = m_target->GetHeldType())
     {
         // static member access
-        m_targetType = std::move(heldType);
+        m_targetType = heldType;
 
         // disable store access for static member access since we don't support it currently
         m_accessOptions &= ~ACCESS_MODE_STORE;
@@ -84,11 +87,11 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             m_location));
     }
 
-    const SymbolTypeRef originalType = m_targetType;
+    const SymbolType* originalType = m_targetType;
 
     // start looking at the target type,
     // iterate through base type
-    SymbolTypeRef fieldType = nullptr;
+    const SymbolType* fieldType = nullptr;
     SymbolTypeMember member;
 
     for (uint32 depth = 0; fieldType == nullptr && m_targetType != nullptr; depth++)
@@ -116,7 +119,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             // to ThingProxy.DoThing(thing)
             if (m_targetType->FindMember(m_fieldName, member, m_foundIndex))
             {
-                fieldType = member.type;
+                fieldType = member.GetType();
             }
 
             break;
@@ -139,7 +142,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             {
                 if (isStaticMemberAccess)
                 {
-                    if (member.type != nullptr && member.type->HasBase(*BuiltinTypes::s_functionBaseType))
+                    if (member.GetType() != nullptr && member.GetType()->HasBase(*BuiltinTypes::s_functionBaseType))
                     {
                         m_isStaticMethod = true;
                     }
@@ -157,7 +160,7 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
                     m_foundIndex = fieldIndex;
                 }
 
-                fieldType = member.type;
+                fieldType = member.GetType();
 
                 break;
             }
@@ -166,9 +169,9 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
         if (!isStaticMemberAccess)
         {
             // continue up the base type chain for non-static member access
-            if (const SymbolTypeRef& base = m_targetType->GetBaseType())
+            if (const SymbolType* pBase = m_targetType->GetBaseType())
             {
-                m_targetType = base->GetUnaliased();
+                m_targetType = pBase->GetUnaliased();
 
                 continue;
             }
@@ -288,14 +291,14 @@ bool AstMember::MayHaveSideEffects() const
     return m_target->MayHaveSideEffects() || m_accessMode == ACCESS_MODE_STORE;
 }
 
-SymbolTypeRef AstMember::GetExprType() const
+const SymbolType* AstMember::GetExprType() const
 {
     return m_symbolType;
 }
 
-SymbolTypeRef AstMember::GetHeldType() const
+const SymbolType* AstMember::GetHeldType() const
 {
-    if (m_heldType != nullptr)
+    if (m_heldType)
     {
         return m_heldType;
     }

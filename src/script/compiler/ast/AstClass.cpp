@@ -55,18 +55,20 @@ AstClass::AstClass(
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_name(name),
+      m_baseType(nullptr),
       m_baseSpec(baseSpec),
       m_dataMembers(dataMembers),
       m_functionMembers(functionMembers),
       m_staticMembers(staticMembers),
       m_flags(flags),
-      m_preRegister(false)
+      m_preRegister(false),
+      m_symbolType(nullptr)
 {
 }
 
 AstClass::AstClass(
     const String& name,
-    const SymbolTypeRef& baseType,
+    const SymbolType* baseType,
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
@@ -107,13 +109,13 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     {
         m_baseSpec->Visit(visitor, mod);
 
-        if (SymbolTypeRef baseTypeInner = m_baseSpec->GetHeldType())
+        if (const SymbolType* baseTypeInner = m_baseSpec->GetHeldType())
         {
-            m_baseType = std::move(baseTypeInner);
+            m_baseType = baseTypeInner;
         }
     }
 
-    SymbolTypeRef newType;
+    SymbolType* newType = nullptr;
 
     if (IsEnum())
     {
@@ -178,11 +180,15 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     if (m_symbolType)
     {
         m_symbolType->Assign(*newType);
+
+        delete newType;
     }
     else
     {
         m_symbolType = newType;
     }
+
+    newType = nullptr;
 
     const Array<RC<AstVariableDeclaration>>* allMembers[] = {
         &m_dataMembers,
@@ -213,8 +219,13 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
+    m_symbolType->Register(visitor->GetCompilationUnit());
+
     mod->scopeTree.Root().identifierTable.AddSymbolType(m_symbolType);
-    mod->scopeTree.Top().identifierTable.AddSymbolType(SymbolType::Alias("SelfType", { m_symbolType }));
+
+    SymbolType* selfAliasType = SymbolType::Alias("SelfType", { m_symbolType });
+    selfAliasType->Register(visitor->GetCompilationUnit());
+    mod->scopeTree.Top().identifierTable.AddSymbolType(selfAliasType);
 
     if (IsProxyClass())
     {
@@ -328,12 +339,12 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 Assert(decl->GetIdentifier() != nullptr);
 
-                SymbolTypeRef memberType = decl->GetIdentifier()->GetSymbolType();
+                const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
 
                 m_symbolType->GetStaticMembers().PushBack(SymbolTypeMember {
                     memberName,
-                    memberType,
+                    memberType->Clone(),
                     decl->GetRealAssignment() });
             }
         }
@@ -385,12 +396,15 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 Assert(decl->GetIdentifier() != nullptr);
 
-                SymbolTypeRef memberType = decl->GetIdentifier()->GetSymbolType();
+                const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
+
+                SymbolType* newMemberType = memberType->Clone();
+                newMemberType->Register(visitor->GetCompilationUnit());
 
                 m_symbolType->GetMembers().PushBack(SymbolTypeMember {
                     memberName,
-                    memberType,
+                    newMemberType,
                     decl->GetRealAssignment() });
             }
 
@@ -412,12 +426,15 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 Assert(decl->GetIdentifier() != nullptr);
 
-                SymbolTypeRef memberType = decl->GetIdentifier()->GetSymbolType();
+                const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
+
+                SymbolType* newMemberType = memberType->Clone();
+                newMemberType->Register(visitor->GetCompilationUnit());
 
                 SymbolTypeMember member {
                     memberName,
-                    memberType,
+                    newMemberType,
                     decl->GetRealAssignment()
                 };
 
@@ -442,14 +459,12 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 Optional<SymbolTypeMember> userDefinedConstructorMember;
                 for (const SymbolTypeMember& member : m_symbolType->GetMembers())
                 {
-                    if (member.name == m_name)
+                    if (member.GetName() == m_name)
                     {
                         userDefinedConstructorMember = member;
                         break;
                     }
                 }
-
-                SymbolTypeMember constructorMember;
 
                 // add constructor
                 Array<RC<AstParameter>> constructorParams;
@@ -490,7 +505,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 if (userDefinedConstructorMember.HasValue())
                 {
                     const SymbolTypeMember& userDefinedConstructorMemberRef = userDefinedConstructorMember.Get();
-                    Assert(userDefinedConstructorMemberRef.type != nullptr);
+                    Assert(userDefinedConstructorMemberRef.GetType() != nullptr);
 
                     Array<RC<AstArgument>> constructorArgs;
                     constructorArgs.Reserve(constructorParams.Size());
@@ -515,7 +530,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                     constructorBody->AddChild(RC<AstExpression>(new AstCallExpression(
                         RC<AstMember>(new AstMember(
-                            userDefinedConstructorMemberRef.name,
+                            userDefinedConstructorMemberRef.GetName(),
                             RC<AstVariable>(new AstVariable("self", m_location)),
                             m_location)),
                         constructorArgs,
@@ -544,13 +559,17 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 constructMemberDecl->Visit(visitor, mod);
 
-                constructorMember = SymbolTypeMember {
+                SymbolType* constructorMemberType = constructorExpr->GetExprType()->Clone();
+                constructorMemberType->Register(visitor->GetCompilationUnit());
+
+                SymbolTypeMember constructorMember {
                     "$construct",
-                    constructorExpr->GetExprType(),
+                    constructorMemberType,
                     CloneAstNode(constructorExpr)
                 };
 
                 m_symbolType->GetMembers().PushBack(constructorMember);
+
                 constructorExpr.Reset(); // release ref
             }
         }
@@ -559,11 +578,10 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     if (!m_preRegister)
     {
         // resolve placeholders in members
-        SymbolTypeRef resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location);
+        SymbolType* resolvedType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location));
         Assert(resolvedType != nullptr);
 
         m_symbolType->Assign(*resolvedType);
-        resolvedType.Reset();
     }
 
     { // create a type ref for the symbol type
@@ -657,13 +675,15 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     if (!IsEnum())
     {
         // iterate through parent types and add up their fields to get offset
-        SymbolTypeRef baseTypeRef = m_symbolType->GetBaseType();
+        const SymbolType* pBaseType = m_symbolType->GetBaseType();
 
-        while (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
+        while (pBaseType != nullptr && !pBaseType->TypeEqual(*BuiltinTypes::s_objectType))
         {
-            for (const SymbolTypeMember& member : baseTypeRef->GetMembers())
+            for (const SymbolTypeMember& member : pBaseType->GetMembers())
             {
-                if (!member.type->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they don't take up space on the instance
+                Assert(member.GetType() != nullptr);
+
+                if (!member.GetType()->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they don't take up space on the instance
                 {
                     // align field offset
                     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
@@ -671,20 +691,22 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
                 }
             }
 
-            baseTypeRef = baseTypeRef->GetBaseType();
+            pBaseType = pBaseType->GetBaseType();
         }
     }
 
     // Add all fields from our class
     for (const SymbolTypeMember& member : m_symbolType->GetMembers())
     {
-        if (!member.type->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they are handled above
+        Assert(member.GetType() != nullptr);
+
+        if (!member.GetType()->IsOrHasBase(*BuiltinTypes::s_functionBaseType)) // skip methods, they are handled above
         {
             // align field offset
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
 
             ClassTable::FieldInfo fieldInfo {};
-            fieldInfo.name = member.name;
+            fieldInfo.name = member.GetName();
             fieldInfo.typeId = TypeId::ForType<HypData>();
             fieldInfo.targetTypeId = TypeId::ForType<HypObjectBase>();
             fieldInfo.offset = uint32(fieldOffset);
@@ -712,13 +734,13 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     {
         chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbolType->GetName() + (IsProxyClass() ? " <Proxy>" : "")));
 
-        const SymbolTypeRef& baseTypeRef = m_symbolType->GetBaseType();
+        const SymbolType* pBase = m_symbolType->GetBaseType();
 
-        if (baseTypeRef != nullptr && baseTypeRef != BuiltinTypes::s_objectType)
+        if (pBase != nullptr && !pBase->TypeEqual(*BuiltinTypes::s_objectType))
         {
-            chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + baseTypeRef->GetName()));
+            chunk->Append(BytecodeUtil::Make<Comment>("Base type: " + pBase->GetName()));
 
-            chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(baseTypeRef->GetName())));
+            chunk->Append(BytecodeUtil::Make<LoadClass>(rp, CreateNameFromDynamicString(pBase->GetName())));
         }
         else
         {
@@ -893,15 +915,13 @@ bool AstClass::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypeRef AstClass::GetExprType() const
+const SymbolType* AstClass::GetExprType() const
 {
     return BuiltinTypes::s_voidType;
 }
 
-SymbolTypeRef AstClass::GetHeldType() const
+const SymbolType* AstClass::GetHeldType() const
 {
-    Assert(m_symbolType != nullptr);
-
     return m_symbolType;
 }
 

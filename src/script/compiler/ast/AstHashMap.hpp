@@ -28,7 +28,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual HashCode GetHashCode() const override
     {
@@ -60,9 +60,9 @@ private:
     Array<RC<AstExpression>> m_replacedValues;
     RC<AstTypeSpecifier> m_mapTypeExpr;
     RC<AstExpression> m_arrayExpr;
-    SymbolTypeRef m_keyType;
-    SymbolTypeRef m_valueType;
-    SymbolTypeRef m_exprType;
+    const SymbolType* m_keyType;
+    const SymbolType* m_valueType;
+    const SymbolType* m_exprType;
     RC<AstBlock> m_block;
 
     RC<AstHashMap> CloneImpl() const

@@ -18,32 +18,27 @@ public:
         const SourceLocation& location);
     virtual ~AstModuleAccess() override = default;
 
-    Module* GetModule()
+    HYP_FORCE_INLINE Module* GetModule() const
     {
         return m_modAccess;
     }
 
-    const Module* GetModule() const
-    {
-        return m_modAccess;
-    }
-
-    const String& GetTargetName() const
+    HYP_FORCE_INLINE const String& GetTargetName() const
     {
         return m_target;
     }
 
-    const RC<AstExpression>& GetExpression() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetExpression() const
     {
         return m_expr;
     }
 
-    void SetExpression(const RC<AstExpression>& expr)
+    HYP_FORCE_INLINE void SetExpression(const RC<AstExpression>& expr)
     {
         m_expr = expr;
     }
 
-    void SetChained(bool isChained)
+    HYP_FORCE_INLINE void SetChained(bool isChained)
     {
         m_isChained = isChained;
     }
@@ -58,7 +53,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
@@ -82,8 +77,8 @@ private:
     // set while analyzing
     Module* m_modAccess;
     // is this module access chained to another before it?
-    bool m_isChained;
-    bool m_lookedUp;
+    bool m_isChained : 1;
+    bool m_lookedUp : 1;
 
     RC<AstModuleAccess> CloneImpl() const
     {

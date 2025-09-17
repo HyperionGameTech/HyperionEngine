@@ -19,17 +19,17 @@ public:
         const SourceLocation& location);
     virtual ~AstCallExpression() = default;
 
-    Array<RC<AstArgument>>& GetArguments()
+    HYP_FORCE_INLINE Array<RC<AstArgument>>& GetArguments()
     {
         return m_args;
     }
 
-    const Array<RC<AstArgument>>& GetArguments() const
+    HYP_FORCE_INLINE const Array<RC<AstArgument>>& GetArguments() const
     {
         return m_args;
     }
 
-    const SymbolTypeRef& GetReturnType() const
+    HYP_FORCE_INLINE const SymbolType* GetReturnType() const
     {
         return m_returnType;
     }
@@ -42,7 +42,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypeRef GetExprType() const override;
+    virtual const SymbolType* GetExprType() const override;
     virtual AstExpression* GetTarget() const override;
 
     virtual String ToString() const override;
@@ -70,8 +70,7 @@ protected:
     // set while analyzing
     RC<AstExpression> m_overrideExpr;
     Array<RC<AstArgument>> m_substitutedArgs;
-    SymbolTypeRef m_returnType;
-    bool m_isVisited = false;
+    const SymbolType* m_returnType;
 
     RC<AstCallExpression> CloneImpl() const
     {

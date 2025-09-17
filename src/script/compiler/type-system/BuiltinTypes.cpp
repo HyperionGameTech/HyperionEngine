@@ -12,135 +12,141 @@
 #include <script/compiler/ast/AstTypeRef.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
 
+#include <script/compiler/CompilationUnit.hpp>
+#include <script/compiler/IdentifierTable.hpp>
+
 namespace hyperion {
 
-SymbolType* BuiltinTypes::s_primitiveType = SymbolTypeRef(new SymbolType(
+// used to register shared library types
+static CompilationUnit g_globalCompilationUnit;
+
+const SymbolType* BuiltinTypes::s_primitiveType = new SymbolType(
     "<primitive>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
-    {}, {}));
+    {}, {});
 
-SymbolType* BuiltinTypes::s_errorType = SymbolTypeRef(new SymbolType(
+const SymbolType* BuiltinTypes::s_errorType = new SymbolType(
     "<error>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
-    {}, {}));
+    {}, {});
 
-SymbolType* BuiltinTypes::s_anyType = SymbolTypeRef(new SymbolType(
+const SymbolType* BuiltinTypes::s_anyType = new SymbolType(
     "any",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
-    {}, {}));
+    {}, {});
 
-SymbolType* BuiltinTypes::s_classType = SymbolTypeRef(new SymbolType(
+const SymbolType* BuiltinTypes::s_classType = new SymbolType(
     "<class>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
-    {}, {}));
+    {}, {});
 
-SymbolType* BuiltinTypes::s_placeholderType = SymbolTypeRef(new SymbolType(
+const SymbolType* BuiltinTypes::s_placeholderType = new SymbolType(
     "<placeholder>",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
-    {}, {}));
+    {}, {});
 
-SymbolType* BuiltinTypes::s_voidType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_voidType = SymbolType::Primitive(
     "void",
     RC<AstUndefined>(new AstUndefined(SourceLocation::eof)));
 
-SymbolType* BuiltinTypes::s_objectType = SymbolTypeRef(new SymbolType(
+const SymbolType* BuiltinTypes::s_objectType = new SymbolType(
     "object",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
-    {}, {}));
+    {}, {});
 
-SymbolType* BuiltinTypes::s_functionBaseType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_functionBaseType = SymbolType::Primitive(
     "FunctionBase",
     nullptr);
 
-SymbolType* BuiltinTypes::s_arrayBaseType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_arrayBaseType = SymbolType::Primitive(
     "ArrayBase",
     nullptr);
 
-SymbolType* BuiltinTypes::s_varArgsBaseType = SymbolType::Extend(
+const SymbolType* BuiltinTypes::s_varArgsBaseType = SymbolType::Extend(
     "VarArgsBase",
     BuiltinTypes::s_arrayBaseType,
     {},
     {});
 
-SymbolType* BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
     "MapBase",
     nullptr);
 
-SymbolType* BuiltinTypes::s_int8Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_int8Type = SymbolType::Primitive(
     "int8",
     RC<AstInteger>(new AstInteger(0, CBS_8, SourceLocation::eof)),
     CBS_8);
 
-SymbolType* BuiltinTypes::s_int16Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_int16Type = SymbolType::Primitive(
     "int16",
     RC<AstInteger>(new AstInteger(0, CBS_16, SourceLocation::eof)),
     CBS_16);
 
-SymbolType* BuiltinTypes::s_int32Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_int32Type = SymbolType::Primitive(
     "int32",
     RC<AstInteger>(new AstInteger(0, CBS_32, SourceLocation::eof)),
     CBS_32);
 
-SymbolType* BuiltinTypes::s_int64Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_int64Type = SymbolType::Primitive(
     "int64",
     RC<AstInteger>(new AstInteger(0, CBS_64, SourceLocation::eof)),
     CBS_64);
 
-SymbolType* BuiltinTypes::s_uint8Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_uint8Type = SymbolType::Primitive(
     "uint8",
     RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_8, SourceLocation::eof)),
     CBS_8);
 
-SymbolType* BuiltinTypes::s_uint16Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_uint16Type = SymbolType::Primitive(
     "uint16",
     RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_16, SourceLocation::eof)),
     CBS_16);
 
-SymbolType* BuiltinTypes::s_uint32Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_uint32Type = SymbolType::Primitive(
     "uint32",
     RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_32, SourceLocation::eof)),
     CBS_32);
 
-SymbolType* BuiltinTypes::s_uint64Type = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_uint64Type = SymbolType::Primitive(
     "uint64",
     RC<AstUnsignedInteger>(new AstUnsignedInteger(0, CBS_64, SourceLocation::eof)),
     CBS_64);
 
-SymbolType* BuiltinTypes::s_floatType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_floatType = SymbolType::Primitive(
     "float",
     RC<AstFloat>(new AstFloat(0.0, CBS_32, SourceLocation::eof)),
     CBS_32);
 
-SymbolType* BuiltinTypes::s_doubleType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_doubleType = SymbolType::Primitive(
     "double",
     RC<AstFloat>(new AstFloat(0.0, CBS_64, SourceLocation::eof)),
     CBS_64);
 
-SymbolType* BuiltinTypes::s_boolType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_boolType = SymbolType::Primitive(
     "bool",
     RC<AstFalse>(new AstFalse(SourceLocation::eof)));
 
-SymbolType* BuiltinTypes::s_stringType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_stringType = SymbolType::Primitive(
     "string",
     RC<AstString>(new AstString("", SourceLocation::eof)));
 
-SymbolType* BuiltinTypes::s_nullType = SymbolType::Primitive(
+const SymbolType* BuiltinTypes::s_nullType = SymbolType::Primitive(
     "<null>",
     RC<AstNil>(new AstNil(SourceLocation::eof)));
 
-SymbolType* BuiltinTypes::s_varArgsType = SymbolType::Generic(
+const SymbolType* BuiltinTypes::s_varArgsType = SymbolType::Generic(
     "VarArgs",
     s_varArgsBaseType,
     Array<SymbolTypeMember> {},
@@ -148,7 +154,7 @@ SymbolType* BuiltinTypes::s_varArgsType = SymbolType::Generic(
     GenericInstanceTypeInfo {
         { { "type", SymbolType::GenericParameter("T") } } });
 
-SymbolType* BuiltinTypes::s_functionType = SymbolType::Generic(
+const SymbolType* BuiltinTypes::s_functionType = SymbolType::Generic(
     "Function",
     BuiltinTypes::s_functionBaseType,
     Array<SymbolTypeMember> {},
@@ -158,7 +164,7 @@ SymbolType* BuiltinTypes::s_functionType = SymbolType::Generic(
             { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) } } });
 
 // See ScriptArrayWrapper.cpp in Hyperion Engine for implementation of array methods
-SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
+const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
     "Array",
     BuiltinTypes::s_arrayBaseType,
     Array<SymbolTypeMember> {
@@ -226,7 +232,7 @@ SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
-SymbolType* BuiltinTypes::s_mapType = SymbolType::Generic(
+const SymbolType* BuiltinTypes::s_mapType = SymbolType::Generic(
     "Map",
     BuiltinTypes::s_mapBaseType,
     Array<SymbolTypeMember> {
@@ -257,7 +263,10 @@ SymbolType* BuiltinTypes::s_mapType = SymbolType::Generic(
 void BuiltinTypes::Initialize()
 {
 #pragma region String
-    s_stringType->GetMembers().PushBack(SymbolTypeMember {
+    // HAX - we need to cast away const-ness here because we want to add members to the string type
+    SymbolType* stringTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_stringType);
+
+    stringTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "operator+",
         SymbolType::GenericInstance(
             BuiltinTypes::s_functionType,
@@ -267,7 +276,7 @@ void BuiltinTypes::Initialize()
                     { "self", BuiltinTypes::s_stringType },
                     { "other", BuiltinTypes::s_stringType } } }) });
 
-    s_stringType->GetMembers().PushBack(SymbolTypeMember {
+    stringTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "Length",
         SymbolType::GenericInstance(
             BuiltinTypes::s_functionType,
@@ -276,87 +285,155 @@ void BuiltinTypes::Initialize()
                 { { "@return", BuiltinTypes::s_uint64Type },
                     { "self", BuiltinTypes::s_stringType } } }) });
 #pragma endregion String
+
+#define REGISTER_GLOBAL_TYPE(type)                                         \
+    do                                                                     \
+    {                                                                      \
+        const_cast<SymbolType*>(type)->Register(&g_globalCompilationUnit); \
+    }                                                                      \
+    while (0)
+
+    // Register static types in global compilation unit
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_primitiveType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_errorType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_anyType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_classType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_placeholderType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_voidType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_objectType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_functionBaseType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_arrayBaseType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_varArgsBaseType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_mapBaseType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_int8Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_int16Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_int32Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_int64Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_uint8Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_uint16Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_uint32Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_uint64Type);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_floatType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_doubleType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_boolType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_stringType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_nullType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_varArgsType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_functionType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_arrayType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_mapType);
+
+#undef REGISTER_GLOBAL_TYPE
 }
 
-void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
+void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 {
-    static SymbolType* s_intType = SymbolType::Alias("int", { BuiltinTypes::s_int32Type });
-    static SymbolType* s_uintType = SymbolType::Alias("uint", { BuiltinTypes::s_uint32Type });
-    static SymbolType* s_uintptrType = SymbolType::Alias("UIntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_uint32Type : BuiltinTypes::s_uint64Type });
-    static SymbolType* s_intptrType = SymbolType::Alias("IntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_int32Type : BuiltinTypes::s_int64Type });
+    Assert(compilationUnit != nullptr);
 
-    static SymbolType* s_vec2iType = SymbolType::Object(
+    IdentifierTable& table = compilationUnit->GetGlobalModule()->scopeTree.Top().identifierTable;
+
+    // Create new types per-compilation unit:
+
+    SymbolType* intType = SymbolType::Alias("int", { BuiltinTypes::s_int32Type });
+    intType->Register(compilationUnit);
+
+    SymbolType* uintType = SymbolType::Alias("uint", { BuiltinTypes::s_uint32Type });
+    uintType->Register(compilationUnit);
+
+    SymbolType* uintptrType = SymbolType::Alias("UIntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_uint32Type : BuiltinTypes::s_uint64Type });
+    uintptrType->Register(compilationUnit);
+
+    SymbolType* intptrType = SymbolType::Alias("IntPtr", { sizeof(void*) == 4 ? BuiltinTypes::s_int32Type : BuiltinTypes::s_int64Type });
+    intptrType->Register(compilationUnit);
+
+    SymbolType* vec2iType = SymbolType::Object(
         "Vec2i", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_int32Type },
-            SymbolTypeMember { "y", BuiltinTypes::s_int32Type } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
         {});
 
-    static SymbolType* s_vec2uType = SymbolType::Object(
+    vec2iType->Register(compilationUnit);
+
+    SymbolType* vec2uType = SymbolType::Object(
         "Vec2u", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_uint32Type },
-            SymbolTypeMember { "y", BuiltinTypes::s_uint32Type } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
         {});
 
-    static SymbolType* s_vec2fType = SymbolType::Object(
+    vec2uType->Register(compilationUnit);
+
+    SymbolType* vec2fType = SymbolType::Object(
         "Vec2f", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_floatType },
-            SymbolTypeMember { "y", BuiltinTypes::s_floatType } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
         {});
 
-    static SymbolType* s_vec3iType = SymbolType::Object(
+    vec2fType->Register(compilationUnit);
+
+    SymbolType* vec3iType = SymbolType::Object(
         "Vec3i", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_int32Type },
-            SymbolTypeMember { "y", BuiltinTypes::s_int32Type },
-            SymbolTypeMember { "z", BuiltinTypes::s_int32Type } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
         {});
 
-    static SymbolType* s_vec3uType = SymbolType::Object(
+    vec3iType->Register(compilationUnit);
+
+    SymbolType* vec3uType = SymbolType::Object(
         "Vec3u", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_uint32Type },
-            SymbolTypeMember { "y", BuiltinTypes::s_uint32Type },
-            SymbolTypeMember { "z", BuiltinTypes::s_uint32Type } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
         {});
 
-    static SymbolType* s_vec3fType = SymbolType::Object(
+    vec3uType->Register(compilationUnit);
+
+    SymbolType* vec3fType = SymbolType::Object(
         "Vec3f", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_floatType },
-            SymbolTypeMember { "y", BuiltinTypes::s_floatType },
-            SymbolTypeMember { "z", BuiltinTypes::s_floatType } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
         {});
 
-    static SymbolType* s_vec4iType = SymbolType::Object(
+    vec3fType->Register(compilationUnit);
+
+    SymbolType* vec4iType = SymbolType::Object(
         "Vec4i", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_int32Type },
-            SymbolTypeMember { "y", BuiltinTypes::s_int32Type },
-            SymbolTypeMember { "z", BuiltinTypes::s_int32Type },
-            SymbolTypeMember { "w", BuiltinTypes::s_int32Type } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
         {});
 
-    static SymbolType* s_vec4uType = SymbolType::Object(
+    vec4iType->Register(compilationUnit);
+
+    SymbolType* vec4uType = SymbolType::Object(
         "Vec4u", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_uint32Type },
-            SymbolTypeMember { "y", BuiltinTypes::s_uint32Type },
-            SymbolTypeMember { "z", BuiltinTypes::s_uint32Type },
-            SymbolTypeMember { "w", BuiltinTypes::s_uint32Type } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
         {});
 
-    static SymbolType* s_vec4fType = SymbolType::Object(
+    vec4uType->Register(compilationUnit);
+
+    SymbolType* vec4fType = SymbolType::Object(
         "Vec4f", nullptr,
-        { SymbolTypeMember { "x", BuiltinTypes::s_floatType },
-            SymbolTypeMember { "y", BuiltinTypes::s_floatType },
-            SymbolTypeMember { "z", BuiltinTypes::s_floatType },
-            SymbolTypeMember { "w", BuiltinTypes::s_floatType } },
+        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
         {});
 
-    static SymbolType* s_nameType = SymbolType::Primitive(
-        "Name",
-        nullptr);
+    vec4fType->Register(compilationUnit);
 
-    static SymbolType* s_byteBufferType = SymbolType::Object(
-        "ByteBuffer", nullptr,
-        {}, {});
+    SymbolType* nameType = SymbolType::Primitive("Name", nullptr);
+    nameType->Register(compilationUnit);
 
-    static SymbolType* const s_globalVisibleTypes[] {
+    SymbolType* byteBufferType = SymbolType::Object("ByteBuffer", nullptr, {}, {});
+    byteBufferType->Register(compilationUnit);
+
+    const SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
         BuiltinTypes::s_objectType,
         BuiltinTypes::s_voidType,
@@ -375,26 +452,26 @@ void BuiltinTypes::AddToSymbolTable(IdentifierTable& table)
         BuiltinTypes::s_functionType,
         BuiltinTypes::s_arrayType,
         BuiltinTypes::s_mapType,
-        s_intType,
-        s_uintType,
-        s_uintptrType,
-        s_intptrType,
-        s_vec2iType,
-        s_vec2uType,
-        s_vec2fType,
-        s_vec3iType,
-        s_vec3uType,
-        s_vec3fType,
-        s_vec4iType,
-        s_vec4uType,
-        s_vec4fType,
-        s_nameType,
-        s_byteBufferType
+        intType,
+        uintType,
+        uintptrType,
+        intptrType,
+        vec2iType,
+        vec2uType,
+        vec2fType,
+        vec3iType,
+        vec3uType,
+        vec3fType,
+        vec4iType,
+        vec4uType,
+        vec4fType,
+        nameType,
+        byteBufferType
     };
 
-    for (SymbolType* type : s_globalVisibleTypes)
+    for (const SymbolType* type : s_globalVisibleTypes)
     {
-        table.AddSymbolType(type->RefCountedPtrFromThis());
+        table.AddSymbolType(const_cast<SymbolType*>(type));
     }
 }
 

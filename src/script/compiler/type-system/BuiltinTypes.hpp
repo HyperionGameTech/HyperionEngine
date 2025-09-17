@@ -2,12 +2,10 @@
 
 #include <script/compiler/type-system/SymbolType.hpp>
 
-#include <memory>
-
 namespace hyperion {
 
 class SymbolType;
-class IdentifierTable;
+class CompilationUnit;
 
 struct BuiltinTypes
 {
@@ -41,7 +39,7 @@ struct BuiltinTypes
     static const SymbolType* s_mapType;
 
     static void Initialize();
-    static void AddToSymbolTable(IdentifierTable& table);
+    static void RegisterTypes(CompilationUnit* compilationUnit);
 };
 
 } // namespace hyperion

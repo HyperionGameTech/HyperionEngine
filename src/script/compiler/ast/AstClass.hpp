@@ -38,7 +38,7 @@ public:
 
     AstClass(
         const String& name,
-        const SymbolTypeRef& baseType,
+        const SymbolType* baseType,
         const Array<RC<AstVariableDeclaration>>& dataMembers,
         const Array<RC<AstVariableDeclaration>>& functionMembers,
         const Array<RC<AstVariableDeclaration>>& staticMembers,
@@ -48,17 +48,17 @@ public:
     virtual ~AstClass() override = default;
 
     /** enable setting to that variable declarations can change the type name */
-    void SetName(const String& name)
+    HYP_FORCE_INLINE void SetName(const String& name)
     {
         m_name = name;
     }
 
-    Array<RC<AstVariableDeclaration>>& GetDataMembers()
+    HYP_FORCE_INLINE Array<RC<AstVariableDeclaration>>& GetDataMembers()
     {
         return m_dataMembers;
     }
 
-    const Array<RC<AstVariableDeclaration>>& GetDataMembers() const
+    HYP_FORCE_INLINE const Array<RC<AstVariableDeclaration>>& GetDataMembers() const
     {
         return m_dataMembers;
     }
@@ -108,17 +108,17 @@ public:
         m_preRegister = preRegister;
     }
 
-    SymbolTypeRef GetBaseType() const
+    HYP_FORCE_INLINE const SymbolType* GetBaseType() const
     {
         return m_baseType;
     }
 
-    SymbolTypeRef GetSymbolType() const
+    HYP_FORCE_INLINE SymbolType* GetSymbolType() const
     {
         return m_symbolType;
     }
 
-    void SetSymbolType(const SymbolTypeRef& symbolType)
+    void SetSymbolType(SymbolType* symbolType)
     {
         m_symbolType = symbolType;
     }
@@ -133,8 +133,8 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
 
-    virtual SymbolTypeRef GetExprType() const override;
-    virtual SymbolTypeRef GetHeldType() const override;
+    virtual const SymbolType* GetExprType() const override;
+    virtual const SymbolType* GetHeldType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;
@@ -170,13 +170,13 @@ public:
 protected:
     String m_name;
     RC<AstTypeSpecifier> m_baseSpec;
-    SymbolTypeRef m_baseType;
+    const SymbolType* m_baseType;
     Array<RC<AstVariableDeclaration>> m_dataMembers;
     Array<RC<AstVariableDeclaration>> m_functionMembers;
     Array<RC<AstVariableDeclaration>> m_staticMembers;
     EnumFlags<ClassFlags> m_flags;
 
-    SymbolTypeRef m_symbolType;
+    SymbolType* m_symbolType;
 
     RC<AstTypeRef> m_typeRef;
     Array<RC<AstVariableDeclaration>> m_outsideMembers;
