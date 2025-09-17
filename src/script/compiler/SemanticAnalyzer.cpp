@@ -188,11 +188,15 @@ void SemanticAnalyzer::Helpers::CheckArgTypeCompatible(
         return;
     }
 
-    SymbolTypeRef resolvedParamType = ResolvePlaceholderType(visitor, mod, paramType, location);
+    SymbolTypeRef resolvedParamType = ResolvePlaceholderType(visitor, mod, paramType->GetUnaliased(), location);
     Assert(resolvedParamType != nullptr);
 
-    SymbolTypeRef resolvedArgType = ResolvePlaceholderType(visitor, mod, argType, location);
+    SymbolTypeRef resolvedArgType = ResolvePlaceholderType(visitor, mod, argType->GetUnaliased(), location);
     Assert(resolvedArgType != nullptr);
+
+    //// temp
+    //SymbolType* resolvedParamType = paramType.Get();
+    //SymbolType* resolvedArgType = argType.Get();
 
     SymbolTypeIncompatibilities incompatibilities;
 
