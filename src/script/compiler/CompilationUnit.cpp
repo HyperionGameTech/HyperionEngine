@@ -6,14 +6,53 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
 
+#pragma region SymbolTypeCache
+
+class SymbolTypeCache
+{
+public:
+    SymbolTypeCache()
+    {
+        ptrs.Reserve(1024);
+    }
+
+    ~SymbolTypeCache()
+    {
+        for (SizeType i = ptrs.Size(); i > 0; i--)
+        {
+            ptrs[i - 1]->~SymbolTypeRegistration();
+        }
+
+        // pool frees itself
+    }
+
+    SymbolTypeRegistration* Register(SymbolType* symbolType)
+    {
+        Assert(symbolType != nullptr);
+
+        SymbolTypeRegistration* pRegistration = (SymbolTypeRegistration*)pool.Allocate(sizeof(SymbolTypeRegistration), alignof(SymbolTypeRegistration));
+        new (pRegistration) SymbolTypeRegistration(symbolType);
+
+        ptrs.PushBack(pRegistration);
+
+        return pRegistration;
+    }
+
+    Pool pool;
+    Array<SymbolTypeRegistration*> ptrs;
+};
+
+#pragma endregion SymbolTypeCache
+
 CompilationUnit::CompilationUnit()
-    : m_globalModule(new Module(
-          hyperion::Config::globalModuleName,
-          SourceLocation::eof))
+    : m_globalModule(new Module(hyperion::Config::globalModuleName, SourceLocation::eof)),
+      m_symbolTypeCache(MakePimpl<SymbolTypeCache>())
 {
     m_globalModule->SetImportTreeLink(m_moduleTree.TopNode());
 
@@ -51,6 +90,16 @@ Module* CompilationUnit::LookupModule(const String& name)
     }
 
     return nullptr;
+}
+
+void CompilationUnit::RegisterType(SymbolType* symbolType)
+{
+    if (!symbolType)
+    {
+        return;
+    }
+
+    m_symbolTypeCache->Register(symbolType);
 }
 
 } // namespace hyperion
