@@ -11,6 +11,7 @@
 #include <core/threading/Mutex.hpp>
 
 #include <core/debug/Debug.hpp>
+#include <core/debug/StackDump.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -35,7 +36,7 @@ static Mutex& GetDanglingSymbolTypesMutex()
 void CheckDanglingSymbolTypes()
 {
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-    
+
     HashSet<SymbolType*>& danglingSymbolTypes = GetDanglingSymbolTypes();
 
     if (danglingSymbolTypes.Empty())
@@ -46,7 +47,12 @@ void CheckDanglingSymbolTypes()
     String message = HYP_FORMAT("WARNING! Detected {} dangling SymbolType pointers:\n", danglingSymbolTypes.Size());
     for (SymbolType* type : danglingSymbolTypes)
     {
-        message += HYP_FORMAT(" - {}\t{}\n", type->GetName(), (void*)type);
+        // Cannot use ToString(), as it may reference other SymbolTypes that have been deleted
+        message += HYP_FORMAT(" - {} (type: {}) @  {}  declared at: {}\n",
+            type->GetName(),
+            SymbolTypeClassToString(type->GetTypeClass()),
+            (void*)type,
+            type->allocationTrace);
     }
 
     HYP_LOG(Script, Warning, "{}", message);
@@ -111,6 +117,14 @@ SymbolTypeRegistration::~SymbolTypeRegistration()
         m_symbolType->m_registration = nullptr;
 
         delete m_symbolType;
+
+#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
+        // will not be dangling if we own it:
+        Mutex::Guard guard(GetDanglingSymbolTypesMutex());
+        Assert(!GetDanglingSymbolTypes().Contains(m_symbolType));
+#endif
+
+        m_symbolType = nullptr;
     }
 }
 
@@ -129,6 +143,8 @@ SymbolType::SymbolType()
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
     GetDanglingSymbolTypes().Insert(this);
+
+    allocationTrace = StackDump(2, 5).ToString();
 #endif
 }
 
@@ -148,6 +164,8 @@ SymbolType::SymbolType(
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
     GetDanglingSymbolTypes().Insert(this);
+
+    allocationTrace = StackDump(2, 5).ToString();
 #endif
 }
 
@@ -172,6 +190,8 @@ SymbolType::SymbolType(
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
     GetDanglingSymbolTypes().Insert(this);
+
+    allocationTrace = StackDump(2, 5).ToString();
 #endif
 }
 

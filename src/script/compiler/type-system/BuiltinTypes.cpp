@@ -17,9 +17,6 @@
 
 namespace hyperion {
 
-// used to register shared library types
-static CompilationUnit g_globalCompilationUnit;
-
 const SymbolType* BuiltinTypes::s_primitiveType = new SymbolType(
     "<primitive>",
     TYPE_BUILTIN,
@@ -260,8 +257,9 @@ const SymbolType* BuiltinTypes::s_mapType = SymbolType::Generic(
         { { "key", SymbolType::GenericParameter("K") },
             { "value", SymbolType::GenericParameter("V") } } });
 
-void BuiltinTypes::Initialize()
+void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
 {
+    Assert(globalCompilationUnit != nullptr);
 #pragma region String
     // HAX - we need to cast away const-ness here because we want to add members to the string type
     SymbolType* stringTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_stringType);
@@ -286,11 +284,11 @@ void BuiltinTypes::Initialize()
                     { "self", BuiltinTypes::s_stringType } } }) });
 #pragma endregion String
 
-#define REGISTER_GLOBAL_TYPE(type)                                         \
-    do                                                                     \
-    {                                                                      \
-        const_cast<SymbolType*>(type)->Register(&g_globalCompilationUnit); \
-    }                                                                      \
+#define REGISTER_GLOBAL_TYPE(type)                                      \
+    do                                                                  \
+    {                                                                   \
+        const_cast<SymbolType*>(type)->Register(globalCompilationUnit); \
+    }                                                                   \
     while (0)
 
     // Register static types in global compilation unit

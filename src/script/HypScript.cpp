@@ -44,6 +44,7 @@ HYP_DEFINE_LOG_CHANNEL(HypScript);
 
 struct HypScriptImpl
 {
+    CompilationUnit globalCompilationUnit;
     Script_Interpreter* vm;
     Script_Instance* globalInstance;
 
@@ -132,7 +133,7 @@ Script_Instance* HypScript::GetGlobalInstance() const
 
 void HypScript::Initialize()
 {
-    BuiltinTypes::Initialize();
+    BuiltinTypes::Initialize(&m_pImpl->globalCompilationUnit);
 
     if (Result res = InitializeHypScriptLib(*this); res.HasError())
     {

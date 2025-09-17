@@ -3,7 +3,10 @@
 namespace hyperion {
 namespace memory {
 
-Pool::~Pool() = default;
+Pool::~Pool()
+{
+    m_blocks.Clear();
+}
 
 void* Pool::Allocate(SizeType size, SizeType alignment)
 {
