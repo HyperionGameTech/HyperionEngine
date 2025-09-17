@@ -243,20 +243,20 @@
   </Type>
 
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
+    <DisplayString>{{ {($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;pObj</ExpandedItem>
+      <Item Name="[Strong Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
   <Type Name="hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
+    <DisplayString>{{ {($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;strong</Item>
-      <Item Name="[Weak Refs]">((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;weak</Item>
-      <ExpandedItem>($T1 *)((hyperion::memory::RcBlock&lt;$T2&gt;*)m_ptr)-&gt;pObj</ExpandedItem>
+      <Item Name="[Strong Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;strong</Item>
+      <Item Name="[Weak Refs]">((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;weak</Item>
+      <ExpandedItem>($T1 *)((hyperion::memory::ControlBlock&lt;$T2&gt;*)m_block)-&gt;pObj</ExpandedItem>
     </Expand>
   </Type>
 
