@@ -17,8 +17,8 @@ class Texture;
 HYP_ENUM()
 enum class UIMenuBarDropDirection : uint32
 {
-    DOWN, //! Default: Drop down menu opens below the menu item
-    UP    //! Drop down menu opens above the menu item
+    DOWN, //!< Default: Drop down menu opens below the menu item
+    UP    //!< Drop down menu opens above the menu item
 };
 
 #pragma region UIMenuItem

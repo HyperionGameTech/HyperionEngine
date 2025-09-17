@@ -805,11 +805,14 @@ void DebugDrawer::ClearCommands(uint32 idx)
     }
 
     m_headers[idx].Clear();
-    m_buffers[idx].SetSize(0);
-    m_buffers[idx].SetCapacity(maxHistorySize);
     m_bufferOffsets[idx] = 0;
-
+    
     m_bufferSizeHistory[0] = m_buffers[idx].Size();
+    m_buffers[idx].SetSize(0);
+    
+    m_buffers[idx].SetCapacity(maxHistorySize);
+    
+    HYP_LOG_TEMP("Max debug draw buffer history size: {}, current buffer capacity: {}", maxHistorySize, m_buffers[idx].GetCapacity());
 
     // safe to clear command lists only after rendering
     m_commandLists[idx].Clear();

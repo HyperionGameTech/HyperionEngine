@@ -11,10 +11,13 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <scene/Scene.hpp>
 #include <scene/components/ScriptComponent.hpp>
 
 #include <core/Types.hpp>
+
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#endif
 
 namespace hyperion {
 
@@ -79,35 +82,68 @@ public:
             return defaultResult;
         }
 
-        if (!scriptComponent->scriptObjectResource || !scriptComponent->scriptObjectResource->GetManagedObject() || !scriptComponent->scriptObjectResource->GetManagedObject()->IsValid())
+        if (!scriptComponent->scriptObjectResource)
         {
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid ScriptComponent Object"));
         }
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
         scriptComponent->scriptObjectResource->IncRef();
         HYP_DEFER({ scriptComponent->scriptObjectResource->DecRef(); });
+#endif
 
-        dotnet::Object* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
-        Assert(managedObject != nullptr);
-
-        if (dotnet::Class* classPtr = managedObject->GetClass())
+#ifdef HYP_DOTNET
+        if (dotnet::Object* managedObject = scriptComponent->scriptObjectResource->GetManagedObject())
         {
-            if (dotnet::Method* methodPtr = classPtr->GetMethod(m_methodName))
+            if (dotnet::Class* classPtr = managedObject->GetClass())
             {
-                if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE)
+                if (dotnet::Method* methodPtr = classPtr->GetMethod(m_methodName))
                 {
-                    if (!methodPtr->GetAttributes().GetAttribute("UIEvent"))
+                    if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE)
                     {
-                        return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method does not have the Hyperion.UIEvent attribute"));
+                        if (!methodPtr->GetAttributes().GetAttribute("UIEvent"))
+                        {
+                            return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method does not have the Hyperion.UIEvent attribute"));
+                        }
                     }
+
+                    // // Stubbed method, do not call
+                    // if (methodPtr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
+                    //     return defaultResult;
+                    // }
+
+                    UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(methodPtr, std::forward<Args>(args)...);
+
+                    if (result == UIEventHandlerResult::OK)
+                    {
+                        return result | defaultResult;
+                    }
+
+                    return result;
                 }
 
-                // // Stubbed method, do not call
-                // if (methodPtr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
-                //     return defaultResult;
-                // }
+                return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; method missing on class"));
+            }
+        }
+#endif
 
-                UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(methodPtr, std::forward<Args>(args)...);
+#ifdef HYP_SCRIPT
+        if (ScriptObjectData_HypScript* sd = scriptComponent->scriptObjectResource->GetScriptObjectData_HypScript())
+        {
+            HypScript& hs = HypScript::GetInstance();
+
+            Script_Value methodValue;
+
+            if (!hs.GetMember(sd->instance, sd->obj, m_methodName.Data(), &methodValue))
+            {
+                return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method missing on script object"));
+            }
+
+            Script_Value returnValue = hs.CallFunction(sd->instance, methodValue, std::forward<Args>(args)...);
+
+            if (returnValue.IsValid() && returnValue.GetHypData()->Is<UIEventHandlerResult>())
+            {
+                UIEventHandlerResult result = returnValue.GetHypData()->Get<UIEventHandlerResult>();
 
                 if (result == UIEventHandlerResult::OK)
                 {
@@ -116,9 +152,12 @@ public:
 
                 return result;
             }
-
-            return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; method missing on class"));
+            else
+            {
+                return defaultResult;
+            }
         }
+#endif
 
         HYP_LOG(UI, Error, "Failed to call method {} for UI object with name: {}", m_methodName, m_uiObject->GetName());
 

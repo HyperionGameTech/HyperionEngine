@@ -5,24 +5,51 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <dotnet/Class.hpp>
+#include <core/object/HypClass.hpp>
+
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#include <script/vm/Value.hpp>
+#endif
 
 namespace hyperion {
-
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* objectPtr)
+#ifdef HYP_DOTNET
+HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* pObj)
 {
-    if (objectPtr)
+    if (pObj)
     {
-        HYP_LOG(DotNET, Error, "ScriptableDelegate: {} (Obj: {})", message, objectPtr->GetClass()->GetName());
+        HYP_LOG(Script, Error, "ScriptableDelegate: {} (Obj: {})", message, pObj->GetClass()->GetName());
     }
     else
     {
-        HYP_LOG(DotNET, Error, "ScriptableDelegate: {}", message);
+        HYP_LOG(Script, Error, "ScriptableDelegate: {}", message);
     }
 }
+#endif
+
+#ifdef HYP_SCRIPT
+HYP_API void LogScriptableDelegateError(const char* message, const Script_Value& value)
+{
+    if (value.IsValid())
+    {
+        HYP_LOG(Script, Error, "ScriptableDelegate: {} (Obj: {})", message, value.ToString());
+    }
+    else
+    {
+        HYP_LOG(Script, Error, "ScriptableDelegate: {}", message);
+    }
+}
+#endif
+
+#if !defined(HYP_DOTNET) && !defined(HYP_SCRIPT)
+// stub method
+HYP_API void LogScriptableDelegateError(const char* message, void* /* unused */)
+{
+    HYP_LOG(Script, Error, "ScriptableDelegate: {}", message);
+}
+#endif
 
 } // namespace functional
-
 } // namespace hyperion
