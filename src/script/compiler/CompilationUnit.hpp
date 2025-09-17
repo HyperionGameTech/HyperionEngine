@@ -4,7 +4,6 @@
 #include <script/compiler/ErrorList.hpp>
 #include <script/compiler/emit/InstructionStream.hpp>
 #include <script/compiler/ast/AstNodeBuilder.hpp>
-#include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/Tree.hpp>
 
 #include <core/containers/String.hpp>
@@ -12,10 +11,13 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/Pimpl.hpp>
 
 #include <core/utilities/IdGenerator.hpp>
 
 namespace hyperion {
+
+class SymbolType;
 
 class CompilationUnit
 {
@@ -24,62 +26,52 @@ public:
     CompilationUnit(const CompilationUnit& other) = delete;
     ~CompilationUnit();
 
-    Module* GetGlobalModule()
+    HYP_FORCE_INLINE Module* GetGlobalModule() const
     {
         return m_globalModule.Get();
     }
 
-    const Module* GetGlobalModule() const
-    {
-        return m_globalModule.Get();
-    }
-
-    Module* GetCurrentModule()
+    HYP_FORCE_INLINE Module* GetCurrentModule()
     {
         return m_moduleTree.Top();
     }
 
-    const Module* GetCurrentModule() const
+    HYP_FORCE_INLINE const Module* GetCurrentModule() const
     {
         return m_moduleTree.Top();
     }
 
-    ErrorList& GetErrorList()
+    HYP_FORCE_INLINE ErrorList& GetErrorList()
     {
         return m_errorList;
     }
 
-    const ErrorList& GetErrorList() const
+    HYP_FORCE_INLINE const ErrorList& GetErrorList() const
     {
         return m_errorList;
     }
 
-    InstructionStream& GetInstructionStream()
+    HYP_FORCE_INLINE InstructionStream& GetInstructionStream()
     {
         return m_instructionStream;
     }
 
-    const InstructionStream& GetInstructionStream() const
+    HYP_FORCE_INLINE const InstructionStream& GetInstructionStream() const
     {
         return m_instructionStream;
     }
 
-    AstNodeBuilder& GetAstNodeBuilder()
+    HYP_FORCE_INLINE AstNodeBuilder& GetAstNodeBuilder()
     {
         return m_astNodeBuilder;
     }
 
-    const AstNodeBuilder& GetAstNodeBuilder() const
+    HYP_FORCE_INLINE const AstNodeBuilder& GetAstNodeBuilder() const
     {
         return m_astNodeBuilder;
     }
 
-    const Array<SymbolTypeRef>& GetRegisteredTypes() const
-    {
-        return m_registeredTypes;
-    }
-
-    String GetAnonClassName()
+    HYP_FORCE_INLINE String GetAnonClassName()
     {
         return String("@AnonClass") + String::ToString(m_anonClassIdGenerator.Next());
     }
@@ -89,6 +81,8 @@ public:
         above the current one will be considered.
     */
     Module* LookupModule(const String& name);
+
+    void RegisterType(SymbolType* symbolType);
 
     /** Maps filepath to a vector of modules, so that no module has to be parsed
         and analyze more than once.
@@ -102,7 +96,7 @@ private:
     ErrorList m_errorList;
     InstructionStream m_instructionStream;
     AstNodeBuilder m_astNodeBuilder;
-    Array<SymbolTypeRef> m_registeredTypes;
+    Pimpl<class SymbolTypeCache> m_symbolTypeCache;
 
     IdGenerator m_anonClassIdGenerator;
 

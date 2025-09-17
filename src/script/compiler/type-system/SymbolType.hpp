@@ -6,12 +6,6 @@
 #include <core/containers/String.hpp>
 #include <core/Types.hpp>
 
-#include <memory>
-#include <string>
-#include <vector>
-#include <tuple>
-#include <utility>
-
 namespace hyperion {
 
 // forward declaration
@@ -19,6 +13,7 @@ class SymbolType;
 class AstExpression;
 class AstArgument;
 struct Scope;
+class CompilationUnit;
 
 using SymbolTypeRef = RC<SymbolType>;
 using SymbolTypeWeakRef = Weak<SymbolType>;
@@ -266,8 +261,28 @@ struct SymbolTypeTrait
     }
 };
 
-class SymbolType : public EnableRefCountedPtrFromThis<SymbolType>
+class SymbolType;
+
+class SymbolTypeRegistration
 {
+public:
+    explicit SymbolTypeRegistration(SymbolType* symbolType);
+
+    SymbolTypeRegistration(const SymbolTypeRegistration& other) = delete;
+    SymbolTypeRegistration& operator=(const SymbolTypeRegistration& other) = delete;
+
+    SymbolTypeRegistration(SymbolTypeRegistration&& other) noexcept = delete;
+    SymbolTypeRegistration& operator=(SymbolTypeRegistration&& other) noexcept = delete;
+
+    ~SymbolTypeRegistration();
+
+private:
+    SymbolType* m_symbolType;
+};
+
+class SymbolType final : public EnableRefCountedPtrFromThis<SymbolType>
+{
+    friend class SymbolTypeRegistration;
     friend class IdentifierTable;
 
     SymbolType()
@@ -275,8 +290,10 @@ class SymbolType : public EnableRefCountedPtrFromThis<SymbolType>
           m_typeClass(TYPE_INVALID),
           m_base(nullptr),
           m_defaultValue(nullptr),
+          m_constantBitSize(CBS_INVALID),
           m_flags(SYMBOL_TYPE_FLAGS_NONE),
-          m_declScope(nullptr)
+          m_declScope(nullptr),
+          m_registration(nullptr)
     {
     }
 
@@ -371,120 +388,143 @@ public:
     SymbolType& operator=(const SymbolType& other) = delete;
     SymbolType(SymbolType&& other) noexcept = delete;
     SymbolType& operator=(SymbolType&& other) noexcept = delete;
-    ~SymbolType() override = default;
+    ~SymbolType() override;
 
-    const String& GetName() const
+    HYP_FORCE_INLINE bool operator==(const SymbolType& other) const
+    {
+        return TypeEqual(other);
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const SymbolType& other) const
+    {
+        return !operator==(other);
+    }
+
+    HYP_FORCE_INLINE const String& GetName() const
     {
         return m_name;
     }
 
-    SymbolTypeClass GetTypeClass() const
+    HYP_FORCE_INLINE SymbolTypeClass GetTypeClass() const
     {
         return m_typeClass;
     }
 
-    const SymbolTypeRef& GetBaseType() const
+    HYP_FORCE_INLINE const SymbolTypeRef& GetBaseType() const
     {
         return m_base;
     }
 
-    void SetBaseType(const SymbolTypeRef& base)
+    HYP_FORCE_INLINE void SetBaseType(const SymbolTypeRef& base)
     {
         m_base = base ? base->GetUnaliased() : nullptr;
     }
 
-    const RC<AstExpression>& GetDefaultValue() const
+    HYP_FORCE_INLINE const RC<AstExpression>& GetDefaultValue() const
     {
         return m_defaultValue;
     }
 
-    void SetDefaultValue(const RC<AstExpression>& defaultValue)
+    HYP_FORCE_INLINE void SetDefaultValue(const RC<AstExpression>& defaultValue)
     {
         m_defaultValue = defaultValue;
     }
 
-    Array<SymbolTypeMember>& GetMembers()
+    HYP_FORCE_INLINE Array<SymbolTypeMember>& GetMembers()
     {
         return m_members;
     }
 
-    const Array<SymbolTypeMember>& GetMembers() const
+    HYP_FORCE_INLINE const Array<SymbolTypeMember>& GetMembers() const
     {
         return m_members;
     }
 
-    void SetMembers(const Array<SymbolTypeMember>& members)
+    HYP_FORCE_INLINE void SetMembers(const Array<SymbolTypeMember>& members)
     {
         m_members = members;
     }
 
-    Array<SymbolTypeMember>& GetStaticMembers()
+    HYP_FORCE_INLINE Array<SymbolTypeMember>& GetStaticMembers()
     {
         return m_staticMembers;
     }
 
-    const Array<SymbolTypeMember>& GetStaticMembers() const
+    HYP_FORCE_INLINE const Array<SymbolTypeMember>& GetStaticMembers() const
     {
         return m_staticMembers;
     }
 
-    AliasTypeInfo& GetAliasInfo()
+    HYP_FORCE_INLINE AliasTypeInfo& GetAliasInfo()
     {
         return m_aliasInfo;
     }
 
-    const AliasTypeInfo& GetAliasInfo() const
+    HYP_FORCE_INLINE const AliasTypeInfo& GetAliasInfo() const
     {
         return m_aliasInfo;
     }
 
-    GenericInstanceTypeInfo& GetGenericInstanceInfo()
+    HYP_FORCE_INLINE GenericInstanceTypeInfo& GetGenericInstanceInfo()
     {
         return m_genericInstanceInfo;
     }
 
-    const GenericInstanceTypeInfo& GetGenericInstanceInfo() const
+    HYP_FORCE_INLINE const GenericInstanceTypeInfo& GetGenericInstanceInfo() const
     {
         return m_genericInstanceInfo;
     }
 
-    GenericParameterTypeInfo& GetGenericParameterInfo()
-    {
-        return m_genericParamInfo;
-    }
-    const GenericParameterTypeInfo& GetGenericParameterInfo() const
+    HYP_FORCE_INLINE GenericParameterTypeInfo& GetGenericParameterInfo()
     {
         return m_genericParamInfo;
     }
 
-    SymbolTypeFlags GetFlags() const
+    HYP_FORCE_INLINE const GenericParameterTypeInfo& GetGenericParameterInfo() const
+    {
+        return m_genericParamInfo;
+    }
+
+    HYP_FORCE_INLINE SymbolTypeFlags GetFlags() const
     {
         return m_flags;
     }
 
-    SymbolTypeFlags& GetFlags()
+    HYP_FORCE_INLINE SymbolTypeFlags& GetFlags()
     {
         return m_flags;
     }
 
-    void SetFlags(SymbolTypeFlags flags)
+    HYP_FORCE_INLINE void SetFlags(SymbolTypeFlags flags)
     {
         m_flags = flags;
     }
 
-    Scope* GetDeclScope() const
+    HYP_FORCE_INLINE Scope* GetDeclScope() const
     {
         return m_declScope;
     }
 
-    void SetDeclScope(Scope* scope)
+    HYP_FORCE_INLINE void SetDeclScope(Scope* scope)
     {
         m_declScope = scope;
     }
 
+    HYP_FORCE_INLINE bool IsRegistered() const
+    {
+        return m_registration != nullptr;
+    }
+
+    HYP_FORCE_INLINE void AssertRegistered() const
+    {
+        Assert(m_registration != nullptr);
+    }
+
+    void Register(CompilationUnit* compilationUnit);
+
     String ToString(bool includeParameterNames = false) const;
 
-    bool IsAlias() const
+    HYP_FORCE_INLINE bool IsAlias() const
     {
         return m_typeClass == TYPE_ALIAS;
     }
@@ -497,15 +537,6 @@ public:
         bool strictAny,
         bool strictEnum,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
-
-    bool operator==(const SymbolType& other) const
-    {
-        return TypeEqual(other);
-    }
-    bool operator!=(const SymbolType& other) const
-    {
-        return !operator==(other);
-    }
 
     SymbolTypeRef FindMember(UTF8StringView name) const;
     bool FindMember(UTF8StringView name, SymbolTypeMember& out) const;
@@ -633,6 +664,8 @@ private:
     ConstantBitSize m_constantBitSize;
     SymbolTypeFlags m_flags;
     Scope* m_declScope;
+
+    SymbolTypeRegistration* m_registration;
 };
 
 } // namespace hyperion

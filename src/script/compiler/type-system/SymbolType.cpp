@@ -6,6 +6,8 @@
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
+#include <script/compiler/CompilationUnit.hpp>
+
 #include <core/containers/FlatSet.hpp>
 
 #include <core/debug/Debug.hpp>
@@ -41,6 +43,32 @@ HashCode GenericInstanceTypeInfo::GetHashCode() const
 
 #pragma endregion GenericInstanceTypeInfo
 
+#pragma region SymbolTypeRegistration
+
+SymbolTypeRegistration::SymbolTypeRegistration(SymbolType* symbolType)
+    : m_symbolType(symbolType)
+{
+    if (m_symbolType)
+    {
+        Assert(m_symbolType->m_registration == nullptr, "SymbolType already registered!");
+
+        m_symbolType->m_registration = this;
+    }
+}
+
+SymbolTypeRegistration::~SymbolTypeRegistration()
+{
+    if (m_symbolType)
+    {
+        Assert(m_symbolType->m_registration == this);
+        m_symbolType->m_registration = nullptr;
+
+        delete m_symbolType;
+    }
+}
+
+#pragma endregion SymbolTypeRegistration
+
 SymbolType::SymbolType(
     const String& name,
     SymbolTypeClass typeClass,
@@ -51,7 +79,8 @@ SymbolType::SymbolType(
       m_base(base ? base->GetUnaliased() : nullptr),
       m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
-      m_declScope(nullptr)
+      m_declScope(nullptr),
+      m_registration(nullptr)
 {
 }
 
@@ -70,8 +99,16 @@ SymbolType::SymbolType(
       m_base(base ? base->GetUnaliased() : nullptr),
       m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
-      m_declScope(nullptr)
+      m_declScope(nullptr),
+      m_registration(nullptr)
 {
+}
+
+SymbolType::~SymbolType()
+{
+    // would cause a dangling ptr if this happens:
+    AssertDebug(m_registration == nullptr,
+        "Registration must be unset before deletion! SymbolType was probably destructed while being held by a SymbolTypeRegistration!");
 }
 
 bool SymbolType::TypeEqual(const SymbolType& other) const
@@ -939,6 +976,18 @@ SymbolTypeRef SymbolType::Object(
         staticMembers));
 
     return symbolType;
+}
+
+void SymbolType::Register(CompilationUnit* compilationUnit)
+{
+    if (IsRegistered())
+    {
+        return;
+    }
+
+    Assert(compilationUnit != nullptr);
+
+    compilationUnit->RegisterType(this);
 }
 
 String SymbolType::ToString(bool includeParameterNames) const
