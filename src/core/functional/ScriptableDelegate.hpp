@@ -11,13 +11,36 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
+#ifdef HYP_DOTNET
 #include <dotnet/Object.hpp>
+#endif
+
+#ifdef HYP_SCRIPT
+#include <script/HypScript.hpp>
+#include <core/object/HypData.hpp>
+#endif
 
 namespace hyperion {
 
+#ifdef HYP_SCRIPT
+struct Script_Instance;
+class Script_Value;
+#endif
+
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* objectPtr);
+#ifdef HYP_DOTNET
+HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* pObj);
+#endif
+
+#ifdef HYP_SCRIPT
+HYP_API void LogScriptableDelegateError(const char* message, const Script_Value& value);
+#endif
+
+#if !defined(HYP_DOTNET) && !defined(HYP_SCRIPT)
+// stub method
+HYP_API void LogScriptableDelegateError(const char* message, void* /* unused */);
+#endif
 
 class IScriptableDelegate : public virtual IDelegate
 {
@@ -26,7 +49,10 @@ public:
 
     virtual DelegateHandler BindManaged(const String& methodName, Proc<ScriptObjectResource*()>&& getFn) = 0;
     virtual DelegateHandler BindManaged(const String& methodName, ScriptObjectResource* scriptObjectResource) = 0;
+
+#ifdef HYP_DOTNET
     virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::Object>&& object) = 0;
+#endif
 };
 
 /*! \brief A delegate that can be bound to a managed .NET object.
@@ -64,18 +90,72 @@ public:
                 ScriptObjectResource* scriptObjectResource = getFn();
                 HYP_CORE_ASSERT(scriptObjectResource != nullptr, "Managed object resource is null!");
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
                 scriptObjectResource->IncRef();
+                HYP_DEFER({ scriptObjectResource->DecRef(); });
+#endif
 
+#ifdef HYP_DOTNET
                 dotnet::Object* object = scriptObjectResource->GetManagedObject();
-                HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
-                HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-                if (!object->GetMethod(methodName))
+                if (object != nullptr)
                 {
-                    char buffer[256];
-                    std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+                    HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-                    LogScriptableDelegateError(buffer, object);
+                    if (!object->GetMethod(methodName))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, object);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return ReturnType();
+                        }
+                    }
+
+                    if constexpr (std::is_void_v<ReturnType>)
+                    {
+                        object->InvokeMethodByName<void>(methodName, std::forward<ArgTypes>(args)...);
+                    }
+                    else
+                    {
+                        ReturnType result = object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
+
+                        return result;
+                    }
+                }
+#endif
+
+#ifdef HYP_SCRIPT
+                if (ScriptObjectData_HypScript* sd = scriptObjectResource->GetScriptObjectData_HypScript())
+                {
+                    HypScript& hs = HypScript::GetInstance();
+
+                    Script_Value methodValue;
+                    if (!hs.GetMember(sd->instance, sd->obj, methodName.Data(), &methodValue))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, sd->obj);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return ReturnType();
+                        }
+                    }
+
+                    Script_Value returnValue = hs.CallFunction(sd->instance, methodValue, std::forward<ArgTypes>(args)...);
 
                     if constexpr (std::is_void_v<ReturnType>)
                     {
@@ -83,23 +163,19 @@ public:
                     }
                     else
                     {
-                        return ReturnType();
+                        return returnValue.GetHypData()->Get<ReturnType>();
                     }
                 }
+#endif
 
+                // fallback if object is null, or no script support
                 if constexpr (std::is_void_v<ReturnType>)
                 {
-                    object->InvokeMethodByName<void>(methodName, std::forward<ArgTypes>(args)...);
-
-                    scriptObjectResource->DecRef();
+                    return;
                 }
                 else
                 {
-                    ReturnType result = object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
-
-                    scriptObjectResource->DecRef();
-
-                    return result;
+                    return ReturnType();
                 }
             });
     }
@@ -117,18 +193,72 @@ public:
                 ScriptObjectResource* scriptObjectResource = getFn();
                 HYP_CORE_ASSERT(scriptObjectResource != nullptr, "Managed object resource is null!");
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
                 scriptObjectResource->IncRef();
+                HYP_DEFER({ scriptObjectResource->DecRef(); });
+#endif
 
+#ifdef HYP_DOTNET
                 dotnet::Object* object = scriptObjectResource->GetManagedObject();
-                HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
-                HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-                if (!object->GetMethod(methodName))
+                if (object != nullptr)
                 {
-                    char buffer[256];
-                    std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+                    HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-                    LogScriptableDelegateError(buffer, object);
+                    if (!object->GetMethod(methodName))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, object);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return ReturnType();
+                        }
+                    }
+
+                    if constexpr (std::is_void_v<ReturnType>)
+                    {
+                        object->InvokeMethodByName<void>(methodName, std::forward<ArgTypes>(args)...);
+                    }
+                    else
+                    {
+                        ReturnType result = object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
+
+                        return result;
+                    }
+                }
+#endif
+
+#ifdef HYP_SCRIPT
+                if (ScriptObjectData_HypScript* sd = scriptObjectResource->GetScriptObjectData_HypScript())
+                {
+                    HypScript& hs = HypScript::GetInstance();
+
+                    Script_Value methodValue;
+                    if (!hs.GetMember(sd->instance, sd->obj, methodName.Data(), &methodValue))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, sd->obj);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return ReturnType();
+                        }
+                    }
+
+                    Script_Value returnValue = hs.CallFunction(sd->instance, methodValue, std::forward<ArgTypes>(args)...);
 
                     if constexpr (std::is_void_v<ReturnType>)
                     {
@@ -136,23 +266,19 @@ public:
                     }
                     else
                     {
-                        return defaultReturn;
+                        return returnValue.GetHypData()->Get<ReturnType>();
                     }
                 }
+#endif
 
+                // fallback if object is null, or no script support
                 if constexpr (std::is_void_v<ReturnType>)
                 {
-                    object->InvokeMethodByName<void>(methodName, std::forward<ArgTypes>(args)...);
-
-                    scriptObjectResource->DecRef();
+                    return;
                 }
                 else
                 {
-                    ReturnType result = object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
-
-                    scriptObjectResource->DecRef();
-
-                    return result;
+                    return ReturnType();
                 }
             });
     }
@@ -166,19 +292,82 @@ public:
 
         return Delegate<ReturnType, Args...>::Bind([methodName = methodName, scriptObjectResource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
                 scriptObjectResource->IncRef();
                 HYP_DEFER({ scriptObjectResource->DecRef(); });
+#endif
 
+#ifdef HYP_DOTNET
                 dotnet::Object* object = scriptObjectResource->GetManagedObject();
-                HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
-                HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
-
-                if (!object->GetMethod(methodName))
+                if (object != nullptr)
                 {
-                    HYP_FAIL("Failed to find method %s!", methodName.Data());
-                }
+                    HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-                return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
+                    if (!object->GetMethod(methodName))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, sd->instance);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return ReturnType();
+                        }
+                    }
+
+                    return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
+                }
+#endif
+
+#ifdef HYP_SCRIPT
+                if (ScriptObjectData_HypScript* sd = scriptObjectResource->GetScriptObjectData_HypScript())
+                {
+                    HypScript& hs = HypScript::GetInstance();
+
+                    Script_Value methodValue;
+                    if (!hs.GetMember(sd->instance, sd->obj, methodName.Data(), &methodValue))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, sd->obj);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return ReturnType();
+                        }
+                    }
+
+                    Script_Value returnValue = hs.CallFunction(sd->instance, methodValue, std::forward<ArgTypes>(args)...);
+
+                    if constexpr (std::is_void_v<ReturnType>)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        return returnValue.GetHypData()->Get<ReturnType>();
+                    }
+                }
+#endif
+
+                if constexpr (std::is_void_v<ReturnType>)
+                {
+                    return;
+                }
+                else
+                {
+                    return ReturnType();
+                }
             });
     }
 
@@ -192,22 +381,75 @@ public:
 
         return Delegate<ReturnType, Args...>::Bind([methodName = methodName, scriptObjectResource, defaultReturn = std::forward<DefaultReturnType>(defaultReturn)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
                 scriptObjectResource->IncRef();
                 HYP_DEFER({ scriptObjectResource->DecRef(); });
+#endif
+
+#ifdef HYP_DOTNET
 
                 dotnet::Object* object = scriptObjectResource->GetManagedObject();
-                HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
-                HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
+                if (object != nullptr)
+                {
+                    HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-                if (!object->GetMethod(methodName))
+                    if (!object->GetMethod(methodName))
+                    {
+                        return defaultReturn;
+                    }
+
+                    return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
+                }
+#endif
+
+#ifdef HYP_SCRIPT
+                if (ScriptObjectData_HypScript* sd = scriptObjectResource->GetScriptObjectData_HypScript())
+                {
+                    HypScript& hs = HypScript::GetInstance();
+
+                    Script_Value methodValue;
+                    if (!hs.GetMember(sd->instance, sd->obj, methodName.Data(), &methodValue))
+                    {
+                        char buffer[256];
+                        std::snprintf(buffer, 256, "Script method missing: %s", *methodName);
+
+                        LogScriptableDelegateError(buffer, sd->obj);
+
+                        if constexpr (std::is_void_v<ReturnType>)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            return defaultReturn;
+                        }
+                    }
+
+                    Script_Value returnValue = hs.CallFunction(sd->instance, methodValue, std::forward<ArgTypes>(args)...);
+
+                    if constexpr (std::is_void_v<ReturnType>)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        return returnValue.GetHypData()->Get<ReturnType>();
+                    }
+                }
+#endif
+
+                if constexpr (std::is_void_v<ReturnType>)
+                {
+                    return;
+                }
+                else
                 {
                     return defaultReturn;
                 }
-
-                return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
             });
     }
 
+#ifdef HYP_DOTNET
     HYP_NODISCARD virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::Object>&& object) override
     {
         if (!object)
@@ -241,6 +483,7 @@ public:
                 return object->InvokeMethodByName<ReturnType>(methodName, std::forward<ArgTypes>(args)...);
             });
     }
+#endif
 
     /*! \brief Call operator overload - alias method for Broadcast().
      *  \tparam ArgTypes The argument types to pass to the handlers.

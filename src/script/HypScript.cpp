@@ -77,7 +77,7 @@ HypScript& HypScript::GetInstance()
 }
 
 HypScript::HypScript()
-    : m_impl(MakePimpl<HypScriptImpl>())
+    : m_pImpl(MakePimpl<HypScriptImpl>())
 {
 }
 
@@ -85,12 +85,12 @@ HypScript::~HypScript() = default;
 
 Script_Interpreter* HypScript::GetVM() const
 {
-    return m_impl->vm;
+    return m_pImpl->vm;
 }
 
 Script_Instance* HypScript::GetGlobalInstance() const
 {
-    return m_impl->globalInstance;
+    return m_pImpl->globalInstance;
 }
 
 void HypScript::Initialize()
@@ -117,7 +117,7 @@ void HypScript::Initialize()
 
     ErrorList errorList;
 
-    Script_Instance* instance = Compile(sourceFile, errorList);
+    Script_Instance* pInstance = Compile(sourceFile, errorList);
 
     if (errorList.HasFatalErrors())
     {
@@ -126,20 +126,20 @@ void HypScript::Initialize()
         return;
     }
 
-    Assert(instance != nullptr);
+    Assert(pInstance != nullptr);
 
     // run the main script to initialize classes, functions, etc.
-    Run(instance);
+    Run(pInstance);
 }
 
-void HypScript::DestroyScript(Script_Instance* instance)
+void HypScript::DestroyScript(Script_Instance* pInstance)
 {
-    if (!instance)
+    if (!pInstance)
     {
         return;
     }
 
-    delete instance;
+    delete pInstance;
 }
 
 Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorList)
@@ -229,29 +229,29 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
     return nullptr;
 }
 
-InstructionStream* HypScript::Decompile(Script_Instance* instance, std::ostream* os) const
+InstructionStream* HypScript::Decompile(Script_Instance* pInstance, std::ostream* os) const
 {
-    if (!instance)
+    if (!pInstance)
     {
         return nullptr;
     }
 
-    return DecompilationUnit().Decompile(instance->stream, os);
+    return DecompilationUnit().Decompile(pInstance->stream, os);
 }
 
-void HypScript::Run(Script_Instance* instance)
+void HypScript::Run(Script_Instance* pInstance)
 {
-    if (!instance)
+    if (!pInstance)
     {
         return;
     }
 
-    m_impl->vm->Execute(instance);
+    m_pImpl->vm->Execute(pInstance);
 }
 
-Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs)
+Script_Value HypScript::CallFunctionArgV(Script_Instance* pInstance, const Script_Value& value, Script_Value* args, ArgCount numArgs)
 {
-    Assert(instance != nullptr);
+    Assert(pInstance != nullptr);
     Assert(value.IsFunction());
 
     if (numArgs != 0)
@@ -260,7 +260,7 @@ Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script
 
         for (ArgCount i = 0; i < numArgs; i++)
         {
-            instance->thread.m_stack.Push(std::move(args[i]));
+            pInstance->thread.m_stack.Push(std::move(args[i]));
         }
     }
 
@@ -270,26 +270,30 @@ Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script
     vmData.type = Script_VMData::VALUE_REF;
     vmData.valueRef = const_cast<Script_Value*>(&value);
 
-    m_impl->vm->InvokeNow(instance, Script_Value(vmData), numArgs);
+    m_pImpl->vm->InvokeNow(pInstance, Script_Value(vmData), numArgs);
 
     if (numArgs != 0)
     {
-        instance->thread.m_stack.Pop(numArgs);
+        pInstance->thread.m_stack.Pop(numArgs);
     }
 
-    return std::move(instance->thread.GetRegisters()[0]);
+    return std::move(pInstance->thread.GetRegisters()[0]);
 }
 
-void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue)
+void HypScript::ReadLastReturnValue(Script_Instance* pInstance, Script_Value* pOutValue)
 {
-    Assert(instance != nullptr);
+    Assert(pInstance != nullptr);
+    Assert(pOutValue != nullptr);
 
-    outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
+    *pOutValue = ScriptApi_ShallowCopy(pInstance->thread.m_regs[0], m_pImpl->vm->GetGC());
 }
 
-bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetValue, const char* memberName, Script_Value& outValue)
+bool HypScript::GetMember(Script_Instance* pInstance, const Script_Value& targetValue, const char* memberName, Script_Value* pOutValue)
 {
-    outValue = Script_Value();
+    Assert(pInstance != nullptr);
+    Assert(pOutValue != nullptr);
+
+    *pOutValue = Script_Value();
 
     if (!targetValue.IsValid())
     {
@@ -317,7 +321,7 @@ bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetV
     {
         HypField* field = static_cast<HypField*>(member);
 
-        outValue = ScriptApi_MakeValue(field->Get(*targetValue.GetHypData()));
+        *pOutValue = ScriptApi_MakeValue(field->Get(*targetValue.GetHypData()));
 
         return true;
     }
@@ -343,7 +347,7 @@ bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetV
             vmData.nativeFunc = method;
         }
 
-        outValue = ScriptApi_MakeValue(vmData);
+        *pOutValue = ScriptApi_MakeValue(vmData);
 
         return true;
     }
@@ -380,12 +384,16 @@ bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Scri
     return true;
 }
 
-bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, Script_Value& outValue)
+bool HypScript::GetFunctionHandle(Script_Instance* pInstance, const char* name, Script_Value* pOutValue)
 {
-    outValue = Script_Value();
+    Assert(pInstance != nullptr);
+    Assert(pOutValue != nullptr);
+
+    *pOutValue = Script_Value();
 
     Script_Value* pValue;
-    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
+
+    if (!pInstance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
     }
@@ -395,17 +403,20 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, S
         return false;
     }
 
-    outValue = *pValue;
+    *pOutValue = *pValue;
 
     return true;
 }
 
-bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Script_Value& outValue, bool getReference)
+bool HypScript::GetExportedValue(Script_Instance* pInstance, const char* name, Script_Value* pOutValue, bool getReference)
 {
-    outValue = Script_Value();
+    Assert(pInstance != nullptr);
+    Assert(pOutValue != nullptr);
+
+    *pOutValue = Script_Value();
 
     Script_Value* pValue;
-    if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
+    if (!pInstance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
     }
@@ -416,19 +427,21 @@ bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Sc
 
     if (getReference || ScriptApi_ShouldValuePassByRef(*pValue))
     {
-        outValue = ScriptApi_MakeRef(pValue);
+        *pOutValue = ScriptApi_MakeRef(pValue);
 
         return true;
     }
 
-    outValue = *pValue;
+    *pOutValue = *pValue;
 
     return true;
 }
 
-Script_SymbolTable& HypScript::GetExportedSymbols(Script_Instance* instance) const
+Script_SymbolTable& HypScript::GetExportedSymbols(Script_Instance* pInstance) const
 {
-    return instance->exportedSymbols;
+    Assert(pInstance != nullptr);
+
+    return pInstance->exportedSymbols;
 }
 
 } // namespace hyperion

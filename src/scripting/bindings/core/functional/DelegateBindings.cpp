@@ -1,18 +1,20 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
-#include <dotnet/interop/ManagedObject.hpp>
-
 #include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/Types.hpp>
+
+#ifdef HYP_DOTNET
+#include <dotnet/Object.hpp>
+#include <dotnet/Class.hpp>
+#include <dotnet/interop/ManagedObject.hpp>
+#endif
 
 namespace hyperion::dotnet {
 
 extern "C"
 {
-
+#ifdef HYP_DOTNET
     HYP_EXPORT DelegateHandler* ScriptableDelegate_Bind(IScriptableDelegate* delegate, dotnet::Class* classObjectPtr, ObjectReference* objectReference)
     {
         Assert(delegate != nullptr);
@@ -21,6 +23,7 @@ extern "C"
 
         return new DelegateHandler(delegate->BindManaged("DynamicInvoke", MakeUnique<dotnet::Object>(classObjectPtr->RefCountedPtrFromThis(), *objectReference, ObjectFlags::CREATED_FROM_MANAGED)));
     }
+#endif
 
     HYP_EXPORT int ScriptableDelegate_RemoveAllDetached(IScriptableDelegate* delegate)
     {

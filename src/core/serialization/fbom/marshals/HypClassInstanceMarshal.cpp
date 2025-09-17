@@ -152,12 +152,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hypClass->GetName());
 
-        // temp
-        if (hypClass->GetName() == NAME("Scene"))
-        {
-            HYP_LOG(Serialization, Debug, "Deserializing properties for HypClass '{}'", hypClass->GetName());
-        }
-
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
             if (const HypProperty* property = hypClass->GetProperty(it.first))

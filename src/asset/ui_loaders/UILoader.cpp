@@ -40,6 +40,7 @@
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
 #include <core/object/HypDataJSONHelpers.hpp>
+#include <core/object/HypClassUtils.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -853,40 +854,115 @@ public:
         }
         else if (nodeNameUpper == "SCRIPT")
         {
+            ScriptLanguage language = ScriptLanguage::SL_INVALID;
+
+            Result result;
+
+#ifdef HYP_DOTNET
+            // DotNet
             const Pair<String, String>* assemblyIt = attributes.TryGet("assembly");
             const Pair<String, String>* classIt = attributes.TryGet("class");
+#else
+            const Pair<String, String>* assemblyIt = nullptr;
+            const Pair<String, String>* classIt = nullptr;
+#endif
+
+#ifdef HYP_SCRIPT
+            const Pair<String, String>* sourceIt = attributes.TryGet("source");
+#else
+            const Pair<String, String>* sourceIt = nullptr;
+#endif
+
+            const Pair<String, String>* languageIt = attributes.TryGet("language");
+
+            if (languageIt)
+            {
+                language = EnumValue<ScriptLanguage>(languageIt->second, SL_INVALID);
+            }
+
+            ScriptComponent scriptComponent {};
 
             if (assemblyIt && classIt)
             {
-                ScriptComponent scriptComponent {};
-
-                ScriptData scriptData {};
-                scriptData.language = SL_CSHARP;
-                Memory::StrCpy(scriptData.assemblyPath, assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
-                Memory::StrCpy(scriptData.className, classIt->second.Data(), ArraySize(scriptData.className));
-
-                Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath), scriptData);
-                InitObject(scriptAsset);
-
-                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
-
-                if (assetObjectResult)
+#ifdef HYP_DOTNET
+                if (language != SL_INVALID && language != SL_CSHARP)
                 {
-                    scriptComponent.scriptAsset = std::move(scriptAsset);
+                    result = HYP_MAKE_ERROR(Error, "Scripting language mismatch for UI script - assembly and class provided, but language is not C#: {}",
+                        EnumToString(language));
+                }
 
-                    if (m_uiObjectStack.Any())
+                if (result)
+                {
+                    language = SL_CSHARP;
+
+                    ScriptData scriptData {};
+                    scriptData.language = language;
+                    Memory::StrCpy(scriptData.assemblyPath, assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
+                    Memory::StrCpy(scriptData.className, classIt->second.Data(), ArraySize(scriptData.className));
+
+                    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath), scriptData);
+                    InitObject(scriptAsset);
+
+                    result = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+
+                    if (result)
                     {
-                        LastObject()->SetScriptComponent(std::move(scriptComponent));
+                        scriptComponent.scriptAsset = std::move(scriptAsset);
                     }
                 }
-                else
+#else
+                result = HYP_MAKE_ERROR(Error, ".NET support not enabled; cannot load UI script with assembly \"{}\" and class \"{}\"",
+                    assemblyIt->second, classIt->second);
+#endif
+            }
+            else if (sourceIt)
+            {
+                if (sourceIt->second.Size() > HYP_ARRAY_SIZE(ScriptData::path) - 1)
                 {
-                    HYP_LOG(Assets, Error, "Failed to register UI script {}", assetObjectResult.GetError().GetMessage());
+                    result = HYP_MAKE_ERROR(Error, "UI script source path is larger than the maximum length of {} characters: {}",
+                        HYP_ARRAY_SIZE(ScriptData::path) - 1, sourceIt->second);
+                }
+
+#ifdef HYP_SCRIPT
+                if (language == SL_INVALID)
+                {
+                    language = SL_HYPSCRIPT;
+                }
+#endif
+
+                if (language == SL_INVALID)
+                {
+                    result = HYP_MAKE_ERROR(Error, "UI script has invalid or unspecified language: {}", EnumToString(language));
+                }
+
+                if (result)
+                {
+                    ScriptData scriptData {};
+                    scriptData.language = language;
+                    Memory::StrCpy(scriptData.path, sourceIt->second.Data(), HYP_ARRAY_SIZE(ScriptData::path));
+
+                    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(Name::Invalid(), scriptData);
+                    InitObject(scriptAsset);
+
+                    result = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+
+                    if (result)
+                    {
+                        scriptComponent.scriptAsset = std::move(scriptAsset);
+                    }
+                }
+            }
+
+            if (result)
+            {
+                if (m_uiObjectStack.Any())
+                {
+                    LastObject()->SetScriptComponent(std::move(scriptComponent));
                 }
             }
             else
             {
-                HYP_LOG(Assets, Warning, "Script node missing assembly or class attribute");
+                HYP_LOG(Assets, Error, "Failed to register UI script {}", result.GetError().GetMessage());
             }
         }
         else

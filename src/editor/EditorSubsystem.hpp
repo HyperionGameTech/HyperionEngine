@@ -18,6 +18,7 @@
 #include <core/threading/Threads.hpp>
 
 #include <core/utilities/Uuid.hpp>
+#include <core/utilities/Result.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Panel name="Main_Panel" position="0 0" size="100%" textSize="12">
-    <Script assembly="Hyperion.Editor.UI.dll" class="EditorMain" />
+    <Script language="SL_HYPSCRIPT" source="Editor.Main.ui.hyp" />
     <MenuBar name="Main_MenuBar" position="0 0" size="100% 25" originAlignment="topleft" parentAlignment="topleft" padding="5 2" depth="1">
         <MenuItem name="File_MenuItem" text="File" size="auto 100%">
             <MenuItem name="New_MenuItem" text="New Project..."></MenuItem>
