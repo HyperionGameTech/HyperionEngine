@@ -15,19 +15,10 @@ class AstArgument;
 struct Scope;
 class CompilationUnit;
 
-using SymbolTypeRef = RC<SymbolType>;
-using SymbolTypeWeakRef = Weak<SymbolType>;
-
-struct SymbolTypeFunctionSignature
-{
-    SymbolTypeRef returnType;
-    Array<RC<AstArgument>> params;
-};
-
 struct SymbolTypeMember
 {
     String name;
-    SymbolTypeRef type;
+    SymbolType* type = nullptr;
     RC<AstExpression> expr;
 };
 
@@ -179,13 +170,7 @@ static inline constexpr double CBS_Max_Float(ConstantBitSize cbs)
 
 struct AliasTypeInfo
 {
-    SymbolTypeWeakRef m_aliasee;
-};
-
-struct FunctionTypeInfo
-{
-    Array<SymbolTypeRef> m_paramTypes;
-    SymbolTypeRef m_returnType;
+    SymbolType* m_aliasee = nullptr;
 };
 
 struct GenericInstanceTypeInfo
@@ -193,23 +178,24 @@ struct GenericInstanceTypeInfo
     struct Arg
     {
         String m_name;
-        SymbolTypeRef m_type;
+        SymbolType* m_type;
         RC<AstExpression> m_defaultValue;
         bool m_isRef : 1;
         bool m_isConst : 1;
 
         Arg()
-            : m_isRef(false),
+            : m_type(nullptr),
+              m_isRef(false),
               m_isConst(false)
         {
         }
 
-        Arg(const String& name, const SymbolTypeRef& type, const RC<AstExpression>& defaultValue = nullptr)
+        Arg(const String& name, SymbolType* type, const RC<AstExpression>& defaultValue = nullptr)
             : Arg(name, type, defaultValue, /* isRef */ false, /* isConst */ false)
         {
         }
 
-        Arg(const String& name, const SymbolTypeRef& type, const RC<AstExpression>& defaultValue, bool isRef, bool isConst)
+        Arg(const String& name, SymbolType* type, const RC<AstExpression>& defaultValue, bool isRef, bool isConst)
             : m_name(name),
               m_type(type),
               m_defaultValue(defaultValue),
@@ -236,29 +222,6 @@ struct GenericInstanceTypeInfo
 
 struct GenericParameterTypeInfo
 {
-};
-
-struct SymbolTypeTrait
-{
-    String name;
-
-    HYP_FORCE_INLINE bool operator==(const SymbolTypeTrait& other) const
-    {
-        return name == other.name;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const SymbolTypeTrait& other) const
-    {
-        return !operator==(other);
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name);
-
-        return hc;
-    }
 };
 
 class SymbolType;
@@ -299,87 +262,87 @@ class SymbolType final : public EnableRefCountedPtrFromThis<SymbolType>
 
 public:
     /*! \brief Create a temporary type to be filled in later. */
-    static SymbolTypeRef Temp()
+    static SymbolType* Temp()
     {
-        return RC<SymbolType>(new SymbolType());
+        return new SymbolType();
     }
 
-    static SymbolTypeRef Alias(
+    static SymbolType* Alias(
         const String& name,
         const AliasTypeInfo& info);
 
     /*! \brief Defer resolution of this type until usage.
      */
-    static SymbolTypeRef Placeholder(
+    static SymbolType* Placeholder(
         const String& name);
 
-    static SymbolTypeRef Primitive(
+    static SymbolType* Primitive(
         const String& name,
         const RC<AstExpression>& defaultValue,
         ConstantBitSize bitSize = CBS_INVALID,
         const Array<SymbolTypeMember>& members = {},
         const Array<SymbolTypeMember>& staticMembers = {});
 
-    static SymbolTypeRef Enum(
+    static SymbolType* Enum(
         const String& name,
-        const SymbolTypeRef& underlyingType,
+        SymbolType* underlyingType,
         const Array<SymbolTypeMember>& members);
 
-    static SymbolTypeRef Object(
+    static SymbolType* Object(
         const String& name,
-        const SymbolTypeRef& base,
+        SymbolType* base,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers);
 
-    static SymbolTypeRef Generic(
+    static SymbolType* Generic(
         const String& name,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolTypeRef Generic(
+    static SymbolType* Generic(
         const String& name,
-        const SymbolTypeRef& baseType,
+        SymbolType* baseType,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolTypeRef GenericInstance(
-        const SymbolTypeRef& genericType,
+    static SymbolType* GenericInstance(
+        SymbolType* genericType,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolTypeRef GenericInstance(
+    static SymbolType* GenericInstance(
         const String& name,
-        const SymbolTypeRef& genericType,
+        SymbolType* genericType,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers,
         const GenericInstanceTypeInfo& info);
 
-    static SymbolTypeRef GenericParameter(
+    static SymbolType* GenericParameter(
         const String& name);
 
-    static SymbolTypeRef Extend(
+    static SymbolType* Extend(
         const String& name,
-        const SymbolTypeRef& base,
+        SymbolType* base,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers);
 
-    static SymbolTypeRef TypePromotion(
-        const SymbolTypeRef& lptr,
-        const SymbolTypeRef& rptr);
+    static const SymbolType* TypePromotion(
+        const SymbolType* lptr,
+        const SymbolType* rptr);
 
 public:
     SymbolType(
         const String& name,
         SymbolTypeClass typeClass,
-        const SymbolTypeRef& base);
+        const SymbolType* base);
 
     SymbolType(
         const String& name,
         SymbolTypeClass typeClass,
-        const SymbolTypeRef& base,
+        const SymbolType* base,
         const RC<AstExpression>& defaultValue,
         const Array<SymbolTypeMember>& members,
         const Array<SymbolTypeMember>& staticMembers);
@@ -410,12 +373,12 @@ public:
         return m_typeClass;
     }
 
-    HYP_FORCE_INLINE const SymbolTypeRef& GetBaseType() const
+    HYP_FORCE_INLINE const SymbolType* GetBaseType() const
     {
         return m_base;
     }
 
-    HYP_FORCE_INLINE void SetBaseType(const SymbolTypeRef& base)
+    HYP_FORCE_INLINE void SetBaseType(const SymbolType* base)
     {
         m_base = base ? base->GetUnaliased() : nullptr;
     }
@@ -538,28 +501,31 @@ public:
         bool strictEnum,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
-    SymbolTypeRef FindMember(UTF8StringView name) const;
+    SymbolType* FindMember(UTF8StringView name) const;
     bool FindMember(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
 
-    SymbolTypeRef FindMemberDeep(UTF8StringView name) const;
+    SymbolType* FindMemberDeep(UTF8StringView name) const;
     bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
     bool FindMemberDeep(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex, uint32& outDepth) const;
 
-    SymbolTypeRef FindStaticMember(UTF8StringView name) const;
+    SymbolType* FindStaticMember(UTF8StringView name) const;
     bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out) const;
     bool FindStaticMember(UTF8StringView name, SymbolTypeMember& out, uint32& outIndex) const;
-
-    bool HasTrait(const SymbolTypeTrait& trait) const;
-    bool HasTraitDeep(const SymbolTypeTrait& trait) const;
 
     bool IsOrHasBase(const SymbolType& baseType) const;
     /** Search the inheritance chain to see if the given type
         is a base of this type. */
     bool HasBase(const SymbolType& baseType) const;
+
     /** Find the root aliasee. If not an alias, just returns itself */
-    SymbolTypeRef GetUnaliased() const;
+    SymbolType* GetUnaliased();
+
+    HYP_FORCE_INLINE const SymbolType* GetUnaliased() const
+    {
+        return const_cast<SymbolType*>(this)->GetUnaliased();
+    }
 
     bool IsNumber() const;
     bool IsIntegral() const;
@@ -604,9 +570,9 @@ public:
         return GetHashCodeWithDuplicateRemoval(duplicateNames);
     }
 
-    SymbolTypeRef Clone() const
+    SymbolType* Clone() const
     {
-        SymbolTypeRef result = SymbolTypeRef(new SymbolType());
+        SymbolType* result = new SymbolType();
         result->m_name = m_name;
         result->m_typeClass = m_typeClass;
         result->m_base = m_base;
@@ -630,7 +596,7 @@ public:
     {
         m_name = std::move(other.m_name);
         m_typeClass = other.m_typeClass;
-        m_base = std::move(other.m_base);
+        m_base = other.m_base;
         m_defaultValue = std::move(other.m_defaultValue);
         m_members = std::move(other.m_members);
         m_staticMembers = std::move(other.m_staticMembers);
@@ -652,7 +618,7 @@ private:
     Array<SymbolTypeMember> m_staticMembers;
 
     // type that this type is based off of
-    SymbolTypeRef m_base;
+    const SymbolType* m_base;
 
     // if this is an alias of another type
     AliasTypeInfo m_aliasInfo;

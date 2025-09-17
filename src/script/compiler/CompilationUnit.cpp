@@ -94,12 +94,37 @@ Module* CompilationUnit::LookupModule(const String& name)
 
 void CompilationUnit::RegisterType(SymbolType* symbolType)
 {
-    if (!symbolType)
+    if (!symbolType || symbolType->IsRegistered())
     {
         return;
     }
 
+    RegisterType(symbolType->GetBaseType());
+
     m_symbolTypeCache->Register(symbolType);
+
+    for (const auto& member : symbolType->GetMembers())
+    {
+        RegisterType(member.type);
+    }
+
+    for (const auto& staticMember : symbolType->GetStaticMembers())
+    {
+        RegisterType(staticMember.type);
+    }
+
+    if (symbolType->IsAlias())
+    {
+        RegisterType(symbolType->GetAliasInfo().m_aliasee);
+    }
+
+    if (symbolType->IsGenericInstanceType())
+    {
+        for (const auto& arg : symbolType->GetGenericInstanceInfo().m_genericArgs)
+        {
+            RegisterType(arg.m_type);
+        }
+    }
 }
 
 } // namespace hyperion

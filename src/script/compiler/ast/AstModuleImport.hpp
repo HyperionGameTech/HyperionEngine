@@ -11,7 +11,6 @@ namespace hyperion {
 class Identifier;
 class SymbolType;
 
-using SymbolTypeRef = RC<SymbolType>;
 using Symbol = Variant<RC<Identifier>, SymbolTypeRef>;
 
 class AstModuleImportPart : public AstStatement
