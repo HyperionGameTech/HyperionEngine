@@ -346,6 +346,7 @@ WideString AstPrintVisitor::GetTypeInfo(AstStatement* node) const
     if (auto* expr = dynamic_cast<AstExpression*>(node))
     {
         SymbolTypeRef type = expr->GetExprType();
+
         if (type)
         {
             return type->ToString(true).ToWide();
