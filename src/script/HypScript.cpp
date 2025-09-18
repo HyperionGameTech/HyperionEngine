@@ -201,7 +201,6 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
     outErrorList.WriteOutput(std::cout);
 
     HYP_BREAKPOINT;
-
     if (!outErrorList.HasFatalErrors())
     {
         // only optimize if there were no errors

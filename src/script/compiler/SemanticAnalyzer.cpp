@@ -158,13 +158,13 @@ SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                     newType->GetGenericInstanceInfo() = std::move(newGenericInstanceInfo);
                 }
 
-                //// mutate the cached placeholder type in-place
-                //// HACK ALERT: const_cast should be reworked
-                //const_cast<SymbolType*>(inputType)->Assign(std::move(*newType));
+                // mutate the cached placeholder type in-place
+                // HACK ALERT: const_cast should be reworked
+                const_cast<SymbolType*>(inputType)->Assign(std::move(*newType));
 
-                //delete newType;
+                delete newType;
 
-                return newType;
+                //return newType;
             }
         }
 
@@ -176,12 +176,12 @@ SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
 
     if (resolvedType)
     {
-        //// HACK ALERT: const_cast should be reworked
-        //const_cast<SymbolType*>(inputType)->Assign(*resolvedType);
+        // HACK ALERT: const_cast should be reworked
+        const_cast<SymbolType*>(inputType)->Assign(*resolvedType);
 
-        //return inputType;
+        return const_cast<SymbolType*>(inputType);
 
-        return const_cast<SymbolType*>(resolvedType);
+        //return const_cast<SymbolType*>(resolvedType);
     }
 
     // Could not resolve placeholder type
