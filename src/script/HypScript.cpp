@@ -135,41 +135,12 @@ void HypScript::Initialize()
 {
     BuiltinTypes::Initialize(&m_impl->globalCompilationUnit);
 
-    if (Result res = InitializeHypScriptLib(*this); res.HasError())
+    /*if (Result res = InitializeHypScriptLib(*this); res.HasError())
     {
         HYP_LOG(HypScript, Error, "Failed to initialize HypScript lib! {}", res.GetError().GetMessage());
     }
 
-    FileBufferedReaderSource source { s_libPath };
-    BufferedByteReader reader { &source };
-
-    if (!reader.IsOpen())
-    {
-        HYP_LOG(HypScript, Error, "Failed to open Lib.hyp at path '{}'! Did the build tool run correctly?", s_libPath);
-
-        return;
-    }
-
-    ByteBuffer byteBuffer = reader.ReadBytes();
-
-    SourceFile sourceFile(s_libPath, byteBuffer.Size());
-    sourceFile.ReadIntoBuffer(byteBuffer);
-
-    ErrorList errorList;
-
-    Script_Instance* instance = Compile(sourceFile, errorList);
-
-    if (errorList.HasFatalErrors())
-    {
-        HYP_LOG(HypScript, Error, "Failed to compile Lib.hyp! The script system will not function correctly.");
-
-        return;
-    }
-
-    Assert(instance != nullptr);
-
-    // run the main script to initialize classes, functions, etc.
-    Run(instance);
+    HYP_BREAKPOINT;*/
 }
 
 void HypScript::DestroyScript(Script_Instance* instance)
