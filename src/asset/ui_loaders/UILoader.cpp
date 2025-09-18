@@ -929,28 +929,23 @@ public:
                     language = SL_HYPSCRIPT;
                 }
 #endif
+            }
 
-                if (language == SL_INVALID)
-                {
-                    result = HYP_MAKE_ERROR(Error, "UI script has invalid or unspecified language: {}", EnumToString(language));
-                }
+            if (language == SL_INVALID)
+            {
+                result = HYP_MAKE_ERROR(Error, "UI script has invalid or unspecified language: {}", EnumToString(language));
+            }
+            else if (result && language != SL_CSHARP)
+            {
+                ScriptData scriptData {};
+                scriptData.language = language;
+                Memory::StrCpy(scriptData.path, sourceIt->second.Data(), HYP_ARRAY_SIZE(ScriptData::path));
 
-                if (result)
-                {
-                    ScriptData scriptData {};
-                    scriptData.language = language;
-                    Memory::StrCpy(scriptData.path, sourceIt->second.Data(), HYP_ARRAY_SIZE(ScriptData::path));
+                Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(Name::Invalid(), scriptData);
+                InitObject(scriptAsset);
 
-                    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(Name::Invalid(), scriptData);
-                    InitObject(scriptAsset);
-
-                    result = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
-
-                    if (result)
-                    {
-                        scriptComponent.scriptAsset = std::move(scriptAsset);
-                    }
-                }
+                result = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+                scriptComponent.scriptAsset = std::move(scriptAsset);
             }
 
             if (result)
