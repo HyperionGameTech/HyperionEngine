@@ -17,42 +17,41 @@
 
 namespace hyperion {
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
 
 HYP_DECLARE_LOG_CHANNEL(Script);
 
-static HashSet<SymbolType*>& GetDanglingSymbolTypes()
+static HashSet<SymbolType*>& GetUnfreedSymbolTypes()
 {
-    static HashSet<SymbolType*> s_danglingSymbolTypes;
-    return s_danglingSymbolTypes;
+    static HashSet<SymbolType*> s_unfreedSymbolTypes;
+    return s_unfreedSymbolTypes;
 }
 
-static Mutex& GetDanglingSymbolTypesMutex()
+static Mutex& GetUnfreedSymbolTypesMutex()
 {
-    static Mutex s_danglingSymbolTypesMutex;
-    return s_danglingSymbolTypesMutex;
+    static Mutex s_unfreedSymbolTypesMutex;
+    return s_unfreedSymbolTypesMutex;
 }
 
-void CheckDanglingSymbolTypes()
+void CheckUnfreedSymbolTypes()
 {
-    Mutex::Guard guard(GetDanglingSymbolTypesMutex());
+    Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
 
-    HashSet<SymbolType*>& danglingSymbolTypes = GetDanglingSymbolTypes();
+    HashSet<SymbolType*>& unfreedSymbolTypes = GetUnfreedSymbolTypes();
 
-    if (danglingSymbolTypes.Empty())
+    if (unfreedSymbolTypes.Empty())
     {
         return;
     }
 
-    String message = HYP_FORMAT("WARNING! Detected {} dangling SymbolType pointers:\n", danglingSymbolTypes.Size());
-    for (SymbolType* type : danglingSymbolTypes)
+    String message = HYP_FORMAT("WARNING! Detected {} unfreed SymbolType pointers:\n", unfreedSymbolTypes.Size());
+    for (SymbolType* type : unfreedSymbolTypes)
     {
         // Cannot use ToString(), as it may reference other SymbolTypes that have been deleted
-        message += HYP_FORMAT(" - {} (type: {}) @  {}  declared at: {}\n",
+        message += HYP_FORMAT(" - {} (type: {}) @  {}\n",
             type->GetName(),
             SymbolTypeClassToString(type->GetTypeClass()),
-            (void*)type,
-            type->allocationTrace);
+            (void*)type);
     }
 
     HYP_LOG(Script, Warning, "{}", message);
@@ -93,38 +92,40 @@ HashCode GenericInstanceTypeInfo::GetHashCode() const
 #pragma region SymbolTypeRegistration
 
 SymbolTypeRegistration::SymbolTypeRegistration(SymbolType* symbolType)
-    : m_symbolType(symbolType)
+    : symbolType(symbolType),
+      isDestructing(false)
 {
-    if (m_symbolType)
+    if (symbolType)
     {
-        Assert(m_symbolType->m_registration == nullptr, "SymbolType already registered!");
+        Assert(symbolType->m_registration == nullptr, "SymbolType already registered!");
 
-        m_symbolType->m_registration = this;
+        symbolType->m_registration = this;
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-        // will not be dangling if we own it:
-        Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-        GetDanglingSymbolTypes().Erase(m_symbolType);
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+        // will not be unfreed if we own it:
+        Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
+        GetUnfreedSymbolTypes().Erase(symbolType);
 #endif
     }
 }
 
 SymbolTypeRegistration::~SymbolTypeRegistration()
 {
-    if (m_symbolType)
+    isDestructing = true;
+
+    if (symbolType)
     {
-        Assert(m_symbolType->m_registration == this);
-        m_symbolType->m_registration = nullptr;
+        Assert(symbolType->m_registration == this);
 
-        delete m_symbolType;
+        delete symbolType;
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-        // will not be dangling if we own it:
-        Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-        Assert(!GetDanglingSymbolTypes().Contains(m_symbolType));
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+        // will not be unfreed if we own it:
+        Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
+        Assert(!GetUnfreedSymbolTypes().Contains(symbolType));
 #endif
 
-        m_symbolType = nullptr;
+        symbolType = nullptr;
     }
 }
 
@@ -138,11 +139,16 @@ SymbolType::SymbolType()
       m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr),
-      m_registration(nullptr)
+      m_registration(nullptr),
+      m_cacheCounter(0)
 {
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-    Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-    GetDanglingSymbolTypes().Insert(this);
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+    Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
+    GetUnfreedSymbolTypes().Insert(this);
+
+#if defined(HYP_SYMBOL_TYPE_ALLOCATION_TRACE) && HYP_SYMBOL_TYPE_ALLOCATION_TRACE
+    allocationTrace = StackDump(2, 5).ToString();
+#endif
 #endif
 }
 
@@ -157,11 +163,16 @@ SymbolType::SymbolType(
       m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr),
-      m_registration(nullptr)
+      m_registration(nullptr),
+      m_cacheCounter(0)
 {
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-    Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-    GetDanglingSymbolTypes().Insert(this);
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+    Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
+    GetUnfreedSymbolTypes().Insert(this);
+
+#if defined(HYP_SYMBOL_TYPE_ALLOCATION_TRACE) && HYP_SYMBOL_TYPE_ALLOCATION_TRACE
+    allocationTrace = StackDump(2, 5).ToString();
+#endif
 #endif
 }
 
@@ -181,23 +192,76 @@ SymbolType::SymbolType(
       m_constantBitSize(CBS_INVALID),
       m_flags(SYMBOL_TYPE_FLAGS_NONE),
       m_declScope(nullptr),
-      m_registration(nullptr)
+      m_registration(nullptr),
+      m_cacheCounter(0)
 {
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-    Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-    GetDanglingSymbolTypes().Insert(this);
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+    Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
+    GetUnfreedSymbolTypes().Insert(this);
+
+#if defined(HYP_SYMBOL_TYPE_ALLOCATION_TRACE) && HYP_SYMBOL_TYPE_ALLOCATION_TRACE
+    allocationTrace = StackDump(2, 5).ToString();
+#endif
 #endif
 }
 
 SymbolType::~SymbolType()
 {
-    // would cause a dangling ptr if this happens:
-    AssertDebug(m_registration == nullptr,
-        "Registration must be unset before deletion! SymbolType was probably destructed while being held by a SymbolTypeRegistration!");
+    AssertDebug(!IsCached(), "SymbolType {} deleted while in cache!", m_name);
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-    Mutex::Guard guard(GetDanglingSymbolTypesMutex());
-    GetDanglingSymbolTypes().Erase(this);
+    DebugLog(LogType::Debug, "Delete SymbolType %s @ %p\n", m_name.Data(), this);
+
+    // would cause a leak if this happens:
+    if (m_registration != nullptr)
+    {
+        if (!m_registration->isDestructing)
+        {
+            HYP_FAIL("SymbolType {} deleted while still registered! This would cause a dangling pointer.", m_name);
+        }
+    }
+    else if (m_registration == nullptr)
+    {
+        DeleteReferencedTypes();
+    }
+
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+    Mutex::Guard guard(GetUnfreedSymbolTypesMutex());
+    GetUnfreedSymbolTypes().Erase(this);
+
+#if 0
+    for (const SymbolTypeMember& mem : m_members)
+    {
+        if (!mem.GetType())
+        {
+            continue;
+        }
+
+        mem.GetType()->AssertRegistered();
+    }
+
+    for (const SymbolTypeMember& mem : m_staticMembers)
+    {
+        if (!mem.GetType())
+        {
+            continue;
+        }
+
+        mem.GetType()->AssertRegistered();
+    }
+
+    if (IsGenericInstanceType())
+    {
+        for (const GenericInstanceTypeInfo::Arg& arg : m_genericInstanceInfo.m_genericArgs)
+        {
+            if (!arg.m_type)
+            {
+                continue;
+            }
+
+            arg.m_type->AssertRegistered();
+        }
+    }
+#endif
 #endif
 }
 
@@ -1034,11 +1098,6 @@ SymbolType* SymbolType::Object(
 
 void SymbolType::Register(CompilationUnit* compilationUnit)
 {
-    if (IsRegistered())
-    {
-        return;
-    }
-
     Assert(compilationUnit != nullptr);
 
     compilationUnit->RegisterType(this);
@@ -1442,6 +1501,183 @@ const SymbolType* SymbolType::TypePromotion(const SymbolType* lptr, const Symbol
 
     // @TODO Check for common base
     return BuiltinTypes::s_errorType;
+}
+
+void SymbolType::Assign(const SymbolType& other)
+{
+    if (!IsRegistered())
+    {
+        DeleteReferencedTypes();
+    }
+
+    m_name = other.m_name;
+    m_typeClass = other.m_typeClass;
+    m_base = other.m_base;
+    m_defaultValue = other.m_defaultValue;
+    m_members = other.m_members;
+    m_staticMembers = other.m_staticMembers;
+    m_aliasInfo = other.m_aliasInfo;
+    m_genericInstanceInfo = other.m_genericInstanceInfo;
+    m_genericParamInfo = other.m_genericParamInfo;
+    m_constantBitSize = other.m_constantBitSize;
+    m_flags = other.m_flags;
+    m_declScope = nullptr; // do not copy scope
+
+    if (IsRegistered())
+    {
+        for (auto& it : m_members)
+        {
+            if (!it.GetType())
+                continue;
+
+            it.GetType()->AssertRegistered();
+        }
+
+        for (auto& it : m_staticMembers)
+        {
+            if (!it.GetType())
+                continue;
+
+            it.GetType()->AssertRegistered();
+        }
+
+        if (IsGenericInstanceType())
+        {
+            for (auto& it : m_genericInstanceInfo.m_genericArgs)
+            {
+                if (!it.m_type)
+                    continue;
+
+                it.m_type->AssertRegistered();
+            }
+        }
+    }
+}
+
+void SymbolType::Assign(SymbolType&& other)
+{
+    if (!IsRegistered())
+    {
+        DeleteReferencedTypes();
+    }
+
+    m_name = other.m_name;
+    m_typeClass = other.m_typeClass;
+    m_base = other.m_base;
+    m_defaultValue = std::move(other.m_defaultValue);
+    m_members = std::move(other.m_members);
+    m_staticMembers = std::move(other.m_staticMembers);
+    m_aliasInfo = std::move(other.m_aliasInfo);
+    m_genericInstanceInfo = std::move(other.m_genericInstanceInfo);
+    m_genericParamInfo = std::move(other.m_genericParamInfo);
+    m_constantBitSize = other.m_constantBitSize;
+    m_flags = other.m_flags;
+    m_declScope = nullptr; // do not copy scope
+
+    if (IsRegistered())
+    {
+        for (auto& it : m_members)
+        {
+            if (!it.GetType())
+                continue;
+
+            it.GetType()->AssertRegistered();
+        }
+
+        for (auto& it : m_staticMembers)
+        {
+            if (!it.GetType())
+                continue;
+
+            it.GetType()->AssertRegistered();
+        }
+
+        if (IsGenericInstanceType())
+        {
+            for (auto& it : m_genericInstanceInfo.m_genericArgs)
+            {
+                if (!it.m_type)
+                    continue;
+
+                it.m_type->AssertRegistered();
+            }
+        }
+    }
+}
+
+void SymbolType::DeleteReferencedTypes()
+{
+    HashSet<const SymbolType*> toDelete;
+
+    for (SymbolTypeMember& mem : m_members)
+    {
+        if (!mem.GetType())
+        {
+            continue;
+        }
+
+        if (!mem.GetType()->IsRegistered())
+        {
+            toDelete.Insert(mem.GetType());
+        }
+
+        m_members.Clear();
+    }
+
+    for (SymbolTypeMember& mem : m_staticMembers)
+    {
+        if (!mem.GetType())
+        {
+            continue;
+        }
+
+        if (!mem.GetType()->IsRegistered())
+        {
+            toDelete.Insert(mem.GetType());
+            mem.SetType(nullptr);
+        }
+
+        m_staticMembers.Clear();
+    }
+
+    if (IsGenericInstanceType())
+    {
+        for (GenericInstanceTypeInfo::Arg& arg : m_genericInstanceInfo.m_genericArgs)
+        {
+            if (!arg.m_type)
+            {
+                continue;
+            }
+
+            if (!arg.m_type->IsRegistered())
+            {
+                toDelete.Insert(arg.m_type);
+            }
+        }
+
+        m_genericInstanceInfo.m_genericArgs.Clear();
+    }
+
+    if (IsAlias())
+    {
+        if (const SymbolType* aliasee = m_aliasInfo.m_aliasee)
+        {
+            if (!aliasee->IsRegistered())
+            {
+                toDelete.Insert(aliasee);
+            }
+        }
+
+        m_aliasInfo.m_aliasee = nullptr;
+    }
+
+    if (toDelete.Any())
+    {
+        for (const SymbolType* type : toDelete)
+        {
+            delete type;
+        }
+    }
 }
 
 HashCode SymbolType::GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const

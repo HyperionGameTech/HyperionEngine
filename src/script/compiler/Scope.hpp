@@ -28,7 +28,10 @@ public:
     {
         friend class TypeInstanceCache;
 
-        Key() = default;
+        Key()
+            : m_originalType(nullptr)
+        {
+        }
 
     public:
         Key(const Key& other) = default;
@@ -66,6 +69,14 @@ public:
         HashCode m_genericArgsHashCode;
     };
 
+    ~TypeInstanceCache()
+    {
+        for (auto& it : m_cache)
+        {
+            it.second->SetIsCached(false);
+        }
+    }
+
     static Key MakeKey(const SymbolType* originalType, const GenericInstanceTypeInfo& genericInstanceTypeInfo)
     {
         Assert(originalType != nullptr);
@@ -77,7 +88,7 @@ public:
         return key;
     }
 
-    const SymbolType* Lookup(const Key& key) const
+    SymbolType* Lookup(const Key& key) const
     {
         Mutex::Guard guard(m_mutex);
 
@@ -91,11 +102,13 @@ public:
         return nullptr;
     }
 
-    void Put(const Key& key, const SymbolType* type)
+    void Put(const Key& key, SymbolType* type)
     {
-        Assert(type != nullptr && type->IsRegistered());
+        Assert(type != nullptr);
 
         Mutex::Guard guard(m_mutex);
+
+        type->SetIsCached(true);
 
         m_cache.Set(key, type);
 
@@ -104,7 +117,7 @@ public:
     }
 
 private:
-    using CacheMap = HashMap<Key, const SymbolType*, HashTable_DynamicNodeAllocator<KeyValuePair<Key, const SymbolType*>>>;
+    using CacheMap = HashMap<Key, SymbolType*, HashTable_DynamicNodeAllocator<KeyValuePair<Key, SymbolType*>>>;
 
     mutable Mutex m_mutex;
     CacheMap m_cache;

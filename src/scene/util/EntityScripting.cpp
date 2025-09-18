@@ -132,6 +132,8 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         return;
     }
 
+    Assert(scriptComponent.scriptAsset != nullptr);
+
     ScriptData* scriptData = scriptComponent.scriptAsset->GetScriptData();
     Assert(scriptData != nullptr);
 

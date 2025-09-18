@@ -424,12 +424,13 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             genericParamTypes.PushBack(it);
         }
 
-        functionType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+        functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             visitor, mod,
             BuiltinTypes::s_functionType,
             genericParamTypes,
-            m_location));
-
+            m_location);
+        
+        Assert(functionType != nullptr);
         functionType->Register(visitor->GetCompilationUnit());
     }
 
@@ -492,8 +493,9 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(closureClassDecl->GetHeldType() != nullptr);
 
         SymbolType* tmpAlias = SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType() });
-        closureSelfType->Assign(*tmpAlias);
+        closureSelfType->Assign(std::move(*tmpAlias));
         delete tmpAlias;
+        tmpAlias = nullptr;
 
         m_closureBlock.Reset(new AstBlock(m_location));
 
@@ -532,11 +534,11 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_closureBlock->PrependChild(closureClassDecl);
 
         // HACK
-        m_symbolType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
             mod,
             closureSelfType,
-            m_location));
+            m_location);
 
         visitor->GetCompilationUnit()->RegisterType(m_symbolType);
 
@@ -544,11 +546,11 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
     }
 
     // HACK
-    m_symbolType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+    m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         visitor,
         mod,
         functionType,
-        m_location));
+        m_location);
 
     visitor->GetCompilationUnit()->RegisterType(m_symbolType);
 

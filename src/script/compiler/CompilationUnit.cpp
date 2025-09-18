@@ -34,6 +34,10 @@ public:
         for (SizeType i = ptrs.Size(); i > 0; i--)
         {
             ptrs[i - 1]->~SymbolTypeRegistration();
+#ifdef HYP_DEBUG_MODE
+            Memory::Garble(ptrs[i - 1], sizeof(SymbolTypeRegistration));
+#endif
+
             pool->Free(ptrs[i - 1]);
         }
 
@@ -77,13 +81,15 @@ CompilationUnit::CompilationUnit()
 
 CompilationUnit::~CompilationUnit()
 {
-    m_symbolTypeCache.Reset();
+    // Modules need to be destructed before our SymbolTypeCache is
+    // (otherwise will have assertions fail as SymbolTypes are deleted while in cache)
     m_globalModule.Reset();
+    m_importedModules.Clear();
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-    CheckDanglingSymbolTypes();
+    m_symbolTypeCache.Reset();
 
-    HYP_BREAKPOINT;
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+    CheckUnfreedSymbolTypes();
 #endif
 }
 
@@ -145,17 +151,17 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
         RegisterType(staticMember.GetType());
     }
 
-    if (symbolType->IsAlias())
-    {
-        RegisterType(const_cast<SymbolType*>(symbolType->GetAliasInfo().m_aliasee));
-    }
-
     if (symbolType->IsGenericInstanceType())
     {
         for (GenericInstanceTypeInfo::Arg& arg : symbolType->GetGenericInstanceInfo().m_genericArgs)
         {
             RegisterType(const_cast<SymbolType*>(arg.m_type));
         }
+    }
+
+    if (symbolType->IsAlias())
+    {
+        RegisterType(const_cast<SymbolType*>(symbolType->GetAliasInfo().m_aliasee));
     }
 }
 

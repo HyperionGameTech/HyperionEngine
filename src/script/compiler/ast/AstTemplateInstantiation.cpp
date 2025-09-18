@@ -93,26 +93,23 @@ void AstTemplateInstantiation::Visit(AstVisitor* visitor, Module* mod)
         genericParamTypes.EmplaceBack(HYP_FORMAT("Arg{}", i), argType, nullptr, false, false);
     }
 
-    const SymbolType* genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+    SymbolType* genericInstanceType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         visitor,
         mod,
         m_symbolType,
         genericParamTypes,
         m_location);
 
-    Assert(genericInstanceType != nullptr);
-    genericInstanceType->AssertRegistered();
-
-    genericInstanceType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+    SymbolType* resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         visitor,
         mod,
         genericInstanceType,
         m_location);
 
-    Assert(genericInstanceType != nullptr);
-    genericInstanceType->AssertRegistered();
+    Assert(resolvedType != nullptr);
+    resolvedType->Register(visitor->GetCompilationUnit());
 
-    newType->Assign(*genericInstanceType);
+    newType->Assign(*resolvedType);
 
     m_symbolType = newType;
 }
