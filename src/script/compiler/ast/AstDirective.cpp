@@ -39,9 +39,6 @@ void AstDirective::Visit(AstVisitor* visitor, Module* mod)
             {
                 const String scanPath = currentDir + pathArg;
 
-                // create relative path
-                DebugLog(LogType::Info, "[Script] add scan path %s\n", scanPath.Data());
-
                 mod->AddScanPath(scanPath);
             }
         }

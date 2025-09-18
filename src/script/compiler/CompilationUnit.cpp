@@ -8,6 +8,8 @@
 
 #include <core/memory/pool/Pool.hpp>
 
+#include <core/containers/Array.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
@@ -42,13 +44,12 @@ public:
         // pool frees itself
         delete pool;
         pool = nullptr;
-
-        HYP_BREAKPOINT;
     }
 
     SymbolTypeRegistration* Register(SymbolType* symbolType)
     {
         Assert(symbolType != nullptr);
+        Assert(!symbolType->IsRegistered());
 
         SymbolTypeRegistration* pRegistration = pool->Alloc<SymbolTypeRegistration>();
         new (pRegistration) SymbolTypeRegistration(symbolType);
@@ -65,31 +66,42 @@ public:
 #pragma endregion SymbolTypeCache
 
 CompilationUnit::CompilationUnit()
-    : m_globalModule(MakeRefCountedPtr<Module>(hyperion::Config::globalModuleName, SourceLocation::eof)),
+    : m_globalModule(new Module(hyperion::Config::globalModuleName, SourceLocation::eof)),
       m_symbolTypeCache(MakePimpl<SymbolTypeCache>())
 {
-    m_globalModule->SetImportTreeLink(m_moduleTree.TopNode());
+    m_globalModule->SetImportTreeLink(moduleTree.TopNode());
 
     Scope& top = m_globalModule->scopeTree.Top();
+    moduleTree.TopNode()->Get() = m_globalModule;
 
-    m_moduleTree.TopNode()->Get() = m_globalModule.Get();
+    ownedModules.PushBack(m_globalModule);
 }
 
 CompilationUnit::~CompilationUnit()
 {
+    // Modules need to be destructed before our SymbolTypeCache is
+    // (otherwise will have assertions fail as SymbolTypes are deleted while in cache)
+    // @NOTE: m_globalModule is in ownedModules, so will be deleted in the loop below
+    for (Module* module : ownedModules)
+    {
+        delete module;
+    }
+
+    ownedModules.Clear();
+    m_globalModule = nullptr;
+
+    importedModules.Clear();
+
     m_symbolTypeCache.Reset();
-    m_globalModule.Reset();
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-    CheckDanglingSymbolTypes();
-
-    HYP_BREAKPOINT;
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+    CheckUnfreedSymbolTypes();
 #endif
 }
 
 Module* CompilationUnit::LookupModule(const String& name)
 {
-    TreeNode<Module*>* top = m_moduleTree.TopNode();
+    TreeNode<Module*>* top = moduleTree.TopNode();
 
     while (top != nullptr)
     {
@@ -123,17 +135,28 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
         return;
     }
 
-    if (symbolType->IsRegistered())
+    static thread_local Array<SymbolType*> s_visited;
+
+    if (s_visited.Find(symbolType) != s_visited.End())
     {
+        // already visited this type, avoid infinite recursion
         return;
     }
+
+    s_visited.PushBack(symbolType);
+    HYP_DEFER({
+        s_visited.PopBack();
+    });
 
     if (const SymbolType* baseType = symbolType->GetBaseType())
     {
         Assert(baseType->IsRegistered());
     }
 
-    m_symbolTypeCache->Register(symbolType);
+    if (!symbolType->IsRegistered())
+    {
+        m_symbolTypeCache->Register(symbolType);
+    }
 
     for (SymbolTypeMember& member : symbolType->GetMembers())
     {
@@ -145,17 +168,17 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
         RegisterType(staticMember.GetType());
     }
 
-    if (symbolType->IsAlias())
-    {
-        RegisterType(const_cast<SymbolType*>(symbolType->GetAliasInfo().m_aliasee));
-    }
-
     if (symbolType->IsGenericInstanceType())
     {
         for (GenericInstanceTypeInfo::Arg& arg : symbolType->GetGenericInstanceInfo().m_genericArgs)
         {
             RegisterType(const_cast<SymbolType*>(arg.m_type));
         }
+    }
+
+    if (symbolType->IsAlias())
+    {
+        RegisterType(const_cast<SymbolType*>(symbolType->GetAliasInfo().m_aliasee));
     }
 }
 

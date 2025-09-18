@@ -19,7 +19,8 @@ AstModuleDeclaration::AstModuleDeclaration(
     const Array<RC<AstStatement>>& children,
     const SourceLocation& location)
     : AstDeclaration(name, IdentifierFlags::MODULE, location),
-      m_children(children)
+      m_children(children),
+      m_module(nullptr)
 {
 }
 
@@ -41,7 +42,10 @@ void AstModuleDeclaration::PerformLookup(AstVisitor* visitor)
     }
     else
     {
-        m_module.Reset(new Module(m_name, m_location));
+        Assert(m_module == nullptr);
+        m_module = new Module(m_name, m_location);
+
+        visitor->GetCompilationUnit()->ownedModules.PushBack(m_module);
     }
 }
 
@@ -73,10 +77,10 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_module != nullptr)
     {
-        // add this module to the compilation unit
-        visitor->GetCompilationUnit()->m_moduleTree.Open(m_module.Get());
+        // add this module to the compilation unit (will take ownership over deleting it)
+        visitor->GetCompilationUnit()->moduleTree.Open(m_module);
         // set the link to the module in the tree
-        m_module->SetImportTreeLink(visitor->GetCompilationUnit()->m_moduleTree.TopNode());
+        m_module->SetImportTreeLink(visitor->GetCompilationUnit()->moduleTree.TopNode());
 
         // add this module to list of imported modules,
         // but only if mod == nullptr, that way we don't add nested modules
@@ -89,19 +93,19 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
             String canonPath = String::Join(path, "/");
 
             // map filepath to module
-            auto it = visitor->GetCompilationUnit()->m_importedModules.Find(canonPath);
-            if (it != visitor->GetCompilationUnit()->m_importedModules.End())
+            auto it = visitor->GetCompilationUnit()->importedModules.Find(canonPath);
+            if (it != visitor->GetCompilationUnit()->importedModules.End())
             {
                 it->second.PushBack(m_module);
             }
             else
             {
-                visitor->GetCompilationUnit()->m_importedModules[canonPath.Data()] = { m_module };
+                visitor->GetCompilationUnit()->importedModules[canonPath.Data()] = { m_module };
             }
         }
 
         // update current module
-        mod = m_module.Get();
+        mod = m_module;
 
         // Pre-register all class types so forward references work
         PreRegisterClassTypes(visitor, mod);
@@ -115,7 +119,7 @@ void AstModuleDeclaration::Visit(AstVisitor* visitor, Module* mod)
         }
 
         // close this module
-        visitor->GetCompilationUnit()->m_moduleTree.Close();
+        visitor->GetCompilationUnit()->moduleTree.Close();
     }
 }
 
@@ -130,7 +134,7 @@ UniquePtr<Buildable> AstModuleDeclaration::Build(AstVisitor* visitor, Module* mo
     {
         if (child != nullptr)
         {
-            chunk->Append(child->Build(visitor, m_module.Get()));
+            chunk->Append(child->Build(visitor, m_module));
         }
     }
 
@@ -146,7 +150,7 @@ void AstModuleDeclaration::Optimize(AstVisitor* visitor, Module* mod)
     {
         if (child)
         {
-            child->Optimize(visitor, m_module.Get());
+            child->Optimize(visitor, m_module);
         }
     }
 }

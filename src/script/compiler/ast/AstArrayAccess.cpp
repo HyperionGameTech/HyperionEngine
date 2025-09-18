@@ -81,11 +81,16 @@ void AstArrayAccess::Visit(AstVisitor* visitor, Module* mod)
         selfAliasType->Register(visitor->GetCompilationUnit());
         scope->identifierTable.AddSymbolType(selfAliasType);
 
-        elementType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        const SymbolType* resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
             mod,
             elementType,
             m_location);
+
+        Assert(resolvedType != nullptr);
+        resolvedType->Register(visitor->GetCompilationUnit());
+
+        elementType = resolvedType;
 
         m_exprType = elementType;
 
@@ -409,7 +414,6 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
 
     Assert(visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister() == registerUsageBefore);
 
-    
     if (m_tempArrayStoreVarDecl != nullptr)
     {
         // clean up the temporary variable

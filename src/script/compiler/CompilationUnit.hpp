@@ -24,21 +24,19 @@ class CompilationUnit
 public:
     CompilationUnit();
     CompilationUnit(const CompilationUnit& other) = delete;
+    CompilationUnit& operator=(const CompilationUnit& other) = delete;
+    CompilationUnit(CompilationUnit&& other) noexcept = delete;
+    CompilationUnit& operator=(CompilationUnit&& other) noexcept = delete;
     ~CompilationUnit();
 
     HYP_FORCE_INLINE Module* GetGlobalModule() const
     {
-        return m_globalModule.Get();
+        return m_globalModule;
     }
 
-    HYP_FORCE_INLINE Module* GetCurrentModule()
+    HYP_FORCE_INLINE Module* GetCurrentModule() const
     {
-        return m_moduleTree.Top();
-    }
-
-    HYP_FORCE_INLINE const Module* GetCurrentModule() const
-    {
-        return m_moduleTree.Top();
+        return moduleTree.Top();
     }
 
     HYP_FORCE_INLINE ErrorList& GetErrorList()
@@ -87,8 +85,9 @@ public:
     /** Maps filepath to a vector of modules, so that no module has to be parsed
         and analyze more than once.
     */
-    HashMap<String, Array<RC<Module>>> m_importedModules;
-    Tree<Module*> m_moduleTree;
+    HashMap<String, Array<Module*>> importedModules;
+    Array<Module*> ownedModules;
+    Tree<Module*> moduleTree;
 
 private:
     String m_execPath;
@@ -101,7 +100,7 @@ private:
     IdGenerator m_anonClassIdGenerator;
 
     // the global module
-    RC<Module> m_globalModule;
+    Module* m_globalModule;
 };
 
 } // namespace hyperion

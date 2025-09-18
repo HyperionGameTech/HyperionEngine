@@ -92,7 +92,7 @@ protected:
 
     bool m_isConstructorDefinition;
 
-    SymbolType* m_symbolType;
+    const SymbolType* m_symbolType;
     const SymbolType* m_returnType;
 
     int m_closureObjectLocation;

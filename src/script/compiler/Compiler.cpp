@@ -498,7 +498,7 @@ UniquePtr<Buildable> Compiler::DerefIfNeeded(AstVisitor* visitor, Module* mod, c
     const SymbolType* symbolTypeUnaliased = symbolType->GetUnaliased();
 
     // error occured, should have been caught earlier
-    Assert(symbolTypeUnaliased != BuiltinTypes::s_errorType);
+    Assert(!symbolTypeUnaliased->TypeEqual(*BuiltinTypes::s_errorType));
 
     if (ShouldDerefType(*symbolTypeUnaliased))
     {

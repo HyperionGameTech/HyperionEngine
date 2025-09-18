@@ -488,8 +488,8 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!JSONToHypData(value, typeInfo, hypData))
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json (TypeId: {})",
-                    member.GetName(), hypClass->GetName(), typeInfo.id.Value());
+                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json (type: {})",
+                    member.GetName(), hypClass->GetName(), typeInfo.name);
 
                 return false;
             }
@@ -581,7 +581,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsNumber())
         {
-            HYP_LOG(Core, Warning, "Expected JSON number for integral TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON number for integral type {}, but got value: {}", typeInfo.name, jsonValue.ToString(true));
             return false;
         }
 
@@ -706,7 +706,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsNumber())
         {
-            HYP_LOG(Core, Warning, "Expected JSON number for float TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON number for float type {}, but got value: {}", typeInfo.name, jsonValue.ToString(true));
             return false;
         }
 
@@ -739,7 +739,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsBool())
         {
-            HYP_LOG(Core, Warning, "Expected JSON bool for bool TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON bool for bool but got: {}", jsonValue.ToString(true));
             return false;
         }
 
@@ -751,7 +751,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsString())
         {
-            HYP_LOG(Core, Warning, "Expected JSON string for string TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON string for string type {}, but got: {}", typeInfo.name, jsonValue.ToString(true));
             return false;
         }
 
@@ -759,7 +759,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (!handler || handler->GetHandlerType() != ITypeInfoHandler::TYPE_STRING)
         {
-            HYP_LOG(Core, Warning, "String TypeId: {} does not have a valid string handler", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "String type {} does not have a valid string handler", typeInfo.name);
             return false;
         }
 
@@ -781,7 +781,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsString())
         {
-            HYP_LOG(Core, Warning, "Expected JSON string for UUID, but got: {}", jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON string for UUID, but got value: {}", jsonValue.ToString(true));
             return false;
         }
 
@@ -807,7 +807,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsArray())
         {
-            HYP_LOG(Core, Warning, "Expected JSON array for vector TypeId: {}, but got something else", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "Expected JSON array for vector type {}, but got value: {}", typeInfo.name, jsonValue.ToString(true));
             return false;
         }
 
@@ -815,7 +815,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (!handler || handler->GetHandlerType() != ITypeInfoHandler::TYPE_VECTOR)
         {
-            HYP_LOG(Core, Warning, "Vector TypeId: {} does not have a valid vector handler", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "Vector type {} does not have a valid vector handler", typeInfo.name);
             return false;
         }
 
@@ -831,8 +831,8 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (jsonArray.Size() != vectorHandler->GetNumComponents())
         {
-            HYP_LOG(Core, Warning, "Expected JSON array of size {} for vector TypeId: {}, but got size {}",
-                vectorHandler->GetNumComponents(), typeInfo.id.Value(), jsonArray.Size());
+            HYP_LOG(Core, Warning, "Expected JSON array of size {} for vector type {}, but got size {}",
+                vectorHandler->GetNumComponents(), typeInfo.name, jsonArray.Size());
             return false;
         }
 
@@ -840,7 +840,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (!elementTypeInfo)
         {
-            HYP_LOG(Core, Warning, "Vector TypeId: {} does not have a valid element type", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "Vector type {} does not have a valid element type", typeInfo.name);
             return false;
         }
 
@@ -850,7 +850,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize vector element at index {} for TypeId: {}", i, typeInfo.id.Value());
+                HYP_LOG(Core, Warning, "Failed to deserialize vector element at index {} for type {}", i, typeInfo.name);
                 return false;
             }
 
@@ -866,7 +866,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsArray())
         {
-            HYP_LOG(Core, Warning, "Expected JSON array for array TypeId: {}, but got something else", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "Expected JSON array for array type {}, but got something else", typeInfo.name);
             return false;
         }
 
@@ -876,7 +876,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (!elementTypeInfo)
         {
-            HYP_LOG(Core, Warning, "Array TypeId: {} does not have a valid element type", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "Array type {} does not have a valid element type", typeInfo.name);
             return false;
         }
 
@@ -884,7 +884,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (!handler || handler->GetHandlerType() != ITypeInfoHandler::TYPE_ARRAY)
         {
-            HYP_LOG(Core, Warning, "Element type for array TypeId: {} does not have a valid array handler", typeInfo.id.Value());
+            HYP_LOG(Core, Warning, "Element type for array type {} does not have a valid array handler", typeInfo.name);
             return false;
         }
 
@@ -893,7 +893,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         Any arrayInstance;
         if (!arrayHandler->CreateInstance(arrayInstance))
         {
-            HYP_LOG(Core, Warning, "Failed to create instance of array type");
+            HYP_LOG(Core, Warning, "Failed to create instance of array type {}", typeInfo.name);
             return false;
         }
 
@@ -905,7 +905,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize array element at index {} for TypeId: {}", i, typeInfo.id.Value());
+                HYP_LOG(Core, Warning, "Failed to deserialize array element at index {} for type: {}", i, typeInfo.name);
                 return false;
             }
 
@@ -943,7 +943,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         }
     }
 
-    HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of TypeId: {}", typeInfo.id.Value());
+    HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of type: {}", typeInfo.name);
 
     return false;
 }

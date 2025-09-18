@@ -13,6 +13,9 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
 #include <core/debug/Debug.hpp>
+
+#include <core/logging/Logger.hpp>
+
 #include <util/UTF8.hpp>
 
 namespace hyperion {

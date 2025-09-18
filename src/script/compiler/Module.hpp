@@ -23,38 +23,38 @@ public:
         const SourceLocation& location);
 
     Module(const Module& other) = delete;
+    Module& operator=(const Module& other) = delete;
+    Module(Module&& other) noexcept = delete;
+    Module& operator=(Module&& other) noexcept = delete;
 
-    const String& GetName() const
+    ~Module();
+
+    HYP_FORCE_INLINE const String& GetName() const
     {
         return m_name;
     }
 
-    const SourceLocation& GetLocation() const
+    HYP_FORCE_INLINE const SourceLocation& GetLocation() const
     {
         return m_location;
     }
 
-    const FlatSet<String>& GetScanPaths() const
+    HYP_FORCE_INLINE const FlatSet<String>& GetScanPaths() const
     {
         return m_scanPaths;
     }
 
-    void AddScanPath(const String& path)
+    HYP_FORCE_INLINE void AddScanPath(const String& path)
     {
         m_scanPaths.Insert(path);
     }
 
-    TreeNode<Module*>* GetImportTreeLink()
+    HYP_FORCE_INLINE TreeNode<Module*>* GetImportTreeLink() const
     {
         return importTreeNode;
     }
 
-    const TreeNode<Module*>* GetImportTreeLink() const
-    {
-        return importTreeNode;
-    }
-
-    void SetImportTreeLink(TreeNode<Module*>* treeLink)
+    HYP_FORCE_INLINE void SetImportTreeLink(TreeNode<Module*>* treeLink)
     {
         importTreeNode = treeLink;
     }
@@ -108,8 +108,8 @@ public:
         bool thisScopeOnly = false,
         bool outsideModules = HYP_SCRIPT_ALLOW_IDENTIFIERS_OTHER_MODULES);
 
-    const SymbolType* LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep = true);
-    void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolType* type);
+    SymbolType* LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep = true);
+    void CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, SymbolType* type);
 
     Tree<Scope> scopeTree;
     TreeNode<Module*>* importTreeNode;

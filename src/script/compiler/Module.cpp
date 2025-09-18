@@ -2,7 +2,11 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/logging/Logger.hpp>
+
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(HypScript);
 
 Module::Module(
     const String& name,
@@ -11,6 +15,11 @@ Module::Module(
       m_location(location),
       importTreeNode(nullptr)
 {
+}
+
+Module::~Module()
+{
+    HYP_LOG(HypScript, Debug, "Destroying module '{}'", m_name);
 }
 
 FlatSet<String> Module::GenerateAllScanPaths() const
@@ -296,11 +305,11 @@ Variant<RC<Identifier>, const SymbolType*> Module::LookUpIdentifierOrSymbolType(
         });
 }
 
-const SymbolType* Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep)
+SymbolType* Module::LookupTypeInstance(const TypeInstanceCache::Key& cacheKey, bool deep)
 {
     if (deep)
     {
-        return PerformLookup<const SymbolType*>(
+        return PerformLookup<SymbolType*>(
             [&cacheKey](TreeNode<Scope>* top)
             {
                 return top->Get().typeInstanceCache.Lookup(cacheKey);
@@ -321,9 +330,9 @@ const SymbolType* Module::LookupTypeInstance(const TypeInstanceCache::Key& cache
     return nullptr;
 }
 
-void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, const SymbolType* type)
+void Module::CacheTypeInstance(const TypeInstanceCache::Key& cacheKey, SymbolType* type)
 {
-    Assert(type != nullptr && type->IsRegistered());
+    Assert(type != nullptr);
 
     // cache in this module at topmost scope
     TreeNode<Scope>* top = scopeTree.TopNode();

@@ -33,7 +33,7 @@ public:
         return m_children;
     }
 
-    const RC<Module>& GetModule() const
+    Module* GetModule() const
     {
         return m_module;
     }
@@ -63,7 +63,7 @@ private:
     void PreRegisterClassTypes(AstVisitor* visitor, Module* mod);
 
     Array<RC<AstStatement>> m_children;
-    RC<Module> m_module;
+    Module* m_module;
 
     RC<AstModuleDeclaration> CloneImpl() const
     {

@@ -72,11 +72,16 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
     Assert(m_targetType != nullptr);
 
-    m_targetType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+    const SymbolType* resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         visitor,
         mod,
         m_targetType,
         m_location);
+
+    Assert(resolvedType != nullptr);
+    resolvedType->Register(visitor->GetCompilationUnit());
+
+    m_targetType = resolvedType;
 
     if (mod->IsInScopeOfType(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG, /* thisScopeOnly */ false))
     {

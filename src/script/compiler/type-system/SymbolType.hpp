@@ -8,10 +8,10 @@
 
 namespace hyperion {
 
-#define HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG 1
+#define HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG 1
 
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
-extern void CheckDanglingSymbolTypes();
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+extern void CheckUnfreedSymbolTypes();
 #endif
 
 // forward declaration
@@ -299,8 +299,8 @@ public:
 
     ~SymbolTypeRegistration();
 
-private:
-    SymbolType* m_symbolType;
+    SymbolType* symbolType;
+    bool isDestructing : 1;
 };
 
 class SymbolType
@@ -458,10 +458,7 @@ public:
         m_members = members;
     }
 
-    void SetMembers(Array<SymbolTypeMember>&& members)
-    {
-        m_members = std::move(members);
-    }
+    void SetMembers(Array<SymbolTypeMember>&& members);
 
     HYP_FORCE_INLINE Array<SymbolTypeMember>& GetStaticMembers()
     {
@@ -478,10 +475,7 @@ public:
         m_staticMembers = staticMembers;
     }
 
-    void SetStaticMembers(Array<SymbolTypeMember>&& staticMembers)
-    {
-        m_staticMembers = std::move(staticMembers);
-    }
+    void SetStaticMembers(Array<SymbolTypeMember>&& staticMembers);
 
     HYP_FORCE_INLINE AliasTypeInfo& GetAliasInfo()
     {
@@ -538,6 +532,23 @@ public:
         m_declScope = scope;
     }
 
+    HYP_FORCE_INLINE bool IsCached() const
+    {
+        return m_cacheCounter > 0;
+    }
+
+    HYP_FORCE_INLINE void SetIsCached(bool isCached) const
+    {
+        if (isCached)
+        {
+            ++m_cacheCounter;
+        }
+        else
+        {
+            --m_cacheCounter;
+        }
+    }
+
     HYP_FORCE_INLINE bool IsRegistered() const
     {
         return m_registration != nullptr;
@@ -548,7 +559,7 @@ public:
         Assert(IsRegistered());
     }
 
-    void Register(CompilationUnit* compilationUnit);
+    void Register(CompilationUnit* compilationUnit) const;
 
     String ToString(bool includeParameterNames = false) const;
 
@@ -592,6 +603,7 @@ public:
         return const_cast<SymbolType*>(this)->GetUnaliased();
     }
 
+    bool IsVoidType() const;
     bool IsNumber() const;
     bool IsIntegral() const;
     bool IsSignedIntegral() const;
@@ -657,31 +669,20 @@ public:
     /*! \brief Copy the contents of another SymbolType into this one, mutating it.
         This is used when instantiating generic types to avoid having to re-cache
         the new instance. */
-    void Assign(const SymbolType& other)
-    {
-        // @TODO: Update registration of nested types if this type is registered.
+    void Assign(const SymbolType& other);
+    /*! \brief Move the contents of another SymbolType into this one, mutating it.
+        This is used when instantiating generic types to avoid having to re-cache
+        the new instance. */
+    void Assign(SymbolType&& other);
 
-        m_name = std::move(other.m_name);
-        m_typeClass = other.m_typeClass;
-        m_base = other.m_base;
-        m_defaultValue = std::move(other.m_defaultValue);
-        m_members = std::move(other.m_members);
-        m_staticMembers = std::move(other.m_staticMembers);
-        m_aliasInfo = std::move(other.m_aliasInfo);
-        m_genericInstanceInfo = std::move(other.m_genericInstanceInfo);
-        m_genericParamInfo = std::move(other.m_genericParamInfo);
-        m_constantBitSize = other.m_constantBitSize;
-        m_flags = other.m_flags;
-        m_declScope = nullptr; // do not copy scope
-
-        // do not copy registration
-    }
-
-#if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
+#if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
+#if defined(HYP_SYMBOL_TYPE_ALLOCATION_TRACE) && HYP_SYMBOL_TYPE_ALLOCATION_TRACE
     String allocationTrace;
+#endif
 #endif
 
 private:
+    void DeleteReferencedTypes();
     HashCode GetHashCodeWithDuplicateRemoval(HashSet<String>& duplicateNames) const;
 
     String m_name;
@@ -705,7 +706,9 @@ private:
     Scope* m_declScope;
 
     // set to default empty registration upon creation so we can delete all unregistered types
-    SymbolTypeRegistration* m_registration;
+    mutable SymbolTypeRegistration* m_registration;
+
+    mutable int m_cacheCounter;
 };
 
 } // namespace hyperion

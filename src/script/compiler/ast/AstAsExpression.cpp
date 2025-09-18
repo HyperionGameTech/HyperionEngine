@@ -43,8 +43,14 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
     Assert(m_typeSpecification != nullptr);
     m_typeSpecification->Visit(visitor, mod);
 
-    m_resultType = m_typeSpecification->GetHeldType();
-    Assert(m_resultType != nullptr);
+    const SymbolType* heldType = m_typeSpecification->GetHeldType();
+    Assert(heldType != nullptr);
+
+    const SymbolType* resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, heldType, m_location);
+    Assert(resolvedType != nullptr);
+    resolvedType->Register(visitor->GetCompilationUnit());
+
+    m_resultType = resolvedType->GetUnaliased();
 
     if (m_resultType->IsAnyType())
     {

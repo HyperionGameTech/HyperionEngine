@@ -53,23 +53,21 @@ public:
         static const SymbolType* GetVarArgType(
             const Array<GenericInstanceTypeInfo::Arg>& genericArgs);
 
-        /// Creates new types
-        static const SymbolType* SubstituteGenericParameters(
+        static HYP_NODISCARD SymbolType* SubstituteGenericParameters(
             AstVisitor* visitor,
             Module* mod,
             const SymbolType* inputType,
             const Array<GenericInstanceTypeInfo::Arg>& inArgs,
             const SourceLocation& location);
 
-        static const SymbolType* GenericPromotion(
+        static HYP_NODISCARD const SymbolType* GenericPromotion(
             AstVisitor* visitor,
             Module* mod,
             const SymbolType* lptr,
             const SymbolType* rptr,
             const SourceLocation& location);
 
-        /// Does NOT create new Types
-        static const SymbolType* ResolvePlaceholderType(
+        static HYP_NODISCARD const SymbolType* ResolvePlaceholderType(
             AstVisitor* visitor,
             Module* mod,
             const SymbolType* inputType,

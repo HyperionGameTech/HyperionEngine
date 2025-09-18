@@ -257,7 +257,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         }
         else
         {
-            if (!m_returnTypeSpecification || m_returnType != BuiltinTypes::s_voidType)
+            if (!m_returnTypeSpecification || !m_returnType->IsVoidType())
             {
                 // check if last statement is an expression;
                 // if it is, we use its type as the return type. otherwise, it is 'void'.
@@ -301,7 +301,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                     // no expression at the end, so return type is void
                     if (m_returnTypeSpecification != nullptr)
                     {
-                        if (m_returnType != BuiltinTypes::s_voidType)
+                        if (!m_returnType->IsVoidType())
                         {
                             // error; does not match what user specified
                             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -368,12 +368,9 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(identifier != nullptr);
         Assert(identifier->GetSymbolType() != nullptr);
 
-        SymbolType* newIdentifierType = identifier->GetSymbolType()->Clone();
-        newIdentifierType->Register(visitor->GetCompilationUnit());
-
         closureObjMembers.PushBack(SymbolTypeMember {
             identifier->GetName(),
-            newIdentifierType,
+            const_cast<SymbolType*>(identifier->GetSymbolType()),
             RC<AstVariable>(new AstVariable(name, m_location)) });
     }
 
@@ -424,12 +421,13 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
             genericParamTypes.PushBack(it);
         }
 
-        functionType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+        functionType = SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             visitor, mod,
             BuiltinTypes::s_functionType,
             genericParamTypes,
-            m_location));
+            m_location);
 
+        Assert(functionType != nullptr);
         functionType->Register(visitor->GetCompilationUnit());
     }
 
@@ -492,8 +490,9 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         Assert(closureClassDecl->GetHeldType() != nullptr);
 
         SymbolType* tmpAlias = SymbolType::Alias("ClosureSelfType", { closureClassDecl->GetHeldType() });
-        closureSelfType->Assign(*tmpAlias);
+        closureSelfType->Assign(std::move(*tmpAlias));
         delete tmpAlias;
+        tmpAlias = nullptr;
 
         m_closureBlock.Reset(new AstBlock(m_location));
 
@@ -532,25 +531,25 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_closureBlock->PrependChild(closureClassDecl);
 
         // HACK
-        m_symbolType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+        m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             visitor,
             mod,
             closureSelfType,
-            m_location));
+            m_location);
 
-        visitor->GetCompilationUnit()->RegisterType(m_symbolType);
+        m_symbolType->Register(visitor->GetCompilationUnit());
 
         return;
     }
 
     // HACK
-    m_symbolType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(
+    m_symbolType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         visitor,
         mod,
         functionType,
-        m_location));
+        m_location);
 
-    visitor->GetCompilationUnit()->RegisterType(m_symbolType);
+    m_symbolType->Register(visitor->GetCompilationUnit());
 
     if (m_parameters.Size() > MathUtil::MaxSafeValue<uint8>())
     {

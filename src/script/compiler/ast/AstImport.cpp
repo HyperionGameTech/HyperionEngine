@@ -45,13 +45,13 @@ void AstImport::CopyModules(
     }
 
     // add this module to the compilation unit
-    visitor->GetCompilationUnit()->m_moduleTree.Open(modToCopy);
+    visitor->GetCompilationUnit()->moduleTree.Open(modToCopy);
     // open scope for module
     // mod->scopeTree.Open(Scope());
 
     if (updateTreeLink)
     {
-        modToCopy->SetImportTreeLink(visitor->GetCompilationUnit()->m_moduleTree.TopNode());
+        modToCopy->SetImportTreeLink(visitor->GetCompilationUnit()->moduleTree.TopNode());
     }
 
     // function to copy nested modules
@@ -74,7 +74,7 @@ void AstImport::CopyModules(
             }
             else
             {
-                visitor->GetCompilationUnit()->m_moduleTree.Open(sibling->Get());
+                visitor->GetCompilationUnit()->moduleTree.Open(sibling->Get());
 
                 if (updateTreeLink)
                 {
@@ -83,7 +83,7 @@ void AstImport::CopyModules(
 
                 copyNodes(sibling);
 
-                visitor->GetCompilationUnit()->m_moduleTree.Close();
+                visitor->GetCompilationUnit()->moduleTree.Close();
             }
         }
     };
@@ -95,7 +95,7 @@ void AstImport::CopyModules(
     // mod->scopeTree.Close();
 
     // close module
-    visitor->GetCompilationUnit()->m_moduleTree.Close();
+    visitor->GetCompilationUnit()->moduleTree.Close();
 }
 
 bool AstImport::TryOpenFile(const String& path, BufferedReader& outReader)
@@ -139,19 +139,16 @@ void AstImport::PerformImport(
     const String canonPath = String::Join(pathParts, '/');
 
     // first, check if the file has already been imported somewhere in this compilation unit
-    const auto it = visitor->GetCompilationUnit()->m_importedModules.Find(canonPath);
-    if (it != visitor->GetCompilationUnit()->m_importedModules.End())
+    const auto it = visitor->GetCompilationUnit()->importedModules.Find(canonPath);
+    if (it != visitor->GetCompilationUnit()->importedModules.End())
     {
         // imported file found, so just re-open all
         // modules that belong to the file into this scope
 
         // TODO: Fix issues with duplicated symbols...
-        for (RC<Module>& mod : it->second)
+        for (Module* mod : it->second)
         {
-            AstImport::CopyModules(
-                visitor,
-                mod.Get(),
-                false);
+            AstImport::CopyModules(visitor, mod, false);
         }
     }
     else
@@ -195,7 +192,7 @@ void AstImport::PerformImport(
         semanticAnalyzer.Analyze();
 
         /*if (makeParentModule) {
-            visitor->GetCompilationUnit()->m_moduleTree.Close();
+            visitor->GetCompilationUnit()->moduleTree.Close();
         }*/
     }
 }

@@ -183,6 +183,7 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
                     m_location);
 
                 Assert(m_symbolType != nullptr);
+                m_symbolType->Register(visitor->GetCompilationUnit());
 
                 if (!m_realAssignment->GetExprType()->TypeEqual(*m_symbolType))
                 {

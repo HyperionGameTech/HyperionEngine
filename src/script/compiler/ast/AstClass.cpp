@@ -179,7 +179,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_symbolType)
     {
-        m_symbolType->Assign(*newType);
+        m_symbolType->Assign(std::move(*newType));
 
         delete newType;
     }
@@ -341,12 +341,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
 
-                SymbolType* newMemberType = memberType->Clone();
-                newMemberType->Register(visitor->GetCompilationUnit());
-
                 m_symbolType->GetStaticMembers().PushBack(SymbolTypeMember {
                     memberName,
-                    newMemberType,
+                    const_cast<SymbolType*>(memberType),
                     decl->GetRealAssignment() });
             }
         }
@@ -401,12 +398,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
 
-                SymbolType* newMemberType = memberType->Clone();
-                newMemberType->Register(visitor->GetCompilationUnit());
-
                 m_symbolType->GetMembers().PushBack(SymbolTypeMember {
                     memberName,
-                    newMemberType,
+                    const_cast<SymbolType*>(memberType),
                     decl->GetRealAssignment() });
             }
 
@@ -431,12 +425,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
                 const SymbolType* memberType = decl->GetIdentifier()->GetSymbolType();
                 Assert(memberType != nullptr);
 
-                SymbolType* newMemberType = memberType->Clone();
-                newMemberType->Register(visitor->GetCompilationUnit());
-
                 SymbolTypeMember member {
                     memberName,
-                    newMemberType,
+                    const_cast<SymbolType*>(memberType),
                     decl->GetRealAssignment()
                 };
 
@@ -564,12 +555,11 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
                 constructMemberDecl->Visit(visitor, mod);
 
-                SymbolType* constructorMemberType = constructorExpr->GetExprType()->Clone();
-                constructorMemberType->Register(visitor->GetCompilationUnit());
+                const SymbolType* constructorMemberType = constructorExpr->GetExprType();
 
                 SymbolTypeMember constructorMember {
                     "$construct",
-                    constructorMemberType,
+                    const_cast<SymbolType*>(constructorMemberType),
                     CloneAstNode(constructorExpr)
                 };
 
@@ -583,8 +573,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     if (!m_preRegister)
     {
         // resolve placeholders in members
-        SymbolType* resolvedType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location));
+        const SymbolType* resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location);
         Assert(resolvedType != nullptr);
+        resolvedType->Register(visitor->GetCompilationUnit());
 
         m_symbolType->Assign(*resolvedType);
     }

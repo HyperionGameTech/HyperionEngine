@@ -17,14 +17,12 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(HypScript);
 
-static inline bool ShouldSkipNestedResolution(const SymbolType* type)
+static inline bool ShouldSkipNestedResolution(const SymbolType& type)
 {
-    Assert(type);
-
-    return type->IsObject()
-        || type->TypeEqual(*BuiltinTypes::s_stringType)
-        || type->HasBase(*BuiltinTypes::s_arrayBaseType)
-        || type->HasBase(*BuiltinTypes::s_mapBaseType);
+    return type.IsObject()
+        || type.TypeEqual(*BuiltinTypes::s_stringType)
+        || type.HasBase(*BuiltinTypes::s_arrayBaseType)
+        || type.HasBase(*BuiltinTypes::s_mapBaseType);
 }
 
 const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
@@ -33,19 +31,21 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     const SymbolType* inputType,
     const SourceLocation& location)
 {
+
+    static thread_local Stack<Pair<SymbolType*, SymbolType*>> s_resolutionStack;
+
     if (!inputType)
     {
         return nullptr;
     }
 
-    static thread_local Stack<Pair<const SymbolType*, const SymbolType*>> s_resolutionStack;
+    const SymbolType* originalInputType = inputType;
 
-    const SymbolType* unaliasedInputType = inputType->GetUnaliased();
-    Assert(unaliasedInputType != nullptr);
+    inputType = inputType->GetUnaliased();
 
-    for (const Pair<const SymbolType*, const SymbolType*>& entry : s_resolutionStack)
+    for (const Pair<SymbolType*, SymbolType*>& entry : s_resolutionStack)
     {
-        if (entry.first == unaliasedInputType && entry.second != nullptr)
+        if (entry.first == inputType && entry.second != nullptr)
         {
             // HYP_LOG(HypScript, Debug, "Using cached placeholder type for '{}' : {}", inputType->GetName(), entry.second->ToString());
 
@@ -53,114 +53,140 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         }
     }
 
-    s_resolutionStack.Push({ unaliasedInputType, unaliasedInputType });
+    s_resolutionStack.Push({ const_cast<SymbolType*>(inputType), const_cast<SymbolType*>(inputType) });
 
     HYP_DEFER({
-        AssertDebug(!s_resolutionStack.Empty() && s_resolutionStack.Top().first == unaliasedInputType);
+        AssertDebug(!s_resolutionStack.Empty() && s_resolutionStack.Top().first == inputType);
 
         s_resolutionStack.Pop();
     });
 
-    bool changed = false;
-
-    if (!unaliasedInputType->IsPlaceholderType())
+    if (!inputType->IsPlaceholderType())
     {
-        const SymbolType* newType = nullptr;
-
         // Check if type has members, static members, or base types that need resolution
-        if (unaliasedInputType->GetMembers().Any() || unaliasedInputType->GetStaticMembers().Any() || unaliasedInputType->IsGenericInstanceType())
+        if (inputType->GetMembers().Any() || inputType->GetStaticMembers().Any() || inputType->IsGenericInstanceType())
         {
-            newType = unaliasedInputType->Clone();
+            bool wasMutated = false;
 
-            for (SizeType memberIndex = 0; memberIndex < newType->GetMembers().Size(); memberIndex++)
+            Array<SymbolTypeMember> newMembers;
+            Array<SymbolTypeMember> newStaticMembers;
+            GenericInstanceTypeInfo newGenericInstanceInfo;
+
+            for (SizeType memberIndex = 0; memberIndex < inputType->GetMembers().Size(); memberIndex++)
             {
-                const SymbolTypeMember& srcMember = newType->GetMembers()[memberIndex];
+                const SymbolTypeMember& srcMember = inputType->GetMembers()[memberIndex];
                 Assert(srcMember.GetType() != nullptr);
 
-                if (ShouldSkipNestedResolution(srcMember.GetType()))
+                if (ShouldSkipNestedResolution(*srcMember.GetType()))
                 {
                     continue;
                 }
 
                 const SymbolType* resolvedMemberType = ResolvePlaceholderType(visitor, mod, srcMember.GetType(), location);
-                if (!srcMember.GetType()->TypeEqual(*resolvedMemberType))
+                Assert(resolvedMemberType != nullptr);
+
+                if (srcMember.GetType() != resolvedMemberType)
                 {
-                    newType->GetMembers()[memberIndex] = { srcMember.GetName(), resolvedMemberType, srcMember.GetExpr() };
-                    changed = true;
+                    if (!wasMutated)
+                    {
+                        newMembers = inputType->GetMembers();
+                        newStaticMembers = inputType->GetStaticMembers();
+                        wasMutated = true;
+                    }
+
+                    newMembers[memberIndex] = { srcMember.GetName(), const_cast<SymbolType*>(resolvedMemberType), srcMember.GetExpr() };
                 }
             }
 
-            for (SizeType memberIndex = 0; memberIndex < newType->GetStaticMembers().Size(); memberIndex++)
+            for (SizeType memberIndex = 0; memberIndex < inputType->GetStaticMembers().Size(); memberIndex++)
             {
-                const SymbolTypeMember& srcMember = newType->GetStaticMembers()[memberIndex];
+                const SymbolTypeMember& srcMember = inputType->GetStaticMembers()[memberIndex];
                 Assert(srcMember.GetType() != nullptr);
 
-                if (ShouldSkipNestedResolution(srcMember.GetType()))
+                if (ShouldSkipNestedResolution(*srcMember.GetType()))
                 {
                     continue;
                 }
 
                 const SymbolType* resolvedMemberType = ResolvePlaceholderType(visitor, mod, srcMember.GetType(), location);
-                if (!srcMember.GetType()->TypeEqual(*resolvedMemberType))
+                Assert(resolvedMemberType != nullptr);
+
+                if (srcMember.GetType() != resolvedMemberType)
                 {
-                    newType->GetStaticMembers()[memberIndex] = { srcMember.GetName(), resolvedMemberType, srcMember.GetExpr() };
-                    changed = true;
+                    if (!wasMutated)
+                    {
+                        newMembers = inputType->GetMembers();
+                        newStaticMembers = inputType->GetStaticMembers();
+                        wasMutated = true;
+                    }
+
+                    newStaticMembers[memberIndex] = { srcMember.GetName(), const_cast<SymbolType*>(resolvedMemberType), srcMember.GetExpr() };
                 }
             }
 
-            if (unaliasedInputType->IsGenericInstanceType())
+            if (inputType->IsGenericInstanceType())
             {
-                bool genericArgsChanged = false;
+                bool genericArgsMutated = false;
 
-                GenericInstanceTypeInfo gi = unaliasedInputType->GetGenericInstanceInfo();
+                newGenericInstanceInfo = inputType->GetGenericInstanceInfo();
 
-                for (SizeType i = 0; i < gi.m_genericArgs.Size(); i++)
+                for (SizeType i = 0; i < newGenericInstanceInfo.m_genericArgs.Size(); i++)
                 {
-                    const SymbolType* argType = gi.m_genericArgs[i].m_type;
+                    const SymbolType*& argType = newGenericInstanceInfo.m_genericArgs[i].m_type;
                     Assert(argType != nullptr);
 
-                    if (ShouldSkipNestedResolution(argType))
+                    if (ShouldSkipNestedResolution(*argType))
                     {
                         continue;
                     }
 
                     const SymbolType* resolvedArgType = ResolvePlaceholderType(visitor, mod, argType, location);
+                    Assert(resolvedArgType != nullptr);
 
-                    if (!argType->TypeEqual(*resolvedArgType))
+                    if (argType != resolvedArgType)
                     {
                         argType = resolvedArgType;
-                        genericArgsChanged = true;
+
+                        genericArgsMutated = true;
                     }
                 }
 
-                if (genericArgsChanged)
+                if (genericArgsMutated)
                 {
-                    changed = true;
-
-                    newType->GetGenericInstanceInfo() = std::move(gi);
+                    if (!wasMutated)
+                    {
+                        newMembers = inputType->GetMembers();
+                        newStaticMembers = inputType->GetStaticMembers();
+                        wasMutated = true;
+                    }
                 }
+            }
+
+            if (wasMutated)
+            {
+                SymbolType* newType = inputType->Clone();
+                HYP_LOG_TEMP("Clone type {} , address: {}", inputType->ToString(), (void*)inputType);
+                newType->SetMembers(std::move(newMembers));
+                newType->SetStaticMembers(std::move(newStaticMembers));
+
+                if (inputType->IsGenericInstanceType())
+                {
+                    newType->GetGenericInstanceInfo() = std::move(newGenericInstanceInfo);
+                }
+
+                return newType;
             }
         }
 
-        if (changed)
-        {
-            // mutate the cached placeholder type in-place
-            unaliasedInputType->Assign(*newType);
-        }
-
-        newType.Reset();
-
-        return unaliasedInputType;
+        return inputType;
     }
 
     // Try to resolve placeholder type by looking it up in the module
-    const SymbolType* resolvedType = mod->LookupSymbolType(unaliasedInputType->GetName());
+    const SymbolType* resolvedType = mod->LookupSymbolType(inputType->GetName());
 
     if (resolvedType)
     {
-        unaliasedInputType->Assign(*resolvedType);
-
-        return unaliasedInputType;
+        return resolvedType;
     }
 
     // Could not resolve placeholder type
@@ -168,7 +194,7 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         LEVEL_ERROR,
         Msg_placeholder_resolution_failed,
         location,
-        inputType->GetName()));
+        originalInputType->GetName()));
 
     return BuiltinTypes::s_errorType;
 }
@@ -295,7 +321,8 @@ SizeType SemanticAnalyzer::Helpers::ArgIndex(
         numSuppliedArgs);
 }
 
-const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
+HYP_DISABLE_OPTIMIZATION;
+SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     AstVisitor* visitor,
     Module* mod,
     const SymbolType* inputType,
@@ -314,7 +341,7 @@ const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     const TypeInstanceCache::Key cacheKey = TypeInstanceCache::MakeKey(inputType, GenericInstanceTypeInfo { inArgs });
 
     // If we already created (or are in the middle of creating) this instance, return it to avoid recursion
-    if (const SymbolType* cachedType = mod->LookupTypeInstance(cacheKey))
+    if (SymbolType* cachedType = mod->LookupTypeInstance(cacheKey))
     {
         return cachedType;
     }
@@ -323,10 +350,6 @@ const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
 
     switch (inputType->GetTypeClass())
     {
-    case TYPE_PLACEHOLDER: // fallthrough
-    case TYPE_BUILTIN:
-        return inputType;
-
     case TYPE_GENERIC_PARAMETER:
     {
         // Resolve the generic parameter via the current module scope (aliases are set by callers for this context)
@@ -340,17 +363,17 @@ const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 location,
                 inputType->GetName()));
 
-            return BuiltinTypes::s_errorType;
+            return const_cast<SymbolType*>(BuiltinTypes::s_errorType);
         }
 
-        return resolved->GetUnaliased();
+        return const_cast<SymbolType*>(resolved->GetUnaliased());
     }
 
     case TYPE_GENERIC_INSTANCE:
     {
         // cache to break recursive cycles (members referencing the same type)
         SymbolType* tempInstance = SymbolType::Temp();
-        tempInstance->Register(visitor->GetCompilationUnit());
+
         mod->CacheTypeInstance(cacheKey, tempInstance);
 
         const GenericInstanceTypeInfo& gi = inputType->GetGenericInstanceInfo();
@@ -409,7 +432,9 @@ const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
                 dst.m_isRef = src.m_isRef;
                 dst.m_isConst = src.m_isConst;
                 dst.m_defaultValue = CloneAstNode(src.m_defaultValue);
+
                 Assert(src.m_type != nullptr);
+
                 dst.m_type = SubstituteGenericParameters(visitor, mod, src.m_type, {}, location);
             }
         }
@@ -432,23 +457,38 @@ const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
         // Non-static members
         for (SizeType i = 0; i < genericInstanceType->GetMembers().Size(); ++i)
         {
-            SymbolTypeMember& srcMember = instance->GetMembers()[i];
-            Assert(srcMember.type != nullptr);
+            const SymbolTypeMember& srcMember = genericInstanceType->GetMembers()[i];
+            Assert(srcMember.GetType() != nullptr);
 
-            srcMember.type = SubstituteGenericParameters(visitor, mod, srcMember.type, {}, location);
+            SymbolType* substituted = SubstituteGenericParameters(visitor, mod, srcMember.GetType(), {}, location);
+
+            if (substituted != srcMember.GetType())
+            {
+                SymbolTypeMember& dstMember = genericInstanceType->GetMembers()[i];
+                dstMember.SetType(substituted);
+                dstMember.SetExpr(CloneAstNode(srcMember.GetExpr()));
+            }
         }
 
         // Static members
         for (SizeType i = 0; i < genericInstanceType->GetStaticMembers().Size(); ++i)
         {
-            SymbolTypeMember& srcMember = instance->GetStaticMembers()[i];
-            Assert(srcMember.type != nullptr);
+            const SymbolTypeMember& srcMember = genericInstanceType->GetStaticMembers()[i];
+            Assert(srcMember.GetType() != nullptr);
 
-            srcMember.type = SubstituteGenericParameters(visitor, mod, srcMember.type, {}, location);
+            SymbolType* substituted = SubstituteGenericParameters(visitor, mod, srcMember.GetType(), {}, location);
+
+            if (substituted != srcMember.GetType())
+            {
+                SymbolTypeMember& dstMember = genericInstanceType->GetStaticMembers()[i];
+                dstMember.SetType(substituted);
+                dstMember.SetExpr(CloneAstNode(srcMember.GetExpr()));
+            }
         }
 
         // Finalize the pre-cached instance in-place and return
-        tempInstance->Assign(*genericInstanceType);
+        tempInstance->Assign(std::move(*genericInstanceType));
+
         delete genericInstanceType;
 
         return tempInstance;
@@ -458,8 +498,9 @@ const SymbolType* SemanticAnalyzer::Helpers::SubstituteGenericParameters(
     }
 
     // Types without generic parameters/instances are returned unchanged
-    return inputType;
+    return const_cast<SymbolType*>(inputType);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 const SymbolType* SemanticAnalyzer::Helpers::GenericPromotion(
     AstVisitor* visitor,
@@ -488,22 +529,24 @@ const SymbolType* SemanticAnalyzer::Helpers::GenericPromotion(
             {
                 // they have the same base, use the generic args of rptr to substitute
                 const Array<GenericInstanceTypeInfo::Arg>& rGenericArgs = rptrUnalias->GetGenericInstanceInfo().m_genericArgs;
-                const SymbolType* promoted = SubstituteGenericParameters(
+                const SymbolType* promotedType = SubstituteGenericParameters(
                     visitor,
                     mod,
                     lptrUnalias,
                     rGenericArgs,
                     location);
 
-                if (promoted)
+                if (promotedType)
                 {
-                    if (promoted->TypeCompatible(
+                    promotedType->Register(visitor->GetCompilationUnit());
+
+                    if (promotedType->TypeCompatible(
                             *rptrUnalias,
                             /* strictNumbers */ true,
                             /* strictAny */ true,
                             /* strictEnum */ true))
                     {
-                        return promoted->GetUnaliased();
+                        return promotedType->GetUnaliased();
                     }
                 }
 
@@ -955,9 +998,11 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
 
     const SymbolType* resolvedSymbolType = ResolvePlaceholderType(visitor, mod, symbolType, location);
     Assert(resolvedSymbolType != nullptr);
+    resolvedSymbolType->Register(visitor->GetCompilationUnit());
 
     const SymbolType* resolvedAssignmentType = ResolvePlaceholderType(visitor, mod, assignmentType, location);
     Assert(resolvedAssignmentType != nullptr);
+    resolvedAssignmentType->Register(visitor->GetCompilationUnit());
 
     SymbolTypeIncompatibilities incompatibilities;
 

@@ -242,9 +242,7 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
                     continue;
                 }
 
-                SymbolType* newSymbolType = symbolType->Clone();
-                newSymbolType->Register(visitor->GetCompilationUnit());
-                mod->scopeTree.Top().identifierTable.AddSymbolType(newSymbolType);
+                mod->scopeTree.Top().identifierTable.AddSymbolType(const_cast<SymbolType*>(symbolType));
             }
             else
             {
