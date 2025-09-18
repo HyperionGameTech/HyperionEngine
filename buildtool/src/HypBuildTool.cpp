@@ -78,6 +78,8 @@ public:
     virtual ~WorkerThreadPool() override = default;
 };
 
+Handle<Logger> g_logger;
+
 class HypBuildTool
 {
 public:
@@ -113,6 +115,9 @@ public:
 
     Result Run()
     {
+        static Logger s_buildToolLogger;
+        g_logger.ptr = &s_buildToolLogger;
+
         HYP_LOG(BuildTool, Info, "HypBuildTool v{}.{}.{}", HYP_BUILD_TOOL_VERSION_MAJOR, HYP_BUILD_TOOL_VERSION_MINOR, HYP_BUILD_TOOL_VERSION_PATCH);
         HYP_LOG(BuildTool, Info, "Running...");
 

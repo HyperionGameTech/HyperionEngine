@@ -29,6 +29,11 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 HYP_DECLARE_LOG_CHANNEL(Misc);
 HYP_DECLARE_LOG_CHANNEL(Temp);
 
+HYP_API ANSIStringView GetCurrentThreadName()
+{
+    return *Threads::CurrentThreadId().GetName();
+}
+
 namespace logging {
 
 static volatile int32 g_maxLogChannelId = -1;
@@ -36,12 +41,8 @@ static bool g_registerAllCalled = false;
 
 HYP_API Logger& GetLogger()
 {
-    return Logger::GetInstance();
-}
-
-HYP_API ANSIStringView GetCurrentThreadName()
-{
-    return *Threads::CurrentThreadId().GetName();
+    Assert(g_logger != nullptr);
+    return *g_logger;
 }
 
 class LogChannelIdGenerator
@@ -475,7 +476,7 @@ void LogChannelRegistrar::RegisterAll()
         }
 
         // out of slots, need to store dynamic
-        s_dynamicLogChannelHandles.PushBack(Logger::GetInstance().CreateDynamicLogChannel(*channel));
+        s_dynamicLogChannelHandles.PushBack(g_logger->CreateDynamicLogChannel(*channel));
     }
 
     m_channels.Clear();

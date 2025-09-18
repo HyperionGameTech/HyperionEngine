@@ -7,6 +7,10 @@
 
 using namespace hyperion;
 
+namespace hyperion {
+HYP_API extern Handle<Logger> g_logger;
+} // namespace hyperion
+
 extern "C"
 {
 
@@ -54,7 +58,7 @@ extern "C"
             return nullptr;
         }
 
-        return Logger::GetInstance().FindLogChannel(*name);
+        return g_logger->FindLogChannel(*name);
     }
 
     HYP_EXPORT LogChannel* Logger_CreateLogChannel(const char* name)
@@ -64,9 +68,7 @@ extern "C"
         // owns allocation
         LogChannel* logChannel = new LogChannel(channelName, &g_logChannel_Script);
 
-        Logger::GetInstance()
-            .CreateDynamicLogChannel(*logChannel)
-            .Release();
+        g_logger->CreateDynamicLogChannel(*logChannel).Release();
 
         return logChannel;
     }
@@ -78,7 +80,7 @@ extern "C"
             return;
         }
 
-        Logger::GetInstance().RemoveDynamicLogChannel(logChannel);
+        g_logger->RemoveDynamicLogChannel(logChannel);
 
         // owns allocation
         delete logChannel;

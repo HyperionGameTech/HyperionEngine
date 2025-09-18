@@ -21,6 +21,9 @@
 #include <core/threading/AtomicVar.hpp>
 
 namespace hyperion {
+
+HYP_API extern ANSIStringView GetCurrentThreadName();
+
 namespace logging {
 
 struct LogMessage
@@ -29,10 +32,6 @@ struct LogMessage
     uint64 timestamp;
     Span<StringView<StringType::UTF8>> chunks;
 };
-
-HYP_API extern ANSIStringView GetCurrentThreadName();
-
-HYP_API extern Handle<Logger> g_logger;
 
 template <LogLevel Level>
 static constexpr auto LogLevelToString()
@@ -205,7 +204,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Logger : public HypObject
+class HYP_API Logger : public HypObjectBase
 {
     HYP_OBJECT_BODY(Logger);
 
@@ -441,6 +440,8 @@ using logging::LogChannelRegistration;
 using logging::Logger;
 using logging::LogLevel;
 using logging::LogMessage;
+
+HYP_API extern Handle<Logger> g_logger;
 
 } // namespace hyperion
 
