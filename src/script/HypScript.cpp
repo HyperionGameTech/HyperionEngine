@@ -135,12 +135,12 @@ void HypScript::Initialize()
 {
     BuiltinTypes::Initialize(&m_pImpl->globalCompilationUnit);
 
-    if (Result res = InitializeHypScriptLib(*this); res.HasError())
+    /*if (Result res = InitializeHypScriptLib(*this); res.HasError())
     {
         HYP_LOG(HypScript, Error, "Failed to initialize HypScript lib! {}", res.GetError().GetMessage());
     }
 
-    HYP_BREAKPOINT;
+    HYP_BREAKPOINT;*/
 }
 
 void HypScript::DestroyScript(Script_Instance* pInstance)

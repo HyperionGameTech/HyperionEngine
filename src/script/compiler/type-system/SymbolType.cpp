@@ -143,8 +143,6 @@ SymbolType::SymbolType()
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
     GetDanglingSymbolTypes().Insert(this);
-
-    allocationTrace = StackDump(2, 5).ToString();
 #endif
 }
 
@@ -164,8 +162,6 @@ SymbolType::SymbolType(
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
     GetDanglingSymbolTypes().Insert(this);
-
-    allocationTrace = StackDump(2, 5).ToString();
 #endif
 }
 
@@ -190,8 +186,6 @@ SymbolType::SymbolType(
 #if defined(HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG) && HYP_SYMBOL_TYPE_DANGLING_PTR_DEBUG
     Mutex::Guard guard(GetDanglingSymbolTypesMutex());
     GetDanglingSymbolTypes().Insert(this);
-
-    allocationTrace = StackDump(2, 5).ToString();
 #endif
 }
 
