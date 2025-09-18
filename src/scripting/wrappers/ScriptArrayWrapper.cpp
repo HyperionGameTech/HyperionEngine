@@ -28,6 +28,7 @@ HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
     HypMethod(NAME("Size"), &Type::Size),
     HypMethod(NAME("PushBack"), +[](Script_Array& array, const HypData& arg) -> HypData&
         {
+            DebugLog(LogType::Debug, "Push value to array: %s\n", ToScriptValue(arg).ToString().Data());
             return *array.PushBack(ToScriptValue(arg)).GetHypData();
         }),
     HypMethod(NAME("PopBack"), +[](Script_Array& array) -> HypData

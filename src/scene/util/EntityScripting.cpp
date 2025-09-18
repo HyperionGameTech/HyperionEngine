@@ -26,6 +26,8 @@
 #include <script/HypScript.hpp>
 #endif
 
+#include <system/MessageBox.hpp>
+
 namespace hyperion {
 
 extern FilePath CoreApi_GetExecutablePath();
@@ -298,15 +300,20 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             if (errorList.HasFatalErrors())
             {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to compile script file '{}'!", scriptData->path);
+                SystemMessageBox(MessageBoxType::CRITICAL)
+                    .Title("Script Compilation Error")
+                    .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", scriptData->path))
+                    .Button("Close", []()
+                        {
+                        })
+                    .Show();
+
+                HYP_BREAKPOINT_DEBUG_MODE;
 
                 return;
             }
 
             Assert(instance != nullptr);
-
-            InstructionStream* is = HypScript::GetInstance().Decompile(instance, &std::cout);
-            delete is;
 
             // run the script to initialize classes, functions, etc.
             hs.Run(instance);

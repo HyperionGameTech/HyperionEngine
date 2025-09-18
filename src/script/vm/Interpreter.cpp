@@ -3978,6 +3978,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
     ThrowException(instance, Script_Exception(buffer));
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
@@ -3999,6 +4000,19 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& val
     Script_VMData vmData = *pVmData;
 
     Invoke(instance, std::move(value), nargs);
+
+    if (handler.instance->thread.GetExceptionState().HasExceptionOccurred())
+    {
+        if (!HandleException(instance))
+        {
+            instance->thread.m_exceptionState.m_exceptionDepth = 0;
+
+            Assert(instance->thread.GetStack().GetStackPointer() >= stackSizeBefore);
+            instance->thread.GetStack().Pop(instance->thread.GetStack().GetStackPointer() - stackSizeBefore);
+
+            return;
+        }
+    }
 
     if (vmData.type == Script_VMData::FUNCTION)
     { // don't do this for native function calls
@@ -4035,6 +4049,7 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& val
 
     bs->SetPosition(positionBefore);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* outTrace)
 {

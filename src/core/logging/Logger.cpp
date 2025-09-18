@@ -4,7 +4,6 @@
 
 #include <core/threading/Thread.hpp>
 #include <core/threading/Threads.hpp>
-#include <core/threading/Semaphore.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
 

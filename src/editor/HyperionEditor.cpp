@@ -104,7 +104,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 0
+#if 1
     { // script 2
         String str;
 #if 0
@@ -142,20 +142,20 @@ void HyperionEditor::Init()
         str = "class Base {} \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\"\n"
-              "    jet : float = 1\n"
+              "    jet : int = 1\n"
               "    x(a: int32) { return a * jet; }\n"
               "    MyClass() {\n"
-              "        jet = 4.5\n"
+              "        jet = 4\n"
               "        return self\n"
               "    }\n"
               "    static testStaticField : int = 99;\n"
-              "    operator[](i: int32) {\n"
+              "    operator[](i: int32) -> int {\n"
               "       for (j := 1; j < i; j++) {\n"
               "           jet += j\n"
               "       }\n"
               "       return jet\n"
               "    }\n"
-              "    operator[]=(i: int32, val: any) -> any {\n"
+              "    operator[]=(i: int32, val: any) {\n"
               "       jet = val as int32\n"
               "       return jet\n"
               "    }\n"
@@ -171,7 +171,7 @@ void HyperionEditor::Init()
               "ref testRef := testArray2\n"
               "testRef = [4,3,13424,1]\n"
               "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { testArray2.PushBack(343);\ntestArray2.PushBack(1111);\nreturn () { return (\"hello \" as any) + \"world\" + \" 123 \"; }; };\n"
+              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { ins[5454] = 9;\ntestArray2.PushBack(343);\ntestArray2.PushBack(1111);\nreturn () { return 123; }; };\n"
               "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
 #endif
 

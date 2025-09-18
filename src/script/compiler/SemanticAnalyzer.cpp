@@ -9,8 +9,23 @@
 #include <core/debug/Debug.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/DeferredScope.hpp>
+
+#include <core/logging/Logger.hpp>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(HypScript);
+
+static inline bool ShouldSkipNestedResolution(SymbolType* type)
+{
+    Assert(type);
+
+    return type->IsObject()
+        || type->TypeEqual(*BuiltinTypes::s_stringType)
+        || type->HasBase(*BuiltinTypes::s_arrayBaseType)
+        || type->HasBase(*BuiltinTypes::s_mapBaseType);
+}
 
 SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     AstVisitor* visitor,
@@ -23,34 +38,30 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
         return nullptr;
     }
 
-    SymbolTypeRef unaliasedInputType = inputType->GetUnaliased();
+    static thread_local Stack<Pair<SymbolType*, SymbolType*>> s_resolutionStack;
+
+    const SymbolTypeRef unaliasedInputType = inputType->GetUnaliased();
     Assert(unaliasedInputType != nullptr);
 
-    const TypeInstanceCache::Key key = TypeInstanceCache::MakeKey(unaliasedInputType, {});
-
-    SymbolTypeRef cachedPlaceholderType = mod->LookupTypeInstance(key, /* deep */ false);
-
-    if (cachedPlaceholderType)
+    for (const Pair<SymbolType*, SymbolType*>& entry : s_resolutionStack)
     {
-        // to prevent infinite recursion when resolving placeholder types that reference themselves
-        // (e.g members)
-        return cachedPlaceholderType;
+        if (entry.first == unaliasedInputType && entry.second != nullptr)
+        {
+            HYP_LOG(HypScript, Debug, "Using cached placeholder type for '{}' : {}", inputType->GetName(), entry.second->ToString());
+
+            return entry.second->RefCountedPtrFromThis();
+        }
     }
 
-    // cache the placeholder type before resolving members to prevent infinite recursion
-    mod->CacheTypeInstance(key, unaliasedInputType);
+    s_resolutionStack.Push({ unaliasedInputType, unaliasedInputType });
+
+    HYP_DEFER({
+        AssertDebug(!s_resolutionStack.Empty() && s_resolutionStack.Top().first == unaliasedInputType.Get());
+
+        s_resolutionStack.Pop();
+    });
 
     bool changed = false;
-
-    static const auto shouldSkipNestedResolution = [](SymbolType* type) -> bool
-    {
-        Assert(type);
-
-        return type->IsObject()
-            || type->TypeEqual(*BuiltinTypes::s_stringType)
-            || type->HasBase(*BuiltinTypes::s_arrayBaseType)
-            || type->HasBase(*BuiltinTypes::s_mapBaseType);
-    };
 
     if (!unaliasedInputType->IsPlaceholderType())
     {
@@ -66,7 +77,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                 const SymbolTypeMember& srcMember = newType->GetMembers()[memberIndex];
                 Assert(srcMember.type != nullptr);
 
-                if (shouldSkipNestedResolution(srcMember.type))
+                if (ShouldSkipNestedResolution(srcMember.type))
                 {
                     continue;
                 }
@@ -84,7 +95,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                 const SymbolTypeMember& srcMember = newType->GetStaticMembers()[memberIndex];
                 Assert(srcMember.type != nullptr);
 
-                if (shouldSkipNestedResolution(srcMember.type))
+                if (ShouldSkipNestedResolution(srcMember.type))
                 {
                     continue;
                 }
@@ -108,7 +119,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
                     SymbolTypeRef& argType = gi.m_genericArgs[i].m_type;
                     Assert(argType != nullptr);
 
-                    if (shouldSkipNestedResolution(argType))
+                    if (ShouldSkipNestedResolution(argType))
                     {
                         continue;
                     }

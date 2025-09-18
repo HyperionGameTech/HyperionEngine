@@ -8,7 +8,6 @@
 
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Format.hpp>
-#include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Time.hpp>
 
 #include <core/memory/Pimpl.hpp>

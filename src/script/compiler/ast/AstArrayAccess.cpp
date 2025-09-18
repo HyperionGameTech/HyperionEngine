@@ -267,6 +267,7 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
 
             // set the stack location of the temporary variable
             m_tempArrayStoreVarDecl->GetIdentifier()->SetStackLocation(stackLocation);
+            HYP_BREAKPOINT;
         }
 
         if (sideEffects)
