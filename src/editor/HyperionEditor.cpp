@@ -139,7 +139,8 @@ void HyperionEditor::Init()
 
 #else
         // vvvvv This is a test script vvvvv
-        str = "class Base {} \n"
+        str = "import Lib;\n"
+              "class Base {} \n"
               "class MyClass : Base {\n"
               "    blah: string = \"hello\"\n"
               "    jet : float = 1\n"

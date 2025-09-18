@@ -179,7 +179,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
     if (m_symbolType)
     {
-        m_symbolType->Assign(*newType);
+        m_symbolType->Assign(std::move(*newType));
 
         delete newType;
     }
@@ -583,8 +583,9 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
     if (!m_preRegister)
     {
         // resolve placeholders in members
-        SymbolType* resolvedType = const_cast<SymbolType*>(SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location));
+        SymbolType* resolvedType = SemanticAnalyzer::Helpers::ResolvePlaceholderType(visitor, mod, m_symbolType, m_location);
         Assert(resolvedType != nullptr);
+        resolvedType->Register(visitor->GetCompilationUnit());
 
         m_symbolType->Assign(*resolvedType);
     }
