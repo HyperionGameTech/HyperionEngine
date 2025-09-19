@@ -28,7 +28,6 @@ enum class Script_FunctionAddress : uint32;
 #define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
 #endif
 
-class Script_Value;
 struct Script_ExecutionThread;
 class Script_Interpreter;
 class Script_GC;
@@ -127,27 +126,6 @@ struct Number
     }
 };
 
-namespace sdk {
-
-struct Params
-{
-    Script_Value** args;
-    int32 nargs;
-
-    void* ctx; // needs to be passed to the function pointers below.
-
-    // sets the return value of a native function.
-    void (*setReturnValue)(void* ctx, Script_Value&& value);
-    void (*throwException)(void* ctx, const Script_Exception& exception);
-};
-
-} // namespace sdk
-} // namespace hyperion
-
-typedef void* Script_UserData;
-
-namespace hyperion {
-
 enum CompareFlags : uint8
 {
     CF_NONE = 0x0,
@@ -171,7 +149,6 @@ struct alignas(8) Script_VMData
         } func;
 
         HypMethod* nativeFunc;
-        Script_UserData userData;
 
         struct
         {

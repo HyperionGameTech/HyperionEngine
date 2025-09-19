@@ -16,7 +16,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/memory/UniquePtr.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/memory/pool/Pool.hpp>
 

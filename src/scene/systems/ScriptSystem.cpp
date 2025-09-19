@@ -83,18 +83,18 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
         HypScript& hs = HypScript::GetInstance();
 
-        Script_Value functionValue;
+        HypData functionValue;
         if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
             break;
         }
 
-        if (!functionValue.IsFunction())
+        if (!IsFunction(functionValue))
         {
             break;
         }
 
-        Script_Value returnValue = hs.CallFunction(data->instance, functionValue, std::forward<ArgTypes>(args)...);
+        HypData returnValue = hs.CallFunction(data->instance, functionValue, std::forward<ArgTypes>(args)...);
 
         if constexpr (!std::is_void_v<ReturnType>)
         {

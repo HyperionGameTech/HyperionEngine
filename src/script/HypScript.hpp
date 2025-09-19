@@ -7,6 +7,8 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <core/memory/Pimpl.hpp>
 
 #include <core/Constants.hpp>
@@ -47,43 +49,43 @@ public:
     void Run(Script_Instance* instance);
 
     template <class T>
-    static inline Script_Value CreateArgument(T&& item)
+    static inline HypData CreateArgument(T&& item)
     {
-        return Script_Value(HypData(std::forward<T>(item)));
+        return HypData(HypData(std::forward<T>(item)));
     }
 
     template <class... Args>
-    static inline auto CreateArguments(Args&&... args) -> FixedArray<Script_Value, sizeof...(Args)>
+    static inline auto CreateArguments(Args&&... args) -> FixedArray<HypData, sizeof...(Args)>
     {
-        return FixedArray<Script_Value, sizeof...(Args)> { CreateArgument(args)... };
+        return FixedArray<HypData, sizeof...(Args)> { CreateArgument(args)... };
     }
 
-    Script_Value CallFunctionArgV(Script_Instance* instance, const Script_Value& value, HypData* args, ArgCount numArgs);
+    HypData CallFunctionArgV(Script_Instance* instance, const HypData& value, HypData* args, ArgCount numArgs);
 
-    bool GetFunctionHandle(Script_Instance* instance, const char* name, Script_Value& outValue);
-    bool GetExportedValue(Script_Instance* instance, const char* name, Script_Value& outValue, bool getReference);
+    bool GetFunctionHandle(Script_Instance* instance, const char* name, HypData& outValue);
+    bool GetExportedValue(Script_Instance* instance, const char* name, HypData& outValue, bool getReference);
 
     Script_SymbolTable& GetExportedSymbols(Script_Instance* instance) const;
 
     /*! \brief Implements OpGetMember in the virtual machine.
      *  Gets a field or method by name and sets `outValue` to the value.
      *  Returns true on found, false otherwise. */
-    bool GetMember(Script_Instance* instance, const Script_Value& targetValue, const char* memberName, Script_Value& outValue);
+    bool GetMember(Script_Instance* instance, const HypData& targetValue, const char* memberName, HypData& outValue);
 
     /*! \brief Implements OpSetField in the virtual machine. Sets a field with the name `memberName` to the value held in `value`.
      *  If the field was not found, returns false.
      *  Returns true on success. */
-    bool SetField(Script_Value& targetValue, const char* memberName, Script_Value&& value);
+    bool SetField(HypData& targetValue, const char* memberName, HypData&& value);
 
     template <class... Args>
-    Script_Value CallFunction(Script_Instance* instance, const Script_Value& value, Args&&... args)
+    HypData CallFunction(Script_Instance* instance, const HypData& value, Args&&... args)
     {
         auto arguments = CreateArguments(std::forward<Args>(args)...);
 
         return CallFunctionArgV(instance, value, arguments.Data(), arguments.Size());
     }
 
-    void ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue);
+    void ReadLastReturnValue(Script_Instance* instance, HypData& outValue);
 
 private:
     Pimpl<struct HypScriptImpl> m_impl;

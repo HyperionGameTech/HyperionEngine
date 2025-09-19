@@ -31,8 +31,6 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 class AssetManager;
 
-using HypData = HypData;
-
 template <class T>
 struct AssetLoaderWrapper;
 

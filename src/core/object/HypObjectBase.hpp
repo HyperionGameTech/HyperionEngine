@@ -10,10 +10,6 @@
 #include <core/object/ObjId.hpp>
 #include <core/object/HypObjectPool.hpp>
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
-#include <scripting/ScriptObjectResource.hpp>
-#endif
-
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
@@ -30,6 +26,7 @@ namespace hyperion {
 
 class HypClass;
 struct HypData;
+class ScriptObjectResource;
 
 template <class T>
 class HypClassInstance;
@@ -43,9 +40,11 @@ struct Handle;
 template <class T>
 struct WeakHandle;
 
+#ifdef HYP_DOTNET
 namespace dotnet {
 class Class;
 } // namespace dotnet
+#endif
 
 extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
 extern HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
@@ -124,10 +123,9 @@ public:
         return m_scriptObjectResource;
     }
 
-    dotnet::Object* GetManagedObject() const
-    {
-        return m_scriptObjectResource ? m_scriptObjectResource->GetManagedObject() : nullptr;
-    }
+#ifdef HYP_DOTNET
+    dotnet::Object* GetManagedObject() const;
+#endif
 #endif
 
     HYP_FORCE_INLINE bool IsInitCalled() const

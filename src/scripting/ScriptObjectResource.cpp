@@ -77,7 +77,7 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Cl
 
 #ifdef HYP_SCRIPT
 
-ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, Script_Value&& hypScriptValue, HypScriptTag)
+ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, HypData&& hypScriptValue)
 {
     ScriptObjectData_HypScript& data = m_scriptObjectData.Emplace<ScriptObjectData_HypScript>();
     data.instance = hypScriptInstance;
@@ -114,7 +114,7 @@ ScriptObjectResource::~ScriptObjectResource()
             hypScriptData->instance = nullptr;
         }
 
-        hypScriptData->obj = Script_Value();
+        hypScriptData->obj = HypData();
     }
 #endif
 

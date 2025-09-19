@@ -4,7 +4,6 @@
 
 #include <core/object/ObjId.hpp>
 #include <core/object/HypObjectPool.hpp>
-
 #include <core/object/HypObjectBase.hpp>
 
 #include <core/Util.hpp>

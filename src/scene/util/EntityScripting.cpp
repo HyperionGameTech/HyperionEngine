@@ -32,12 +32,6 @@ namespace hyperion {
 
 extern FilePath CoreApi_GetExecutablePath();
 
-#ifdef HYP_SCRIPT
-
-extern Script_Value ScriptApi_MakeValue(HypData&& data);
-
-#endif
-
 template <class ReturnType, class... ArgTypes>
 static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
 {
@@ -84,13 +78,13 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
         HypScript& hs = HypScript::GetInstance();
 
-        Script_Value functionValue;
+        HypData functionValue;
         if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
             break;
         }
 
-        Script_Value returnValue = hs.CallFunction(data->instance, functionValue);
+        HypData returnValue = hs.CallFunction(data->instance, functionValue);
 
         if constexpr (!std::is_void_v<ReturnType>)
         {
@@ -318,7 +312,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             // run the script to initialize classes, functions, etc.
             hs.Run(instance);
 
-            sor = AllocateResource<ScriptObjectResource>(instance, Script_Value(), HYP_SCRIPT_TAG);
+            sor = AllocateResource<ScriptObjectResource>(instance, HypData());
             sor->IncRef();
 
             if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))

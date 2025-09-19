@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-class Script_Value;
+class HypData;
 
 class Script_Exception
 {

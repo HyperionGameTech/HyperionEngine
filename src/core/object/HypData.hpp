@@ -12,6 +12,8 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
 
+#include <core/filesystem/FilePath.hpp>
+
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Optional.hpp>
@@ -2219,12 +2221,12 @@ struct HypDataHelper<WeakName>
 };
 
 template <class T, class AllocatorType>
-struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T> && !isHypData<T>>>
+struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
 {
 };
 
 template <class T, class AllocatorType>
-struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T> && !isHypData<T>>> : HypDataHelper<HypDataArray>
+struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<HypDataArray>
 {
     using ConvertibleFrom = Tuple<>;
 

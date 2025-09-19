@@ -176,14 +176,14 @@ Script_Exception Script_Exception::MemberNotFoundException(HypData* pValue, Hash
     return FormattedException(
         HYP_STATIC_STRING("Member with hash code %llu not found on type: `%s`"),
         hashCode,
-        pValue ? pValue->GetTypeString() : "<null>");
+        pValue ? GetTypeString(*pValue) : "<null>");
 }
 
 Script_Exception Script_Exception::InvalidMemberAccessException(HypData* pValue)
 {
     return FormattedException(
         HYP_STATIC_STRING("Invalid member access on type `%s`!"),
-        pValue ? pValue->GetTypeString() : "<null>");
+        pValue ? GetTypeString(*pValue) : "<null>");
 }
 
 Script_Exception Script_Exception::FileOpenException(const char* fileName)

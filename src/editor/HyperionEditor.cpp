@@ -192,10 +192,10 @@ void HyperionEditor::Init()
             HypScript::GetInstance().Run(instance);
 
             // call function
-            Script_Value functionValue;
+            HypData functionValue;
             if (HypScript::GetInstance().GetFunctionHandle(instance, "x", functionValue))
             {
-                Script_Value lastReturn = HypScript::GetInstance().CallFunction(instance, functionValue, 5, 4);
+                HypData lastReturn = HypScript::GetInstance().CallFunction(instance, functionValue, 5, 4);
 
                 if (lastReturn.IsValid())
                 {

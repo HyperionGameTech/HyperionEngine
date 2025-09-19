@@ -13,6 +13,8 @@
 
 #include <core/containers/Stack.hpp>
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+
 #ifdef HYP_DOTNET
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>
@@ -20,6 +22,10 @@
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
+#endif
+
+#include <scripting/ScriptObjectResource.hpp>
+
 #endif
 
 namespace hyperion {
@@ -84,9 +90,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 #endif
 
 #ifdef HYP_SCRIPT
-            Script_Value obj;
+            HypData obj;
 
-            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj), HYP_SCRIPT_TAG);
+            ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
             Assert(scriptObjectResource != nullptr);
 
             target->SetScriptObjectResource(scriptObjectResource);
@@ -202,6 +208,13 @@ HypObjectBase::~HypObjectBase()
     }
 #endif
 }
+
+#ifdef HYP_DOTNET
+dotnet::Object* HypObjectBase::GetManagedObject() const
+{
+    return m_scriptObjectResource ? m_scriptObjectResource->GetManagedObject() : nullptr;
+}
+#endif
 
 #pragma endregion HypObjectBase
 

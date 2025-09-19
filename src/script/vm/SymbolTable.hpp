@@ -11,7 +11,7 @@ namespace hyperion {
 
 class Script_SymbolTable
 {
-    using SymbolMap = HashMap<HashCode::ValueType, Script_Value*>;
+    using SymbolMap = HashMap<HashCode::ValueType, HypData*>;
 
 public:
     Script_SymbolTable();
@@ -23,10 +23,10 @@ public:
 
     void MarkAll();
 
-    bool Find(const char* name, Script_Value*& out);
-    bool Find(HashCode::ValueType hash, Script_Value*& out);
-    typename SymbolMap::InsertResult Store(const char* name, Script_Value&& value);
-    typename SymbolMap::InsertResult Store(HashCode::ValueType hash, Script_Value&& value);
+    bool Find(const char* name, HypData*& out);
+    bool Find(HashCode::ValueType hash, HypData*& out);
+    typename SymbolMap::InsertResult Store(const char* name, HypData&& value);
+    typename SymbolMap::InsertResult Store(HashCode::ValueType hash, HypData&& value);
 
 private:
     SymbolMap m_symbols;

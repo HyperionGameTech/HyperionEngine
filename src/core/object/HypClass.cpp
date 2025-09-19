@@ -13,6 +13,8 @@
 
 #include <core/threading/ThreadLocalStorage.hpp>
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+
 #ifdef HYP_DOTNET
 #include <dotnet/Object.hpp>
 #include <dotnet/Class.hpp>
@@ -21,6 +23,10 @@
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
+#endif
+
+#include <scripting/ScriptObjectResource.hpp>
+
 #endif
 
 #include <core/serialization/fbom/FBOM.hpp>
@@ -1352,7 +1358,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         HYP_NOT_IMPLEMENTED(); // enum instance creation not yet implemented for scripts
     }
 
-    Script_Value obj; // @TODO
+    HypData obj; // @TODO
 
     // get or create new container for dynamic type
     HypObjectContainer<HypObjectBase>* container = static_cast<HypObjectContainer<HypObjectBase>*>(GetObjectContainer());
@@ -1441,7 +1447,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         fieldOffset += sizeof(HypData);
     }
 
-    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj), HYP_SCRIPT_TAG);
+    ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
     Assert(scriptObjectResource != nullptr);
     ptr->SetScriptObjectResource(scriptObjectResource);
 

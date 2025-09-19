@@ -1,8 +1,13 @@
 #pragma once
 
-#include <core/containers/HashMap.hpp>
 #include <script/vm/Value.hpp>
+
+#include <core/containers/HashMap.hpp>
+
 #include <core/math/MathUtil.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
@@ -15,7 +20,7 @@ class Script_HashMap
 public:
     struct VMMapKey
     {
-        Script_Value key;
+        HypData key;
         uint64 hash;
 
         HYP_FORCE_INLINE bool operator==(const VMMapKey& other) const
@@ -34,7 +39,7 @@ public:
         }
     };
 
-    using InternalMapType = HashMap<VMMapKey, Script_Value, HashTable_DynamicNodeAllocator<KeyValuePair<VMMapKey, Script_Value>>>;
+    using InternalMapType = HashMap<VMMapKey, HypData, HashTable_DynamicNodeAllocator<KeyValuePair<VMMapKey, HypData>>>;
 
     Script_HashMap();
     Script_HashMap(const Script_HashMap& other) = delete;
@@ -63,7 +68,7 @@ public:
         return this == &other;
     }
 
-    void SetElement(VMMapKey&& key, Script_Value&& value);
+    void SetElement(VMMapKey&& key, HypData&& value);
 
     HypData* GetElement(const VMMapKey& key);
     const HypData* GetElement(const VMMapKey& key) const;

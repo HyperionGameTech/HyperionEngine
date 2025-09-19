@@ -249,10 +249,10 @@ void HypScript::Run(Script_Instance* instance)
     m_impl->vm->Execute(instance);
 }
 
-Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script_Value& value, HypData* args, ArgCount numArgs)
+HypData HypScript::CallFunctionArgV(Script_Instance* instance, const HypData& value, HypData* args, ArgCount numArgs)
 {
     Assert(instance != nullptr);
-    Assert(value.IsFunction());
+    Assert(IsFunction(value));
 
     if (numArgs != 0)
     {
@@ -268,9 +268,9 @@ Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script
     // and we don't want to move the underlying value
     Script_VMData vmData;
     vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = const_cast<Script_Value*>(&value);
+    vmData.valueRef = const_cast<HypData*>(&value);
 
-    m_impl->vm->InvokeNow(instance, Script_Value(vmData), numArgs);
+    m_impl->vm->InvokeNow(instance, ScriptApi_MakeValue(vmData), numArgs);
 
     if (numArgs != 0)
     {
@@ -280,23 +280,23 @@ Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script
     return std::move(instance->thread.GetRegisters()[0]);
 }
 
-void HypScript::ReadLastReturnValue(Script_Instance* instance, Script_Value& outValue)
+void HypScript::ReadLastReturnValue(Script_Instance* instance, HypData& outValue)
 {
     Assert(instance != nullptr);
 
     outValue = ScriptApi_ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
 }
 
-bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetValue, const char* memberName, Script_Value& outValue)
+bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue, const char* memberName, HypData& outValue)
 {
-    outValue = Script_Value();
+    outValue = HypData();
 
     if (!targetValue.IsValid())
     {
         return false;
     }
 
-    const AnyHandle& object = targetValue.GetObject();
+    const AnyHandle& object = GetObject(targetValue);
 
     if (!object)
     {
@@ -351,14 +351,14 @@ bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetV
     return false;
 }
 
-bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Script_Value&& value)
+bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&& value)
 {
     if (!targetValue.IsValid())
     {
         return false;
     }
 
-    const AnyHandle& object = targetValue.GetObject();
+    const AnyHandle& object = GetObject(targetValue);
 
     if (!object)
     {
@@ -380,9 +380,9 @@ bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Scri
     return true;
 }
 
-bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, Script_Value& outValue)
+bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, HypData& outValue)
 {
-    outValue = Script_Value();
+    outValue = HypData();
 
     HypData* pValue;
     if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
@@ -390,7 +390,7 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, S
         return false;
     }
 
-    if (!pValue->IsFunction())
+    if (!IsFunction(*pValue))
     {
         return false;
     }
@@ -400,9 +400,9 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, S
     return true;
 }
 
-bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Script_Value& outValue, bool getReference)
+bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, HypData& outValue, bool getReference)
 {
-    outValue = Script_Value();
+    outValue = HypData();
 
     HypData* pValue;
     if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
@@ -411,8 +411,7 @@ bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Sc
     }
 
     Assert(pValue != nullptr);
-
-    pValue = pValue->Deref();
+    pValue = Deref(*pValue);
 
     if (getReference || ScriptApi_ShouldValuePassByRef(*pValue))
     {

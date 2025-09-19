@@ -33,7 +33,7 @@ Script_HashMap::~Script_HashMap()
 {
 }
 
-void Script_HashMap::SetElement(VMMapKey&& key, Script_Value&& value)
+void Script_HashMap::SetElement(VMMapKey&& key, HypData&& value)
 {
     m_map.Set(std::move(key), std::move(value));
 }

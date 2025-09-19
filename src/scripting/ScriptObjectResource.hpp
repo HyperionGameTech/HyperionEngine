@@ -17,17 +17,10 @@
 #include <core/Types.hpp>
 
 #ifdef HYP_SCRIPT
-#include <script/HypScript.hpp>
+#include <core/object/HypData.hpp>
 #endif
 
 namespace hyperion {
-
-#ifdef HYP_SCRIPT
-enum HypScriptTag
-{
-    HYP_SCRIPT_TAG
-};
-#endif
 
 struct ScriptObjectData_Dummy final
 {
@@ -56,7 +49,7 @@ struct ScriptObjectData_HypScript final
     static constexpr ScriptLanguage lang = SL_HYPSCRIPT;
 
     Script_Instance* instance = nullptr;
-    Script_Value obj;
+    HypData obj;
 };
 #endif
 
@@ -69,7 +62,7 @@ public:
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(Script_Instance* hypScriptInstance, Script_Value&& hypScriptValue, HypScriptTag);
+    ScriptObjectResource(Script_Instance* hypScriptInstance, HypData&& hypScriptValue);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;
