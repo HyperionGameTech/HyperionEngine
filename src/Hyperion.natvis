@@ -291,7 +291,7 @@
      </Expand>
   </Type>
 
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
+  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 0">{{ {*($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 1">{{ {*($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 2">{{ {*($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
@@ -312,6 +312,7 @@
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 17">{{ {*($T18 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 18">{{ {*($T19 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 19">{{ {*($T20 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 20">{{ {*($T21 *)&amp;m_holder.m_storage} }}</DisplayString>
 
     <Expand>
       <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 0">*($T1 *)&amp;m_holder.m_storage</Item>
@@ -334,6 +335,7 @@
       <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 17">*($T18 *)&amp;m_holder.m_storage</Item>
       <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 18">*($T19 *)&amp;m_holder.m_storage</Item>
       <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 19">*($T20 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 20">*($T21 *)&amp;m_holder.m_storage</Item>
     </Expand>
   </Type>
 

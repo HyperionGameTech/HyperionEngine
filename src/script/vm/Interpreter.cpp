@@ -28,7 +28,7 @@
 
 // Enable to disable optimizations in script operations.
 // Makes it easier to debug scripts, but slower.
-#define HYP_SCRIPT_NOOPT 1
+#define HYP_SCRIPT_NOOPT 0
 
 #ifndef HYP_DEBUG_MODE
 #ifdef HYP_SCRIPT_NOOPT
