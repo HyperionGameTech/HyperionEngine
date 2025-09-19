@@ -353,6 +353,45 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
 using FormattedStringMap = HashMap<TypeId, String, HashTable_DynamicNodeAllocator<KeyValuePair<TypeId, String>>>;
 thread_local FormattedStringMap* g_formattedStringMap;
 
+static void InitFormattedStringMap(void* mem)
+{
+    Assert(mem != nullptr);
+    FormattedStringMap& map = *new (mem) FormattedStringMap();
+
+#define ADD_TYPE_NAME(type) map[TypeId::ForType<type>()] = #type
+
+    ADD_TYPE_NAME(void);
+    ADD_TYPE_NAME(bool);
+    ADD_TYPE_NAME(int8);
+    ADD_TYPE_NAME(uint8);
+    ADD_TYPE_NAME(int16);
+    ADD_TYPE_NAME(uint16);
+    ADD_TYPE_NAME(int32);
+    ADD_TYPE_NAME(uint32);
+    ADD_TYPE_NAME(int64);
+    ADD_TYPE_NAME(uint64);
+    ADD_TYPE_NAME(float);
+    ADD_TYPE_NAME(double);
+    ADD_TYPE_NAME(char);
+    ADD_TYPE_NAME(wchar_t);
+    ADD_TYPE_NAME(size_t);
+    ADD_TYPE_NAME(String);
+    ADD_TYPE_NAME(ANSIString);
+    ADD_TYPE_NAME(UTF16String);
+    ADD_TYPE_NAME(UTF32String);
+    ADD_TYPE_NAME(WideString);
+    ADD_TYPE_NAME(Name);
+    ADD_TYPE_NAME(WeakName);
+    ADD_TYPE_NAME(TypeId);
+    ADD_TYPE_NAME(HashCode);
+    ADD_TYPE_NAME(void*);
+    ADD_TYPE_NAME(char*);
+    ADD_TYPE_NAME(const char*);
+    ADD_TYPE_NAME(HypData);
+
+#undef ADD_TYPE_NAME
+}
+
 const char* LookupTypeName(TypeId typeId)
 {
     const HypClass* hypClass = GetClass(typeId);
@@ -372,7 +411,7 @@ const char* LookupTypeName(TypeId typeId)
         }
 
         g_formattedStringMap = currentThreadObject->GetTLS().Alloc<FormattedStringMap>();
-        new (g_formattedStringMap) FormattedStringMap();
+        InitFormattedStringMap(g_formattedStringMap);
 
         currentThreadObject->AtExit([]()
             {

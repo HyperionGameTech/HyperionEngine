@@ -25,9 +25,9 @@ static constexpr int g_typePromoLut[10][10] = {
     /*U16*/ { 5, 5, 5, 5, 4, 5, 6, 7, 8, 9 },
     /*I16*/ { 5, 5, 5, 5, 4, 5, 6, 7, 8, 9 },
     /*U32*/ { 4, 4, 4, 4, 4, 4, 6, 7, 8, 9 },
-    /*I32*/ { 4, 4, 4, 4, 4, 4, 6, 7, 8, 9 },
+    /*I32*/ { 5, 5, 5, 5, 4, 5, 6, 7, 8, 9 },
     /*U64*/ { 6, 6, 6, 6, 6, 6, 6, 7, 9, 9 },
-    /*I64*/ { 6, 6, 6, 6, 6, 6, 6, 7, 9, 9 },
+    /*I64*/ { 7, 7, 7, 7, 7, 7, 6, 7, 9, 9 },
     /*F32*/ { 8, 8, 8, 8, 8, 8, 8, 8, 8, 9 },
     /*F64*/ { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9 }
 };
@@ -39,7 +39,7 @@ extern Script_Value ScriptApi_MakeValue(const Number& number);
 extern Script_Value ScriptApi_MakeValue(HypData&& data);
 extern Script_Value ScriptApi_MakeRef(Script_Value* refValue);
 extern Script_Value ScriptApi_MakeTrackedRef(Script_Value* refValue, Script_GC* gc);
-extern Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc);
+extern Script_Value ScriptApi_ShallowCopy(Script_Value& value, Script_GC* gc);
 extern bool ScriptApi_ShouldValuePassByRef(const Script_Value& value);
 extern const char* ScriptApi_GetTypeString(const HypData& data);
 extern String ScriptApi_ValueToString(const HypData& data, int currDepth = 0);

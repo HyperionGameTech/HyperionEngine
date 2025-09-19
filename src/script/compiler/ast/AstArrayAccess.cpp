@@ -245,6 +245,7 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         || (m_overrideExpr != nullptr && (m_overrideExpr->MayHaveSideEffects() || m_accessMode == ACCESS_MODE_STORE));
 
     uint8 rhsRegister = uint8(-1);
+    int rhsStackLocation = -1;
 
     if (m_accessMode == ACCESS_MODE_STORE)
     {
@@ -254,8 +255,10 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
         if (m_tempArrayStoreVarDecl != nullptr)
         {
             // store rhs value into the temporary variable
-            const int stackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-            Assert(stackLocation != -1);
+            rhsStackLocation = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+            Assert(rhsStackLocation != -1);
+
+            m_tempArrayStoreVarDecl->GetIdentifier()->SetStackLocation(rhsStackLocation);
 
             visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
@@ -264,10 +267,6 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
             instrPush->opcode = PUSH;
             instrPush->Accept<uint8>(rhsRegister);
             chunk->Append(std::move(instrPush));
-
-            // set the stack location of the temporary variable
-            m_tempArrayStoreVarDecl->GetIdentifier()->SetStackLocation(stackLocation);
-            HYP_BREAKPOINT;
         }
 
         if (sideEffects)
@@ -325,6 +324,7 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
             if (sideEffects)
             {
                 Assert(rhsRegister == uint8(-1));
+                Assert(rhsStackLocation != -1);
                 Assert(m_tempArrayStoreVarDecl != nullptr);
 
                 // preserve index register
@@ -334,16 +334,11 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
                 rhsRegister = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
                 visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage(); // preserve rhs register now
 
-                {
-                    const int rhsStackLocation = m_tempArrayStoreVarDecl->GetIdentifier()->GetStackLocation();
-                    Assert(rhsStackLocation != -1);
+                const int diff = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - rhsStackLocation;
 
-                    const int diff = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize() - rhsStackLocation;
-
-                    auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
-                    instrLoadOffset->GetBuilder().Load(rhsRegister).Local().ByOffset(diff);
-                    chunk->Append(std::move(instrLoadOffset));
-                }
+                auto instrLoadOffset = BytecodeUtil::Make<StorageOperation>();
+                instrLoadOffset->GetBuilder().Load(rhsRegister).Local().ByOffset(diff);
+                chunk->Append(std::move(instrLoadOffset));
 
                 // unclaim register for index
                 visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
@@ -410,6 +405,14 @@ UniquePtr<Buildable> AstArrayAccess::Build(AstVisitor* visitor, Module* mod)
     }
 
     Assert(visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister() == registerUsageBefore);
+
+    
+    if (m_tempArrayStoreVarDecl != nullptr)
+    {
+        // clean up the temporary variable
+        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+        chunk->Append(Compiler::PopStack(visitor, 1));
+    }
 
     return chunk;
 }

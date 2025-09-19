@@ -291,560 +291,56 @@
      </Expand>
   </Type>
 
-  <Type Name="hyperion::utilities::Variant&lt;*&gt;">
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*&gt;">
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*&gt;">
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 14">{{ {($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 14">($T15 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 14">{{ {($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 15">{{ {($T16 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 14">($T15 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 15">($T16 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 14">{{ {($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 15">{{ {($T16 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 16">{{ {($T17 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 14">($T15 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 15">($T16 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 16">($T17 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 14">{{ {($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 15">{{ {($T16 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 16">{{ {($T17 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 17">{{ {($T18 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 14">($T15 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 15">($T16 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 16">($T17 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 17">($T18 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 14">{{ {($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 15">{{ {($T16 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 16">{{ {($T17 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 17">{{ {($T18 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 18">{{ {($T19 *)&amp;m_holder.m_storage} }}</DisplayString>
-
-    <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 14">($T15 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 15">($T16 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 16">($T17 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 17">($T18 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 18">($T19 *)&amp;m_holder.m_storage</ExpandedItem>
-    </Expand>
-  </Type>
-
   <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
-
-    <DisplayString Condition="m_holder.m_currentIndex == 0">{{ {($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 1">{{ {($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 2">{{ {($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 3">{{ {($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 4">{{ {($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 5">{{ {($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 6">{{ {($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 7">{{ {($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 8">{{ {($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 9">{{ {($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 10">{{ {($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 11">{{ {($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 12">{{ {($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 13">{{ {($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 14">{{ {($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 15">{{ {($T16 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 16">{{ {($T17 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 17">{{ {($T18 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 18">{{ {($T19 *)&amp;m_holder.m_storage} }}</DisplayString>
-    <DisplayString Condition="m_holder.m_currentIndex == 19">{{ {($T20 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 0">{{ {*($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 1">{{ {*($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 2">{{ {*($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 3">{{ {*($T4 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 4">{{ {*($T5 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 5">{{ {*($T6 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 6">{{ {*($T7 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 7">{{ {*($T8 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 8">{{ {*($T9 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 9">{{ {*($T10 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 10">{{ {*($T11 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 11">{{ {*($T12 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 12">{{ {*($T13 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 13">{{ {*($T14 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 14">{{ {*($T15 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 15">{{ {*($T16 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 16">{{ {*($T17 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 17">{{ {*($T18 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 18">{{ {*($T19 *)&amp;m_holder.m_storage} }}</DisplayString>
+    <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 19">{{ {*($T20 *)&amp;m_holder.m_storage} }}</DisplayString>
 
     <Expand>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 0">($T1 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 1">($T2 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 2">($T3 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 3">($T4 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 4">($T5 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 5">($T6 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 6">($T7 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 7">($T8 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 8">($T9 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 9">($T10 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 10">($T11 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 11">($T12 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 12">($T13 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 13">($T14 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 14">($T15 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 15">($T16 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 16">($T17 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 17">($T18 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 18">($T19 *)&amp;m_holder.m_storage</ExpandedItem>
-      <ExpandedItem Condition="m_holder.m_currentIndex == 19">($T20 *)&amp;m_holder.m_storage</ExpandedItem>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 0">*($T1 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 1">*($T2 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 2">*($T3 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 3">*($T4 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 4">*($T5 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 5">*($T6 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 6">*($T7 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 7">*($T8 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 8">*($T9 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 9">*($T10 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 10">*($T11 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 11">*($T12 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 12">*($T13 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 13">*($T14 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 14">*($T15 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 15">*($T16 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 16">*($T17 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 17">*($T18 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 18">*($T19 *)&amp;m_holder.m_storage</Item>
+      <Item Name="[Value]" Optional="true" Condition="m_holder.m_currentIndex == 19">*($T20 *)&amp;m_holder.m_storage</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="hyperion::HypData">
+    <Expand>
+      <Item Name="[Metadata]">extData</Item>
+      <ExpandedItem>value</ExpandedItem>
     </Expand>
   </Type>
   
@@ -954,18 +450,6 @@
           <Item Name="StringValue">"???"</Item>
         </If>
       </CustomListItems>
-    </Expand>
-  </Type>
-
-  <Type Name="hyperion::renderer::RenderObjectHandle_Strong&lt;*,*&gt;">
-    <DisplayString>{{ ID={index} Strong={s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value} Weak={s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
-
-    <Expand>
-      <Item Name="[Strong]">(s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
-      <Item Name="[Weak]">s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value</Item>
-      <!--<Item Name="[Name]">_container->m_debug_names.m_values[index]</Item>-->
-
-      <ExpandedItem>($T1 *)(&amp;(s_container-&gt;m_data.m_values[index - 1].storage))</ExpandedItem>
     </Expand>
   </Type>
 

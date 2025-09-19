@@ -26,11 +26,21 @@
 
 #include <script/Instructions.hpp>
 
-#include <algorithm>
-#include <cstdio>
-#include <cinttypes>
-#include <mutex>
-#include <sstream>
+// Enable to disable optimizations in script operations.
+// Makes it easier to debug scripts, but slower.
+#define HYP_SCRIPT_NOOPT 1
+
+#ifndef HYP_DEBUG_MODE
+#ifdef HYP_SCRIPT_NOOPT
+#undef HYP_SCRIPT_NOOPT // disable noopt in release builds
+#endif
+#endif
+
+#if defined(HYP_SCRIPT_NOOPT) && HYP_SCRIPT_NOOPT
+#define SCRIPT_INLINE
+#else
+#define SCRIPT_INLINE HYP_FORCE_INLINE
+#endif
 
 #define HYP_NUMERIC_OPERATION(a, b, oper)                                         \
     do                                                                            \
@@ -989,37 +999,37 @@ public:
         Assert(instance != nullptr);
     }
 
-    HYP_FORCE_INLINE void OpLoadI32(BCRegister reg, int32 i32)
+    SCRIPT_INLINE void OpLoadI32(BCRegister reg, int32 i32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(i32);
     }
 
-    HYP_FORCE_INLINE void OpLoadI64(BCRegister reg, int64 i64)
+    SCRIPT_INLINE void OpLoadI64(BCRegister reg, int64 i64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(i64);
     }
 
-    HYP_FORCE_INLINE void OpLoadU32(BCRegister reg, uint32 u32)
+    SCRIPT_INLINE void OpLoadU32(BCRegister reg, uint32 u32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(u32);
     }
 
-    HYP_FORCE_INLINE void OpLoadU64(BCRegister reg, uint64 u64)
+    SCRIPT_INLINE void OpLoadU64(BCRegister reg, uint64 u64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(u64);
     }
 
-    HYP_FORCE_INLINE void OpLoadF32(BCRegister reg, float32 f32)
+    SCRIPT_INLINE void OpLoadF32(BCRegister reg, float32 f32)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(f32);
     }
 
-    HYP_FORCE_INLINE void OpLoadF64(BCRegister reg, float64 f64)
+    SCRIPT_INLINE void OpLoadF64(BCRegister reg, float64 f64)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(f64);
     }
 
-    HYP_FORCE_INLINE void OpLoadOffset(BCRegister reg, uint16 offset)
+    SCRIPT_INLINE void OpLoadOffset(BCRegister reg, uint16 offset)
     {
         Script_StackMemory& stackMemory = instance->thread.m_stack;
 
@@ -1037,7 +1047,7 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpLoadIndex(BCRegister reg, uint16 index)
+    SCRIPT_INLINE void OpLoadIndex(BCRegister reg, uint16 index)
     {
         Script_StackMemory& stackMemory = instance->thread.m_stack;
 
@@ -1055,7 +1065,7 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpLoadStatic(BCRegister reg, uint16 index)
+    SCRIPT_INLINE void OpLoadStatic(BCRegister reg, uint16 index)
     {
         // read value from static memory
         // at the index into the the register
@@ -1066,12 +1076,12 @@ public:
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpLoadConstantString(BCRegister reg, uint32 len, const char* str)
+    SCRIPT_INLINE void OpLoadConstantString(BCRegister reg, uint32 len, const char* str)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(str != nullptr ? Script_String(str, str + len) : Script_String());
     }
 
-    HYP_FORCE_INLINE void OpLoadAddr(BCRegister reg, Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpLoadAddr(BCRegister reg, Script_FunctionAddress addr)
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::ADDRESS;
@@ -1080,7 +1090,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(vmData);
     }
 
-    HYP_FORCE_INLINE void OpLoadFunc(BCRegister reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
+    SCRIPT_INLINE void OpLoadFunc(BCRegister reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
     {
         Script_VMData vmData;
         vmData.type = Script_VMData::FUNCTION;
@@ -1091,7 +1101,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(vmData);
     }
 
-    HYP_FORCE_INLINE void OpLoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
+    SCRIPT_INLINE void OpLoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
     {
         Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
 
@@ -1155,14 +1165,14 @@ public:
         vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
     }
 
-    HYP_FORCE_INLINE void OpLoadOffsetRef(BCRegister reg, uint16 offset)
+    SCRIPT_INLINE void OpLoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
         Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].Deref(), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
-    HYP_FORCE_INLINE void OpLoadIndexRef(BCRegister reg, uint16 index)
+    SCRIPT_INLINE void OpLoadIndexRef(BCRegister reg, uint16 index)
     {
         Script_StackMemory& stackMemory = instance->thread.m_stack;
 
@@ -1176,34 +1186,34 @@ public:
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
-    HYP_FORCE_INLINE void OpLoadRef(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpLoadRef(BCRegister dstReg, BCRegister srcReg)
     {
         Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_regs[srcReg].Deref(), vm->GetGC());
         instance->thread.m_regs[dstReg] = std::move(newRef);
     }
 
-    HYP_FORCE_INLINE void OpLoadDeref(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpLoadDeref(BCRegister dstReg, BCRegister srcReg)
     {
         Script_Value& src = *instance->thread.m_regs[srcReg].Deref(); // double deref to get the actual value
         instance->thread.m_regs[dstReg] = ScriptApi_ShallowCopy(*src.Deref(), vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpLoadNull(BCRegister reg)
+    SCRIPT_INLINE void OpLoadNull(BCRegister reg)
     {
         instance->thread.m_regs[reg] = Script_Value();
     }
 
-    HYP_FORCE_INLINE void OpLoadTrue(BCRegister reg)
+    SCRIPT_INLINE void OpLoadTrue(BCRegister reg)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(true);
     }
 
-    HYP_FORCE_INLINE void OpLoadFalse(BCRegister reg)
+    SCRIPT_INLINE void OpLoadFalse(BCRegister reg)
     {
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(false);
     }
 
-    HYP_FORCE_INLINE void OpLoadClass(BCRegister reg, uint64 nameHash)
+    SCRIPT_INLINE void OpLoadClass(BCRegister reg, uint64 nameHash)
     {
         Name name = Name(NameID(nameHash));
         const HypClass* hypClass = HypClassRegistry::GetInstance().GetClass(name);
@@ -1219,26 +1229,26 @@ public:
         instance->thread.m_regs[reg] = std::move(classValue);
     }
 
-    HYP_FORCE_INLINE void OpMovOffset(uint16 offset, BCRegister reg)
+    SCRIPT_INLINE void OpMovOffset(uint16 offset, BCRegister reg)
     {
         // copy value from register to stack value at (sp - offset)
         instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC()), true);
     }
 
-    HYP_FORCE_INLINE void OpMovIndex(uint16 index, BCRegister reg)
+    SCRIPT_INLINE void OpMovIndex(uint16 index, BCRegister reg)
     {
         // copy value from register to stack value at index
         instance->thread.m_stack[index].AssignValue(ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC()), true);
     }
 
-    HYP_FORCE_INLINE void OpMovStatic(uint16 index, BCRegister reg)
+    SCRIPT_INLINE void OpMovStatic(uint16 index, BCRegister reg)
     {
         Assert(index < vm->m_staticMemory.staticSize);
 
         vm->m_staticMemory[index] = std::move(instance->thread.m_regs[reg]);
     }
 
-    HYP_FORCE_INLINE void OpMovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
+    SCRIPT_INLINE void OpMovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
     {
         Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
 
@@ -1267,7 +1277,7 @@ public:
         dstValue.Mark();
     }
 
-    HYP_FORCE_INLINE void OpMovArrayIdxReg(BCRegister dstReg, BCRegister indexReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpMovArrayIdxReg(BCRegister dstReg, BCRegister indexReg, BCRegister srcReg)
     {
         Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
 
@@ -1344,12 +1354,12 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpMov(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpMov(BCRegister dstReg, BCRegister srcReg)
     {
         instance->thread.m_regs[dstReg] = std::move(instance->thread.m_regs[srcReg]);
     }
 
-    HYP_FORCE_INLINE void OpCheckHasMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
+    SCRIPT_INLINE void OpCheckHasMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
         Script_Value& result = instance->thread.m_regs[dstReg];
@@ -1376,7 +1386,7 @@ public:
         result = ScriptApi_MakeValue(false);
     }
 
-    HYP_FORCE_INLINE void OpSetField(BCRegister dstReg, uint64 hash, BCRegister srcReg)
+    SCRIPT_INLINE void OpSetField(BCRegister dstReg, uint64 hash, BCRegister srcReg)
     {
         Script_Value* pValue = instance->thread.m_regs[dstReg].Deref();
 
@@ -1410,7 +1420,7 @@ public:
         field->Set(*pValue->GetHypData(), *instance->thread.m_regs[srcReg].Deref()->GetHypData());
     }
 
-    HYP_FORCE_INLINE void OpGetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
+    SCRIPT_INLINE void OpGetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
         Script_Value* pValue = instance->thread.m_regs[srcReg].Deref();
 
@@ -1492,18 +1502,18 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpPush(BCRegister reg)
+    SCRIPT_INLINE void OpPush(BCRegister reg)
     {
         // Move value from register to top of stack
         instance->thread.m_stack.Push(ScriptApi_ShallowCopy(*instance->thread.m_regs[reg].Deref(), vm->GetGC()));
     }
 
-    HYP_FORCE_INLINE void OpPop()
+    SCRIPT_INLINE void OpPop()
     {
         instance->thread.m_stack.Pop();
     }
 
-    HYP_FORCE_INLINE void OpPushArray(BCRegister dstReg, BCRegister srcReg)
+    SCRIPT_INLINE void OpPushArray(BCRegister dstReg, BCRegister srcReg)
     {
         Script_Value& dst = *instance->thread.m_regs[dstReg].Deref();
 
@@ -1519,22 +1529,22 @@ public:
         array.Back().Mark();
     }
 
-    HYP_FORCE_INLINE void OpAddSp(uint16 n)
+    SCRIPT_INLINE void OpAddSp(uint16 n)
     {
         instance->thread.m_stack.m_sp += n;
     }
 
-    HYP_FORCE_INLINE void OpSubSp(uint16 n)
+    SCRIPT_INLINE void OpSubSp(uint16 n)
     {
         instance->thread.m_stack.Pop(n);
     }
 
-    HYP_FORCE_INLINE void OpJmp(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJmp(Script_FunctionAddress addr)
     {
         instance->stream.Seek((uint32)addr);
     }
 
-    HYP_FORCE_INLINE void OpJe(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJe(Script_FunctionAddress addr)
     {
         if (instance->thread.m_regs.flags & CF_EQUAL)
         {
@@ -1542,7 +1552,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpJne(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJne(Script_FunctionAddress addr)
     {
         if (!(instance->thread.m_regs.flags & CF_EQUAL))
         {
@@ -1550,7 +1560,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpJg(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJg(Script_FunctionAddress addr)
     {
         if (instance->thread.m_regs.flags & CF_GREATER)
         {
@@ -1558,7 +1568,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpJge(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJge(Script_FunctionAddress addr)
     {
         if (instance->thread.m_regs.flags & (CF_GREATER | CF_EQUAL))
         {
@@ -1566,12 +1576,12 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpCall(BCRegister reg, uint8_t nargs)
+    SCRIPT_INLINE void OpCall(BCRegister reg, uint8_t nargs)
     {
         vm->Invoke(instance, std::move(instance->thread.m_regs[reg]), nargs);
     }
 
-    HYP_FORCE_INLINE void OpRet()
+    SCRIPT_INLINE void OpRet()
     {
         // get top of stack (should be the address before jumping)
         Script_Value& top = instance->thread.GetStack().Top();
@@ -1594,7 +1604,7 @@ public:
         instance->thread.m_funcDepth--;
     }
 
-    HYP_FORCE_INLINE void OpBeginTry(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpBeginTry(Script_FunctionAddress addr)
     {
         ++instance->thread.m_exceptionState.m_tryCounter;
 
@@ -1607,7 +1617,7 @@ public:
         instance->thread.m_stack.Push(ScriptApi_MakeValue(vmData));
     }
 
-    HYP_FORCE_INLINE void OpEndTry()
+    SCRIPT_INLINE void OpEndTry()
     {
         // pop the try catch info from the stack
         Script_Value& top = instance->thread.m_stack.Top();
@@ -1623,7 +1633,7 @@ public:
         --instance->thread.m_exceptionState.m_tryCounter;
     }
 
-    HYP_FORCE_INLINE void OpNew(BCRegister dst, BCRegister src) // come back to this
+    SCRIPT_INLINE void OpNew(BCRegister dst, BCRegister src) // come back to this
     {
         // read value from register
         Script_Value& classValue = *instance->thread.m_regs[src].Deref();
@@ -1647,13 +1657,13 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(std::move(hypData));
     }
 
-    HYP_FORCE_INLINE void OpNewArray(BCRegister dst, uint32 size)
+    SCRIPT_INLINE void OpNewArray(BCRegister dst, uint32 size)
     {
         // assign register value to the allocated object
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(Script_Array(size));
     }
 
-    HYP_FORCE_INLINE void OpBeginClass(BCRegister reg)
+    SCRIPT_INLINE void OpBeginClass(BCRegister reg)
     {
         Script_Stream* bs = &instance->stream;
 
@@ -1915,7 +1925,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeTrackedRef(&classValue, vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpCmp(BCRegister lhsReg, BCRegister rhsReg)
+    SCRIPT_INLINE void OpCmp(BCRegister lhsReg, BCRegister rhsReg)
     {
         // dropout early for comparing something against itself
         if (lhsReg == rhsReg)
@@ -1978,7 +1988,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpCmpZ(BCRegister reg)
+    SCRIPT_INLINE void OpCmpZ(BCRegister reg)
     {
         // load values from registers
         Script_Value* lhs = instance->thread.m_regs[reg].Deref();
@@ -2009,7 +2019,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpAdd(
+    SCRIPT_INLINE void OpAdd(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2036,7 +2046,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpSub(
+    SCRIPT_INLINE void OpSub(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2063,7 +2073,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpMul(
+    SCRIPT_INLINE void OpMul(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2090,7 +2100,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpDiv(
+    SCRIPT_INLINE void OpDiv(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2130,7 +2140,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpMod(
+    SCRIPT_INLINE void OpMod(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2201,7 +2211,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpAnd(
+    SCRIPT_INLINE void OpAnd(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2228,7 +2238,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpOr(
+    SCRIPT_INLINE void OpOr(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2255,7 +2265,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpXor(
+    SCRIPT_INLINE void OpXor(
         BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
@@ -2282,7 +2292,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpShl(BCRegister lhsReg,
+    SCRIPT_INLINE void OpShl(BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
     {
@@ -2308,7 +2318,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpShr(BCRegister lhsReg,
+    SCRIPT_INLINE void OpShr(BCRegister lhsReg,
         BCRegister rhsReg,
         BCRegister dstReg)
     {
@@ -2334,7 +2344,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpNot(BCRegister reg)
+    SCRIPT_INLINE void OpNot(BCRegister reg)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[reg].Deref();
@@ -2357,7 +2367,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(num);
     }
 
-    HYP_FORCE_INLINE void OpThrow(BCRegister reg)
+    SCRIPT_INLINE void OpThrow(BCRegister reg)
     {
         // load value from register
         Script_Value* value = instance->thread.m_regs[reg].Deref();
@@ -2367,7 +2377,7 @@ public:
         vm->ThrowException(instance, Script_Exception("User exception"));
     }
 
-    HYP_FORCE_INLINE void OpExportSymbol(BCRegister reg, uint64 hash)
+    SCRIPT_INLINE void OpExportSymbol(BCRegister reg, uint64 hash)
     {
         Script_Value& srcValue = *instance->thread.m_regs[reg].Deref();
 
@@ -2381,7 +2391,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE void OpNeg(BCRegister reg)
+    SCRIPT_INLINE void OpNeg(BCRegister reg)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[reg].Deref();
@@ -2433,7 +2443,7 @@ public:
         instance->thread.m_regs[reg] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastU8(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU8(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2466,7 +2476,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastU16(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU16(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2499,7 +2509,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastU32(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU32(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2531,7 +2541,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastU64(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastU64(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2563,7 +2573,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastI8(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI8(BCRegister dst, BCRegister src)
     {
         Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
@@ -2594,7 +2604,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastI16(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI16(BCRegister dst, BCRegister src)
     {
         Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
@@ -2625,7 +2635,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastI32(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI32(BCRegister dst, BCRegister src)
     {
         Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
@@ -2656,7 +2666,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastI64(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastI64(BCRegister dst, BCRegister src)
     {
         Script_Value& value = *instance->thread.m_regs[src].Deref();
         Number num;
@@ -2687,7 +2697,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastF32(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastF32(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2719,7 +2729,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastF64(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastF64(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2751,7 +2761,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastBool(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastBool(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2781,7 +2791,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_MakeValue(result);
     }
 
-    HYP_FORCE_INLINE void OpCastString(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastString(BCRegister dst, BCRegister src)
     {
         // load value from register
         Script_Value& value = *instance->thread.m_regs[src].Deref();
@@ -2798,7 +2808,7 @@ public:
         instance->thread.m_regs[dst] = ScriptApi_ShallowCopy(value, vm->GetGC());
     }
 
-    HYP_FORCE_INLINE void OpCastDynamic(BCRegister dst, BCRegister src)
+    SCRIPT_INLINE void OpCastDynamic(BCRegister dst, BCRegister src)
     {
         // dst register holds HypClassRef object
         Script_Value& classValue = *instance->thread.m_regs[dst].Deref();
@@ -2831,7 +2841,7 @@ public:
     }
 };
 
-HYP_FORCE_INLINE static void HandleInstruction(
+SCRIPT_INLINE static void HandleInstruction(
     Script_Instance* instance,
     InstructionHandler* handler,
     ubyte code)
@@ -3978,7 +3988,6 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
     ThrowException(instance, Script_Exception(buffer));
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
@@ -4049,7 +4058,6 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& val
 
     bs->SetPosition(positionBefore);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* outTrace)
 {
@@ -4174,3 +4182,11 @@ void Script_Interpreter::Execute(Script_Instance* instance)
 #pragma endregion Script_Interpreter
 
 } // namespace hyperion
+
+#ifdef SCRIPT_INLINE
+#undef SCRIPT_INLINE
+#endif
+
+#ifdef HYP_SCRIPT_NOOPT
+#undef HYP_SCRIPT_NOOPT
+#endif

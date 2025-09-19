@@ -511,6 +511,12 @@ struct HypDataArray
             auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
             return AnyRef(arr.PushBack(std::move(value.Get<T>())));
         };
+        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+        {
+            auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
+            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+            return AnyRef(arr[index]);
+        };
         functionTable.size = [](const HypDataArray& array) -> SizeType
         {
             return array.internalArray.Get<Array<T, AllocatorType>>().Size();
@@ -532,6 +538,12 @@ struct HypDataArray
             auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
             return AnyRef(arr.PushBack(std::move(value.Get<T>())));
         };
+        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+        {
+            auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
+            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+            return AnyRef(arr[index]);
+        };
         functionTable.size = [](const HypDataArray& array) -> SizeType
         {
             return array.internalArray.Get<Array<T, AllocatorType>>().Size();
@@ -548,6 +560,12 @@ struct HypDataArray
         {
             return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
         };
+        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+        {
+            auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
+            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+            return AnyRef(arr[index]);
+        };
         functionTable.size = [](const HypDataArray& array) -> SizeType
         {
             return array.internalArray.Get<FixedArray<T, Sz>>().Size();
@@ -563,6 +581,12 @@ struct HypDataArray
         serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
         {
             return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
+        };
+        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+        {
+            auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
+            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+            return AnyRef(arr[index]);
         };
         functionTable.size = [](const HypDataArray& array) -> SizeType
         {
