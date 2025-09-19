@@ -38,7 +38,7 @@ void Script_HashMap::SetElement(VMMapKey&& key, Script_Value&& value)
     m_map.Set(std::move(key), std::move(value));
 }
 
-Script_Value* Script_HashMap::GetElement(const VMMapKey& key)
+HypData* Script_HashMap::GetElement(const VMMapKey& key)
 {
     auto it = m_map.Find(key);
 
@@ -50,7 +50,7 @@ Script_Value* Script_HashMap::GetElement(const VMMapKey& key)
     return &it->second;
 }
 
-const Script_Value* Script_HashMap::GetElement(const VMMapKey& key) const
+const HypData* Script_HashMap::GetElement(const VMMapKey& key) const
 {
     auto it = m_map.Find(key);
 

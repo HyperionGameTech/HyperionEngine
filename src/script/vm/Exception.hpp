@@ -36,8 +36,8 @@ public:
     static Script_Exception NullReferenceException();
     static Script_Exception DivisionByZeroException();
     static Script_Exception OutOfBoundsException(SizeType index, SizeType size);
-    static Script_Exception MemberNotFoundException(Script_Value* pValue, HashCode::ValueType hashCode);
-    static Script_Exception InvalidMemberAccessException(Script_Value* pValue);
+    static Script_Exception MemberNotFoundException(HypData* pValue, HashCode::ValueType hashCode);
+    static Script_Exception InvalidMemberAccessException(HypData* pValue);
     static Script_Exception FileOpenException(const char* fileName);
     static Script_Exception UnopenedFileWriteException();
     static Script_Exception UnopenedFileReadException();

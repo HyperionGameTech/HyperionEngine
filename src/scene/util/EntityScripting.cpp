@@ -95,11 +95,11 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         if constexpr (!std::is_void_v<ReturnType>)
         {
             Assert(returnValue.IsValid());
-            Assert(returnValue.GetHypData()->Is<ReturnType>());
+            Assert(returnValue.Is<ReturnType>());
 
             AssertDebug(outReturnValue != nullptr);
 
-            new (outReturnValue) ReturnType(std::move(returnValue.GetHypData()->Get<ReturnType>()));
+            new (outReturnValue) ReturnType(std::move(returnValue.Get<ReturnType>()));
         }
 
         break;

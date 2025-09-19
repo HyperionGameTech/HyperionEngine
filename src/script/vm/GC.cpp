@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-extern Script_Value ScriptApi_MakeValue(const Script_VMData& data);
+extern HypData ScriptApi_MakeValue(const Script_VMData& data);
 
 Script_GC::Script_GC()
     : m_pool(NAME("GCMemoryPool"))
@@ -17,16 +17,16 @@ Script_GC::~Script_GC()
     /// @TODO: Need to set Script_GC index of all Values to INVALID_GC_INDEX then destruct
 }
 
-void Script_GC::MoveToTrackedMemory(Script_Value& inOutRefValue)
+void Script_GC::MoveToTrackedMemory(HypData& inOutRefValue)
 {
-    Assert(inOutRefValue.GetHypData()->extData.scriptGcIndex == INVALID_GC_INDEX);
+    Assert(inOutRefValue.extData.scriptGcIndex == INVALID_GC_INDEX);
     Assert(!inOutRefValue.IsRef());
 
-    Script_Value* ptr;
-    uint32 gcIndex = m_pool.AcquireIndex(&ptr) + 1; // reserve 0 for INVALID_GC_INDEX
+    HypData* ptr = (HypData*)m_pool.Allocate(sizeof(HypData), alignof(HypData));
+    uint32 gcIndex = m_idGenerator.Next(); // starts at 1
 
-    *ptr->GetHypData() = std::move(*inOutRefValue.GetHypData());
-    ptr->GetHypData()->extData.scriptGcIndex = GCIndex(gcIndex);
+    *ptr = std::move(*inOutRefValue);
+    ptr->extData.scriptGcIndex = GCIndex(gcIndex);
 
     // set `inOutRefValue` to be a reference to the tracked value
     Script_VMData newRefVmData;

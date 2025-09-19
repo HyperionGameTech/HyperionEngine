@@ -48,7 +48,7 @@ static inline ValueStorage<HypData> MakeGarbageValue()
 
 static const ValueStorage<HypData> s_uninitializedValue = MakeGarbageValue();
 
-void Script_Value::ConstructNumber(HypData* ptr, Number number)
+void ConstructNumber(HypData* ptr, Number number)
 {
     AssertDebug(ptr != nullptr);
 
@@ -107,7 +107,7 @@ void Script_Value::ConstructNumber(HypData* ptr, Number number)
     }
 }
 
-void Script_Value::ConstructVMData(HypData* ptr, const Script_VMData& vmData)
+void ConstructVMData(HypData* ptr, const Script_VMData& vmData)
 {
     AssertDebug(ptr != nullptr);
 
@@ -120,22 +120,22 @@ void Script_Value::ConstructVMData(HypData* ptr, const Script_VMData& vmData)
     new (ptr) HypData(userData);
 }
 
-Script_VMData* Script_Value::GetVMData(HypData& data)
+Script_VMData* GetVMData(HypData& data)
 {
     return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-const Script_VMData* Script_Value::GetVMData(const HypData& data)
+const Script_VMData* GetVMData(const HypData& data)
 {
     return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
 }
 
-bool Script_Value::IsGarbage(const HypData& data)
+bool IsGarbage(const HypData& data)
 {
     return data.extData.scriptGcIndex == GARBAGE_GC_INDEX;
 }
 
-bool Script_Value::IsFunction(const HypData& data)
+bool IsFunction(const HypData& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -147,7 +147,7 @@ bool Script_Value::IsFunction(const HypData& data)
     return vmData->type == Script_VMData::FUNCTION || vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-bool Script_Value::IsNativeFunction(const HypData& data)
+bool IsNativeFunction(const HypData& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -159,7 +159,7 @@ bool Script_Value::IsNativeFunction(const HypData& data)
     return vmData->type == Script_VMData::NATIVE_FUNCTION;
 }
 
-bool Script_Value::IsRef(const HypData& data)
+bool IsRef(const HypData& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -171,7 +171,7 @@ bool Script_Value::IsRef(const HypData& data)
     return vmData->type == Script_VMData::VALUE_REF;
 }
 
-HypData* Script_Value::GetRef(const HypData& data)
+HypData* GetRef(const HypData& data)
 {
     const Script_VMData* vmData = GetVMData(data);
 
@@ -183,7 +183,7 @@ HypData* Script_Value::GetRef(const HypData& data)
     return vmData->valueRef;
 }
 
-HypData* Script_Value::Deref(HypData& data)
+HypData* Deref(HypData& data)
 {
     HypData* deref = GetRef(data);
 
@@ -197,7 +197,7 @@ HypData* Script_Value::Deref(HypData& data)
     return &data;
 }
 
-const HypData* Script_Value::Deref(const HypData& data)
+const HypData* Deref(const HypData& data)
 {
     HypData* deref = GetRef(data);
 
@@ -211,7 +211,7 @@ const HypData* Script_Value::Deref(const HypData& data)
     return &data;
 }
 
-void Script_Value::AssignValue(HypData& data, HypData&& other, bool assignRef)
+void AssignValue(HypData& data, HypData&& other, bool assignRef)
 {
     HypData* ref;
 
@@ -231,7 +231,7 @@ void Script_Value::AssignValue(HypData& data, HypData&& other, bool assignRef)
     }
 }
 
-bool Script_Value::GetUnsigned(const HypData& data, uint64* out)
+bool GetUnsigned(const HypData& data, uint64* out)
 {
     if (!data.Is<uint64>(/* strict */ false))
     {
@@ -243,7 +243,7 @@ bool Script_Value::GetUnsigned(const HypData& data, uint64* out)
     return true;
 }
 
-bool Script_Value::GetInteger(const HypData& data, int64* out)
+bool GetInteger(const HypData& data, int64* out)
 {
     if (!data.Is<int64>(/* strict */ false))
     {
@@ -255,7 +255,7 @@ bool Script_Value::GetInteger(const HypData& data, int64* out)
     return true;
 }
 
-bool Script_Value::GetSignedOrUnsigned(const HypData& data, Number* out)
+bool GetSignedOrUnsigned(const HypData& data, Number* out)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -318,7 +318,7 @@ bool Script_Value::GetSignedOrUnsigned(const HypData& data, Number* out)
     return false;
 }
 
-bool Script_Value::GetFloatingPoint(const HypData& data, double* out)
+bool GetFloatingPoint(const HypData& data, double* out)
 {
     if (!data.Is<double>(/* strict */ true) && !data.Is<float>(/* strict */ true))
     {
@@ -330,13 +330,13 @@ bool Script_Value::GetFloatingPoint(const HypData& data, double* out)
     return true;
 }
 
-bool Script_Value::GetFloatingPointCoerce(const HypData& data, double* out)
+bool GetFloatingPointCoerce(const HypData& data, double* out)
 {
     // alias for backwards compatibility
     return GetNumber(data, out);
 }
 
-bool Script_Value::GetNumber(const HypData& data, double* out)
+bool GetNumber(const HypData& data, double* out)
 {
     Number number;
     if (!GetNumber(data, &number))
@@ -368,7 +368,7 @@ bool Script_Value::GetNumber(const HypData& data, double* out)
     return false;
 }
 
-bool Script_Value::GetNumber(const HypData& data, Number* out)
+bool GetNumber(const HypData& data, Number* out)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -445,7 +445,7 @@ bool Script_Value::GetNumber(const HypData& data, Number* out)
     return false;
 }
 
-NumericType Script_Value::GetNumericType(const HypData& data)
+NumericType GetNumericType(const HypData& data)
 {
     const TypeId typeId = data.GetTypeId();
 
@@ -493,7 +493,7 @@ NumericType Script_Value::GetNumericType(const HypData& data)
     return NT_INVALID;
 }
 
-bool Script_Value::GetBoolean(const HypData& data, bool* out)
+bool GetBoolean(const HypData& data, bool* out)
 {
     if (!data.Is<bool>())
     {
@@ -504,7 +504,7 @@ bool Script_Value::GetBoolean(const HypData& data, bool* out)
     return true;
 }
 
-bool Script_Value::GetString(const HypData& data, const Script_String** out)
+bool GetString(const HypData& data, const Script_String** out)
 {
     AssertDebug(out != nullptr);
 
@@ -518,7 +518,7 @@ bool Script_Value::GetString(const HypData& data, const Script_String** out)
     return true;
 }
 
-const AnyHandle& Script_Value::GetObject(const HypData& data)
+const AnyHandle& GetObject(const HypData& data)
 {
     if (!data.Is<AnyHandle>())
     {
@@ -528,7 +528,7 @@ const AnyHandle& Script_Value::GetObject(const HypData& data)
     return data.Get<AnyHandle>();
 }
 
-int Script_Value::CompareAsPointers(const HypData& lhs, const HypData& rhs)
+int CompareAsPointers(const HypData& lhs, const HypData& rhs)
 {
     void* a = lhs.ToRef().GetPointer();
     void* b = rhs.ToRef().GetPointer();
@@ -548,7 +548,7 @@ int Script_Value::CompareAsPointers(const HypData& lhs, const HypData& rhs)
     }
 }
 
-int Script_Value::CompareAsFunctions(const HypData& lhs, const HypData& rhs)
+int CompareAsFunctions(const HypData& lhs, const HypData& rhs)
 {
     const Script_VMData* lhsVmData = GetVMData(lhs);
     const Script_VMData* rhsVmData = GetVMData(rhs);
@@ -563,7 +563,7 @@ int Script_Value::CompareAsFunctions(const HypData& lhs, const HypData& rhs)
         : CF_NONE;
 }
 
-int Script_Value::CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs)
+int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs)
 {
     const Script_VMData* lhsVmData = GetVMData(lhs);
     const Script_VMData* rhsVmData = GetVMData(rhs);
@@ -578,12 +578,12 @@ int Script_Value::CompareAsNativeFunctions(const HypData& lhs, const HypData& rh
         : CF_NONE;
 }
 
-const char* Script_Value::GetTypeString(const HypData& data)
+const char* GetTypeString(const HypData& data)
 {
     return ScriptApi_GetTypeString(data);
 }
 
-String Script_Value::ToString(const HypData& data)
+String ToString(const HypData& data)
 {
     if (IsRef(data))
     {

@@ -249,7 +249,7 @@ void HypScript::Run(Script_Instance* instance)
     m_impl->vm->Execute(instance);
 }
 
-Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs)
+Script_Value HypScript::CallFunctionArgV(Script_Instance* instance, const Script_Value& value, HypData* args, ArgCount numArgs)
 {
     Assert(instance != nullptr);
     Assert(value.IsFunction());
@@ -317,7 +317,7 @@ bool HypScript::GetMember(Script_Instance* instance, const Script_Value& targetV
     {
         HypField* field = static_cast<HypField*>(member);
 
-        outValue = ScriptApi_MakeValue(field->Get(*targetValue.GetHypData()));
+        outValue = ScriptApi_MakeValue(field->Get(targetValue));
 
         return true;
     }
@@ -375,7 +375,7 @@ bool HypScript::SetField(Script_Value& targetValue, const char* memberName, Scri
         return false;
     }
 
-    field->Set(*targetValue.GetHypData(), std::move(*value.GetHypData()));
+    field->Set(targetValue, std::move(value));
 
     return true;
 }
@@ -384,7 +384,7 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, S
 {
     outValue = Script_Value();
 
-    Script_Value* pValue;
+    HypData* pValue;
     if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;
@@ -404,7 +404,7 @@ bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Sc
 {
     outValue = Script_Value();
 
-    Script_Value* pValue;
+    HypData* pValue;
     if (!instance->exportedSymbols.Find(HashCode::GetHashCode(name).Value(), pValue))
     {
         return false;

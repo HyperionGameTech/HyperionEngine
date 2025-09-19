@@ -524,28 +524,28 @@ static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions
 // clang-format on
 
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
-static inline Script_Value ScriptApi_MakeValue(T&& data)
+static inline HypData ScriptApi_MakeValue(T&& data)
 {
-    return Script_Value(HypData(std::forward<T>(data)));
+    return HypData(HypData(std::forward<T>(data)));
 }
 
-Script_Value ScriptApi_MakeValue(HypData&& data)
+HypData ScriptApi_MakeValue(HypData&& data)
 {
-    return Script_Value(std::move(data));
+    return HypData(std::move(data));
 }
 
-Script_Value ScriptApi_MakeValue(const Script_VMData& data)
+HypData ScriptApi_MakeValue(const Script_VMData& data)
 {
-    return Script_Value(data);
+    return HypData(data);
 }
 
-Script_Value ScriptApi_MakeValue(const Number& number)
+HypData ScriptApi_MakeValue(const Number& number)
 {
-    return Script_Value(number);
+    return HypData(number);
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
-Script_Value ScriptApi_MakeRef(Script_Value* pValue)
+HypData ScriptApi_MakeRef(HypData* pValue)
 {
     Assert(pValue != nullptr);
 
@@ -556,39 +556,39 @@ Script_Value ScriptApi_MakeRef(Script_Value* pValue)
     Assert(vmData.valueRef != nullptr);
     Assert(!vmData.valueRef->IsGarbage(), "Creating a reference to garbage value");
 
-    return Script_Value(vmData);
+    return HypData(vmData);
 }
 
-Script_Value ScriptApi_MakeTrackedRef(Script_Value* pValue, Script_GC* gc)
+HypData ScriptApi_MakeTrackedRef(HypData* pValue, Script_GC* gc)
 {
     Assert(gc != nullptr);
     Assert(pValue != nullptr);
 
-    if (pValue->GetHypData()->extData.scriptGcIndex != INVALID_GC_INDEX)
+    if (pValue->extData.scriptGcIndex != INVALID_GC_INDEX)
     {
         // already in tracked memory, make a reference to this value
         return ScriptApi_MakeRef(pValue);
     }
 
-    const TypeId originalTypeId = pValue->GetHypData()->GetTypeId();
+    const TypeId originalTypeId = pValue->GetTypeId();
 
     gc->MoveToTrackedMemory(*pValue);
 
     return *pValue;
 }
 
-#define PASS_AS_REF(value) ((value).GetHypData()->Is<Any>())
+#define PASS_AS_REF(value) ((value).Is<Any>())
 #define PASS_AS_REF_DATA(data) ((data).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
+HypData ScriptApi_ShallowCopy(HypData& refValue, Script_GC* gc)
 {
     if (refValue.IsRef())
     {
         return refValue; // already a reference, return as-is
     }
 
-    if (refValue.GetHypData()->extData.scriptGcIndex != INVALID_GC_INDEX)
+    if (refValue.extData.scriptGcIndex != INVALID_GC_INDEX)
     {
         // in tracked memory, make a reference to it
         return ScriptApi_MakeRef(&refValue);
@@ -603,10 +603,10 @@ Script_Value ScriptApi_ShallowCopy(Script_Value& refValue, Script_GC* gc)
             newHypData.value.Set<NormalizedType<decltype(val)>>(val);
         });
 
-    return Script_Value(std::move(newHypData));
+    return HypData(std::move(newHypData));
 }
 
-bool ScriptApi_ShouldValuePassByRef(const Script_Value& value)
+bool ScriptApi_ShouldValuePassByRef(const HypData& value)
 {
     if (!value.IsValid())
     {
@@ -948,7 +948,7 @@ Script_RegisterMemory::Script_RegisterMemory()
 const uint16 Script_StaticMemory::staticSize = 65535;
 
 Script_StaticMemory::Script_StaticMemory()
-    : m_data(new Script_Value[staticSize])
+    : m_data(new HypData[staticSize])
 {
 }
 
@@ -1040,7 +1040,7 @@ public:
             "Stack offset out of bounds (%u)",
             offset);
 
-        Script_Value& srcValue = stackMemory[stackMemory.GetStackPointer() - offset];
+        HypData& srcValue = stackMemory[stackMemory.GetStackPointer() - offset];
 
         // read value from stack at (sp - offset)
         // into the the register
@@ -1059,7 +1059,7 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        Script_Value& srcValue = stackMemory[index];
+        HypData& srcValue = stackMemory[index];
 
         // read value from stack at the index into the the register
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
@@ -1071,7 +1071,7 @@ public:
     {
         // read value from static memory
         // at the index into the the register
-        Script_Value& srcValue = vm->m_staticMemory[index];
+        HypData& srcValue = vm->m_staticMemory[index];
 
         instance->thread.m_regs[reg] = PASS_AS_REF(srcValue)
             ? ScriptApi_MakeRef(&srcValue)
@@ -1105,7 +1105,7 @@ public:
 
     SCRIPT_INLINE void OpLoadArrayIdx(BCRegister dstReg, BCRegister srcReg, BCRegister indexReg)
     {
-        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
+        HypData& src = *instance->thread.m_regs[srcReg].Deref();
 
         Number key;
 
@@ -1116,7 +1116,7 @@ public:
             return;
         }
 
-        if (Script_Array* array = src.GetHypData()->TryGet<Script_Array>().TryGet())
+        if (Script_Array* array = src.TryGet<Script_Array>().TryGet())
         {
             if (key.flags & Number::FLAG_SIGNED)
             {
@@ -1138,7 +1138,7 @@ public:
                     return;
                 }
 
-                Script_Value& srcValue = (*array)[key.i];
+                HypData& srcValue = (*array)[key.i];
 
                 instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
                     ? ScriptApi_MakeRef(&srcValue)
@@ -1153,7 +1153,7 @@ public:
                     return;
                 }
 
-                Script_Value& srcValue = (*array)[key.u];
+                HypData& srcValue = (*array)[key.u];
 
                 instance->thread.m_regs[dstReg] = PASS_AS_REF(srcValue)
                     ? ScriptApi_MakeRef(&srcValue)
@@ -1170,7 +1170,7 @@ public:
     SCRIPT_INLINE void OpLoadOffsetRef(BCRegister reg, uint16 offset)
     {
         // load reference to stack value at (sp - offset) into the register
-        Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].Deref(), vm->GetGC());
+        HypData newRef = ScriptApi_MakeTrackedRef(instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - offset].Deref(), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
@@ -1184,25 +1184,25 @@ public:
             index,
             stackMemory.GetStackPointer());
 
-        Script_Value newRef = ScriptApi_MakeTrackedRef(stackMemory[index].Deref(), vm->GetGC());
+        HypData newRef = ScriptApi_MakeTrackedRef(stackMemory[index].Deref(), vm->GetGC());
         instance->thread.m_regs[reg] = std::move(newRef);
     }
 
     SCRIPT_INLINE void OpLoadRef(BCRegister dstReg, BCRegister srcReg)
     {
-        Script_Value newRef = ScriptApi_MakeTrackedRef(instance->thread.m_regs[srcReg].Deref(), vm->GetGC());
+        HypData newRef = ScriptApi_MakeTrackedRef(instance->thread.m_regs[srcReg].Deref(), vm->GetGC());
         instance->thread.m_regs[dstReg] = std::move(newRef);
     }
 
     SCRIPT_INLINE void OpLoadDeref(BCRegister dstReg, BCRegister srcReg)
     {
-        Script_Value& src = *instance->thread.m_regs[srcReg].Deref(); // double deref to get the actual value
+        HypData& src = *instance->thread.m_regs[srcReg].Deref(); // double deref to get the actual value
         instance->thread.m_regs[dstReg] = ScriptApi_ShallowCopy(*src.Deref(), vm->GetGC());
     }
 
     SCRIPT_INLINE void OpLoadNull(BCRegister reg)
     {
-        instance->thread.m_regs[reg] = Script_Value();
+        instance->thread.m_regs[reg] = HypData();
     }
 
     SCRIPT_INLINE void OpLoadTrue(BCRegister reg)
@@ -1226,7 +1226,7 @@ public:
             return;
         }
 
-        Script_Value classValue = ScriptApi_MakeValue(HypData(HypClassRef(hypClass)));
+        HypData classValue = ScriptApi_MakeValue(HypData(HypClassRef(hypClass)));
 
         instance->thread.m_regs[reg] = std::move(classValue);
     }
@@ -1252,15 +1252,15 @@ public:
 
     SCRIPT_INLINE void OpMovArrayIdx(BCRegister dstReg, uint32 index, BCRegister srcReg)
     {
-        Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
+        HypData& src = *instance->thread.m_regs[dstReg].Deref();
 
-        if (!src.GetHypData()->Is<Script_Array>())
+        if (!src.Is<Script_Array>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
             return;
         }
 
-        Script_Array& array = src.GetHypData()->Get<Script_Array>();
+        Script_Array& array = src.Get<Script_Array>();
 
         if (index >= array.Size())
         {
@@ -1269,8 +1269,8 @@ public:
             return;
         }
 
-        Script_Value& srcValue = *instance->thread.m_regs[srcReg].Deref();
-        Script_Value& dstValue = array[index];
+        HypData& srcValue = *instance->thread.m_regs[srcReg].Deref();
+        HypData& dstValue = array[index];
 
         dstValue = PASS_AS_REF(srcValue)
             ? ScriptApi_MakeRef(&srcValue)
@@ -1281,18 +1281,18 @@ public:
 
     SCRIPT_INLINE void OpMovArrayIdxReg(BCRegister dstReg, BCRegister indexReg, BCRegister srcReg)
     {
-        Script_Value& src = *instance->thread.m_regs[dstReg].Deref();
+        HypData& src = *instance->thread.m_regs[dstReg].Deref();
 
-        if (!src.GetHypData()->Is<Script_Array>())
+        if (!src.Is<Script_Array>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", src.GetTypeString()));
             return;
         }
 
-        Script_Array& array = src.GetHypData()->Get<Script_Array>();
+        Script_Array& array = src.Get<Script_Array>();
 
         Number index;
-        Script_Value& indexRegisterValue = instance->thread.m_regs[indexReg];
+        HypData& indexRegisterValue = instance->thread.m_regs[indexReg];
 
         if (!indexRegisterValue.GetSignedOrUnsigned(&index))
         {
@@ -1325,8 +1325,8 @@ public:
                 return;
             }
 
-            Script_Value& srcValue = *instance->thread.m_regs[srcReg].Deref();
-            Script_Value& dstValue = array[indexValue];
+            HypData& srcValue = Script_Value::Deref(*instance->thread.m_regs[srcReg]);
+            HypData& dstValue = array[indexValue];
 
             dstValue = PASS_AS_REF(srcValue)
                 ? ScriptApi_MakeRef(&srcValue)
@@ -1345,8 +1345,8 @@ public:
                 return;
             }
 
-            Script_Value& srcValue = *instance->thread.m_regs[srcReg].Deref();
-            Script_Value& dstValue = array[indexValue];
+            HypData& srcValue = *instance->thread.m_regs[srcReg].Deref();
+            HypData& dstValue = array[indexValue];
 
             dstValue = PASS_AS_REF(srcValue)
                 ? ScriptApi_MakeRef(&srcValue)
@@ -1363,8 +1363,8 @@ public:
 
     SCRIPT_INLINE void OpCheckHasMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
-        Script_Value& src = *instance->thread.m_regs[srcReg].Deref();
-        Script_Value& result = instance->thread.m_regs[dstReg];
+        HypData& src = *instance->thread.m_regs[srcReg].Deref();
+        HypData& result = instance->thread.m_regs[dstReg];
 
         const HypClass* hypClass = nullptr;
 
@@ -1374,7 +1374,7 @@ public:
         }
         else
         {
-            hypClass = GetClass(src.GetHypData()->GetTypeId());
+            hypClass = GetClass(src.GetTypeId());
         }
 
         if (hypClass != nullptr)
@@ -1390,7 +1390,7 @@ public:
 
     SCRIPT_INLINE void OpSetField(BCRegister dstReg, uint64 hash, BCRegister srcReg)
     {
-        Script_Value* pValue = instance->thread.m_regs[dstReg].Deref();
+        HypData* pValue = instance->thread.m_regs[dstReg].Deref();
 
         const HypClass* hypClass = nullptr;
 
@@ -1400,7 +1400,7 @@ public:
         }
         else
         {
-            hypClass = GetClass(pValue->GetHypData()->GetTypeId());
+            hypClass = GetClass(pValue->GetTypeId());
         }
 
         if (!hypClass)
@@ -1424,7 +1424,7 @@ public:
 
     SCRIPT_INLINE void OpGetMember(BCRegister dstReg, BCRegister srcReg, uint64 hash)
     {
-        Script_Value* pValue = instance->thread.m_regs[srcReg].Deref();
+        HypData* pValue = instance->thread.m_regs[srcReg].Deref();
 
         const HypClass* hypClass = nullptr;
 
@@ -1433,19 +1433,19 @@ public:
             // instance member access
             hypClass = object.ptr->InstanceClass();
         }
-        else if (const HypClassRef* classRef = pValue->GetHypData()->TryGet<HypClassRef>().TryGet())
+        else if (const HypClassRef* classRef = pValue->TryGet<HypClassRef>().TryGet())
         {
             // static member access on class reference
             hypClass = *classRef;
         }
         // temp special case for arrays
-        else if (const HypDataArray* array = pValue->GetHypData()->TryGet<HypDataArray>().TryGet())
+        else if (const HypDataArray* array = pValue->TryGet<HypDataArray>().TryGet())
         {
             hypClass = GetClass(TypeId::ForType<Script_Array>());
         }
         else
         {
-            hypClass = GetClass(pValue->GetHypData()->GetTypeId());
+            hypClass = GetClass(pValue->GetTypeId());
         }
 
         if (!hypClass)
@@ -1517,15 +1517,15 @@ public:
 
     SCRIPT_INLINE void OpPushArray(BCRegister dstReg, BCRegister srcReg)
     {
-        Script_Value& dst = *instance->thread.m_regs[dstReg].Deref();
+        HypData& dst = *instance->thread.m_regs[dstReg].Deref();
 
-        if (!dst.GetHypData()->Is<Script_Array>())
+        if (!dst.Is<Script_Array>())
         {
             vm->ThrowException(instance, Script_Exception::InvalidOperationException("PUSH_ARRAY", dst.GetTypeString()));
             return;
         }
 
-        Script_Array& array = dst.GetHypData()->Get<Script_Array>();
+        Script_Array& array = dst.Get<Script_Array>();
 
         array.PushBack(ScriptApi_ShallowCopy(*instance->thread.m_regs[srcReg].Deref(), vm->GetGC()));
         array.Back().Mark();
@@ -1586,7 +1586,7 @@ public:
     SCRIPT_INLINE void OpRet()
     {
         // get top of stack (should be the address before jumping)
-        Script_Value& top = instance->thread.GetStack().Top();
+        HypData& top = instance->thread.GetStack().Top();
 
         Script_VMData* vmData = top.GetVMData();
         Assert(vmData != nullptr);
@@ -1622,7 +1622,7 @@ public:
     SCRIPT_INLINE void OpEndTry()
     {
         // pop the try catch info from the stack
-        Script_Value& top = instance->thread.m_stack.Top();
+        HypData& top = instance->thread.m_stack.Top();
 
         Script_VMData* vmData = top.GetVMData();
         Assert(vmData != nullptr);
@@ -1638,9 +1638,9 @@ public:
     SCRIPT_INLINE void OpNew(BCRegister dst, BCRegister src) // come back to this
     {
         // read value from register
-        Script_Value& classValue = *instance->thread.m_regs[src].Deref();
+        HypData& classValue = *instance->thread.m_regs[src].Deref();
 
-        const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
+        const HypClassRef& classRef = classValue.Get<HypClassRef>();
         Assert(classRef.IsValid());
 
         HypData hypData;
@@ -1849,7 +1849,7 @@ public:
 
                     // load function info from stack address
                     Assert(stackOffset <= instance->thread.GetStack().GetStackPointer(), "Stack offset out of bounds!");
-                    Script_Value& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
+                    HypData& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
 
                     Script_VMData* funcVmData = funcValue.GetVMData();
                     Assert(funcVmData != nullptr);
@@ -1898,13 +1898,13 @@ public:
         Assert(hitEnd);
 
         // Read parent class register
-        Script_Value& parentClassValue = instance->thread.m_regs[reg];
+        HypData& parentClassValue = instance->thread.m_regs[reg];
 
         const HypClass* parentClass = nullptr;
 
         if (parentClassValue.IsValid())
         {
-            parentClass = parentClassValue.GetHypData()->Get<HypClassRef>();
+            parentClass = parentClassValue.Get<HypClassRef>();
             Assert(parentClass != nullptr);
         }
 
@@ -1921,7 +1921,7 @@ public:
 
         HypClassRegistry::GetInstance().RegisterClass(newClass->GetTypeId(), newClass);
 
-        Script_Value classValue = ScriptApi_MakeValue(HypClassRef(newClass));
+        HypData classValue = ScriptApi_MakeValue(HypClassRef(newClass));
 
         // promote the class object to tracked gc memory so it doesn't instantly get destroyed
         instance->thread.m_regs[reg] = ScriptApi_MakeTrackedRef(&classValue, vm->GetGC());
@@ -1937,8 +1937,8 @@ public:
         }
 
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -1976,7 +1976,7 @@ public:
             }
             else
             {
-                const int res = Script_Value::CompareAsPointers(lhs, rhs);
+                const int res = HypData::CompareAsPointers(lhs, rhs);
 
                 if (res != -1)
                 {
@@ -1993,7 +1993,7 @@ public:
     SCRIPT_INLINE void OpCmpZ(BCRegister reg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[reg].Deref();
+        HypData* lhs = instance->thread.m_regs[reg].Deref();
 
         Number num;
 
@@ -2027,8 +2027,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2054,8 +2054,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2081,8 +2081,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2108,8 +2108,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2148,8 +2148,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2219,8 +2219,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2246,8 +2246,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2273,8 +2273,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2299,8 +2299,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2325,8 +2325,8 @@ public:
         BCRegister dstReg)
     {
         // load values from registers
-        Script_Value* lhs = instance->thread.m_regs[lhsReg].Deref();
-        Script_Value* rhs = instance->thread.m_regs[rhsReg].Deref();
+        HypData* lhs = instance->thread.m_regs[lhsReg].Deref();
+        HypData* rhs = instance->thread.m_regs[rhsReg].Deref();
 
         Number a, b;
 
@@ -2349,7 +2349,7 @@ public:
     SCRIPT_INLINE void OpNot(BCRegister reg)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[reg].Deref();
+        HypData& value = *instance->thread.m_regs[reg].Deref();
 
         Number num;
 
@@ -2372,7 +2372,7 @@ public:
     SCRIPT_INLINE void OpThrow(BCRegister reg)
     {
         // load value from register
-        Script_Value* value = instance->thread.m_regs[reg].Deref();
+        HypData* value = instance->thread.m_regs[reg].Deref();
 
         // @TODO Allow throwing the arugment
 
@@ -2381,9 +2381,9 @@ public:
 
     SCRIPT_INLINE void OpExportSymbol(BCRegister reg, uint64 hash)
     {
-        Script_Value& srcValue = *instance->thread.m_regs[reg].Deref();
+        HypData& srcValue = *instance->thread.m_regs[reg].Deref();
 
-        Script_Value newValue = PASS_AS_REF(srcValue)
+        HypData newValue = PASS_AS_REF(srcValue)
             ? ScriptApi_MakeTrackedRef(&srcValue, vm->GetGC())
             : ScriptApi_ShallowCopy(srcValue, vm->GetGC());
 
@@ -2396,7 +2396,7 @@ public:
     SCRIPT_INLINE void OpNeg(BCRegister reg)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[reg].Deref();
+        HypData& value = *instance->thread.m_regs[reg].Deref();
 
         Number num;
 
@@ -2448,7 +2448,7 @@ public:
     SCRIPT_INLINE void OpCastU8(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
 
         Number num;
 
@@ -2481,7 +2481,7 @@ public:
     SCRIPT_INLINE void OpCastU16(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
 
         Number num;
 
@@ -2514,7 +2514,7 @@ public:
     SCRIPT_INLINE void OpCastU32(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2546,7 +2546,7 @@ public:
     SCRIPT_INLINE void OpCastU64(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2577,7 +2577,7 @@ public:
 
     SCRIPT_INLINE void OpCastI8(BCRegister dst, BCRegister src)
     {
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2608,7 +2608,7 @@ public:
 
     SCRIPT_INLINE void OpCastI16(BCRegister dst, BCRegister src)
     {
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2639,7 +2639,7 @@ public:
 
     SCRIPT_INLINE void OpCastI32(BCRegister dst, BCRegister src)
     {
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2670,7 +2670,7 @@ public:
 
     SCRIPT_INLINE void OpCastI64(BCRegister dst, BCRegister src)
     {
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2702,7 +2702,7 @@ public:
     SCRIPT_INLINE void OpCastF32(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2734,7 +2734,7 @@ public:
     SCRIPT_INLINE void OpCastF64(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = *instance->thread.m_regs[src].Deref();
         Number num;
 
         if (!value.GetNumber(&num))
@@ -2766,21 +2766,21 @@ public:
     SCRIPT_INLINE void OpCastBool(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = Deref(*instance->thread.m_regs[src]);
 
         // use same logic as CmpZ to determine truthiness
         bool result = false;
         Number num;
 
-        if (value.GetSignedOrUnsigned(&num))
+        if (GetSignedOrUnsigned(value, &num))
         {
             result = (num.flags & Number::FLAG_SIGNED) ? (num.i != 0) : (num.u != 0);
         }
-        else if (value.GetFloatingPoint(&num.f))
+        else if (GetFloatingPoint(value, &num.f))
         {
             result = (num.f != 0.0);
         }
-        else if (value.GetBoolean(&result))
+        else if (GetBoolean(value, &result))
         {
             // already a bool, do nothing
         }
@@ -2796,13 +2796,13 @@ public:
     SCRIPT_INLINE void OpCastString(BCRegister dst, BCRegister src)
     {
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = Deref(*instance->thread.m_regs[src]);
 
         const Script_String* pString = nullptr;
 
-        if (!value.GetString(&pString))
+        if (!GetString(value, &pString))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), "string"));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "string"));
 
             return;
         }
@@ -2813,28 +2813,28 @@ public:
     SCRIPT_INLINE void OpCastDynamic(BCRegister dst, BCRegister src)
     {
         // dst register holds HypClassRef object
-        Script_Value& classValue = *instance->thread.m_regs[dst].Deref();
+        HypData& classValue = Deref(*instance->thread.m_regs[dst]);
 
-        const HypClassRef& classRef = classValue.GetHypData()->Get<HypClassRef>();
+        const HypClassRef& classRef = classValue.Get<HypClassRef>();
         Assert(classRef.IsValid());
 
         // load value from register
-        Script_Value& value = *instance->thread.m_regs[src].Deref();
+        HypData& value = Deref(*instance->thread.m_regs[src]);
 
         const HypClass* hypClass = nullptr;
 
-        if (const AnyHandle& object = value.GetObject())
+        if (const AnyHandle& object = GetObject(value))
         {
             hypClass = object.ptr->InstanceClass();
         }
         else
         {
-            hypClass = GetClass(value.GetHypData()->GetTypeId());
+            hypClass = GetClass(value.GetTypeId());
         }
 
         if (!hypClass || !hypClass->IsDerivedFrom(classRef))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(value.GetTypeString(), classRef->GetName().LookupString()));
+            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
 
             return;
         }
@@ -3880,12 +3880,12 @@ void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_
     }
 }
 
-void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value, uint8 nargs)
+void Script_Interpreter::Invoke(Script_Instance* instance, HypData&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
     Script_Stream* bs = &instance->stream;
 
-    Script_Value& deref = *value.Deref();
+    HypData& deref = *value.Deref();
 
     if (deref.IsFunction())
     {
@@ -3895,7 +3895,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
 
             for (int argIndex = 0; argIndex < nargs; argIndex++)
             {
-                Script_Value& srcValue = *instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].Deref();
+                HypData& srcValue = *instance->thread.m_stack[instance->thread.m_stack.GetStackPointer() - int(nargs) + argIndex].Deref();
 
                 argsHypData[argIndex] = srcValue.GetHypData();
             }
@@ -3990,7 +3990,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, Script_Value&& value,
     ThrowException(instance, Script_Exception(buffer));
 }
 
-void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& value, uint8 nargs)
+void Script_Interpreter::InvokeNow(Script_Instance* instance, HypData&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
     Script_Stream* bs = &instance->stream;
@@ -4001,7 +4001,7 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, Script_Value&& val
 
     InstructionHandler handler(this, instance);
 
-    Script_Value* deref = value.Deref();
+    HypData* deref = value.Deref();
     Assert(deref != nullptr);
 
     Script_VMData* pVmData = deref->GetVMData();
@@ -4079,7 +4079,7 @@ void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* ou
             break;
         }
 
-        const Script_Value& top = instance->thread.m_stack[sp - 1];
+        const HypData& top = instance->thread.m_stack[sp - 1];
 
         const Script_VMData* topVmData = top.GetVMData();
 
@@ -4103,7 +4103,7 @@ bool Script_Interpreter::HandleException(Script_Instance* instance)
         Assert(instance->thread.m_exceptionState.m_exceptionDepth != 0);
         --instance->thread.m_exceptionState.m_exceptionDepth;
 
-        Script_Value* top = &instance->thread.m_stack.Top();
+        HypData* top = &instance->thread.m_stack.Top();
         Script_VMData* topVmData = top->GetVMData();
 
         while (topVmData && topVmData->type != Script_VMData::TRY_CATCH_INFO)

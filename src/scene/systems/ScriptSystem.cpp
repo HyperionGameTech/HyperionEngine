@@ -82,7 +82,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         Assert(data != nullptr);
 
         HypScript& hs = HypScript::GetInstance();
-            
+
         Script_Value functionValue;
         if (!hs.GetFunctionHandle(data->instance, methodName, functionValue))
         {
@@ -95,15 +95,15 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         }
 
         Script_Value returnValue = hs.CallFunction(data->instance, functionValue, std::forward<ArgTypes>(args)...);
-        
+
         if constexpr (!std::is_void_v<ReturnType>)
         {
             Assert(returnValue.IsValid());
-            Assert(returnValue.GetHypData()->Is<ReturnType>());
+            Assert(returnValue.Is<ReturnType>());
 
             AssertDebug(outReturnValue != nullptr);
 
-            new (outReturnValue) ReturnType(std::move(returnValue.GetHypData()->Get<ReturnType>()));
+            new (outReturnValue) ReturnType(std::move(returnValue.Get<ReturnType>()));
         }
 
         break;
@@ -249,7 +249,7 @@ void ScriptSystem::Process(float delta)
     // Only update scripts if we're in simulation mode
     if (world->GetGameState().mode != GameStateMode::SIMULATING)
     { // temp; removed for testing
-        //return;
+      // return;
     }
 
     for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <script/vm/Value.hpp>
 #include <core/containers/Array.hpp>
 
 namespace hyperion {
 
 struct HypDataArray;
+struct HypData;
 
-using Script_Array = Array<Script_Value>;
+using Script_Array = Array<HypData, DynamicAllocator>;
 
 } // namespace hyperion

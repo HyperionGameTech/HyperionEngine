@@ -4,14 +4,14 @@
 
 #include <core/Types.hpp>
 
-#include <core/memory/MemoryPool.hpp>
+#include <core/memory/pool/Pool.hpp>
+
+#include <core/utilities/IdGenerator.hpp>
 
 namespace hyperion {
 
 class Script_GC
 {
-    using Pool = MemoryPool<Script_Value>;
-
 public:
     Script_GC();
 
@@ -23,10 +23,11 @@ public:
 
     ~Script_GC();
 
-    void MoveToTrackedMemory(Script_Value& inOutRefValue);
+    void MoveToTrackedMemory(HypData& inOutRefValue);
 
 private:
     Pool m_pool;
+    IdGenerator m_idGenerator;
 };
 
 } // namespace hyperion

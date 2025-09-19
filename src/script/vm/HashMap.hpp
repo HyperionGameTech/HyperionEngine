@@ -65,8 +65,8 @@ public:
 
     void SetElement(VMMapKey&& key, Script_Value&& value);
 
-    Script_Value* GetElement(const VMMapKey& key);
-    const Script_Value* GetElement(const VMMapKey& key) const;
+    HypData* GetElement(const VMMapKey& key);
+    const HypData* GetElement(const VMMapKey& key) const;
 
 private:
     InternalMapType m_map;

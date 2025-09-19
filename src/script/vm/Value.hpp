@@ -208,60 +208,51 @@ struct alignas(8) Script_VMData
 
 enum class GCIndex : uint32;
 
-class Script_Value
-{
-    friend class Script_Interpreter;
-    friend class Script_GC;
+/*! \brief Construct a new HypData in-place with the given Number value. HypData must be uninitialized memory. */
+void ConstructNumber(HypData* ptr, const Number& number);
 
-    Script_Value();
+/*! \brief Construct a new HypData in-place with the given Script_VMData value. HypData must be uninitialized memory. */
+void ConstructVMData(HypData* ptr, const Script_VMData& vmData);
 
-public:
-    /*! \brief Construct a new HypData in-place with the given Number value. HypData must be uninitialized memory. */
-    static void ConstructNumber(HypData* ptr, const Number& number);
+Script_VMData* GetVMData(HypData& data);
+const Script_VMData* GetVMData(const HypData& data);
 
-    /*! \brief Construct a new HypData in-place with the given Script_VMData value. HypData must be uninitialized memory. */
-    static void ConstructVMData(HypData* ptr, const Script_VMData& vmData);
+bool IsGarbage(const HypData& data);
 
-    static Script_VMData* GetVMData(HypData& data);
-    static const Script_VMData* GetVMData(const HypData& data);
+bool IsFunction(const HypData& data);
+bool IsNativeFunction(const HypData& data);
 
-    static bool IsGarbage(const HypData& data);
+bool IsRef(const HypData& data);
+HypData* GetRef(const HypData& data);
 
-    static bool IsFunction(const HypData& data);
-    static bool IsNativeFunction(const HypData& data);
+HypData* Deref(HypData& data);
+const HypData* Deref(const HypData& data);
 
-    static bool IsRef(const HypData& data);
-    static HypData* GetRef(const HypData& data);
+void AssignValue(HypData& data, HypData&& other, bool assignRef);
 
-    static HypData* Deref(HypData& data);
-    static const HypData* Deref(const HypData& data);
+bool GetUnsigned(const HypData& data, uint64* out);
+bool GetInteger(const HypData& data, int64* out);
+bool GetSignedOrUnsigned(const HypData& data, Number* out);
 
-    static void AssignValue(HypData& data, HypData&& other, bool assignRef);
+bool GetFloatingPoint(const HypData& data, double* out);
+bool GetFloatingPointCoerce(const HypData& data, double* out);
 
-    static bool GetUnsigned(const HypData& data, uint64* out);
-    static bool GetInteger(const HypData& data, int64* out);
-    static bool GetSignedOrUnsigned(const HypData& data, Number* out);
+bool GetNumber(const HypData& data, double* out);
+bool GetNumber(const HypData& data, Number* out);
 
-    static bool GetFloatingPoint(const HypData& data, double* out);
-    static bool GetFloatingPointCoerce(const HypData& data, double* out);
+NumericType GetNumericType(const HypData& data);
 
-    static bool GetNumber(const HypData& data, double* out);
-    static bool GetNumber(const HypData& data, Number* out);
+bool GetBoolean(const HypData& data, bool* out);
 
-    static NumericType GetNumericType(const HypData& data);
+bool GetString(const HypData& data, const Script_String** out);
 
-    static bool GetBoolean(const HypData& data, bool* out);
+const AnyHandle& GetObject(const HypData& data);
 
-    static bool GetString(const HypData& data, const Script_String** out);
+int CompareAsPointers(const HypData& lhs, const HypData& rhs);
+int CompareAsFunctions(const HypData& lhs, const HypData& rhs);
+int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs);
 
-    static const AnyHandle& GetObject(const HypData& data);
-
-    static int CompareAsPointers(const HypData& lhs, const HypData& rhs);
-    static int CompareAsFunctions(const HypData& lhs, const HypData& rhs);
-    static int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs);
-
-    static const char* GetTypeString(const HypData& data);
-    static String ToString(const HypData& data);
-};
+const char* GetTypeString(const HypData& data);
+String ToString(const HypData& data);
 
 } // namespace hyperion

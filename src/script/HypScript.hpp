@@ -58,7 +58,7 @@ public:
         return FixedArray<Script_Value, sizeof...(Args)> { CreateArgument(args)... };
     }
 
-    Script_Value CallFunctionArgV(Script_Instance* instance, const Script_Value& value, Script_Value* args, ArgCount numArgs);
+    Script_Value CallFunctionArgV(Script_Instance* instance, const Script_Value& value, HypData* args, ArgCount numArgs);
 
     bool GetFunctionHandle(Script_Instance* instance, const char* name, Script_Value& outValue);
     bool GetExportedValue(Script_Instance* instance, const char* name, Script_Value& outValue, bool getReference);
