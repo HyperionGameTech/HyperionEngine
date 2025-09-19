@@ -1383,7 +1383,10 @@ RenderGlobalState::RenderGlobalState()
     mainRenderer = new DeferredRenderer();
     mainRenderer->Initialize();
 
-    Memory::MemSet(globalRenderers, 0, sizeof(globalRenderers));
+    for (uint32 i = 0; i < GRT_MAX; i++)
+    {
+        globalRenderers[i] = Array<RendererBase*>();
+    }
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer();
