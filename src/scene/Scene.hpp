@@ -120,7 +120,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID& GetUUID() const
+    HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
@@ -231,8 +231,8 @@ private:
     HYP_FIELD(Property = "Flags", Serialize = true)
     EnumFlags<SceneFlags> m_flags;
 
-    HYP_FIELD(Property = "UUID", Serialize = true)
-    UUID m_uuid;
+    HYP_FIELD(Property = "Uuid", Serialize = true)
+    Uuid m_uuid;
 
     Handle<Node> m_root;
 

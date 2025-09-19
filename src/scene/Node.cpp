@@ -960,7 +960,7 @@ Handle<Node> Node::FindChildByName(WeakName name) const
     return Handle<Node>::empty;
 }
 
-Handle<Node> Node::FindChildByUUID(const UUID& uuid) const
+Handle<Node> Node::FindChildByUUID(const Uuid& uuid) const
 {
     // breadth-first search
     Queue<const Node*> queue;

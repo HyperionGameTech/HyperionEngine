@@ -19,7 +19,7 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
 
     MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
 
-    if (meshComponent.lightmapVolumeUuid == UUID::Invalid())
+    if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
     {
         meshComponent.lightmapVolume.Reset();
 
@@ -34,7 +34,7 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
     {
         if (!AssignLightmapVolume(meshComponent))
         {
-            HYP_LOG(Lightmap, Warning, "MeshComponent has volume UUID: {} could not be assigned to a LightmapVolume",
+            HYP_LOG(Lightmap, Warning, "MeshComponent has volume Uuid: {} could not be assigned to a LightmapVolume",
                 meshComponent.lightmapVolumeUuid);
 
             return;
@@ -59,10 +59,10 @@ void LightmapSystem::Process(float delta)
     {
         return; // no point in processing if there are no volumes in this Scene
     }
-    
+
     for (auto [entity, meshComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
     {
-        if (meshComponent.lightmapVolumeUuid == UUID::Invalid())
+        if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
         {
             continue;
         }
@@ -71,7 +71,7 @@ void LightmapSystem::Process(float delta)
         {
             if (!AssignLightmapVolume(meshComponent))
             {
-                HYP_LOG(Lightmap, Warning, "MeshComponent has volume UUID: {} could not be assigned to a LightmapVolume",
+                HYP_LOG(Lightmap, Warning, "MeshComponent has volume Uuid: {} could not be assigned to a LightmapVolume",
                     meshComponent.lightmapVolumeUuid);
             }
         }

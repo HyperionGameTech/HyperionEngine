@@ -485,7 +485,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
 
         return true;
     }
-    else if (typeId == TypeId::ForType<UUID>())
+    else if (typeId == TypeId::ForType<Uuid>())
     {
         if (!jsonValue.IsString())
         {
@@ -499,7 +499,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
             return false;
         }
 
-        outHypData = HypData(UUID(*jsonString));
+        outHypData = HypData(Uuid(*jsonString));
 
         return true;
     }
@@ -696,9 +696,9 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson)
         return true;
     }
 
-    if (value.Is<UUID>())
+    if (value.Is<Uuid>())
     {
-        const UUID& uuid = value.Get<UUID>();
+        const Uuid& uuid = value.Get<Uuid>();
 
         outJson = json::JSONString(uuid.ToString());
 

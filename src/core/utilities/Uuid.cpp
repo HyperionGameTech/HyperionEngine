@@ -15,39 +15,32 @@ namespace utilities {
 
 static uint64 RandomNumber()
 {
-    static thread_local std::mt19937 randomEngine(uint32(uint64(ThreadId::Current().GetValue()) + uint64(Time::Now())));
+    static thread_local std::mt19937 s_randomEngine(uint32(uint64(ThreadId::Current().GetValue()) + uint64(Time::Now())));
     std::uniform_int_distribution<uint64> distribution;
 
-    return distribution(randomEngine);
+    return distribution(s_randomEngine);
 }
 
-UUID::UUID(UUIDVersion version)
-    : data0 { 0 },
-      data1 { 0 }
+Uuid::Uuid()
+    : data0 { RandomNumber() },
+      data1 { RandomNumber() }
 {
-    switch (version)
-    {
-    case UUIDVersion::UUIDv4:
-        data0 = RandomNumber();
-        data1 = RandomNumber();
-
-        data0 &= ~0xF000;
-        data0 |= 0x4000;
-        data1 &= ~0xC000000000000000;
-        data1 |= 0x8000000000000000;
-
-        break;
-    case UUIDVersion::UUIDv3:
-        HYP_NOT_IMPLEMENTED();
-        break;
-    default:
-        HYP_UNREACHABLE();
-    }
+    data0 &= ~0xF000;
+    data0 |= 0x4000;
+    data1 &= ~0xC000000000000000;
+    data1 |= 0x8000000000000000;
 }
 
-UUID::UUID(const char* str)
+Uuid::Uuid(const char* str)
 {
     SizeType len = Memory::StrLen(str);
+
+    if (!len) // null or zero length
+    {
+        *this = Invalid();
+
+        return;
+    }
 
     if (len > 36)
     {
@@ -79,7 +72,7 @@ UUID::UUID(const char* str)
     data1 = data[1];
 }
 
-String UUID::ToString() const
+String Uuid::ToString() const
 {
     union
     {

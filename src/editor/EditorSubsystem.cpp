@@ -1849,9 +1849,9 @@ void EditorSubsystem::InitSceneOutline()
                 return UIEventHandlerResult::OK;
             }
 
-            const UUID dataSourceElementUuid = listViewItem->GetDataSourceElementUUID();
+            const Uuid dataSourceElementUuid = listViewItem->GetDataSourceElementUUID();
 
-            if (dataSourceElementUuid == UUID::Invalid())
+            if (dataSourceElementUuid == Uuid::Invalid())
             {
                 return UIEventHandlerResult::ERR;
             }
@@ -1895,7 +1895,7 @@ static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node
     {
         WeakHandle<Node> editorNodeWeak = MakeWeakRef(node);
 
-        UUID parentNodeUuid = UUID::Invalid();
+        Uuid parentNodeUuid = Uuid::Invalid();
 
         if (Node* parentNode = node->GetParent())
         {
@@ -1979,7 +1979,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 
             AddNodeToSceneOutline(listView, node);
             if (isDirect)
-                HYP_LOG(Editor, Debug, "Added to scene outline: {}\tparent: {}", node->GetName(), (node->GetParent() ? node->GetParent()->GetUUID() : UUID::Invalid()));
+                HYP_LOG(Editor, Debug, "Added to scene outline: {}\tparent: {}", node->GetName(), (node->GetParent() ? node->GetParent()->GetUUID() : Uuid::Invalid()));
         }));
 
     m_delegateHandlers.Remove(&node->GetDelegates()->OnChildRemoved);
@@ -2196,7 +2196,7 @@ void EditorSubsystem::InitDetailView()
                     nodePropertyRef.description = attr.GetString();
                 }
 
-                dataSource->Push(UUID(), HypData(std::move(nodePropertyRef)));
+                dataSource->Push(Uuid(), HypData(std::move(nodePropertyRef)));
             }
 
             m_editorDelegates->AddNodeWatcher(
@@ -2449,7 +2449,7 @@ void EditorSubsystem::InitActiveSceneSelection()
 
     //                             if (tag.IsValid())
     //                             {
-    //                                 const UUID* uuid = tag.data.TryGet<UUID>();
+    //                                 const Uuid* uuid = tag.data.TryGet<Uuid>();
 
     //                                 if (uuid && *uuid == scene->GetUUID())
     //                                 {
@@ -2609,7 +2609,7 @@ void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& pac
     {
         Handle<AssetPackage> parentPackage = package->GetParentPackage().Lock();
 
-        UUID parentPackageUuid = parentPackage.IsValid() ? parentPackage->GetUUID() : UUID::Invalid();
+        Uuid parentPackageUuid = parentPackage.IsValid() ? parentPackage->GetUUID() : Uuid::Invalid();
 
         dataSource->Push(package->GetUUID(), HypData(package), parentPackageUuid);
     }
@@ -3051,7 +3051,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 
     // Mutex::Guard guard(m_tasksMutex);
 
-    // m_tasks.Insert(UUID(), task);
+    // m_tasks.Insert(Uuid(), task);
     // m_numTasks.Increment(1, MemoryOrder::RELAXED);
 }
 

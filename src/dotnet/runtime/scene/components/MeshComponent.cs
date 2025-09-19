@@ -38,7 +38,7 @@ namespace Hyperion
         private WeakHandle<LightmapVolume> lightmapVolumeHandle;
 
         [FieldOffset(264)]
-        private UUID lightmapVolumeUUID;
+        private Uuid lightmapVolumeUUID;
 
         [FieldOffset(280)]
         private uint lightmapElementIndex;

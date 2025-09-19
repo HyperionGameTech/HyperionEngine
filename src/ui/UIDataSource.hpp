@@ -45,26 +45,26 @@ public:
     static UIElementFactoryRegistry& GetInstance();
 
     Handle<UIElementFactoryBase> GetFactory(TypeId typeId);
-    
+
     template <class... Types>
     Array<Handle<UIElementFactoryBase>> GetFactories()
     {
         Array<Handle<UIElementFactoryBase>> factories;
         factories.Reserve(sizeof...(Types));
-        
+
         constexpr FixedArray<TypeId, sizeof...(Types)> typeIds = { TypeId::ForType<Types>()... };
-        
+
         for (TypeId typeId : typeIds)
         {
             Handle<UIElementFactoryBase> factory = GetFactory(typeId);
             Assert(factory != nullptr);
-            
+
             factories.PushBack(factory);
         }
-        
+
         return factories;
     }
-    
+
     void RegisterFactory(TypeId typeId, Handle<UIElementFactoryBase> (*makeFactoryFunction)(void));
 
 private:
@@ -176,13 +176,13 @@ class HYP_API UIDataSourceElement
 {
 public:
     template <class T, typename = std::enable_if_t<!isHypData<T>>>
-    UIDataSourceElement(UUID uuid, T&& value)
+    UIDataSourceElement(Uuid uuid, T&& value)
         : m_uuid(uuid),
           m_value(HypData(std::forward<T>(value)))
     {
     }
 
-    UIDataSourceElement(UUID uuid, HypData&& value)
+    UIDataSourceElement(Uuid uuid, HypData&& value)
         : m_uuid(uuid),
           m_value(std::move(value))
     {
@@ -195,7 +195,7 @@ public:
         : m_uuid(other.m_uuid),
           m_value(std::move(other.m_value))
     {
-        other.m_uuid = UUID::Invalid();
+        other.m_uuid = Uuid::Invalid();
     }
 
     UIDataSourceElement& operator=(UIDataSourceElement&& other) noexcept
@@ -205,7 +205,7 @@ public:
             m_uuid = other.m_uuid;
             m_value = std::move(other.m_value);
 
-            other.m_uuid = UUID::Invalid();
+            other.m_uuid = Uuid::Invalid();
         }
 
         return *this;
@@ -213,7 +213,7 @@ public:
 
     ~UIDataSourceElement() = default;
 
-    HYP_FORCE_INLINE UUID GetUUID() const
+    HYP_FORCE_INLINE Uuid GetUUID() const
     {
         return m_uuid;
     }
@@ -229,7 +229,7 @@ public:
     }
 
 private:
-    UUID m_uuid;
+    Uuid m_uuid;
     HypData m_value;
 };
 
@@ -256,11 +256,11 @@ public:
     UIDataSourceBase& operator=(UIDataSourceBase&& other) noexcept = delete;
     virtual ~UIDataSourceBase() = default;
 
-    virtual void Push(const UUID& uuid, HypData&& value, const UUID& parentUuid = UUID::Invalid()) = 0;
-    virtual const UIDataSourceElement* Get(const UUID& uuid) const = 0;
-    virtual void Set(const UUID& uuid, HypData&& value) = 0;
-    virtual void ForceUpdate(const UUID& uuid) = 0;
-    virtual bool Remove(const UUID& uuid) = 0;
+    virtual void Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid = Uuid::Invalid()) = 0;
+    virtual const UIDataSourceElement* Get(const Uuid& uuid) const = 0;
+    virtual void Set(const Uuid& uuid, HypData&& value) = 0;
+    virtual void ForceUpdate(const Uuid& uuid) = 0;
+    virtual bool Remove(const Uuid& uuid) = 0;
     virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement*)> predicate) = 0;
 
     virtual Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const = 0;
@@ -341,7 +341,7 @@ public:
     UIDataSource& operator=(UIDataSource&& other) noexcept = delete;
     virtual ~UIDataSource() override = default;
 
-    virtual void Push(const UUID& uuid, HypData&& value, const UUID& parentUuid) override
+    virtual void Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid) override
     {
         if (value.IsNull())
         {
@@ -355,19 +355,19 @@ public:
 
         if (it != m_values.End())
         {
-            HYP_FAIL("Element with UUID {} already exists in the data source", uuid);
+            HYP_FAIL("Element with Uuid {} already exists in the data source", uuid);
         }
 
         typename Forest<UIDataSourceElement>::ConstIterator parentIt = m_values.End();
 
-        if (parentUuid != UUID::Invalid())
+        if (parentUuid != Uuid::Invalid())
         {
             parentIt = m_values.FindIf([&parentUuid](const auto& item)
                 {
                     return item.GetUUID() == parentUuid;
                 });
             
-            AssertDebug(parentIt != m_values.End(), "Element with UUID {} not found to set as parent!", parentUuid);
+            AssertDebug(parentIt != m_values.End(), "Element with Uuid {} not found to set as parent!", parentUuid);
         }
 
         it = m_values.Add(UIDataSourceElement(uuid, std::move(value)), parentIt);
@@ -376,7 +376,7 @@ public:
         OnChange(this);
     }
 
-    virtual const UIDataSourceElement* Get(const UUID& uuid) const override
+    virtual const UIDataSourceElement* Get(const Uuid& uuid) const override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -391,7 +391,7 @@ public:
         return &*it;
     }
 
-    virtual void Set(const UUID& uuid, HypData&& value) override
+    virtual void Set(const Uuid& uuid, HypData&& value) override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -400,7 +400,7 @@ public:
 
         if (it == m_values.End())
         {
-            HYP_FAIL("Element with UUID %s not found", uuid.ToString().Data());
+            HYP_FAIL("Element with Uuid %s not found", uuid.ToString().Data());
         }
 
         // Assert(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
@@ -411,7 +411,7 @@ public:
         OnChange(this);
     }
 
-    virtual void ForceUpdate(const UUID& uuid) override
+    virtual void ForceUpdate(const Uuid& uuid) override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -420,14 +420,14 @@ public:
 
         if (it == m_values.End())
         {
-            HYP_FAIL("Element with UUID %s not found", uuid.ToString().Data());
+            HYP_FAIL("Element with Uuid %s not found", uuid.ToString().Data());
         }
 
         OnElementUpdate(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);
     }
 
-    virtual bool Remove(const UUID& uuid) override
+    virtual bool Remove(const Uuid& uuid) override
     {
         bool changed = false;
 

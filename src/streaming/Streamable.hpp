@@ -19,8 +19,8 @@ namespace hyperion {
 HYP_STRUCT()
 struct StreamableKey
 {
-    HYP_FIELD(Property = "UUID", Serialize = true)
-    UUID uuid = UUID::Invalid();
+    HYP_FIELD(Property = "Uuid", Serialize = true)
+    Uuid uuid = Uuid::Invalid();
 
     HYP_FIELD(Property = "AssetPath", Serialize = true)
     Name assetPath;

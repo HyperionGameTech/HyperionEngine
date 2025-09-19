@@ -168,7 +168,7 @@ public:
     ~AssetObject();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID& GetUUID() const
+    HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
@@ -264,7 +264,7 @@ protected:
     }
 
     HYP_FIELD(Serialize)
-    UUID m_uuid;
+    Uuid m_uuid;
 
     HYP_FIELD(Serialize)
     Name m_name;
@@ -316,13 +316,13 @@ public:
     ~AssetPackage() = default;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID& GetUUID() const
+    HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetUUID(const UUID& uuid)
+    HYP_FORCE_INLINE void SetUUID(const Uuid& uuid)
     {
         m_uuid = uuid;
     }
@@ -469,7 +469,7 @@ private:
     Name GetUniqueAssetName_Internal(Name baseName) const;
 
     HYP_FIELD(Serialize = true)
-    UUID m_uuid;
+    Uuid m_uuid;
 
     HYP_FIELD(Serialize = true)
     Name m_name;

@@ -29,9 +29,9 @@ extern "C"
             return low != 0 || high != 0;
         }
 
-        HYP_FORCE_INLINE UUID ToUUID() const
+        HYP_FORCE_INLINE Uuid ToUUID() const
         {
-            return UUID(low, high);
+            return Uuid(low, high);
         }
 
         HYP_FORCE_INLINE HashCode GetHashCode() const

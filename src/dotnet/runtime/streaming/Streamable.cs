@@ -8,18 +8,18 @@ namespace Hyperion
     public struct StreamableKey
     {
         [FieldOffset(0)]
-        public UUID uuid;
+        public Uuid uuid;
 
         [FieldOffset(16)]
         public Name name;
 
         public StreamableKey()
         {
-            this.uuid = UUID.Invalid;
+            this.uuid = Uuid.Invalid;
             this.name = Name.Invalid;
         }
 
-        public StreamableKey(UUID uuid, Name name)
+        public StreamableKey(Uuid uuid, Name name)
         {
             this.uuid = uuid;
             this.name = name;

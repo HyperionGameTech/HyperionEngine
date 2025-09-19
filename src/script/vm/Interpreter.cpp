@@ -783,6 +783,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
         return true;
     }
 
+#if 0
     if (const Script_HashMap* pMap = data.TryGet<Script_HashMap>().TryGet())
     {
         auto& map = pMap->GetMap();
@@ -805,6 +806,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
         return true;
     }
+#endif
 
     if (const HypClass* hypClass = GetClass(data.GetTypeId()))
     {

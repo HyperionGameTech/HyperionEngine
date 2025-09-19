@@ -10,7 +10,7 @@ namespace Hyperion
         {
         }
 
-        public void Push(UUID uuid, object value, UUID? parentUuid = null)
+        public void Push(Uuid uuid, object value, Uuid? parentUuid = null)
         {
             HypDataBuffer hypDataBuffer = new HypDataBuffer();
             hypDataBuffer.SetValue(value);
@@ -20,15 +20,15 @@ namespace Hyperion
             hypDataBuffer.Dispose();
         }
 
-        public void Push(UUID uuid, ref HypDataBuffer buffer, UUID? parentUuid = null)
+        public void Push(Uuid uuid, ref HypDataBuffer buffer, Uuid? parentUuid = null)
         {
-            UUID parentUuidOrDefault = parentUuid ?? UUID.Invalid;
+            Uuid parentUuidOrDefault = parentUuid ?? Uuid.Invalid;
 
             UIDataSourceBase_Push(NativeAddress, ref uuid, ref buffer, ref parentUuidOrDefault);
         }
 
         [DllImport("hyperion", EntryPoint="UIDataSourceBase_Push")]
-        private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref UUID uuid, [In] ref HypDataBuffer data, [In] ref UUID parentUUID);
+        private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref Uuid uuid, [In] ref HypDataBuffer data, [In] ref Uuid parentUUID);
     }
 
     [HypClassBinding(Name="UIDataSource")]

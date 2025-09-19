@@ -35,7 +35,7 @@ namespace serialization {
 
 struct FBOMObjectLibrary
 {
-    UUID uuid;
+    Uuid uuid;
     Array<FBOMObject> objectData;
 
     bool TryGet(uint32 index, FBOMObject& out) const

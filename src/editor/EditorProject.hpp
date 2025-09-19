@@ -48,15 +48,15 @@ public:
         return m_editorSubsystem;
     }
 
-    HYP_METHOD(Property = "UUID", Serialize = true)
-    HYP_FORCE_INLINE const UUID& GetUUID() const
+    HYP_METHOD(Property = "Uuid", Serialize = true)
+    HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
 
     /*! \internal For serialization only. */
-    HYP_METHOD(Property = "UUID", Serialize = true)
-    HYP_FORCE_INLINE void SetUUID(const UUID& uuid)
+    HYP_METHOD(Property = "Uuid", Serialize = true)
+    HYP_FORCE_INLINE void SetUUID(const Uuid& uuid)
     {
         m_uuid = uuid;
     }
@@ -162,7 +162,7 @@ private:
 
     Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
 
-    UUID m_uuid;
+    Uuid m_uuid;
 
     Name m_name;
 

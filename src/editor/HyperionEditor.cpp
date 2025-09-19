@@ -108,7 +108,7 @@ void HyperionEditor::Init()
     { // script 2
         String str;
 #if 0
-        str = "extern class UUID {\n"
+        str = "extern class Uuid {\n"
               "    ToString() -> string\n"
               "}\n"
               "extern class Vec3f {\n"
@@ -123,7 +123,7 @@ void HyperionEditor::Init()
               "    GetName() -> Name\n"
               "}\n"
               "extern class Entity : Node {\n"
-              "    GetUUID() -> UUID\n"
+              "    GetUUID() -> Uuid\n"
               "    GetWorldTranslation() -> Vec3f\n"
               "    SetWorldTranslation(translation : Vec3f) -> void\n"
               "}\n"

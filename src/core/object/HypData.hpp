@@ -3264,6 +3264,57 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
 };
 
 template <>
+struct HypDataHelperDecl<Uuid>
+{
+};
+
+template <>
+struct HypDataHelper<Uuid> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        return value.Is<Uuid>();
+    }
+
+    HYP_FORCE_INLINE Uuid& Get(const Any& value) const
+    {
+        return value.Get<Uuid>();
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const Uuid& value) const
+    {
+        HypDataHelper<Any>::Set(hypData, Any::Construct<Uuid>(value));
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Serialize(const Uuid& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        HYP_SCOPE;
+
+        outData = FBOMData::FromStruct<Uuid>(value, flags);
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        HYP_SCOPE;
+
+        Uuid result;
+
+        if (FBOMResult err = data.ReadStruct<Uuid>(&result))
+        {
+            return err;
+        }
+
+        out = HypData(std::move(result));
+
+        return { FBOMResult::FBOM_OK };
+    }
+};
+
+template <>
 struct HypDataHelperDecl<ByteBuffer>
 {
 };
@@ -3447,6 +3498,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
     }
 };
 
+#if 0
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !implementationExists<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
 {
@@ -3583,6 +3635,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
         return FBOMResult::FBOM_OK;
     }
 };
+#endif
 
 #pragma region HypDataTypeChecker implementation
 
@@ -3618,12 +3671,12 @@ struct HypDataPlaceholderSerializedType
 {
     static inline FBOMType Get()
     {
-        thread_local bool isInit = false;
-        thread_local FBOMType placeholderType = FBOMPlaceholderType();
+        static thread_local bool s_isInit = false;
+        static thread_local FBOMType s_placeholderType = FBOMPlaceholderType();
 
-        if (!isInit)
+        if (!s_isInit)
         {
-            isInit = true;
+            s_isInit = true;
 
             FBOMData placeholderData;
 
@@ -3632,10 +3685,10 @@ struct HypDataPlaceholderSerializedType
                 HYP_FAIL("Failed to serialize placeholder data for type %s: %s", TypeName<T>().Data(), *err.message);
             }
 
-            placeholderType = placeholderData.GetType();
+            s_placeholderType = placeholderData.GetType();
         }
 
-        return placeholderType;
+        return s_placeholderType;
     }
 };
 
@@ -3644,20 +3697,20 @@ struct HypDataPlaceholderSerializedType<Handle<T>>
 {
     static inline FBOMType Get()
     {
-        thread_local bool isInit = false;
-        thread_local FBOMType placeholderType = FBOMPlaceholderType();
+        static thread_local bool s_isInit = false;
+        static thread_local FBOMType s_placeholderType = FBOMPlaceholderType();
 
-        if (!isInit)
+        if (!s_isInit)
         {
-            isInit = true;
+            s_isInit = true;
 
             const HypClass* hypClass = GetClass(TypeId::ForType<T>());
             HYP_CORE_ASSERT(hypClass, "HypClass for type %s is not registered", TypeName<T>().Data());
 
-            placeholderType = FBOMObjectType(hypClass);
+            s_placeholderType = FBOMObjectType(hypClass);
         }
 
-        return placeholderType;
+        return s_placeholderType;
     }
 };
 

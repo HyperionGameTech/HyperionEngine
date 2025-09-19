@@ -133,7 +133,7 @@ private:
 
     FBOMMarshalerBase* GetMarshalForType(const FBOMType& type) const;
 
-    FBOMResult RequestExternalObject(FBOMLoadContext& context, UUID libraryId, uint32 index, FBOMObject& outObject);
+    FBOMResult RequestExternalObject(FBOMLoadContext& context, Uuid libraryId, uint32 index, FBOMObject& outObject);
 
     FBOMCommand NextCommand(BufferedReader*);
     FBOMCommand PeekCommand(BufferedReader*);

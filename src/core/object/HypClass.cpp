@@ -388,6 +388,8 @@ static void InitFormattedStringMap(void* mem)
     ADD_TYPE_NAME(char*);
     ADD_TYPE_NAME(const char*);
     ADD_TYPE_NAME(HypData);
+    ADD_TYPE_NAME(AnyRef);
+    ADD_TYPE_NAME(Any);
 
 #undef ADD_TYPE_NAME
 }

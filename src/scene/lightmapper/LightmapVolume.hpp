@@ -116,7 +116,7 @@ public:
     ~LightmapVolume() override;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID& GetUUID() const
+    HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
@@ -192,7 +192,7 @@ private:
         HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures);
 
     HYP_FIELD(Serialize = true)
-    UUID m_uuid;
+    Uuid m_uuid;
 
     HYP_FIELD(Serialize = true)
     BoundingBox m_aabb;

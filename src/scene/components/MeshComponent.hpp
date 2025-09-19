@@ -75,7 +75,7 @@ struct MeshComponent
     // 264
 
     HYP_FIELD(Serialize = true)
-    UUID lightmapVolumeUuid = UUID::Invalid();
+    Uuid lightmapVolumeUuid = Uuid::Invalid();
 
     // 280
 
@@ -88,7 +88,7 @@ struct MeshComponent
           skeleton(skeleton),
           instanceData(),
           previousModelMatrix(Matrix4::Identity()),
-          lightmapVolumeUuid(UUID::Invalid()),
+          lightmapVolumeUuid(Uuid::Invalid()),
           lightmapElementId(~0u)
     {
     }

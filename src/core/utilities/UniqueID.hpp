@@ -73,7 +73,7 @@ public:
 
     static inline UniqueId Generate()
     {
-        return UniqueId { UUID {}.GetHashCode() };
+        return UniqueId { Uuid {}.GetHashCode() };
     }
 
     static inline constexpr UniqueId Invalid()
@@ -86,7 +86,7 @@ public:
         return UniqueId { hashCode };
     }
 
-    static UniqueId FromUUID(const UUID& uuid)
+    static UniqueId FromUUID(const Uuid& uuid)
     {
         return UniqueId { HashCode::GetHashCode(uuid.data0).Combine(HashCode::GetHashCode(uuid.data1)) };
     }

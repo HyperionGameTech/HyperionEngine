@@ -14,7 +14,7 @@ namespace serialization {
 class FBOMLoadContext
 {
 public:
-    HashMap<UUID, FBOMObjectLibrary> objectLibraries;
+    HashMap<Uuid, FBOMObjectLibrary> objectLibraries;
 };
 
 } // namespace serialization

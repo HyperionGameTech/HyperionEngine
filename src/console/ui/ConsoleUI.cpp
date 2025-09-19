@@ -30,7 +30,7 @@ enum class ConsoleHistoryEntryType : uint32
 
 struct ConsoleHistoryEntry
 {
-    UUID uuid;
+    Uuid uuid;
     ConsoleHistoryEntryType type = ConsoleHistoryEntryType::NONE;
     String text;
 };
@@ -77,7 +77,7 @@ public:
         /// FIXME: This could be more efficient, if the entry list is too large we shouldn't push stuff just to remove it
         for (ConsoleHistoryEntry& entry : localQueuedEntries)
         {
-            m_dataSource->Push(entry.uuid, HypData(entry), UUID::Invalid());
+            m_dataSource->Push(entry.uuid, HypData(entry), Uuid::Invalid());
         }
 
         m_entries.Concat(std::move(localQueuedEntries));

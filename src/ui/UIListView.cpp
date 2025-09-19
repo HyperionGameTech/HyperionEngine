@@ -400,7 +400,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase* dataSource)
                 }
             }
 
-            HYP_LOG(UI, Warning, "Failed to remove list view item with data source element UUID {}", element->GetUUID());
+            HYP_LOG(UI, Warning, "Failed to remove list view item with data source element Uuid {}", element->GetUUID());
         });
 
     m_dataSourceOnElementUpdateHandler = dataSource->OnElementUpdate.Bind([this, dataSource](UIDataSourceBase* dataSourcePtr, UIDataSourceElement* element, UIDataSourceElement* parent)
@@ -422,17 +422,17 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase* dataSource)
             }
             else
             {
-                HYP_LOG(UI, Warning, "Failed to update list view item with data source element UUID {}", element->GetUUID());
+                HYP_LOG(UI, Warning, "Failed to update list view item with data source element Uuid {}", element->GetUUID());
             }
         });
 }
 
-UIListViewItem* UIListView::FindListViewItem(const UUID& dataSourceElementUuid) const
+UIListViewItem* UIListView::FindListViewItem(const Uuid& dataSourceElementUuid) const
 {
     return FindListViewItem(this, dataSourceElementUuid);
 }
 
-UIListViewItem* UIListView::FindListViewItem(const UIObject* parentObject, const UUID& dataSourceElementUuid)
+UIListViewItem* UIListView::FindListViewItem(const UIObject* parentObject, const Uuid& dataSourceElementUuid)
 {
     if (!parentObject)
     {
@@ -506,7 +506,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase* dataSource, UIDataSource
         }
         else
         {
-            HYP_LOG(UI, Warning, "Parent list view item not found, no list view item with data source element UUID {}", parent->GetUUID().ToString());
+            HYP_LOG(UI, Warning, "Parent list view item not found, no list view item with data source element Uuid {}", parent->GetUUID().ToString());
         }
     }
 

@@ -175,7 +175,7 @@ public:
             return false;
         }
 
-        m_traceId = UUID();
+        m_traceId = Uuid();
 
         json::JSONObject object;
         object["trace_id"] = m_traceId.ToString();
@@ -236,7 +236,7 @@ public:
 private:
     ProfilerConnectionParams m_params;
 
-    UUID m_traceId;
+    Uuid m_traceId;
     ProfilerConnectionThread m_thread;
 
     FlatMap<ThreadId, UniquePtr<json::JSONArray>> m_perThreadValues;

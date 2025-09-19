@@ -70,7 +70,7 @@ struct NodeTag
         Vec2u, Vec3u, Vec4u,
         String,
         Name,
-        UUID>;
+        Uuid>;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
@@ -319,9 +319,9 @@ public:
     
     virtual ~Node() override;
 
-    /*! \brief Get the UUID of the Node. */
+    /*! \brief Get the Uuid of the Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID& GetUUID() const
+    HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
@@ -695,9 +695,9 @@ public:
     HYP_METHOD()
     Handle<Node> FindChildByName(WeakName name) const;
 
-    /*! \brief Search child nodes (breadth-first) until a node with the given UUID is found. */
+    /*! \brief Search child nodes (breadth-first) until a node with the given Uuid is found. */
     HYP_METHOD()
-    Handle<Node> FindChildByUUID(const UUID& uuid) const;
+    Handle<Node> FindChildByUUID(const Uuid& uuid) const;
 
     /*! \brief Get the delegates for this Node. */
     HYP_FORCE_INLINE Delegates* GetDelegates() const
@@ -790,8 +790,8 @@ protected:
     HYP_FIELD(Property = "Tags", Serialize = true)
     NodeTagSet m_tags;
 
-    HYP_FIELD(Property = "UUID", Serialize = true)
-    UUID m_uuid;
+    HYP_FIELD(Property = "Uuid", Serialize = true)
+    Uuid m_uuid;
 };
 
 struct NodeUnlockTransformScope
