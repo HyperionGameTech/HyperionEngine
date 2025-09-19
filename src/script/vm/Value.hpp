@@ -161,7 +161,7 @@ struct alignas(8) Script_VMData
 {
     union
     {
-        Script_Value* valueRef;
+        HypData* valueRef;
 
         struct
         {
@@ -207,106 +207,61 @@ struct alignas(8) Script_VMData
 };
 
 enum class GCIndex : uint32;
-static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
 
-class alignas(8) Script_Value
+class Script_Value
 {
     friend class Script_Interpreter;
     friend class Script_GC;
 
-    char m_internal[32];
-
-    enum MakeGarbageTag
-    {
-        MAKE_GARBAGE_TAG
-    };
-
-    explicit Script_Value(MakeGarbageTag);
-
-public:
-    static const Script_Value s_uninitializedValue;
-
     Script_Value();
 
-    explicit Script_Value(HypData&& data);
-    explicit Script_Value(Number number);
-    explicit Script_Value(const Script_VMData& vmData);
+public:
+    /*! \brief Construct a new HypData in-place with the given Number value. HypData must be uninitialized memory. */
+    static void ConstructNumber(HypData* ptr, const Number& number);
 
-    Script_Value(const Script_Value& other);
-    Script_Value(Script_Value&& other) noexcept;
+    /*! \brief Construct a new HypData in-place with the given Script_VMData value. HypData must be uninitialized memory. */
+    static void ConstructVMData(HypData* ptr, const Script_VMData& vmData);
 
-    Script_Value& operator=(const Script_Value& other);
-    Script_Value& operator=(Script_Value&& other) noexcept;
+    static Script_VMData* GetVMData(HypData& data);
+    static const Script_VMData* GetVMData(const HypData& data);
 
-    ~Script_Value();
+    static bool IsGarbage(const HypData& data);
 
-    HYP_FORCE_INLINE HypData* GetHypData()
-    {
-        return reinterpret_cast<HypData*>(m_internal);
-    }
+    static bool IsFunction(const HypData& data);
+    static bool IsNativeFunction(const HypData& data);
 
-    HYP_FORCE_INLINE const HypData* GetHypData() const
-    {
-        return reinterpret_cast<const HypData*>(m_internal);
-    }
+    static bool IsRef(const HypData& data);
+    static HypData* GetRef(const HypData& data);
 
-    Script_VMData* GetVMData();
-    const Script_VMData* GetVMData() const;
+    static HypData* Deref(HypData& data);
+    static const HypData* Deref(const HypData& data);
 
-    bool IsValid() const;
-    bool IsGarbage() const;
+    static void AssignValue(HypData& data, HypData&& other, bool assignRef);
 
-    bool IsFunction() const;
-    bool IsNativeFunction() const;
+    static bool GetUnsigned(const HypData& data, uint64* out);
+    static bool GetInteger(const HypData& data, int64* out);
+    static bool GetSignedOrUnsigned(const HypData& data, Number* out);
 
-    bool IsRef() const;
-    Script_Value* GetRef() const;
+    static bool GetFloatingPoint(const HypData& data, double* out);
+    static bool GetFloatingPointCoerce(const HypData& data, double* out);
 
-    Script_Value* Deref();
-    const Script_Value* Deref() const;
+    static bool GetNumber(const HypData& data, double* out);
+    static bool GetNumber(const HypData& data, Number* out);
 
-    void AssignValue(Script_Value&& other, bool assignRef);
+    static NumericType GetNumericType(const HypData& data);
 
-    bool GetUnsigned(uint64* out) const;
-    bool GetInteger(int64* out) const;
-    bool GetSignedOrUnsigned(Number* out) const;
+    static bool GetBoolean(const HypData& data, bool* out);
 
-    bool GetFloatingPoint(double* out) const;
-    bool GetFloatingPointCoerce(double* out) const;
+    static bool GetString(const HypData& data, const Script_String** out);
 
-    bool GetNumber(double* out) const;
-    bool GetNumber(Number* out) const;
+    static const AnyHandle& GetObject(const HypData& data);
 
-    NumericType GetNumericType() const;
+    static int CompareAsPointers(const HypData& lhs, const HypData& rhs);
+    static int CompareAsFunctions(const HypData& lhs, const HypData& rhs);
+    static int CompareAsNativeFunctions(const HypData& lhs, const HypData& rhs);
 
-    bool GetBoolean(bool* out) const;
-
-    bool GetString(const Script_String** out) const;
-
-    const AnyHandle& GetObject() const;
-
-    AnyRef ToRef() const;
-
-    Script_UserData GetUserData() const;
-
-    static int CompareAsPointers(Script_Value* lhs, Script_Value* rhs);
-    static int CompareAsFunctions(Script_Value* lhs, Script_Value* rhs);
-    static int CompareAsNativeFunctions(Script_Value* lhs, Script_Value* rhs);
-
-    HYP_FORCE_INLINE bool operator==(const Script_Value& other) const
-    {
-        return CompareAsPointers(const_cast<Script_Value*>(this), const_cast<Script_Value*>(&other)) & CF_EQUAL;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const Script_Value& other) const
-    {
-        return !(*this == other);
-    }
-
-    void Mark();
-
-    const char* GetTypeString() const;
-    String ToString() const;
+    static const char* GetTypeString(const HypData& data);
+    static String ToString(const HypData& data);
 };
 
 } // namespace hyperion

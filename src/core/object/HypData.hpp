@@ -88,6 +88,9 @@ struct HypDataArray;
 
 #ifdef HYP_SCRIPT
 enum class GCIndex : uint32;
+
+static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
+static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex(~0u);
 #endif
 
 /*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
@@ -220,7 +223,15 @@ struct HypData
         return *this;
     }
 
-    ~HypData() = default;
+    ~HypData()
+    {
+#ifdef HYP_DEBUG_MODE
+#ifdef HYP_SCRIPT
+        HYP_CORE_ASSERT(extData.scriptGcIndex == INVALID_GC_INDEX, "HypData being destroyed while still registered with the GC (index = %u)", uint32(extData.scriptGcIndex));
+        extData.scriptGcIndex = GARBAGE_GC_INDEX;
+#endif
+#endif
+    }
 
     HYP_FORCE_INLINE bool IsValid() const
     {
