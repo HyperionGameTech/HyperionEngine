@@ -21,10 +21,10 @@ void Script_GC::MoveToTrackedMemory(HypData& inOutRefValue)
     Assert(inOutRefValue.extData.scriptGcIndex == INVALID_GC_INDEX);
     Assert(!IsRef(inOutRefValue));
 
-    HypData* ptr = (HypData*)m_pool.Allocate(sizeof(HypData), alignof(HypData));
+    HypData* ptr = PoolAlloc<HypData>(m_pool);
     uint32 gcIndex = m_idGenerator.Next(); // starts at 1
 
-    *ptr = std::move(inOutRefValue);
+    new (ptr) HypData(std::move(inOutRefValue));
     ptr->extData.scriptGcIndex = GCIndex(gcIndex);
 
     // set `inOutRefValue` to be a reference to the tracked value

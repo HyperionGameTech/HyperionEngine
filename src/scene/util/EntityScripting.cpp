@@ -302,8 +302,6 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                         })
                     .Show();
 
-                HYP_BREAKPOINT_DEBUG_MODE;
-
                 return;
             }
 

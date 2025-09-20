@@ -296,7 +296,7 @@ bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue,
         return false;
     }
 
-    const AnyHandle& object = GetObject(targetValue);
+    const AnyHandle& object = ScriptApi_GetObject(targetValue);
 
     if (!object)
     {
@@ -358,7 +358,7 @@ bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&&
         return false;
     }
 
-    const AnyHandle& object = GetObject(targetValue);
+    const AnyHandle& object = ScriptApi_GetObject(targetValue);
 
     if (!object)
     {

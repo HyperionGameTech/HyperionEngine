@@ -328,11 +328,11 @@ FBOMResult FBOMReader::LoadFromFile(FBOMLoadContext& context, const String& path
     if (!readPath.Exists())
     {
         readPath = FilePath::Join(FilePath::Current(), m_config.basePath, FilePath(path).Basename());
-    }
 
-    if (!readPath.Exists())
-    {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("File does not exist: {}", readPath) };
+        if (!readPath.Exists())
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("File does not exist: {}", readPath) };
+        }
     }
 
     if (readPath.FileSize() == 0)
@@ -341,6 +341,12 @@ FBOMResult FBOMReader::LoadFromFile(FBOMLoadContext& context, const String& path
     }
 
     FileBufferedReaderSource source { readPath };
+
+    if (!source.IsOK())
+    {
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to open file: {}", readPath) };
+    }
+
     BufferedReader reader { &source };
 
     HYP_CORE_ASSERT(!reader.Eof());
@@ -361,11 +367,11 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, FBOMObject& out)
     if (!readPath.Exists())
     {
         readPath = FilePath::Join(FilePath::Current(), m_config.basePath, FilePath(path).Basename());
-    }
 
-    if (!readPath.Exists())
-    {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("File does not exist: {}", readPath) };
+        if (!readPath.Exists())
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("File does not exist: {}", readPath) };
+        }
     }
 
     if (readPath.FileSize() == 0)
@@ -374,8 +380,13 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, FBOMObject& out)
     }
 
     FileBufferedReaderSource source { readPath };
-    BufferedReader reader { &source };
 
+    if (!source.IsOK())
+    {
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to open file: {}", readPath) };
+    }
+
+    BufferedReader reader { &source };
     HYP_CORE_ASSERT(!reader.Eof());
 
     FBOMLoadContext context;

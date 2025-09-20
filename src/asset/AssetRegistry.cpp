@@ -66,12 +66,12 @@ void AssetDataResourceBase::Initialize()
     BufferedReader stream;
 
     HYP_DEFER({
-        stream.Close();
-
         if (stream.GetSource() != nullptr)
         {
             delete stream.GetSource();
         }
+
+        stream.Close();
     });
 
     if (Result openStreamResult = assetObject->OpenReadStream(stream); openStreamResult.HasError())
@@ -113,9 +113,6 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
     AssetObject* assetObject = m_assetObject.GetUnsafe();
     Assert(assetObject != nullptr);
 
-    FileByteWriter byteWriter { path };
-    HYP_DEFER({ byteWriter.Close(); });
-
     FBOMWriter writer { FBOMWriterConfig {} };
 
     FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetTypeId());
@@ -142,6 +139,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
     writer.Append(std::move(object));
 
+    FileByteWriter byteWriter { path };
     if (FBOMResult err = writer.Emit(&byteWriter))
     {
         return HYP_MAKE_ERROR(Error, "Failed to write asset to disk");

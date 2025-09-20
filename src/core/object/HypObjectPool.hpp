@@ -290,7 +290,7 @@ public:
         Mutex::Guard guard(m_mutex);
 
         // we align the object internal to the header, so only need to align the header itself
-        HypObjectHeader* header = (HypObjectHeader*)m_pool.Allocate(allocationSize, alignof(HypObjectHeader));
+        HypObjectHeader* header = (HypObjectHeader*)m_pool.Alloc(allocationSize, alignof(HypObjectHeader));
         header->index = m_idGenerator.Next() - 1;
         header->hypClass = m_hypClass;
         header->refCountStrong = 0;

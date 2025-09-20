@@ -34,30 +34,22 @@ public:
         RC<dotnet::Class> classPtr = managedAssembly->FindClassByName("ScriptTracker");
         Assert(classPtr != nullptr, "Failed to load ScriptTracker class from HyperionScripting assembly");
 
-        m_object = UniquePtr<dotnet::Object>(classPtr->NewObject());
-        m_assembly = std::move(managedAssembly);
-    }
-
-    HYP_FORCE_INLINE dotnet::Object* GetObject() const
-    {
-        return m_object.Get();
+        object = UniquePtr<dotnet::Object>(classPtr->NewObject());
+        assembly = std::move(managedAssembly);
     }
 
     void InvokeUpdate()
     {
-        if (!m_object)
+        if (!object || !object->IsValid())
         {
             return;
         }
 
-        Assert(m_object != nullptr && m_object->IsValid(), "Cannot call InvokeUpdate(), ScriptTracker is not properly initialized");
-
-        m_object->InvokeMethodByName<void>("Update");
+        object->InvokeMethodByName<void>("Update");
     }
 
-private:
-    RC<dotnet::Assembly> m_assembly;
-    UniquePtr<dotnet::Object> m_object;
+    RC<dotnet::Assembly> assembly;
+    UniquePtr<dotnet::Object> object;
 };
 
 #pragma endregion ScriptTracker
@@ -103,7 +95,7 @@ public:
 protected:
     virtual void operator()() override
     {
-        if (!m_scriptTracker->GetObject())
+        if (!m_scriptTracker->object)
         {
             return;
         }
@@ -111,7 +103,7 @@ protected:
         {
             HYP_NAMED_SCOPE("Scripting service: Initialize");
 
-            m_scriptTracker->GetObject()->InvokeMethodByName<void>(
+            m_scriptTracker->object->InvokeMethodByName<void>(
                 "Initialize",
                 m_watchDirectory,
                 m_intermediateDirectory,

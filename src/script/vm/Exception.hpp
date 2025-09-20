@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-class HypData;
+struct HypData;
 
 class Script_Exception
 {

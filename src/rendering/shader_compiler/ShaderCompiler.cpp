@@ -2108,13 +2108,6 @@ bool ShaderCompiler::CompileBundle(
 
                 if (!filepath.Exists())
                 {
-                    // file does not exist!
-                    HYP_LOG(
-                        ShaderCompiler,
-                        Error,
-                        "Shader source file does not exist at {}",
-                        filepath);
-
                     processErrors[index] = {
                         ProcessError { "Shader source file does not exist" }
                     };
@@ -2127,15 +2120,8 @@ bool ShaderCompiler::CompileBundle(
 
                 if (!reader.IsOpen())
                 {
-                    // could not open file!
-                    HYP_LOG(
-                        ShaderCompiler,
-                        Error,
-                        "Failed to open shader source file at {}",
-                        filepath);
-
                     processErrors[index] = {
-                        ProcessError { "Failed to open source file" }
+                        ProcessError { HYP_FORMAT("Failed to open shader source file: {}", std::strerror(errno)) }
                     };
 
                     return;
@@ -2150,11 +2136,7 @@ bool ShaderCompiler::CompileBundle(
 
                 if (result.errors.Any())
                 {
-                    HYP_LOG(
-                        ShaderCompiler,
-                        Error,
-                        "{} shader processing errors:",
-                        result.errors.Size());
+                    HYP_LOG(ShaderCompiler, Error, "{} shader processing errors!", result.errors.Size());
 
                     processErrors[index] = result.errors;
 

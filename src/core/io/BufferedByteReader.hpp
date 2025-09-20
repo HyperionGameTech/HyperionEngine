@@ -34,24 +34,24 @@ class FileBufferedReaderSource : public BufferedReaderSource
 {
 public:
     /*! \brief Takes ownership of the file pointer to use for reading */
-    FileBufferedReaderSource(FILE* file, int (*closeFunc)(FILE*) = nullptr)
+    explicit FileBufferedReaderSource(FILE* file, int (*closeFunc)(FILE*) = nullptr)
         : m_size(0),
           m_file(file),
           m_closeFunc(closeFunc)
     {
         if (m_file)
         {
-            fseek(m_file, 0, SEEK_END);
+            std::fseek(m_file, 0, SEEK_END);
 
-            m_size = ftell(m_file);
+            m_size = std::ftell(m_file);
 
-            fseek(m_file, 0, SEEK_SET);
+            std::fseek(m_file, 0, SEEK_SET);
         }
     }
 
     /*! \brief Opens the file at the given path for reading */
-    FileBufferedReaderSource(const FilePath& filepath)
-        : FileBufferedReaderSource(fopen(filepath.Data(), "rb"), nullptr)
+    explicit FileBufferedReaderSource(const FilePath& filepath)
+        : FileBufferedReaderSource(std::fopen(filepath.Data(), "rb"), nullptr)
     {
     }
 
@@ -65,14 +65,14 @@ public:
             }
             else
             {
-                fclose(m_file);
+                std::fclose(m_file);
             }
         }
     }
 
     virtual bool IsOK() const override
     {
-        return m_file != nullptr && !feof(m_file);
+        return m_file != nullptr && !std::feof(m_file);
     }
 
     virtual SizeType Size() const override
@@ -87,8 +87,8 @@ public:
             return 0;
         }
 
-        fseek(m_file, long(offset), SEEK_SET);
-        return fread(ptr, 1, count, m_file);
+        std::fseek(m_file, long(offset), SEEK_SET);
+        return std::fread(ptr, 1, count, m_file);
     }
 
 private:

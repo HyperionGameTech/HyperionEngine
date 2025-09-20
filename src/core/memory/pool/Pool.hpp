@@ -242,15 +242,62 @@ public:
     Pool& operator=(Pool&&) = delete;
     ~Pool();
 
-    void* Allocate(SizeType size, SizeType alignment = alignof(std::max_align_t));
+    HYP_NODISCARD void* Alloc(SizeType size, SizeType alignment = alignof(std::max_align_t));
+
+    template <class T>
+    HYP_FORCE_INLINE HYP_NODISCARD T* Alloc()
+    {
+        return reinterpret_cast<T*>(Alloc(sizeof(T), alignof(T)));
+    }
+
     void Free(void* ptr);
 
 protected:
     LinkedList<Block> m_blocks;
 };
 
+template <class T>
+static inline HYP_NODISCARD T* PoolAlloc(Pool& pool)
+{
+    return pool.Alloc<T>();
+}
+
+static inline void PoolFree(Pool& pool, void* ptr)
+{
+    pool.Free(ptr);
+}
+
+template <class T, class... Args>
+static inline HYP_NODISCARD T* PoolNew(Pool& pool, Args&&... args)
+{
+    T* ptr = pool.Alloc<T>();
+
+    if (HYP_UNLIKELY(!ptr))
+    {
+        HYP_CORE_ASSERT(0, "Pool allocation failed!");
+    }
+
+    Memory::Construct<T>(ptr, std::forward<Args>(args)...);
+
+    return ptr;
+}
+
+template <class T>
+static inline void PoolDelete(Pool& pool, T* ptr)
+{
+    if (HYP_LIKELY(ptr))
+    {
+        ptr->~T();
+        pool.Free(ptr);
+    }
+}
+
 } // namespace memory
 
 using memory::Pool;
+using memory::PoolAlloc;
+using memory::PoolFree;
+using memory::PoolNew;
+using memory::PoolDelete;
 
 } // namespace hyperion

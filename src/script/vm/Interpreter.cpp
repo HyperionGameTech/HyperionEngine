@@ -523,6 +523,16 @@ static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions
 };
 // clang-format on
 
+static inline Script_VMData* GetVMData(HypData& data)
+{
+    return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+}
+
+static inline const Script_VMData* GetVMData(const HypData& data)
+{
+    return reinterpret_cast<const Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
+}
+
 template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<HypData, NormalizedType<T>>>>
 static inline HypData ScriptApi_MakeValue(T&& data)
 {
@@ -1419,7 +1429,7 @@ public:
 
         const HypClass* hypClass = nullptr;
 
-        if (const AnyHandle& object = GetObject(src))
+        if (const AnyHandle& object = ScriptApi_GetObject(src))
         {
             hypClass = object.ptr->InstanceClass();
         }
@@ -1445,7 +1455,7 @@ public:
 
         const HypClass* hypClass = nullptr;
 
-        if (const AnyHandle& object = GetObject(*pValue))
+        if (const AnyHandle& object = ScriptApi_GetObject(*pValue))
         {
             hypClass = object.ptr->InstanceClass();
         }
@@ -1479,7 +1489,7 @@ public:
 
         const HypClass* hypClass = nullptr;
 
-        if (const AnyHandle& object = GetObject(src))
+        if (const AnyHandle& object = ScriptApi_GetObject(src))
         {
             // instance member access
             hypClass = object.ptr->InstanceClass();
@@ -2873,7 +2883,7 @@ public:
 
         const HypClass* hypClass = nullptr;
 
-        if (const AnyHandle& object = GetObject(value))
+        if (const AnyHandle& object = ScriptApi_GetObject(value))
         {
             hypClass = object.ptr->InstanceClass();
         }

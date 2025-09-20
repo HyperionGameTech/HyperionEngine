@@ -5,7 +5,7 @@ namespace memory {
 
 Pool::~Pool() = default;
 
-void* Pool::Allocate(SizeType size, SizeType alignment)
+HYP_NODISCARD void* Pool::Alloc(SizeType size, SizeType alignment)
 {
     for (auto& block : m_blocks)
     {
@@ -31,11 +31,6 @@ void* Pool::Allocate(SizeType size, SizeType alignment)
 
 void Pool::Free(void* ptr)
 {
-    if (ptr == nullptr)
-    {
-        return;
-    }
-
     // Fast path: read header to find owner
     using AllocHeader = Block::AllocHeader;
     AllocHeader* hdr = reinterpret_cast<AllocHeader*>(reinterpret_cast<ubyte*>(ptr) - sizeof(AllocHeader));
