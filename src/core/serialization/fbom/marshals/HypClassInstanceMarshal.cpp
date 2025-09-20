@@ -8,6 +8,7 @@
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
 #include <core/object/HypMethod.hpp>
+#include <core/object/HypObjectBase.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -29,12 +30,22 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     if (!hypClass)
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", in.GetTypeId().Value()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", LookupTypeName(in.GetTypeId())) };
     }
+
+    if (!hypClass->IsClassType())
+    {
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has associated HypClass '{}' which is not a class type", LookupTypeName(in.GetTypeId()), hypClass->GetName()) };
+    }
+
+    const HypClass* instanceClass = static_cast<const HypObjectBase*>(in.GetPointer())->InstanceClass();
+    Assert(instanceClass != nullptr);
+
+    hypClass = instanceClass;
 
     if (!hypClass->CanSerialize())
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", in.GetTypeId().Value()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", LookupTypeName(in.GetTypeId())) };
     }
 
     const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute("serialize");

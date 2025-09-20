@@ -218,7 +218,7 @@ void HyperionEditor::Init()
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
 
-#if 0
+#if 1
     // if (const Handle<WorldGrid>& worldGrid = GetWorld()->GetWorldGrid())
     // {
     //     worldGrid->AddLayer(CreateObject<TerrainWorldGridLayer>());
