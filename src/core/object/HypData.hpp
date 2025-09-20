@@ -72,6 +72,18 @@ struct HypDataGetReturnTypeHelper
     using Type = decltype(std::declval<HypDataHelper<T>>().Get(*std::declval<std::add_pointer_t<std::conditional_t<IsConst, std::add_const_t<T>, T>>>()));
 };
 
+template <>
+struct HypDataGetReturnTypeHelper<HypData, false>
+{
+    using Type = HypData&;
+};
+
+template <>
+struct HypDataGetReturnTypeHelper<HypData, true>
+{
+    using Type = const HypData&;
+};
+
 using HypDataSerializeFunction = FBOMResult (*)(const HypData& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags);
 
 extern HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeId);
@@ -323,7 +335,7 @@ struct HypData
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto Get() -> std::conditional_t<std::is_same_v<T, HypData>, HypData&, typename HypDataGetReturnTypeHelper<T, false>::Type>
+    HYP_FORCE_INLINE auto Get() -> typename HypDataGetReturnTypeHelper<T, false>::Type
     {
         HYP_SCOPE;
 
@@ -349,7 +361,7 @@ struct HypData
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto Get() const -> std::conditional_t<std::is_same_v<T, HypData>, const HypData&, typename HypDataGetReturnTypeHelper<T, true>::Type>
+    HYP_FORCE_INLINE auto Get() const -> typename HypDataGetReturnTypeHelper<T, true>::Type
     {
         HYP_SCOPE;
 
@@ -510,208 +522,34 @@ struct HypDataArray
     }
 
     template <class T, class AllocatorType>
-    explicit HypDataArray(const Array<T, AllocatorType>& arr)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<Array<T, AllocatorType>>(arr), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<Array<T, AllocatorType>>::Serialize(array.internalArray.Get<Array<T, AllocatorType>>(), outData, flags);
-        };
-        functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-        {
-            auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
-        };
-        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-        {
-            auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-            return AnyRef(arr[index]);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<Array<T, AllocatorType>>().Size();
-        };
-    }
+    explicit HypDataArray(const Array<T, AllocatorType>& arr);
 
     template <class T, class AllocatorType>
-    explicit HypDataArray(Array<T, AllocatorType>&& arr)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<Array<T, AllocatorType>>(std::move(arr)), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<Array<T, AllocatorType>>::Serialize(array.internalArray.Get<Array<T, AllocatorType>>(), outData, flags);
-        };
-        functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-        {
-            auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
-        };
-        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-        {
-            auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-            return AnyRef(arr[index]);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<Array<T, AllocatorType>>().Size();
-        };
-    }
+    explicit HypDataArray(Array<T, AllocatorType>&& arr);
 
     template <class T, SizeType Sz>
-    explicit HypDataArray(const FixedArray<T, Sz>& arr)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<FixedArray<T, Sz>>(arr), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
-        };
-        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-        {
-            auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
-            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-            return AnyRef(arr[index]);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<FixedArray<T, Sz>>().Size();
-        };
-    }
+    explicit HypDataArray(const FixedArray<T, Sz>& arr);
 
     template <class T, SizeType Sz>
-    explicit HypDataArray(FixedArray<T, Sz>&& arr)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<FixedArray<T, Sz>>(std::move(arr)), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
-        };
-        functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-        {
-            auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
-            HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-            return AnyRef(arr[index]);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<FixedArray<T, Sz>>().Size();
-        };
-    }
+    explicit HypDataArray(FixedArray<T, Sz>&& arr);
 
     template <class T, auto KeyByFunction, class AllocatorType>
-    explicit HypDataArray(const HashSet<T, KeyByFunction, AllocatorType>& set)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<HashSet<T, KeyByFunction, AllocatorType>>(set), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>(), outData, flags);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>().Size();
-        };
-    }
+    explicit HypDataArray(const HashSet<T, KeyByFunction, AllocatorType>& set);
 
     template <class T, auto KeyByFunction, class AllocatorType>
-    explicit HypDataArray(HashSet<T, KeyByFunction, AllocatorType>&& set)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<HashSet<T, KeyByFunction, AllocatorType>>(std::move(set)), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>(), outData, flags);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>().Size();
-        };
-    }
+    explicit HypDataArray(HashSet<T, KeyByFunction, AllocatorType>&& set);
 
     template <class K, class V, class AllocatorType>
-    explicit HypDataArray(const HashMap<K, V, AllocatorType>& map)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<HashMap<K, V, AllocatorType>>(map), TypeId::ForType<KeyValuePair<K, V>>();
-        elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(array.internalArray.Get<HashMap<K, V, AllocatorType>>(), outData, flags);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<HashMap<K, V, AllocatorType>>().Size();
-        };
-    }
+    explicit HypDataArray(const HashMap<K, V, AllocatorType>& map);
 
     template <class K, class V, class AllocatorType>
-    explicit HypDataArray(HashMap<K, V, AllocatorType>&& map)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<HashMap<K, V, AllocatorType>>(std::move(map)), TypeId::ForType<KeyValuePair<K, V>>();
-        elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(array.internalArray.Get<HashMap<K, V, AllocatorType>>(), outData, flags);
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<HashMap<K, V, AllocatorType>>().Size();
-        };
-    }
+    explicit HypDataArray(HashMap<K, V, AllocatorType>&& map);
 
     template <class T>
-    explicit HypDataArray(const LinkedList<T>& list)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<LinkedList<T>>(list), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<LinkedList<T>>::Serialize(array.internalArray.Get<LinkedList<T>>(), outData, flags);
-        };
-        functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-        {
-            auto& list = array.internalArray.Get<LinkedList<T>>();
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<LinkedList<T>>().Size();
-        };
-    }
+    explicit HypDataArray(const LinkedList<T>& list);
 
     template <class T>
-    explicit HypDataArray(LinkedList<T>&& list)
-        : HypDataArray()
-    {
-        internalArray = Any::Construct<LinkedList<T>>(std::move(list)), TypeId::ForType<T>();
-        elementTypeId = TypeId::ForType<T>();
-        serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-        {
-            return HypDataHelper<LinkedList<T>>::Serialize(array.internalArray.Get<LinkedList<T>>(), outData, flags);
-        };
-        functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-        {
-            auto& list = array.internalArray.Get<LinkedList<T>>();
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
-        };
-        functionTable.size = [](const HypDataArray& array) -> SizeType
-        {
-            return array.internalArray.Get<LinkedList<T>>().Size();
-        };
-    }
+    explicit HypDataArray(LinkedList<T>&& list);
 
     HYP_FORCE_INLINE bool IsValid() const
     {
@@ -1904,6 +1742,7 @@ struct HypDataHelper<HypDataArray> : HypDataHelper<Any>
         HYP_SCOPE;
 
         HypDataArray::SerializeFunction serializeFunction = value.serializeFunction;
+
         if (!serializeFunction)
         {
             return { FBOMResult::FBOM_ERR, "Cannot serialize HypDataArray without a serialize function!" };
@@ -2274,7 +2113,8 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
+            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
 
             return FBOMResult::FBOM_OK;
         }
@@ -2284,9 +2124,19 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
         for (SizeType i = 0; i < size; i++)
         {
-            if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i]))
+            if constexpr (isHypData<T>)
             {
-                return err;
+                if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
+            }
+            else
+            {
+                if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
             }
         }
 
@@ -2381,7 +2231,8 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
         if (Size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
+            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
 
             return FBOMResult::FBOM_OK;
         }
@@ -2391,9 +2242,19 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
         for (SizeType i = 0; i < Size; i++)
         {
-            if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i]))
+            if constexpr (isHypData<T>)
             {
-                return err;
+                if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
+            }
+            else
+            {
+                if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
             }
         }
 
@@ -2480,7 +2341,8 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         if (Size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
+            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
 
             return FBOMResult::FBOM_OK;
         }
@@ -2490,9 +2352,20 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 
         for (SizeType i = 0; i < Size; i++)
         {
-            if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i]))
+
+            if constexpr (isHypData<T>)
             {
-                return err;
+                if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
+            }
+            else
+            {
+                if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
             }
         }
 
@@ -2574,12 +2447,12 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
         FBOMData firstData;
         FBOMData secondData;
 
-        if (FBOMResult err = HypDataHelper<K>::Serialize(value.first, firstData))
+        if (FBOMResult err = HypDataHelper<K>::Serialize(value.first, firstData, FBOMDataFlags::NONE))
         {
             return err;
         }
 
-        if (FBOMResult err = HypDataHelper<V>::Serialize(value.second, secondData))
+        if (FBOMResult err = HypDataHelper<V>::Serialize(value.second, secondData, FBOMDataFlags::NONE))
         {
             return err;
         }
@@ -2677,7 +2550,8 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<Pair<K, V>>::Get()));
+            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
+            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<Pair<K, V>>::Get()));
 
             return FBOMResult::FBOM_OK;
         }
@@ -2789,7 +2663,8 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<ValueType>::Get()));
+            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
+            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<ValueType>::Get()));
 
             return FBOMResult::FBOM_OK;
         }
@@ -2803,7 +2678,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if (FBOMResult err = HypDataHelper<ValueType>::Serialize(value, element))
+            if (FBOMResult err = HypDataHelper<ValueType>::Serialize(value, element, FBOMDataFlags::NONE))
             {
                 return err;
             }
@@ -2901,7 +2776,8 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
+            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
 
             return FBOMResult::FBOM_OK;
         }
@@ -2915,9 +2791,19 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if (FBOMResult err = HypDataHelper<T>::Serialize(value, element))
+            if constexpr (isHypData<T>)
             {
-                return err;
+                if (FBOMResult err = value.Serialize(element, FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
+            }
+            else
+            {
+                if (FBOMResult err = HypDataHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
+                {
+                    return err;
+                }
             }
         }
 
@@ -3511,7 +3397,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
     }
 };
 
-#if 0
+#if 1
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !implementationExists<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
 {
@@ -3677,6 +3563,246 @@ struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleFrom...>>
 
 #pragma endregion HypDataTypeChecker implementation
 
+#pragma region HypDataArray template constructor implementations
+
+template <class T, class AllocatorType>
+HypDataArray::HypDataArray(const Array<T, AllocatorType>& arr)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<Array<T, AllocatorType>>(arr), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<Array<T, AllocatorType>>::Serialize(array.internalArray.Get<Array<T, AllocatorType>>(), outData, flags);
+    };
+    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
+    {
+        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
+
+        if constexpr (isHypData<T>)
+        {
+            return AnyRef(arr.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
+        }
+    };
+    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    {
+        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
+        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+        return AnyRef(arr[index]);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<Array<T, AllocatorType>>().Size();
+    };
+}
+
+template <class T, class AllocatorType>
+HypDataArray::HypDataArray(Array<T, AllocatorType>&& arr)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<Array<T, AllocatorType>>(std::move(arr)), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<Array<T, AllocatorType>>::Serialize(array.internalArray.Get<Array<T, AllocatorType>>(), outData, flags);
+    };
+    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
+    {
+        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
+
+        if constexpr (isHypData<T>)
+        {
+            return AnyRef(arr.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
+        }
+    };
+    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    {
+        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
+        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+        return AnyRef(arr[index]);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<Array<T, AllocatorType>>().Size();
+    };
+}
+
+template <class T, SizeType Sz>
+HypDataArray::HypDataArray(const FixedArray<T, Sz>& arr)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<FixedArray<T, Sz>>(arr), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
+    };
+    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    {
+        auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
+        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+        return AnyRef(arr[index]);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<FixedArray<T, Sz>>().Size();
+    };
+}
+
+template <class T, SizeType Sz>
+HypDataArray::HypDataArray(FixedArray<T, Sz>&& arr)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<FixedArray<T, Sz>>(std::move(arr)), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
+    };
+    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    {
+        auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
+        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
+        return AnyRef(arr[index]);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<FixedArray<T, Sz>>().Size();
+    };
+}
+
+template <class T, auto KeyByFunction, class AllocatorType>
+HypDataArray::HypDataArray(const HashSet<T, KeyByFunction, AllocatorType>& set)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<HashSet<T, KeyByFunction, AllocatorType>>(set), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>(), outData, flags);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>().Size();
+    };
+}
+
+template <class T, auto KeyByFunction, class AllocatorType>
+HypDataArray::HypDataArray(HashSet<T, KeyByFunction, AllocatorType>&& set)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<HashSet<T, KeyByFunction, AllocatorType>>(std::move(set)), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>(), outData, flags);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>().Size();
+    };
+}
+
+template <class K, class V, class AllocatorType>
+HypDataArray::HypDataArray(const HashMap<K, V, AllocatorType>& map)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<HashMap<K, V, AllocatorType>>(map), TypeId::ForType<KeyValuePair<K, V>>();
+    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(array.internalArray.Get<HashMap<K, V, AllocatorType>>(), outData, flags);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<HashMap<K, V, AllocatorType>>().Size();
+    };
+}
+
+template <class K, class V, class AllocatorType>
+HypDataArray::HypDataArray(HashMap<K, V, AllocatorType>&& map)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<HashMap<K, V, AllocatorType>>(std::move(map)), TypeId::ForType<KeyValuePair<K, V>>();
+    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(array.internalArray.Get<HashMap<K, V, AllocatorType>>(), outData, flags);
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<HashMap<K, V, AllocatorType>>().Size();
+    };
+}
+
+template <class T>
+HypDataArray::HypDataArray(const LinkedList<T>& list)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<LinkedList<T>>(list), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<LinkedList<T>>::Serialize(array.internalArray.Get<LinkedList<T>>(), outData, flags);
+    };
+    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
+    {
+        auto& list = array.internalArray.Get<LinkedList<T>>();
+
+        if constexpr (isHypData<T>)
+        {
+            return AnyRef(list.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(list.PushBack(std::move(value.Get<T>())));
+        }
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<LinkedList<T>>().Size();
+    };
+}
+
+template <class T>
+HypDataArray::HypDataArray(LinkedList<T>&& list)
+    : HypDataArray()
+{
+    internalArray = Any::Construct<LinkedList<T>>(std::move(list)), TypeId::ForType<T>();
+    elementTypeId = TypeId::ForType<T>();
+    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        return HypDataHelper<LinkedList<T>>::Serialize(array.internalArray.Get<LinkedList<T>>(), outData, flags);
+    };
+    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
+    {
+        auto& list = array.internalArray.Get<LinkedList<T>>();
+
+        if constexpr (isHypData<T>)
+        {
+            return AnyRef(list.PushBack(std::move(value)));
+        }
+        else
+        {
+            return AnyRef(list.PushBack(std::move(value.Get<T>())));
+        }
+    };
+    functionTable.size = [](const HypDataArray& array) -> SizeType
+    {
+        return array.internalArray.Get<LinkedList<T>>().Size();
+    };
+}
+
+#pragma endregion HypDataArray template constructor implementations
+
 #pragma region Helpers
 
 template <class T>
@@ -3695,7 +3821,7 @@ struct HypDataPlaceholderSerializedType
 
             if (FBOMResult err = HypDataHelper<T>::Serialize(T {}, placeholderData))
             {
-                HYP_FAIL("Failed to serialize placeholder data for type %s: %s", TypeName<T>().Data(), *err.message);
+                HYP_FAIL("Failed to serialize placeholder data for type %s: %s", TypeNameHelper<T>::value.Data(), *err.message);
             }
 
             s_placeholderType = placeholderData.GetType();

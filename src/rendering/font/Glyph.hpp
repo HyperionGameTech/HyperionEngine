@@ -7,6 +7,9 @@
 #include <core/utilities/Result.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/RefCountedPtr.hpp>
+
+#include <core/math/Vector2.hpp>
 
 #include <util/img/Bitmap.hpp>
 
@@ -29,7 +32,7 @@ struct GlyphImageData
     HYP_API UniquePtr<GlyphBitmap> CreateBitmap() const;
 };
 
-class Glyph
+class HYP_API Glyph
 {
 public:
     struct Metrics
@@ -43,7 +46,7 @@ public:
         Vec2i imagePosition;
     };
 
-    HYP_API Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale);
+    Glyph(RC<FontFace> face, FontFace::GlyphIndex index, float scale);
 
     Glyph(const Glyph& other) = default;
     Glyph& operator=(const Glyph& other) = default;
@@ -62,11 +65,11 @@ public:
         return m_glyphImageData;
     }
 
-    HYP_API void LoadMetrics();
-    HYP_API TResult<UniquePtr<GlyphBitmap>> Rasterize();
+    void LoadMetrics();
+    TResult<UniquePtr<GlyphBitmap>> Rasterize();
 
-    HYP_API Vec2i GetMax();
-    HYP_API Vec2i GetMin();
+    Vec2i GetMax();
+    Vec2i GetMin();
 
 private:
     RC<FontFace> m_face;

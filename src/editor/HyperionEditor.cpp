@@ -199,7 +199,7 @@ void HyperionEditor::Init()
 
                 if (lastReturn.IsValid())
                 {
-                    HYP_LOG(Editor, Debug, "Last value : {}", lastReturn.ToString().Data());
+                    HYP_LOG(Editor, Debug, "Last value : {}", ToString(lastReturn).Data());
                 }
             }
             else

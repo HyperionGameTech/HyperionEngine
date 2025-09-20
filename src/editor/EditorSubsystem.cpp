@@ -1181,16 +1181,30 @@ void EditorSubsystem::OnAddedToWorld()
             })
         .Detach();
 
-    NewProject();
-
-    // auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "UntitledProject9");
-
-    // if (!result)
+    // NewProject();
+    // // save project (test)
+    // if (m_currentProject)
     // {
-    //     HYP_BREAKPOINT;
+    //     m_currentProject->SetName(NAME("TempProjectTest"));
+
+    //     auto result = m_currentProject->Save();
+    //     if (!result)
+    //     {
+    //         HYP_LOG(Editor, Error, "Failed to save new project: {}", *result.GetError().GetMessage());
+    //         HYP_BREAKPOINT;
+    //     }
     // }
 
-    // OpenProject(*result);
+    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "TempProjectTest");
+
+    if (!result)
+    {
+        HYP_LOG(Editor, Error, "Failed to load project: {}", result.GetError().GetMessage());
+
+        HYP_BREAKPOINT;
+    }
+
+    OpenProject(*result);
 
     if (!dotnet::DotNetSystem::GetInstance().IsEnabled())
     {
@@ -2600,6 +2614,8 @@ void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& pac
 
     Assert(package.IsValid());
 
+    HYP_LOG(Editor, Debug, "Adding package to content browser: {}", package->GetName());
+
     if (package->IsHidden())
     {
         return;
@@ -2818,7 +2834,6 @@ void EditorSubsystem::NewProject()
 void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_gameThread);
 
     if (project == m_currentProject)
@@ -2837,17 +2852,19 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     if (project)
     {
-        m_currentProject = project;
-
         if (project.IsValid())
         {
             project->SetEditorSubsystem(WeakHandleFromThis());
         }
 
-        if (Result saveResult = project->Save(); saveResult.HasError())
-        {
-            HYP_LOG(Editor, Error, "Failed to save newly created project: {}", saveResult.GetError().GetMessage());
-        }
+        InitObject(project);
+
+        m_currentProject = project;
+
+        // if (Result saveResult = project->Save(); saveResult.HasError())
+        // {
+        //     HYP_LOG(Editor, Error, "Failed to save newly created project: {}", saveResult.GetError().GetMessage());
+        // }
 
         OnProjectOpened(m_currentProject);
 

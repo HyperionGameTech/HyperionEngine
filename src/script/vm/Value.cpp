@@ -48,78 +48,6 @@ static inline ValueStorage<HypData> MakeGarbageValue()
 
 static const ValueStorage<HypData> s_uninitializedValue = MakeGarbageValue();
 
-void ConstructNumber(HypData* ptr, Number number)
-{
-    AssertDebug(ptr != nullptr);
-
-    if (number.flags & Number::FLAG_FLOATING_POINT)
-    {
-        if (number.flags & Number::FLAG_32_BIT)
-        {
-            new (ptr) HypData(static_cast<float>(number.f));
-        }
-        else // if (number.flags & Number::FLAG_64_BIT)
-        {
-            new (ptr) HypData(number.f);
-        }
-    }
-    else if (number.flags & Number::FLAG_SIGNED)
-    {
-        if (number.flags & Number::FLAG_8_BIT)
-        {
-            new (ptr) HypData(static_cast<int8>(number.i));
-        }
-        else if (number.flags & Number::FLAG_16_BIT)
-        {
-            new (ptr) HypData(static_cast<int16>(number.i));
-        }
-        else if (number.flags & Number::FLAG_32_BIT)
-        {
-            new (ptr) HypData(static_cast<int32>(number.i));
-        }
-        else // if (number.flags & Number::FLAG_64_BIT)
-        {
-            new (ptr) HypData(number.i);
-        }
-    }
-    else if (number.flags & Number::FLAG_UNSIGNED)
-    {
-        if (number.flags & Number::FLAG_8_BIT)
-        {
-            new (ptr) HypData(static_cast<uint8>(number.u));
-        }
-        else if (number.flags & Number::FLAG_16_BIT)
-        {
-            new (ptr) HypData(static_cast<uint16>(number.u));
-        }
-        else if (number.flags & Number::FLAG_32_BIT)
-        {
-            new (ptr) HypData(static_cast<uint32>(number.u));
-        }
-        else // if (number.flags & Number::FLAG_64_BIT)
-        {
-            new (ptr) HypData(number.u);
-        }
-    }
-    else
-    {
-        HYP_UNREACHABLE();
-    }
-}
-
-void ConstructVMData(HypData* ptr, const Script_VMData& vmData)
-{
-    AssertDebug(ptr != nullptr);
-
-    static_assert(sizeof(Script_VMData) == sizeof(HypData_UserData128));
-    static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128));
-
-    HypData_UserData128 userData;
-    Memory::MemCpy(&userData, &vmData, sizeof(Script_VMData));
-
-    new (ptr) HypData(userData);
-}
-
 Script_VMData* GetVMData(HypData& data)
 {
     return reinterpret_cast<Script_VMData*>(data.TryGet<HypData_UserData128>().TryGet());
@@ -219,9 +147,13 @@ void AssignValue(HypData& data, HypData&& other, bool assignRef)
 
     if (assignRef && (ref = Deref(data)) != nullptr)
     {
-        ref->~HypData();
+        GCIndex prevGcIndex = ref->extData.scriptGcIndex;
+        ref->extData.scriptGcIndex = INVALID_GC_INDEX;
 
+        ref->~HypData();
         new (ref) HypData(std::move(other));
+
+        ref->extData.scriptGcIndex = prevGcIndex;
     }
     else
     {

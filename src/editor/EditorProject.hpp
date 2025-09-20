@@ -38,9 +38,12 @@ public:
     friend class EditorSubsystem;
 
     EditorProject();
-    EditorProject(Name name);
+
+    explicit EditorProject(Name name);
+    
     EditorProject(const EditorProject& other) = delete;
     EditorProject& operator=(const EditorProject& other) = delete;
+
     virtual ~EditorProject() override;
 
     HYP_FORCE_INLINE const WeakHandle<EditorSubsystem>& GetEditorSubsystem() const
@@ -48,51 +51,31 @@ public:
         return m_editorSubsystem;
     }
 
-    HYP_METHOD(Property = "Uuid", Serialize = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
     }
 
-    /*! \internal For serialization only. */
-    HYP_METHOD(Property = "Uuid", Serialize = true)
-    HYP_FORCE_INLINE void SetUUID(const Uuid& uuid)
-    {
-        m_uuid = uuid;
-    }
-
-    HYP_METHOD(Property = "Name", Serialize = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
     }
 
-    HYP_METHOD(Property = "Name", Serialize = true)
+    HYP_METHOD()
     void SetName(Name name);
 
-    HYP_METHOD(Property = "LastSavedTime", Serialize = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE Time GetLastSavedTime() const
     {
         return m_lastSavedTime;
     }
 
-    /*! \internal For serialization only. */
-    HYP_METHOD(Property = "LastSavedTime", Serialize = true)
-    HYP_FORCE_INLINE void SetLastSavedTime(Time lastSavedTime)
-    {
-        m_lastSavedTime = lastSavedTime;
-    }
-
-    HYP_METHOD(Property = "FilePath", Serialize = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE const FilePath& GetFilePath() const
     {
         return m_filepath;
-    }
-
-    HYP_METHOD(Property = "FilePath", Serialize = true)
-    HYP_FORCE_INLINE void SetFilePath(const FilePath& filepath)
-    {
-        m_filepath = filepath;
     }
 
     HYP_METHOD(Property = "Scenes")
@@ -162,20 +145,25 @@ private:
 
     Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
 
+    HYP_FIELD(Property = "UUID", Serialize)
     Uuid m_uuid;
 
+    HYP_FIELD(Property = "Name", Serialize)
     Name m_name;
 
+    HYP_FIELD(Property = "LastSavedTime", Serialize)
     Time m_lastSavedTime;
 
+    HYP_FIELD(Property = "FilePath", Serialize)
     FilePath m_filepath;
 
-    HYP_FIELD(Property = "Scenes", Serialize = true)
+    HYP_FIELD(Property = "Scenes", Serialize)
     Array<Handle<Scene>> m_scenes;
 
-    HYP_FIELD(Property = "Package", Serialize = true)
+    HYP_FIELD(Property = "Package")
     Handle<AssetPackage> m_package;
 
+    HYP_FIELD()
     Handle<EditorActionStack> m_actionStack;
 
     WeakHandle<EditorSubsystem> m_editorSubsystem;

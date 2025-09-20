@@ -13,14 +13,31 @@ namespace hyperion {
 // clang-format off
 HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
     HypMethod(NAME("Size"), &Type::Size),
-    HypMethod(NAME("PushBack"), static_cast<HypData& (Script_Array::*)(const HypData&)>(&Script_Array::PushBack)),
-    HypMethod(NAME("PopBack"), static_cast<HypData (Script_Array::*)()>(&Script_Array::PopBack)),
+    HypMethod(NAME("PushBack"), +[](Script_Array& array, const HypData& arg) -> AnyRef
+        {
+            return AnyRef(array.PushBack(arg));
+        }),
+    HypMethod(NAME("PopBack"), +[](Script_Array& array) -> HypData
+        {
+            // tets
+            using Foo = decltype(std::declval<HypData>().Get<HypData>());
+            Assert(!array.Empty());
+            return array.PopBack();
+        }),
     HypMethod(NAME("Clear"), &Script_Array::Clear),
     HypMethod(NAME("Resize"), &Script_Array::Resize),
     HypMethod(NAME("Reserve"), &Script_Array::Reserve),
     HypMethod(NAME("Empty"), &Script_Array::Empty),
-    HypMethod(NAME("Front"), static_cast<HypData& (Script_Array::*)()>(&Script_Array::Front)),
-    HypMethod(NAME("Back"), static_cast<HypData& (Script_Array::*)()>(&Script_Array::Back))
+    HypMethod(NAME("Front"), +[](Script_Array& array) -> AnyRef
+        {
+            Assert(!array.Empty());
+            return AnyRef(array.Front());
+        }),
+    HypMethod(NAME("Back"), +[](Script_Array& array) -> AnyRef
+        {
+            Assert(!array.Empty());
+            return AnyRef(array.Back());
+        })
 HYP_END_STRUCT
 // clang-format on
 

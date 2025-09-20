@@ -22,13 +22,17 @@ namespace serialization {
 class HYP_API FBOMArray final : public FBOMSerializableBase
 {
 public:
-    FBOMArray(const FBOMType& elementType);
+    explicit FBOMArray(const FBOMType& elementType);
+
     FBOMArray(const FBOMType& elementType, const Array<FBOMData>& values);
     FBOMArray(const FBOMType& elementType, Array<FBOMData>&& values);
+
     FBOMArray(const FBOMArray& other);
     FBOMArray& operator=(const FBOMArray& other);
+
     FBOMArray(FBOMArray&& other) noexcept;
     FBOMArray& operator=(FBOMArray&& other) noexcept;
+
     virtual ~FBOMArray() override;
 
     HYP_FORCE_INLINE const FBOMType& GetElementType() const

@@ -299,6 +299,49 @@ enum AssetPackageFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
 
+class AssetPackageValidationError final : public Error
+{
+public:
+    enum ErrorCode : int
+    {
+        UNKNOWN = -1,
+        ERR_CYCLIC_DEPENDENCY
+    };
+
+    AssetPackageValidationError()
+        : Error(),
+          m_errorCode(UNKNOWN)
+    {
+    }
+
+    template <auto MessageString>
+    AssetPackageValidationError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, ErrorCode errorCode)
+        : Error(currentFunction, ValueWrapper<MessageString>()),
+          m_errorCode(errorCode)
+    {
+    }
+
+    template <auto MessageString, class... Args>
+    AssetPackageValidationError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, Args&&... args)
+        : Error(currentFunction, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
+          m_errorCode(UNKNOWN)
+    {
+    }
+
+    virtual ~AssetPackageValidationError() override = default;
+
+    HYP_FORCE_INLINE ErrorCode GetErrorCode() const
+    {
+        return m_errorCode;
+    }
+
+private:
+    ErrorCode m_errorCode;
+};
+
+using AssetPackageValidationResult = TResult<void, AssetPackageValidationError>;
+
+
 HYP_CLASS()
 class HYP_API AssetPackage final : public HypObjectBase
 {
@@ -441,6 +484,14 @@ public:
     Result AddAssetObject(const Handle<AssetObject>& assetObject);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
+    /*! \brief Merges the contents of another package into this one.
+    *  Transfers ownership of all asset objects and subpackages from the source package
+    *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
+    *  After successful merge, the source package will be empty.
+    *  \param sourcePackage The package to merge into this one.
+    *  \return Result indicating success or failure of the merge operation. */
+    Result MergePackage(const Handle<AssetPackage>& sourcePackage);
+
     HYP_METHOD()
     String BuildPackagePath() const;
 
@@ -467,6 +518,8 @@ private:
     Result SaveManifest(ByteWriter& stream) const;
 
     Name GetUniqueAssetName_Internal(Name baseName) const;
+
+    Result MergePackage_Internal(const Handle<AssetPackage>& sourcePackage, uint32 depth);
 
     HYP_FIELD(Serialize = true)
     Uuid m_uuid;
@@ -525,6 +578,14 @@ public:
 
     /*! \internal Serialization only */
     void SetPackages(const AssetPackageSet& packages);
+
+    /*! \brief Adds a package to the registry. If a package with the same name already exists and `mergeIfExists` is false,
+     *  this will fail and return false.
+     *  If `mergeIfExists` is true, the contents of the given package will be merged into the existing package.
+     *  \param package The package to add. This reference will be updated to point to the package in the registry.
+     *  \param mergeIfExists If true, and a package with the same name already exists, the contents of the given package will be merged into the existing package.
+     *  \return True if the package was added, false otherwise. */
+    bool AddPackage(Handle<AssetPackage>& package, bool mergeIfExists = false);
 
     template <class Callback>
     void ForEachPackage(Callback&& callback) const

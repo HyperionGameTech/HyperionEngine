@@ -536,12 +536,75 @@ HypData ScriptApi_MakeValue(HypData&& data)
 
 HypData ScriptApi_MakeValue(const Script_VMData& data)
 {
-    return HypData(data);
+    static_assert(sizeof(Script_VMData) <= sizeof(HypData_UserData128), "Script_VMData must fit inside HypData_UserData128");
+    static_assert(alignof(Script_VMData) <= alignof(HypData_UserData128), "Script_VMData must have alignment less than or equal to HypData_UserData128");
+
+    HypData_UserData128 ud;
+    Memory::MemCpy(&ud, &data, sizeof(Script_VMData));
+
+    return HypData(ud);
 }
 
 HypData ScriptApi_MakeValue(const Number& number)
 {
-    return HypData(number);
+    ValueStorage<HypData> resultStorage;
+    HypData* ptr = resultStorage.GetPointer();
+
+    if (number.flags & Number::FLAG_FLOATING_POINT)
+    {
+        if (number.flags & Number::FLAG_32_BIT)
+        {
+            new (ptr) HypData(static_cast<float>(number.f));
+        }
+        else // if (number.flags & Number::FLAG_64_BIT)
+        {
+            new (ptr) HypData(number.f);
+        }
+    }
+    else if (number.flags & Number::FLAG_SIGNED)
+    {
+        if (number.flags & Number::FLAG_8_BIT)
+        {
+            new (ptr) HypData(static_cast<int8>(number.i));
+        }
+        else if (number.flags & Number::FLAG_16_BIT)
+        {
+            new (ptr) HypData(static_cast<int16>(number.i));
+        }
+        else if (number.flags & Number::FLAG_32_BIT)
+        {
+            new (ptr) HypData(static_cast<int32>(number.i));
+        }
+        else // if (number.flags & Number::FLAG_64_BIT)
+        {
+            new (ptr) HypData(number.i);
+        }
+    }
+    else if (number.flags & Number::FLAG_UNSIGNED)
+    {
+        if (number.flags & Number::FLAG_8_BIT)
+        {
+            new (ptr) HypData(static_cast<uint8>(number.u));
+        }
+        else if (number.flags & Number::FLAG_16_BIT)
+        {
+            new (ptr) HypData(static_cast<uint16>(number.u));
+        }
+        else if (number.flags & Number::FLAG_32_BIT)
+        {
+            new (ptr) HypData(static_cast<uint32>(number.u));
+        }
+        else // if (number.flags & Number::FLAG_64_BIT)
+        {
+            new (ptr) HypData(number.u);
+        }
+    }
+    else
+    {
+        HYP_UNREACHABLE();
+    }
+
+    return reinterpret_cast<HypData&&>(*ptr);
 }
 
 /*! \brief Use for loading into registers - does not promote to tracked memory so the lifetime of `refValue` must be managed by the caller */
@@ -556,7 +619,7 @@ HypData ScriptApi_MakeRef(HypData* pValue)
     Assert(vmData.valueRef != nullptr);
     Assert(!IsGarbage(*vmData.valueRef), "Creating a reference to garbage value");
 
-    return HypData(vmData);
+    return ScriptApi_MakeValue(vmData);
 }
 
 HypData ScriptApi_MakeTrackedRef(HypData* pValue, Script_GC* gc)
@@ -578,7 +641,6 @@ HypData ScriptApi_MakeTrackedRef(HypData* pValue, Script_GC* gc)
 }
 
 #define PASS_AS_REF(value) ((value).Is<Any>())
-#define PASS_AS_REF_DATA(data) ((data).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
 HypData ScriptApi_ShallowCopy(HypData& refValue, Script_GC* gc)
@@ -755,7 +817,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
     constexpr int maxArrayDepth = 2;
 
-    if (const HypDataArray* pArray = data.TryGet<HypDataArray>().TryGet())
+    if (HypDataArray* pArray = data.TryGet<HypDataArray>().TryGet())
     {
         if (pArray->CanGetElementByIndex())
         {
@@ -1422,13 +1484,13 @@ public:
             // instance member access
             hypClass = object.ptr->InstanceClass();
         }
-        else if (const HypClassRef* classRef = src.TryGet<HypClassRef>().TryGet())
+        else if (HypClassRef* classRef = src.TryGet<HypClassRef>().TryGet())
         {
             // static member access on class reference
             hypClass = *classRef;
         }
         // temp special case for arrays
-        else if (const HypDataArray* array = src.TryGet<HypDataArray>().TryGet())
+        else if (HypDataArray* array = src.TryGet<HypDataArray>().TryGet())
         {
             hypClass = GetClass(TypeId::ForType<Script_Array>());
         }

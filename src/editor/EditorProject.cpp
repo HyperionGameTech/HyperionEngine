@@ -58,6 +58,11 @@ void EditorProject::Init()
         }
     }
 
+    if (m_package)
+    {
+        InitObject(m_package);
+    }
+
     InitObject(m_actionStack);
 
     for (const Handle<Scene>& scene : m_scenes)
@@ -111,6 +116,11 @@ Result EditorProject::CreatePackage()
 
     Handle<AssetPackage> rootPackage = assetRegistry->GetPackageFromPath(*packageName, true);
     Assert(rootPackage.IsValid());
+
+    if (IsInitCalled())
+    {
+        InitObject(rootPackage);
+    }
 
     m_package = rootPackage;
 
@@ -262,6 +272,10 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 {
     HYP_SCOPE;
 
+    // registry to load assets into
+    const Handle<AssetRegistry> registry = g_assetManager->GetAssetRegistry();
+    Assert(registry.IsValid());
+
     FilePath directory;
     FilePath projectFilepath;
 
@@ -298,16 +312,16 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     FBOMObject projectObject;
     FBOMReader reader({});
 
-    if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject))
+    if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
     {
-        return HYP_MAKE_ERROR(Error, "Failed to load project");
+        return HYP_MAKE_ERROR(Error, "Failed to read project data: {}", err.message);
     }
 
     Optional<const Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
 
     if (!projectOpt)
     {
-        return HYP_MAKE_ERROR(Error, "Failed to get project");
+        return HYP_MAKE_ERROR(Error, "Internal error: Deserialized object is not an EditorProject");
     }
 
     Handle<EditorProject> project = *projectOpt;
@@ -322,12 +336,11 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     Proc<TResult<Handle<AssetPackage>>(const FilePath& directory)> initializePackage;
 
-    initializePackage = [&initializePackage](const FilePath& directory) -> TResult<Handle<AssetPackage>>
+    initializePackage = [&initializePackage, &registry](const FilePath& directory) -> TResult<Handle<AssetPackage>>
     {
         HYP_NAMED_SCOPE_FMT("Initialize package %s", *directory);
 
         Handle<AssetPackage> package = CreateObject<AssetPackage>();
-
         package->SetName(CreateNameFromDynamicString(directory.Basename()));
 
         AssetPackageSet subpackages;
@@ -347,6 +360,11 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         // @TODO Load assets from files in directory
 
         package->SetSubpackages(std::move(subpackages));
+
+        registry->AddPackage(package, /* mergeIfExists */ true);
+
+        Assert(package.IsValid());
+        Assert(package->GetRegistry() == registry);
 
         return package;
     };

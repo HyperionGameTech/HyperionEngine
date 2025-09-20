@@ -11,6 +11,7 @@
 #include <core/functional/Delegate.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/Span.hpp>
 

@@ -256,7 +256,7 @@ public:
     UIDataSourceBase& operator=(UIDataSourceBase&& other) noexcept = delete;
     virtual ~UIDataSourceBase() = default;
 
-    virtual void Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid = Uuid::Invalid()) = 0;
+    virtual Result Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid = Uuid::Invalid()) = 0;
     virtual const UIDataSourceElement* Get(const Uuid& uuid) const = 0;
     virtual void Set(const Uuid& uuid, HypData&& value) = 0;
     virtual void ForceUpdate(const Uuid& uuid) = 0;
@@ -296,6 +296,8 @@ public:
 protected:
     TypeMap<Handle<UIElementFactoryBase>> m_elementFactories;
 };
+
+HYP_DISABLE_OPTIMIZATION;
 
 HYP_CLASS()
 class HYP_API UIDataSource : public UIDataSourceBase
@@ -341,11 +343,11 @@ public:
     UIDataSource& operator=(UIDataSource&& other) noexcept = delete;
     virtual ~UIDataSource() override = default;
 
-    virtual void Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid) override
+    virtual Result Push(const Uuid& uuid, HypData&& value, const Uuid& parentUuid) override
     {
         if (value.IsNull())
         {
-            return;
+            return HYP_MAKE_ERROR(Error, "Cannot add null value to data source");
         }
 
         auto it = m_values.FindIf([&uuid](const auto& item)
@@ -355,7 +357,7 @@ public:
 
         if (it != m_values.End())
         {
-            HYP_FAIL("Element with Uuid {} already exists in the data source", uuid);
+            return HYP_MAKE_ERROR(Error, "Element with Uuid {} already exists in the data source", uuid.ToString());
         }
 
         typename Forest<UIDataSourceElement>::ConstIterator parentIt = m_values.End();
@@ -374,6 +376,8 @@ public:
 
         OnElementAdd(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);
+
+        return {};
     }
 
     virtual const UIDataSourceElement* Get(const Uuid& uuid) const override
@@ -592,6 +596,7 @@ private:
     Proc<Handle<UIObject>(UIObject*, const HypData&, const HypData&)> m_createUiObjectProc;
     Proc<void(UIObject*, const HypData&, const HypData&)> m_updateUiObjectProc;
 };
+HYP_ENABLE_OPTIMIZATION;
 
 struct HYP_API UIElementFactoryRegistrationBase
 {

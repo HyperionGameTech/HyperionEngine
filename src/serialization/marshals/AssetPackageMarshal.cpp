@@ -56,6 +56,7 @@ public:
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Handle<AssetPackage> assetPackageHandle = CreateObject<AssetPackage>();
+        HYP_BREAKPOINT;
 
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetPackage::Class(), AnyRef(*assetPackageHandle)))
         {

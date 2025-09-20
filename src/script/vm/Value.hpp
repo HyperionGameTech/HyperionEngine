@@ -185,12 +185,6 @@ struct alignas(8) Script_VMData
 
 enum class GCIndex : uint32;
 
-/*! \brief Construct a new HypData in-place with the given Number value. HypData must be uninitialized memory. */
-void ConstructNumber(HypData* ptr, const Number& number);
-
-/*! \brief Construct a new HypData in-place with the given Script_VMData value. HypData must be uninitialized memory. */
-void ConstructVMData(HypData* ptr, const Script_VMData& vmData);
-
 Script_VMData* GetVMData(HypData& data);
 const Script_VMData* GetVMData(const HypData& data);
 
