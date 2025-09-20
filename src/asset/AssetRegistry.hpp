@@ -519,8 +519,6 @@ private:
 
     Name GetUniqueAssetName_Internal(Name baseName) const;
 
-    Result MergePackage_Internal(const Handle<AssetPackage>& sourcePackage, uint32 depth);
-
     HYP_FIELD(Serialize = true)
     Uuid m_uuid;
 
@@ -580,12 +578,12 @@ public:
     void SetPackages(const AssetPackageSet& packages);
 
     /*! \brief Adds a package to the registry. If a package with the same name already exists and `mergeIfExists` is false,
-     *  this will fail and return false.
+     *  this will fail and return error.
      *  If `mergeIfExists` is true, the contents of the given package will be merged into the existing package.
      *  \param package The package to add. This reference will be updated to point to the package in the registry.
      *  \param mergeIfExists If true, and a package with the same name already exists, the contents of the given package will be merged into the existing package.
-     *  \return True if the package was added, false otherwise. */
-    bool AddPackage(Handle<AssetPackage>& package, bool mergeIfExists = false);
+     *  \return Result indicating success or failure of the operation. */
+    Result AddPackage(Handle<AssetPackage>& package, bool mergeIfExists = false);
 
     template <class Callback>
     void ForEachPackage(Callback&& callback) const
