@@ -1181,23 +1181,23 @@ void EditorSubsystem::OnAddedToWorld()
             })
         .Detach();
 
-#if 1
+#if 0
     NewProject();
-    // save project (test)
-    if (m_currentProject)
-    {
-        m_currentProject->SetName(NAME("TempProjectTest"));
+    //// save project (test)
+    //if (m_currentProject)
+    //{
+    //    m_currentProject->SetName(NAME("TempProjectTest"));
 
-        auto result = m_currentProject->Save();
-        if (!result)
-        {
-            HYP_LOG(Editor, Error, "Failed to save new project: {}", *result.GetError().GetMessage());
-            HYP_BREAKPOINT;
-        }
-    }
+    //    auto result = m_currentProject->Save();
+    //    if (!result)
+    //    {
+    //        HYP_LOG(Editor, Error, "Failed to save new project: {}", *result.GetError().GetMessage());
+    //        HYP_BREAKPOINT;
+    //    }
+    //}
 #else
 
-    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "TempProjectTest");
+    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "NewProj");
 
     if (!result)
     {

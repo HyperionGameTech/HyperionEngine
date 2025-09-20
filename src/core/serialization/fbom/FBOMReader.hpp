@@ -55,11 +55,14 @@ class FBOMLoadContext;
 class FBOMReader
 {
 public:
-    FBOMReader(const FBOMReaderConfig& config);
+    explicit FBOMReader(const FBOMReaderConfig& config);
+
     FBOMReader(const FBOMReader& other) = delete;
     FBOMReader& operator=(const FBOMReader& other) = delete;
+
     FBOMReader(FBOMReader&& other) noexcept = delete;
     FBOMReader& operator=(FBOMReader&& other) noexcept = delete;
+
     ~FBOMReader();
 
     HYP_FORCE_INLINE const FBOMReaderConfig& GetConfig() const

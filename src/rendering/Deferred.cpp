@@ -1744,6 +1744,15 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         counts[ERS_LIGHTS] += rpl.GetLights().NumCurrent();
         counts[ERS_ENV_GRIDS] += rpl.GetEnvGrids().NumCurrent();
         counts[ERS_ENV_PROBES] += rpl.GetEnvProbes().NumCurrent();
+
+        HYP_LOG(Rendering, Debug, "View '{}' used {} textures, {} materials, {} lightmap volumes, {} lights, {} env grids and {} env probes.",
+            view->Id(),
+            rpl.GetTextures().NumCurrent(),
+            rpl.GetMaterials().NumCurrent(),
+            rpl.GetLightmapVolumes().NumCurrent(),
+            rpl.GetLights().NumCurrent(),
+            rpl.GetEnvGrids().NumCurrent(),
+            rpl.GetEnvProbes().NumCurrent());
 #endif
     }
 

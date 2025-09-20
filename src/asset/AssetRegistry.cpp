@@ -231,7 +231,8 @@ Result AssetObject::Rename(Name name)
         return {};
     }
 
-    if (Handle<AssetPackage> package = GetPackage())
+    Handle<AssetPackage> package = GetPackage();
+    if (package.IsValid())
     {
         Handle<AssetObject> strongThis = HandleFromThis();
 
@@ -733,9 +734,100 @@ Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
     return {};
 }
 
-Result AssetPackage::MergePackage(const Handle<AssetPackage>& sourcePackage)
+Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
 {
-    HYP_NOT_IMPLEMENTED();
+    if (!package.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Package is invalid");
+    }
+
+    HashSet<Name> currentAssetNames;
+    ForEachAssetObject([&](const Handle<AssetObject>& asset)
+        {
+            currentAssetNames.Insert(asset->GetName());
+
+            return IterationResult::CONTINUE;
+        });
+
+    Array<Handle<AssetObject>> assets;
+    package->ForEachAssetObject([&](const Handle<AssetObject>& asset)
+        {
+            assets.PushBack(asset);
+
+            return IterationResult::CONTINUE;
+        });
+
+    // Remove assets from the package and add them to the new package - renaming if necessary to avoid name clashes
+    for (const Handle<AssetObject>& asset : assets)
+    {
+        if (!asset.IsValid())
+        {
+            continue;
+        }
+
+        Name desiredName = asset->GetName();
+
+        // check if name is already taken in destination package
+        if (currentAssetNames.Contains(desiredName))
+        {
+            Name uniqueName = GetUniqueAssetName(desiredName);
+
+            if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
+            {
+                HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
+
+                continue;
+            }
+        }
+
+        if (Result removeResult = package->RemoveAssetObject(asset); removeResult.HasError())
+        {
+            HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), package->GetName(), removeResult.GetError().GetMessage());
+
+            continue;
+        }
+
+        if (Result addResult = AddAssetObject(asset); addResult.HasError())
+        {
+            HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), GetName(), addResult.GetError().GetMessage());
+        }
+    }
+
+    Handle<AssetPackage> strongThis = MakeStrongRef(this);
+
+    // needed for GetPackageFromPath() / GetSubpackage().
+    // @TODO: Refactor to call these methods on AssetPackage directly?
+    Handle<AssetRegistry> registry = m_registry.Lock();
+    Assert(registry != nullptr);
+
+    Optional<Error> mergeError;
+
+    package->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
+        {
+            if (!sub)
+            {
+                return IterationResult::CONTINUE;
+            }
+
+            Handle<AssetPackage> dest = registry->GetSubpackage(strongThis, sub->GetName(), /* createIfNotExist */ true);
+            Assert(dest != nullptr);
+
+            if (Result mergeResult = dest->MergePackage(sub); mergeResult.HasError())
+            {
+                mergeError = mergeResult.GetError();
+
+                return IterationResult::STOP;
+            }
+
+            return IterationResult::CONTINUE;
+        });
+
+    if (mergeError.HasValue())
+    {
+        return *mergeError;
+    }
+
+    return {};
 }
 
 String AssetPackage::BuildPackagePath() const
@@ -776,6 +868,17 @@ AssetPath AssetPackage::BuildAssetPath(Name assetName) const
     assetPath.SetChain(chain);
 
     return assetPath;
+}
+
+bool AssetPackage::HasAssetWithName(Name assetName) const
+{
+    if (!assetName.IsValid())
+    {
+        return false;
+    }
+
+    Mutex::Guard guard(m_mutex);
+    return m_assetObjects.Contains(assetName);
 }
 
 Name AssetPackage::GetUniqueAssetName(Name baseName) const
@@ -1142,7 +1245,182 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
 {
     HYP_SCOPE;
 
-    HYP_NOT_IMPLEMENTED();
+    if (!package.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Package is invalid");
+    }
+
+    const String fullPath = package->BuildPackagePath();
+    Handle<AssetPackage> existing = GetPackageFromPath(fullPath, /* createIfNotExist */ false);
+
+    if (existing.IsValid())
+    {
+        if (!mergeIfExists)
+        {
+            return HYP_MAKE_ERROR(Error, "Package with path '{}' already exists", fullPath);
+        }
+
+        /// TODO: Refactor to use `MergePackage` when AssetRegistry is not needed for `GetSubpackage()`
+        Proc<void(const Handle<AssetPackage>&, const Handle<AssetPackage>&)> mergeInto;
+
+        mergeInto = [this, &mergeInto](const Handle<AssetPackage>& dest, const Handle<AssetPackage>& src)
+        {
+            if (!dest.IsValid() || !src.IsValid())
+            {
+                return;
+            }
+
+            HashSet<Name> destAssetNames;
+            dest->ForEachAssetObject([&](const Handle<AssetObject>& asset)
+            {
+                destAssetNames.Insert(asset->GetName());
+
+                return IterationResult::CONTINUE;
+            });
+
+            // Move asset objects
+            Array<Handle<AssetObject>> assets;
+            src->ForEachAssetObject([&](const Handle<AssetObject>& asset)
+            {
+                assets.PushBack(asset);
+
+                return IterationResult::CONTINUE;
+            });
+
+            for (const Handle<AssetObject>& asset : assets)
+            {
+                if (!asset.IsValid())
+                {
+                    continue;
+                }
+
+                Name desiredName = asset->GetName();
+
+                // check if name is already taken in destination package
+                if (destAssetNames.Contains(desiredName))
+                {
+                    Name uniqueName = dest->GetUniqueAssetName(desiredName);
+
+                    if (Result renameResult = asset->Rename(uniqueName) ; renameResult.HasError())
+                    {
+                        HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
+
+                        continue;
+                    }
+                }
+
+                if (Result removeResult = src->RemoveAssetObject(asset); removeResult.HasError())
+                {
+                    HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), src->GetName(), removeResult.GetError().GetMessage());
+
+                    continue;
+                }
+
+                // Add to destination
+                Result addResult = dest->AddAssetObject(asset);
+                if (addResult.HasError())
+                {
+                    HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), dest->GetName(), addResult.GetError().GetMessage());
+                }
+            }
+
+            Array<Handle<AssetPackage>> subpackages;
+            src->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
+            {
+                subpackages.PushBack(sub);
+
+                return IterationResult::CONTINUE;
+            });
+
+            for (const Handle<AssetPackage>& sub : subpackages)
+            {
+                if (!sub)
+                {
+                    continue;
+                }
+
+                Handle<AssetPackage> dest = GetSubpackage(dest, sub->GetName(), /* createIfNotExist */ true);
+                Assert(dest != nullptr);
+
+                mergeInto(dest, sub);
+            }
+        };
+
+        mergeInto(existing, package);
+
+        // update reference
+        package = existing;
+
+        return {};
+    }
+
+    Handle<AssetPackage> newParentPackage;
+    if (Handle<AssetPackage> prevParentPackage = package->GetParentPackage().Lock(); prevParentPackage != nullptr)
+    {
+        const String parentPackagePath = prevParentPackage->BuildPackagePath();
+
+        newParentPackage = GetPackageFromPath(parentPackagePath, /* createIfNotExist */ true);
+        Assert(newParentPackage != nullptr);
+    }
+
+    // to call OnPackageAdded with
+    Array<Handle<AssetPackage>> addedPackages;
+
+    Proc<void(Handle<AssetPackage>)> initializePackage;
+    initializePackage = [this, &initializePackage, &addedPackages](const Handle<AssetPackage>& pkg)
+    {
+        Assert(pkg != nullptr);
+
+        pkg->m_registry = WeakHandleFromThis();
+
+        if (IsInitCalled())
+        {
+            addedPackages.PushBack(pkg);
+        }
+
+        for (const Handle<AssetPackage>& sub : pkg->m_subpackages)
+        {
+            sub->m_parentPackage = pkg;
+            sub->m_flags |= pkg->m_flags;
+
+            initializePackage(sub);
+        }
+    };
+
+    initializePackage(package);
+
+    if (newParentPackage != nullptr)
+    {
+        Mutex::Guard guard(newParentPackage->m_mutex);
+
+        package->m_parentPackage = newParentPackage;
+        package->m_flags |= newParentPackage->m_flags;
+
+        if (newParentPackage->IsInitCalled())
+        {
+            newParentPackage->OnSubpackageAdded(package);
+        }
+
+        newParentPackage->m_subpackages.Insert(package);
+    }
+    else // top-level package
+    {
+        Mutex::Guard guard(m_mutex);
+
+        m_packages.Insert(package);
+    }
+
+    if (IsInitCalled())
+    {
+        for (const Handle<AssetPackage>& pkg : addedPackages)
+        {
+            InitObject(pkg);
+
+            OnPackageAdded(pkg);
+        }
+    }
+
+    return {};
 }
 
 Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)

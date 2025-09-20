@@ -310,7 +310,12 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     }
 
     FBOMObject projectObject;
-    FBOMReader reader({});
+
+    FBOMReader reader {
+        FBOMReaderConfig {
+            .basePath = directory
+        }
+    };
 
     if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
     {
@@ -361,29 +366,30 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
         package->SetSubpackages(std::move(subpackages));
 
-        registry->AddPackage(package, /* mergeIfExists */ true);
-
-        Assert(package.IsValid());
-        Assert(package->GetRegistry() == registry);
-
         return package;
     };
 
-    AssetPackageSet packages;
+    Handle<AssetPackage> rootPackage;
 
-    for (const FilePath& subdirectory : directory.GetSubdirectories())
+    if (TResult<Handle<AssetPackage>> packageResult = initializePackage(filepath / *project->GetName()))
     {
-        TResult<Handle<AssetPackage>> packageResult = initializePackage(subdirectory);
-
         if (packageResult.HasError())
         {
             return packageResult.GetError();
         }
 
-        packages.Insert(std::move(packageResult.GetValue()));
+        rootPackage = std::move(packageResult.GetValue());
     }
 
-    project->m_package->SetSubpackages(std::move(packages));
+    if (Result mergeResult = project->m_package->MergePackage(rootPackage); mergeResult.HasError())
+    {
+        return mergeResult.GetError();
+    }
+
+    if (Result addPackageResult = registry->AddPackage(project->m_package, /* mergeIfExists */ true); addPackageResult.HasError())
+    {
+        return addPackageResult.GetError();
+    }
 
     return project;
 }

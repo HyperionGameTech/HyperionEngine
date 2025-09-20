@@ -211,13 +211,14 @@ void HyperionEditor::Init()
         }
     }
 
-    HYP_BREAKPOINT;
+    //HYP_BREAKPOINT;
 #endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
 
+#if 0
     // if (const Handle<WorldGrid>& worldGrid = GetWorld()->GetWorldGrid())
     // {
     //     worldGrid->AddLayer(CreateObject<TerrainWorldGridLayer>());
@@ -391,10 +392,19 @@ void HyperionEditor::Init()
                 {
                     HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
                 }
+
+
+                
+                // test
+                const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
+                project->SetName(NAME("NewProj"));
+                Result saveResult = project->Save();
+                Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
             })
         .Detach();
 
     batch->LoadAsync();
+#endif
 #endif
 }
 

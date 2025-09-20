@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <core/containers/FlatMap.hpp>
-
 #include <core/utilities/Uuid.hpp>
 
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
@@ -16,35 +14,29 @@ class JSONValue;
 
 namespace serialization {
 
-class IFBOMConfig
+template <class Derived>
+struct FBOMConfig
 {
-public:
-    virtual ~IFBOMConfig() = default;
-
-    virtual void SaveToJSON(json::JSONValue& outJson) const = 0;
-    virtual bool LoadFromJSON(const json::JSONValue& json) = 0;
 };
 
-struct FBOMWriterConfig : public IFBOMConfig
+// @TODO Convert these structs to use Configuration system (see core/config/Config.hpp)
+
+struct FBOMWriterConfig : public FBOMConfig<FBOMWriterConfig>
 {
-    bool enableStaticData = true;
-    bool compressStaticData = true;
+    bool enableStaticData : 1 = true;
+    bool compressStaticData : 1 = true;
 
-    virtual ~FBOMWriterConfig() override = default;
-
-    virtual void SaveToJSON(json::JSONValue& outJson) const override;
-    virtual bool LoadFromJSON(const json::JSONValue& json) override;
+    void SaveToJSON(json::JSONValue& outJson) const;
+    bool LoadFromJSON(const json::JSONValue& json);
 };
 
-struct FBOMReaderConfig : public IFBOMConfig
+struct FBOMReaderConfig : public FBOMConfig<FBOMReaderConfig>
 {
-    bool continueOnExternalLoadError = false;
     String basePath;
+    bool continueOnExternalLoadError : 1 = false;
 
-    virtual ~FBOMReaderConfig() override = default;
-
-    virtual void SaveToJSON(json::JSONValue& outJson) const override;
-    virtual bool LoadFromJSON(const json::JSONValue& json) override;
+    void SaveToJSON(json::JSONValue& outJson) const;
+    bool LoadFromJSON(const json::JSONValue& json);
 };
 
 } // namespace serialization

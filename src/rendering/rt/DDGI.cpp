@@ -267,8 +267,11 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
     {
         Assert(tlas != nullptr);
 
+        const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
+        Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
+
         descriptorSet->SetElement("TLAS", tlas);
-        descriptorSet->SetElement("MeshDescriptionsBuffer", tlas->GetMeshDescriptionsBuffer());
+        descriptorSet->SetElement("MeshDescriptionsBuffer", meshDescriptionsBuffer);
         descriptorSet->SetElement("DDGIUniforms", m_uniformBuffers[frameIndex]);
         descriptorSet->SetElement("ProbeRayData", m_radianceBuffer);
         descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));

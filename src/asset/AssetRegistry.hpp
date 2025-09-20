@@ -488,15 +488,18 @@ public:
     *  Transfers ownership of all asset objects and subpackages from the source package
     *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
     *  After successful merge, the source package will be empty.
-    *  \param sourcePackage The package to merge into this one.
+    *  \param package The package to merge into this one.
     *  \return Result indicating success or failure of the merge operation. */
-    Result MergePackage(const Handle<AssetPackage>& sourcePackage);
+    Result MergePackage(const Handle<AssetPackage>& package);
 
     HYP_METHOD()
     String BuildPackagePath() const;
 
     HYP_METHOD()
     AssetPath BuildAssetPath(Name assetName) const;
+
+    HYP_METHOD()
+    bool HasAssetWithName(Name assetName) const;
 
     HYP_METHOD()
     Name GetUniqueAssetName(Name baseName) const;
