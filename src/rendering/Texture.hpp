@@ -154,13 +154,13 @@ protected:
     HYP_FIELD(Property = "Name", Serialize, Editor)
     Name m_name;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize = false)
     Handle<TextureAsset> m_asset;
 
-    HYP_FIELD(ResolveAsset = "m_asset")
+    HYP_FIELD(Serialize, ResolveAsset = "m_asset")
     AssetReference m_textureAssetReference;
     
-    HYP_FIELD()
+    HYP_FIELD(Serialize = false)
     GpuImageRef m_gpuImage;
 };
 

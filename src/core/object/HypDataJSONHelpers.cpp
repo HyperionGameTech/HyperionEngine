@@ -39,7 +39,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
                 return false;
             }
 
-            String path = StringUtil::ToCamelCase(*property->GetName(), true);
+            String path = *property->GetName();
 
             if (const HypClassAttributeValue& pathAttribute = property->GetAttribute("jsonpath"); pathAttribute.IsValid())
             {
@@ -74,7 +74,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
                 return false;
             }
 
-            String path = StringUtil::ToCamelCase(*field->GetName(), true);
+            String path = *field->GetName();
 
             if (const HypClassAttributeValue& pathAttribute = field->GetAttribute("jsonpath"); pathAttribute.IsValid())
             {
@@ -111,7 +111,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
                 return false;
             }
 
-            String path = StringUtil::ToCamelCase(*constant->GetName(), true);
+            String path = *constant->GetName();
 
             if (const HypClassAttributeValue& pathAttribute = constant->GetAttribute("jsonpath"); pathAttribute.IsValid())
             {
@@ -231,7 +231,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
         }
 
         // try to resolve the member by name
-        auto value = jsonObjectValue.Get(StringUtil::ToCamelCase(*member.GetName(), true));
+        auto value = jsonObjectValue.Get(*member.GetName());
 
         if (!value.value)
         {

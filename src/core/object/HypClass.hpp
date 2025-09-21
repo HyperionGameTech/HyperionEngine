@@ -460,6 +460,11 @@ public:
      *  \return True if this HypClass is derived from or equal to the given HypClass, false otherwise. */
     bool IsDerivedFrom(const HypClass* other) const;
 
+    /*! \brief Check if this HypClass is a base class of the given HypClass or is equal to it.
+     *  \param other The HypClass to check against
+     *  \return True if this HypClass is a base class of or equal to the given HypClass, false otherwise. */
+    bool IsBaseOf(const HypClass* other) const;
+
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return m_typeId;

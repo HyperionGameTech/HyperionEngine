@@ -760,20 +760,15 @@ int main(int argc, char** argv)
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 
-    static const CommandLineArgumentDefinitions definitions = []()
-    {
-        CommandLineArgumentDefinitions result;
-        result.Add("WorkingDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
-        result.Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
-        result.Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
-        result.Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-        result.Add("HypScriptOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-        result.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-        result.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-        result.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
-
-        return result;
-    }();
+    CommandLineArgumentDefinitions definitions;
+    definitions.Add("WorkingDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
+    definitions.Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
+    definitions.Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
+    definitions.Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+    definitions.Add("HypScriptOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+    definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+    definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+    definitions.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
 
     CommandLineParser commandLineParser { &definitions };
 

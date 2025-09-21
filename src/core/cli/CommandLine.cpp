@@ -15,14 +15,11 @@ HYP_DEFINE_LOG_SUBCHANNEL(CommandLine, Core);
 
 namespace cli {
 
-static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumentValue>>& values, const String& key, CommandLineArgumentValue&& value, bool allowMultiple);
-
-static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumentValue>>& values, const String& key, const CommandLineArgumentValue& value, bool allowMultiple)
-{
-    AppendCommandLineArgumentValue(values, key, CommandLineArgumentValue(value), allowMultiple);
-}
-
-static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumentValue>>& values, const String& key, CommandLineArgumentValue&& value, bool allowMultiple)
+static void AppendCommandLineArgumentValue(
+    Array<Pair<String, CommandLineArgumentValue>>& values,
+    const String& key,
+    CommandLineArgumentValue&& value,
+    bool allowMultiple)
 {
     auto it = values.FindIf([key](const auto& item)
         {
@@ -61,6 +58,15 @@ static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumen
     }
 
     values.EmplaceBack(key, std::move(value));
+}
+
+static void AppendCommandLineArgumentValue(
+    Array<Pair<String, CommandLineArgumentValue>>& values,
+    const String& key, 
+    const CommandLineArgumentValue& value,
+    bool allowMultiple)
+{
+    AppendCommandLineArgumentValue(values, key, CommandLineArgumentValue(value), allowMultiple);
 }
 
 #pragma region CommandLineArguments
@@ -529,7 +535,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command, co
 
         if (i + 1 >= args.Size())
         {
-            return HYP_MAKE_ERROR(Error, "Missing value for argument");
+            return HYP_MAKE_ERROR(Error, "Missing value for argument: {}", arg);
         }
 
         TResult<CommandLineArgumentValue> parsedValue = CommandLineArguments::ParseArgumentValue(*it, args[++i]);
@@ -551,9 +557,9 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command, co
             continue;
         }
 
-        if (def.flags[CommandLineArgumentFlags::REQUIRED])
+        if (def.flags[CommandLineArgumentFlags::REQUIRED] && (!def.defaultValue.HasValue() || def.defaultValue->IsNullOrUndefined()))
         {
-            return HYP_MAKE_ERROR(Error, "Missing required argument");
+            return HYP_MAKE_ERROR(Error, "Missing value for required argument: {}", def.name);
         }
 
         if (def.defaultValue.HasValue())

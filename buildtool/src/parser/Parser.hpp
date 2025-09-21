@@ -188,6 +188,7 @@ struct ASTType : ASTNode
 
     bool isConst = false;
     bool isVolatile = false;
+    bool isMutable = false;
     bool isVirtual = false;
     bool isInline = false;
     bool isStatic = false;

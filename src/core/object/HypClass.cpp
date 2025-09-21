@@ -763,7 +763,7 @@ void HypClass::Initialize()
         if (findFieldIt != it.second.End())
         {
             HypProperty* pProperty = MakeHypProperty(static_cast<HypField*>(*findFieldIt));
-            AssertDebug(pProperty->m_ownerClass == this);
+            AssertDebug(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);
@@ -789,7 +789,7 @@ void HypClass::Initialize()
                 findGetterIt != it.second.End() ? static_cast<HypMethod*>(*findGetterIt) : nullptr,
                 findSetterIt != it.second.End() ? static_cast<HypMethod*>(*findSetterIt) : nullptr);
 
-            AssertDebug(pProperty->m_ownerClass == this);
+            AssertDebug(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);
@@ -1062,6 +1062,40 @@ bool HypClass::IsDerivedFrom(const HypClass* other) const
     while (current != nullptr)
     {
         if (current->m_parent == other)
+        {
+            return true;
+        }
+
+        current = current->m_parent;
+    }
+
+    return false;
+}
+
+bool HypClass::IsBaseOf(const HypClass* other) const
+{
+    if (other == nullptr)
+    {
+        return false;
+    }
+
+    if (this == other)
+    {
+        return true;
+    }
+
+    // fast path
+    if (other->m_staticIndex >= 0)
+    {
+        return uint32(other->m_staticIndex - m_staticIndex) <= m_numDescendants;
+    }
+
+    // slow path
+    const HypClass* current = other;
+
+    while (current != nullptr)
+    {
+        if (current->m_parent == this)
         {
             return true;
         }

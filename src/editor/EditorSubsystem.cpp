@@ -1181,7 +1181,7 @@ void EditorSubsystem::OnAddedToWorld()
             })
         .Detach();
 
-#if 0
+#if 1
     NewProject();
     //// save project (test)
     //if (m_currentProject)

@@ -629,6 +629,8 @@ String ASTType::Format(bool useCsharpSyntax) const
         prefix += "const ";
     if (isVolatile)
         prefix += "volatile ";
+    if (isMutable)
+        prefix += "mutable ";
     if (isInline)
         prefix += "inline ";
     if (isStatic)
@@ -734,6 +736,8 @@ String ASTType::FormatDecl(const String& declName, bool useCsharpSyntax) const
         prefix += "const ";
     if (isVolatile)
         prefix += "volatile ";
+    if (isMutable)
+        prefix += "mutable ";
     if (isInline)
         prefix += "inline ";
     if (isStatic)
@@ -834,6 +838,7 @@ void ASTType::ToJSON(json::JSONValue& out) const
 
     object["is_const"] = isConst;
     object["is_volatile"] = isVolatile;
+    object["is_mutable"] = isMutable;
     object["is_virtual"] = isVirtual;
     object["is_inline"] = isInline;
     object["is_static"] = isStatic;
@@ -1764,6 +1769,7 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     bool isInline = false;
     bool isVirtual = false;
     bool isStatic = false;
+    bool isMutable = false;
     bool isThreadLocal = false;
     bool isConstexpr = false;
     bool isFunction = false;
@@ -1792,6 +1798,10 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
         else if (MatchIdentifier("constexpr", true))
         {
             isConstexpr = true;
+        }
+        else if (MatchIdentifier("mutable", true))
+        {
+            isMutable = true;
         }
         else
         {
@@ -1860,6 +1870,7 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     memberDecl->type->isStatic = isStatic;
     memberDecl->type->isThreadLocal = isThreadLocal;
     memberDecl->type->isConstexpr = isConstexpr;
+    memberDecl->type->isMutable = isMutable;
 
     return memberDecl;
 }

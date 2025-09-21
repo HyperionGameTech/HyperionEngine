@@ -21,6 +21,7 @@
 #include <rendering/RenderObject.hpp>
 
 #include <asset/MeshAsset.hpp>
+#include <asset/AssetReference.hpp>
 
 #include <cstdint>
 
@@ -133,13 +134,17 @@ private:
 
     mutable BoundingBox m_aabb;
 
-    HYP_FIELD(Serialize)
-    BVHNode m_bvh;
+    HYP_FIELD(Serialize = false)
+    BVHNode m_bvh; // @TODO: Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
+
+    HYP_FIELD(Serialize = false)
+    Handle<MeshAsset> m_asset;
+
+    HYP_FIELD(Serialize = true, ResolveAsset = "m_asset")
+    AssetReference m_assetReference;
 
     GpuBufferRef m_vertexBuffer;
     GpuBufferRef m_indexBuffer;
-
-    Handle<MeshAsset> m_asset;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };

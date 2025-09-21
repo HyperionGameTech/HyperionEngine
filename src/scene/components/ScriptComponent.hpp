@@ -8,6 +8,8 @@
 
 #include <core/HashCode.hpp>
 
+#include <asset/AssetReference.hpp>
+
 namespace hyperion {
 
 namespace dotnet {
@@ -36,6 +38,9 @@ struct ScriptComponent
 {
     HYP_FIELD()
     Handle<ScriptAsset> scriptAsset;
+
+    HYP_FIELD(Serialize, ResolveAsset = "scriptAsset")
+    AssetReference scriptAssetReference;
 
     HYP_FIELD(NoScriptBindings)
     RC<dotnet::Assembly> assembly;
