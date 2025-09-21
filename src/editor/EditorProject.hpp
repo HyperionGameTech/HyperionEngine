@@ -160,7 +160,7 @@ private:
     HYP_FIELD(Property = "Scenes", Serialize)
     Array<Handle<Scene>> m_scenes;
 
-    HYP_FIELD(Property = "Package")
+    HYP_FIELD()
     Handle<AssetPackage> m_package;
 
     HYP_FIELD()

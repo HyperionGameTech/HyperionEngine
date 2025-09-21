@@ -276,12 +276,12 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     const Handle<AssetRegistry> registry = g_assetManager->GetAssetRegistry();
     Assert(registry.IsValid());
 
-    FilePath directory;
+    FilePath dir;
     FilePath projectFilepath;
 
     if (filepath.IsDirectory())
     {
-        directory = filepath;
+        dir = filepath;
 
         for (const FilePath& file : filepath.GetAllFilesInDirectory())
         {
@@ -295,11 +295,11 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     }
     else
     {
-        directory = filepath.BasePath();
+        dir = filepath.BasePath();
         projectFilepath = filepath;
     }
 
-    if (!directory.Exists())
+    if (!dir.Exists())
     {
         return HYP_MAKE_ERROR(Error, "Directory does not exist");
     }
@@ -309,87 +309,57 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return HYP_MAKE_ERROR(Error, "Project file does not exist");
     }
 
-    FBOMObject projectObject;
+    const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
+    const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
-    FBOMReader reader {
-        FBOMReaderConfig {
-            .basePath = directory
-        }
-    };
-
-    if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to read project data: {}", err.message);
-    }
-
-    Optional<const Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
-
-    if (!projectOpt)
-    {
-        return HYP_MAKE_ERROR(Error, "Internal error: Deserialized object is not an EditorProject");
-    }
-
-    Handle<EditorProject> project = *projectOpt;
-
-    if (project->GetName().IsValid())
-    {
-        if (Result createPackageResult = project->CreatePackage(); createPackageResult.HasError())
-        {
-            return createPackageResult.GetError();
-        }
-    }
-
-    Proc<TResult<Handle<AssetPackage>>(const FilePath& directory)> initializePackage;
-
-    initializePackage = [&initializePackage, &registry](const FilePath& directory) -> TResult<Handle<AssetPackage>>
-    {
-        HYP_NAMED_SCOPE_FMT("Initialize package %s", *directory);
-
-        Handle<AssetPackage> package = CreateObject<AssetPackage>();
-        package->SetName(CreateNameFromDynamicString(directory.Basename()));
-
-        AssetPackageSet subpackages;
-
-        for (const FilePath& subdirectory : directory.GetSubdirectories())
-        {
-            TResult<Handle<AssetPackage>> subpackageResult = initializePackage(subdirectory);
-
-            if (subpackageResult.HasError())
-            {
-                return subpackageResult;
-            }
-
-            subpackages.Insert(std::move(subpackageResult.GetValue()));
-        }
-
-        // @TODO Load assets from files in directory
-
-        package->SetSubpackages(std::move(subpackages));
-
-        return package;
-    };
+    const String packagePath = FilePath::Relative(packageDir, g_assetManager->GetBasePath());
 
     Handle<AssetPackage> rootPackage;
 
-    if (TResult<Handle<AssetPackage>> packageResult = initializePackage(filepath / *project->GetName()))
+    Result loadPackageResult = registry->LoadPackageFromManifest(
+        packageManifestPath,
+        packagePath,
+        rootPackage,
+        /* loadSubpackages */ true);
+   
+    if (loadPackageResult.HasError())
     {
-        if (packageResult.HasError())
-        {
-            return packageResult.GetError();
-        }
-
-        rootPackage = std::move(packageResult.GetValue());
+        return loadPackageResult.GetError();
     }
 
-    if (Result mergeResult = project->m_package->MergePackage(rootPackage); mergeResult.HasError())
-    {
-        return mergeResult.GetError();
-    }
-
-    if (Result addPackageResult = registry->AddPackage(project->m_package, /* mergeIfExists */ true); addPackageResult.HasError())
+    if (Result addPackageResult = registry->AddPackage(rootPackage, /* mergeIfExists */ true); addPackageResult.HasError())
     {
         return addPackageResult.GetError();
     }
+
+    Handle<EditorProject> project;
+
+    {
+        FBOMObject projectObject;
+
+        FBOMReader reader {
+            FBOMReaderConfig {
+                .basePath = dir }
+        };
+
+        if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to read project data: {}", err.message);
+        }
+
+        Optional<const Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
+
+        if (!projectOpt)
+        {
+            return HYP_MAKE_ERROR(Error, "Internal error: Deserialized object is not an EditorProject");
+        }
+
+        project = *projectOpt;
+    }
+
+    project->m_package = rootPackage;
+
+    InitObject(project);
 
     return project;
 }

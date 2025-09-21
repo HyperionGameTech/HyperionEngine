@@ -628,7 +628,7 @@ public:
     HYP_METHOD()
     bool RemovePackage(AssetPackage* package);
 
-    Result LoadPackageFromManifest(const FilePath& dir, UTF8StringView packagePath, BufferedReader& manifestStream, Handle<AssetPackage>& outPackage, bool loadSubpackages);
+    Result LoadPackageFromManifest(const FilePath& manifestPath, UTF8StringView packagePath, Handle<AssetPackage>& outPackage, bool loadSubpackages);
 
     Delegate<void, Handle<AssetPackage>> OnPackageAdded;
     Delegate<void, Handle<AssetPackage>> OnPackageRemoved;

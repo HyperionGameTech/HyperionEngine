@@ -1197,7 +1197,7 @@ void EditorSubsystem::OnAddedToWorld()
     //}
 #else
 
-    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "NewProj");
+    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "NewProj2");
 
     if (!result)
     {

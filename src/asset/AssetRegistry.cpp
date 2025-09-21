@@ -1124,27 +1124,18 @@ void AssetRegistry::LoadPackagesAsync()
 
                 for (const FilePath& entry : dir.GetAllFilesInDirectory())
                 {
-                    if (entry.Basename() != "PackageManifest.json")
+                    if (entry.GetExtension() != "packagemanifest")
                     {
-                        continue;
-                    }
-
-                    FileBufferedReaderSource source { entry };
-                    BufferedReader manifestStream { &source };
-
-                    if (!manifestStream.IsOpen())
-                    {
-                        HYP_LOG(Assets, Error, "Failed to open manifest file '{}'", entry);
-
                         continue;
                     }
 
                     Handle<AssetPackage> package;
 
-                    const String packagePath = FilePath::Relative(dir, g_assetManager->GetBasePath());
+                    const FilePath packageDir = dir / entry.StripExtension();
+                    const String packagePath = FilePath::Relative(packageDir, g_assetManager->GetBasePath());
 
                     // build virtual package path from filesystem path
-                    if (Result result = LoadPackageFromManifest(dir, packagePath, manifestStream, package, /* loadSubpackages */ true); result.HasError())
+                    if (Result result = LoadPackageFromManifest(packageDir, packagePath, package, /* loadSubpackages */ true); result.HasError())
                     {
                         HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", packagePath, result.GetError().GetMessage());
 
@@ -1153,14 +1144,14 @@ void AssetRegistry::LoadPackagesAsync()
 
                     if (!package.IsValid())
                     {
-                        HYP_LOG(Assets, Error, "Package at path '{}' is invalid!", entry);
+                        HYP_LOG(Assets, Error, "Package at path '{}' is invalid!", packageDir);
 
                         continue;
                     }
 
                     if (!package->GetName().IsValid())
                     {
-                        HYP_LOG(Assets, Error, "Package at path '{}' has an invalid name!", entry);
+                        HYP_LOG(Assets, Error, "Package at path '{}' has an invalid name!", packageDir);
 
                         continue;
                     }
@@ -1619,11 +1610,24 @@ bool AssetRegistry::RemovePackage(AssetPackage* package)
     return false;
 }
 
-Result AssetRegistry::LoadPackageFromManifest(const FilePath& dir, UTF8StringView packagePath, BufferedReader& manifestStream, Handle<AssetPackage>& outPackage, bool loadSubpackages)
+Result AssetRegistry::LoadPackageFromManifest(const FilePath& manifestPath, UTF8StringView packagePath, Handle<AssetPackage>& outPackage, bool loadSubpackages)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Assets, Debug, "Loading package from manifest: {}", packagePath);
+    if (!manifestPath.Exists() || manifestPath.IsDirectory())
+    {
+        return HYP_MAKE_ERROR(Error, "Manifest file '{}' does not exist or is not a file", manifestPath);
+    }
+
+    const FilePath dir = manifestPath.BasePath();
+
+    FileBufferedReaderSource manifestSource { manifestPath };
+    BufferedReader manifestStream { &manifestSource };
+
+    if (!manifestStream.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
+    }
 
     json::ParseResult parseResult = json::JSON::Parse(manifestStream);
 
@@ -1646,19 +1650,10 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& dir, UTF8StringVie
         return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
     }
 
-    const FilePath packageDir = dir / outPackage->BuildPackagePath();
-
-    if (!packageDir.Exists() || !packageDir.IsDirectory())
-    {
-        HYP_LOG(Assets, Warning, "Package directory '{}' does not exist or is not a directory", packageDir);
-
-        return {};
-    }
-
-    outPackage->m_packageDir = packageDir;
+    outPackage->m_packageDir = dir;
 
     // Load AssetObjects from manifest files
-    for (const FilePath& entry : packageDir.GetAllFilesInDirectory())
+    for (const FilePath& entry : dir.GetAllFilesInDirectory())
     {
         if (entry.GetExtension() != "json")
         {
@@ -1695,21 +1690,18 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& dir, UTF8StringVie
     {
         // Load subpackages
 
-        for (const FilePath& subdirectory : packageDir.GetSubdirectories())
+        for (const FilePath& subdirectory : dir.GetSubdirectories())
         {
             for (const FilePath& entry : subdirectory.GetAllFilesInDirectory())
             {
                 if (entry.Basename() == "PackageManifest.json")
                 {
-                    FileBufferedReaderSource source { entry };
-                    BufferedReader subpackageManifestStream { &source };
-
                     Handle<AssetPackage> subpackage;
 
                     // build virtual package path from filesystem path
                     const String packagePath = FilePath::Relative(subdirectory, g_assetManager->GetBasePath());
 
-                    if (Result result = LoadPackageFromManifest(subdirectory, packagePath, subpackageManifestStream, subpackage, /* loadSubpackages */ true); result.HasError())
+                    if (Result result = LoadPackageFromManifest(entry, packagePath, subpackage, /* loadSubpackages */ true); result.HasError())
                     {
                         HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", packagePath, result.GetError().GetMessage());
 

@@ -397,7 +397,7 @@ void HyperionEditor::Init()
                 
                 // test
                 const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
-                project->SetName(NAME("NewProj"));
+                project->SetName(NAME("NewProj2"));
                 Result saveResult = project->Save();
                 Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
             })
