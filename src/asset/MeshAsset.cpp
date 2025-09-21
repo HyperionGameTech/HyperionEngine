@@ -1,4 +1,4 @@
-/* Copyright (c) 22025 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <asset/MeshAsset.hpp>
 

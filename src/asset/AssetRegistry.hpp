@@ -483,6 +483,8 @@ public:
 
     Result AddAssetObject(const Handle<AssetObject>& assetObject);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
+    
+    Handle<AssetObject> GetAssetObject(WeakName assetName) const;
 
     /*! \brief Merges the contents of another package into this one.
     *  Transfers ownership of all asset objects and subpackages from the source package
@@ -594,6 +596,20 @@ public:
         ForEach(m_packages, m_mutex, std::forward<Callback>(callback));
     }
 
+    HYP_METHOD()
+    Handle<AssetPackage> GetPackageFromPath(const UTF8StringView& path, bool createIfNotExist = true);
+
+    HYP_METHOD()
+    Handle<AssetPackage> GetSubpackage(const Handle<AssetPackage>& parentPackage, Name subpackageName, bool createIfNotExist = true);
+
+    HYP_METHOD()
+    bool RemovePackage(AssetPackage* package);
+
+    Result LoadPackageFromManifest(const FilePath& manifestPath, UTF8StringView packagePath, Handle<AssetPackage>& outPackage, bool loadSubpackages);
+
+    HYP_METHOD()
+    Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;
+
     Result RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
     
     template <class T>
@@ -616,19 +632,7 @@ public:
         return assetObject;
     }
 
-    HYP_METHOD()
-    Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;
-
-    HYP_METHOD()
-    Handle<AssetPackage> GetPackageFromPath(const UTF8StringView& path, bool createIfNotExist = true);
-
-    HYP_METHOD()
-    Handle<AssetPackage> GetSubpackage(const Handle<AssetPackage>& parentPackage, Name subpackageName, bool createIfNotExist = true);
-
-    HYP_METHOD()
-    bool RemovePackage(AssetPackage* package);
-
-    Result LoadPackageFromManifest(const FilePath& manifestPath, UTF8StringView packagePath, Handle<AssetPackage>& outPackage, bool loadSubpackages);
+    Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
 
     Delegate<void, Handle<AssetPackage>> OnPackageAdded;
     Delegate<void, Handle<AssetPackage>> OnPackageRemoved;

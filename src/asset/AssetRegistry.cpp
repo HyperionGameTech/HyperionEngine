@@ -734,6 +734,25 @@ Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
     return {};
 }
 
+Handle<AssetObject> AssetPackage::GetAssetObject(WeakName assetName) const
+{
+    if (!assetName.IsValid())
+    {
+        return {};
+    }
+
+    Mutex::Guard guard(m_mutex);
+
+    auto it = m_assetObjects.FindAs(assetName);
+
+    if (it == m_assetObjects.End())
+    {
+        return {};
+    }
+
+    return *it;
+}
+
 Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
 {
     if (!package.IsValid())
@@ -1414,54 +1433,6 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
     return {};
 }
 
-Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
-{
-    HYP_SCOPE;
-
-    if (!assetObject.IsValid())
-    {
-        return HYP_MAKE_ERROR(Error, "AssetObject is invalid");
-    }
-
-    String pathString = path;
-    Array<String> pathStringSplit = pathString.Split('/', '\\');
-
-    String assetName;
-
-    pathString = String::Join(pathStringSplit, '/');
-
-    AssetRegistryPathType pathType = AssetRegistryPathType::PACKAGE;
-
-    Handle<AssetPackage> assetPackage;
-
-    {
-        assetPackage = GetPackageFromPath_Internal(pathString, pathType, /* createIfNotExist */ true, assetName);
-
-        if (pathType == AssetRegistryPathType::ASSET)
-        {
-            const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
-
-            assetObject->m_name = assetPackage->GetUniqueAssetName(baseName);
-        }
-    }
-
-    return assetPackage->AddAssetObject(assetObject);
-}
-
-Name AssetRegistry::GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const
-{
-    HYP_SCOPE;
-
-    Handle<AssetPackage> package = const_cast<AssetRegistry*>(this)->GetPackageFromPath(packagePath, /* createIfNotExist */ false);
-
-    if (!package.IsValid())
-    {
-        return baseName;
-    }
-
-    return package->GetUniqueAssetName(baseName);
-}
-
 Handle<AssetPackage> AssetRegistry::GetPackageFromPath(const UTF8StringView& path, bool createIfNotExist)
 {
     HYP_SCOPE;
@@ -1775,6 +1746,70 @@ Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8String
     default:
         HYP_UNREACHABLE();
     }
+}
+
+Name AssetRegistry::GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const
+{
+    HYP_SCOPE;
+
+    Handle<AssetPackage> package = const_cast<AssetRegistry*>(this)->GetPackageFromPath(packagePath, /* createIfNotExist */ false);
+
+    if (!package.IsValid())
+    {
+        return baseName;
+    }
+
+    return package->GetUniqueAssetName(baseName);
+}
+
+Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
+{
+    HYP_SCOPE;
+
+    if (!assetObject.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "AssetObject is invalid");
+    }
+
+    String pathString = path;
+    Array<String> pathStringSplit = pathString.Split('/', '\\');
+
+    String assetName;
+
+    pathString = String::Join(pathStringSplit, '/');
+
+    AssetRegistryPathType pathType = AssetRegistryPathType::PACKAGE;
+
+    Handle<AssetPackage> assetPackage;
+
+    {
+        assetPackage = GetPackageFromPath_Internal(pathString, pathType, /* createIfNotExist */ true, assetName);
+
+        if (pathType == AssetRegistryPathType::ASSET)
+        {
+            const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
+
+            assetObject->m_name = assetPackage->GetUniqueAssetName(baseName);
+        }
+    }
+
+    return assetPackage->AddAssetObject(assetObject);
+}
+
+Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const
+{
+    HYP_SCOPE;
+
+    String assetName;
+
+    Handle<AssetPackage> package = const_cast<AssetRegistry*>(this)->GetPackageFromPath_Internal(path, AssetRegistryPathType::ASSET, /* createIfNotExist */ false, assetName);
+
+    if (!package.IsValid() || !assetName.Any())
+    {
+        return Handle<AssetObject>::empty;
+    }
+
+    return package->GetAssetObject(assetName);
 }
 
 #pragma endregion AssetRegistry

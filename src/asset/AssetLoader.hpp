@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <asset/AssetPath.hpp>
+#include <asset/Loader.hpp>
+
 #include <core/object/ObjId.hpp>
 #include <core/object/Handle.hpp>
 
@@ -23,8 +26,6 @@
 
 #include <core/Constants.hpp>
 
-#include <asset/Loader.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
@@ -38,204 +39,6 @@ template <class T>
 struct TLoadedAsset;
 
 HYP_API extern void OnPostLoad_Impl(const HypClass* hypClass, void* objectPtr);
-
-HYP_STRUCT()
-struct AssetPath
-{
-    HYP_FIELD(NoScriptBindings)
-    Name* chain = nullptr;
-
-    AssetPath() = default;
-
-    AssetPath(const AssetPath& other)
-    {
-        if (other.chain)
-        {
-            uint32 count = 0;
-
-            Name* curr = other.chain;
-
-            while (curr->IsValid())
-            {
-                ++count;
-                ++curr;
-            }
-
-            chain = new Name[count + 1];
-
-            for (uint32 i = 0; i < count; i++)
-            {
-                chain[i] = other.chain[i];
-            }
-
-            chain[count] = Name::Invalid();
-        }
-    }
-
-    AssetPath& operator=(const AssetPath& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        if (chain)
-        {
-            delete[] chain;
-        }
-
-        if (other.chain)
-        {
-            uint32 count = 0;
-
-            Name* curr = other.chain;
-
-            while (curr->IsValid())
-            {
-                ++count;
-                ++curr;
-            }
-
-            chain = new Name[count + 1];
-
-            for (uint32 i = 0; i < count; i++)
-            {
-                chain[i] = other.chain[i];
-            }
-
-            chain[count] = Name::Invalid();
-        }
-        else
-        {
-            chain = nullptr;
-        }
-
-        return *this;
-    }
-
-    AssetPath(AssetPath&& other) noexcept
-        : chain(other.chain)
-    {
-        other.chain = nullptr;
-    }
-
-    AssetPath& operator=(AssetPath&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        if (chain)
-        {
-            delete[] chain;
-        }
-
-        chain = other.chain;
-        other.chain = nullptr;
-
-        return *this;
-    }
-
-    ~AssetPath()
-    {
-        if (chain)
-        {
-            delete[] chain;
-        }
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return chain && chain[0].IsValid();
-    }
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return IsValid();
-    }
-
-    HYP_FORCE_INLINE bool operator!() const
-    {
-        return !IsValid();
-    }
-
-    HYP_METHOD()
-    String ToString() const
-    {
-        if (!chain)
-        {
-            return String::empty;
-        }
-
-        String result;
-
-        Name* curr = chain;
-
-        while (curr->IsValid())
-        {
-            if (chain != curr)
-            {
-                result.Append("/");
-            }
-
-            result.Append(curr->LookupString());
-
-            ++curr;
-        }
-
-        return result;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return ToString().GetHashCode();
-    }
-
-    HYP_METHOD(Property = "Chain", Serialize = true)
-    Array<Name> GetChain() const
-    {
-        Array<Name> result;
-
-        if (chain)
-        {
-            Name* curr = chain;
-
-            while (curr->IsValid())
-            {
-                result.PushBack(*curr);
-                ++curr;
-            }
-        }
-
-        return result;
-    }
-
-    HYP_METHOD(Property = "Chain", Serialize = true)
-    void SetChain(const Array<Name>& names)
-    {
-        if (chain)
-        {
-            delete[] chain;
-            chain = nullptr;
-        }
-
-        if (names.Empty())
-        {
-            return;
-        }
-
-        chain = new Name[names.Size() + 1];
-
-        for (SizeType i = 0; i < names.Size(); i++)
-        {
-            chain[i] = names[i];
-        }
-
-        chain[names.Size()] = Name::Invalid();
-    }
-};
 
 struct LoadedAsset
 {

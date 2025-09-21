@@ -338,8 +338,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         FBOMObject projectObject;
 
         FBOMReader reader {
-            FBOMReaderConfig {
-                .basePath = dir }
+            FBOMReaderConfig { .basePath = dir }
         };
 
         if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
