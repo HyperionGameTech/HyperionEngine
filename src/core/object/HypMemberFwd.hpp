@@ -16,6 +16,7 @@ namespace hyperion {
 class HypClassAttributeSet;
 struct HypClassAttributeValue;
 struct HypData;
+class HypClass;
 
 enum class FBOMDataFlags : uint32;
 
@@ -43,6 +44,8 @@ HYP_MAKE_ENUM_FLAGS(HypMemberType)
 class IHypMember
 {
 public:
+    friend class HypClass;
+
     virtual ~IHypMember() = default;
 
     virtual HypMemberType GetMemberType() const = 0;
@@ -53,6 +56,11 @@ public:
 
     virtual TypeId GetTargetTypeId() const = 0;
 
+    HYP_FORCE_INLINE const HypClass* GetOwnerClass() const
+    {
+        return m_ownerClass;
+    }
+
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;
 
@@ -62,6 +70,9 @@ public:
     virtual const HypClassAttributeSet& GetAttributes() const = 0;
     virtual const HypClassAttributeValue& GetAttribute(WeakName key) const = 0;
     virtual const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const = 0;
+
+protected:
+    const HypClass* m_ownerClass;
 };
 
 } // namespace hyperion

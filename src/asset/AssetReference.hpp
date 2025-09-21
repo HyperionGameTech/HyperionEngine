@@ -5,6 +5,7 @@
 #include <asset/AssetPath.hpp>
 
 #include <core/object/HypObject.hpp>
+#include <core/object/Handle.hpp>
 
 #include <core/Name.hpp>
 
@@ -13,7 +14,7 @@ namespace hyperion {
 class AssetObject;
 
 HYP_STRUCT()
-class HYP_API AssetReference
+class HYP_API AssetReference final
 {
 public:
     AssetReference() = default;

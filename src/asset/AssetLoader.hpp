@@ -240,19 +240,5 @@ public:
     }
 };
 
-// Formatter for AssetPath
-namespace utilities {
-
-template <class StringType>
-struct Formatter<StringType, AssetPath>
-{
-    auto operator()(const AssetPath& value) const
-    {
-        return value.ToString();
-    }
-};
-
-} // namespace utilities
-
 } // namespace hyperion
 

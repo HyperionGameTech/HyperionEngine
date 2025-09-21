@@ -206,6 +206,7 @@ HypProperty* MakeHypProperty(const HypField* field)
     result.m_name = propertyName;
     result.m_typeId = field->GetTypeId();
     result.m_attributes = field->GetAttributes();
+    result.m_ownerClass = field->GetOwnerClass();
 
     result.m_getter = HypPropertyGetter();
     result.m_getter.typeInfo.targetTypeId = field->GetTargetTypeId();
@@ -312,6 +313,11 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
 
     result.m_name = CreateNameFromDynamicString(*propertyAttributeOpt);
     result.m_typeId = *typeId;
+    result.m_ownerClass = hasGetter
+        ? getter->GetOwnerClass()
+        : hasSetter
+            ? setter->GetOwnerClass()
+            : nullptr;
 
     if (hasGetter)
     {
@@ -592,38 +598,42 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
     // initialize properties containers
     for (HypMember& member : members)
     {
-        if (HypProperty* property = member.value.TryGet<HypProperty>())
+        if (member.value.Is<HypProperty>())
         {
-            HypProperty* propertyPtr = new HypProperty(std::move(*property));
+            HypProperty* pProperty = new HypProperty(std::move(member.value.GetUnchecked<HypProperty>()));
+            pProperty->m_ownerClass = this;
 
 #ifdef HYP_DEBUG_MODE
-            propertyPtr->m_getter.typeInfo.targetTypeId = typeId;
-            propertyPtr->m_setter.typeInfo.targetTypeId = typeId;
+            pProperty->m_getter.typeInfo.targetTypeId = typeId;
+            pProperty->m_setter.typeInfo.targetTypeId = typeId;
 #endif
 
-            m_properties.PushBack(propertyPtr);
-            m_propertiesByName.Set(propertyPtr->GetName(), propertyPtr);
+            m_properties.PushBack(pProperty);
+            m_propertiesByName.Set(pProperty->GetName(), pProperty);
         }
-        else if (HypMethod* method = member.value.TryGet<HypMethod>())
+        else if (member.value.Is<HypMethod>())
         {
-            HypMethod* methodPtr = new HypMethod(std::move(*method));
+            HypMethod* pMethod = new HypMethod(std::move(member.value.GetUnchecked<HypMethod>()));
+            pMethod->m_ownerClass = this;
 
-            m_methods.PushBack(methodPtr);
-            m_methodsByName.Set(methodPtr->GetName(), methodPtr);
+            m_methods.PushBack(pMethod);
+            m_methodsByName.Set(pMethod->GetName(), pMethod);
         }
-        else if (HypField* field = member.value.TryGet<HypField>())
+        else if (member.value.Is<HypField>())
         {
-            HypField* fieldPtr = new HypField(std::move(*field));
+            HypField* pField = new HypField(std::move(member.value.GetUnchecked<HypField>()));
+            pField->m_ownerClass = this;
 
-            m_fields.PushBack(fieldPtr);
-            m_fieldsByName.Set(fieldPtr->GetName(), fieldPtr);
+            m_fields.PushBack(pField);
+            m_fieldsByName.Set(pField->GetName(), pField);
         }
-        else if (HypConstant* constant = member.value.TryGet<HypConstant>())
+        else if (member.value.Is<HypConstant>())
         {
-            HypConstant* constantPtr = new HypConstant(std::move(*constant));
+            HypConstant* pConstant = new HypConstant(std::move(member.value.GetUnchecked<HypConstant>()));
+            pConstant->m_ownerClass = this;
 
-            m_constants.PushBack(constantPtr);
-            m_constantsByName.Set(constantPtr->GetName(), constantPtr);
+            m_constants.PushBack(pConstant);
+            m_constantsByName.Set(pConstant->GetName(), pConstant);
         }
         else
         {
@@ -752,10 +762,11 @@ void HypClass::Initialize()
 
         if (findFieldIt != it.second.End())
         {
-            HypProperty* propertyPtr = MakeHypProperty(static_cast<HypField*>(*findFieldIt));
+            HypProperty* pProperty = MakeHypProperty(static_cast<HypField*>(*findFieldIt));
+            AssertDebug(pProperty->m_ownerClass == this);
 
-            m_properties.PushBack(propertyPtr);
-            m_propertiesByName.Set(propertyPtr->GetName(), propertyPtr);
+            m_properties.PushBack(pProperty);
+            m_propertiesByName.Set(pProperty->GetName(), pProperty);
 
             continue;
         }
@@ -774,12 +785,14 @@ void HypClass::Initialize()
 
         if (findGetterIt != it.second.End() || findSetterIt != it.second.End())
         {
-            HypProperty* propertyPtr = MakeHypProperty(
+            HypProperty* pProperty = MakeHypProperty(
                 findGetterIt != it.second.End() ? static_cast<HypMethod*>(*findGetterIt) : nullptr,
                 findSetterIt != it.second.End() ? static_cast<HypMethod*>(*findSetterIt) : nullptr);
 
-            m_properties.PushBack(propertyPtr);
-            m_propertiesByName.Set(propertyPtr->GetName(), propertyPtr);
+            AssertDebug(pProperty->m_ownerClass == this);
+
+            m_properties.PushBack(pProperty);
+            m_propertiesByName.Set(pProperty->GetName(), pProperty);
 
             continue;
         }

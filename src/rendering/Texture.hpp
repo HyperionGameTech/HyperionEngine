@@ -15,17 +15,19 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/math/Vector2.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
+
+#include <core/Types.hpp>
+
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuImageView.hpp>
 
 #include <scene/VisibilityState.hpp>
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-
-#include <core/Types.hpp>
+#include <asset/AssetReference.hpp>
 
 namespace hyperion {
 
@@ -54,13 +56,13 @@ public:
 
     ~Texture();
 
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
     }
 
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
+    HYP_METHOD()
     void SetName(Name name);
 
     const TextureDesc& GetTextureDesc() const;
@@ -149,15 +151,16 @@ public:
 protected:
     void Init() override;
 
-    void UploadGpuData();
-
-    /*! \brief Readback() implementation, without locking mutex. */
-    void Readback_Internal();
-
+    HYP_FIELD(Property = "Name", Serialize, Editor)
     Name m_name;
 
+    HYP_FIELD()
     Handle<TextureAsset> m_asset;
 
+    HYP_FIELD(ResolveAsset = "m_asset")
+    AssetReference m_textureAssetReference;
+    
+    HYP_FIELD()
     GpuImageRef m_gpuImage;
 };
 

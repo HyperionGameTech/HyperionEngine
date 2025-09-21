@@ -9,6 +9,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
+#include <core/utilities/FormatFwd.hpp>
+
 namespace hyperion {
 
 HYP_STRUCT()

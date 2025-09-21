@@ -252,8 +252,10 @@ public:
 
     HypField(const HypField& other) = delete;
     HypField& operator=(const HypField& other) = delete;
+
     HypField(HypField&& other) noexcept = default;
     HypField& operator=(HypField&& other) noexcept = default;
+
     virtual ~HypField() override = default;
 
     virtual HypMemberType GetMemberType() const override

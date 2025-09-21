@@ -30,6 +30,8 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
+#define HYP_BUILD_TOOL_FRIENDLY_NAMES 0
+
 using namespace json;
 
 static const HashMap<String, HypClassDefinitionType> g_hypClassDefinitionTypes = {
@@ -774,6 +776,7 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 
         Array<HypMemberDefinition> members = std::move(res.GetValue());
 
+#if defined(HYP_BUILD_TOOL_FRIENDLY_NAMES) && HYP_BUILD_TOOL_FRIENDLY_NAMES
         for (HypMemberDefinition& definition : members)
         {
             switch (definition.type)
@@ -821,6 +824,12 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                 break;
             }
         }
+#else
+        for (HypMemberDefinition& definition : members)
+        {
+            definition.friendlyName = definition.name;
+        }
+#endif
 
         hypClassDefinition.members = std::move(members);
 
