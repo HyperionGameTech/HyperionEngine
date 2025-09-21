@@ -144,6 +144,7 @@ void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
 HypObjectBase::HypObjectBase()
     : m_initState(INIT_STATE_UNINITIALIZED)
 {
+#ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to HypClass data
     HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
     HYP_CORE_ASSERT(context != nullptr);
 
@@ -159,12 +160,11 @@ HypObjectBase::HypObjectBase()
     // increment the strong reference count for the Handle<T> that will be returned from CreateObject<T>().
     AtomicIncrement(&m_header->refCountStrong);
     HYP_CORE_ASSERT(m_header->refCountStrong == 1);
+#endif
 }
 
 HypObjectBase::~HypObjectBase()
 {
-    HYP_CORE_ASSERT(m_header != nullptr);
-
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
     if (m_scriptObjectResource)
@@ -227,8 +227,6 @@ HYP_API uint32 HypObjectPtr::GetRefCountStrong() const
         return 0;
     }
 
-    HYP_CORE_ASSERT(m_hypClass->UseHandles()); // check is HypObjectBase
-
     HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
 
     return hypObjectBase->GetObjectHeader_Internal()->GetRefCountStrong();
@@ -241,8 +239,6 @@ HYP_API uint32 HypObjectPtr::GetRefCountWeak() const
         return 0;
     }
 
-    HYP_CORE_ASSERT(m_hypClass->UseHandles()); // check is HypObjectBase
-
     HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
 
     return hypObjectBase->GetObjectHeader_Internal()->GetRefCountWeak();
@@ -251,8 +247,6 @@ HYP_API uint32 HypObjectPtr::GetRefCountWeak() const
 HYP_API void HypObjectPtr::IncRef(bool weak)
 {
     HYP_CORE_ASSERT(IsValid());
-
-    HYP_CORE_ASSERT(m_hypClass->UseHandles()); // check is HypObjectBase
 
     HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
 
@@ -269,8 +263,6 @@ HYP_API void HypObjectPtr::IncRef(bool weak)
 HYP_API void HypObjectPtr::DecRef(bool weak)
 {
     HYP_CORE_ASSERT(IsValid());
-
-    HYP_CORE_ASSERT(m_hypClass->UseHandles()); // check is HypObjectBase
 
     HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
 

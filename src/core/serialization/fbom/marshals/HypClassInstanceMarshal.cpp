@@ -17,9 +17,13 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#ifdef HYPERION_BUILD_LIBRARY
 #include <asset/AssetReference.hpp>
+#endif
 
 namespace hyperion::serialization {
+
+#ifdef HYPERION_BUILD_LIBRARY
 
 static const TypeId g_typeIdAssetReference = TypeId::ForType<AssetReference>();
 static const Name g_nameResolveAsset = NAME("resolveasset");
@@ -60,6 +64,8 @@ static void CollectAssetReferenceMembers(
         CollectAssetReferenceMembers(pBaseClass, outMembers);
     }
 }
+
+#endif
 
 FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 {
@@ -118,7 +124,8 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     HypData targetData { AnyRef { hypClass->GetTypeId(), const_cast<void*>(in.GetPointer()) } };
 
     out = FBOMObject(FBOMObjectType(hypClass));
-    
+
+#ifdef HYPERION_BUILD_LIBRARY
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
 
@@ -132,20 +139,20 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
             assetReferenceTargetMembersMap.Insert(pair.second);
         }
     }
+#endif
 
     {
         HYP_NAMED_SCOPE_FMT("Serializing properties for HypClass '{}'", hypClass->GetName());
 
         for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
         {
+            EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE;
+
+#ifdef HYPERION_BUILD_LIBRARY
             if (assetReferenceTargetMembersMap.Contains(&member))
             {
                 continue;
             }
-
-            HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hypClass->GetName());
-
-            EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE;
 
             // Explicit serialization handling for asset reference:
             // we need to get an attribute from this member the specifies the member that is an AssetObject, to be used for resolving.
@@ -160,6 +167,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
             }
             else
             {
+#endif
                 if (!member.CanSerialize())
                 {
                     continue;
@@ -174,7 +182,11 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
                 {
                     flags |= FBOMDataFlags::COMPRESSED;
                 }
+#ifdef HYPERION_BUILD_LIBRARY
             }
+#endif
+
+            HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hypClass->GetName());
 
             FBOMData data;
 
@@ -232,6 +244,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     HYP_CORE_ASSERT(hypClass != nullptr);
     HYP_CORE_ASSERT(ref.HasValue());
     
+#ifdef HYPERION_BUILD_LIBRARY
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
 
@@ -245,6 +258,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
             assetReferenceTargetMembersMap.Insert(pair.second);
         }
     }
+#endif
 
     HypData targetData { ref };
 
@@ -255,10 +269,12 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
         {
             if (const IHypMember* pMember = hypClass->GetMember(it.first))
             {
+#ifdef HYPERION_BUILD_LIBRARY
                 if (assetReferenceTargetMembersMap.Contains(pMember))
                 {
                     continue;
                 }
+#endif
 
                 if (!pMember->GetAttribute("serialize"))
                 {
@@ -277,6 +293,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", pMember->GetName(), hypClass->GetName()) };
                 }
 
+#ifdef HYPERION_BUILD_LIBRARY
                 const auto assetReferenceMembersIt = assetReferenceMembersMap.Find(pMember);
 
                 if (assetReferenceMembersIt != assetReferenceMembersMap.End())
@@ -330,6 +347,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                         break;
                     }
                 }
+#endif
             }
         }
     }

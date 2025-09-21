@@ -713,6 +713,12 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     {
         fatalErrorHook(messageStr.Data());
     }
+    else
+    {
+        std::terminate();
+    }
+
+    HYP_UNREACHABLE();
 }
 
 #pragma endregion Logger

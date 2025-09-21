@@ -4,6 +4,8 @@
 
 #include <core/filesystem/FilePath.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 #include <core/threading/AtomicVar.hpp>
@@ -30,6 +32,9 @@
 #endif
 
 namespace hyperion {
+
+HYP_API Handle<Logger> g_logger;
+
 namespace buildtool {
 
 HYP_DEFINE_LOG_CHANNEL(BuildTool);
@@ -78,8 +83,6 @@ public:
     virtual ~WorkerThreadPool() override = default;
 };
 
-Handle<Logger> g_logger;
-
 class HypBuildTool
 {
 public:
@@ -115,9 +118,6 @@ public:
 
     Result Run()
     {
-        static Logger s_buildToolLogger;
-        g_logger.ptr = &s_buildToolLogger;
-
         HYP_LOG(BuildTool, Info, "HypBuildTool v{}.{}.{}", HYP_BUILD_TOOL_VERSION_MAJOR, HYP_BUILD_TOOL_VERSION_MINOR, HYP_BUILD_TOOL_VERSION_PATCH);
         HYP_LOG(BuildTool, Info, "Running...");
 
@@ -752,6 +752,11 @@ using namespace buildtool;
 int main(int argc, char** argv)
 {
     Threads::SetCurrentThreadId(g_mainThread);
+
+    static Logger s_buildToolLogger;
+
+    g_logger.ptr = &s_buildToolLogger;
+    HYP_DEFER({ g_logger.ptr = nullptr; });
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 

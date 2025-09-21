@@ -551,16 +551,16 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command, co
             continue;
         }
 
+        if (def.flags[CommandLineArgumentFlags::REQUIRED])
+        {
+            return HYP_MAKE_ERROR(Error, "Missing required argument");
+        }
+
         if (def.defaultValue.HasValue())
         {
             AppendCommandLineArgumentValue(result.m_values, def.name, *def.defaultValue, allowMultiple);
 
             continue;
-        }
-
-        if (def.flags[CommandLineArgumentFlags::REQUIRED])
-        {
-            return HYP_MAKE_ERROR(Error, "Missing required argument");
         }
     }
 

@@ -8,7 +8,7 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <iostream>
+#include <cstdio>
 
 namespace hyperion {
 class ByteReader
@@ -158,25 +158,60 @@ protected:
 class FileByteReader : public ByteReader
 {
 public:
-    FileByteReader(const FilePath& filepath, std::streampos begin = 0)
-        : m_filepath(filepath),
+    FileByteReader(const FilePath& filepath, SizeType offset = 0)
+        : m_file(nullptr),
           m_pos(0),
-          m_maxPos(0)
+          m_maxPos(0),
+          m_filepath(filepath)
     {
-        m_file = new std::ifstream(
-            filepath.Data(),
-            std::ifstream::in
-                | std::ifstream::binary
-                | std::ifstream::ate);
+        m_file = std::fopen(filepath.Data(), "rb");
 
-        m_maxPos = m_file->tellg();
-        m_file->seekg(begin);
-        m_pos = m_file->tellg();
+        if (m_file == nullptr)
+        {
+            m_maxPos = 0;
+            m_pos = 0;
+
+            return;
+        }
+
+        // determine file size
+        if (std::fseek(m_file, 0, SEEK_END) == 0)
+        {
+            long endPos = std::ftell(m_file);
+
+            if (endPos >= 0)
+            {
+                m_maxPos = static_cast<SizeType>(endPos);
+            }
+            else
+            {
+                m_maxPos = 0;
+            }
+        }
+        else
+        {
+            m_maxPos = 0;
+        }
+
+        // seek to beginning offset
+        if (offset > m_maxPos)
+        {
+            offset = m_maxPos;
+        }
+
+        std::fseek(m_file, static_cast<long>(offset), SEEK_SET);
+
+        long cur = std::ftell(m_file);
+        m_pos = cur >= 0 ? static_cast<SizeType>(cur) : 0;
     }
 
     virtual ~FileByteReader() override
     {
-        delete m_file;
+        if (m_file != nullptr)
+        {
+            std::fclose(m_file);
+            m_file = nullptr;
+        }
     }
 
     const FilePath& GetFilepath() const
@@ -196,39 +231,108 @@ public:
 
     virtual void Skip(SizeType amount) override
     {
-        m_file->seekg(m_pos += amount);
+        if (m_file == nullptr)
+        {
+            return;
+        }
+
+        m_pos += amount;
+
+        if (m_pos > m_maxPos)
+        {
+            m_pos = m_maxPos;
+        }
+
+        std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
     }
 
     virtual void Rewind(SizeType amount) override
     {
-        m_file->seekg(m_pos -= amount);
+        if (m_file == nullptr)
+        {
+            return;
+        }
+
+        if (amount > m_pos)
+        {
+            m_pos = 0;
+        }
+        else
+        {
+            m_pos -= amount;
+        }
+
+        std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
     }
 
     virtual void Seek(SizeType whereTo) override
     {
-        m_file->seekg(m_pos = whereTo);
+        if (!m_file)
+        {
+            return;
+        }
+
+        if (whereTo > m_maxPos)
+        {
+            whereTo = m_maxPos;
+        }
+
+        m_pos = whereTo;
+        std::fseek(m_file, static_cast<long>(m_pos), SEEK_SET);
     }
 
 protected:
-    std::istream* m_file;
+    FILE* m_file;
     SizeType m_pos;
     SizeType m_maxPos;
     FilePath m_filepath;
 
-    virtual void ReadBytes(void* ptr, size_t size) override
+    virtual void ReadBytes(void* ptr, SizeType size) override
     {
-        m_file->read(static_cast<char*>(ptr), size);
-        m_pos += size;
+        if (m_file == nullptr || size == 0)
+        {
+            return;
+        }
+
+        const SizeType remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
+        const SizeType toRead = MathUtil::Min(size, remaining);
+
+        if (toRead == 0)
+        {
+            return;
+        }
+
+        const SizeType readBytes = std::fread(ptr, 1, toRead, m_file);
+        m_pos += readBytes;
     }
 
     virtual ByteBuffer ReadBytes(SizeType size) override
     {
-        m_pos += size;
+        if (m_file == nullptr)
+        {
+            return ByteBuffer();
+        }
 
-        ByteBuffer byteBuffer(size);
-        m_file->read(reinterpret_cast<char*>(byteBuffer.Data()), size);
+        const SizeType remaining = m_maxPos > m_pos ? (m_maxPos - m_pos) : 0;
+        const SizeType toRead = MathUtil::Min(size, remaining);
 
-        return byteBuffer;
+        if (toRead == 0)
+        {
+            return ByteBuffer();
+        }
+
+        ByteBuffer byteBuffer;
+        byteBuffer.SetSize(toRead);
+
+        const SizeType readBytes = std::fread(byteBuffer.Data(), 1, toRead, m_file);
+        m_pos += readBytes;
+
+        if (readBytes == toRead)
+        {
+            return byteBuffer;
+        }
+
+        return ByteBuffer(readBytes, byteBuffer.Data());
     }
 };
 } // namespace hyperion

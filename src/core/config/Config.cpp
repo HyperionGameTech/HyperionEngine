@@ -18,10 +18,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#ifdef HYPERION_BUILD_LIBRARY
-#include <HyperionEngine.hpp>
-#endif
-
 namespace hyperion {
 
 extern FilePath CoreApi_GetExecutablePath();
