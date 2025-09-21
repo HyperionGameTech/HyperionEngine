@@ -315,7 +315,7 @@ Result AssetObject::Save() const
 Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     json::JSONObject manifestJson;
-    ObjectToJSON(InstanceClass(), HypData(AnyRef(const_cast<AssetObject*>(this))), manifestJson);
+    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson);
 
     manifestJson["$Class"] = *InstanceClass()->GetName();
 
@@ -1004,7 +1004,7 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
     HYP_SCOPE;
 
     json::JSONObject manifestJson;
-    ObjectToJSON(InstanceClass(), HypData(AnyRef(const_cast<AssetPackage*>(this))), manifestJson);
+    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson);
 
     stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
 

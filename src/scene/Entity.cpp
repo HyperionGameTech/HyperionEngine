@@ -294,14 +294,17 @@ void Entity::LockTransform()
 {
     Node::LockTransform();
 
-    EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr);
+    if (IsInitCalled())
+    {
+        EntityManager* entityManager = GetEntityManager();
+        AssertDebug(entityManager != nullptr);
 
-    // set entity to static
-    entityManager->AddTag<EntityTag::STATIC>(this);
-    entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+        // set entity to static
+        entityManager->AddTag<EntityTag::STATIC>(this);
+        entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
 
-    m_transformChanged = false;
+        m_transformChanged = false;
+    }
 }
 
 void Entity::UnlockTransform()
@@ -313,25 +316,28 @@ void Entity::OnTransformUpdated(const Transform& transform)
 {
     Node::OnTransformUpdated(transform);
 
-    EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr);
-    AssertDebug(entityManager == m_scene->GetEntityManager());
-
-    if (!m_transformChanged)
+    if (IsInitCalled())
     {
-        // Set to dynamic
-        entityManager->AddTag<EntityTag::DYNAMIC>(this);
-        entityManager->RemoveTag<EntityTag::STATIC>(this);
+        EntityManager* entityManager = GetEntityManager();
+        AssertDebug(entityManager != nullptr);
+        AssertDebug(entityManager == m_scene->GetEntityManager());
 
-        m_transformChanged = true;
+        if (!m_transformChanged)
+        {
+            // Set to dynamic
+            entityManager->AddTag<EntityTag::DYNAMIC>(this);
+            entityManager->RemoveTag<EntityTag::STATIC>(this);
+
+            m_transformChanged = true;
+        }
+
+        TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
+        transformComponent.transform = m_worldTransform;
+
+        entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+
+        SetNeedsRenderProxyUpdate();
     }
-
-    TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
-    transformComponent.transform = m_worldTransform;
-
-    entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
-
-    SetNeedsRenderProxyUpdate();
 }
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
@@ -344,14 +350,12 @@ void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
     {
         if (previousEntityManager != entityManager)
         {
-            Handle<Entity> thisHandle = HandleFromThis();
-            previousEntityManager->MoveEntity(thisHandle, entityManager);
+            previousEntityManager->MoveEntity(MakeStrongRef(this), entityManager);
         }
     }
     else
     {
-        Handle<Entity> thisHandle = HandleFromThis();
-        entityManager->AddExistingEntity(thisHandle);
+        entityManager->AddExistingEntity(MakeStrongRef(this));
     }
 
     AssertDebug(m_entityManager == entityManager);

@@ -762,6 +762,7 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits)
 {
     HYP_SCOPE;
@@ -846,13 +847,29 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
             const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 
 #ifdef HYP_DEBUG_MODE
-            // debug checks
+            // stupid debug checks
             for (const DrawCall& drawCall : drawCallCollection.drawCalls)
             {
+                AssertDebug(drawCall.mesh != nullptr);
+                AssertDebug(drawCall.mesh->IsReady());
+                AssertDebug(drawCall.mesh->GetVertexBuffer() != nullptr);
+                AssertDebug(drawCall.mesh->GetVertexBuffer()->IsReady());
+                AssertDebug(drawCall.mesh->GetIndexBuffer() != nullptr);
+                AssertDebug(drawCall.mesh->GetIndexBuffer()->IsReady());
+                AssertDebug(drawCall.material != nullptr);
+                AssertDebug(drawCall.material->IsReady());
                 AssertDebug(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
             }
             for (const InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
             {
+                AssertDebug(drawCall.mesh != nullptr);
+                AssertDebug(drawCall.mesh->IsReady());
+                AssertDebug(drawCall.mesh->GetVertexBuffer() != nullptr);
+                AssertDebug(drawCall.mesh->GetVertexBuffer()->IsReady());
+                AssertDebug(drawCall.mesh->GetIndexBuffer() != nullptr);
+                AssertDebug(drawCall.mesh->GetIndexBuffer()->IsReady());
+                AssertDebug(drawCall.material != nullptr);
+                AssertDebug(drawCall.material->IsReady());
                 AssertDebug(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
             }
 #endif
@@ -885,6 +902,7 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
         frame->renderQueue << EndFramebuffer(framebuffer);
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void RenderCollector::RemoveEmptyRenderGroups()
 {

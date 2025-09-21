@@ -9,11 +9,6 @@
 
 namespace hyperion {
 
-FBOMResult HypDataMarshalHelper::NoMarshalRegistered(ANSIStringView typeName)
-{
-    return FBOMResult { FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for {}", typeName) };
-}
-
 static HashMap<TypeId, HypDataSerializeFunction>& GetHypDataSerializeFunctionMap()
 {
     static HashMap<TypeId, HypDataSerializeFunction> s_serializeFunctions;

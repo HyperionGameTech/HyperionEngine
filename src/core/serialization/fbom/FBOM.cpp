@@ -15,7 +15,7 @@
 
 namespace hyperion::serialization {
 
-static constexpr bool g_marshalParentClasses = false;
+static const bool g_marshalParentClasses = true;
 
 FBOM& FBOM::GetInstance()
 {
@@ -76,7 +76,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(TypeId typeId, bool allowFallback) const
     }
 
     // Find marshal for parent classes
-    if constexpr (g_marshalParentClasses)
+    if (g_marshalParentClasses)
     {
         const HypClass* parentHypClass = hypClass->GetParent();
 
@@ -158,7 +158,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView typeName, bool allowFallback)
     }
 
     // Find marshal for parent classes
-    if constexpr (g_marshalParentClasses)
+    if (g_marshalParentClasses)
     {
         const HypClass* parentHypClass = hypClass->GetParent();
 

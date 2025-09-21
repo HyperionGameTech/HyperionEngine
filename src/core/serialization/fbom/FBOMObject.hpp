@@ -355,7 +355,22 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
     {
         HYP_SCOPE;
 
-        FBOMMarshalerBase* marshal = FBOMObject::GetMarshal<T>();
+        FBOMMarshalerBase* marshal = nullptr;
+
+        ConstAnyRef ref = ConstAnyRef(in);
+        
+        /// @TODO: Move Marshal to HypClass.
+
+        if constexpr (IsHypObject<T>::value)
+        {
+            // InstanceClass type id
+            marshal = FBOMObject::GetMarshal(in.GetTypeId());
+            ref = ConstAnyRef(in.GetTypeId(), &in);
+        }
+        else
+        {
+            marshal = FBOMObject::GetMarshal<T>();
+        }
 
         if (!marshal)
         {
@@ -366,20 +381,21 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
 
         outObject = FBOMObject(marshal->GetObjectType());
 
-        if (FBOMResult err = marshal->Serialize(ConstAnyRef(in), outObject))
+        if (FBOMResult err = marshal->Serialize(ref, outObject))
         {
             return err;
         }
 
         if constexpr (HYP_HAS_METHOD(NormalizedType<T>, GetHashCode))
         {
+            /// @FIXME: Will have issue with derived types if method is not virtual!
             if (flags & FBOMObjectSerializeFlags::KEEP_UNIQUE)
             {
                 outObject.m_uniqueId = UniqueId::Generate();
             }
             else
             {
-                const HashCode hashCode = HashCode::GetHashCode(TypeId::ForType<T>()).Add(HashCode::GetHashCode(in));
+                const HashCode hashCode = HashCode::GetHashCode(ref.GetTypeId()).Add(HashCode::GetHashCode(in));
 
                 outObject.m_uniqueId = UniqueId(hashCode);
             }

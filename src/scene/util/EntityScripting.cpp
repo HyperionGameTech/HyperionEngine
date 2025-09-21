@@ -128,6 +128,15 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         return;
     }
 
+    AssertDebug(scriptComponent.scriptAsset != nullptr);
+
+    if (!scriptComponent.scriptAsset)
+    {
+        HYP_LOG(Script, Warning, "Entity has ScriptComponent with no ScriptAsset!");
+
+        return;
+    }
+
     ScriptData* scriptData = scriptComponent.scriptAsset->GetScriptData();
     Assert(scriptData != nullptr);
 

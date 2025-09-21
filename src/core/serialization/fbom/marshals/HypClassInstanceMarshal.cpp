@@ -33,15 +33,14 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", LookupTypeName(in.GetTypeId())) };
     }
 
-    if (!hypClass->IsClassType())
+    if (hypClass->IsClassType())
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has associated HypClass '{}' which is not a class type", LookupTypeName(in.GetTypeId()), hypClass->GetName()) };
+        // Get instance class if object is a HypObject
+        const HypClass* instanceClass = static_cast<const HypObjectBase*>(in.GetPointer())->InstanceClass();
+        Assert(instanceClass != nullptr);
+
+        hypClass = instanceClass;
     }
-
-    const HypClass* instanceClass = static_cast<const HypObjectBase*>(in.GetPointer())->InstanceClass();
-    Assert(instanceClass != nullptr);
-
-    hypClass = instanceClass;
 
     if (!hypClass->CanSerialize())
     {
@@ -74,7 +73,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         return { FBOMResult::FBOM_OK };
     }
 
-    HypData targetData { AnyRef { in.GetTypeId(), const_cast<void*>(in.GetPointer()) } };
+    HypData targetData { AnyRef { hypClass->GetTypeId(), const_cast<void*>(in.GetPointer()) } };
 
     out = FBOMObject(FBOMObjectType(hypClass));
 
@@ -162,12 +161,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hypClass->GetName());
-
-        // temp
-        if (hypClass->GetName() == NAME("Scene"))
-        {
-            HYP_LOG(Serialization, Debug, "Deserializing properties for HypClass '{}'", hypClass->GetName());
-        }
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {

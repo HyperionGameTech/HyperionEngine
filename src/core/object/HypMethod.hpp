@@ -336,7 +336,7 @@ public:
 
                     if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
                     {
-                        HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+                        HYP_FAIL("Failed to serialize data: {}", *err.message);
                     }
 
                     return out;
@@ -355,7 +355,7 @@ public:
 
                     if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
                     {
-                        HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
+                        HYP_FAIL("Failed to serialize data: {}", *err.message);
                     }
 
                     HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
