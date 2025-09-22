@@ -77,14 +77,14 @@ Mesh::Mesh()
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes)
     : HypObjectBase(),
-      m_asset(asset),
+      m_assetReference(asset),
       m_aabb(BoundingBox::Empty())
 {
-    if (m_asset.IsValid())
+    if (asset)
     {
-        ResourceHandle resourceHandle(*m_asset->GetResource());
+        ResourceHandle resourceHandle(*asset->GetResource());
 
-        m_aabb = m_asset->GetMeshData()->CalculateAABB();
+        m_aabb = asset->GetMeshData()->CalculateAABB();
     }
 }
 
@@ -118,13 +118,13 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
         .indexData = indexData
     };
 
-    m_aabb = m_asset->GetMeshData()->CalculateAABB();
+    m_aabb = meshData.CalculateAABB();
 
-    m_asset = CreateObject<MeshAsset>(g_nameMeshDefault, meshData);
+    m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(g_nameMeshDefault, meshData));
 }
 
 Mesh::Mesh(Mesh&& other) noexcept
-    : m_asset(std::move(other.m_asset)),
+    : m_assetReference(std::move(other.m_assetReference)),
       m_aabb(other.m_aabb)
 {
     other.m_aabb = BoundingBox::Empty();
@@ -137,7 +137,7 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
         return *this;
     }
 
-    m_asset = std::move(other.m_asset);
+    m_assetReference = std::move(other.m_assetReference);
     m_aabb = other.m_aabb;
 
     other.m_aabb = BoundingBox::Empty();
@@ -149,18 +149,17 @@ Mesh::~Mesh()
 {
     SafeDelete(std::move(m_vertexBuffer));
     SafeDelete(std::move(m_indexBuffer));
-    SafeDelete(std::move(m_asset));
 }
 
 void Mesh::Init()
 {
-    if (m_asset.IsValid())
+    if (const Handle<MeshAsset>& asset = GetAsset())
     {
-        if (!m_asset->IsRegistered())
+        if (!asset->IsRegistered())
         {
-            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+            if (!asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
             {
-                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
+                if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
                 }
@@ -168,14 +167,8 @@ void Mesh::Init()
 
             // all assets must be registered before uploading to gpu - if our asset isn't part of a package,
             // register it with transient Memory package
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
         }
-
-        m_assetReference = AssetReference(m_asset);
-    }
-    else
-    {
-        m_assetReference = AssetReference();
     }
 
     CreateGpuBuffers();
@@ -185,25 +178,27 @@ void Mesh::Init()
 
 void Mesh::CreateGpuBuffers()
 {
-    if (!m_asset)
+    const Handle<MeshAsset>& asset = GetAsset();
+
+    if (!asset)
     {
         HYP_LOG(Mesh, Error, "Mesh asset is not set, cannot create GPU buffers");
 
         return;
     }
 
-    ResourceHandle resourceHandle(*m_asset->GetResource());
-    Assert(m_asset->IsLoaded());
+    ResourceHandle resourceHandle(*asset->GetResource());
+    Assert(asset->IsLoaded());
 
-    Array<float> vertices = m_asset->GetMeshData()->BuildVertexBuffer();
+    Array<float> vertices = asset->GetMeshData()->BuildVertexBuffer();
 
     Array<uint32> indices;
-    indices.Resize(m_asset->GetMeshData()->indexData.Size() / sizeof(uint32));
-    Memory::MemCpy(indices.Data(), m_asset->GetMeshData()->indexData.Data(), m_asset->GetMeshData()->indexData.Size());
+    indices.Resize(asset->GetMeshData()->indexData.Size() / sizeof(uint32));
+    Memory::MemCpy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
 
-    AssertDebug(m_asset->GetMeshData()->desc.meshAttributes.vertexAttributes != 0, "No vertex attributes set on mesh");
-    Assert(vertices.Size() == m_asset->GetMeshDesc().numVertices * m_asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
-    Assert(indices.Size() == m_asset->GetMeshDesc().numIndices);
+    AssertDebug(asset->GetMeshData()->desc.meshAttributes.vertexAttributes != 0, "No vertex attributes set on mesh");
+    Assert(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
+    Assert(indices.Size() == asset->GetMeshDesc().numIndices);
 
     // Ensure vertex buffer is not empty
     if (vertices.Empty())
@@ -348,26 +343,22 @@ void Mesh::SetName(Name name)
 
     m_name = name;
 
-    if (m_asset.IsValid() && IsInitCalled())
+    const Handle<MeshAsset>& asset = GetAsset();
+
+    if (asset && IsInitCalled())
     {
-        if (!m_asset->IsRegistered())
+        if (!asset->IsRegistered())
         {
-            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+            if (!asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
             {
-                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
+                if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
                 }
             }
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
         }
-
-        m_assetReference = AssetReference(m_asset);
-    }
-    else
-    {
-        m_assetReference = AssetReference();
     }
 }
 
@@ -379,16 +370,14 @@ void Mesh::SetMeshData(const MeshData& meshData)
     m_aabb = meshData.CalculateAABB();
 
     Handle<MeshAsset> newAsset = CreateObject<MeshAsset>(GetName(), meshData);
-    m_asset = std::move(newAsset);
+    m_assetReference = TAssetReference<MeshAsset>(newAsset);
 
     if (IsInitCalled())
     {
-        if (!m_asset->IsRegistered())
+        if (!newAsset->IsRegistered())
         {
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", newAsset);
         }
-
-        m_assetReference = AssetReference(m_asset);
 
         CreateGpuBuffers();
     }
@@ -400,19 +389,22 @@ uint32 Mesh::NumIndices() const
     HYP_MT_CHECK_READ(m_dataRaceDetector, "Streamed mesh data");
 
     ///! FIXME: Use meshProxy instead of reading from asset desc, as it may change on another thread
-    return m_asset ? m_asset->GetMeshDesc().numIndices : 0;
+    const Handle<MeshAsset>& asset = GetAsset();
+    return asset ? asset->GetMeshDesc().numIndices : 0;
 }
 
 bool Mesh::BuildBVH(int maxDepth)
 {
-    if (!m_asset)
+    const Handle<MeshAsset>& asset = GetAsset();
+
+    if (!asset)
     {
         return false;
     }
 
-    ResourceHandle resourceHandle(*m_asset->GetResource());
+    ResourceHandle resourceHandle(*asset->GetResource());
 
-    const MeshData& meshData = *m_asset->GetMeshData();
+    const MeshData& meshData = *asset->GetMeshData();
 
     return meshData.BuildBVH(m_bvh, maxDepth);
 }

@@ -45,23 +45,19 @@ static void CollectAssetReferenceMembers(
                 continue;
             }
 
-            const HypClassAttributeValue& targetAttr = member.GetAttribute(g_nameResolveAsset);
+            const IHypMember* pTargetMember = nullptr;
 
-            if (!targetAttr)
+            if (const HypClassAttributeValue& targetAttr = member.GetAttribute(g_nameResolveAsset))
             {
-                HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' is of type AssetReference but has no 'ResolveAsset' attribute, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName());
+                // Get the target member
+                pTargetMember = hypClass->GetMember(*targetAttr.GetString());
 
-                continue;
-            }
+                if (!pTargetMember)
+                {
+                    HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' has 'ResolveAsset' attribute set to '{}', but no such member was found in the HypClass, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
 
-            // Get the target member
-            const IHypMember* pTargetMember = hypClass->GetMember(*targetAttr.GetString());
-
-            if (!pTargetMember)
-            {
-                HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' has 'ResolveAsset' attribute set to '{}', but no such member was found in the HypClass, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
-
-                continue;
+                    continue;
+                }
             }
 
             outMembers.EmplaceBack(&member, pTargetMember);
@@ -138,7 +134,11 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         for (const auto& pair : assetReferenceMembers)
         {
             assetReferenceMembersMap.Set(pair.first, pair.second);
-            assetReferenceTargetMembersMap.Insert(pair.second);
+
+            if (pair.second != nullptr)
+            {
+                assetReferenceTargetMembersMap.Insert(pair.second);
+            }
         }
     }
 
@@ -177,9 +177,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
             if (assetReferenceMembersIt != assetReferenceMembersMap.End())
             {
                 const IHypMember* pAssetReferenceMember = assetReferenceMembersIt->first;
-                const IHypMember* pTargetMember = assetReferenceMembersIt->second;
-
-                Assert(pAssetReferenceMember != nullptr && pTargetMember != nullptr);
+                Assert(pAssetReferenceMember != nullptr);
             }
             else
             {
@@ -260,7 +258,11 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
         for (const auto& pair : assetReferenceMembers)
         {
             assetReferenceMembersMap.Set(pair.first, pair.second);
-            assetReferenceTargetMembersMap.Insert(pair.second);
+
+            if (pair.second != nullptr)
+            {
+                assetReferenceTargetMembersMap.Insert(pair.second);
+            }
         }
     }
 
@@ -297,8 +299,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     const IHypMember* pAssetReferenceMember = assetReferenceMembersIt->first;
                     const IHypMember* pTargetMember = assetReferenceMembersIt->second;
 
-                    HYP_NAMED_SCOPE_FMT("Deserializing AssetReference member '{}' on object, resolving target member '{}' for HypClass '{}'", pAssetReferenceMember->GetName(), pTargetMember->GetName(), hypClass->GetName());
-
                     if (!pMember->CanDeserialize())
                     {
                         HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", pMember->GetName(), hypClass->GetName());
@@ -309,6 +309,11 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     if (!pMember->Deserialize(context, targetData, it.second))
                     {
                         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", pMember->GetName(), hypClass->GetName()) };
+                    }
+
+                    if (!pTargetMember)
+                    {
+                        continue;
                     }
 
                     AssertDebug(pAssetReferenceMember->GetTypeId() == g_typeIdAssetReference);

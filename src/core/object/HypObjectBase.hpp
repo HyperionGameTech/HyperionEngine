@@ -68,7 +68,7 @@ class HYP_API HypObjectBase
     friend bool InitObject(const Handle<T>&);
 
 public:
-    struct HypObjectData
+    struct HypClassInfo
     {
         using Type = HypObjectBase;
     };

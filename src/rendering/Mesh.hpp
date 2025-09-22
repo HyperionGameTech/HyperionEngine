@@ -85,12 +85,14 @@ public:
     HYP_METHOD(Property = "VertexAttributes")
     HYP_FORCE_INLINE VertexAttributeSet GetVertexAttributes() const
     {
-        return m_asset.IsValid() ? m_asset->GetMeshDesc().meshAttributes.vertexAttributes : VertexAttributeSet();
+        const Handle<MeshAsset>& asset = GetAsset();
+        return asset ? asset->GetMeshDesc().meshAttributes.vertexAttributes : VertexAttributeSet();
     }
 
     HYP_FORCE_INLINE MeshAttributes GetMeshAttributes() const
     {
-        return m_asset.IsValid() ? m_asset->GetMeshDesc().meshAttributes : MeshAttributes();
+        const Handle<MeshAsset>& asset = GetAsset();
+        return asset ? asset->GetMeshDesc().meshAttributes : MeshAttributes();
     }
 
     HYP_METHOD(Property = "Topology")
@@ -101,7 +103,7 @@ public:
 
     HYP_FORCE_INLINE const Handle<MeshAsset>& GetAsset() const
     {
-        return m_asset;
+        return m_assetReference.Resolve();
     }
 
     /*! \brief Get the axis-aligned bounding box for the mesh. */
@@ -127,7 +129,19 @@ public:
 
 private:
     void Init() override;
-    void CreateGpuBuffers();
+
+    // for serialization:
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    const AssetReference& GetAssetReference() const
+    {
+        return m_assetReference;
+    }
+
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    void SetAssetReference(const AssetReference& assetReference)
+    {
+        m_assetReference = reinterpret_cast<const TAssetReference<MeshAsset>&>(assetReference);
+    }
 
     HYP_FIELD(Serialize, Editor)
     Name m_name;
@@ -137,11 +151,7 @@ private:
     HYP_FIELD(Serialize = false)
     BVHNode m_bvh; // @TODO: Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
 
-    HYP_FIELD(Serialize = false)
-    Handle<MeshAsset> m_asset;
-
-    HYP_FIELD(Serialize = true, ResolveAsset = "m_asset")
-    AssetReference m_assetReference;
+    TAssetReference<MeshAsset> m_assetReference;
 
     GpuBufferRef m_vertexBuffer;
     GpuBufferRef m_indexBuffer;

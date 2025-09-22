@@ -64,7 +64,7 @@ struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
 {
     static constexpr bool value = true;
 
-    using Type = typename T::HypObjectData::Type;
+    using Type = typename T::HypClassInfo::Type;
 };
 
 enum class HypObjectInitializerFlags : uint32
@@ -211,6 +211,9 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
 
 template <class T>
 struct HypClassRegistration;
+
+template <class T>
+struct HypStructRegistration;
 
 /// HypClassRef - A strong reference to a HypClass.
 /// Reference counting only applies to dynamically created / destroyed HypClass objects (used with scripts).

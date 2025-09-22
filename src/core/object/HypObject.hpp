@@ -15,11 +15,15 @@ extern HYP_API const HypClass* GetClass(TypeId typeId);
 #define HYP_OBJECT_BODY(T, ...)                                                  \
 private:                                                                         \
     friend struct HypClassInitializer_##T;                                       \
-    friend class HypClassInstance<T>;                                            \
-    friend struct HypClassRegistration<T>;                                       \
+                                                                                \
+    template <class T>                                                          \
+    friend class HypClassInstance;                                              \
+                                                                                \
+    template <class T>                                                          \
+    friend struct HypClassRegistration;                                          \
                                                                                  \
 public:                                                                          \
-    struct HypObjectData                                                         \
+    struct HypClassInfo                                                         \
     {                                                                            \
         using Type = T;                                                          \
     };                                                                           \
@@ -80,5 +84,28 @@ public:                                                                         
     }                                                                            \
                                                                                  \
 private:
+
+
+#define STRUCT_BODY(T, ...)                                                     \
+    friend struct HypStructInitializer_##T;                                     \
+                                                                                \
+    template <class T>                                                          \
+    friend class HypStructInstance;                                             \
+                                                                                \
+    template <class T>                                                          \
+    friend struct HypStructRegistration;                                        \
+                                                                                \
+    struct HypClassInfo                                                         \
+    {                                                                           \
+        using Type = T;                                                         \
+    };                                                                          \
+                                                                                 \
+    HYP_FORCE_INLINE static const HypClass* Class()                              \
+    {                                                                            \
+        static const HypClass* hypClass = GetClass(TypeId::ForType<T>());        \
+        return hypClass;                                                         \
+    }
+    
+
 
 } // namespace hyperion

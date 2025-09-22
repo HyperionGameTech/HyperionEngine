@@ -36,10 +36,10 @@ struct HypMember;
 template <class T>
 struct HypClassDefinition;
 
-template <class THypClassDefinition>
+template <class T>
 class HypClassInstance;
 
-template <class THypClassDefinition>
+template <class T>
 class HypStructInstance;
 
 template <class T>
