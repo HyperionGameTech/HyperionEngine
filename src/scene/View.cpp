@@ -24,6 +24,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Mesh.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
@@ -805,6 +806,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
             AssertDebug(meshComponent != nullptr);
+            AssertDebug(meshComponent->mesh != nullptr);
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
             meshProxy.entity = MakeWeakRef(entity);

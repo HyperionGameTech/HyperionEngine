@@ -292,16 +292,19 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
-        MeshData meshData;
-        meshData.desc.numVertices = uint32(model.vertices.Size());
-        meshData.desc.numIndices = uint32(subMesh.indices.Size());
-        meshData.desc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+        MeshDesc meshDesc;
+        meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+        meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
+        meshDesc.meshAttributes.topology = TOP_TRIANGLES;
+        meshDesc.numVertices = uint32(model.vertices.Size());
+        meshDesc.numIndices = uint32(subMesh.indices.Size());
 
         if (skeleton.IsValid())
         {
-            meshData.desc.meshAttributes.vertexAttributes |= skeletonVertexAttributes;
+            meshDesc.meshAttributes.vertexAttributes |= skeletonVertexAttributes;
         }
 
+        MeshData meshData;
         meshData.vertexData = model.vertices;
         meshData.indexData.SetSize(subMesh.indices.Size() * sizeof(uint32));
         meshData.indexData.Write(subMesh.indices.Size() * sizeof(uint32), 0, subMesh.indices.Data());
@@ -310,7 +313,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Handle<Mesh> mesh = CreateObject<Mesh>();
         mesh->SetName(assetName);
-        mesh->SetMeshData(meshData);
+        mesh->SetMeshData(meshDesc, meshData);
 
         mesh->GetAsset()->Rename(assetName);
         mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));

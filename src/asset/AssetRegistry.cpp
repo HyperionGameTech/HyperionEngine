@@ -326,6 +326,12 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
     manifestJson["$Class"] = *InstanceClass()->GetName();
 
+    if (manifestJson["$Class"].ToString() == "MeshAsset" && manifestJson["name"].ToString().ToLower().StartsWith("vase21")) // && manifestJson["MeshDesc"]["numIndices"].ToNumber() == 0)
+    {
+        HYP_LOG(Serialization, Debug, "MeshAsset json data: {}", json::JSONValue(manifestJson).ToString(true));
+        HYP_BREAKPOINT;
+    }
+
     stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
 
     return {};
@@ -478,12 +484,14 @@ void AssetPackage::Init()
     Array<Handle<AssetObject>> assetObjects;
     Array<Handle<AssetPackage>> subpackages;
 
-    bool isSaved = false;
+    HashSet<AssetObject*> assetObjectsToSave;
+
+    bool isPackageSavedInFilesystem = false;
 
     {
         Mutex::Guard guard(m_mutex);
 
-        isSaved = !IsTransient() && m_packageDir.Length() != 0;
+        isPackageSavedInFilesystem = !IsTransient() && m_packageDir.Length() != 0;
 
         assetObjects.Reserve(m_assetObjects.Size());
         subpackages.Reserve(m_subpackages.Size());
@@ -495,9 +503,16 @@ void AssetPackage::Init()
                 // transient data isn't saved to disk so we have to keep it in memory
                 assetObject->SetIsPersistentlyLoaded(true);
             }
-            else if (isSaved)
+            else if (isPackageSavedInFilesystem)
             {
-                assetObject->m_filepath = m_packageDir / *assetObject->GetName();
+                const FilePath newAssetPath = m_packageDir / *assetObject->GetName();
+
+                if (assetObject->m_filepath != newAssetPath)
+                {
+                    assetObject->m_filepath = newAssetPath;
+
+                    assetObjectsToSave.Insert(assetObject.Get());
+                }
             }
 
             InitObject(assetObject);
@@ -517,14 +532,14 @@ void AssetPackage::Init()
 
     for (const Handle<AssetObject>& assetObject : assetObjects)
     {
-        if (isSaved)
+        if (assetObjectsToSave.Contains(assetObject.Get()))
         {
-            // save the file in our package
-            Result saveAssetResult = assetObject->Save();
-
-            if (saveAssetResult.HasError())
+            // save the asset in our package
+            if (Result saveAssetResult = assetObject->Save(); saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+
+                continue;
             }
 
             assetObject->SetIsPersistentlyLoaded(false);
@@ -575,13 +590,14 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
     }
 
     Array<Handle<AssetObject>> newAssetObjects;
+    HashSet<AssetObject*> assetObjectsToSave;
 
-    bool isSaved = false;
+    bool isPackageSavedInFilesystem = false;
 
     {
         Mutex::Guard guard(m_mutex);
 
-        isSaved = !IsTransient() && m_packageDir.Length() != 0;
+        isPackageSavedInFilesystem = !IsTransient() && m_packageDir.Length() != 0;
 
         m_assetObjects = assetObjects;
 
@@ -597,9 +613,16 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
                 // transient data isn't saved to disk so we have to keep it in memory
                 assetObject->SetIsPersistentlyLoaded(true);
             }
-            else if (isSaved)
+            else if (isPackageSavedInFilesystem)
             {
-                assetObject->m_filepath = m_packageDir / *assetObject->GetName();
+                const FilePath newAssetPath = m_packageDir / *assetObject->GetName();
+
+                if (assetObject->m_filepath != newAssetPath)
+                {
+                    assetObject->m_filepath = newAssetPath;
+
+                    assetObjectsToSave.Insert(assetObject.Get());
+                }
             }
 
             InitObject(assetObject);
@@ -612,7 +635,7 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
     {
         for (const Handle<AssetObject>& assetObject : newAssetObjects)
         {
-            if (isSaved)
+            if (assetObjectsToSave.Contains(assetObject.Get()))
             {
                 // save the file in our package
                 Result saveAssetResult = assetObject->Save();
@@ -620,6 +643,8 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
                 if (saveAssetResult.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+
+                    continue;
                 }
 
                 assetObject->SetIsPersistentlyLoaded(false);
@@ -659,12 +684,17 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
     assetObject->m_package = WeakHandleFromThis();
     assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
-    bool isSaved = false;
+    bool isPackageSavedInFilesystem = false;
+
+    // we save the asset to the filesystem if:
+    // the package is saved to the filesystem (not transient, has a package dir)
+    // AND the asset's new filepath would differ from the current one it has (or it has never been saved)
+    bool doSaveAsset = false;
 
     {
         Mutex::Guard guard(m_mutex);
 
-        isSaved = !IsTransient() && m_packageDir.Length() != 0;
+        isPackageSavedInFilesystem = !IsTransient() && m_packageDir.Length() != 0;
 
         // if no name is provided for the asset, generate one
         if (!assetObject->GetName().IsValid())
@@ -677,9 +707,19 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             // transient data isn't saved to disk so we have to keep it in memory
             assetObject->SetIsPersistentlyLoaded(true);
         }
-        else if (isSaved)
+        else if (isPackageSavedInFilesystem)
         {
-            assetObject->m_filepath = m_packageDir / *assetObject->GetName();
+            // set a filepath for the asset object to be saved at, based on our package's filepath.
+            const FilePath newAssetPath = m_packageDir / *assetObject->GetName();
+
+            if (newAssetPath != assetObject->m_filepath)
+            {
+                HYP_BREAKPOINT;
+
+                assetObject->m_filepath = newAssetPath;
+
+                doSaveAsset = true; // asset path changed, we need to save
+            }
         }
 
         auto assetObjectsIt = m_assetObjects.Find(assetObject->GetName());
@@ -702,7 +742,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
     {
         InitObject(assetObject);
 
-        if (isSaved)
+        if (doSaveAsset)
         {
             // save the file in our package
             Result saveAssetResult = assetObject->Save();
@@ -726,14 +766,6 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             parentPackage->OnAssetObjectAdded(assetObject, false);
             parentPackage = parentPackage->GetParentPackage().Lock();
         }
-    }
-
-    HYP_LOG(Assets, Debug, "Asset with path '{}' successfully added to package '{}'", assetObject->m_assetPath.ToString(), BuildPackagePath());
-
-    // temp
-    if (assetObject->GetName() == "NewScript")
-    {
-        HYP_BREAKPOINT;
     }
 
     return {};
@@ -1173,8 +1205,6 @@ void AssetRegistry::LoadPackagesAsync()
         {
             HYP_NAMED_SCOPE("AssetRegistry::LoadPackagesAsync");
 
-            HYP_LOG(Assets, Debug, "Loading packages from root path: {}", rootPath);
-
             Handle<AssetRegistry> registry = weakThis.Lock();
             if (!registry)
             {
@@ -1188,8 +1218,6 @@ void AssetRegistry::LoadPackagesAsync()
 
             iterateDirectory = [&](const FilePath& dir)
             {
-                HYP_LOG(Assets, Debug, "Searching for package manifest in directory: {}", dir);
-
                 bool packageFound = false;
 
                 for (const FilePath& entry : dir.GetAllFilesInDirectory())
@@ -1244,8 +1272,6 @@ void AssetRegistry::LoadPackagesAsync()
             };
 
             iterateDirectory(rootPath);
-
-            HYP_LOG(Assets, Debug, "Loaded {} packages from root path '{}'", rootPackages.Size(), rootPath);
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
 }
@@ -1370,7 +1396,6 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
                 // check if name is already taken in destination package
                 if (destAssetNames.Contains(desiredName))
                 {
-                    HYP_BREAKPOINT;
                     Name uniqueName = dest->GetUniqueAssetName(desiredName);
 
                     if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
@@ -1708,9 +1733,10 @@ Result AssetRegistry::LoadPackageFromManifest(
 
     outPackage->m_packageDir = dir;
 
-    // Load AssetObjects from manifest files
     for (const FilePath& entry : dir.GetAllFilesInDirectory())
     {
+        // only iterate over files (manifests)
+        // TODO: Add param to `GetAllFilesInDirectory` to filter by extension instead of checking each entry
         if (entry.GetExtension() != "json")
         {
             continue;
@@ -1722,12 +1748,19 @@ Result AssetRegistry::LoadPackageFromManifest(
             continue;
         }
 
-        HYP_LOG(Assets, Debug, "Loading asset from manifest at {}...", entry);
+        const FilePath dataPath = entry.StripExtension();
+
+        if (!dataPath.Exists() || dataPath.IsDirectory())
+        {
+            HYP_LOG(Assets, Warning, "Asset data file '{}' for asset manifest '{}' does not exist or is not a file!", dataPath, entry);
+
+            continue;
+        }
 
         FileBufferedReaderSource manifestSource { entry };
         BufferedReader manifestStream { &manifestSource };
 
-        FileBufferedReaderSource dataSource { entry.StripExtension() };
+        FileBufferedReaderSource dataSource { dataPath };
         BufferedReader dataStream { &dataSource };
 
         Handle<AssetObject> assetObject;
@@ -1740,6 +1773,9 @@ Result AssetRegistry::LoadPackageFromManifest(
         }
 
         AssertDebug(assetObject != nullptr);
+
+        // set filepath so it doesn't get double saved on adding to package
+        assetObject->m_filepath = dataPath;
 
         if (Result addAssetResult = outPackage->AddAssetObject(assetObject); addAssetResult.HasError())
         {

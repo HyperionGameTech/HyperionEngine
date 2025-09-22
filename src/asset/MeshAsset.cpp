@@ -32,9 +32,8 @@ BoundingBox MeshData::CalculateAABB() const
     }                                                                                                 \
     while (0)
 
-Array<float> MeshData::BuildVertexBuffer() const
+Array<float> MeshData::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
 {
-    const VertexAttributeSet vertexAttributes = desc.meshAttributes.vertexAttributes;
     const SizeType vertexSize = vertexAttributes.CalculateVertexSize();
 
     Array<float> packedBuffer;
@@ -156,12 +155,9 @@ void MeshData::InvertNormals()
 {
     HYP_SCOPE;
 
-    const SizeType numVertices = desc.numVertices;
-    Vertex* v = vertexData.Data();
-
-    for (SizeType i = 0; i < numVertices; i++)
+    for (SizeType i = 0; i < vertexData.Size(); i++)
     {
-        v[i].SetNormal(v[i].GetNormal() * -1.0f);
+        vertexData[i].SetNormal(vertexData[i].GetNormal() * -1.0f);
     }
 }
 
@@ -183,8 +179,8 @@ void MeshData::CalculateNormals(bool weighted)
 
     Assert(indexData.Size() % sizeof(uint32) == 0);
 
-    const SizeType numIndices = desc.numIndices;
-    const SizeType numVertices = desc.numVertices;
+    const SizeType numIndices = indexData.Size() / sizeof(uint32);
+    const SizeType numVertices = vertexData.Size();
 
     uint32* uIndexData = reinterpret_cast<uint32*>(indexData.Data());
 
@@ -349,8 +345,8 @@ void MeshData::CalculateTangents()
 
     Assert(indexData.Size() % sizeof(uint32) == 0);
 
-    const SizeType numIndices = desc.numIndices;
-    const SizeType numVertices = desc.numVertices;
+    const SizeType numIndices = indexData.Size() / sizeof(uint32);
+    const SizeType numVertices = vertexData.Size();
 
     uint32* uIndexData = reinterpret_cast<uint32*>(indexData.Data());
 
@@ -429,9 +425,6 @@ void MeshData::CalculateTangents()
         vertexData[i].SetTangent(averageTangent);
         vertexData[i].SetBitangent(averageBitangent);
     }
-
-    desc.meshAttributes.vertexAttributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT;
-    desc.meshAttributes.vertexAttributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
 }
 
 #undef ADD_TANGENTS
@@ -443,9 +436,9 @@ bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
     Assert(indexData.Size() % sizeof(uint32) == 0);
     Assert((indexData.Size() / sizeof(uint32)) % 3 == 0);
 
-    const SizeType numIndices = desc.numIndices;
-    const SizeType numVertices = desc.numVertices;
-    
+    const SizeType numIndices = indexData.Size() / sizeof(uint32);
+    const SizeType numVertices = vertexData.Size();
+
     Assert(numIndices == indexData.Size() / sizeof(uint32));
 
     const uint32* indexDataU32 = reinterpret_cast<const uint32*>(indexData.Data());
@@ -458,8 +451,7 @@ bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
         bvhNode.triangles.PushBack(Triangle {
             vertexData[indexDataU32[i + 0]],
             vertexData[indexDataU32[i + 1]],
-            vertexData[indexDataU32[i + 2]]
-        });
+            vertexData[indexDataU32[i + 2]] });
     }
 
     bvhNode.Split(maxDepth);

@@ -22,30 +22,27 @@ class BVHNode;
 HYP_STRUCT()
 struct MeshDesc
 {
-    HYP_FIELD(Property = "MeshAttributes", Serialize)
+    HYP_FIELD(Serialize)
     MeshAttributes meshAttributes;
 
-    HYP_FIELD(Property = "NumVertices", Serialize)
+    HYP_FIELD(Serialize)
     uint32 numVertices = 0;
 
-    HYP_FIELD(Property = "NumIndices", Serialize)
+    HYP_FIELD(Serialize)
     uint32 numIndices = 0;
 };
 
 HYP_STRUCT()
 struct MeshData
 {
-    HYP_FIELD(Property = "MeshDesc", Serialize)
-    MeshDesc desc;
-
-    HYP_FIELD(Property = "VertexData", Serialize, Compressed)
+    HYP_FIELD(Serialize, Compressed)
     Array<Vertex> vertexData;
 
-    HYP_FIELD(Property = "IndexData", Serialize, Compressed)
+    HYP_FIELD(Serialize, Compressed)
     ByteBuffer indexData;
 
     HYP_API BoundingBox CalculateAABB() const;
-    HYP_API Array<float> BuildVertexBuffer() const;
+    HYP_API Array<float> BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const;
     HYP_API Array<PackedVertex> BuildPackedVertices() const;
     HYP_API Array<uint32> BuildPackedIndices() const;
     HYP_API void InvertNormals();
@@ -67,15 +64,15 @@ public:
         AssetObject::SetData(MeshData());
     }
 
-    MeshAsset(Name name, const MeshData& meshData)
+    MeshAsset(Name name, const MeshDesc& desc, const MeshData& meshData)
         : AssetObject(name, meshData),
-          m_meshDesc(meshData.desc)
+          m_meshDesc(desc)
     {
     }
 
-    MeshAsset(Name name, MeshData&& meshData)
+    MeshAsset(Name name, const MeshDesc& desc, MeshData&& meshData)
         : AssetObject(name, std::move(meshData)),
-          m_meshDesc(meshData.desc)
+          m_meshDesc(desc)
     {
     }
 
@@ -98,6 +95,7 @@ public:
     }
 
 private:
+    HYP_FIELD(Property = "MeshDesc", Serialize)
     MeshDesc m_meshDesc;
 };
 

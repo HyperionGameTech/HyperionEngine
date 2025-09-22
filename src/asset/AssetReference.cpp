@@ -13,6 +13,8 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 HYP_API extern Handle<AssetManager> g_assetManager;
 
+static const AssetPath g_invalidAssetPath;
+
 const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
 {
     return assetReference.Resolve();
@@ -40,7 +42,14 @@ const AssetPath& AssetReference::GetAssetPath() const
         return assetObject->GetPath();
     }
 
+#ifdef HYP_DEBUG_MODE
     AssertDebug(m_data.Is<AssetPath>());
+
+    if (!m_data.Is<AssetPath>())
+    {
+        return g_invalidAssetPath;
+    }
+#endif
 
     return m_data.GetUnchecked<AssetPath>();
 }

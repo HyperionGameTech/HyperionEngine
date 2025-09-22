@@ -76,17 +76,18 @@ Handle<Mesh> MeshBuilder::Quad()
 {
     const VertexAttributeSet vertexAttributes = staticMeshVertexAttributes;
 
+    MeshDesc meshDesc;
+    meshDesc.meshAttributes.vertexAttributes = vertexAttributes;
+    meshDesc.numIndices = uint32(quadIndices.Size());
+    meshDesc.numVertices = uint32(quadVertices.Size());
+
     MeshData meshData;
-    meshData.desc.numIndices = uint32(quadIndices.Size());
-    meshData.desc.numVertices = uint32(quadVertices.Size());
     meshData.vertexData = quadVertices;
     meshData.indexData.SetSize(quadIndices.Size() * sizeof(uint32));
     meshData.indexData.Write(quadIndices.Size() * sizeof(uint32), 0, quadIndices.Data());
 
-    meshData.CalculateTangents();
-
     Handle<Mesh> mesh = CreateObject<Mesh>();
-    mesh->SetMeshData(meshData);
+    mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_Quad"));
 
     return mesh;
@@ -96,18 +97,19 @@ Handle<Mesh> MeshBuilder::Cube()
 {
     static const auto cubeVerticesAndIndices = Mesh::CalculateIndices(cubeVertices);
 
+    MeshDesc meshDesc;
+    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.numIndices = uint32(cubeVerticesAndIndices.second.Size());
+    meshDesc.numVertices = uint32(cubeVerticesAndIndices.first.Size());
+
     MeshData meshData;
-    meshData.desc.numIndices = uint32(cubeVerticesAndIndices.second.Size());
-    meshData.desc.numVertices = uint32(cubeVerticesAndIndices.first.Size());
     meshData.vertexData = cubeVerticesAndIndices.first;
     meshData.indexData.SetSize(cubeVerticesAndIndices.second.Size() * sizeof(uint32));
     meshData.indexData.Write(cubeVerticesAndIndices.second.Size() * sizeof(uint32), 0, cubeVerticesAndIndices.second.Data());
 
-    meshData.CalculateTangents();
-
     Handle<Mesh> mesh = CreateObject<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Cube"));
-    mesh->SetMeshData(meshData);
+    mesh->SetMeshData(meshDesc, meshData);
 
     return mesh;
 }
@@ -208,18 +210,20 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
         }
     }
 
+    MeshDesc meshDesc;
+    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.numIndices = uint32(indices.Size());
+    meshDesc.numVertices = uint32(vertices.Size());
+
     MeshData meshData;
-    meshData.desc.numIndices = uint32(indices.Size());
-    meshData.desc.numVertices = uint32(vertices.Size());
     meshData.vertexData = std::move(vertices);
     meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
     meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
     meshData.CalculateNormals(true);
-    meshData.CalculateTangents();
 
     Handle<Mesh> mesh = CreateObject<Mesh>();
-    mesh->SetMeshData(meshData);
+    mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));
 
     return mesh;
@@ -235,13 +239,15 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
     }
 
     ResourceHandle resourceHandle;
-    
+
     if (mesh->GetAsset()->IsRegistered())
     {
         resourceHandle = ResourceHandle(*mesh->GetAsset()->GetResource());
     }
 
     const Matrix4 normalMatrix = transform.GetMatrix().Inverted().Transposed();
+
+    const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
 
     MeshData* meshData = mesh->GetAsset()->GetMeshData();
     Assert(meshData != nullptr);
@@ -259,7 +265,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
     }
 
     Handle<Mesh> newMesh = CreateObject<Mesh>();
-    newMesh->SetMeshData(newMeshData);
+    newMesh->SetMeshData(meshDesc, newMeshData);
     newMesh->SetName(mesh->GetName());
 
     return newMesh;
@@ -280,7 +286,12 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         transformedMeshes[1]->GetAsset()->IsRegistered() ? ResourceHandle(*transformedMeshes[1]->GetAsset()->GetResource()) : ResourceHandle()
     };
 
-    MeshData* meshDatas[] = {
+    MeshDesc const* meshDescs[] = {
+        &transformedMeshes[0]->GetAsset()->GetMeshDesc(),
+        &transformedMeshes[1]->GetAsset()->GetMeshDesc()
+    };
+
+    MeshData const* meshDatas[] = {
         transformedMeshes[0]->GetAsset()->GetMeshData(),
         transformedMeshes[1]->GetAsset()->GetMeshData()
     };
@@ -295,8 +306,8 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
 
     Array<uint32> allIndices;
     allIndices.Resize(
-        (meshDatas[0]->indexData.Size() / GpuElemTypeSize(meshDatas[0]->desc.meshAttributes.indexBufferElemType))
-        + (meshDatas[1]->indexData.Size() / GpuElemTypeSize(meshDatas[1]->desc.meshAttributes.indexBufferElemType)));
+        (meshDatas[0]->indexData.Size() / GpuElemTypeSize(meshDescs[0]->meshAttributes.indexBufferElemType))
+        + (meshDatas[1]->indexData.Size() / GpuElemTypeSize(meshDescs[1]->meshAttributes.indexBufferElemType)));
 
     SizeType vertexOffset = 0;
     SizeType indexOffset = 0;
@@ -310,30 +321,32 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
             allVertices[vertexOffset++] = meshDatas[meshIndex]->vertexData[i];
         }
 
-        const uint32 stride = GpuElemTypeSize(meshDatas[meshIndex]->desc.meshAttributes.indexBufferElemType);
+        const uint32 stride = GpuElemTypeSize(meshDescs[meshIndex]->meshAttributes.indexBufferElemType);
 
         for (SizeType i = 0; i < meshDatas[meshIndex]->indexData.Size() / stride; i++)
         {
-            allIndices[indexOffset++] = meshDatas[meshIndex]->indexData[i * stride] + vertexOffsetBefore;
+            allIndices[indexOffset++] = meshDatas[meshIndex]->indexData.Data()[i * stride] + vertexOffsetBefore;
         }
     }
 
     for (ResourceHandle& resourceHandle : resourceHandles)
     {
-        resourceHandle.Reset();    
+        resourceHandle.Reset();
     }
 
+    MeshDesc mergedMeshDesc;
+    mergedMeshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
+    mergedMeshDesc.meshAttributes.vertexAttributes = mergedVertexAttributes;
+    mergedMeshDesc.numIndices = uint32(allIndices.Size());
+    mergedMeshDesc.numVertices = uint32(allVertices.Size());
+
     MeshData mergedMeshData;
-    mergedMeshData.desc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
-    mergedMeshData.desc.meshAttributes.vertexAttributes = mergedVertexAttributes;
-    mergedMeshData.desc.numIndices = uint32(allIndices.Size());
-    mergedMeshData.desc.numVertices = uint32(allVertices.Size());
     mergedMeshData.vertexData = std::move(allVertices);
     mergedMeshData.indexData.SetSize(allIndices.Size() * sizeof(uint32));
     mergedMeshData.indexData.Write(allIndices.Size() * sizeof(uint32), 0, allIndices.Data());
 
     Handle<Mesh> newMesh = CreateObject<Mesh>();
-    newMesh->SetMeshData(mergedMeshData);
+    newMesh->SetMeshData(mergedMeshDesc, mergedMeshData);
     newMesh->SetName(NAME("MeshBuilder_MergedMesh"));
 
     return newMesh;
@@ -355,14 +368,14 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     {
         if (octant.GetPayload().occupiedBit) // filled voxel node
         {
-            //AssertDebug(!octant.IsDivided());
-            
+            // AssertDebug(!octant.IsDivided());
+
             voxelAabbs.PushBack(octant.GetAABB());
         }
-        
+
         if (octant.IsDivided())
         {
-            //AssertDebug(octant.GetEntries().Empty());
+            // AssertDebug(octant.GetEntries().Empty());
 
             for (auto& childOctant : octant.GetOctants())
             {
@@ -387,14 +400,14 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     {
         Vec3f mn = aabb.GetMin();
         Vec3f mx = aabb.GetMax();
-        
+
         Vec3f size = mx - mn;
 
         // Create vertices for the cube
         for (Vertex vertex : cubeVertices)
         {
             vertex.position = vertex.GetPosition() * size + mn;
-        
+
             vertices.PushBack(vertex);
         }
 
@@ -449,16 +462,20 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
         }
     }
 
+    MeshDesc meshDesc;
+    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.numIndices = (uint32)indices.Size();
+    meshDesc.numVertices = (uint32)vertices.Size();
+    meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
+    meshDesc.meshAttributes.topology = TOP_LINES;
+
     MeshData meshData;
-    meshData.desc.numVertices = (uint32)vertices.Size();
-    meshData.desc.numIndices = (uint32)indices.Size();
-    meshData.desc.meshAttributes.topology = TOP_LINES;
     meshData.vertexData = std::move(vertices);
     meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
     meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
     Handle<Mesh> mesh = CreateObject<Mesh>();
-    mesh->SetMeshData(meshData);
+    mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_VoxelMesh"));
 
     return mesh;

@@ -193,16 +193,20 @@ struct FBXMesh
         {
             auto verticesAndIndices = Mesh::CalculateIndices(vertices);
 
+            MeshDesc meshDesc;
+            meshDesc.meshAttributes.vertexAttributes = attributes;
+            meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
+            meshDesc.meshAttributes.topology = TOP_TRIANGLES;
+            meshDesc.numVertices = uint32(verticesAndIndices.first.Size());
+            meshDesc.numIndices = uint32(verticesAndIndices.second.Size());
+
             MeshData meshData;
-            meshData.desc.meshAttributes.vertexAttributes = attributes;
-            meshData.desc.numVertices = uint32(vertices.Size());
-            meshData.desc.numIndices = uint32(indices.Size());
             meshData.vertexData = vertices;
             meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
             meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
             Handle<Mesh> mesh = CreateObject<Mesh>();
-            mesh->SetMeshData(meshData);
+            mesh->SetMeshData(meshDesc, meshData);
 
             result.Set(std::move(mesh));
         }

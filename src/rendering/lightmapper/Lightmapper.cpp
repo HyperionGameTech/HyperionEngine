@@ -735,10 +735,12 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
             const LightmapMeshData& lightmapMeshData = job->GetUVBuilder().GetMeshData()[subElementIndex];
             Assert(lightmapMeshData.mesh == mesh);
 
+            MeshDesc newMeshDesc;
+            newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
+            newMeshDesc.numVertices = uint32(lightmapMeshData.vertices.Size());
+            newMeshDesc.numIndices = uint32(lightmapMeshData.indices.Size());
+
             MeshData newMeshData;
-            newMeshData.desc.meshAttributes = mesh->GetMeshAttributes();
-            newMeshData.desc.numVertices = uint32(lightmapMeshData.vertices.Size());
-            newMeshData.desc.numIndices = uint32(lightmapMeshData.indices.Size());
             newMeshData.vertexData = lightmapMeshData.vertices;
             newMeshData.indexData = ByteBuffer(lightmapMeshData.indices.ToByteView());
 
@@ -750,7 +752,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
                 lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
             }
 
-            mesh->SetMeshData(newMeshData);
+            mesh->SetMeshData(newMeshDesc, newMeshData);
         };
 
         updateMeshData();

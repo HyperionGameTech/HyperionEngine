@@ -197,7 +197,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     insertIntoOctree = [&](const VoxelOctreeElement& element, const MeshData& meshData) -> bool
     {
-        if (meshData.desc.numIndices != 0)
+        if (meshData.indexData.Size() != 0)
         {
             Span<const uint32> meshIndices = Span<const uint32>(
                 reinterpret_cast<const uint32*>(meshData.indexData.Data()),

@@ -118,6 +118,8 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
             return;
         }
 
+        const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
+
         MeshData meshData = *mesh->GetAsset()->GetMeshData();
 
         lightmapMeshData.mesh = subElement.mesh;
@@ -128,7 +130,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
         m_meshVertexNormals[i].Resize(meshData.vertexData.Size() * 3);
         m_meshVertexUvs[i].Resize(meshData.vertexData.Size() * 2);
 
-        const SizeType indexSize = GpuElemTypeSize(meshData.desc.meshAttributes.indexBufferElemType);
+        const SizeType indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
 
         m_meshIndices[i].Resize(meshData.indexData.Size() / indexSize);
 

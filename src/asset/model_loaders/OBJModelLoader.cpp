@@ -410,19 +410,20 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(objMesh.name.Split('/', '\\').Back()));
 
+        MeshDesc meshDesc;
+        meshDesc.numIndices = uint32(indices.Size());
+        meshDesc.numVertices = uint32(vertices.Size());
+
         MeshData meshData;
-        meshData.desc.numIndices = uint32(indices.Size());
-        meshData.desc.numVertices = uint32(vertices.Size());
         meshData.vertexData = vertices;
         meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
         meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
         meshData.CalculateNormals();
-        meshData.CalculateTangents();
 
         Handle<Mesh> mesh = CreateObject<Mesh>();
         mesh->SetName(assetName);
-        mesh->SetMeshData(meshData);
+        mesh->SetMeshData(meshDesc, meshData);
 
         mesh->GetAsset()->Rename(assetName);
         mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));

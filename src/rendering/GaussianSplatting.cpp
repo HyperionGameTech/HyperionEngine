@@ -412,10 +412,10 @@ void GaussianSplattingInstance::CreateBuffers()
 
     m_splatBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, numPoints * sizeof(GaussianSplattingInstanceShaderData));
     m_splatBuffer->SetRequireCpuAccessible(true);
-    
+
     m_splatIndicesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, MathUtil::NextPowerOf2(numPoints) * sizeof(GaussianSplatIndex));
     m_splatIndicesBuffer->SetRequireCpuAccessible(true);
-    
+
     m_sceneBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(GaussianSplattingSceneShaderData));
     m_indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, 0);
 
@@ -596,15 +596,20 @@ void GaussianSplatting::Init()
         2, 3, 1
     };
 
+    MeshDesc meshDesc;
+    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
+    meshDesc.meshAttributes.topology = TOP_TRIANGLES;
+    meshDesc.numIndices = uint32(indices.Size());
+    meshDesc.numVertices = uint32(vertices.Size());
+
     MeshData meshData;
-    meshData.desc.numIndices = uint32(indices.Size());
-    meshData.desc.numVertices = uint32(vertices.Size());
     meshData.vertexData = vertices;
     meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
     meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
     m_quadMesh = CreateObject<Mesh>();
-    m_quadMesh->SetMeshData(meshData);
+    m_quadMesh->SetMeshData(meshDesc, meshData);
 
     InitObject(m_quadMesh);
 

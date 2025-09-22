@@ -82,6 +82,8 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             Assert(quad->GetAsset().IsValid());
             Assert(quad->GetAsset()->GetMeshData() != nullptr);
+            
+            const MeshDesc& meshDesc = quad->GetAsset()->GetMeshDesc();
 
             MeshData newMeshData = *quad->GetAsset()->GetMeshData();
 
@@ -91,7 +93,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
 
-            quad->SetMeshData(newMeshData);
+            quad->SetMeshData(meshDesc, newMeshData);
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);

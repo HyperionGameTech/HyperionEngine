@@ -595,7 +595,7 @@ void RenderCollector::Clear(bool freeMemory)
                 SafeDelete(std::move(mapping.renderGroup));
             }
         }
-        
+
         if (freeMemory)
         {
             mappings.Clear();
@@ -849,11 +849,20 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
             // stupid debug checks
             for (const DrawCall& drawCall : drawCallCollection.drawCalls)
             {
-                AssertDebug(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
+                Assert(drawCall.mesh && drawCall.mesh->IsReady());
+                Assert(drawCall.mesh->gpuUploadFence.IsSignaled());
+
+                Assert(drawCall.material && drawCall.material->IsReady());
+                Assert(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
             }
             for (const InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
             {
-                AssertDebug(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
+                Assert(drawCall.mesh && drawCall.mesh->IsReady());
+                Assert(drawCall.mesh->gpuUploadFence.IsSignaled());
+
+                Assert(drawCall.material && drawCall.material->IsReady());
+
+                Assert(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
             }
 #endif
 
@@ -1074,6 +1083,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
+
             RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
             UpdateRenderableAttributesDynamic(meshProxy, attributes);
 
@@ -1085,8 +1096,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             {
                 rg = CreateRenderGroup(this, mapping, attributes);
             }
-
-            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
 
             const uint32 idx = id.ToIndex();
 
@@ -1194,7 +1203,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
                     // Reset it
                     *batch = EntityInstanceBatch { batchIndex };
 
-                    //drawCallCollection.impl->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
+                    // drawCallCollection.impl->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
                 }
             }
 

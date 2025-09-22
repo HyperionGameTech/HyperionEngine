@@ -113,14 +113,13 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
     };
 
     const MeshData meshData {
-        .desc = meshDesc,
         .vertexData = vertexData,
         .indexData = indexData
     };
 
     m_aabb = meshData.CalculateAABB();
 
-    m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(g_nameMeshDefault, meshData));
+    m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(g_nameMeshDefault, meshDesc, meshData));
 }
 
 Mesh::Mesh(Mesh&& other) noexcept
@@ -169,9 +168,18 @@ void Mesh::Init()
             // register it with transient Memory package
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
         }
-    }
 
-    CreateGpuBuffers();
+        CreateGpuBuffers();
+    }
+#ifdef HYP_DEBUG_MODE
+    else
+    {
+        HYP_LOG(Mesh, Error, "Mesh with ID {} (name: {}, asset path: {}) has no valid asset assigned, cannot create GPU buffers!",
+            Id(), GetName(), m_assetReference.GetAssetPath());
+
+        HYP_BREAKPOINT;
+    }
+#endif
 
     SetReady(true);
 }
@@ -188,17 +196,18 @@ void Mesh::CreateGpuBuffers()
     }
 
     ResourceHandle resourceHandle(*asset->GetResource());
-    Assert(asset->IsLoaded());
+    AssertDebug(asset->IsLoaded());
 
-    Array<float> vertices = asset->GetMeshData()->BuildVertexBuffer();
+    const VertexAttributeSet& vertexAttributes = asset->GetMeshDesc().meshAttributes.vertexAttributes;
+
+    Array<float> vertices = asset->GetMeshData()->BuildVertexBuffer(vertexAttributes);
 
     Array<uint32> indices;
     indices.Resize(asset->GetMeshData()->indexData.Size() / sizeof(uint32));
     Memory::MemCpy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
 
-    AssertDebug(asset->GetMeshData()->desc.meshAttributes.vertexAttributes != 0, "No vertex attributes set on mesh");
-    Assert(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
-    Assert(indices.Size() == asset->GetMeshDesc().numIndices);
+    AssertDebug(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
+    AssertDebug(indices.Size() == asset->GetMeshDesc().numIndices);
 
     // Ensure vertex buffer is not empty
     if (vertices.Empty())
@@ -222,8 +231,11 @@ void Mesh::CreateGpuBuffers()
     GpuBufferRef vertexBuffer;
     GpuBufferRef indexBuffer;
 
-    if (IsInitCalled() && !Threads::IsOnThread(g_renderThread))
+    // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
+    if (IsReady() && !Threads::IsOnThread(g_renderThread))
     {
+        HYP_BREAKPOINT;
+
         vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
         indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
@@ -321,11 +333,16 @@ void Mesh::CreateGpuBuffers()
             SafeDelete(std::move(stagingBufferVertices));
             SafeDelete(std::move(stagingBufferIndices));
 
-            SafeDelete(std::move(mesh->m_vertexBuffer));
-            SafeDelete(std::move(mesh->m_indexBuffer));
+            if (mesh->m_vertexBuffer != vertexBuffer || mesh->m_indexBuffer != indexBuffer)
+            {
+                SafeDelete(std::move(mesh->m_vertexBuffer));
+                SafeDelete(std::move(mesh->m_indexBuffer));
 
-            mesh->m_vertexBuffer = std::move(vertexBuffer);
-            mesh->m_indexBuffer = std::move(indexBuffer);
+                mesh->m_vertexBuffer = std::move(vertexBuffer);
+                mesh->m_indexBuffer = std::move(indexBuffer);
+            }
+
+            mesh->gpuUploadFence.Signal();
 
             return {};
         }
@@ -362,14 +379,14 @@ void Mesh::SetName(Name name)
     }
 }
 
-void Mesh::SetMeshData(const MeshData& meshData)
+void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
 {
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_dataRaceDetector);
 
     m_aabb = meshData.CalculateAABB();
 
-    Handle<MeshAsset> newAsset = CreateObject<MeshAsset>(GetName(), meshData);
+    Handle<MeshAsset> newAsset = CreateObject<MeshAsset>(GetName(), meshDesc, meshData);
     m_assetReference = TAssetReference<MeshAsset>(newAsset);
 
     if (IsInitCalled())

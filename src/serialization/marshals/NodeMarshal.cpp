@@ -93,8 +93,6 @@ public:
             return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of HypClass {}", hypClass->GetName()) };
         }
 
-        HYP_LOG(Serialization, Debug, "Deserializing Node of type: {}", hypClass->GetName());
-
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, hypClass, out.ToRef()))
         {
             return err;

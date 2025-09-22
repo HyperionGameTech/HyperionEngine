@@ -9,7 +9,6 @@ HYP_DEFINE_LOG_CHANNEL(Core);
 
 HYP_DEFINE_LOG_SUBCHANNEL(Misc, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Temp, Core);
-HYP_DEFINE_LOG_SUBCHANNEL(Engine, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Config, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Object, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Physics, Core);
@@ -24,6 +23,14 @@ HYP_DEFINE_LOG_SUBCHANNEL(UI, Core);
 HYP_DEFINE_LOG_SUBCHANNEL(Memory, Core);
 
 #pragma endregion Core
+
+#pragma region Engine
+
+HYP_DEFINE_LOG_SUBCHANNEL(Engine, Core);
+
+HYP_DEFINE_LOG_SUBCHANNEL(Perf, Engine);
+
+#pragma endregion Engine
 
 #pragma region Rendering
 

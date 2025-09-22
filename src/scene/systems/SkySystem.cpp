@@ -22,7 +22,11 @@
 
 #include <util/MeshBuilder.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineGlobals.hpp>
 
 namespace hyperion {
 
@@ -108,7 +112,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
         if (!mesh.IsValid())
         {
             mesh = MeshBuilder::Cube();
-            // meshComponent.mesh->InvertNormals();
+
             InitObject(mesh);
         }
 

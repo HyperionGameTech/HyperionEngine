@@ -139,8 +139,6 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
 bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, HypData& target)
 {
-    Array<const IHypMember*> membersToResolve;
-
     auto resolveMember = [hypClass, &target](const IHypMember& member, const json::JSONValue& value) -> bool
     {
         switch (member.GetMemberType())
@@ -200,6 +198,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
     json::JSONValue jsonObjectValue(jsonObject);
 
+    // reoslve jsonpath members first
     for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
     {
         if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
@@ -207,41 +206,59 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
             continue;
         }
 
-        if (const HypClassAttributeValue& pathAttribute = member.GetAttribute("jsonpath"); pathAttribute.IsValid())
+        const HypClassAttributeValue& pathAttribute = member.GetAttribute("jsonpath");
+
+        if (!pathAttribute.IsValid())
         {
-            const String path = pathAttribute.GetString();
-
-            HYP_LOG(Config, Debug, "Deserializing JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
-
-            auto value = jsonObjectValue.Get(path);
-
-            if (!value.value)
-            {
-                HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
-
-                continue;
-            }
-
-            if (!resolveMember(member, value.Get()))
-            {
-                return false;
-            }
-
             continue;
         }
 
-        // try to resolve the member by name
-        auto value = jsonObjectValue.Get(*member.GetName());
+        const String& path = pathAttribute.GetString();
+
+        auto value = jsonObjectValue.Get(path);
 
         if (!value.value)
         {
-            HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", member.GetName(), hypClass->GetName());
+            HYP_LOG(Config, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
 
             continue;
         }
 
         if (!resolveMember(member, value.Get()))
         {
+            HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+
+            return false;
+        }
+    }
+
+    // resolve data from json object to members by name
+    for (const auto& [key, value] : jsonObject)
+    {
+        const IHypMember* member = hypClass->GetMember(key);
+
+        if (!member)
+        {
+            // member not found, skip
+            continue;
+        }
+
+        // skip members with jsonpath attribute - they were already resolved
+        if (member->GetAttribute("jsonpath").IsValid())
+        {
+            continue;
+        }
+
+        // skip if jsonignore is set
+        if (const HypClassAttributeValue& attribute = member->GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+        {
+            continue;
+        }
+
+        if (!resolveMember(*member, value))
+        {
+            HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, hypClass->GetName());
+
             return false;
         }
     }

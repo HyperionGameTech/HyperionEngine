@@ -213,18 +213,19 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     Array<Vertex> vertices = BuildVertices();
     Array<uint32> indices = BuildIndices();
 
+    MeshDesc meshDesc;
+    meshDesc.numIndices = uint32(indices.Size());
+    meshDesc.numVertices = uint32(vertices.Size());
+
     MeshData meshData;
-    meshData.desc.numIndices = uint32(indices.Size());
-    meshData.desc.numVertices = uint32(vertices.Size());
     meshData.vertexData = vertices;
     meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
     meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
     meshData.CalculateNormals();
-    meshData.CalculateTangents();
 
     Handle<Mesh> mesh = CreateObject<Mesh>();
-    mesh->SetMeshData(meshData);
+    mesh->SetMeshData(meshDesc, meshData);
 
     return mesh;
 }

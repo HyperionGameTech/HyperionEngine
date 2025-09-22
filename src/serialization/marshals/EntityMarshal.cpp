@@ -145,8 +145,7 @@ public:
         {
             HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-            Task<void> serializeEntityAndComponentsTask = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler()
-                .Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
+            Task<void> serializeEntityAndComponentsTask = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
                 {
                     serializeEntityAndComponents();
                 });
@@ -232,8 +231,6 @@ public:
                     return err;
                 }
 
-                HYP_LOG(Serialization, Debug, "Deserializing entity tag component with value {}", entityTagValue);
-
                 EntityTag entityTag = EntityTag(entityTagValue);
 
                 if (!entityManager->IsEntityTagComponent(componentInterface->GetTypeId()))
@@ -281,14 +278,6 @@ public:
                 child.GetType().name,
                 entity->InstanceClass()->GetName(),
                 entity->Id());
-
-            // temp
-            if (componentInterface->GetTypeName() == "MeshComponent")
-            {
-                HYP_LOG(Serialization, Debug, "MeshComponent deserialized for entity with Id: {}", entity->Id());
-                MeshComponent& meshComponent = child.m_deserializedObject->Get<MeshComponent>();
-                Assert(meshComponent.mesh.IsValid());
-            }
 
             entityManager->AddComponent(entity, *child.m_deserializedObject);
         }

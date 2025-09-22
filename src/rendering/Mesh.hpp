@@ -9,6 +9,7 @@
 #include <core/containers/Array.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
+#include <core/threading/Semaphore.hpp>
 
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Vertex.hpp>
@@ -31,6 +32,35 @@ class BVHNode;
 class RenderMesh;
 class Material;
 
+class MeshGpuUploadFence
+{
+public:
+    MeshGpuUploadFence() = default;
+    MeshGpuUploadFence(const MeshGpuUploadFence&) = delete;
+    MeshGpuUploadFence& operator=(const MeshGpuUploadFence&) = delete;
+    MeshGpuUploadFence(MeshGpuUploadFence&& other) noexcept = delete;
+    MeshGpuUploadFence& operator=(MeshGpuUploadFence&& other) noexcept = delete;
+    ~MeshGpuUploadFence() = default;
+
+    HYP_FORCE_INLINE void Wait() const
+    {
+        m_semaphore.Acquire();
+    }
+
+    HYP_FORCE_INLINE void Signal()
+    {
+        m_semaphore.Produce();
+    }
+
+    HYP_FORCE_INLINE bool IsSignaled() const
+    {
+        return m_semaphore.IsInSignalState();
+    }
+
+private:
+    Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE> m_semaphore;
+};
+
 /*! \brief Represents a 3D mesh in the engine, containing vertex data, indices, and rendering attributes. */
 HYP_CLASS()
 class HYP_API Mesh final : public HypObjectBase
@@ -43,6 +73,7 @@ public:
     static Pair<Array<Vertex>, Array<uint32>> CalculateIndices(const Array<Vertex>& vertices);
 
     Mesh();
+
     Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes);
     Mesh(const Handle<MeshAsset>& asset, Topology topology = TOP_TRIANGLES);
     Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes);
@@ -65,7 +96,7 @@ public:
     HYP_METHOD()
     void SetName(Name name);
 
-    void SetMeshData(const MeshData& meshData);
+    void SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData);
 
     HYP_METHOD()
     uint32 NumIndices() const;
@@ -126,6 +157,8 @@ public:
     }
 
     bool BuildBVH(int maxDepth = 3);
+
+    MeshGpuUploadFence gpuUploadFence;
 
 private:
     void Init() override;

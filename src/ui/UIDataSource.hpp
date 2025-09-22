@@ -297,7 +297,6 @@ protected:
     TypeMap<Handle<UIElementFactoryBase>> m_elementFactories;
 };
 
-HYP_DISABLE_OPTIMIZATION;
 
 HYP_CLASS()
 class HYP_API UIDataSource : public UIDataSourceBase
@@ -596,7 +595,6 @@ private:
     Proc<Handle<UIObject>(UIObject*, const HypData&, const HypData&)> m_createUiObjectProc;
     Proc<void(UIObject*, const HypData&, const HypData&)> m_updateUiObjectProc;
 };
-HYP_ENABLE_OPTIMIZATION;
 
 struct HYP_API UIElementFactoryRegistrationBase
 {

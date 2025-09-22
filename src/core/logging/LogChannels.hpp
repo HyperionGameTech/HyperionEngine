@@ -10,7 +10,6 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 
 HYP_DECLARE_LOG_CHANNEL(Misc);
 HYP_DECLARE_LOG_CHANNEL(Temp);
-HYP_DECLARE_LOG_CHANNEL(Engine);
 HYP_DECLARE_LOG_CHANNEL(Config);
 HYP_DECLARE_LOG_CHANNEL(Object);
 HYP_DECLARE_LOG_CHANNEL(Physics);
@@ -25,6 +24,14 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 HYP_DECLARE_LOG_CHANNEL(Memory);
 
 #pragma endregion Core
+
+#pragma region Engine
+
+HYP_DECLARE_LOG_CHANNEL(Engine);
+
+HYP_DECLARE_LOG_CHANNEL(Perf);
+
+#pragma endregion Engine
 
 #pragma region Rendering
 
