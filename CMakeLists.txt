@@ -85,6 +85,10 @@ RunHypBuildTool()
 set(HYP_DEBUG_MODE 1)
 add_definitions(-DHYP_DEBUG_MODE=1)
 
+# set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
+add_definitions(-DHYPERION_ENGINE=1)
+set(HYPERION_ENGINE 1)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     set(NATIVE false CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
 else()

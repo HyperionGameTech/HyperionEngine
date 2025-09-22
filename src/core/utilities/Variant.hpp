@@ -212,6 +212,7 @@ public:
             if (moveConstructFunctions[other.m_currentIndex](other.CurrentTypeId(), m_storage.GetPointer(), other.m_storage.GetPointer()))
             {
                 m_currentIndex = other.m_currentIndex;
+                other.m_currentIndex = invalidTypeIndex;
             }
         }
     }
@@ -644,13 +645,7 @@ public:
         return *this;
     }
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder> && std::is_copy_constructible_v<T>>>
-    explicit VariantHolder(const T& value)
-        : Base(value)
-    {
-    }
-
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, VariantHolder>>>
     explicit VariantHolder(T&& value) noexcept
         : Base(std::forward<T>(value))
     {
@@ -683,13 +678,7 @@ public:
     VariantHolder(const VariantHolder& other) = delete;
     VariantHolder& operator=(const VariantHolder& other) = delete;
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder> && std::is_copy_constructible_v<T>>>
-    explicit VariantHolder(const T& value)
-        : Base(value)
-    {
-    }
-
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, VariantHolder>>>
     explicit VariantHolder(T&& value) noexcept
         : Base(std::forward<T>(value))
     {
@@ -713,30 +702,21 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
     static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
     static constexpr SizeType typeCount = sizeof...(Types);
 
-    // template <class ...Args>
-    // Variant(Args &&... args)
-    //     : m_holder(std::forward<Args>(args)...)
-    // {
-    // }
-
     Variant() = default;
-    Variant(const Variant& other) = default;
-    Variant& operator=(const Variant& other) = default;
-    Variant(Variant&& other) noexcept = default;
-    Variant& operator=(Variant&& other) noexcept = default;
-    ~Variant() = default;
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant> && std::is_copy_constructible_v<T>>>
-    Variant(const T& value)
-        : m_holder(value)
-    {
-    }
-
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, Variant>>>
     Variant(T&& value) noexcept
         : m_holder(std::forward<T>(value))
     {
     }
+
+    Variant(const Variant& other) = default;
+    Variant& operator=(const Variant& other) = default;
+
+    Variant(Variant&& other) noexcept = default;
+    Variant& operator=(Variant&& other) noexcept = default;
+
+    ~Variant() = default;
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
@@ -1021,22 +1001,6 @@ struct TypeIndexHelper<VariantBase<T, Types...>>
 #pragma endregion TypeIndex
 
 #pragma region VisitHelper
-
-// template <class T, class FunctionType>
-// struct Visit_Impl
-// {
-//     template <class... Types>
-//     constexpr bool operator()(const utilities::Variant<Types...> &variant, const FunctionType &fn) const
-//     {
-//         if (!variant.template Is<T>()) {
-//             return false;
-//         }
-
-//         fn(variant.template GetUnchecked<T>());
-
-//         return true;
-//     }
-// };
 
 template <class VariantType, class FunctionType, class T>
 static inline void Variant_InvokeFunction(VariantType& variant, FunctionType& fn)

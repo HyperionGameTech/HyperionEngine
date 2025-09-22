@@ -17,13 +17,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#ifdef HYP_BUILD_LIBRARY
-#include <asset/AssetReference.hpp>
-#endif
-
 namespace hyperion::serialization {
-
-#ifdef HYP_BUILD_LIBRARY
 
 static const TypeId g_typeIdAssetReference = TypeId::ForType<AssetReference>();
 static const Name g_nameResolveAsset = NAME("resolveasset");
@@ -76,9 +70,6 @@ static void CollectAssetReferenceMembers(
     }
 }
 
-#endif
-
-HYP_DISABLE_OPTIMIZATION;
 FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 {
     if (!in.HasValue())
@@ -137,7 +128,6 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     out = FBOMObject(FBOMObjectType(hypClass));
 
-#ifdef HYP_BUILD_LIBRARY
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
 
@@ -151,7 +141,6 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
             assetReferenceTargetMembersMap.Insert(pair.second);
         }
     }
-#endif
 
     {
         HYP_NAMED_SCOPE_FMT("Serializing properties for HypClass '{}'", hypClass->GetName());
@@ -176,7 +165,6 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
             EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE;
 
-#ifdef HYP_BUILD_LIBRARY
             if (assetReferenceTargetMembersMap.Contains(&member))
             {
                 continue;
@@ -195,14 +183,11 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
             }
             else
             {
-#endif
                 if (member.GetAttribute("compressed").GetBool())
                 {
                     flags |= FBOMDataFlags::COMPRESSED;
                 }
-#ifdef HYP_BUILD_LIBRARY
             }
-#endif
 
             HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hypClass->GetName());
 
@@ -221,7 +206,6 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     return { FBOMResult::FBOM_OK };
 }
-HYP_ENABLE_OPTIMIZATION;
 
 FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const
 {
@@ -260,12 +244,12 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
     return { FBOMResult::FBOM_OK };
 }
 
+HYP_DISABLE_OPTIMIZATION;
 FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, AnyRef ref) const
 {
     HYP_CORE_ASSERT(hypClass != nullptr);
     HYP_CORE_ASSERT(ref.HasValue());
-    
-#ifdef HYP_BUILD_LIBRARY
+
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
 
@@ -279,7 +263,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
             assetReferenceTargetMembersMap.Insert(pair.second);
         }
     }
-#endif
 
     HypData targetData { ref };
 
@@ -302,7 +285,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     continue;
                 }
 
-#ifdef HYP_BUILD_LIBRARY
                 if (assetReferenceTargetMembersMap.Contains(pMember))
                 {
                     continue;
@@ -329,29 +311,34 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", pMember->GetName(), hypClass->GetName()) };
                     }
 
-                    Optional<AssetReference&> assetRefOpt;
+                    AssertDebug(pAssetReferenceMember->GetTypeId() == g_typeIdAssetReference);
+
+                    AssetReference* pAssetReference = nullptr;
+                    HypData tmpData;
 
                     switch (pAssetReferenceMember->GetMemberType())
                     {
                     case HypMemberType::TYPE_FIELD:
-                        assetRefOpt = static_cast<const HypField*>(pAssetReferenceMember)->Get(targetData).TryGet<AssetReference>();
+                        tmpData = static_cast<const HypField*>(pAssetReferenceMember)->Get(targetData);
                         break;
                     case HypMemberType::TYPE_PROPERTY:
-                        assetRefOpt = static_cast<const HypProperty*>(pAssetReferenceMember)->Get(targetData).TryGet<AssetReference>();
+                        tmpData = static_cast<const HypProperty*>(pAssetReferenceMember)->Get(targetData);
                         break;
                     default:
                         HYP_LOG(Serialization, Warning, "Unsupported member type for AssetReference member '{}' on object of HypClass '{}'", pAssetReferenceMember->GetName(), hypClass->GetName());
                         break;
                     }
 
-                    if (!assetRefOpt.HasValue())
+                    pAssetReference = reinterpret_cast<AssetReference*>(tmpData.ToRef().GetPointer());
+
+                    if (!pAssetReference)
                     {
                         HYP_LOG(Serialization, Warning, "Failed to get AssetReference for member '{}' on object of HypClass '{}'", pAssetReferenceMember->GetName(), hypClass->GetName());
 
                         continue;
                     }
 
-                    Handle<AssetObject> assetObject = assetRefOpt->Resolve();
+                    Handle<AssetObject> assetObject = ResolveAssetImpl(*pAssetReference);
 
                     if (!assetObject)
                     {
@@ -363,10 +350,10 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     switch (pTargetMember->GetMemberType())
                     {
                     case HypMemberType::TYPE_FIELD:
-                        static_cast<const HypField*>(pTargetMember)->Set(targetData, HypData(assetObject));
+                        static_cast<const HypField*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
                         break;
                     case HypMemberType::TYPE_PROPERTY:
-                        static_cast<const HypProperty*>(pTargetMember)->Set(targetData, HypData(assetObject));
+                        static_cast<const HypProperty*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
                         break;
                     default:
                         HYP_LOG(Serialization, Warning, "Unsupported member type for target member '{}' on object of HypClass '{}'", pTargetMember->GetName(), hypClass->GetName());
@@ -375,7 +362,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
                     continue;
                 }
-#endif
 
                 if (!pMember->Deserialize(context, targetData, it.second))
                 {
@@ -389,5 +375,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
     return { FBOMResult::FBOM_OK };
 }
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion::serialization

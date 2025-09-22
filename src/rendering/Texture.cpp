@@ -240,14 +240,26 @@ void Texture::Init()
             SafeDelete(std::move(m_gpuImage));
         }));
 
-    if (m_asset.IsValid() && !m_asset->IsRegistered())
+    if (m_asset.IsValid())
     {
-        if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameTextureDefault)
+        if (!m_asset->IsRegistered())
         {
-            m_asset->Rename(m_name);
+            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameTextureDefault)
+            {
+                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
+                }
+            }
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
         }
 
-        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+        m_textureAssetReference = AssetReference(m_asset);
+    }
+    else
+    {
+        m_textureAssetReference = AssetReference();
     }
 
     m_gpuImage = g_renderBackend->MakeImage(GetTextureDesc());
@@ -276,14 +288,22 @@ void Texture::SetName(Name name)
 
     m_name = name;
 
-    if (m_asset.IsValid() && !m_asset->IsRegistered() && IsInitCalled())
+    if (m_asset.IsValid() && IsInitCalled())
     {
-        if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameTextureDefault)
+        if (!m_asset->IsRegistered())
         {
-            m_asset->Rename(m_name);
+            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameTextureDefault)
+            {
+                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
+                }
+            }
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
         }
 
-        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+        m_textureAssetReference = AssetReference(m_asset);
     }
 }
 
@@ -327,9 +347,14 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
         m_asset = CreateObject<TextureAsset>(GetName(), TextureData { textureDesc });
     }
 
-    if (IsInitCalled() && !m_asset->IsRegistered())
+    if (IsInitCalled())
     {
-        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+        if (!m_asset->IsRegistered())
+        {
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+        }
+
+        m_textureAssetReference = AssetReference(m_asset);
     }
 }
 

@@ -7,6 +7,8 @@
 #include <core/object/HypObject.hpp>
 #include <core/object/Handle.hpp>
 
+#include <core/utilities/Variant.hpp>
+
 #include <core/Name.hpp>
 
 namespace hyperion {
@@ -17,15 +19,18 @@ HYP_STRUCT()
 class HYP_API AssetReference final
 {
 public:
-    AssetReference() = default;
+    AssetReference()
+        : m_data(AssetPath())
+    {
+    }
 
     explicit AssetReference(const AssetPath& assetPath)
-        : assetPath(assetPath)
+        : m_data(assetPath)
     {
     }
 
     explicit AssetReference(AssetPath&& assetPath)
-        : assetPath(std::move(assetPath))
+        : m_data(std::move(assetPath))
     {
     }
 
@@ -49,24 +54,31 @@ public:
         return !IsValid();
     }
 
-    HYP_FORCE_INLINE bool IsValid() const
+    bool IsValid() const
     {
-        return assetPath.IsValid();
+        bool isValid = false;
+
+        m_data.Visit([&isValid](const auto& value)
+        {
+            isValid = bool(value);
+        });
+
+        return isValid;
     }
 
     HYP_FORCE_INLINE bool IsLoaded() const
     {
-        return assetObject.IsValid();
+        return m_data.Is<Handle<AssetObject>>();
     }
 
-    HYP_FORCE_INLINE bool operator==(const AssetReference& other) const
-    {
-        return assetPath.ToString() == other.assetPath.ToString();
-    }
+    HYP_METHOD(Property = "AssetPath", Serialize)
+    const AssetPath& GetAssetPath() const;
 
-    HYP_FORCE_INLINE bool operator!=(const AssetReference& other) const
+    /*! \internal Serialization only */
+    HYP_METHOD(Property = "AssetPath", Serialize)
+    void SetAssetPath(const AssetPath& assetPath)
     {
-        return assetPath.ToString() != other.assetPath.ToString();
+        m_data = assetPath;
     }
 
     AssetObject* operator->() const;
@@ -74,11 +86,10 @@ public:
 
     const Handle<AssetObject>& Resolve() const;
 
-    HYP_FIELD(Serialize)
-    AssetPath assetPath;
-
-    HYP_FIELD(Serialize = false)
-    mutable Handle<AssetObject> assetObject;
+private:
+    mutable Variant<AssetPath, Handle<AssetObject>> m_data;
 };
+
+extern const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference);
 
 } // namespace hyperion

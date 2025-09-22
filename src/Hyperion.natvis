@@ -291,7 +291,7 @@
      </Expand>
   </Type>
 
-  <Type Name="hyperion::utilities::Variant&lt;*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*&gt;">
+  <Type Name="hyperion::utilities::Variant&lt;*&gt;">
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 0">{{ {*($T1 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 1">{{ {*($T2 *)&amp;m_holder.m_storage} }}</DisplayString>
     <DisplayString Optional="true" Condition="m_holder.m_currentIndex == 2">{{ {*($T3 *)&amp;m_holder.m_storage} }}</DisplayString>
@@ -464,12 +464,29 @@
       <Item Name="[IsDynamicType]">bool((m_value &amp; 1) &amp; 1)</Item>
     </Expand>
   </Type>
-
-  <Type Name="hyperion::Script_Value">
-    <DisplayString>{{ {(hyperion::HypData *)&amp;m_internal[0]} }}</DisplayString>
+  
+  <Type Name="hyperion::AssetPath">
     <Expand>
-      <Item Name="[Data]">(hyperion::HypData *)&amp;m_internal[0]</Item>
-      <Item Name="[GCIndex]">((hyperion::HypData *)&amp;m_internal[0])-&gt;extData.scriptGcIndex</Item>
+      <CustomListItems>
+        <Variable Name="current" InitialValue="chain" />
+        <Variable Name="first" InitialValue="true" />
+        
+        <Loop>
+          <Break Condition="current == nullptr || current-&gt;hashCode == 0" />
+          
+          <If Condition="first == false">
+            <Item Name="[.]">"." </Item>
+          </If>
+          
+          <If Condition="first == true">
+            <Exec>first = false</Exec>
+          </If>
+          
+          <Item>Name: current</Item>
+          
+          <Exec>current = current-&gt;next</Exec>
+        </Loop>
+      </CustomListItems>
     </Expand>
   </Type>
 

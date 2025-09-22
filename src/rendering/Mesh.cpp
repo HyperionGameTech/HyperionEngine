@@ -154,16 +154,28 @@ Mesh::~Mesh()
 
 void Mesh::Init()
 {
-    if (m_asset.IsValid() && !m_asset->IsRegistered())
+    if (m_asset.IsValid())
     {
-        if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+        if (!m_asset->IsRegistered())
         {
-            m_asset->Rename(m_name);
+            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+            {
+                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
+                }
+            }
+
+            // all assets must be registered before uploading to gpu - if our asset isn't part of a package,
+            // register it with transient Memory package
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
         }
 
-        // all assets must be registered before uploading to gpu - if our asset isn't part of a package,
-        // register it with transient Memory package
-        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
+        m_assetReference = AssetReference(m_asset);
+    }
+    else
+    {
+        m_assetReference = AssetReference();
     }
 
     CreateGpuBuffers();
@@ -336,14 +348,26 @@ void Mesh::SetName(Name name)
 
     m_name = name;
 
-    if (m_asset.IsValid() && !m_asset->IsRegistered() && IsInitCalled())
+    if (m_asset.IsValid() && IsInitCalled())
     {
-        if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+        if (!m_asset->IsRegistered())
         {
-            m_asset->Rename(m_name);
+            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+            {
+                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
+                }
+            }
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
         }
 
-        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
+        m_assetReference = AssetReference(m_asset);
+    }
+    else
+    {
+        m_assetReference = AssetReference();
     }
 }
 
@@ -363,6 +387,8 @@ void Mesh::SetMeshData(const MeshData& meshData)
         {
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", m_asset);
         }
+
+        m_assetReference = AssetReference(m_asset);
 
         CreateGpuBuffers();
     }

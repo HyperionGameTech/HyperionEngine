@@ -24,7 +24,7 @@ class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
 
-#ifdef HYP_BUILD_LIBRARY
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 
 // Globals for internal usage within the Hyperion library
 

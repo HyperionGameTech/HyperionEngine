@@ -13,30 +13,62 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 HYP_API extern Handle<AssetManager> g_assetManager;
 
-AssetReference::AssetReference(const Handle<AssetObject>& assetObject)
-    : assetPath(assetObject.IsValid() ? assetObject->GetPath() : AssetPath()),
-      assetObject(assetObject)
+const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
 {
+    return assetReference.Resolve();
+}
+
+AssetReference::AssetReference(const Handle<AssetObject>& assetObject)
+{
+    if (assetObject)
+    {
+        m_data = assetObject;
+    }
+    else
+    {
+        m_data = AssetPath();
+    }
+}
+
+const AssetPath& AssetReference::GetAssetPath() const
+{
+    if (m_data.Is<Handle<AssetObject>>())
+    {
+        const Handle<AssetObject>& assetObject = m_data.GetUnchecked<Handle<AssetObject>>();
+        AssertDebug(assetObject != nullptr);
+
+        return assetObject->GetPath();
+    }
+
+    AssertDebug(m_data.Is<AssetPath>());
+
+    return m_data.GetUnchecked<AssetPath>();
 }
 
 const Handle<AssetObject>& AssetReference::Resolve() const
 {
-    if (IsLoaded())
+    if (m_data.Is<Handle<AssetObject>>())
     {
-        return assetObject;
+        return m_data.GetUnchecked<Handle<AssetObject>>();
     }
+
+    AssertDebug(m_data.Is<AssetPath>());
+
+    const AssetPath& assetPath = m_data.GetUnchecked<AssetPath>();
 
     if (assetPath.IsValid())
     {
-        assetObject = g_assetManager->GetAssetRegistry()->GetAssetFromPath(assetPath.ToString());
+        Handle<AssetObject> assetObject = g_assetManager->GetAssetRegistry()->GetAssetFromPath(assetPath.ToString());
 
-        if (!assetObject)
+        if (assetObject)
         {
-            HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
+            return m_data.Emplace<Handle<AssetObject>>(assetObject);
         }
+
+        HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
     }
 
-    return assetObject;
+    return Handle<AssetObject>::empty;
 }
 
 AssetObject* AssetReference::operator->() const
@@ -46,12 +78,12 @@ AssetObject* AssetReference::operator->() const
         Resolve();
     }
 
-    if (!assetObject)
+    if (!m_data.Is<Handle<AssetObject>>())
     {
         HYP_FAIL("Failed to resolve asset reference!");
     }
 
-    return assetObject.Get();
+    return m_data.GetUnchecked<Handle<AssetObject>>().Get();
 }
 
 AssetObject& AssetReference::operator*() const
@@ -61,12 +93,12 @@ AssetObject& AssetReference::operator*() const
         Resolve();
     }
 
-    if (!assetObject)
+    if (!m_data.Is<Handle<AssetObject>>())
     {
         HYP_FAIL("Failed to resolve asset reference!");
     }
 
-    return *assetObject;
+    return *m_data.GetUnchecked<Handle<AssetObject>>();
 }
 
 } // namespace hyperion

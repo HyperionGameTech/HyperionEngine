@@ -7,7 +7,13 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 
+#include <core/object/Handle.hpp>
+
 #include <core/Constants.hpp>
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+#include <asset/AssetReference.hpp>
+#endif
 
 namespace hyperion {
 
@@ -19,6 +25,25 @@ template <>
 class HypClassInstance<void>;
 
 using HypClassInstanceStub = HypClassInstance<void>;
+
+#if !defined(HYPERION_ENGINE) || !HYPERION_ENGINE
+
+class AssetReference;
+class AssetObject;
+
+/// Stub implementation when HYPERION_ENGINE is not defined
+static inline const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
+{
+    static const Handle<AssetObject> s_emptyHandle;
+    HYP_BREAKPOINT_DEBUG_MODE;
+    return s_emptyHandle;
+}
+
+#else
+
+extern const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference);
+
+#endif
 
 } // namespace hyperion
 

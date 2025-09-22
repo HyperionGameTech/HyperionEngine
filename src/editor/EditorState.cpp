@@ -59,7 +59,10 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
     String newPath = projectPackage->BuildPackagePath() + '/' + String::Join(subpackageNames, '/', &Name::LookupString);
     HYP_LOG(Editor, Info, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
 
-    registry->RegisterAsset(newPath, assetObject);
+    if (Result registerAssetResult = registry->RegisterAsset(newPath, assetObject); registerAssetResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to register imported asset '{}' at path '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
+    }
 }
 
 static void RegisterPackageAssets(const Handle<EditorProject>& project, const Handle<AssetPackage>& package)

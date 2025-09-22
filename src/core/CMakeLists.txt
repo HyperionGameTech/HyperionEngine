@@ -17,6 +17,11 @@ set(COMMON_LIBRARIES
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
+if(HYPERION_ENGINE)
+    message(STATUS "Building hyperion-core for the engine, setting HYPERION_ENGINE=1")
+    add_definitions(-DHYPERION_ENGINE=1)
+endif()
+
 find_package(Threads REQUIRED)
 find_package(ZLIB)
 
