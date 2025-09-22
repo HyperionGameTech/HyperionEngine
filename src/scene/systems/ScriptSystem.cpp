@@ -134,11 +134,12 @@ ScriptSystem::ScriptSystem(EntityManager& entityManager)
 
                     for (auto [entity, scriptComponent] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
                     {
-                        Assert(scriptComponent.scriptAsset != nullptr);
+                        const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
+                        Assert(scriptAsset != nullptr);
 
-                        ResourceHandle resourceHandle(*scriptComponent.scriptAsset->GetResource());
+                        ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
-                        ScriptData* scriptData = scriptComponent.scriptAsset->GetScriptData();
+                        ScriptData* scriptData = scriptAsset->GetScriptData();
                         Assert(scriptData != nullptr);
 
                         if (ANSIStringView(script.assemblyPath) == ANSIStringView(scriptData->assemblyPath))

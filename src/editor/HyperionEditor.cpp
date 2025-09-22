@@ -211,14 +211,15 @@ void HyperionEditor::Init()
         }
     }
 
-    //HYP_BREAKPOINT;
+    // HYP_BREAKPOINT;
 #endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
 
-#if 0
+#ifdef HYP_TEMP_PROJECT_SAVE_LOAD_TEST
+#if HYP_TEMP_PROJECT_SAVE_LOAD_TEST == 1 // save
     // if (const Handle<WorldGrid>& worldGrid = GetWorld()->GetWorldGrid())
     // {
     //     worldGrid->AddLayer(CreateObject<TerrainWorldGridLayer>());
@@ -366,7 +367,7 @@ void HyperionEditor::Init()
                     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
                     // register the package
-                    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("Temp/Scripts", scriptAsset);
+                    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
                     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
                     ResourceHandle resourceHandle(*scriptAsset->GetResource());
@@ -379,7 +380,7 @@ void HyperionEditor::Init()
                     Memory::StrCpy(scriptData->className, "MyClass", sizeof(scriptData->className));
 
                     ScriptComponent& scriptComponent = firstEntity->AddComponent<ScriptComponent>(ScriptComponent {
-                        scriptAsset });
+                        TAssetReference<ScriptAsset>(scriptAsset) });
 
                     zombie->SetName(NAME("zombie"));
 
@@ -393,8 +394,6 @@ void HyperionEditor::Init()
                     HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
                 }
 
-
-                
                 // test
                 const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
                 project->SetName(NAME("NewProj2"));
@@ -404,6 +403,7 @@ void HyperionEditor::Init()
         .Detach();
 
     batch->LoadAsync();
+#endif
 #endif
 #endif
 }

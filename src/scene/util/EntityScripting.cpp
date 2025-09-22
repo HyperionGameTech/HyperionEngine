@@ -127,17 +127,18 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
         return;
     }
+    
+    const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
+    AssertDebug(scriptAsset != nullptr);
 
-    AssertDebug(scriptComponent.scriptAsset != nullptr);
-
-    if (!scriptComponent.scriptAsset)
+    if (!scriptAsset)
     {
         HYP_LOG(Script, Warning, "Entity has ScriptComponent with no ScriptAsset!");
 
         return;
     }
 
-    ScriptData* scriptData = scriptComponent.scriptAsset->GetScriptData();
+    ScriptData* scriptData = scriptAsset->GetScriptData();
     Assert(scriptData != nullptr);
 
     switch (scriptData->language)
@@ -152,7 +153,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             Assert(scriptComponent.scriptAsset != nullptr);
 
-            ResourceHandle resourceHandle(*scriptComponent.scriptAsset->GetResource());
+            ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
             if (!scriptComponent.assembly)
             {
@@ -270,9 +271,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             FreeResource<ScriptObjectResource>(sor);
             sor = nullptr;
 
-            Assert(scriptComponent.scriptAsset != nullptr);
-
-            ResourceHandle resourceHandle(*scriptComponent.scriptAsset->GetResource());
+            ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
             // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
             FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path);

@@ -242,7 +242,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
     return { FBOMResult::FBOM_OK };
 }
 
-HYP_DISABLE_OPTIMIZATION;
 FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, AnyRef ref) const
 {
     HYP_CORE_ASSERT(hypClass != nullptr);
@@ -380,6 +379,5 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
     return { FBOMResult::FBOM_OK };
 }
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion::serialization

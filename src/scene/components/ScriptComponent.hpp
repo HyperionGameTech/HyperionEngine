@@ -36,11 +36,8 @@ HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 HYP_STRUCT(Component, Label = "Script Component", Description = "A script component that can be attached to an entity.")
 struct ScriptComponent
 {
-    HYP_FIELD()
-    Handle<ScriptAsset> scriptAsset;
-
-    HYP_FIELD(Serialize, ResolveAsset = "scriptAsset")
-    AssetReference scriptAssetReference;
+    HYP_FIELD(NoScriptBindings)
+    TAssetReference<ScriptAsset> assetReference;
 
     HYP_FIELD(NoScriptBindings)
     RC<dotnet::Assembly> assembly;
@@ -50,6 +47,18 @@ struct ScriptComponent
 
     HYP_FIELD()
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
+
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    const AssetReference& GetAssetReference() const
+    {
+        return assetReference;
+    }
+
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    void SetAssetReference(const AssetReference& value)
+    {
+        assetReference = TAssetReference<ScriptAsset>(value);
+    }
 };
 
 } // namespace hyperion

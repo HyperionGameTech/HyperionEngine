@@ -60,6 +60,11 @@ public:
 
     ~AssetDataResourceBase() = default;
 
+    /*! \brief Initialize the resource data from the given stream.
+     *  \param stream The stream to read from.
+     *  \return Result indicating success or failure of the operation. */
+    Result LoadFromStream(BufferedReader& stream);
+
 protected:
     AssetDataResourceBase()
     {
@@ -143,28 +148,45 @@ class HYP_API AssetObject : public HypObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 
+    template <class T>
+    static ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>& GetPool()
+    {
+        static ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>* pool = ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>::GetInstance();
+        return *pool;
+    }
+
+protected:
+    template <class T>
+    void SetData(T&& data)
+    {
+        static ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>& pool = GetPool<T>();
+
+        m_pool = &pool;
+
+        m_resource = pool.Allocate(std::forward<T>(data));
+        static_cast<AssetDataResource<NormalizedType<T>>*>(m_resource)->m_assetObject = WeakHandleFromThis();
+    }
+
 public:
     friend class AssetRegistry;
     friend class AssetPackage;
 
     AssetObject();
-    AssetObject(Name name);
+    explicit AssetObject(Name name);
 
     template <class T>
     AssetObject(Name name, T&& data)
         : AssetObject(name)
     {
-        ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>* pool = ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>::GetInstance();
-        m_pool = pool;
-
-        m_resource = pool->Allocate(std::forward<T>(data));
-        static_cast<AssetDataResource<NormalizedType<T>>*>(m_resource)->m_assetObject = WeakHandleFromThis();
+        AssetObject::SetData(std::forward<T>(data));
     }
 
     AssetObject(const AssetObject& other) = delete;
     AssetObject& operator=(const AssetObject& other) = delete;
+    
     AssetObject(AssetObject&& other) noexcept = delete;
     AssetObject& operator=(AssetObject&& other) noexcept = delete;
+
     ~AssetObject();
 
     HYP_METHOD()
@@ -242,7 +264,10 @@ public:
 
     Result OpenReadStream(BufferedReader& stream) const;
 
-    static Result LoadAssetFromManifest(BufferedReader& stream, Handle<AssetObject>& outAssetObject);
+    static Result Load(
+        BufferedReader& manifestStream,
+        BufferedReader& dataStream,
+        Handle<AssetObject>& outAssetObject);
 
 protected:
     void Init() override;
@@ -605,7 +630,11 @@ public:
     HYP_METHOD()
     bool RemovePackage(AssetPackage* package);
 
-    Result LoadPackageFromManifest(const FilePath& manifestPath, UTF8StringView packagePath, Handle<AssetPackage>& outPackage, bool loadSubpackages);
+    Result LoadPackageFromManifest(
+        const FilePath& manifestPath,
+        const String& basePackagePath,
+        Handle<AssetPackage>& outPackage,
+        bool loadSubpackages);
 
     HYP_METHOD()
     Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;

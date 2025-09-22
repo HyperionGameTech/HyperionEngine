@@ -312,24 +312,17 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
     const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
-    const String packagePath = FilePath::Relative(packageDir, g_assetManager->GetBasePath());
-
     Handle<AssetPackage> rootPackage;
 
     Result loadPackageResult = registry->LoadPackageFromManifest(
         packageManifestPath,
-        packagePath,
+        String::empty,
         rootPackage,
         /* loadSubpackages */ true);
-   
+
     if (loadPackageResult.HasError())
     {
         return loadPackageResult.GetError();
-    }
-
-    if (Result addPackageResult = registry->AddPackage(rootPackage, /* mergeIfExists */ true); addPackageResult.HasError())
-    {
-        return addPackageResult.GetError();
     }
 
     Handle<EditorProject> project;

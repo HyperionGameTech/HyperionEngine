@@ -880,10 +880,7 @@ public:
 
                 if (assetObjectResult)
                 {
-                    scriptComponent.scriptAsset = std::move(scriptAsset);
-                    scriptComponent.scriptAssetReference = AssetReference(scriptComponent.scriptAsset);
-
-                    HYP_BREAKPOINT;
+                    scriptComponent.assetReference = TAssetReference<ScriptAsset>(std::move(scriptAsset));
 
                     if (m_uiObjectStack.Any())
                     {

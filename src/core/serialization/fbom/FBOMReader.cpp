@@ -910,7 +910,12 @@ FBOMResult FBOMReader::ReadPropertyName(FBOMLoadContext& context, BufferedReader
     return FBOMResult::FBOM_OK;
 }
 
-FBOMResult FBOMReader::ReadObject(FBOMLoadContext& context, BufferedReader* reader, FBOMObject& outObject, FBOMObject* root)
+FBOMResult FBOMReader::ReadObject(
+    FBOMLoadContext& context,
+    BufferedReader* reader,
+    FBOMObject& outObject,
+    FBOMObject* root,
+    bool deserializeObject)
 {
     if (FBOMResult err = Eat(reader, FBOM_OBJECT_START))
     {
@@ -978,7 +983,7 @@ FBOMResult FBOMReader::ReadObject(FBOMLoadContext& context, BufferedReader* read
             {
                 FBOMObject subobject;
 
-                if (FBOMResult err = ReadObject(context, reader, subobject, root))
+                if (FBOMResult err = ReadObject(context, reader, subobject, root, /* deserializeObject */ true))
                 {
                     return err;
                 }
@@ -989,7 +994,7 @@ FBOMResult FBOMReader::ReadObject(FBOMLoadContext& context, BufferedReader* read
             }
             case FBOM_OBJECT_END:
             {
-                if (objectType.UsesMarshal())
+                if (deserializeObject && objectType.UsesMarshal())
                 {
                     if (GetMarshalForType(objectType) != nullptr)
                     {

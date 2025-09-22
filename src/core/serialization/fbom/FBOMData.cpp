@@ -104,7 +104,7 @@ FBOMData::~FBOMData()
 {
 }
 
-FBOMResult FBOMData::ReadObject(FBOMLoadContext& context, FBOMObject& outObject) const
+FBOMResult FBOMData::ReadObject(FBOMLoadContext& context, FBOMObject& outObject, bool deserializeObject) const
 {
     if (!IsObject())
     {
@@ -114,10 +114,10 @@ FBOMResult FBOMData::ReadObject(FBOMLoadContext& context, FBOMObject& outObject)
     MemoryBufferedReaderSource source { m_bytes.ToByteView() };
     BufferedReader byteReader { &source };
 
-    FBOMReader deserializer(FBOMReaderConfig {});
+    FBOMReader reader(FBOMReaderConfig {});
 
     // return deserializer.Deserialize(byteReader, outObject);
-    if (FBOMResult err = deserializer.ReadObject(context, &byteReader, outObject, nullptr))
+    if (FBOMResult err = reader.ReadObject(context, &byteReader, outObject, nullptr, deserializeObject))
     {
         return err;
     }

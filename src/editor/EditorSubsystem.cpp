@@ -1180,23 +1180,10 @@ void EditorSubsystem::OnAddedToWorld()
                 assetCollector->StopWatching();
             })
         .Detach();
-
-#if 0
+#ifdef HYP_TEMP_PROJECT_SAVE_LOAD_TEST
+#if HYP_TEMP_PROJECT_SAVE_LOAD_TEST == 1 // save
     NewProject();
-    //// save project (test)
-    //if (m_currentProject)
-    //{
-    //    m_currentProject->SetName(NAME("TempProjectTest"));
-
-    //    auto result = m_currentProject->Save();
-    //    if (!result)
-    //    {
-    //        HYP_LOG(Editor, Error, "Failed to save new project: {}", *result.GetError().GetMessage());
-    //        HYP_BREAKPOINT;
-    //    }
-    //}
-#else
-
+#elif HYP_TEMP_PROJECT_SAVE_LOAD_TEST == 2 // load
     auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "NewProj2");
 
     if (!result)
@@ -1207,6 +1194,9 @@ void EditorSubsystem::OnAddedToWorld()
     }
 
     OpenProject(*result);
+#endif
+#else
+    NewProject();
 #endif
 
     if (!dotnet::DotNetSystem::GetInstance().IsEnabled())

@@ -78,7 +78,7 @@ public:
     FBOMResult LoadFromFile(const String& path, FBOMObject& out);
     FBOMResult LoadFromFile(const String& path, HypData& out);
 
-    FBOMResult ReadObject(FBOMLoadContext& context, BufferedReader* reader, FBOMObject& outObject, FBOMObject* root);
+    FBOMResult ReadObject(FBOMLoadContext& context, BufferedReader* reader, FBOMObject& outObject, FBOMObject* root, bool deserializeObject = true);
     FBOMResult ReadObjectType(FBOMLoadContext& context, BufferedReader* reader, FBOMType& outType);
     FBOMResult ReadObjectLibrary(FBOMLoadContext& context, BufferedReader* reader, FBOMObjectLibrary& outLibrary);
     FBOMResult ReadData(FBOMLoadContext& context, BufferedReader* reader, FBOMData& outData);

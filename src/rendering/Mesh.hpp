@@ -129,18 +129,20 @@ public:
 
 private:
     void Init() override;
+    void CreateGpuBuffers();
 
-    // for serialization:
+    /*! \internal Serialization only */
     HYP_METHOD(Property = "AssetReference", Serialize = true)
     const AssetReference& GetAssetReference() const
     {
         return m_assetReference;
     }
 
+    /*! \internal Serialization only */
     HYP_METHOD(Property = "AssetReference", Serialize = true)
     void SetAssetReference(const AssetReference& assetReference)
     {
-        m_assetReference = reinterpret_cast<const TAssetReference<MeshAsset>&>(assetReference);
+        m_assetReference = TAssetReference<MeshAsset>(assetReference);
     }
 
     HYP_FIELD(Serialize, Editor)

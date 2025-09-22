@@ -60,13 +60,32 @@ class MeshAsset : public AssetObject
     HYP_OBJECT_BODY(MeshAsset);
 
 public:
-    MeshAsset() = default;
+    MeshAsset()
+        : AssetObject(),
+          m_meshDesc()
+    {
+        AssetObject::SetData(MeshData());
+    }
 
     MeshAsset(Name name, const MeshData& meshData)
         : AssetObject(name, meshData),
           m_meshDesc(meshData.desc)
     {
     }
+
+    MeshAsset(Name name, MeshData&& meshData)
+        : AssetObject(name, std::move(meshData)),
+          m_meshDesc(meshData.desc)
+    {
+    }
+
+    MeshAsset(const MeshAsset& other) = delete;
+    MeshAsset& operator=(const MeshAsset& other) = delete;
+    
+    MeshAsset(MeshAsset&& other) noexcept = delete;
+    MeshAsset& operator=(MeshAsset&& other) noexcept = delete;
+
+    ~MeshAsset() = default;
 
     HYP_FORCE_INLINE const MeshDesc& GetMeshDesc() const
     {

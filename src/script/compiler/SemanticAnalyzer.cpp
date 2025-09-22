@@ -429,49 +429,22 @@ SymbolTypeRef SemanticAnalyzer::Helpers::SubstituteGenericParameters(
             targetType->GetStaticMembers(),
             GenericInstanceTypeInfo { resolvedArgs });
 
-        // Substitute member and static member types using the current scoped aliases
-        bool mutatedMembers = false;
-
         // Non-static members
         for (SizeType i = 0; i < instance->GetMembers().Size(); ++i)
         {
-            const SymbolTypeMember& srcMember = instance->GetMembers()[i];
+            SymbolTypeMember& srcMember = instance->GetMembers()[i];
             Assert(srcMember.type != nullptr);
 
-            SymbolTypeRef substituted = SubstituteGenericParameters(visitor, mod, srcMember.type, {}, location);
-            if (substituted != srcMember.type)
-            {
-                if (!mutatedMembers)
-                {
-                    instance = instance->Clone();
-                    mutatedMembers = true;
-                }
-
-                SymbolTypeMember& dstMember = instance->GetMembers()[i];
-                dstMember.type = substituted;
-                dstMember.expr = CloneAstNode(srcMember.expr);
-            }
+            srcMember.type = SubstituteGenericParameters(visitor, mod, srcMember.type, {}, location);
         }
 
         // Static members
         for (SizeType i = 0; i < instance->GetStaticMembers().Size(); ++i)
         {
-            const SymbolTypeMember& srcMember = instance->GetStaticMembers()[i];
+            SymbolTypeMember& srcMember = instance->GetStaticMembers()[i];
             Assert(srcMember.type != nullptr);
 
-            SymbolTypeRef substituted = SubstituteGenericParameters(visitor, mod, srcMember.type, {}, location);
-            if (substituted != srcMember.type)
-            {
-                if (!mutatedMembers)
-                {
-                    instance = instance->Clone();
-                    mutatedMembers = true;
-                }
-
-                SymbolTypeMember& dstMember = instance->GetStaticMembers()[i];
-                dstMember.type = substituted;
-                dstMember.expr = CloneAstNode(srcMember.expr);
-            }
+            srcMember.type = SubstituteGenericParameters(visitor, mod, srcMember.type, {}, location);
         }
 
         // Finalize the pre-cached instance in-place and return

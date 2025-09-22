@@ -1171,7 +1171,7 @@ struct HypDataHelper<AnyHandle>
 
         FBOMObject object;
 
-        if (FBOMResult err = data.ReadObject(context, object))
+        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
         {
             return err;
         }
@@ -1240,7 +1240,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
 
         FBOMObject object;
 
-        if (FBOMResult err = data.ReadObject(context, object))
+        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
         {
             return err;
         }
@@ -1376,7 +1376,7 @@ struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelpe
 
         FBOMObject object;
 
-        if (FBOMResult err = data.ReadObject(context, object))
+        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
         {
             return err;
         }
@@ -1530,7 +1530,7 @@ struct HypDataHelper<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v
 
         FBOMObject object;
 
-        if (FBOMResult err = data.ReadObject(context, object))
+        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
         {
             return err;
         }
@@ -2407,7 +2407,7 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
 
         FBOMObject object;
 
-        if (FBOMResult err = data.ReadObject(context, object))
+        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
         {
             return err;
         }
@@ -3456,7 +3456,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
 
         FBOMObject object;
 
-        if (FBOMResult err = data.ReadObject(context, object))
+        if (FBOMResult err = data.ReadObject(context, object, /* deserializeObject */ false))
         {
             return err;
         }

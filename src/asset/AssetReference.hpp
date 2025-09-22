@@ -61,9 +61,9 @@ public:
         bool isValid = false;
 
         m_data.Visit([&isValid](const auto& value)
-        {
-            isValid = bool(value);
-        });
+            {
+                isValid = bool(value);
+            });
 
         return isValid;
     }
@@ -96,9 +96,17 @@ template <class T>
 class TAssetReference : public AssetReference
 {
 public:
-    static_assert(std::is_base_of_v<AssetObject, T>, "T must be derived from AssetObject");
-
     TAssetReference() = default;
+
+    explicit TAssetReference(const AssetReference& assetReference)
+        : AssetReference(assetReference)
+    {
+    }
+
+    explicit TAssetReference(AssetReference&& assetReference) noexcept
+        : AssetReference(std::move(assetReference))
+    {
+    }
 
     explicit TAssetReference(const AssetPath& assetPath)
         : AssetReference(assetPath)

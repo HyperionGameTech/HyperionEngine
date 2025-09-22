@@ -56,6 +56,23 @@ HYP_API WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObjec
 
 #pragma region AssetResourceBase
 
+Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
+{
+    FBOMLoadContext context;
+    FBOMReader reader { FBOMReaderConfig {} };
+    FBOMResult err;
+
+    HypData data;
+    if ((err = reader.Deserialize(context, stream, data)))
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
+    }
+
+    Extract_Internal(std::move(data));
+
+    return {};
+}
+
 void AssetDataResourceBase::Initialize()
 {
     Mutex::Guard guard(m_mutex);
@@ -81,22 +98,12 @@ void AssetDataResourceBase::Initialize()
         return;
     }
 
-    Assert(stream.GetSource() != nullptr);
-
-    HypData value;
-
-    FBOMLoadContext context;
-    FBOMReader reader { FBOMReaderConfig {} };
-    FBOMResult err;
-
-    if ((err = reader.Deserialize(context, stream, value)))
+    if (Result loadResult = LoadFromStream(stream); loadResult.HasError())
     {
-        HYP_LOG(Assets, Error, "Failed to load asset {}\n\tMessage: {}", assetObject->GetPath().ToString(), err.message);
+        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", assetObject->GetPath().ToString(), loadResult.GetError().GetMessage());
 
         return;
     }
-
-    Extract_Internal(std::move(value));
 }
 
 void AssetDataResourceBase::Destroy()
@@ -186,8 +193,8 @@ void AssetObject::Init()
 {
     if (m_resource && !m_resource->IsNull())
     {
-        AssetDataResourceBase* resourceCasted = static_cast<AssetDataResourceBase*>(m_resource);
-        resourceCasted->m_assetObject = WeakHandleFromThis();
+        AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
+        resource->m_assetObject = WeakHandleFromThis();
 
         if ((m_flags[AOF_PERSISTENT] || g_disableAssetUnload) && !m_persistentResource)
         {
@@ -277,9 +284,9 @@ Result AssetObject::Save() const
         return HYP_MAKE_ERROR(Error, "No resource set, cannot save");
     }
 
-    AssetDataResourceBase* resourceCasted = static_cast<AssetDataResourceBase*>(m_resource);
+    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
 
-    Mutex::Guard guard(resourceCasted->m_mutex);
+    Mutex::Guard guard(resource->m_mutex);
 
     const FilePath path = m_filepath;
 
@@ -309,7 +316,7 @@ Result AssetObject::Save() const
 
     manifestWriter.Close();
 
-    return resourceCasted->Save_Internal(path);
+    return resource->Save_Internal(path);
 }
 
 Result AssetObject::SaveManifest(ByteWriter& stream) const
@@ -324,16 +331,19 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
-Result AssetObject::LoadAssetFromManifest(BufferedReader& stream, Handle<AssetObject>& outAssetObject)
+Result AssetObject::Load(
+    BufferedReader& manifestStream,
+    BufferedReader& dataStream,
+    Handle<AssetObject>& outAssetObject)
 {
-    HYP_LOG(Assets, Debug, "Loading asset from manifest stream");
-
-    if (!stream.IsOpen())
+    if (!manifestStream.IsOpen() || !dataStream.IsOpen())
     {
-        return HYP_MAKE_ERROR(Error, "Stream is not open");
+        return HYP_MAKE_ERROR(Error, "Manifest or data stream not open");
     }
 
-    json::ParseResult parseResult = json::JSON::Parse(stream);
+    json::ParseResult parseResult = json::JSON::Parse(manifestStream);
+
+    manifestStream.Close(); // not needed anymore
 
     if (!parseResult.ok)
     {
@@ -365,23 +375,51 @@ Result AssetObject::LoadAssetFromManifest(BufferedReader& stream, Handle<AssetOb
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
 
-    HypData hypData;
-    if (!hypClass->CreateInstance(hypData))
+    HypData targetData;
+    if (!hypClass->CreateInstance(targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
     }
 
-    AssertDebug(hypData.Is<Handle<AssetObject>>());
-
     // remove class property
     jsonObject.Erase("$Class");
 
-    if (!JSONToObject(jsonObject, hypClass, hypData))
+    if (!JSONToObject(jsonObject, hypClass, targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
 
-    outAssetObject = hypData.Get<Handle<AssetObject>>();
+    // Load the asset's data
+    const Handle<AssetObject>& assetObject = targetData.Get<Handle<AssetObject>>();
+    Assert(assetObject != nullptr);
+
+    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(assetObject->m_resource);
+    Assert(resource != nullptr);
+
+    if (Result loadResult = resource->LoadFromStream(dataStream); loadResult.HasError())
+    {
+        return loadResult;
+    }
+
+    outAssetObject = assetObject;
+
+#if 0
+    FBOMLoadContext loadContext {};
+    FBOMObject dataObject;
+
+    FBOMReader dataReader(FBOMReaderConfig {});
+    if (FBOMResult result = dataReader.ReadObject(loadContext, &dataStream, dataObject, nullptr, /* deserializeObject */ true); !result.IsOK())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to read asset data: {}", result.message);
+    }
+
+    if (!dataObject.m_deserializedObject || !dataObject.m_deserializedObject->Is<Handle<AssetObject>>())
+    {
+        return HYP_MAKE_ERROR(Error, "Deserialized asset data is not a valid AssetObject");
+    }
+
+    outAssetObject = std::move(dataObject.m_deserializedObject->Get<Handle<AssetObject>>());
+#endif
 
     return {};
 }
@@ -690,6 +728,14 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
         }
     }
 
+    HYP_LOG(Assets, Debug, "Asset with path '{}' successfully added to package '{}'", assetObject->m_assetPath.ToString(), BuildPackagePath());
+
+    // temp
+    if (assetObject->GetName() == "NewScript")
+    {
+        HYP_BREAKPOINT;
+    }
+
     return {};
 }
 
@@ -758,6 +804,11 @@ Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
     if (!package.IsValid())
     {
         return HYP_MAKE_ERROR(Error, "Package is invalid");
+    }
+
+    if (package == this)
+    {
+        return HYP_MAKE_ERROR(Error, "Cannot merge package '{}' into itself", m_name);
     }
 
     HashSet<Name> currentAssetNames;
@@ -1151,12 +1202,16 @@ void AssetRegistry::LoadPackagesAsync()
                     Handle<AssetPackage> package;
 
                     const FilePath packageDir = dir / entry.StripExtension();
-                    const String packagePath = FilePath::Relative(packageDir, g_assetManager->GetBasePath());
 
                     // build virtual package path from filesystem path
-                    if (Result result = LoadPackageFromManifest(packageDir, packagePath, package, /* loadSubpackages */ true); result.HasError())
+                    if (Result result = LoadPackageFromManifest(
+                            packageDir,
+                            FilePath::Relative(dir, rootPath),
+                            package,
+                            /* loadSubpackages */ true);
+                        result.HasError())
                     {
-                        HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", packagePath, result.GetError().GetMessage());
+                        HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", packageDir, result.GetError().GetMessage());
 
                         continue;
                     }
@@ -1265,6 +1320,12 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
 
     if (existing.IsValid())
     {
+        if (existing == package)
+        {
+            // already added, return early
+            return {};
+        }
+
         if (!mergeIfExists)
         {
             return HYP_MAKE_ERROR(Error, "Package with path '{}' already exists", fullPath);
@@ -1282,20 +1343,20 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
 
             HashSet<Name> destAssetNames;
             dest->ForEachAssetObject([&](const Handle<AssetObject>& asset)
-            {
-                destAssetNames.Insert(asset->GetName());
+                {
+                    destAssetNames.Insert(asset->GetName());
 
-                return IterationResult::CONTINUE;
-            });
+                    return IterationResult::CONTINUE;
+                });
 
             // Move asset objects
             Array<Handle<AssetObject>> assets;
             src->ForEachAssetObject([&](const Handle<AssetObject>& asset)
-            {
-                assets.PushBack(asset);
+                {
+                    assets.PushBack(asset);
 
-                return IterationResult::CONTINUE;
-            });
+                    return IterationResult::CONTINUE;
+                });
 
             for (const Handle<AssetObject>& asset : assets)
             {
@@ -1309,9 +1370,10 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
                 // check if name is already taken in destination package
                 if (destAssetNames.Contains(desiredName))
                 {
+                    HYP_BREAKPOINT;
                     Name uniqueName = dest->GetUniqueAssetName(desiredName);
 
-                    if (Result renameResult = asset->Rename(uniqueName) ; renameResult.HasError())
+                    if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
                     {
                         HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
 
@@ -1336,11 +1398,11 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
 
             Array<Handle<AssetPackage>> subpackages;
             src->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
-            {
-                subpackages.PushBack(sub);
+                {
+                    subpackages.PushBack(sub);
 
-                return IterationResult::CONTINUE;
-            });
+                    return IterationResult::CONTINUE;
+                });
 
             for (const Handle<AssetPackage>& sub : subpackages)
             {
@@ -1349,10 +1411,10 @@ Result AssetRegistry::AddPackage(Handle<AssetPackage>& package, bool mergeIfExis
                     continue;
                 }
 
-                Handle<AssetPackage> dest = GetSubpackage(dest, sub->GetName(), /* createIfNotExist */ true);
-                Assert(dest != nullptr);
+                Handle<AssetPackage> destSubpackage = GetSubpackage(dest, sub->GetName(), /* createIfNotExist */ true);
+                Assert(destSubpackage != nullptr);
 
-                mergeInto(dest, sub);
+                mergeInto(destSubpackage, sub);
             }
         };
 
@@ -1581,7 +1643,11 @@ bool AssetRegistry::RemovePackage(AssetPackage* package)
     return false;
 }
 
-Result AssetRegistry::LoadPackageFromManifest(const FilePath& manifestPath, UTF8StringView packagePath, Handle<AssetPackage>& outPackage, bool loadSubpackages)
+Result AssetRegistry::LoadPackageFromManifest(
+    const FilePath& manifestPath,
+    const String& basePackagePath,
+    Handle<AssetPackage>& outPackage,
+    bool loadSubpackages)
 {
     HYP_SCOPE;
 
@@ -1602,6 +1668,8 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& manifestPath, UTF8
 
     json::ParseResult parseResult = json::JSON::Parse(manifestStream);
 
+    manifestStream.Close();
+
     if (!parseResult.ok)
     {
         return HYP_MAKE_ERROR(Error, "Failed to parse manifest JSON: {}", parseResult.message);
@@ -1611,6 +1679,23 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& manifestPath, UTF8
     {
         return HYP_MAKE_ERROR(Error, "Manifest JSON must be an object");
     }
+
+    const String packageName = parseResult.value.Get("name").ToString();
+
+    if (packageName.Empty())
+    {
+        return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a non-empty 'name' field");
+    }
+
+    Array<String> parts;
+    if (!basePackagePath.Empty())
+    {
+        parts = basePackagePath.Split('/', '\\');
+    }
+
+    parts.PushBack(packageName);
+
+    const String packagePath = String::Join(parts, '/');
 
     outPackage = GetPackageFromPath(packagePath, true);
 
@@ -1637,17 +1722,24 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& manifestPath, UTF8
             continue;
         }
 
-        FileBufferedReaderSource source { entry };
-        BufferedReader assetManifestStream { &source };
+        HYP_LOG(Assets, Debug, "Loading asset from manifest at {}...", entry);
+
+        FileBufferedReaderSource manifestSource { entry };
+        BufferedReader manifestStream { &manifestSource };
+
+        FileBufferedReaderSource dataSource { entry.StripExtension() };
+        BufferedReader dataStream { &dataSource };
 
         Handle<AssetObject> assetObject;
 
-        if (Result loadAssetResult = AssetObject::LoadAssetFromManifest(assetManifestStream, assetObject); loadAssetResult.HasError())
+        if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 
             continue;
         }
+
+        AssertDebug(assetObject != nullptr);
 
         if (Result addAssetResult = outPackage->AddAssetObject(assetObject); addAssetResult.HasError())
         {
@@ -1669,12 +1761,14 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& manifestPath, UTF8
                 {
                     Handle<AssetPackage> subpackage;
 
-                    // build virtual package path from filesystem path
-                    const String packagePath = FilePath::Relative(subdirectory, g_assetManager->GetBasePath());
-
-                    if (Result result = LoadPackageFromManifest(entry, packagePath, subpackage, /* loadSubpackages */ true); result.HasError())
+                    if (Result result = LoadPackageFromManifest(
+                            entry,
+                            packagePath,
+                            subpackage,
+                            /* loadSubpackages */ true);
+                        result.HasError())
                     {
-                        HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", packagePath, result.GetError().GetMessage());
+                        HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", entry, result.GetError().GetMessage());
 
                         continue;
                     }

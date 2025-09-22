@@ -537,7 +537,7 @@ public:
         return m_type.IsOrExtends(FBOMBaseObjectType());
     }
 
-    FBOMResult ReadObject(FBOMLoadContext& context, FBOMObject& outObject) const;
+    FBOMResult ReadObject(FBOMLoadContext& context, FBOMObject& outObject, bool deserializeObject = true) const;
 
     static FBOMData FromObject(const FBOMObject& object, bool keepNativeObject = true);
     static FBOMData FromObject(FBOMObject&& object, bool keepNativeObject = true);
@@ -585,11 +585,6 @@ public:
     virtual String ToString(bool deep = true) const override;
     virtual UniqueId GetUniqueID() const override;
     virtual HashCode GetHashCode() const override;
-
-    HYP_FORCE_INLINE const RC<HypData>& GetDeserializedObject() const
-    {
-        return m_deserializedObject;
-    }
 
 private:
     ByteBuffer m_bytes;

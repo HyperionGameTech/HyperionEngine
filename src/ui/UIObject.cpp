@@ -2561,7 +2561,6 @@ void UIObject::SetScriptComponent(ScriptComponent&& scriptComponent)
     }
 
     entityManager->AddComponent<ScriptComponent>(entity, std::move(scriptComponent));
-    HYP_BREAKPOINT;
 }
 
 void UIObject::RemoveScriptComponent()

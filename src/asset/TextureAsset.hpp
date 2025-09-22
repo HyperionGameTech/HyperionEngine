@@ -14,13 +14,32 @@ class TextureAsset : public AssetObject
     HYP_OBJECT_BODY(TextureAsset);
 
 public:
-    TextureAsset() = default;
+    TextureAsset()
+        : AssetObject(),
+          m_textureDesc()
+    {
+        AssetObject::SetData(TextureData());
+    }
 
     TextureAsset(Name name, const TextureData& textureData)
         : AssetObject(name, textureData),
           m_textureDesc(textureData.desc)
     {
     }
+
+    TextureAsset(Name name, TextureData&& textureData)
+        : AssetObject(name, std::move(textureData)),
+          m_textureDesc(textureData.desc)
+    {
+    }
+
+    TextureAsset(const TextureAsset& other) = delete;
+    TextureAsset& operator=(const TextureAsset& other) = delete;
+
+    TextureAsset(TextureAsset&& other) noexcept = delete;
+    TextureAsset& operator=(TextureAsset&& other) noexcept = delete;
+
+    ~TextureAsset() = default;
 
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
