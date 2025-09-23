@@ -17,6 +17,8 @@
 
 namespace hyperion {
 
+class HypObjectBase;
+
 template <class T>
 class HypClassInstance;
 
