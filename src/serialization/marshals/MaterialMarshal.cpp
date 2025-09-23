@@ -44,7 +44,7 @@ public:
 
         out.SetProperty("Attributes", FBOMData::FromObject(std::move(attributesObject)));
 
-        FBOMArray paramsArray { FBOMBaseObjectType() };
+        FBOMArray paramsArray;
 
         for (SizeType i = 0; i < inObject.GetParameters().Size(); i++)
         {
@@ -116,7 +116,7 @@ public:
         attributesObject.GetProperty("BlendFunction").ReadStruct(&attributes.blendFunction);
         attributesObject.GetProperty("StencilFunction").ReadStruct(&attributes.stencilFunction);
 
-        FBOMArray paramsArray { FBOMUnset() };
+        FBOMArray paramsArray;
 
         if (FBOMResult err = in.GetProperty("Parameters").ReadArray(context, paramsArray))
         {

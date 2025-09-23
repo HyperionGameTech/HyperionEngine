@@ -2048,8 +2048,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
-            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray());
 
             return FBOMResult::FBOM_OK;
         }
@@ -2075,7 +2074,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
             }
         }
 
-        outData = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2084,7 +2083,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
     {
         HYP_SCOPE;
 
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = data.ReadArray(context, array))
         {
@@ -2166,8 +2165,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
         if (Size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
-            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray());
 
             return FBOMResult::FBOM_OK;
         }
@@ -2193,7 +2191,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
             }
         }
 
-        outData = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2202,7 +2200,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
     {
         HYP_SCOPE;
 
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = data.ReadArray(context, array))
         {
@@ -2276,8 +2274,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         if (Size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
-            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray());
 
             return FBOMResult::FBOM_OK;
         }
@@ -2304,7 +2301,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
             }
         }
 
-        outData = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2313,7 +2310,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
     {
         HYP_SCOPE;
 
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = data.ReadArray(context, array))
         {
@@ -2485,8 +2482,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
-            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<Pair<K, V>>::Get()));
+            outData = FBOMData::FromArray(FBOMArray());
 
             return FBOMResult::FBOM_OK;
         }
@@ -2506,7 +2502,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
             }
         }
 
-        outData = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2515,7 +2511,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
     {
         HYP_SCOPE;
 
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = data.ReadArray(context, array))
         {
@@ -2598,8 +2594,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
-            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<ValueType>::Get()));
+            outData = FBOMData::FromArray(FBOMArray());
 
             return FBOMResult::FBOM_OK;
         }
@@ -2619,7 +2614,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
             }
         }
 
-        outData = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2628,7 +2623,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
     {
         HYP_SCOPE;
 
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = data.ReadArray(context, array))
         {
@@ -2711,8 +2706,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         if (size == 0)
         {
             // If size is empty, serialize a placeholder value to get the element type
-            outData = FBOMData::FromArray(FBOMArray(FBOMPlaceholderType()));
-            // outData = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+            outData = FBOMData::FromArray(FBOMArray());
 
             return FBOMResult::FBOM_OK;
         }
@@ -2742,7 +2736,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
             }
         }
 
-        outData = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
 
         return FBOMResult::FBOM_OK;
     }
@@ -2751,7 +2745,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
     {
         HYP_SCOPE;
 
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = data.ReadArray(context, array))
         {

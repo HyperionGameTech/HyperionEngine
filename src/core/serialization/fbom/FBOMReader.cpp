@@ -97,7 +97,7 @@ FBOMResult FBOMReader::FBOMStaticDataIndexMap::Element::Initialize(FBOMLoadConte
     }
     case FBOMStaticData::FBOM_STATIC_DATA_ARRAY:
     {
-        ptr = MakeUnique<FBOMArray>(FBOMUnset());
+        ptr = MakeUnique<FBOMArray>();
 
         if (FBOMResult err = reader->ReadArray(context, &byteReader, *static_cast<FBOMArray*>(ptr.Get())))
         {
@@ -787,14 +787,6 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
         reader->Read(&sz);
         CheckEndianness(sz);
 
-        // read array element type
-        FBOMType elementType;
-
-        if (FBOMResult err = ReadObjectType(context, reader, elementType))
-        {
-            return err;
-        }
-
         ByteBuffer byteBuffer;
 
         BufferedReader compressedDataReader;
@@ -828,28 +820,19 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
             readerPtr = &compressedDataReader;
         }
 
-        outArray = FBOMArray(elementType);
+        outArray = FBOMArray();
 
-        if (elementType.IsPlaceholder() && sz > 0)
-        {
-            return { FBOMResult::FBOM_ERR, "Array element type is set to <placeholder>, however it has a non-zero number of elements, making it impossible to determine the actual element type to assign to the elements." };
-        }
-
+        // read each element
         for (uint32 index = 0; index < sz; index++)
         {
-            uint32 dataSize;
-            readerPtr->Read<uint32>(&dataSize);
-            CheckEndianness(dataSize);
+            FBOMData element;
 
-            ByteBuffer dataBuffer = readerPtr->ReadBytes(dataSize);
-
-            if (dataBuffer.Size() < dataSize)
+            if (FBOMResult err = ReadData(context, readerPtr, element))
             {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Array element buffer is corrupt - expected size: {} bytes, but got {} bytes", dataSize, dataBuffer.Size()) };
+                return err;
             }
 
-            FBOMData elementData { elementType, std::move(dataBuffer) };
-            outArray.AddElement(std::move(elementData));
+            outArray.AddElement(std::move(element));
         }
     }
     else if (location == FBOMDataLocation::LOC_STATIC)

@@ -783,17 +783,6 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMArray& array, UniqueId i
         // Write array size
         out->Write<uint32>(uint32(array.Size()));
 
-        if (array.GetElementType().IsUnset())
-        {
-            return { FBOMResult::FBOM_ERR, "Array element type is not set" };
-        }
-
-        // Write array element type
-        if (FBOMResult err = array.GetElementType().Visit(this, out))
-        {
-            return err;
-        }
-
         ByteWriter* writerPtr = out;
         MemoryByteWriter archiveWriter;
 
@@ -810,36 +799,12 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMArray& array, UniqueId i
         // Write each element
         for (SizeType index = 0; index < array.Size(); index++)
         {
-            const FBOMData* dataPtr = array.TryGetElement(index);
+            const FBOMData& element = array.GetElement(index);
 
-            if (!dataPtr)
-            {
-                return { FBOMResult::FBOM_ERR, "Array had invalid element" };
-            }
-
-            const FBOMData& data = *dataPtr;
-            SizeType dataSize = data.TotalSize();
-
-            if (dataSize == 0)
-            {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Array element at index {} (type: {}) has size 0", index, data.GetType().name) };
-            }
-
-            ByteBuffer byteBuffer;
-
-            if (FBOMResult err = data.ReadBytes(dataSize, byteBuffer))
+            if (FBOMResult err = element.Visit(element.GetUniqueID(), this, writerPtr))
             {
                 return err;
             }
-
-            if (byteBuffer.Size() != dataSize)
-            {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Array element buffer is corrupt - expected size: {} bytes, but got {} bytes", dataSize, byteBuffer.Size()) };
-            }
-
-            // raw bytebuffer - write size and then buffer
-            writerPtr->Write<uint32>(uint32(dataSize));
-            writerPtr->Write(byteBuffer.Data(), byteBuffer.Size());
         }
 
         if (attributes & FBOMDataAttributes::COMPRESSED)
@@ -1034,7 +999,7 @@ UniqueId FBOMWriter::AddStaticData(FBOMLoadContext& context, const FBOMData& dat
     }
     else if (data.IsArray())
     {
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         const FBOMResult result = data.ReadArray(context, array).value;
         HYP_CORE_ASSERT(result == FBOMResult::FBOM_OK, "Invalid array, cannot write to stream");

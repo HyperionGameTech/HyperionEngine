@@ -22,10 +22,10 @@ namespace serialization {
 class HYP_API FBOMArray final : public FBOMSerializableBase
 {
 public:
-    explicit FBOMArray(const FBOMType& elementType);
+    FBOMArray();
 
-    FBOMArray(const FBOMType& elementType, const Array<FBOMData>& values);
-    FBOMArray(const FBOMType& elementType, Array<FBOMData>&& values);
+    explicit FBOMArray(const Array<FBOMData>& values);
+    explicit FBOMArray(Array<FBOMData>&& values);
 
     FBOMArray(const FBOMArray& other);
     FBOMArray& operator=(const FBOMArray& other);
@@ -34,11 +34,6 @@ public:
     FBOMArray& operator=(FBOMArray&& other) noexcept;
 
     virtual ~FBOMArray() override;
-
-    HYP_FORCE_INLINE const FBOMType& GetElementType() const
-    {
-        return m_elementType;
-    }
 
     HYP_FORCE_INLINE SizeType Size() const
     {
@@ -64,7 +59,6 @@ public:
     virtual HashCode GetHashCode() const override;
 
 private:
-    FBOMType m_elementType;
     Array<FBOMData> m_values;
 };
 

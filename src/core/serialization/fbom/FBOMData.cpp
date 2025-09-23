@@ -431,7 +431,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, json::JSONValue& outJson) 
 
     if (IsArray())
     {
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         if (FBOMResult err = ReadArray(context, array))
         {
@@ -516,7 +516,7 @@ FBOMData FBOMData::FromJSON(const json::JSONValue& jsonValue)
 
     if (jsonValue.IsArray())
     {
-        FBOMArray array { FBOMUnset() };
+        FBOMArray array;
 
         const json::JSONArray& jsonArray = jsonValue.AsArray();
 
@@ -530,7 +530,7 @@ FBOMData FBOMData::FromJSON(const json::JSONValue& jsonValue)
                 elements.EmplaceBack(FBOMData::FromJSON(element));
             }
 
-            array = FBOMArray(elements[0].GetType(), std::move(elements));
+            array = FBOMArray(std::move(elements));
         }
 
         return FBOMData::FromArray(std::move(array));

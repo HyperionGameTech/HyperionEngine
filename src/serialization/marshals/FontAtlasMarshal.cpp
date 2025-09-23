@@ -26,7 +26,7 @@ public:
     {
         uint32 mainAtlasKey = uint32(-1);
 
-        FBOMArray atlasArray { FBOMBaseObjectType() };
+        FBOMArray atlasArray;
 
         for (const auto& it : textureSet.atlases)
         {
@@ -64,7 +64,7 @@ public:
             return err;
         }
 
-        FBOMArray atlasArray { FBOMUnset() };
+        FBOMArray atlasArray;
 
         if (FBOMResult err = in.GetProperty("Atlases").ReadArray(context, atlasArray))
         {
@@ -139,7 +139,7 @@ public:
     {
         out.SetProperty("AtlasTextures", FBOMData::FromObject(FBOMObject::Serialize(fontAtlas.GetAtlasTextures())));
 
-        FBOMArray symbolListArray { FBOMUInt32() };
+        FBOMArray symbolListArray;
 
         for (SizeType index = 0; index < fontAtlas.GetSymbolList().Size(); index++)
         {
@@ -149,8 +149,7 @@ public:
         out.SetProperty("SymbolList", FBOMData::FromArray(std::move(symbolListArray)));
         out.SetProperty("CellDimensions", FBOMData::FromVec2u(Vec2u(fontAtlas.GetCellDimensions())));
 
-        FBOMType glyphMetricsStructType = FBOMStruct::Create<Glyph::Metrics>();
-        FBOMArray glyphMetricsArray { glyphMetricsStructType };
+        FBOMArray glyphMetricsArray;
 
         for (SizeType index = 0; index < fontAtlas.GetGlyphMetrics().Size(); index++)
         {
@@ -178,17 +177,11 @@ public:
 
         const FontAtlasTextureSet& atlasTextures = atlasTexturesObject.m_deserializedObject->Get<FontAtlasTextureSet>();
 
-        FBOMType glyphMetricsStructType = FBOMStruct::Create<Glyph::Metrics>();
-        FBOMArray glyphMetricsArray { FBOMUnset() };
+        FBOMArray glyphMetricsArray;
 
         if (FBOMResult err = in.GetProperty("GlyphMetrics").ReadArray(context, glyphMetricsArray))
         {
             return err;
-        }
-
-        if (!glyphMetricsArray.GetElementType().IsType(glyphMetricsStructType))
-        {
-            return { FBOMResult::FBOM_ERR, "GlyphMetrics struct type mismatch" };
         }
 
         FontAtlas::GlyphMetricsBuffer glyphMetrics;
@@ -202,7 +195,7 @@ public:
             }
         }
 
-        FBOMArray symbolListArray { FBOMUInt32() };
+        FBOMArray symbolListArray;
 
         if (FBOMResult err = in.GetProperty("SymbolList").ReadArray(context, symbolListArray))
         {
