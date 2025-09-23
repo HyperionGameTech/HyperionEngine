@@ -17,12 +17,9 @@
 
 namespace hyperion::serialization {
 
-template <>
-class FBOMMarshaler<AssetRegistry> : public HypClassInstanceMarshal
+class AssetRegistryMarshal : public HypClassInstanceMarshal
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
         if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
@@ -82,6 +79,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(AssetRegistry, FBOMMarshaler<AssetRegistry>);
+HYP_DEFINE_MARSHAL(AssetRegistry, AssetRegistryMarshal);
 
 } // namespace hyperion::serialization

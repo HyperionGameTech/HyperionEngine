@@ -269,7 +269,7 @@ void UIText::SetText(const String& text)
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }
 
-const RC<FontAtlas>& UIText::GetFontAtlasOrDefault() const
+const Handle<FontAtlas>& UIText::GetFontAtlasOrDefault() const
 {
     HYP_SCOPE;
 
@@ -285,7 +285,7 @@ const RC<FontAtlas>& UIText::GetFontAtlasOrDefault() const
         : stage->GetDefaultFontAtlas();
 }
 
-void UIText::SetFontAtlas(const RC<FontAtlas>& fontAtlas)
+void UIText::SetFontAtlas(const Handle<FontAtlas>& fontAtlas)
 {
     HYP_SCOPE;
 
@@ -323,7 +323,7 @@ void UIText::UpdateTextAABB()
 {
     HYP_SCOPE;
 
-    if (const RC<FontAtlas>& fontAtlas = GetFontAtlasOrDefault())
+    if (const Handle<FontAtlas>& fontAtlas = GetFontAtlasOrDefault())
     {
         const Vec2i parentBounds = GetParentBounds();
         const float textSize = GetTextSize();
@@ -345,7 +345,7 @@ void UIText::UpdateMeshData_Internal()
 
     UIObject::UpdateMeshData_Internal();
 
-    const RC<FontAtlas>& fontAtlas = GetFontAtlasOrDefault();
+    const Handle<FontAtlas>& fontAtlas = GetFontAtlasOrDefault();
 
     if (!fontAtlas)
     {
@@ -425,7 +425,7 @@ void UIText::UpdateMaterial_Internal()
 {
     HYP_SCOPE;
 
-    if (const RC<FontAtlas>& fontAtlas = GetFontAtlasOrDefault())
+    if (const Handle<FontAtlas>& fontAtlas = GetFontAtlasOrDefault())
     {
         const float textSize = GetTextSize();
 

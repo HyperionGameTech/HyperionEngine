@@ -62,7 +62,7 @@ public:
      * \note If the font atlas is null, the default font atlas from the parent UIStage is used, but not returned from this function.
      *
      * \return The font atlas used for rendering the text. */
-    HYP_FORCE_INLINE const RC<FontAtlas>& GetFontAtlas() const
+    HYP_FORCE_INLINE const Handle<FontAtlas>& GetFontAtlas() const
     {
         return m_fontAtlas;
     }
@@ -71,7 +71,7 @@ public:
      *  If the font atlas is null, the default font atlas from the parent UIStage is used.
      *
      * \param fontAtlas The font atlas to set. */
-    void SetFontAtlas(const RC<FontAtlas>& fontAtlas);
+    void SetFontAtlas(const Handle<FontAtlas>& fontAtlas);
 
     /*! \brief Gets the options for rendering the text.
      *
@@ -117,11 +117,11 @@ protected:
 
     virtual void Update_Internal(float delta) override;
 
-    const RC<FontAtlas>& GetFontAtlasOrDefault() const;
+    const Handle<FontAtlas>& GetFontAtlasOrDefault() const;
 
     void UpdateTextAABB();
 
-    RC<FontAtlas> m_fontAtlas;
+    Handle<FontAtlas> m_fontAtlas;
 
     UITextOptions m_options;
 

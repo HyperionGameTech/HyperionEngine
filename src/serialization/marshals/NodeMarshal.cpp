@@ -16,12 +16,9 @@
 
 namespace hyperion::serialization {
 
-template <>
-class FBOMMarshaler<Node> : public HypClassInstanceMarshal
+class NodeMarshal : public HypClassInstanceMarshal
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
         const Node& inObject = in.Get<Node>();
@@ -118,6 +115,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(Node, FBOMMarshaler<Node>);
+HYP_DEFINE_MARSHAL(Node, NodeMarshal);
 
 } // namespace hyperion::serialization

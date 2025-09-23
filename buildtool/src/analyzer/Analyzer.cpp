@@ -30,7 +30,7 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
-#define HYP_BUILD_TOOL_FRIENDLY_NAMES 0
+#define HYP_BUILD_TOOL_FRIENDLY_NAMES 1
 
 using namespace json;
 
@@ -344,7 +344,12 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
 }
 
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
-static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, E>& usableMacros, const String& line, SizeType& outStartIndex, SizeType& outEndIndex, bool require_parentheses = true)
+static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(
+    const HashMap<String, E>& usableMacros,
+    const String& line,
+    SizeType& outStartIndex,
+    SizeType& outEndIndex,
+    bool requireParens = true)
 {
     outStartIndex = String::notFound;
     outEndIndex = String::notFound;
@@ -360,14 +365,33 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
             outStartIndex = macroStartIndex;
             outEndIndex = outStartIndex + it.first.Length();
 
-            const SizeType parenIndex = line.Substr(outEndIndex).FindFirstIndex("(");
+            int parenIndex = -1;
 
-            if (parenIndex == String::notFound)
+            // skip whitespace after macro name
+            for (SizeType i = outEndIndex; i < line.Length(); i++)
             {
-                if (require_parentheses)
+                const utf::u32char ch = line.GetChar(i);
+                if (ch == ' ' || ch == '\t')
+                {
+                    outEndIndex++;
+                }
+                else if (ch == '(')
+                {
+                    parenIndex = int(i - outEndIndex);
+                    break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (parenIndex == -1)
+            {
+                if (requireParens)
                 {
                     // Must have parenthesis to be considered an invocation
-                    continue;
+                    break;
                 }
 
                 // Otherwise, empty attributes are used
@@ -379,13 +403,14 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
                 int parenDepth = 1;
                 String attributesString;
 
-                for (; outEndIndex < line.Size(); outEndIndex++)
+                for (; outEndIndex < line.Length(); outEndIndex++)
                 {
-                    if (line[outEndIndex] == '(')
+                    const utf::u32char ch = line.GetChar(outEndIndex);
+                    if (ch == '(')
                     {
                         parenDepth++;
                     }
-                    else if (line[outEndIndex] == ')')
+                    else if (ch == ')')
                     {
                         parenDepth--;
 
@@ -397,7 +422,7 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
                     }
                     else
                     {
-                        attributesString.Append(line[outEndIndex]);
+                        attributesString.Append(ch);
                     }
                 }
 
@@ -808,13 +833,9 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                 {
                     definition.friendlyName = StringUtil::ToSnakeCase(nameWithoutPrefix).ToUpper();
                 }
-                else if (definition.cxxType->IsScriptableDelegate())
-                {
-                    definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
-                }
                 else
                 {
-                    definition.friendlyName = StringUtil::ToCamelCase(nameWithoutPrefix, preserveCase);
+                    definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
                 }
 
                 break;

@@ -23,7 +23,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 // 1 = save, 2 = load
-#define HYP_TEMP_PROJECT_SAVE_LOAD_TEST 2
+#define HYP_TEMP_PROJECT_SAVE_LOAD_TEST 1
 
 namespace hyperion {
 
@@ -455,7 +455,7 @@ private:
     void InitManipulationWidgetSelection();
     void InitActiveSceneSelection();
 
-    TResult<RC<FontAtlas>> CreateFontAtlas();
+    TResult<Handle<FontAtlas>> CreateFontAtlas();
 
     void UpdateCamera(float delta);
     void UpdateTasks(float delta);

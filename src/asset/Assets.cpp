@@ -289,7 +289,7 @@ void AssetManager::RegisterDefaultLoaders()
     // freetype font loader
     Register<FontFaceLoader, RC<FontFace>>(
         "ttf", "otf", "ttc", "dfont");
-    Register<FontAtlasLoader, RC<FontAtlas>>();
+    Register<FontAtlasLoader, FontAtlas>();
     Register<UILoader, UIObject>();
 }
 

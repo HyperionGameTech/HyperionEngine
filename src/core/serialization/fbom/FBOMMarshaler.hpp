@@ -16,6 +16,7 @@
 
 namespace hyperion {
 struct HypData;
+class HypClass;
 } // namespace hyperion
 
 namespace hyperion::serialization {
@@ -37,10 +38,10 @@ public:
 };
 
 template <class T>
-class FBOMObjectMarshalerBase;
-
-template <class T>
 class FBOMMarshaler;
+
+template <class T, class T2 = void>
+class FBOMObjectMarshalerBase;
 
 struct FBOMMarshalerRegistrationBase
 {
@@ -48,58 +49,50 @@ protected:
     FBOMMarshalerRegistrationBase(TypeId typeId, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal);
 };
 
-template <class T, class MarshalerType>
+template <class T, class MarshalType>
 struct FBOMMarshalerRegistration : FBOMMarshalerRegistrationBase
 {
     FBOMMarshalerRegistration()
-        : FBOMMarshalerRegistrationBase(TypeId::ForType<T>(), TypeNameHelper<T, true>::value.Data(), MakeUnique<MarshalerType>())
+        : FBOMMarshalerRegistrationBase(TypeId::ForType<T>(), TypeNameHelper<T, true>::value.Data(), MakeUnique<MarshalType>())
     {
     }
 };
 
 template <class T>
-class FBOMObjectMarshalerBase : public FBOMMarshalerBase
+class FBOMObjectMarshalerBase<T, std::enable_if_t<IsHypObject<T>::value>> : public FBOMMarshalerBase
 {
 public:
+    using HypClassType = typename T::HypClassInfo::Type;
+
     virtual ~FBOMObjectMarshalerBase() = default;
 
     virtual FBOMType GetObjectType() const override
     {
-        return FBOMObjectType(TypeNameHelper<T, true>::value.Data());
+        return FBOMObjectType(TypeNameHelper<HypClassType, true>::value.Data());
     }
 
     virtual TypeId GetTypeId() const override final
     {
-        return TypeId::ForType<T>();
+        return TypeId::ForType<HypClassType>();
     }
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override final
     {
-        HYP_CORE_ASSERT(in.Is<T>(), "Cannot serialize - given object is not of expected type");
+        HYP_CORE_ASSERT(in.Is<HypClassType>(), "Cannot serialize - given object is not of expected type");
 
-        if (!in.Is<T>())
+        if (!in.Is<HypClassType>())
         {
             return { FBOMResult::FBOM_ERR, "Cannot serialize - given object is not of expected type" };
         }
 
-        return Serialize(in.Get<T>(), out);
+        return Serialize(in.Get<HypClassType>(), out);
     }
 
-    virtual FBOMResult Serialize(const T& in, FBOMObject& out) const = 0;
+    virtual FBOMResult Serialize(const HypClassType& in, FBOMObject& out) const = 0;
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override = 0;
 };
 
-template <class T>
-class FBOMMarshaler : public FBOMObjectMarshalerBase<T>
-{
-public:
-    virtual FBOMResult Serialize(const T& in, FBOMObject& out) const override;
-    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override;
-};
-
-#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                            \
-    static ::hyperion::FBOMMarshalerRegistration<T, MarshalType> HYP_UNIQUE_NAME(marshalRegistration) \
-    {                                                                                                 \
-    }
+#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                               \
+    static ::hyperion::FBOMMarshalerRegistration<typename T::HypClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration)()
 
 } // namespace hyperion::serialization

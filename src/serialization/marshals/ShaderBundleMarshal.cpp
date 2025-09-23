@@ -15,12 +15,9 @@ HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
 
 namespace hyperion::serialization {
 
-template <>
-class FBOMMarshaler<CompiledShader> : public FBOMObjectMarshalerBase<CompiledShader>
+class CompiledShaderMarshal : public FBOMObjectMarshalerBase<CompiledShader>
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(const CompiledShader& inObject, FBOMObject& out) const override
     {
         if (!inObject.IsValid())
@@ -245,14 +242,11 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(CompiledShader, FBOMMarshaler<CompiledShader>);
+HYP_DEFINE_MARSHAL(CompiledShader, CompiledShaderMarshal);
 
-template <>
-class FBOMMarshaler<CompiledShaderBatch> : public FBOMObjectMarshalerBase<CompiledShaderBatch>
+class CompiledShaderBatchMarshal : public FBOMObjectMarshalerBase<CompiledShaderBatch>
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(const CompiledShaderBatch& inObject, FBOMObject& out) const override
     {
         for (const CompiledShader& compiledShader : inObject.compiledShaders)
@@ -290,6 +284,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(CompiledShaderBatch, FBOMMarshaler<CompiledShaderBatch>);
+HYP_DEFINE_MARSHAL(CompiledShaderBatch, CompiledShaderBatchMarshal);
 
 } // namespace hyperion::serialization

@@ -86,7 +86,7 @@ public:                                                                         
 private:
 
 
-#define STRUCT_BODY(T, ...)                                                     \
+#define HYP_STRUCT_BODY(T, ...)                                                     \
     friend struct HypStructInitializer_##T;                                     \
                                                                                 \
     template <class T>                                                          \

@@ -24,14 +24,15 @@ class Object;
 class Class;
 } // namespace dotnet
 
+class ScriptObjectResource;
+
+enum class HypClassFlags : uint8;
 enum class HypClassAllocationMethod : uint8;
 
 class HypObjectContainerBase;
 class HypClass;
 class HypObjectBase;
-
-template <class T>
-class HypObject;
+struct HypObjectHeader;
 
 template <class T>
 struct Handle;
@@ -39,28 +40,26 @@ struct Handle;
 template <class T>
 struct WeakHandle;
 
-struct HypObjectHeader;
-
 template <class T>
 struct HypObjectMemory;
 
-class ScriptObjectResource;
+template <class T>
+struct HypClassRegistration;
 
-enum class HypClassFlags : uint8;
-
-extern HYP_API const HypClass* GetClass(TypeId typeId);
+template <class T>
+struct HypStructRegistration;
 
 template <class T, class T2 = void>
-struct IsHypObject
+struct IsHypObject;
+
+template <class T>
+struct IsHypObject<T, std::enable_if_t<!implementationExists<typename T::HypClassInfo::Type> && implementationExists<T>>>
 {
     static constexpr bool value = false;
 };
 
-/*! \brief A type trait to determine if a type is a HypObject (has a HypClass associated with it).
- *  \note A type is considered a HypObject if it is derived from HypObjectBase or if it has HYP_OBJECT_BODY(...) in the class body.
- *  \tparam T The type to check. */
 template <class T>
-struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+struct IsHypObject<T, std::enable_if_t<implementationExists<typename T::HypClassInfo::Type>>>
 {
     static constexpr bool value = true;
 
@@ -209,12 +208,6 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
     }
 };
 
-template <class T>
-struct HypClassRegistration;
-
-template <class T>
-struct HypStructRegistration;
-
 /// HypClassRef - A strong reference to a HypClass.
 /// Reference counting only applies to dynamically created / destroyed HypClass objects (used with scripts).
 struct HypClassRef
@@ -276,6 +269,8 @@ struct HypClassRef
         return hypClass < other.hypClass;
     }
 };
+
+extern HYP_API const HypClass* GetClass(TypeId typeId);
 
 /// Casts ///
 

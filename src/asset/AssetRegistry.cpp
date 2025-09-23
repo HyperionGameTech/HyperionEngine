@@ -1212,42 +1212,37 @@ void AssetRegistry::LoadPackagesAsync()
             {
                 bool packageFound = false;
 
-                for (const FilePath& entry : dir.GetAllFilesInDirectory())
+                const FilePath manifestPath = dir / "PackageManifest.json";
+
+                if (manifestPath.Exists() && !manifestPath.IsDirectory())
                 {
-                    if (entry.GetExtension() != "packagemanifest")
-                    {
-                        continue;
-                    }
-
                     Handle<AssetPackage> package;
-
-                    const FilePath packageDir = dir / entry.StripExtension();
 
                     // build virtual package path from filesystem path
                     if (Result result = LoadPackageFromManifest(
-                            packageDir,
+                            manifestPath,
                             FilePath::Relative(dir, rootPath),
                             package,
                             /* loadSubpackages */ true);
                         result.HasError())
                     {
-                        HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", packageDir, result.GetError().GetMessage());
+                        HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", dir, result.GetError().GetMessage());
 
-                        continue;
+                        return;
                     }
 
                     if (!package.IsValid())
                     {
-                        HYP_LOG(Assets, Error, "Package at path '{}' is invalid!", packageDir);
+                        HYP_LOG(Assets, Error, "Package at path '{}' is invalid!", dir);
 
-                        continue;
+                        return;
                     }
 
                     if (!package->GetName().IsValid())
                     {
-                        HYP_LOG(Assets, Error, "Package at path '{}' has an invalid name!", packageDir);
+                        HYP_LOG(Assets, Error, "Package at path '{}' has an invalid name!", dir);
 
-                        continue;
+                        return;
                     }
 
                     rootPackages.Insert(package);
@@ -1697,11 +1692,11 @@ Result AssetRegistry::LoadPackageFromManifest(
         return HYP_MAKE_ERROR(Error, "Manifest JSON must be an object");
     }
 
-    const String packageName = parseResult.value.Get("name").ToString();
+    const String packageName = parseResult.value.Get("Name").ToString();
 
     if (packageName.Empty())
     {
-        return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a non-empty 'name' field");
+        return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a non-empty 'Name' field");
     }
 
     Array<String> parts;

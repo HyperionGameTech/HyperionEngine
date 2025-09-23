@@ -19,7 +19,7 @@ HYP_STRUCT(Size = 16)
 class HYP_API AssetReference
 {
 public:
-    STRUCT_BODY(AssetReference)
+    HYP_STRUCT_BODY(AssetReference)
 
     AssetReference()
         : m_data(AssetPath())

@@ -137,13 +137,13 @@ public:
      *  UIText objects will use this font atlas if they don't have a font atlas set.
      *
      *  \return The default font atlas. */
-    const RC<FontAtlas>& GetDefaultFontAtlas() const;
+    const Handle<FontAtlas>& GetDefaultFontAtlas() const;
 
     /*! \brief Set the default font atlas to use for text rendering.
      *  UIText objects will use this font atlas if they don't have a font atlas set.
      *
      *  \param fontAtlas The font atlas to set. */
-    void SetDefaultFontAtlas(RC<FontAtlas> fontAtlas);
+    void SetDefaultFontAtlas(const Handle<FontAtlas>& fontAtlas);
 
     /*! \brief Get the UI object that is currently focused. If no object is focused, returns nullptr.
      *  \return The focused UI object. */
@@ -207,7 +207,7 @@ private:
 
     UIStageUpdateManager m_updateManager;
 
-    RC<FontAtlas> m_defaultFontAtlas;
+    Handle<FontAtlas> m_defaultFontAtlas;
 
     HashMap<WeakHandle<UIObject>, UIObjectMouseState> m_mouseButtonPressedStates;
     HashSet<WeakHandle<UIObject>> m_hoveredUiObjects;

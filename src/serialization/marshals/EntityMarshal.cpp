@@ -33,12 +33,9 @@
 
 namespace hyperion::serialization {
 
-template <>
-class FBOMMarshaler<Entity> : public HypClassInstanceMarshal
+class EntityMarshal : public HypClassInstanceMarshal
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
         if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
@@ -288,6 +285,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
+HYP_DEFINE_MARSHAL(Entity, EntityMarshal);
 
 } // namespace hyperion::serialization

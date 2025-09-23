@@ -3,10 +3,13 @@
 #pragma once
 
 #include <core/Defines.hpp>
+
 #include <core/object/Handle.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/containers/Array.hpp>
+
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Result.hpp>
 
@@ -22,8 +25,11 @@ namespace hyperion {
 class Texture;
 using FontAtlasBitmap = Bitmap_RGBA8;
 
+HYP_STRUCT()
 struct HYP_API FontAtlasTextureSet
 {
+    HYP_STRUCT_BODY(FontAtlasTextureSet);
+
     Handle<Texture> mainAtlas;
     FlatMap<uint32, Handle<Texture>> atlases;
 
@@ -39,8 +45,11 @@ struct HYP_API FontAtlasTextureSet
     void AddAtlas(uint32 pixelSize, Handle<Texture> texture, bool isMainAtlas = false);
 };
 
-class FontAtlas : public EnableRefCountedPtrFromThis<FontAtlas>
+HYP_CLASS()
+class FontAtlas : public HypObjectBase
 {
+    HYP_OBJECT_BODY(FontAtlas);
+
 public:
     static constexpr uint32 s_symbolColumns = 20;
     static constexpr uint32 s_symbolRows = 5;

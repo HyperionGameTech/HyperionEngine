@@ -49,9 +49,12 @@ struct VertexAttributeDefinition
     Optional<String> condition;
 };
 
+HYP_STRUCT()
 struct ShaderProperty
 {
     using Value = Variant<String, int, float>;
+
+    HYP_STRUCT_BODY(ShaderProperty);
 
     Name name;
     bool isPermutation;
@@ -231,6 +234,8 @@ class ShaderProperties
     friend class ShaderCompiler;
 
 public:
+    HYP_STRUCT_BODY(ShaderProperties);
+
     using Iterator = typename HashSet<ShaderProperty>::Iterator;
     using ConstIterator = typename HashSet<ShaderProperty>::ConstIterator;
 
@@ -569,6 +574,8 @@ HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
 HYP_STRUCT()
 struct DescriptorUsageType
 {
+    HYP_STRUCT_BODY(DescriptorUsageType);
+
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
 
@@ -707,9 +714,10 @@ struct DescriptorUsageType
 };
 
 HYP_STRUCT()
-
 struct DescriptorUsage
 {
+    HYP_STRUCT_BODY(DescriptorUsage);
+
     HYP_FIELD(Property = "Slot", Serialize = true)
     DescriptorSlot slot;
 
@@ -910,6 +918,9 @@ struct DescriptorUsage
 HYP_STRUCT()
 struct DescriptorUsageSet
 {
+    HYP_STRUCT_BODY(DescriptorUsageSet);
+
+    HYP_FIELD()
     FlatSet<DescriptorUsage> elements;
 
     DescriptorTableDeclaration BuildDescriptorTableDeclaration() const;
@@ -993,6 +1004,8 @@ struct DescriptorUsageSet
 HYP_STRUCT()
 struct ShaderDefinition
 {
+    HYP_STRUCT_BODY(ShaderDefinition);
+
     HYP_FIELD()
     Name name;
 
@@ -1052,9 +1065,10 @@ struct ShaderDefinition
 };
 
 HYP_STRUCT()
-
 struct CompiledShader
 {
+    HYP_STRUCT_BODY(CompiledShader);
+
     HYP_FIELD(Property = "Definition", Serialize = false) // custom serialization used
     ShaderDefinition definition;
 
@@ -1126,9 +1140,15 @@ struct CompiledShader
     }
 };
 
+HYP_STRUCT()
 struct CompiledShaderBatch
 {
+    HYP_STRUCT_BODY(CompiledShaderBatch);
+
+    HYP_FIELD()
     Array<CompiledShader> compiledShaders;
+
+    HYP_FIELD()
     Array<String> errorMessages;
 
     CompiledShaderBatch() = default;

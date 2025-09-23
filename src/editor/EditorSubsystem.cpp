@@ -1280,7 +1280,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    TResult<RC<FontAtlas>> fontAtlasResult = CreateFontAtlas();
+    TResult<Handle<FontAtlas>> fontAtlasResult = CreateFontAtlas();
 
     if (fontAtlasResult.HasError())
     {
@@ -2765,7 +2765,7 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
     }
 }
 
-TResult<RC<FontAtlas>> EditorSubsystem::CreateFontAtlas()
+TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 {
     HYP_SCOPE;
 
@@ -2788,7 +2788,7 @@ TResult<RC<FontAtlas>> EditorSubsystem::CreateFontAtlas()
     //         return HYP_MAKE_ERROR(Error, "Failed to load font atlas from file: {}", 0, err.message);
     //     }
 
-    //     return loadedFontAtlasData.Get<RC<FontAtlas>>();
+    //     return loadedFontAtlasData.Get<Handle<FontAtlas>>();
     // }
 
     auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
@@ -2801,7 +2801,7 @@ TResult<RC<FontAtlas>> EditorSubsystem::CreateFontAtlas()
     Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Media/Fonts/Roboto", /* createIfNotExist */ true);
     Assert(package.IsValid());
 
-    RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(std::move(fontFaceAsset->Result()));
+    Handle<FontAtlas> atlas = CreateObject<FontAtlas>(std::move(fontFaceAsset->Result()));
 
     if (Result renderAtlasResult = atlas->RenderAtlasTextures(); renderAtlasResult.HasError())
     {

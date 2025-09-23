@@ -231,7 +231,7 @@ void UIStage::SetScene(const Handle<Scene>& scene)
     InitObject(m_scene);
 }
 
-const RC<FontAtlas>& UIStage::GetDefaultFontAtlas() const
+const Handle<FontAtlas>& UIStage::GetDefaultFontAtlas() const
 {
     HYP_SCOPE;
 
@@ -249,12 +249,12 @@ const RC<FontAtlas>& UIStage::GetDefaultFontAtlas() const
     return m_defaultFontAtlas;
 }
 
-void UIStage::SetDefaultFontAtlas(RC<FontAtlas> fontAtlas)
+void UIStage::SetDefaultFontAtlas(const Handle<FontAtlas>& fontAtlas)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    m_defaultFontAtlas = std::move(fontAtlas);
+    m_defaultFontAtlas = fontAtlas;
 
     OnFontAtlasUpdate();
     // OnTextSizeUpdate();
@@ -298,7 +298,7 @@ void UIStage::Init()
 
     if (!m_defaultFontAtlas)
     {
-        auto fontAtlasAsset = g_assetManager->Load<RC<FontAtlas>>("fonts/default.json");
+        auto fontAtlasAsset = g_assetManager->Load<FontAtlas>("fonts/default.json");
 
         if (fontAtlasAsset.HasValue())
         {

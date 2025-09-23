@@ -85,7 +85,7 @@ struct LoadedAsset
         {
             return value.Get<RC<T>>();
         }
-        else if constexpr (IsHypObject<T>::value)
+        else if constexpr (std::is_base_of_v<HypObjectBase, T>)
         {
             return value.Get<Handle<T>>();
         }
@@ -102,7 +102,7 @@ struct LoadedAsset
         {
             return std::move(value).Get<RC<T>>();
         }
-        else if constexpr (IsHypObject<T>::value)
+        else if constexpr (std::is_base_of_v<HypObjectBase, T>)
         {
             return std::move(value).Get<Handle<T>>();
         }

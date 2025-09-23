@@ -2,6 +2,7 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
+#include <core/serialization/fbom/FBOMMarshaler.hpp>
 
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>
@@ -18,14 +19,9 @@
 
 namespace hyperion::serialization {
 
-#pragma region FBOMMarshaler<FontAtlasTextureSet>
-
-template <>
-class FBOMMarshaler<FontAtlasTextureSet> : public FBOMObjectMarshalerBase<FontAtlasTextureSet>
+class FontAtlasTextureSetMarshal : public FBOMObjectMarshalerBase<FontAtlasTextureSet>
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(const FontAtlasTextureSet& textureSet, FBOMObject& out) const override
     {
         uint32 mainAtlasKey = uint32(-1);
@@ -134,18 +130,11 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(FontAtlasTextureSet, FBOMMarshaler<FontAtlasTextureSet>);
+HYP_DEFINE_MARSHAL(FontAtlasTextureSet, FontAtlasTextureSetMarshal);
 
-#pragma endregion FBOMMarshaler < FontAtlasTextureSet>
-
-#pragma region FBOMMarshaler<FontAtlas>
-
-template <>
-class FBOMMarshaler<FontAtlas> : public FBOMObjectMarshalerBase<FontAtlas>
+class FontAtlasMarshal : public FBOMObjectMarshalerBase<FontAtlas>
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(const FontAtlas& fontAtlas, FBOMObject& out) const override
     {
         out.SetProperty("AtlasTextures", FBOMData::FromObject(FBOMObject::Serialize(fontAtlas.GetAtlasTextures())));
@@ -238,7 +227,7 @@ public:
             return err;
         }
 
-        RC<FontAtlas> result = MakeRefCountedPtr<FontAtlas>(atlasTextures, Vec2i(cellDimensions), std::move(glyphMetrics), std::move(symbolList));
+        Handle<FontAtlas> result = CreateObject<FontAtlas>(atlasTextures, Vec2i(cellDimensions), std::move(glyphMetrics), std::move(symbolList));
 
         out = HypData(std::move(result));
 
@@ -246,8 +235,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(FontAtlas, FBOMMarshaler<FontAtlas>);
-
-#pragma endregion FBOMMarshaler < FontAtlas>
+HYP_DEFINE_MARSHAL(FontAtlas, FontAtlasMarshal);
 
 } // namespace hyperion::serialization

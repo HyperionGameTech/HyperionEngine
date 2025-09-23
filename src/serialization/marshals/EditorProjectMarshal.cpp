@@ -21,12 +21,9 @@
 
 namespace hyperion::serialization {
 
-template <>
-class FBOMMarshaler<EditorProject> : public HypClassInstanceMarshal
+class EditorProjectMarshal : public HypClassInstanceMarshal
 {
 public:
-    virtual ~FBOMMarshaler() override = default;
-
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
         const EditorProject& editorProject = in.Get<EditorProject>();
@@ -54,6 +51,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(EditorProject, FBOMMarshaler<EditorProject>);
+HYP_DEFINE_MARSHAL(EditorProject, EditorProjectMarshal);
 
 } // namespace hyperion::serialization
