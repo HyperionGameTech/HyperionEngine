@@ -159,7 +159,7 @@ void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusS
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
-Material::ParameterTable UIListViewItem::GetMaterialParameters() const
+MaterialParameters UIListViewItem::GetMaterialParameters() const
 {
     Color color = GetBackgroundColor();
 
@@ -174,8 +174,8 @@ Material::ParameterTable UIListViewItem::GetMaterialParameters() const
         color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
     }
 
-    return Material::ParameterTable {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+    return MaterialParameters {
+        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
     };
 }
 

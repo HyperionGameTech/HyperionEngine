@@ -93,7 +93,7 @@ protected:
 
     virtual void SetStage_Internal(UIStage* stage) override;
 
-    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual MaterialParameters GetMaterialParameters() const override;
 
 private:
 

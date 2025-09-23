@@ -198,24 +198,24 @@ void UIMenuItem::UpdateDropDownMenu()
     }
 
     Vec2i offset;
-    
+
     {
         UILockedUpdatesScope scope(*m_dropDownMenu, UIObjectUpdateType::UPDATE_SIZE);
-        
+
         for (SizeType i = 0; i < m_menuItems.Size(); i++)
         {
             UIObject* menuItem = m_menuItems[i];
-            
+
             if (!menuItem)
             {
                 continue;
             }
-            
+
             menuItem->UpdateSize();
             menuItem->SetPosition(offset);
-            
+
             m_dropDownMenu->AddChildUIObject(MakeStrongRef(menuItem));
-            
+
             offset += Vec2i(0, menuItem->GetActualSize().y);
         }
     }
@@ -245,7 +245,7 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
         m_subItemsDropDownMenu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
         m_subItemsDropDownMenu->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
     }
-    
+
     selectedSubItem->UpdateDropDownMenu();
 
     if (!selectedSubItem->GetDropDownMenuElement())
@@ -342,7 +342,7 @@ void UIMenuItem::SetStage_Internal(UIStage* stage)
     }
 }
 
-Material::ParameterTable UIMenuItem::GetMaterialParameters() const
+MaterialParameters UIMenuItem::GetMaterialParameters() const
 {
     Color color = GetBackgroundColor();
 
@@ -360,8 +360,8 @@ Material::ParameterTable UIMenuItem::GetMaterialParameters() const
         }
     }
 
-    return Material::ParameterTable {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+    return MaterialParameters {
+        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
     };
 }
 
@@ -529,7 +529,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
         m_container->AddChildUIObject(MakeStrongRef(dropDownMenuElement));
         menuItem->UpdateDropDownMenu();
-        
+
         m_container->SetSize(UIObjectSize({ dropDownMenuElement->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
         m_container->SetPosition(GetDropDownMenuPosition(menuItem));
         m_container->SetIsVisible(true);

@@ -38,7 +38,7 @@ public:
         {
             String tag;
             Array<TextureDef> textures;
-            HashMap<Material::MaterialKey, ParameterDef> parameters;
+            HashMap<MaterialParameterKey, ParameterDef> parameters;
         };
 
         String filepath;

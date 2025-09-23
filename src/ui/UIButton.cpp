@@ -58,7 +58,7 @@ void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusState)
     UpdateMeshData();
 }
 
-Material::ParameterTable UIButton::GetMaterialParameters() const
+MaterialParameters UIButton::GetMaterialParameters() const
 {
     Color color;
 
@@ -75,8 +75,8 @@ Material::ParameterTable UIButton::GetMaterialParameters() const
         color = m_backgroundColor;
     }
 
-    return Material::ParameterTable {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+    return MaterialParameters {
+        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
     };
 }
 

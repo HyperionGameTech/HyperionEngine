@@ -41,7 +41,7 @@ protected:
     virtual void Init() override;
 
     virtual MaterialAttributes GetMaterialAttributes() const override;
-    virtual Material::TextureSet GetMaterialTextures() const override;
+    virtual MaterialTextures GetMaterialTextures() const override;
 
     Handle<Texture> m_texture;
 };

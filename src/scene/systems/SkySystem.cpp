@@ -24,6 +24,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/TextureAsset.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
@@ -112,13 +113,22 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
         if (!mesh.IsValid())
         {
             mesh = MeshBuilder::Cube();
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
+            mesh->SetName(NAME("Skybox_Mesh"));
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes/Skydome", mesh->GetAsset());
 
             InitObject(mesh);
         }
 
         if (!material)
         {
+            const Handle<Texture>& cubemapTexture = ObjCast<SkyProbe>(skyComponent.subsystem->GetEnvProbe())->GetSkyboxCubemap();
+            Assert(cubemapTexture.IsValid());
+
+            cubemapTexture->SetName(NAME("Skybox_Cubemap"));
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures/Skydome", cubemapTexture->GetAsset());
+
             MaterialAttributes materialAttributes {};
             materialAttributes.shaderDefinition = ShaderDefinition {
                 NAME("Skybox"),
@@ -129,7 +139,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
             materialAttributes.flags = MAF_DEPTH_TEST;
 
             material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
-            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, ObjCast<SkyProbe>(skyComponent.subsystem->GetEnvProbe())->GetSkyboxCubemap());
+            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, cubemapTexture);
 
             InitObject(material);
         }

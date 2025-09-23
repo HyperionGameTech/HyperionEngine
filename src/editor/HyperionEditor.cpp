@@ -354,9 +354,9 @@ void HyperionEditor::Init()
                     // if (auto* meshComponent = zombie->TryGetComponent<MeshComponent>())
                     // {
                     //     meshComponent->material = meshComponent->material->Clone();
-                    //     meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f));
-                    //     meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.1f);
-                    //     meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+                    //     meshComponent->material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f));
+                    //     meshComponent->material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.1f);
+                    //     meshComponent->material->SetParameter(MaterialParameterKey::MATERIAL_KEY_METALNESS, 0.0f);
                     //     InitObject(meshComponent->material);
                     // }
 

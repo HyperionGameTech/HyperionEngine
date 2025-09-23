@@ -30,9 +30,9 @@ static const ShaderDefinition g_defaultShaderDefinition {
 
 #pragma region Material
 
-const Material::ParameterTable& Material::DefaultParameters()
+const MaterialParameters& Material::DefaultParameters()
 {
-    static const ParameterTable parameters {
+    static const MaterialParameters s_defaultParameters {
         { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
         { MATERIAL_KEY_METALNESS, 0.0f },
         { MATERIAL_KEY_ROUGHNESS, 0.65f },
@@ -52,11 +52,11 @@ const Material::ParameterTable& Material::DefaultParameters()
         { MATERIAL_KEY_ALPHA_THRESHOLD, 0.2f }
     };
 
-    return parameters;
+    return s_defaultParameters;
 }
 
 Material::Material()
-    : m_renderAttributes {
+    : m_attributes {
           .shaderDefinition = g_defaultShaderDefinition,
           .bucket = RB_OPAQUE,
           .fillMode = FM_FILL,
@@ -73,7 +73,7 @@ Material::Material()
 
 Material::Material(Name name, RenderBucket rb)
     : m_name(name),
-      m_renderAttributes {
+      m_attributes {
           .shaderDefinition = g_defaultShaderDefinition,
           .bucket = rb
       },
@@ -85,15 +85,19 @@ Material::Material(Name name, RenderBucket rb)
 }
 
 Material::Material(Name name, const MaterialAttributes& attributes)
-    : Material(name, attributes, DefaultParameters(), TextureSet {})
+    : Material(name, attributes, DefaultParameters(), MaterialTextures {})
 {
 }
 
-Material::Material(Name name, const MaterialAttributes& attributes, const ParameterTable& parameters, const TextureSet& textures)
+Material::Material(
+    Name name,
+    const MaterialAttributes& attributes,
+    const MaterialParameters& parameters,
+    const MaterialTextures& textures)
     : m_name(name),
       m_parameters(parameters),
       m_textures(textures),
-      m_renderAttributes(attributes),
+      m_attributes(attributes),
       m_isDynamic(false),
       m_mutationState(DataMutationState::CLEAN),
       m_renderProxyVersion(0)
@@ -106,9 +110,9 @@ Material::~Material()
 
     for (SizeType i = 0; i < m_textures.Size(); i++)
     {
-        Handle<Texture>& texture = m_textures.ValueAt(i);
+        Handle<Texture>& texture = m_textures.AtIndex(i);
 
-        if (texture != nullptr)
+        if (texture)
         {
             SafeDelete(std::move(texture));
         }
@@ -121,13 +125,13 @@ void Material::Init()
 
     for (SizeType i = 0; i < m_textures.Size(); i++)
     {
-        MaterialTextureKey key = m_textures.KeyAt(i);
+        Pair<MaterialTextureKey, Handle<Texture>&> keyValue = m_textures.KeyValueAt(i);
 
-        if (Handle<Texture>& texture = m_textures.ValueAt(i))
+        if (keyValue.second)
         {
-            InitObject(texture);
+            InitObject(keyValue.second);
 
-            textures.Set(key, texture);
+            textures.Set(keyValue.first, keyValue.second);
         }
     }
 
@@ -154,7 +158,7 @@ void Material::EnqueueRenderUpdates()
     m_mutationState = DataMutationState::CLEAN;
 }
 
-void Material::SetParameter(MaterialKey key, const Parameter& value)
+void Material::SetParameter(MaterialParameterKey key, const MaterialParameter& value)
 {
     if (IsStatic() && IsReady())
     {
@@ -169,7 +173,7 @@ void Material::SetParameter(MaterialKey key, const Parameter& value)
         return;
     }
 
-    m_parameters.Set(key, value);
+    m_parameters[key] = value;
 
     if (IsInitCalled())
     {
@@ -179,7 +183,7 @@ void Material::SetParameter(MaterialKey key, const Parameter& value)
     }
 }
 
-void Material::SetParameters(const ParameterTable& parameters)
+void Material::SetParameters(const MaterialParameters& parameters)
 {
     if (IsStatic() && IsReady())
     {
@@ -240,7 +244,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
         SafeDelete(std::move(m_textures[key]));
     }
 
-    m_textures.Set(key, texture);
+    m_textures[key] = texture;
 
     if (IsInitCalled())
     {
@@ -254,10 +258,10 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 
 void Material::SetTextureAtIndex(uint32 index, const Handle<Texture>& texture)
 {
-    return SetTexture(m_textures.KeyAt(index), texture);
+    return SetTexture(m_textures.KeyValueAt(index).first, texture);
 }
 
-void Material::SetTextures(const TextureSet& textures)
+void Material::SetTextures(const MaterialTextures& textures)
 {
     if (IsStatic() && IsReady())
     {
@@ -274,7 +278,7 @@ void Material::SetTextures(const TextureSet& textures)
 
     for (SizeType i = 0; i < m_textures.Size(); i++)
     {
-        Handle<Texture>& texture = m_textures.ValueAt(i);
+        Handle<Texture>& texture = m_textures.AtIndex(i);
 
         if (texture != nullptr)
         {
@@ -288,12 +292,12 @@ void Material::SetTextures(const TextureSet& textures)
     {
         for (SizeType i = 0; i < m_textures.Size(); i++)
         {
-            if (!m_textures.ValueAt(i).IsValid())
+            if (!m_textures.AtIndex(i).IsValid())
             {
                 continue;
             }
 
-            InitObject(m_textures.ValueAt(i));
+            InitObject(m_textures.AtIndex(i));
         }
 
         SetNeedsRenderProxyUpdate();
@@ -304,19 +308,19 @@ void Material::SetTextures(const TextureSet& textures)
 
 const Handle<Texture>& Material::GetTexture(MaterialTextureKey key) const
 {
-    return m_textures.Get(key);
+    return m_textures[key];
 }
 
 const Handle<Texture>& Material::GetTextureAtIndex(uint32 index) const
 {
-    return GetTexture(m_textures.KeyAt(index));
+    return m_textures.AtIndex(index);
 }
 
 Handle<Material> Material::Clone() const
 {
     Handle<Material> material = CreateObject<Material>(
         Name::Unique(ANSIString(*m_name) + "_dynamic"),
-        m_renderAttributes,
+        m_attributes,
         m_parameters,
         m_textures);
 
@@ -352,7 +356,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(&bufferData.textureIndices);
     Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
-    const uint32 numTextureSlots = MathUtil::Min(maxTextures, useBindlessTextures ? g_maxBindlessResources : g_maxBoundTextures);
+    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::s_maxTextures, useBindlessTextures ? g_maxBindlessResources : g_maxBoundTextures);
     uint32 remainingTextureSlots = numTextureSlots;
 
     proxy->boundTextures.Clear();
@@ -363,36 +367,35 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         proxy->boundTextureIndices[i] = ~0u;
     }
 
-    for (const auto& it : m_textures)
+    for (SizeType textureIndex = 0; textureIndex < m_textures.Size(); textureIndex++)
     {
         if (remainingTextureSlots == 0)
         {
             break;
         }
 
-        const uint32 slot = MathUtil::FastLog2_Pow2(uint32(it.first));
-        const Handle<Texture>& texture = it.second;
+        const Handle<Texture>& texture = m_textures.AtIndex(textureIndex);
 
         if (texture.IsValid())
         {
-            AssertDebug(slot < g_maxBoundTextures);
+            AssertDebug(textureIndex < g_maxBoundTextures);
 
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
 
             if (useBindlessTextures)
             {
-                textureIndicesU32[slot] = texture.Id().ToIndex();
+                textureIndicesU32[textureIndex] = texture.Id().ToIndex();
             }
             else
             {
-                textureIndicesU32[slot] = idx;
+                textureIndicesU32[textureIndex] = idx;
             }
 
             // enable this slot for the texture
-            bufferData.textureUsage |= 1u << slot;
+            bufferData.textureUsage |= (1u << int(textureIndex));
 
-            proxy->boundTextureIndices[slot] = idx;
+            proxy->boundTextureIndices[textureIndex] = idx;
 
             --remainingTextureSlots;
         }
@@ -405,7 +408,7 @@ HashCode Material::GetHashCode() const
 
     hc.Add(m_parameters.GetHashCode());
     hc.Add(m_textures.GetHashCode());
-    hc.Add(m_renderAttributes.GetHashCode());
+    hc.Add(m_attributes.GetHashCode());
 
     return hc;
 }
@@ -488,8 +491,8 @@ void MaterialCache::Add(const Handle<Material>& material)
 Handle<Material> MaterialCache::CreateMaterial(
     Name name,
     MaterialAttributes attributes,
-    const Material::ParameterTable& parameters,
-    const Material::TextureSet& textures)
+    const MaterialParameters& parameters,
+    const MaterialTextures& textures)
 {
     if (!attributes.shaderDefinition)
     {
@@ -510,8 +513,8 @@ Handle<Material> MaterialCache::CreateMaterial(
 Handle<Material> MaterialCache::GetOrCreate(
     Name name,
     MaterialAttributes attributes,
-    const Material::ParameterTable& parameters,
-    const Material::TextureSet& textures)
+    const MaterialParameters& parameters,
+    const MaterialTextures& textures)
 {
     if (!attributes.shaderDefinition)
     {

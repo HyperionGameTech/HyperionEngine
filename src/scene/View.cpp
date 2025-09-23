@@ -534,10 +534,8 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
-                        for (const auto& it : material->GetTextures())
+                        for (const Handle<Texture>& texture : material->GetTextures())
                         {
-                            const Handle<Texture>& texture = it.second;
-
                             if (!texture.IsValid())
                             {
                                 continue;
@@ -587,10 +585,8 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
-                        for (const auto& it : material->GetTextures())
+                        for (const Handle<Texture>& texture : material->GetTextures())
                         {
-                            const Handle<Texture>& texture = it.second;
-
                             if (!texture.IsValid())
                             {
                                 continue;
@@ -622,10 +618,8 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
-                        for (const auto& it : material->GetTextures())
+                        for (const Handle<Texture>& texture : material->GetTextures())
                         {
-                            const Handle<Texture>& texture = it.second;
-
                             if (!texture.IsValid())
                             {
                                 continue;
@@ -675,10 +669,8 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
-                        for (const auto& it : material->GetTextures())
+                        for (const Handle<Texture>& texture : material->GetTextures())
                         {
-                            const Handle<Texture>& texture = it.second;
-
                             if (!texture.IsValid())
                             {
                                 continue;
@@ -710,10 +702,8 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
-                        for (const auto& it : material->GetTextures())
+                        for (const Handle<Texture>& texture : material->GetTextures())
                         {
-                            const Handle<Texture>& texture = it.second;
-
                             if (!texture.IsValid())
                             {
                                 continue;
@@ -763,10 +753,8 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
 
-                        for (const auto& it : material->GetTextures())
+                        for (const Handle<Texture>& texture : material->GetTextures())
                         {
-                            const Handle<Texture>& texture = it.second;
-
                             if (!texture.IsValid())
                             {
                                 continue;
@@ -902,10 +890,8 @@ void View::CollectLights(RenderProxyList& rpl)
                 {
                     rpl.GetMaterials().Track(light->GetMaterial()->Id(), light->GetMaterial().Get());
 
-                    for (const auto& it : light->GetMaterial()->GetTextures())
+                    for (const Handle<Texture>& texture : light->GetMaterial()->GetTextures())
                     {
-                        const Handle<Texture>& texture = it.second;
-
                         if (!texture.IsValid())
                         {
                             continue;

@@ -250,10 +250,8 @@ void UISubsystem::Update(float delta)
             {
                 rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ true);
 
-                for (const auto& it : material->GetTextures())
+                for (const Handle<Texture>& texture : material->GetTextures())
                 {
-                    const Handle<Texture>& texture = it.second;
-
                     if (!texture.IsValid())
                     {
                         continue;

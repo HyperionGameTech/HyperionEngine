@@ -55,7 +55,7 @@ protected:
 
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusState) override;
 
-    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual MaterialParameters GetMaterialParameters() const override;
 
 private:
     UIObject* m_expandedElement;

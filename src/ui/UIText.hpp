@@ -106,8 +106,8 @@ protected:
     virtual BoundingBox CalculateInnerAABB_Internal() const override;
 
     virtual MaterialAttributes GetMaterialAttributes() const override;
-    virtual Material::ParameterTable GetMaterialParameters() const override;
-    virtual Material::TextureSet GetMaterialTextures() const override;
+    virtual MaterialParameters GetMaterialParameters() const override;
+    virtual MaterialTextures GetMaterialTextures() const override;
 
     virtual void UpdateSize_Internal(bool updateChildren) override;
 

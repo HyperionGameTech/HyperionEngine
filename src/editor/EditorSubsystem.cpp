@@ -425,7 +425,7 @@ bool TranslateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camer
     }
 
     meshComponent->material->SetParameter(
-        Material::MATERIAL_KEY_ALBEDO,
+        MATERIAL_KEY_ALBEDO,
         Vec4f(1.0f, 1.0f, 0.0, 1.0));
 
     return true;
@@ -450,7 +450,7 @@ bool TranslateEditorManipulationWidget::OnMouseLeave(const Handle<Camera>& camer
     if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"))
     {
         meshComponent->material->SetParameter(
-            Material::MATERIAL_KEY_ALBEDO,
+            MATERIAL_KEY_ALBEDO,
             tag.data.TryGet<Vec4f>(Vec4f::Zero()));
     }
 
@@ -688,7 +688,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 }
 
                 MaterialAttributes materialAttributes;
-                Material::ParameterTable materialParameters;
+                MaterialParameters materialParameters;
 
                 if (meshComponent->material.IsValid())
                 {
@@ -718,7 +718,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 meshComponent->material->SetIsDynamic(true);
 
                 childEntity->AddTag<EntityTag::UPDATE_RENDER_PROXY>();
-                childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(Material::MATERIAL_KEY_ALBEDO))));
+                childEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(MATERIAL_KEY_ALBEDO))));
             }
 
             // FileByteWriter byteWriter(GetResourceDirectory() / "models/editor/axis_arrows.hypmodel");
@@ -1330,9 +1330,9 @@ void EditorSubsystem::CreateHighlightNode()
     //         }
     //     },
     //     {
-    //         { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 0.0f, 1.0f) },
-    //         { Material::MATERIAL_KEY_ROUGHNESS, 0.0f },
-    //         { Material::MATERIAL_KEY_METALNESS, 0.0f }
+    //         { MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 0.0f, 1.0f) },
+    //         { MATERIAL_KEY_ROUGHNESS, 0.0f },
+    //         { MATERIAL_KEY_METALNESS, 0.0f }
     //     }
     // );
 
@@ -2816,7 +2816,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
         const Handle<TextureAsset>& textureAsset = texture->GetAsset();
         Assert(textureAsset != nullptr);
-        
+
         HYP_LOG(Font, Debug, "Adding texture {} to package", texture->GetName());
 
         if (Result addAssetResult = package->AddAssetObject(textureAsset); addAssetResult.HasError())

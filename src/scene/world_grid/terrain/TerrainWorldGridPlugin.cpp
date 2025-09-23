@@ -446,10 +446,10 @@ void TerrainWorldGridLayer::Init()
     m_material->SetBucket(RB_OPAQUE);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
-    m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vec4f(0.2f, 0.5f, 0.1f, 1.0f));
-    m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.85f);
-    m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
+    m_material->SetParameter(MATERIAL_KEY_ALBEDO, Vec4f(0.2f, 0.5f, 0.1f, 1.0f));
+    m_material->SetParameter(MATERIAL_KEY_ROUGHNESS, 0.85f);
+    m_material->SetParameter(MATERIAL_KEY_METALNESS, 0.0f);
+    m_material->SetParameter(MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
 
     // if (auto albedoTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
     // {

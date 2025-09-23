@@ -284,7 +284,7 @@ void Texture::SetName(Name name)
 
     const Handle<TextureAsset>& asset = GetAsset();
 
-    if (asset.IsValid() && IsInitCalled())
+    if (asset.IsValid())
     {
         if (!asset->IsRegistered())
         {
@@ -293,7 +293,10 @@ void Texture::SetName(Name name)
                 HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
             }
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
+            if (IsInitCalled())
+            {
+                g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
+            }
         }
     }
 }

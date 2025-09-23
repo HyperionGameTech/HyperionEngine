@@ -172,7 +172,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                     color.w = 1.0f;
                 }
 
-                LastMaterial(library).parameters[Material::MATERIAL_KEY_ALBEDO] = ParameterDef {
+                LastMaterial(library).parameters[MATERIAL_KEY_ALBEDO] = ParameterDef {
                     FixedArray<float, 4> { color[0], color[1], color[2], color[3] }
                 };
 
@@ -188,7 +188,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
             //     const float metalness = StringUtil::Parse<float>(tokens[1].Data());
 
-            //     LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
+            //     LastMaterial(library).parameters[MATERIAL_KEY_METALNESS] = ParameterDef {
             //         .values = { metalness }
             //     };
 
@@ -206,7 +206,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
                 const int spec = StringUtil::Parse<int>(tokens[1].Data());
 
-                LastMaterial(library).parameters[Material::MATERIAL_KEY_ROUGHNESS] = ParameterDef {
+                LastMaterial(library).parameters[MATERIAL_KEY_ROUGHNESS] = ParameterDef {
                     .values = { MathUtil::Sqrt(2.0f / (MathUtil::Clamp(float(spec) / 1000.0f, 0.0f, 1.0f) + 2.0f)) }
                 };
 
@@ -226,7 +226,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
                 if (IsTransparencyModel(static_cast<IlluminationModel>(illumModel)))
                 {
-                    LastMaterial(library).parameters[Material::MATERIAL_KEY_TRANSMISSION] = ParameterDef {
+                    LastMaterial(library).parameters[MATERIAL_KEY_TRANSMISSION] = ParameterDef {
                         .values = FixedArray<float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
                     };
                     // TODO: Bucket, alpha blend
@@ -292,9 +292,9 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                 allFilepaths.PushBack(it.second);
 
                 ++numEnqueued;
-                
+
                 texturesBatch->Add(it.first, it.second);
-                
+
                 if (pathsString.Any())
                 {
                     pathsString += ", ";
@@ -314,14 +314,14 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     for (auto& item : library.materials)
     {
         MaterialAttributes attributes;
-        Material::ParameterTable parameters = Material::DefaultParameters();
-        Material::TextureSet textures;
+        MaterialParameters parameters = Material::DefaultParameters();
+        MaterialTextures textures;
 
         for (auto& it : item.parameters)
         {
-            parameters.Set(it.first, Material::Parameter(it.second.values.Data(), it.second.values.Size()));
+            parameters[it.first] = MaterialParameter(it.second.values.Data(), it.second.values.Size());
 
-            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && AnyOf(it.second.values, [](float value)
+            if (it.first == MATERIAL_KEY_TRANSMISSION && AnyOf(it.second.values, [](float value)
                     {
                         return value > 0.0f;
                     }))
@@ -358,7 +358,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
             texture->SetTextureDesc(textureDesc);
 
-            textures.Set(it.mapping.key, std::move(texture));
+            textures[it.mapping.key] = std::move(texture);
         }
 
         Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(

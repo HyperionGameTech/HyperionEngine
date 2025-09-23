@@ -3,7 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public enum MaterialKey : ulong
+    [HypClassBinding(Name = "MaterialParameterKey")]
+    public enum MaterialParameterKey : ulong
     {
         None = 0x0,
         Albedo = 0x1,
@@ -220,32 +221,6 @@ namespace Hyperion
         TangentMap = 0x800,
         BitangentMap = 0x1000,
         DepthMap = 0x2000
-    }
-
-    public class TextureSet
-    {
-        private Material material;
-
-        public TextureSet(Material material)
-        {
-            this.material = material;
-        }
-
-        public Texture this[TextureKey key]
-        {
-            get
-            {
-                throw new NotImplementedException();
-                // ManagedHandle textureHandle = new ManagedHandle();
-                // Material_GetTexture(material.Handle, key, out textureHandle);
-                // return new Texture(textureHandle);
-            }
-            set
-            {
-                throw new NotImplementedException();
-                // Material_SetTexture(material.Handle, key, value.Handle);
-            }
-        }
     }
 
     [HypClassBinding(Name="Material")]

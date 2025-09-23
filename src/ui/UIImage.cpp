@@ -37,9 +37,9 @@ MaterialAttributes UIImage::GetMaterialAttributes() const
     return UIObject::GetMaterialAttributes();
 }
 
-Material::TextureSet UIImage::GetMaterialTextures() const
+MaterialTextures UIImage::GetMaterialTextures() const
 {
-    return Material::TextureSet {
+    return MaterialTextures {
         { MaterialTextureKey::ALBEDO_MAP, m_texture }
     };
 }

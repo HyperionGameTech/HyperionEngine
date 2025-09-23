@@ -177,12 +177,12 @@ MaterialAttributes UIPanel::GetMaterialAttributes() const
     return UIObject::GetMaterialAttributes();
 }
 
-Material::ParameterTable UIPanel::GetMaterialParameters() const
+MaterialParameters UIPanel::GetMaterialParameters() const
 {
     return UIObject::GetMaterialParameters();
 }
 
-Material::TextureSet UIPanel::GetMaterialTextures() const
+MaterialTextures UIPanel::GetMaterialTextures() const
 {
     return UIObject::GetMaterialTextures();
 }

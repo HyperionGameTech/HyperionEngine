@@ -62,8 +62,8 @@ protected:
     virtual void OnScrollOffsetUpdate_Internal(Vec2f delta) override;
 
     virtual MaterialAttributes GetMaterialAttributes() const override;
-    virtual Material::ParameterTable GetMaterialParameters() const override;
-    virtual Material::TextureSet GetMaterialTextures() const override;
+    virtual MaterialParameters GetMaterialParameters() const override;
+    virtual MaterialTextures GetMaterialTextures() const override;
 
 private:
     void SetScrollbarVisible(ScrollAxis axis, bool visible);

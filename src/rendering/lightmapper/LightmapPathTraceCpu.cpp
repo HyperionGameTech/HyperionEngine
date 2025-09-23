@@ -671,7 +671,7 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJob* job, cons
             + triangle.GetPoint(1).GetTexCoord0() * barycentricCoords.y
             + triangle.GetPoint(2).GetTexCoord0() * barycentricCoords.z;
 
-        Vec4f albedo = Vec4f(subElement.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
+        Vec4f albedo = Vec4f(subElement.material->GetParameter(MATERIAL_KEY_ALBEDO));
 
         // sample albedo texture, if present
         if (const Handle<Texture>& albedoTexture = subElement.material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
@@ -785,13 +785,13 @@ void Lightmapper_CpuPathTracing::BuildResourceCache()
 
         if (subElement.material.IsValid())
         {
-            for (const auto& it : subElement.material->GetTextures())
+            for (const Handle<Texture>& texture : subElement.material->GetTextures())
             {
-                if (it.second.IsValid())
+                if (texture.IsValid())
                 {
-                    Assert(it.second->GetAsset().IsValid());
+                    Assert(texture->GetAsset().IsValid());
 
-                    localResources.EmplaceBack(it.second->GetAsset(), *it.second->GetAsset()->GetResource());
+                    localResources.EmplaceBack(texture->GetAsset(), *texture->GetAsset()->GetResource());
                 }
             }
         }

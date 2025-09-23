@@ -193,18 +193,8 @@ template <class T>
 struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
 {
     HypObjectInitializerGuard(void* ptr)
-        : HypObjectInitializerGuardBase(HypObjectPtr(GetClassAndEnsureValid(), ptr))
+        : HypObjectInitializerGuardBase(HypObjectPtr(T::Class(), ptr))
     {
-    }
-
-    static const HypClass* GetClassAndEnsureValid()
-    {
-        using HypObjectType = typename IsHypObject<T>::Type;
-        static const HypClass* hypClass = HypObjectType::Class();
-
-        HYP_CORE_ASSERT(hypClass != nullptr, "HypClass not registered for type %s", TypeNameWithoutNamespace<T>().Data());
-
-        return hypClass;
     }
 };
 

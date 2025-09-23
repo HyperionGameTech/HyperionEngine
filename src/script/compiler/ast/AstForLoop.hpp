@@ -6,9 +6,6 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
-#include <memory>
-#include <vector>
-
 namespace hyperion {
 
 class AstForLoop : public AstStatement

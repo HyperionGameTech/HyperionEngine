@@ -480,7 +480,7 @@ bool ConsoleUI::NeedsUpdate() const
     return false;
 }
 
-Material::ParameterTable ConsoleUI::GetMaterialParameters() const
+MaterialParameters ConsoleUI::GetMaterialParameters() const
 {
     return UIObject::GetMaterialParameters();
 }

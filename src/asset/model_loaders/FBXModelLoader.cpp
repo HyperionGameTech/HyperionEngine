@@ -1511,7 +1511,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                           NAME("Forward"),
                           ShaderProperties(mesh->GetVertexAttributes()) },
                         .bucket = RB_OPAQUE },
-                    { { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { Material::MATERIAL_KEY_ROUGHNESS, 0.65f }, { Material::MATERIAL_KEY_METALNESS, 0.0f } });
+                    { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
 
                 Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 

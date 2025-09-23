@@ -664,7 +664,7 @@ enum BlendModeFactor : uint32
 
 static_assert(uint32(BMF_MAX) <= 15, "BlendModeFactor enum too large to fit in 4 bits");
 
-HYP_STRUCT()
+HYP_STRUCT(Serialize = "bitwise", Size = 4)
 struct BlendFunction
 {
     uint32 value;
@@ -793,22 +793,22 @@ enum StencilOp : uint8
 HYP_STRUCT()
 struct StencilFunction
 {
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     StencilOp passOp = SO_KEEP;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     StencilOp failOp = SO_REPLACE;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     StencilOp depthFailOp = SO_REPLACE;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     StencilCompareOp compareOp = SCO_ALWAYS;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     uint8 mask = 0x0;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     uint8 value = 0x1;
 
     HYP_FORCE_INLINE bool operator==(const StencilFunction& other) const = default;

@@ -36,7 +36,7 @@ protected:
 
     virtual void UpdateSize_Internal(bool updateChildren) override;
 
-    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual MaterialParameters GetMaterialParameters() const override;
 
     Handle<UIPanel> m_panel;
 };

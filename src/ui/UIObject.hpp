@@ -1331,8 +1331,8 @@ protected:
     const Handle<Mesh>& GetMesh() const;
 
     virtual MaterialAttributes GetMaterialAttributes() const;
-    virtual Material::ParameterTable GetMaterialParameters() const;
-    virtual Material::TextureSet GetMaterialTextures() const;
+    virtual MaterialParameters GetMaterialParameters() const;
+    virtual MaterialTextures GetMaterialTextures() const;
 
     Vec2f GetParentScrollOffset() const;
 

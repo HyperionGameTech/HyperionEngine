@@ -92,7 +92,7 @@ public:
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override = 0;
 };
 
-#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                               \
-    static ::hyperion::FBOMMarshalerRegistration<typename T::HypClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration)()
+#define HYP_DEFINE_MARSHAL(T, MarshalType) \
+    static ::hyperion::FBOMMarshalerRegistration<typename T::HypClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration) {}
 
 } // namespace hyperion::serialization

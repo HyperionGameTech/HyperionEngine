@@ -359,7 +359,7 @@ void Mesh::SetName(Name name)
 
     const Handle<MeshAsset>& asset = GetAsset();
 
-    if (asset && IsInitCalled())
+    if (asset)
     {
         if (!asset->IsRegistered())
         {
@@ -368,7 +368,10 @@ void Mesh::SetName(Name name)
                 HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
             }
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
+            if (IsInitCalled())
+            {
+                g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
+            }
         }
     }
 }

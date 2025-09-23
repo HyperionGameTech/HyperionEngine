@@ -36,7 +36,7 @@ protected:
 
     virtual bool NeedsUpdate() const override;
 
-    virtual Material::ParameterTable GetMaterialParameters() const override;
+    virtual MaterialParameters GetMaterialParameters() const override;
 
     UIListView* m_historyListView;
     UITextbox* m_textbox;

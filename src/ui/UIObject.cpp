@@ -82,7 +82,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             Assert(quad->GetAsset().IsValid());
             Assert(quad->GetAsset()->GetMeshData() != nullptr);
-            
+
             const MeshDesc& meshDesc = quad->GetAsset()->GetMeshDesc();
 
             MeshData newMeshData = *quad->GetAsset()->GetMeshData();
@@ -1886,27 +1886,27 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     };
 }
 
-Material::ParameterTable UIObject::GetMaterialParameters() const
+MaterialParameters UIObject::GetMaterialParameters() const
 {
     HYP_SCOPE;
 
-    return Material::ParameterTable {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(GetBackgroundColor()) }
+    return MaterialParameters {
+        { MATERIAL_KEY_ALBEDO, Vec4f(GetBackgroundColor()) }
     };
 }
 
-Material::TextureSet UIObject::GetMaterialTextures() const
+MaterialTextures UIObject::GetMaterialTextures() const
 {
     HYP_SCOPE;
 
-    return Material::TextureSet {};
+    return MaterialTextures {};
 }
 
 Handle<Material> UIObject::CreateMaterial() const
 {
     HYP_SCOPE;
 
-    Material::TextureSet materialTextures = GetMaterialTextures();
+    MaterialTextures materialTextures = GetMaterialTextures();
 
     if (AllowMaterialUpdate())
     {
@@ -2449,8 +2449,8 @@ void UIObject::UpdateMaterial_Internal()
     Handle<Material>& currentMaterial = meshComponent->material;
 
     MaterialAttributes materialAttributes = GetMaterialAttributes();
-    Material::ParameterTable materialParameters = GetMaterialParameters();
-    Material::TextureSet materialTextures = GetMaterialTextures();
+    MaterialParameters materialParameters = GetMaterialParameters();
+    MaterialTextures materialTextures = GetMaterialTextures();
 
     if (!currentMaterial.IsValid()
         || (!currentMaterial->IsDynamic() && AllowMaterialUpdate()) // set to dynamic if we allow material updates

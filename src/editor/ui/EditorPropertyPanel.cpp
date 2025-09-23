@@ -33,7 +33,7 @@ void EditorPropertyPanelBase::UpdateSize_Internal(bool updateChildren)
     UIObject::UpdateSize_Internal(updateChildren);
 }
 
-Material::ParameterTable EditorPropertyPanelBase::GetMaterialParameters() const
+MaterialParameters EditorPropertyPanelBase::GetMaterialParameters() const
 {
     return UIObject::GetMaterialParameters();
 }

@@ -78,7 +78,7 @@ void UITab::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focusState)
     UpdateMeshData();
 }
 
-Material::ParameterTable UITab::GetMaterialParameters() const
+MaterialParameters UITab::GetMaterialParameters() const
 {
     Color color;
 
@@ -95,8 +95,8 @@ Material::ParameterTable UITab::GetMaterialParameters() const
         color = m_backgroundColor;
     }
 
-    return Material::ParameterTable {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+    return MaterialParameters {
+        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
     };
 }
 

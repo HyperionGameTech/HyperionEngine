@@ -233,11 +233,11 @@ UIText::UIText()
 
     OnDisabled
         .Bind([this]()
-        {
-            SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
+            {
+                SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 
-            return UIEventHandlerResult::OK;
-        })
+                return UIEventHandlerResult::OK;
+            })
         .Detach();
 }
 
@@ -262,7 +262,7 @@ void UIText::SetText(const String& text)
     {
         return;
     }
-    
+
     UpdateSize();
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
@@ -295,7 +295,7 @@ void UIText::SetFontAtlas(const Handle<FontAtlas>& fontAtlas)
     {
         return;
     }
-    
+
     UpdateSize();
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
@@ -446,7 +446,7 @@ MaterialAttributes UIText::GetMaterialAttributes() const
     return UIObject::GetMaterialAttributes();
 }
 
-Material::ParameterTable UIText::GetMaterialParameters() const
+MaterialParameters UIText::GetMaterialParameters() const
 {
     Color color = GetTextColor();
 
@@ -456,11 +456,11 @@ Material::ParameterTable UIText::GetMaterialParameters() const
     }
 
     return {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+        { MATERIAL_KEY_ALBEDO, Vec4f(color) }
     };
 }
 
-Material::TextureSet UIText::GetMaterialTextures() const
+MaterialTextures UIText::GetMaterialTextures() const
 {
     if (!m_currentFontAtlasTexture.IsValid())
     {
@@ -504,12 +504,12 @@ void UIText::UpdateSize_Internal(bool updateChildren)
 BoundingBox UIText::CalculateInnerAABB_Internal() const
 {
     float textSize = GetTextSize();
-    
+
     if (textSize <= FLT_EPSILON)
     {
         HYP_LOG_ONCE(UI, Warning, "Invalid text size for text element {} (text: \"{}\"): {}", GetName(), GetText(), textSize);
     }
-    
+
     return m_textAabbWithoutBearing * Vec3f(Vec2f(textSize), 1.0f);
 }
 

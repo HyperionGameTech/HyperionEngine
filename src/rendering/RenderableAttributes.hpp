@@ -31,25 +31,25 @@ HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags)
 HYP_STRUCT()
 struct MaterialAttributes
 {
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     ShaderDefinition shaderDefinition;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     RenderBucket bucket = RB_OPAQUE;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     FillMode fillMode = FM_FILL;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     BlendFunction blendFunction = BlendFunction::None();
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     FaceCullMode cullFaces = FCM_BACK;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     EnumFlags<MaterialAttributeFlags> flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize)
     StencilFunction stencilFunction;
 
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
