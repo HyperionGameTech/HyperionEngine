@@ -86,7 +86,7 @@ public:                                                                         
 private:
 
 
-#define HYP_STRUCT_BODY(T, ...)                                                     \
+#define HYP_STRUCT_BODY(T, ...)                                                 \
     friend struct HypStructInitializer_##T;                                     \
                                                                                 \
     template <class T>                                                          \
@@ -104,8 +104,12 @@ private:
     {                                                                            \
         static const HypClass* hypClass = GetClass(TypeId::ForType<T>());        \
         return hypClass;                                                         \
+    }                                                                           \
+                                                                                \
+    HYP_FORCE_INLINE static const TypeId& GetTypeId()                           \
+    {                                                                           \
+        static const TypeId s_typeId = TypeId::ForType<T>();                    \
+        return s_typeId;                                                        \
     }
-    
-
 
 } // namespace hyperion

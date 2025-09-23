@@ -61,6 +61,8 @@ template <class T>
 class HypStructInstance final : public HypStruct
 {
 public:
+    static_assert(!std::is_base_of_v<HypObjectBase, T>, "Type derives from HypObjectBase; use HYP_CLASS instead.");
+
     using PostLoadCallback = void (*)(T&);
 
     static HypStructInstance& GetInstance(
@@ -142,7 +144,7 @@ public:
         HYP_CORE_ASSERT(in.Is<T>());
 
         const FBOMMarshalerBase* marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(TypeId::ForType<T>(), /* allowFallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
             : nullptr;
 
         if (marshal)
@@ -187,7 +189,7 @@ public:
         }
 
         const FBOMMarshalerBase* marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(TypeId::ForType<T>(), /* allowFallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+            ? FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
             : nullptr;
 
         if (marshal)
