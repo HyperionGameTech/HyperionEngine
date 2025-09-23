@@ -52,8 +52,13 @@ public:
 
     FontAtlas() = default;
 
-    HYP_API FontAtlas(const FontAtlasTextureSet& atlasTextures, Vec2i cellDimensions, GlyphMetricsBuffer glyphMetrics, SymbolList symbolList = GetDefaultSymbolList());
-    HYP_API FontAtlas(RC<FontFace> face);
+    HYP_API FontAtlas(
+        const FontAtlasTextureSet& atlasTextures,
+        Vec2i cellDimensions,
+        GlyphMetricsBuffer glyphMetrics,
+        SymbolList symbolList = GetDefaultSymbolList());
+
+    explicit HYP_API FontAtlas(RC<FontFace> face);
 
     FontAtlas(const FontAtlas& other) = delete;
     FontAtlas& operator=(const FontAtlas& other) = delete;

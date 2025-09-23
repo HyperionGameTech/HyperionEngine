@@ -5,12 +5,12 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
+#include <rendering/Texture.hpp>
+#include <rendering/Material.hpp>
 
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
-#include <rendering/Texture.hpp>
-#include <rendering/Material.hpp>
 #include <scene/animation/Skeleton.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 

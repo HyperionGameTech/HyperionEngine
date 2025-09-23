@@ -80,34 +80,4 @@ const Handle<AssetObject>& AssetReference::Resolve() const
     return Handle<AssetObject>::empty;
 }
 
-AssetObject* AssetReference::operator->() const
-{
-    if (!IsLoaded())
-    {
-        Resolve();
-    }
-
-    if (!m_data.Is<Handle<AssetObject>>())
-    {
-        HYP_FAIL("Failed to resolve asset reference!");
-    }
-
-    return m_data.GetUnchecked<Handle<AssetObject>>().Get();
-}
-
-AssetObject& AssetReference::operator*() const
-{
-    if (!IsLoaded())
-    {
-        Resolve();
-    }
-
-    if (!m_data.Is<Handle<AssetObject>>())
-    {
-        HYP_FAIL("Failed to resolve asset reference!");
-    }
-
-    return *m_data.GetUnchecked<Handle<AssetObject>>();
-}
-
 } // namespace hyperion

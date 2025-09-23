@@ -326,12 +326,6 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
     manifestJson["$Class"] = *InstanceClass()->GetName();
 
-    if (manifestJson["$Class"].ToString() == "MeshAsset" && manifestJson["name"].ToString().ToLower().StartsWith("vase21")) // && manifestJson["MeshDesc"]["numIndices"].ToNumber() == 0)
-    {
-        HYP_LOG(Serialization, Debug, "MeshAsset json data: {}", json::JSONValue(manifestJson).ToString(true));
-        HYP_BREAKPOINT;
-    }
-
     stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
 
     return {};
@@ -714,8 +708,6 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
 
             if (newAssetPath != assetObject->m_filepath)
             {
-                HYP_BREAKPOINT;
-
                 assetObject->m_filepath = newAssetPath;
 
                 doSaveAsset = true; // asset path changed, we need to save

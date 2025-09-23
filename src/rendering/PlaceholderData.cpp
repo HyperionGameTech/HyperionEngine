@@ -226,7 +226,7 @@ void PlaceholderData::Create()
     ByteBuffer placeholderBufferCubemapRgba8;
     FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u::One(), placeholderBufferCubemapRgba8);
 
-    defaultTexture2d = CreateObject<Texture>(TextureData {
+    defaultTexture2d = CreateObject<Texture>(
         TextureDesc {
             TT_TEX2D,
             TF_RGBA8,
@@ -236,7 +236,7 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferTex2dRgba8 });
+        TextureData { placeholderBufferTex2dRgba8 });
 
     defaultTexture2d->SetName(NAME("Placeholder_Texture_2D_1x1_R8"));
 
@@ -245,7 +245,7 @@ void PlaceholderData::Create()
 
     InitObject(defaultTexture2d);
 
-    defaultTexture3d = CreateObject<Texture>(TextureData {
+    defaultTexture3d = CreateObject<Texture>(
         TextureDesc {
             TT_TEX3D,
             TF_R8,
@@ -254,7 +254,7 @@ void PlaceholderData::Create()
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED | IU_STORAGE } });
+            IU_SAMPLED | IU_STORAGE });
 
     defaultTexture3d->SetName(NAME("Placeholder_Texture_3D_1x1x1_R8"));
 
@@ -262,7 +262,7 @@ void PlaceholderData::Create()
 
     InitObject(defaultTexture3d);
 
-    defaultCubemap = CreateObject<Texture>(TextureData {
+    defaultCubemap = CreateObject<Texture>(
         TextureDesc {
             TT_CUBEMAP,
             TF_RGBA8,
@@ -272,14 +272,14 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferCubemapRgba8 });
+        TextureData { placeholderBufferCubemapRgba8 });
 
     defaultCubemap->SetName(NAME("Placeholder_Texture_Cube_1x1_R8"));
 
     g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultCubemap->GetAsset());
     InitObject(defaultCubemap);
 
-    defaultTexture2dArray = CreateObject<Texture>(TextureData {
+    defaultTexture2dArray = CreateObject<Texture>(
         TextureDesc {
             TT_TEX2D_ARRAY,
             TF_RGBA8,
@@ -289,14 +289,14 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferTex2dRgba8 });
+        TextureData { placeholderBufferTex2dRgba8 });
 
     defaultTexture2dArray->SetName(NAME("Placeholder_Texture_2D_1x1_R8_Array"));
 
     g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultTexture2dArray->GetAsset());
     InitObject(defaultTexture2dArray);
 
-    defaultCubemapArray = CreateObject<Texture>(TextureData {
+    defaultCubemapArray = CreateObject<Texture>(
         TextureDesc {
             TT_CUBEMAP_ARRAY,
             TF_RGBA8,
@@ -306,7 +306,7 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferCubemapRgba8 });
+        TextureData { placeholderBufferCubemapRgba8 });
 
     defaultCubemapArray->SetName(NAME("Placeholder_Texture_Cube_1x1_R8_Array"));
 

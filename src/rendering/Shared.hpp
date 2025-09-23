@@ -559,9 +559,6 @@ struct TextureDesc
 HYP_STRUCT()
 struct TextureData
 {
-    HYP_FIELD(Property = "TextureDesc", Serialize)
-    TextureDesc desc;
-
     HYP_FIELD(Property = "ImageData", Serialize, Compressed)
     ByteBuffer imageData;
 
@@ -573,7 +570,6 @@ struct TextureData
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(desc.GetHashCode());
         hc.Add(imageData.GetHashCode());
 
         return hc;

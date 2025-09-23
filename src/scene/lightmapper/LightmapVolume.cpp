@@ -69,7 +69,7 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
         Assert(currentFrame != nullptr);
 
         RenderQueue& renderQueue = currentFrame->renderQueue;
-        
+
         for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
         {
             if (!atlasTextures[textureTypeIndex])
@@ -102,7 +102,7 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
                 Assert(element.offsetCoords.y < atlasTexture->GetExtent().y);
                 Assert(element.offsetCoords.x + element.dimensions.x <= atlasTexture->GetExtent().x);
                 Assert(element.offsetCoords.y + element.dimensions.y <= atlasTexture->GetExtent().y);
-                
+
                 renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
                 renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
 
@@ -265,7 +265,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElement::Id elementId)
     {
         return nullptr;
     }
-    
+
     if (elementIndex >= m_atlases[atlasIndex].elements.Size())
     {
         return nullptr;
@@ -286,7 +286,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
     {
         return false;
     }
-    
+
     if (elementIndex >= m_atlases[atlasIndex].elements.Size())
     {
         return false;
@@ -314,7 +314,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
             LightmapAtlasBitmap& rescaledBitmap = tempBitmap.EmplaceBack(elementDimensions.x, elementDimensions.y);
-            
+
             Rect<uint32> srcRect {
                 0, 0,
                 pBitmap->GetWidth(),
@@ -333,8 +333,8 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
         }
 
         Handle<Texture>& texture = elementTextures[i];
-        
-        texture = CreateObject<Texture>(TextureData {
+
+        texture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 pBitmap->GetFormat(),
@@ -342,7 +342,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
                 TFM_LINEAR,
                 TFM_LINEAR,
                 TWM_REPEAT },
-            ByteBuffer(pBitmap->ToByteView()) });
+            TextureData { ByteBuffer(pBitmap->ToByteView()) });
 
         Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize());
 
@@ -378,9 +378,9 @@ void LightmapVolume::UpdateAtlasTextures(
     HYP_LOG(Lightmap, Debug, "Updating atlas textures for LightmapVolume {}", m_uuid);
 
     Assert(atlasIndex < m_atlases.Size());
-    
+
     LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
-    
+
     Handle<Texture>& radianceTexture = m_radianceAtlasTextures[atlasIndex];
     if (!radianceTexture)
     {

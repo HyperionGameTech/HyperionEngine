@@ -28,6 +28,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetBatch.hpp>
+#include <asset/TextureAsset.hpp>
 
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
@@ -1283,7 +1284,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 
     if (fontAtlasResult.HasError())
     {
-        HYP_FAIL("Failed to create font atlas for editor UI: %s", *fontAtlasResult.GetError().GetMessage());
+        HYP_FAIL("Failed to create font atlas for editor UI: {}", *fontAtlasResult.GetError().GetMessage());
     }
 
     uiSubsystem->GetUIStage()->SetDefaultFontAtlas(*fontAtlasResult);
@@ -2768,12 +2769,12 @@ TResult<RC<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 {
     HYP_SCOPE;
 
-    const FilePath serializedFileDirectory = GetResourceDirectory() / "data" / "fonts";
-    const FilePath serializedFilePath = serializedFileDirectory / "Roboto.hyp";
+    const FilePath outputDirectory = GetResourceDirectory() / "data" / "fonts";
+    const FilePath outputFilePath = outputDirectory / "Roboto.hyp";
 
-    if (!serializedFileDirectory.Exists())
+    if (!outputDirectory.Exists())
     {
-        serializedFileDirectory.MkDir();
+        outputDirectory.MkDir();
     }
 
     // if (serializedFilePath.Exists())
@@ -2797,14 +2798,39 @@ TResult<RC<FontAtlas>> EditorSubsystem::CreateFontAtlas()
         return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", 0, fontFaceAsset.GetError().GetMessage());
     }
 
+    Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Media/Fonts/Roboto", /* createIfNotExist */ true);
+    Assert(package.IsValid());
+
     RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(std::move(fontFaceAsset->Result()));
 
-    if (auto renderAtlasResult = atlas->RenderAtlasTextures(); renderAtlasResult.HasError())
+    if (Result renderAtlasResult = atlas->RenderAtlasTextures(); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }
 
-    FileByteWriter byteWriter { serializedFilePath };
+    // register all textures within the atlas as assets:
+    for (const auto& it : atlas->GetAtlasTextures().atlases)
+    {
+        const Handle<Texture>& texture = it.second;
+        Assert(texture != nullptr);
+
+        const Handle<TextureAsset>& textureAsset = texture->GetAsset();
+        Assert(textureAsset != nullptr);
+        
+        HYP_LOG(Font, Debug, "Adding texture {} to package", texture->GetName());
+
+        if (Result addAssetResult = package->AddAssetObject(textureAsset); addAssetResult.HasError())
+        {
+            return addAssetResult.GetError();
+        }
+    }
+
+    if (Result savePackageResult = package->Save(outputDirectory); savePackageResult.HasError())
+    {
+        return savePackageResult.GetError();
+    }
+
+    FileByteWriter byteWriter { outputFilePath };
     FBOMWriter writer { FBOMWriterConfig {} };
     writer.Append(*atlas);
     auto writeErr = writer.Emit(&byteWriter);

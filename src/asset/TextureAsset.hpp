@@ -21,15 +21,15 @@ public:
         AssetObject::SetData(TextureData());
     }
 
-    TextureAsset(Name name, const TextureData& textureData)
+    TextureAsset(Name name, const TextureDesc& desc, const TextureData& textureData)
         : AssetObject(name, textureData),
-          m_textureDesc(textureData.desc)
+          m_textureDesc(desc)
     {
     }
 
-    TextureAsset(Name name, TextureData&& textureData)
+    TextureAsset(Name name, const TextureDesc& desc, TextureData&& textureData)
         : AssetObject(name, std::move(textureData)),
-          m_textureDesc(textureData.desc)
+          m_textureDesc(desc)
     {
     }
 

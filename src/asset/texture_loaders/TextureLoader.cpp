@@ -93,14 +93,16 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         * SizeType(data.height)
         * SizeType(data.numComponents);
 
+    TextureDesc textureDesc {
+        TT_TEX2D,
+        data.format,
+        Vec3u { uint32(data.width), uint32(data.height), 1 },
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR,
+        TWM_REPEAT
+    };
+
     TextureData textureData {
-        TextureDesc {
-            TT_TEX2D,
-            data.format,
-            Vec3u { uint32(data.width), uint32(data.height), 1 },
-            TFM_LINEAR_MIPMAP,
-            TFM_LINEAR,
-            TWM_REPEAT },
         ByteBuffer(imageBytesCount, imageBytes)
     };
 
@@ -109,8 +111,6 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     if (numComponents == 3)
     {
         // convert to bytes per pixel = 4
-        TextureDesc& textureDesc = textureData.desc;
-
         const uint32 size = textureDesc.GetByteSize();
         const uint32 faceOffsetStep = size / textureDesc.NumFaces();
 
@@ -133,7 +133,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         textureData.imageData = std::move(newByteBuffer);
     }
 
-    Handle<Texture> texture = CreateObject<Texture>(textureData);
+    Handle<Texture> texture = CreateObject<Texture>(textureDesc, textureData);
 
     stbi_image_free(imageBytes);
 

@@ -207,30 +207,29 @@ Texture::Texture()
 }
 
 Texture::Texture(const TextureDesc& textureDesc)
-    : m_asset(CreateObject<TextureAsset>(g_nameTextureDefault, TextureData { textureDesc }))
+    : m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, TextureData {}))
 {
-    SetName(g_nameTextureDefault);
+    m_name = g_nameTextureDefault;
 }
 
-Texture::Texture(const TextureData& textureData)
-    : m_asset(CreateObject<TextureAsset>(g_nameTextureDefault, textureData))
+Texture::Texture(const TextureDesc& textureDesc, const TextureData& textureData)
+    : m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, textureData))
 {
-    SetName(g_nameTextureDefault);
+    m_name = g_nameTextureDefault;
 }
 
 Texture::Texture(const Handle<TextureAsset>& asset)
-    : m_asset(asset)
+    : m_assetReference(asset)
 {
-    SetName(g_nameTextureDefault);
+    m_name = g_nameTextureDefault;
 }
 
 Texture::~Texture()
 {
     if (m_gpuImage)
+    {
         SafeDelete(std::move(m_gpuImage));
-
-    if (m_asset)
-        SafeDelete(std::move(m_asset));
+    }
 }
 
 void Texture::Init()
@@ -240,26 +239,19 @@ void Texture::Init()
             SafeDelete(std::move(m_gpuImage));
         }));
 
-    if (m_asset.IsValid())
+    if (const Handle<TextureAsset>& asset = GetAsset())
     {
-        if (!m_asset->IsRegistered())
+        if (!asset->IsRegistered())
         {
-            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameTextureDefault)
+            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
             {
-                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
-                }
+                HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
             }
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
         }
 
-        m_textureAssetReference = AssetReference(m_asset);
-    }
-    else
-    {
-        m_textureAssetReference = AssetReference();
+        m_assetReference = TAssetReference(asset);
     }
 
     m_gpuImage = g_renderBackend->MakeImage(GetTextureDesc());
@@ -269,10 +261,12 @@ void Texture::Init()
         m_gpuImage->SetDebugName(m_name);
     }
 
+    const Handle<TextureAsset>& asset = GetAsset();
+
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
         WeakHandleFromThis(),
-        m_asset.IsValid() ? ResourceHandle(*m_asset->GetResource()) : ResourceHandle(),
+        asset != nullptr ? ResourceHandle(*asset->GetResource()) : ResourceHandle(),
         RS_SHADER_RESOURCE,
         m_gpuImage);
 
@@ -288,29 +282,33 @@ void Texture::SetName(Name name)
 
     m_name = name;
 
-    if (m_asset.IsValid() && IsInitCalled())
+    const Handle<TextureAsset>& asset = GetAsset();
+
+    if (asset.IsValid() && IsInitCalled())
     {
-        if (!m_asset->IsRegistered())
+        if (!asset->IsRegistered())
         {
-            if (!m_asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameTextureDefault)
+            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
             {
-                if (Result renameResult = m_asset->Rename(m_name); renameResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
-                }
+                HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
             }
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
         }
-
-        m_textureAssetReference = AssetReference(m_asset);
     }
+}
+
+const Handle<TextureAsset>& Texture::GetAsset() const
+{
+    return m_assetReference.Resolve();
 }
 
 const TextureDesc& Texture::GetTextureDesc() const
 {
-    static const TextureDesc defaultTextureDesc {};
-    return m_asset.IsValid() ? m_asset->GetTextureDesc() : defaultTextureDesc;
+    static const TextureDesc s_defaultTextureDesc {};
+
+    const Handle<TextureAsset>& asset = GetAsset();
+    return asset ? asset->GetTextureDesc() : s_defaultTextureDesc;
 }
 
 void Texture::SetTextureDesc(const TextureDesc& textureDesc)
@@ -322,40 +320,41 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
         return;
     }
 
+    Handle<TextureAsset> asset = GetAsset();
+
     // create new asset
-    if (m_asset.IsValid())
+    if (asset != nullptr)
     {
-        Handle<TextureAsset> prevAsset = m_asset;
+        Handle<TextureAsset> prevAsset = asset;
 
         Handle<AssetPackage> package = prevAsset->GetPackage();
 
         ResourceHandle resourceHandle(*prevAsset->GetResource());
 
         TextureData textureData = std::move(*prevAsset->GetTextureData());
-        textureData.desc = textureDesc;
 
-        m_asset = CreateObject<TextureAsset>(prevAsset->GetName(), textureData);
+        asset = CreateObject<TextureAsset>(prevAsset->GetName(), textureDesc, textureData);
 
         if (package.IsValid())
         {
             package->RemoveAssetObject(prevAsset);
-            package->AddAssetObject(m_asset);
+            package->AddAssetObject(asset);
         }
     }
     else
     {
-        m_asset = CreateObject<TextureAsset>(GetName(), TextureData { textureDesc });
+        asset = CreateObject<TextureAsset>(GetName(), textureDesc, TextureData {});
     }
 
     if (IsInitCalled())
     {
-        if (!m_asset->IsRegistered())
+        if (!asset->IsRegistered())
         {
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_asset);
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
         }
-
-        m_textureAssetReference = AssetReference(m_asset);
     }
+
+    m_assetReference = TAssetReference<TextureAsset>(asset);
 }
 
 void Texture::GenerateMipmaps()
@@ -494,7 +493,9 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    if (!m_asset.IsValid())
+    const Handle<TextureAsset>& asset = GetAsset();
+
+    if (!asset)
     {
         HYP_LOG_ONCE(Texture, Warning, "Texture asset is not valid, cannot sample");
 
@@ -503,7 +504,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    ResourceHandle resourceHandle = ResourceHandle(*m_asset->GetResource());
+    ResourceHandle resourceHandle = ResourceHandle(*asset->GetResource());
 
     if (!resourceHandle)
     {
@@ -514,16 +515,18 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    TextureData* textureData = m_asset->GetTextureData();
+    TextureData* textureData = asset->GetTextureData();
     Assert(textureData != nullptr);
 
+    const TextureDesc& textureDesc = asset->GetTextureDesc();
+
     Vec3u coord = {
-        uint32(MathUtil::Abs(std::fmodf(uvw.x, 1.0f)) * float(textureData->desc.extent.x - 1) + 0.5f),
-        uint32(MathUtil::Abs(std::fmodf(uvw.y, 1.0f)) * float(textureData->desc.extent.y - 1) + 0.5f),
-        uint32(MathUtil::Abs(std::fmodf(uvw.z, 1.0f)) * float(textureData->desc.extent.z - 1) + 0.5f)
+        uint32(MathUtil::Abs(std::fmodf(uvw.x, 1.0f)) * float(textureDesc.extent.x - 1) + 0.5f),
+        uint32(MathUtil::Abs(std::fmodf(uvw.y, 1.0f)) * float(textureDesc.extent.y - 1) + 0.5f),
+        uint32(MathUtil::Abs(std::fmodf(uvw.z, 1.0f)) * float(textureDesc.extent.z - 1) + 0.5f)
     };
 
-    const uint32 bytesPerComponent = BytesPerComponent(textureData->desc.format);
+    const uint32 bytesPerComponent = BytesPerComponent(textureDesc.format);
 
     if (bytesPerComponent != 1)
     {
@@ -534,11 +537,11 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    const uint32 numComponents = NumComponents(textureData->desc.format);
+    const uint32 numComponents = NumComponents(textureDesc.format);
 
-    const uint32 index = faceIndex * (textureData->desc.extent.x * textureData->desc.extent.y * textureData->desc.extent.z * bytesPerComponent * numComponents)
-        + coord.z * (textureData->desc.extent.x * textureData->desc.extent.y * bytesPerComponent * numComponents)
-        + coord.y * (textureData->desc.extent.x * bytesPerComponent * numComponents)
+    const uint32 index = faceIndex * (textureDesc.extent.x * textureDesc.extent.y * textureDesc.extent.z * bytesPerComponent * numComponents)
+        + coord.z * (textureDesc.extent.x * textureDesc.extent.y * bytesPerComponent * numComponents)
+        + coord.y * (textureDesc.extent.x * bytesPerComponent * numComponents)
         + coord.x * bytesPerComponent * numComponents;
 
     if (index + (bytesPerComponent * numComponents) > textureData->imageData.Size())
@@ -546,9 +549,9 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         HYP_LOG_ONCE(Texture, Warning, "Sample() call would attempt to read out of bounds of data for Texture {} ({})!\n"
                                        "Texture format: {}, Texel index: {}, texture data buffer size: {}, coord: {}, dimensions: {}, num faces: {}, bytes per component: {}, num components: {}",
             GetName(), Id(),
-            EnumToString(textureData->desc.format),
+            EnumToString(textureDesc.format),
             index, textureData->imageData.Size(),
-            coord, textureData->desc.extent, NumFaces(),
+            coord, textureDesc.extent, NumFaces(),
             bytesPerComponent, numComponents);
 
         HYP_BREAKPOINT;
@@ -556,7 +559,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    if ((textureData->desc.format >= TF_R16F && textureData->desc.format <= TF_RGBA32F) || textureData->desc.format == TF_R11G11B10F)
+    if ((textureDesc.format >= TF_R16F && textureDesc.format <= TF_RGBA32F) || textureDesc.format == TF_R11G11B10F)
     {
         // FP format
         switch (numComponents)
@@ -573,7 +576,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             break;
         }
     }
-    else if (textureData->desc.format >= TF_R16 && textureData->desc.format <= TF_RGBA16)
+    else if (textureDesc.format >= TF_R16 && textureDesc.format <= TF_RGBA16)
     {
         // 16 bit integer format
         switch (numComponents)
@@ -590,7 +593,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             break;
         }
     }
-    else if (textureData->desc.format >= TF_R32 && textureData->desc.format <= TF_RGBA32)
+    else if (textureDesc.format >= TF_R32 && textureDesc.format <= TF_RGBA32)
     {
         // 32 bit integer format
         switch (numComponents)
@@ -609,7 +612,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
     }
     else
     {
-        if (IsSrgbFormat(textureData->desc.format))
+        if (IsSrgbFormat(textureDesc.format))
         {
             // convert from sRGB to linear
             switch (numComponents)
@@ -645,7 +648,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         }
     }
 
-    HYP_LOG_ONCE(Texture, Error, "Unsupported texture format to read on CPU: {}", int(textureData->desc.format));
+    HYP_LOG_ONCE(Texture, Error, "Unsupported texture format to read on CPU: {}", int(textureDesc.format));
 
     HYP_BREAKPOINT;
 

@@ -136,6 +136,12 @@ public:
     {
         return m_assetReference.Resolve();
     }
+    
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    const AssetReference& GetAssetReference() const
+    {
+        return m_assetReference;
+    }
 
     /*! \brief Get the axis-aligned bounding box for the mesh. */
     HYP_METHOD(Property = "AABB", Serialize = true, Editor = true)
@@ -163,13 +169,6 @@ public:
 private:
     void Init() override;
     void CreateGpuBuffers();
-
-    /*! \internal Serialization only */
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
-    const AssetReference& GetAssetReference() const
-    {
-        return m_assetReference;
-    }
 
     /*! \internal Serialization only */
     HYP_METHOD(Property = "AssetReference", Serialize = true)

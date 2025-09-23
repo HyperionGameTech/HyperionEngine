@@ -43,10 +43,10 @@ public:
 
     Texture();
 
-    Texture(const TextureDesc& textureDesc);
-    Texture(const TextureData& textureData);
+    explicit Texture(const TextureDesc& textureDesc);
+    explicit Texture(const TextureDesc& textureDesc, const TextureData& textureData);
 
-    Texture(const Handle<TextureAsset>& asset);
+    explicit Texture(const Handle<TextureAsset>& asset);
 
     Texture(const Texture& other) = delete;
     Texture& operator=(const Texture& other) = delete;
@@ -64,6 +64,14 @@ public:
 
     HYP_METHOD()
     void SetName(Name name);
+
+    const Handle<TextureAsset>& GetAsset() const;
+    
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    const AssetReference& GetAssetReference() const
+    {
+        return m_assetReference;
+    }
 
     const TextureDesc& GetTextureDesc() const;
     void SetTextureDesc(const TextureDesc& textureDesc);
@@ -123,11 +131,6 @@ public:
         return GetTextureDesc().wrapMode;
     }
 
-    HYP_FORCE_INLINE const Handle<TextureAsset>& GetAsset() const
-    {
-        return m_asset;
-    }
-
     HYP_FORCE_INLINE const GpuImageRef& GetGpuImage() const
     {
         return m_gpuImage;
@@ -151,14 +154,17 @@ public:
 protected:
     void Init() override;
 
+    /*! \internal Serialization only */
+    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    void SetAssetReference(const AssetReference& assetReference)
+    {
+        m_assetReference = TAssetReference<TextureAsset>(assetReference);
+    }
+
     HYP_FIELD(Property = "Name", Serialize, Editor)
     Name m_name;
 
-    HYP_FIELD(Serialize = false)
-    Handle<TextureAsset> m_asset;
-
-    HYP_FIELD(Serialize, ResolveAsset = "m_asset")
-    AssetReference m_textureAssetReference;
+    TAssetReference<TextureAsset> m_assetReference;
     
     HYP_FIELD(Serialize = false)
     GpuImageRef m_gpuImage;

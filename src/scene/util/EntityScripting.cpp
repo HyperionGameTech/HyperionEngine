@@ -151,8 +151,6 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             FreeResource<ScriptObjectResource>(sor);
             sor = nullptr;
 
-            Assert(scriptComponent.scriptAsset != nullptr);
-
             ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
             if (!scriptComponent.assembly)

@@ -33,7 +33,7 @@ enum class ScriptComponentFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 
-HYP_STRUCT(Component, Label = "Script Component", Description = "A script component that can be attached to an entity.")
+HYP_STRUCT(Component, NoScriptBindings, Label = "Script Component", Description = "A script component that can be attached to an entity.")
 struct ScriptComponent
 {
     HYP_FIELD(NoScriptBindings)
@@ -48,7 +48,7 @@ struct ScriptComponent
     HYP_FIELD()
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
 
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    HYP_METHOD(Property = "AssetReference", Serialize)
     const AssetReference& GetAssetReference() const
     {
         return assetReference;

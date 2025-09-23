@@ -44,9 +44,17 @@
 
 namespace hyperion {
 
-static constexpr bool doParallelCollection = false; // true;
+static constexpr bool doParallelCollection = true;
 
 extern HYP_API const char* LookupTypeName(TypeId typeId);
+
+#define HYP_DEBUG_EXTRA_MESH_ASSERTIONS 1
+
+#ifndef HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_EXTRA_MESH_ASSERTIONS
+#undef HYP_DEBUG_EXTRA_MESH_ASSERTIONS
+#endif
+#endif
 
 #pragma region RenderProxyList
 
@@ -845,24 +853,24 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
 
             const DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 
-#ifdef HYP_DEBUG_MODE
-            // stupid debug checks
-            for (const DrawCall& drawCall : drawCallCollection.drawCalls)
+#if defined(HYP_DEBUG_EXTRA_MESH_ASSERTIONS) && HYP_DEBUG_EXTRA_MESH_ASSERTIONS
+            static const auto doDrawCallAssertions = [](const DrawCallBase& drawCall)
             {
                 Assert(drawCall.mesh && drawCall.mesh->IsReady());
-                Assert(drawCall.mesh->gpuUploadFence.IsSignaled());
+                Assert(drawCall.mesh->gpuUploadFence.IsSignaled(), "Mesh with ID {} (name: {}, asset path: {}) not uploaded to gpu!",
+                    drawCall.mesh->Id(), drawCall.mesh->GetName(), drawCall.mesh->GetAssetReference().GetAssetPath().ToString());
 
                 Assert(drawCall.material && drawCall.material->IsReady());
                 Assert(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
+            };
+            
+            for (const DrawCall& drawCall : drawCallCollection.drawCalls)
+            {
+                doDrawCallAssertions(drawCall);
             }
             for (const InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
             {
-                Assert(drawCall.mesh && drawCall.mesh->IsReady());
-                Assert(drawCall.mesh->gpuUploadFence.IsSignaled());
-
-                Assert(drawCall.material && drawCall.material->IsReady());
-
-                Assert(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
+                doDrawCallAssertions(drawCall);
             }
 #endif
 

@@ -12,18 +12,6 @@ namespace Hyperion
         internal static extern void Asset_GetHypData([In] IntPtr assetPtr, [Out] out HypDataBuffer outHypDataBuffer);
     }
 
-    [HypClassBinding(Name = "AssetPath")]
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct AssetPath
-    {
-        private Name* chain;
-
-        public AssetPath()
-        {
-            chain = null;
-        }
-    }
-
     public class LoadedAsset : IDisposable
     {
         private HypData? hypData = null;

@@ -156,12 +156,9 @@ void Mesh::Init()
     {
         if (!asset->IsRegistered())
         {
-            if (!asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
             {
-                if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
-                }
+                HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
             }
 
             // all assets must be registered before uploading to gpu - if our asset isn't part of a package,
@@ -366,12 +363,9 @@ void Mesh::SetName(Name name)
     {
         if (!asset->IsRegistered())
         {
-            if (!asset->GetName().IsValid() && m_name.IsValid() && m_name != g_nameMeshDefault)
+            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
             {
-                if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
-                }
+                HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
             }
 
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);

@@ -14,6 +14,10 @@
 
 #include <core/Types.hpp>
 
+#ifdef HYP_DOTNET
+#include <scripting/ScriptObjectResource.hpp>
+#endif
+
 using namespace hyperion;
 
 extern "C"

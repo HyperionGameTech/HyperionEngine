@@ -15,7 +15,7 @@ namespace hyperion {
 
 class AssetObject;
 
-HYP_STRUCT()
+HYP_STRUCT(Size = 16)
 class HYP_API AssetReference
 {
 public:
@@ -83,9 +83,6 @@ public:
         m_data = assetPath;
     }
 
-    AssetObject* operator->() const;
-    AssetObject& operator*() const;
-
     const Handle<AssetObject>& Resolve() const;
 
 private:
@@ -149,16 +146,6 @@ public:
     HYP_FORCE_INLINE bool IsLoaded() const
     {
         return AssetReference::IsLoaded();
-    }
-
-    HYP_FORCE_INLINE T* operator->() const
-    {
-        return static_cast<T*>(AssetReference::operator->());
-    }
-
-    HYP_FORCE_INLINE T& operator*() const
-    {
-        return static_cast<T&>(AssetReference::operator*());
     }
 
     HYP_FORCE_INLINE const Handle<T>& Resolve() const

@@ -112,6 +112,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
         if (!mesh.IsValid())
         {
             mesh = MeshBuilder::Cube();
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
 
             InitObject(mesh);
         }

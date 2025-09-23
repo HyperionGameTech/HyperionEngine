@@ -174,7 +174,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
 
         ByteBuffer ltcMatrixData(sizeof(g_ltcMatrix), g_ltcMatrix);
 
-        m_ltcMatrixTexture = CreateObject<Texture>(TextureData {
+        m_ltcMatrixTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 TF_RGBA16F,
@@ -182,13 +182,13 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
                 TFM_LINEAR,
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE },
-            std::move(ltcMatrixData) });
+            TextureData { std::move(ltcMatrixData) });
         m_ltcMatrixTexture->SetName(NAME("LtcMatrixLut"));
         InitObject(m_ltcMatrixTexture);
 
         ByteBuffer ltcBrdfData(sizeof(g_ltcBrdf), g_ltcBrdf);
 
-        m_ltcBrdfTexture = CreateObject<Texture>(TextureData {
+        m_ltcBrdfTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 TF_RGBA16F,
@@ -196,7 +196,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
                 TFM_LINEAR,
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE },
-            std::move(ltcBrdfData) });
+            TextureData { std::move(ltcBrdfData) });
 
         m_ltcMatrixTexture->SetName(NAME("LtcBrdfLut"));
         InitObject(m_ltcBrdfTexture);
@@ -292,7 +292,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             {
                 continue;
             }
-            
+
             if (!m_directLightGraphicsPipelines[lightTypeIndex].IsAlive())
             {
                 FullScreenPass::CreatePipeline();
@@ -414,7 +414,7 @@ void TonemapPass::CreatePipeline()
     {
         shaderProperties.Set(NAME("OUTPUT_SDR"));
     }
-    
+
     m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"), shaderProperties);
 
     FullScreenPass::CreatePipeline(renderableAttributes);
@@ -613,11 +613,11 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     }
 
     auto selectPipeline = [this](LegacyEnvGrid* envGrid) -> GraphicsPipelineCacheHandle&
-        {
-            return m_mode == EGPM_RADIANCE
-                ? m_graphicsPipelineCacheHandle
-                : m_graphicsPipelines[EnvGridTypeToApplyEnvGridMode(envGrid->GetEnvGridType())];
-        };
+    {
+        return m_mode == EGPM_RADIANCE
+            ? m_graphicsPipelineCacheHandle
+            : m_graphicsPipelines[EnvGridTypeToApplyEnvGridMode(envGrid->GetEnvGridType())];
+    };
 
     for (EnvGrid* envGrid : rpl.GetEnvGrids().GetElements<LegacyEnvGrid>())
     {
@@ -889,7 +889,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         {
             continue;
         }
-        
+
         if (!m_cubemapGraphicsPipelines[cubemapType].IsAlive())
         {
             CreatePipeline();

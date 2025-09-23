@@ -11,8 +11,13 @@
 
 #include <rendering/Texture.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <core/logging/Logger.hpp>
+
 #include <core/utilities/DeferredScope.hpp>
+#include <core/utilities/Format.hpp>
 
 #include <core/io/ByteWriter.hpp>
 
@@ -75,7 +80,11 @@ Handle<Texture> FontAtlasTextureSet::GetAtlasForPixelSize(uint32 pixelSize) cons
 
 #pragma region FontAtlas
 
-FontAtlas::FontAtlas(const FontAtlasTextureSet& atlasTextures, Vec2i cellDimensions, GlyphMetricsBuffer glyphMetrics, SymbolList symbolList)
+FontAtlas::FontAtlas(
+    const FontAtlasTextureSet& atlasTextures,
+    Vec2i cellDimensions,
+    GlyphMetricsBuffer glyphMetrics,
+    SymbolList symbolList)
     : m_atlasTextures(std::move(atlasTextures)),
       m_cellDimensions(cellDimensions),
       m_glyphMetrics(std::move(glyphMetrics)),
@@ -211,11 +220,10 @@ Result FontAtlas::RenderAtlasTextures()
         ByteBuffer byteBuffer = atlasBitmap->GetUnpackedBytes(4);
 
         TextureData atlasTextureData {
-            atlasTextureDesc,
             std::move(byteBuffer)
         };
 
-        Handle<Texture> atlasTexture = CreateObject<Texture>(std::move(atlasTextureData));
+        Handle<Texture> atlasTexture = CreateObject<Texture>(atlasTextureDesc, std::move(atlasTextureData));
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
         InitObject(atlasTexture);
 

@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Size = 8)
 struct AssetPath
 {
     HYP_FIELD(NoScriptBindings)
@@ -226,4 +226,3 @@ struct Formatter<StringType, AssetPath>
 } // namespace utilities
 
 } // namespace hyperion
-

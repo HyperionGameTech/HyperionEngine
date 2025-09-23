@@ -17,6 +17,10 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+#include <asset/AssetRegistry.hpp>
+#endif
+
 namespace hyperion::serialization {
 
 static const TypeId g_typeIdAssetReference = TypeId::ForType<AssetReference>();
@@ -32,7 +36,7 @@ static void CollectAssetReferenceMembers(
     {
         if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
         {
-            // skip fields with synthetic properties:
+            // skip fields with synthetic properties
             continue;
         }
 
@@ -94,6 +98,21 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", LookupTypeName(in.GetTypeId())) };
     }
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE && defined(HYP_DEBUG_MODE)
+    if (hypClass->IsDerivedFrom(AssetReference::Class()))
+    {
+        const AssetReference& assetReference = in.Get<AssetReference>();
+        const Handle<AssetObject>& assetObject = assetReference.Resolve();
+
+        if (!assetObject || !assetObject->GetPackage() || assetObject->GetPackage()->IsTransient())
+        {
+            HYP_BREAKPOINT;
+
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize AssetReference to asset '{}' because it is not loaded or in a transient package", assetReference.GetAssetPath().ToString()) };
+        }
+    }
+#endif
+
     const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute("serialize");
 
     if (serializeAttribute == false)
@@ -149,7 +168,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         {
             if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
             {
-                // skip fields with synthetic properties:
+                // skip fields with synthetic properties
                 continue;
             }
 
@@ -170,21 +189,9 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
                 continue;
             }
 
-            // Explicit serialization handling for asset reference:
-            // we need to get an attribute from this member the specifies the member that is an AssetObject, to be used for resolving.
-            auto assetReferenceMembersIt = assetReferenceMembersMap.Find(&member);
-
-            if (assetReferenceMembersIt != assetReferenceMembersMap.End())
+            if (member.GetAttribute("compressed").GetBool())
             {
-                const IHypMember* pAssetReferenceMember = assetReferenceMembersIt->first;
-                Assert(pAssetReferenceMember != nullptr);
-            }
-            else
-            {
-                if (member.GetAttribute("compressed").GetBool())
-                {
-                    flags |= FBOMDataFlags::COMPRESSED;
-                }
+                flags |= FBOMDataFlags::COMPRESSED;
             }
 
             HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hypClass->GetName());
