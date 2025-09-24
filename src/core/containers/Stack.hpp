@@ -76,8 +76,21 @@ public:
         Base::Refit();
     }
 
-    void Push(const typename Base::ValueType& value);
-    void Push(typename Base::ValueType&& value);
+    /*! \brief Alias for Push(). */
+    HYP_FORCE_INLINE typename Base::ValueType& Add(const typename Base::ValueType& value)
+    {
+        return Push(value);
+    }
+
+    /*! \brief Alias for Push(). */
+    HYP_FORCE_INLINE typename Base::ValueType& Add(typename Base::ValueType&& value)
+    {
+        return Push(std::move(value));
+    }
+
+    typename Base::ValueType& Push(const typename Base::ValueType& value);
+    typename Base::ValueType& Push(typename Base::ValueType&& value);
+
     typename Base::ValueType Pop();
     void Clear();
 
@@ -124,15 +137,15 @@ auto Stack<T>::operator=(Stack&& other) noexcept -> Stack&
 }
 
 template <class T>
-void Stack<T>::Push(const typename Base::ValueType& value)
+auto Stack<T>::Push(const typename Base::ValueType& value) -> typename Base::ValueType&
 {
-    Base::PushBack(value);
+    return Base::PushBack(value);
 }
 
 template <class T>
-void Stack<T>::Push(typename Base::ValueType&& value)
+auto Stack<T>::Push(typename Base::ValueType&& value) -> typename Base::ValueType&
 {
-    Base::PushBack(std::move(value));
+    return Base::PushBack(std::move(value));
 }
 
 template <class T>

@@ -86,7 +86,7 @@ void EditorProject::SetName(Name name)
 
     if (m_package.IsValid())
     {
-        m_package->SetName(name);
+        m_package->Rename(name);
     }
     else if (IsInitCalled())
     {
@@ -251,7 +251,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     Result result;
 
     {
-        if (Result packageSaveResult = m_package->Save(filepath); packageSaveResult.HasError())
+        if (Result packageSaveResult = m_package->Save(filepath / *m_name); packageSaveResult.HasError())
         {
             result = packageSaveResult;
         }
@@ -301,12 +301,12 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     if (!dir.Exists())
     {
-        return HYP_MAKE_ERROR(Error, "Directory does not exist");
+        return HYP_MAKE_ERROR(Error, "Directory does not exist: {}", dir);
     }
 
     if (!projectFilepath.Exists())
     {
-        return HYP_MAKE_ERROR(Error, "Project file does not exist");
+        return HYP_MAKE_ERROR(Error, "Project file does not exist: {}", projectFilepath);
     }
 
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
@@ -316,7 +316,6 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     Result loadPackageResult = registry->LoadPackageFromManifest(
         packageManifestPath,
-        String::empty,
         rootPackage,
         /* loadSubpackages */ true);
 

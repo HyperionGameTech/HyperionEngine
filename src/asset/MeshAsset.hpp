@@ -78,7 +78,7 @@ public:
 
     MeshAsset(const MeshAsset& other) = delete;
     MeshAsset& operator=(const MeshAsset& other) = delete;
-    
+
     MeshAsset(MeshAsset&& other) noexcept = delete;
     MeshAsset& operator=(MeshAsset&& other) noexcept = delete;
 
@@ -95,7 +95,7 @@ public:
     }
 
 private:
-    HYP_FIELD(Property = "MeshDesc", Serialize)
+    HYP_FIELD(Serialize)
     MeshDesc m_meshDesc;
 };
 

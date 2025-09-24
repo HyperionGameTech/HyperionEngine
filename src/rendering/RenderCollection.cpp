@@ -1091,7 +1091,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
             AssertDebug(meshProxy != nullptr);
 
-            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr);
+            AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr,
+                        "Entity {} is missing a mesh or material on its MeshProxy! Mesh: {}, Material: {}",
+                        id, (void*)meshProxy->mesh, (void*)meshProxy->material);
 
             RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
             UpdateRenderableAttributesDynamic(meshProxy, attributes);

@@ -27,11 +27,14 @@
 
 // temp
 #include <scene/components/MeshComponent.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion::serialization {
+
+HYP_DISABLE_OPTIMIZATION;
 
 class EntityMarshal : public HypClassInstanceMarshal
 {
@@ -118,6 +121,16 @@ public:
 
                 ConstAnyRef component = entityManager->TryGetComponent(componentTypeId, &entity);
                 Assert(component.HasValue());
+
+                // temp
+                if (componentTypeId == TypeId::ForType<MeshComponent>())
+                {
+                    const MeshComponent& meshComponent = component.Get<MeshComponent>();
+                    if (!meshComponent.mesh || !meshComponent.material)
+                    {
+                        HYP_BREAKPOINT;
+                    }
+                }
 
                 FBOMObject componentSerialized;
 
@@ -276,6 +289,21 @@ public:
                 entity->InstanceClass()->GetName(),
                 entity->Id());
 
+            const MeshComponent* tmpMeshComponent = nullptr;
+            // temp
+            if (childTypeId == TypeId::ForType<MeshComponent>())
+            {
+                tmpMeshComponent = &child.m_deserializedObject->Get<MeshComponent>();
+                if (!tmpMeshComponent->mesh || !tmpMeshComponent->material)
+                {
+                    HYP_LOG_TEMP("Missing mesh or material! Mesh: {}",
+                                 tmpMeshComponent->mesh ? tmpMeshComponent->mesh->GetAssetReference().GetAssetPath().ToString() : "<null>");
+                    HYP_LOG_TEMP("material property : {}", child.GetProperty("Material").ToString());
+                    
+                    HYP_BREAKPOINT;
+                }
+            }
+
             entityManager->AddComponent(entity, *child.m_deserializedObject);
         }
 
@@ -286,5 +314,7 @@ public:
 };
 
 HYP_DEFINE_MARSHAL(Entity, EntityMarshal);
+
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion::serialization

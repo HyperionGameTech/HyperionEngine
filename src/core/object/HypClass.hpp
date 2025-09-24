@@ -537,7 +537,7 @@ public:
         return { this, HypMemberType::TYPE_METHOD | HypMemberType::TYPE_FIELD | HypMemberType::TYPE_CONSTANT | (includeProperties ? HypMemberType::TYPE_PROPERTY : HypMemberType::NONE) };
     }
 
-    IHypMember* GetMember(WeakName name) const;
+    IHypMember* GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL) const;
 
     HypProperty* GetProperty(WeakName name) const;
 

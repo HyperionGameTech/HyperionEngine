@@ -215,16 +215,9 @@ HypProperty* MakeHypProperty(const HypField* field)
     {
         return field->Get(target);
     };
-    result.m_getter.serializeProc = [field](const HypData& target, EnumFlags<FBOMDataFlags> flags) -> FBOMData
+    result.m_getter.serializeProc = [field](const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
     {
-        FBOMData data;
-
-        if (!field->Serialize(target, data, flags))
-        {
-            return FBOMData();
-        }
-
-        return data;
+        return field->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
     };
 
     result.m_setter = HypPropertySetter();
@@ -234,9 +227,9 @@ HypProperty* MakeHypProperty(const HypField* field)
     {
         field->Set(target, value);
     };
-    result.m_setter.deserializeProc = [field](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> void
+    result.m_setter.deserializeProc = [field](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> Result
     {
-        field->Deserialize(context, target, value);
+        return field->Deserialize(context, target, value);
     };
 
     result.m_originalMember = field;
@@ -316,8 +309,8 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
     result.m_ownerClass = hasGetter
         ? getter->GetOwnerClass()
         : hasSetter
-            ? setter->GetOwnerClass()
-            : nullptr;
+        ? setter->GetOwnerClass()
+        : nullptr;
 
     if (hasGetter)
     {
@@ -328,15 +321,9 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
         {
             return getter->Invoke(Span<HypData> { const_cast<HypData*>(&target), 1 });
         };
-        result.m_getter.serializeProc = [getter](const HypData& target, EnumFlags<FBOMDataFlags> flags) -> FBOMData
+        result.m_getter.serializeProc = [getter](const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            FBOMData data;
-
-            const bool result = getter->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, data, flags);
-
-            HYP_CORE_ASSERT(result);
-
-            return data;
+            return getter->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
         };
         result.m_originalMember = getter;
     }
@@ -350,11 +337,9 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
         {
             setter->Invoke(Span<HypData*> { { &target, const_cast<HypData*>(&value) } });
         };
-        result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> void
+        result.m_setter.deserializeProc = [setter](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> Result
         {
-            const bool result = setter->Deserialize(context, target, value);
-
-            HYP_CORE_ASSERT(result);
+            return setter->Deserialize(context, target, value);
         };
         result.m_originalMember = setter;
     }
@@ -829,26 +814,35 @@ bool HypClass::CanSerialize() const
     return false;
 }
 
-IHypMember* HypClass::GetMember(WeakName name) const
+IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes) const
 {
-    if (HypProperty* property = GetProperty(name))
+    if (memberTypes & HypMemberType::TYPE_PROPERTY)
     {
-        return property;
+        if (HypProperty* property = GetProperty(name))
+        {
+            return property;
+        }
     }
 
-    if (HypMethod* method = GetMethod(name))
+    if (memberTypes & HypMemberType::TYPE_FIELD)
     {
-        return method;
+        if (HypField* field = GetField(name))
+        {
+            return field;
+        }
     }
 
-    if (HypField* field = GetField(name))
+    if (memberTypes & HypMemberType::TYPE_METHOD)
     {
-        return field;
+        if (HypMethod* method = GetMethod(name))
+        {
+            return method;
+        }
     }
 
     if (const HypClass* parent = GetParent())
     {
-        return parent->GetMember(name);
+        return parent->GetMember(name, memberTypes);
     }
 
     return nullptr;

@@ -47,8 +47,7 @@ FBOMData::FBOMData(const FBOMData& other)
     : FBOMSerializableBase(static_cast<const FBOMSerializableBase&>(other)),
       m_type(other.m_type),
       m_bytes(other.m_bytes),
-      m_flags(other.m_flags),
-      m_deserializedObject(other.m_deserializedObject)
+      m_flags(other.m_flags)
 {
 }
 
@@ -64,7 +63,6 @@ FBOMData& FBOMData::operator=(const FBOMData& other)
     m_type = other.m_type;
     m_bytes = other.m_bytes;
     m_flags = other.m_flags;
-    m_deserializedObject = other.m_deserializedObject;
 
     return *this;
 }
@@ -73,8 +71,7 @@ FBOMData::FBOMData(FBOMData&& other) noexcept
     : FBOMSerializableBase(static_cast<FBOMSerializableBase&&>(std::move(other))),
       m_bytes(std::move(other.m_bytes)),
       m_type(std::move(other.m_type)),
-      m_flags(other.m_flags),
-      m_deserializedObject(std::move(other.m_deserializedObject))
+      m_flags(other.m_flags)
 {
     other.m_type = FBOMUnset();
     other.m_flags = FBOMDataFlags::NONE;
@@ -92,7 +89,6 @@ FBOMData& FBOMData::operator=(FBOMData&& other) noexcept
     m_bytes = std::move(other.m_bytes);
     m_type = std::move(other.m_type);
     m_flags = other.m_flags;
-    m_deserializedObject = std::move(other.m_deserializedObject);
 
     other.m_type = FBOMUnset();
     other.m_flags = FBOMDataFlags::NONE;
@@ -142,11 +138,6 @@ FBOMData FBOMData::FromObject(const FBOMObject& object, bool keepNativeObject)
     FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byteWriter.GetBuffer()));
     HYP_CORE_ASSERT(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
 
-    if (keepNativeObject)
-    {
-        value.m_deserializedObject = object.m_deserializedObject;
-    }
-
     return value;
 }
 
@@ -166,11 +157,6 @@ FBOMData FBOMData::FromObject(FBOMObject&& object, bool keepNativeObject)
 
     FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byteWriter.GetBuffer()));
     HYP_CORE_ASSERT(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
-
-    if (keepNativeObject)
-    {
-        value.m_deserializedObject = std::move(object.m_deserializedObject);
-    }
 
     return value;
 }

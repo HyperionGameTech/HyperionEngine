@@ -776,6 +776,18 @@ public:
         return Insert(Value(std::forward<Args>(args)...));
     }
 
+    /*! \brief Alias for Insert(), but returns the inserted value directly. */
+    HYP_FORCE_INLINE Value& Add(const ValueType& value)
+    {
+        return *Insert(value).first;
+    }
+
+    /*! \brief Alias for Insert(), but returns the inserted value directly. */
+    HYP_FORCE_INLINE Value& Add(ValueType&& value)
+    {
+        return *Insert(std::move(value)).first;
+    }
+
     void Clear();
 
     template <class OtherContainerType>

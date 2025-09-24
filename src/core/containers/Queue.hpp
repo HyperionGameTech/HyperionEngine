@@ -31,67 +31,51 @@ public:
     Queue& operator=(const Queue& other);
     Queue& operator=(Queue&& other) noexcept;
 
-    [[nodiscard]]
     HYP_FORCE_INLINE SizeType Size() const
     {
         return Base::Size();
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-        typename Base::ValueType*
-        Data()
+    HYP_FORCE_INLINE typename Base::ValueType* Data()
     {
         return Base::Data();
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE const typename Base::ValueType* Data() const
     {
         return Base::Data();
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-        typename Base::ValueType&
-        Front()
+    HYP_FORCE_INLINE typename Base::ValueType& Front()
     {
         return Base::Front();
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE const typename Base::ValueType& Front() const
     {
         return Base::Front();
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-        typename Base::ValueType&
-        Back()
+    HYP_FORCE_INLINE typename Base::ValueType& Back()
     {
         return Base::Back();
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE const typename Base::ValueType& Back() const
     {
         return Base::Back();
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE bool Empty() const
     {
         return Base::Empty();
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE bool Any() const
     {
         return Base::Any();
     }
 
-    [[nodiscard]]
     HYP_FORCE_INLINE bool Contains(const T& value) const
     {
         return Base::Contains(value);
@@ -107,9 +91,23 @@ public:
         Base::Refit();
     }
 
-    void Push(const typename Base::ValueType& value);
-    void Push(typename Base::ValueType&& value);
+    /*! \brief Alias for Push(). */
+    HYP_FORCE_INLINE typename Base::ValueType& Add(const typename Base::ValueType& value)
+    {
+        return Push(value);
+    }
+
+    /*! \brief Alias for Push(). */
+    HYP_FORCE_INLINE typename Base::ValueType& Add(typename Base::ValueType&& value)
+    {
+        return Push(std::move(value));
+    }
+
+    typename Base::ValueType& Push(const typename Base::ValueType& value);
+    typename Base::ValueType& Push(typename Base::ValueType&& value);
+
     typename Base::ValueType Pop();
+
     void Clear();
 
     HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
@@ -155,15 +153,15 @@ auto Queue<T>::operator=(Queue&& other) noexcept -> Queue&
 }
 
 template <class T>
-void Queue<T>::Push(const typename Base::ValueType& value)
+auto Queue<T>::Push(const typename Base::ValueType& value) -> typename Base::ValueType&
 {
-    Base::PushBack(value);
+    return Base::PushBack(value);
 }
 
 template <class T>
-void Queue<T>::Push(typename Base::ValueType&& value)
+auto Queue<T>::Push(typename Base::ValueType&& value) -> typename Base::ValueType&
 {
-    Base::PushBack(std::move(value));
+    return Base::PushBack(std::move(value));
 }
 
 template <class T>

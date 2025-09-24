@@ -164,10 +164,8 @@ public:
 
         if (m_attributes["serialize"] || m_attributes["xmlattribute"])
         {
-            m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags) -> FBOMData
+            m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
             {
-                FBOMData out;
-
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
                 {
                     HYP_FAIL("Cannot serialize non-copy-assignable field");
@@ -179,13 +177,13 @@ public:
 
                     decltype(auto) target = targetData.Get<ThisType>();
 
-                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, out, flags))
+                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
                     {
-                        HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+                        return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                     }
                 }
 
-                return out;
+                return {};
             };
 
             m_deserializeProc = [member](FBOMLoadContext& context, HypData& targetData, const FBOMData& data) -> Result
@@ -288,36 +286,29 @@ public:
         return IsValid() && m_deserializeProc.IsValid();
     }
 
-    HYP_FORCE_INLINE bool Serialize(const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const
-    {
-        return Serialize(Span<HypData>(&const_cast<HypData&>(target), 1), out, flags);
-    }
-
-    virtual bool Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
+    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
     {
         if (!CanSerialize())
         {
-            return false;
+            return HYP_MAKE_ERROR(Error, "Field cannot be serialized");
         }
 
         if (args.Size() != 1)
         {
-            return false;
+            return HYP_MAKE_ERROR(Error, "Expected exactly one argument to serialize field, got {}", args.Size());
         }
 
-        out = m_serializeProc(*args.Data(), flags);
-
-        return true;
+        return m_serializeProc(*args.Data(), flags, out);
     }
 
-    virtual bool Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
+    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& in) const override
     {
         if (!CanDeserialize())
         {
-            return false;
+            return HYP_MAKE_ERROR(Error, "Field cannot be deserialized");
         }
 
-        return bool(m_deserializeProc(context, target, data));
+        return m_deserializeProc(context, target, in);
     }
 
     virtual const HypClassAttributeSet& GetAttributes() const override
@@ -379,8 +370,8 @@ private:
     Proc<HypData(const HypData&)> m_getProc;
     Proc<void(HypData&, const HypData&)> m_setProc;
 
-    Proc<FBOMData(const HypData&, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
-    Proc<Result(FBOMLoadContext&, HypData&, const FBOMData&)> m_deserializeProc;
+    Proc<Result(const HypData& target, EnumFlags<FBOMDataFlags> flags, FBOMData& outData)> m_serializeProc;
+    Proc<Result(FBOMLoadContext& context, HypData& target, const FBOMData& inData)> m_deserializeProc;
 };
 
 } // namespace hyperion

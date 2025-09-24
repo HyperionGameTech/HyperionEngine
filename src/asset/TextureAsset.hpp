@@ -52,6 +52,7 @@ public:
     }
 
 private:
+    HYP_FIELD(Serialize)
     TextureDesc m_textureDesc;
 };
 

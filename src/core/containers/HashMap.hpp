@@ -182,6 +182,18 @@ public:
         return Insert(std::move(key), Value(std::forward<Args>(args)...));
     }
 
+    /*! \brief Alias for Insert(), but returns the inserted value directly. */
+    HYP_FORCE_INLINE const KeyValuePair<Key, Value>& Add(const KeyValuePair<Key, Value>& value)
+    {
+        return *Insert(value).first;
+    }
+
+    /*! \brief Alias for Insert(), but returns the inserted value directly. */
+    HYP_FORCE_INLINE const KeyValuePair<Key, Value>& Add(const KeyValuePair<Key, Value>&& value)
+    {
+        return *Insert(std::move(value)).first;
+    }
+
     template <class OtherContainerType>
     HYP_FORCE_INLINE HashMap& Merge(OtherContainerType&& other)
     {

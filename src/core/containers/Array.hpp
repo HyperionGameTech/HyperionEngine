@@ -361,6 +361,18 @@ public:
         return m_allocation.GetCapacity();
     }
 
+    /*! \brief Alias for PushBack(). */
+    HYP_FORCE_INLINE ValueType& Add(const ValueType& value)
+    {
+        return PushBack(value);
+    }
+
+    /*! \brief Alias for PushBack(). */
+    HYP_FORCE_INLINE ValueType& Add(ValueType&& value)
+    {
+        return PushBack(std::move(value));
+    }
+
     /*! \brief Push an item to the back of the container.
      *  \param value The value to push back.
      *  \return Reference to the newly pushed back item. */

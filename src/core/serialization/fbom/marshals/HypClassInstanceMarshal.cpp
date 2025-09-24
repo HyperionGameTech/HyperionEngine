@@ -54,7 +54,7 @@ static void CollectAssetReferenceMembers(
             if (const HypClassAttributeValue& targetAttr = member.GetAttribute(g_nameResolveAsset))
             {
                 // Get the target member
-                pTargetMember = hypClass->GetMember(*targetAttr.GetString());
+                pTargetMember = hypClass->GetMember(*targetAttr.GetString(), HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
                 if (!pTargetMember)
                 {
@@ -69,6 +69,8 @@ static void CollectAssetReferenceMembers(
         }
     }
 }
+
+HYP_DISABLE_OPTIMIZATION;
 
 FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 {
@@ -198,11 +200,9 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
             FBOMData data;
 
-            if (!member.Serialize(Span<HypData>(&targetData, 1), data, flags))
+            if (Result serializeResult = member.Serialize(Span<HypData>(&targetData, 1), data, flags); serializeResult.HasError())
             {
-                HYP_LOG(Serialization, Warning, "Failed to serialize member '{}' of HypClass '{}'", member.GetName(), hypClass->GetName());
-
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to serialize member '{}' of HypClass '{}'", member.GetName(), hypClass->GetName()) };
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to serialize member '{}' of HypClass '{}': {}", member.GetName(), hypClass->GetName(), serializeResult.GetError().GetMessage()) };
             }
 
             out.SetProperty(member.GetName().LookupString(), std::move(data));
@@ -218,6 +218,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
 
     if (!hypClass)
     {
+        HYP_BREAKPOINT;
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeId: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
     }
 
@@ -241,13 +242,10 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
     AnyRef ref = out.ToRef();
     HYP_CORE_ASSERT(ref.HasValue(), "Failed to create HypClass instance");
 
-    if (FBOMResult err = Deserialize_Internal(context, in, hypClass, ref))
-    {
-        return err;
-    }
-
-    return { FBOMResult::FBOM_OK };
+    return Deserialize_Internal(context, in, hypClass, ref);
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, AnyRef ref) const
 {
@@ -279,10 +277,21 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
-            if (const IHypMember* pMember = hypClass->GetMember(it.first))
+            HYP_LOG(Serialization, Debug, "Deserializing property '{}' for HypClass '{}'", it.first, hypClass->GetName());
+
+            if (const IHypMember* pMember = hypClass->GetMember(it.first, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
             {
+                if (assetReferenceTargetMembersMap.Contains(pMember))
+                {
+                    HYP_LOG_TEMP("Skipping deserialization of member '{}' on HypClass '{}' because it is a target of an AssetReference", pMember->GetName(), hypClass->GetName());
+
+                    continue;
+                }
+
                 if (!pMember->GetAttribute("serialize"))
                 {
+                    HYP_LOG_TEMP("Skipping deserialization of member '{}' on HypClass '{}' because it has attribute 'serialize' set to false", pMember->GetName(), hypClass->GetName());
+
                     continue;
                 }
 
@@ -290,11 +299,8 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                 {
                     HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", pMember->GetName(), hypClass->GetName());
 
-                    continue;
-                }
+                    HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' is not deserializable, skipping", pMember->GetName(), hypClass->GetName());
 
-                if (assetReferenceTargetMembersMap.Contains(pMember))
-                {
                     continue;
                 }
 
@@ -302,82 +308,71 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
                 if (assetReferenceMembersIt != assetReferenceMembersMap.End())
                 {
-                    const IHypMember* pAssetReferenceMember = assetReferenceMembersIt->first;
                     const IHypMember* pTargetMember = assetReferenceMembersIt->second;
 
-                    if (!pMember->CanDeserialize())
+                    if (pTargetMember)
                     {
-                        HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", pMember->GetName(), hypClass->GetName());
+                        AssertDebug(pMember->GetTypeId() == g_typeIdAssetReference);
+
+                        AssetReference* pAssetReference = nullptr;
+                        HypData tmpData;
+
+                        switch (pMember->GetMemberType())
+                        {
+                        case HypMemberType::TYPE_FIELD:
+                            tmpData = static_cast<const HypField*>(pMember)->Get(targetData);
+                            break;
+                        case HypMemberType::TYPE_PROPERTY:
+                            tmpData = static_cast<const HypProperty*>(pMember)->Get(targetData);
+                            break;
+                        default:
+                            HYP_UNREACHABLE();
+                            break;
+                        }
+
+                        pAssetReference = reinterpret_cast<AssetReference*>(tmpData.ToRef().GetPointer());
+
+                        if (!pAssetReference)
+                        {
+                            HYP_LOG(Serialization, Warning, "Failed to get AssetReference for member '{}' on object of HypClass '{}'", pMember->GetName(), hypClass->GetName());
+
+                            continue;
+                        }
+
+                        Handle<AssetObject> assetObject = ResolveAssetImpl(*pAssetReference);
+
+                        if (!assetObject)
+                        {
+                            HYP_LOG(Serialization, Warning, "Failed to resolve AssetReference for member '{}' on object of HypClass '{}'", pMember->GetName(), hypClass->GetName());
+
+                            continue;
+                        }
+
+                        switch (pTargetMember->GetMemberType())
+                        {
+                        case HypMemberType::TYPE_FIELD:
+                            static_cast<const HypField*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
+                            break;
+                        case HypMemberType::TYPE_PROPERTY:
+                            static_cast<const HypProperty*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
+                            break;
+                        default:
+                            HYP_UNREACHABLE();
+                            break;
+                        }
 
                         continue;
                     }
-
-                    if (!pMember->Deserialize(context, targetData, it.second))
-                    {
-                        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", pMember->GetName(), hypClass->GetName()) };
-                    }
-
-                    if (!pTargetMember)
-                    {
-                        continue;
-                    }
-
-                    AssertDebug(pAssetReferenceMember->GetTypeId() == g_typeIdAssetReference);
-
-                    AssetReference* pAssetReference = nullptr;
-                    HypData tmpData;
-
-                    switch (pAssetReferenceMember->GetMemberType())
-                    {
-                    case HypMemberType::TYPE_FIELD:
-                        tmpData = static_cast<const HypField*>(pAssetReferenceMember)->Get(targetData);
-                        break;
-                    case HypMemberType::TYPE_PROPERTY:
-                        tmpData = static_cast<const HypProperty*>(pAssetReferenceMember)->Get(targetData);
-                        break;
-                    default:
-                        HYP_LOG(Serialization, Warning, "Unsupported member type for AssetReference member '{}' on object of HypClass '{}'", pAssetReferenceMember->GetName(), hypClass->GetName());
-                        break;
-                    }
-
-                    pAssetReference = reinterpret_cast<AssetReference*>(tmpData.ToRef().GetPointer());
-
-                    if (!pAssetReference)
-                    {
-                        HYP_LOG(Serialization, Warning, "Failed to get AssetReference for member '{}' on object of HypClass '{}'", pAssetReferenceMember->GetName(), hypClass->GetName());
-
-                        continue;
-                    }
-
-                    Handle<AssetObject> assetObject = ResolveAssetImpl(*pAssetReference);
-
-                    if (!assetObject)
-                    {
-                        HYP_LOG(Serialization, Warning, "Failed to resolve AssetReference for member '{}' on object of HypClass '{}'", pAssetReferenceMember->GetName(), hypClass->GetName());
-
-                        continue;
-                    }
-
-                    switch (pTargetMember->GetMemberType())
-                    {
-                    case HypMemberType::TYPE_FIELD:
-                        static_cast<const HypField*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
-                        break;
-                    case HypMemberType::TYPE_PROPERTY:
-                        static_cast<const HypProperty*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
-                        break;
-                    default:
-                        HYP_LOG(Serialization, Warning, "Unsupported member type for target member '{}' on object of HypClass '{}'", pTargetMember->GetName(), hypClass->GetName());
-                        break;
-                    }
-
-                    continue;
                 }
 
-                if (!pMember->Deserialize(context, targetData, it.second))
+                if (Result deserializeResult = pMember->Deserialize(context, targetData, it.second); deserializeResult.HasError())
                 {
-                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", pMember->GetName(), hypClass->GetName()) };
+                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}': {}", pMember->GetName(), hypClass->GetName(), deserializeResult.GetError().GetMessage()) };
                 }
+            }
+            else
+            {
+                HYP_LOG(Serialization, Warning, "No member named '{}' found in HypClass '{}', skipping", it.first, hypClass->GetName());
             }
         }
     }

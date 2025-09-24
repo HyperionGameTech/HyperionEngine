@@ -240,10 +240,10 @@ void PlaceholderData::Create()
 
     defaultTexture2d->SetName(NAME("Placeholder_Texture_2D_1x1_R8"));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultTexture2d->GetAsset());
-    Assert(defaultTexture2d->GetAsset()->IsPersistentlyLoaded());
-
+    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultTexture2d->GetAsset());
     InitObject(defaultTexture2d);
+
+    defaultTexture2d->GetAsset()->SetIsPersistentlyLoaded(true);
 
     defaultTexture3d = CreateObject<Texture>(
         TextureDesc {
@@ -258,9 +258,10 @@ void PlaceholderData::Create()
 
     defaultTexture3d->SetName(NAME("Placeholder_Texture_3D_1x1x1_R8"));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultTexture3d->GetAsset());
-
+    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultTexture3d->GetAsset());
     InitObject(defaultTexture3d);
+
+    defaultTexture3d->GetAsset()->SetIsPersistentlyLoaded(true);
 
     defaultCubemap = CreateObject<Texture>(
         TextureDesc {
@@ -276,8 +277,10 @@ void PlaceholderData::Create()
 
     defaultCubemap->SetName(NAME("Placeholder_Texture_Cube_1x1_R8"));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultCubemap->GetAsset());
+    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultCubemap->GetAsset());
     InitObject(defaultCubemap);
+
+    defaultCubemap->GetAsset()->SetIsPersistentlyLoaded(true);
 
     defaultTexture2dArray = CreateObject<Texture>(
         TextureDesc {
@@ -293,8 +296,10 @@ void PlaceholderData::Create()
 
     defaultTexture2dArray->SetName(NAME("Placeholder_Texture_2D_1x1_R8_Array"));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultTexture2dArray->GetAsset());
+    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultTexture2dArray->GetAsset());
     InitObject(defaultTexture2dArray);
+
+    defaultTexture2dArray->GetAsset()->SetIsPersistentlyLoaded(true);
 
     defaultCubemapArray = CreateObject<Texture>(
         TextureDesc {
@@ -310,8 +315,10 @@ void PlaceholderData::Create()
 
     defaultCubemapArray->SetName(NAME("Placeholder_Texture_Cube_1x1_R8_Array"));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Textures", defaultCubemapArray->GetAsset());
+    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultCubemapArray->GetAsset());
     InitObject(defaultCubemapArray);
+
+    defaultCubemapArray->GetAsset()->SetIsPersistentlyLoaded(true);
 
 #pragma endregion Textures
 

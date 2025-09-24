@@ -945,7 +945,6 @@ FBOMResult FBOMReader::ReadObject(
     }
     case FBOMDataLocation::LOC_INPLACE:
     {
-        // read string of "type" - loader to use
         FBOMType objectType;
 
         if (FBOMResult err = ReadObjectType(context, reader, objectType))
@@ -984,8 +983,10 @@ FBOMResult FBOMReader::ReadObject(
                         // call deserializer function, writing into deserialized object
                         outObject.m_deserializedObject.Emplace();
 
-                        if (FBOMResult err = Deserialize(context, outObject, *outObject.m_deserializedObject))
+                        if (FBOMResult err = Deserialize(context, outObject, *outObject.m_deserializedObject); !err.IsOK())
                         {
+                            HYP_LOG_TEMP("Error deserializing object of type {}: {}", objectType.ToString(false), err.message);
+                            HYP_BREAKPOINT;
                             outObject.m_deserializedObject.Reset();
 
                             return err;

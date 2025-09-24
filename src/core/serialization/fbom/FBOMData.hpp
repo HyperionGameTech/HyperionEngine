@@ -591,8 +591,6 @@ private:
     FBOMType m_type;
 
     EnumFlags<FBOMDataFlags> m_flags;
-
-    RC<HypData> m_deserializedObject;
 };
 
 } // namespace serialization

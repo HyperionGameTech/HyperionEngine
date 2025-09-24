@@ -256,6 +256,18 @@ public:
         return newNode->value.Get();
     }
 
+    /*! \brief Alias for PushBack(), but returns the inserted value directly. */
+    HYP_FORCE_INLINE ValueType& Add(const ValueType& value)
+    {
+        return PushBack(value);
+    }
+
+    /*! \brief Alias for PushBack(), but returns the inserted value directly. */
+    HYP_FORCE_INLINE ValueType& Add(ValueType&& value)
+    {
+        return PushBack(std::move(value));
+    }
+
     /*! \brief Push an item to the back of the container.*/
     ValueType& PushBack(const ValueType& value);
 

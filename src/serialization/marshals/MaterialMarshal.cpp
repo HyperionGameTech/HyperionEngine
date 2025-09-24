@@ -30,6 +30,7 @@ public:
             return err;
         }
 
+#if 0
         const Material& inObject = in.Get<Material>();
 
         // clang-format off
@@ -92,12 +93,13 @@ public:
             FBOMSequence(FBOMUInt32(), textureKeys.Size()),
             textureKeys.ByteSize(),
             &textureKeys[0]);
-
+#endif
         return { FBOMResult::FBOM_OK };
     }
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
+#if 0
         MaterialAttributes attributes;
         MaterialParameters parameters = Material::DefaultParameters();
         MaterialTextures textures;
@@ -106,6 +108,7 @@ public:
 
         if (FBOMResult err = in.GetProperty("Attributes").ReadObject(context, attributesObject))
         {
+            HYP_BREAKPOINT;
             return err;
         }
 
@@ -120,6 +123,7 @@ public:
 
         if (FBOMResult err = in.GetProperty("Parameters").ReadArray(context, paramsArray))
         {
+            HYP_BREAKPOINT;
             return err;
         }
 
@@ -140,11 +144,13 @@ public:
 
                 if (FBOMResult err = paramObject.GetProperty("Key").ReadUInt64(&paramKey))
                 {
+                    HYP_BREAKPOINT;
                     return err;
                 }
 
                 if (FBOMResult err = paramObject.GetProperty("Type").ReadUInt32(&param.type))
                 {
+                    HYP_BREAKPOINT;
                     return err;
                 }
 
@@ -152,6 +158,7 @@ public:
                 {
                     if (FBOMResult err = paramObject.GetProperty("Data").ReadElements(FBOMInt32(), ArraySize(param.value.intValues), &param.value.intValues[0]))
                     {
+                        HYP_BREAKPOINT;
                         return err;
                     }
                 }
@@ -159,6 +166,7 @@ public:
                 {
                     if (FBOMResult err = paramObject.GetProperty("Data").ReadElements(FBOMFloat(), ArraySize(param.value.floatValues), &param.value.floatValues[0]))
                     {
+                        HYP_BREAKPOINT;
                         return err;
                     }
                 }
@@ -171,6 +179,7 @@ public:
 
         if (FBOMResult err = in.GetProperty("TextureKeys").ReadElements(FBOMUInt32(), textureKeys.Size(), &textureKeys[0]))
         {
+            HYP_BREAKPOINT;
             return err;
         }
 
@@ -198,15 +207,26 @@ public:
                 }
             }
         }
+#endif
 
-        Handle<Material> materialHandle = g_materialSystem->GetOrCreate(attributes, parameters, textures);
+        Handle<Material> materialHandle = CreateObject<Material>();
 
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Material::Class(), AnyRef(*materialHandle)))
         {
+            HYP_LOG_TEMP("Error deserializing Material instance: {}", err.message);
+            HYP_BREAKPOINT;
             return err;
         }
+        
+        Handle<Material> newMaterial = g_materialSystem->GetOrCreate(
+            materialHandle->GetName(),
+            materialHandle->GetRenderAttributes(),
+            materialHandle->GetParameters(),
+            materialHandle->GetTextures()
+        );
+        materialHandle.Reset();
 
-        out = HypData(std::move(materialHandle));
+        out = HypData(std::move(newMaterial));
 
         return { FBOMResult::FBOM_OK };
     }

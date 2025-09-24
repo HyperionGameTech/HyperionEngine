@@ -53,16 +53,14 @@ public:
 
         if (m_attributes["serialize"] || m_attributes["xmlattribute"])
         {
-            m_serializeProc = [value](EnumFlags<FBOMDataFlags> flags) -> FBOMData
+            m_serializeProc = [value](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
             {
-                FBOMData out;
-
                 if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out, flags))
                 {
-                    HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
                 }
 
-                return out;
+                return {};
             };
         }
     }
@@ -81,26 +79,26 @@ public:
 
         if (m_attributes["serialize"] || m_attributes["xmlattribute"])
         {
-            m_serializeProc = [pValue](EnumFlags<FBOMDataFlags> flags) -> FBOMData
+            m_serializeProc = [pValue](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
             {
                 HYP_CORE_ASSERT(pValue != nullptr);
 
-                FBOMData out;
-
                 if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
                 {
-                    HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
                 }
 
-                return out;
+                return {};
             };
         }
     }
 
     HypConstant(const HypConstant& other) = delete;
     HypConstant& operator=(const HypConstant& other) = delete;
+
     HypConstant(HypConstant&& other) noexcept = default;
     HypConstant& operator=(HypConstant&& other) noexcept = default;
+
     virtual ~HypConstant() override = default;
 
     virtual HypMemberType GetMemberType() const override
@@ -138,31 +136,29 @@ public:
         return false;
     }
 
-    HYP_FORCE_INLINE bool Serialize(FBOMData& out) const
+    HYP_FORCE_INLINE Result Serialize(FBOMData& out) const
     {
         return Serialize({}, out);
     }
 
-    virtual bool Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
+    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const override
     {
         if (!CanSerialize())
         {
-            return false;
+            return HYP_MAKE_ERROR(Error, "Constant '{}' cannot be serialized", m_name);
         }
 
         if (args.Size() != 0)
         {
-            return false;
+            return HYP_MAKE_ERROR(Error, "Expected zero arguments to serialize constant, got {}", args.Size());
         }
 
-        out = m_serializeProc(flags);
-
-        return true;
+        return m_serializeProc(out, flags);
     }
 
-    virtual bool Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
+    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
     {
-        return false;
+        return HYP_MAKE_ERROR(Error, "Constant cannot be deserialized");
     }
 
     virtual const HypClassAttributeSet& GetAttributes() const override
@@ -204,7 +200,7 @@ private:
     HypClassAttributeSet m_attributes;
 
     Proc<HypData()> m_getProc;
-    Proc<FBOMData(EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
+    Proc<Result(FBOMData& out, EnumFlags<FBOMDataFlags> flags)> m_serializeProc;
 };
 
 } // namespace hyperion

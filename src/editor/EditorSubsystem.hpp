@@ -196,7 +196,7 @@ public:
     {
         return -1;
     }
-    
+
     virtual String GetMenuText() const = 0;
 
     virtual void UpdateWidget(const Handle<Node>& focusedNode);
@@ -218,7 +218,7 @@ public:
     {
         return false;
     }
-    
+
     virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
     {
         return false;
@@ -253,7 +253,7 @@ class NullEditorManipulationWidget : public EditorManipulationWidgetBase
 
 public:
     virtual ~NullEditorManipulationWidget() override = default;
-    
+
     virtual String GetMenuText() const override
     {
         return "<null>";
@@ -283,7 +283,7 @@ public:
     {
         return EditorManipulationMode::TRANSLATE;
     }
-    
+
     virtual String GetMenuText() const override
     {
         return "Translate";
@@ -300,7 +300,7 @@ public:
     virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
     virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
     virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    
+
     virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node) override;
 
 protected:
@@ -331,11 +331,11 @@ public:
     {
         return m_manipulationWidgets;
     }
-    
+
     HYP_FORCE_INLINE EditorManipulationWidgetBase& GetManipulationWidget(EditorManipulationMode mode) const
     {
         Assert(mode != EditorManipulationMode::NONE);
-        
+
         return *m_manipulationWidgets.At(mode);
     }
 
@@ -507,7 +507,7 @@ private:
     EditorDelegates* m_editorDelegates;
 
     Array<Handle<EditorDebugOverlayBase>> m_debugOverlays;
-    
+
     // top-left, bottom-left, top-right, bottom-right
     FixedArray<Handle<UIObject>, 4> m_debugOverlayContainers;
 
@@ -525,4 +525,3 @@ private:
 };
 
 } // namespace hyperion
-

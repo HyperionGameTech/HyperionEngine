@@ -98,7 +98,7 @@ static inline int NextShapeId()
 {
     int shapeId = g_debugDrawShapeIdCounter++;
     AssertDebug(shapeId < g_maxDebugDrawShapeTypes);
-    
+
     return shapeId;
 }
 
@@ -107,7 +107,7 @@ SphereDebugDrawShape::SphereDebugDrawShape(DebugDrawCommandList& list)
 {
     static const int s_shapeId = NextShapeId();
     shapeId = s_shapeId;
-    
+
     (void)GetMesh(); // hack to preload mesh so it doesn't try to load during render pass
 }
 
@@ -122,7 +122,7 @@ Mesh* SphereDebugDrawShape::GetMesh_Internal() const
             mesh = MeshBuilder::NormalizedCubeSphere(4);
             mesh->SetName(NAME("SphereDebugDrawShape"));
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Meshes", mesh->GetAsset());
+            g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh->GetAsset());
 
             InitObject(mesh);
         }
@@ -269,7 +269,7 @@ BoxDebugDrawShape::BoxDebugDrawShape(DebugDrawCommandList& list)
 {
     static const int s_shapeId = NextShapeId();
     shapeId = s_shapeId;
-    
+
     (void)GetMesh(); // hack to preload mesh so it doesn't try to load during render pass
 }
 
@@ -291,7 +291,7 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
             mesh = MeshBuilder::Cube();
             mesh->SetName(NAME("BoxDebugDrawShape"));
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Meshes", mesh->GetAsset());
+            g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh->GetAsset());
 
             InitObject(mesh);
         }
@@ -340,7 +340,7 @@ PlaneDebugDrawShape::PlaneDebugDrawShape(DebugDrawCommandList& list)
 {
     static const int s_shapeId = NextShapeId();
     shapeId = s_shapeId;
-    
+
     (void)GetMesh(); // hack to preload mesh so it doesn't try to load during render pass
 }
 
@@ -355,7 +355,7 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
             mesh = MeshBuilder::Quad();
             mesh->SetName(NAME("PlaneDebugDrawShape"));
 
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Engine/Media/Meshes", mesh->GetAsset());
+            g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh->GetAsset());
 
             InitObject(mesh);
         }
@@ -625,7 +625,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     // and we're only using stuff that doesn't use the shape's debug draw list at all.
     // if we want to use more stuff on each shape, we'll need to devise a different solutoin.
     IDebugDrawShape* currShapes[g_maxDebugDrawShapeTypes] { nullptr };
-    
+
     for (SizeType drawCommandIdx = 0; drawCommandIdx < m_headers[idx].Size(); drawCommandIdx++)
     {
         uint32 offset = m_headers[idx][drawCommandIdx].offset;
@@ -641,14 +641,14 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         {
             continue;
         }
-        
+
         const int shapeIdx = drawCommand->shape->shapeId;
-        
+
         AssertDebug(shapeIdx >= 0 && shapeIdx < g_maxDebugDrawShapeTypes);
-        
+
         auto& shaderData = partitionedShaderData[shapeIdx];
         currShapes[shapeIdx] = drawCommand->shape;
-        
+
         ImmediateDrawShaderData& shaderDataElement = shaderData.EmplaceBack();
 
         drawCommand->shape->UpdateBufferData(drawCommand, &shaderDataElement);
@@ -674,7 +674,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
         auto& shaderData = partitionedShaderData[shapeIdx];
-        
+
         if (shaderData.Empty())
         {
             continue;
@@ -833,7 +833,6 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
     AssertDebug(passData != nullptr);
 
     attributes.SetDrawableLayer(drawableLayer);
-
 
     auto it = m_graphicsPipelines.Find(attributes);
 

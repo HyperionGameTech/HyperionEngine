@@ -356,6 +356,9 @@ SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
         return m_entryLists[bufferIndex];
     }
 
+    // @FIXME: Race condition if render thread deletes it while we
+    // hold a reference. need to add a new method UnlockCurrentEntryList() which manually
+    // calls m_mutex.Unlock() and have the caller do that when done with the entry list.
     Mutex::Guard guard(m_mutex);
 
     AtomicIncrement(&m_tempEntryListCount);

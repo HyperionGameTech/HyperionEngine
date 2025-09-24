@@ -281,6 +281,27 @@ public:
         return result;
     }
 
+    template <class Predicate>
+    void RemoveAll(Predicate&& predicate)
+    {
+        FunctionWrapper<NormalizedType<Predicate>> fn { std::forward<Predicate>(predicate) };
+
+        auto _begin = static_cast<Container*>(this)->Begin();
+        const auto _end = static_cast<Container*>(this)->End();
+
+        while (_begin != _end)
+        {
+            if (fn(*_begin))
+            {
+                _begin = static_cast<Container*>(this)->Erase(_begin);
+            }
+            else
+            {
+                ++_begin;
+            }
+        }
+    }
+
     template <class ConstIterator>
     SizeType IndexOf(ConstIterator iter) const
     {

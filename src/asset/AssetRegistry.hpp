@@ -183,7 +183,7 @@ public:
 
     AssetObject(const AssetObject& other) = delete;
     AssetObject& operator=(const AssetObject& other) = delete;
-    
+
     AssetObject(AssetObject&& other) noexcept = delete;
     AssetObject& operator=(AssetObject&& other) noexcept = delete;
 
@@ -203,6 +203,18 @@ public:
 
     HYP_METHOD()
     Result Rename(Name name);
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE Name GetFriendlyName() const
+    {
+        return m_friendlyName.IsValid() ? m_friendlyName : m_name;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetFriendlyName(Name friendlyName)
+    {
+        m_friendlyName = friendlyName;
+    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const FilePath& GetOriginalFilepath() const
@@ -231,7 +243,7 @@ public:
     HYP_FORCE_INLINE const AssetPath& GetPath() const
     {
         AssertDebug(IsRegistered(), "Calling GetPath() on an unregistered asset object");
-        
+
         return m_assetPath;
     }
 
@@ -293,6 +305,9 @@ protected:
 
     HYP_FIELD(Serialize)
     Name m_name;
+
+    HYP_FIELD(Serialize)
+    Name m_friendlyName;
 
     HYP_FIELD(Serialize)
     EnumFlags<AssetObjectFlags> m_flags;
@@ -366,7 +381,6 @@ private:
 
 using AssetPackageValidationResult = TResult<void, AssetPackageValidationError>;
 
-
 HYP_CLASS()
 class HYP_API AssetPackage final : public HypObjectBase
 {
@@ -402,7 +416,7 @@ public:
     }
 
     HYP_METHOD()
-    void SetName(Name name);
+    void Rename(Name name);
 
     HYP_METHOD()
     HYP_FORCE_INLINE Name GetFriendlyName() const
@@ -505,15 +519,15 @@ public:
 
     Result AddAssetObject(const Handle<AssetObject>& assetObject);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
-    
+
     Handle<AssetObject> GetAssetObject(WeakName assetName) const;
 
     /*! \brief Merges the contents of another package into this one.
-    *  Transfers ownership of all asset objects and subpackages from the source package
-    *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
-    *  After successful merge, the source package will be empty.
-    *  \param package The package to merge into this one.
-    *  \return Result indicating success or failure of the merge operation. */
+     *  Transfers ownership of all asset objects and subpackages from the source package
+     *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
+     *  After successful merge, the source package will be empty.
+     *  \param package The package to merge into this one.
+     *  \return Result indicating success or failure of the merge operation. */
     Result MergePackage(const Handle<AssetPackage>& package);
 
     HYP_METHOD()
@@ -630,7 +644,6 @@ public:
 
     Result LoadPackageFromManifest(
         const FilePath& manifestPath,
-        const String& basePackagePath,
         Handle<AssetPackage>& outPackage,
         bool loadSubpackages);
 
@@ -638,7 +651,7 @@ public:
     Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;
 
     Result RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
-    
+
     template <class T>
     Handle<AssetObject> NewAssetObject(const UTF8StringView& path, T&& data)
     {
@@ -679,4 +692,3 @@ private:
 };
 
 } // namespace hyperion
-

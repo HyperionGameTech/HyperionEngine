@@ -10,6 +10,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Result.hpp>
 
 namespace hyperion {
 
@@ -36,7 +37,8 @@ enum class HypMemberType : uint8
     TYPE_FIELD = 0x1,
     TYPE_METHOD = 0x2,
     TYPE_PROPERTY = 0x4,
-    TYPE_CONSTANT = 0x8
+    TYPE_CONSTANT = 0x8,
+    ALL = TYPE_FIELD | TYPE_METHOD | TYPE_PROPERTY | TYPE_CONSTANT
 };
 
 HYP_MAKE_ENUM_FLAGS(HypMemberType)
@@ -64,8 +66,8 @@ public:
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;
 
-    virtual bool Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const = 0;
-    virtual bool Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& value) const = 0;
+    virtual Result Serialize(Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags(0)) const = 0;
+    virtual Result Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& value) const = 0;
 
     virtual const HypClassAttributeSet& GetAttributes() const = 0;
     virtual const HypClassAttributeValue& GetAttribute(WeakName key) const = 0;
