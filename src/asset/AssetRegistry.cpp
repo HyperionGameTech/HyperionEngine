@@ -77,6 +77,31 @@ static Name GetUniqueName(Name baseName, T&& elements)
     return baseName;
 }
 
+static HYP_NODISCARD FilePath SanitizeFilename(const FilePath& filepath)
+{
+    static constexpr char invalidChars[] = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
+
+    const FilePath dir = filepath.BasePath();
+    String filename = filepath.Basename();
+
+    for (auto it = filename.Begin(); it != filename.End(); ++it)
+    {
+        for (char invalidChar : invalidChars)
+        {
+            if (*it == invalidChar)
+            {
+                *it = '_';
+
+                break;
+            }
+        }
+    }
+
+    return dir.Length() != 0
+        ? (dir / filename)
+        : FilePath(filename);
+}
+
 #pragma region AssetResourceBase
 
 Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
@@ -300,7 +325,7 @@ bool AssetObject::IsLoaded() const
     return static_cast<AssetDataResourceBase*>(m_resource)->IsInitialized();
 }
 
-Result AssetObject::Save() const
+Result AssetObject::Save()
 {
     if (!m_resource || m_resource->IsNull())
     {
@@ -311,21 +336,21 @@ Result AssetObject::Save() const
 
     Mutex::Guard guard(resource->m_mutex);
 
-    const FilePath path = m_filepath;
-
-    if (path.Empty())
+    if (m_filepath.Empty())
     {
         return HYP_MAKE_ERROR(Error, "Asset path is empty, cannot save");
     }
 
-    const FilePath dir = path.BasePath();
+    const FilePath dir = m_filepath.BasePath();
 
     if (!dir.Exists() || !dir.IsDirectory())
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
+    
+    m_filepath = SanitizeFilename(m_filepath);
 
-    FileByteWriter manifestWriter { path + ".json" };
+    FileByteWriter manifestWriter { m_filepath + ".json" };
 
     if (!manifestWriter.IsOpen())
     {
@@ -339,7 +364,7 @@ Result AssetObject::Save() const
 
     manifestWriter.Close();
 
-    return resource->Save_Internal(path);
+    return resource->Save_Internal(m_filepath);
 }
 
 Result AssetObject::SaveManifest(ByteWriter& stream) const
@@ -1279,12 +1304,12 @@ void AssetRegistry::LoadPackagesAsync()
                     // build virtual package path from filesystem path
                     if (Result result = LoadPackageFromManifest(
                             manifestPath,
-                            dir.BasePath(),
+                            rootPath,
                             package,
                             /* loadSubpackages */ true);
                         result.HasError())
                     {
-                        HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", dir, result.GetError().GetMessage());
+                        HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", manifestPath, result.GetError().GetMessage());
 
                         return;
                     }

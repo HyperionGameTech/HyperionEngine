@@ -1,7 +1,6 @@
 #include <editor/ui/EditorUI.hpp>
 #include <editor/ui/EditorPropertyPanel.hpp>
 #include <editor/EditorAction.hpp>
-#include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 
 #include <asset/Assets.hpp>

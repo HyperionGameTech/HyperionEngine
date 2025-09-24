@@ -12,7 +12,6 @@
 #include <core/logging/Logger.hpp>
 
 #include <editor/EditorProject.hpp>
-#include <editor/EditorSubsystem.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

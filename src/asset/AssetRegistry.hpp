@@ -260,7 +260,7 @@ public:
     bool IsLoaded() const;
 
     HYP_METHOD()
-    Result Save() const;
+    Result Save();
 
     Result OpenReadStream(BufferedReader& stream) const;
 

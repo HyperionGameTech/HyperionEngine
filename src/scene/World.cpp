@@ -3,10 +3,6 @@
 #include <scene/World.hpp>
 #include <scene/View.hpp>
 
-#ifdef HYP_EDITOR
-#include <editor/EditorSubsystem.hpp>
-#endif
-
 #include <scene/EntityManager.hpp>
 
 #include <scene/world_grid/WorldGrid.hpp>
