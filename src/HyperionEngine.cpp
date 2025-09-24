@@ -78,27 +78,38 @@ static void HandleFatalError(const char* message)
     std::terminate();
 }
 
+template <auto DirectoryStaticString>
+struct DirectoryInitializer
+{
+    FilePath path;
+    
+    DirectoryInitializer()
+    {
+#if defined(HYP_DEBUG_MODE) && defined(HYP_ROOT_DIR)
+        path = FilePath(HYP_ROOT_DIR) / DirectoryStaticString.Data();
+#else
+        path = CoreApi_GetExecutablePath() / DirectoryStaticString.Data();
+#endif
+
+        if (!path.Exists())
+        {
+            if (!path.MkDir())
+            {
+                HYP_FAIL("Failed to create resource directory: {}", path.Data());
+            }
+        }
+
+        Assert(path.Exists() && path.IsDirectory(), "Resource directory does not exist or is not a directory: {}", path.Data());
+        Assert(path.CanRead(), "Resource directory is not readable: {}", path.Data());
+        Assert(path.CanWrite(), "Resource directory is not writable: {}", path.Data());
+    }
+};
+
+
 HYP_API const FilePath& GetResourceDirectory()
 {
-    static struct ResourceDirectoryData
-    {
-        FilePath path;
-
-        ResourceDirectoryData()
-        {
-#ifdef HYP_DEBUG_MODE
-            path = FilePath(HYP_ROOT_DIR) / "res";
-#else
-            path = CoreApi_GetExecutablePath() / "res";
-#endif
-            Assert(path.Exists() && path.IsDirectory(), "Resource directory does not exist or is not a directory: %s", path.Data());
-
-            Assert(path.CanRead(), "Resource directory is not readable: %s", path.Data());
-            Assert(path.CanWrite(), "Resource directory is not writable: %s", path.Data());
-        }
-    } resourceDirectoryData;
-
-    return resourceDirectoryData.path;
+    static DirectoryInitializer<HYP_STATIC_STRING("res")> s_resourceDirectory;
+    return s_resourceDirectory.path;
 }
 
 HYP_API bool InitializeEngine(int argc, char** argv)

@@ -2821,16 +2821,16 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
         if (Result addAssetResult = package->AddAssetObject(textureAsset); addAssetResult.HasError())
         {
-            return addAssetResult.GetError();
+            HYP_LOG(Editor, Error, "Failed to add texture asset to package: {}", addAssetResult.GetError().GetMessage());
         }
     }
 
-    if (Result savePackageResult = package->Save(outputDirectory); savePackageResult.HasError())
+    /*if (Result savePackageResult = package->Save(outputDirectory); savePackageResult.HasError())
     {
         return savePackageResult.GetError();
-    }
+    }*/
 
-    FileByteWriter byteWriter { outputFilePath };
+    /*FileByteWriter byteWriter { outputFilePath };
     FBOMWriter writer { FBOMWriterConfig {} };
     writer.Append(*atlas);
     auto writeErr = writer.Emit(&byteWriter);
@@ -2839,7 +2839,9 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
     if (writeErr != FBOMResult::FBOM_OK)
     {
         return HYP_MAKE_ERROR(Error, "Failed to save font atlas! {}", 0, writeErr.message);
-    }
+    }*/
+
+    // @TODO: Add FontAtlas asset to package.
 
     // need to move in return since return type is wrapped result
     return std::move(atlas);

@@ -402,10 +402,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetName(Name name)
-    {
-        m_name = name;
-    }
+    void SetName(Name name);
 
     HYP_METHOD()
     HYP_FORCE_INLINE Name GetFriendlyName() const
@@ -548,6 +545,7 @@ private:
     Result SaveManifest(ByteWriter& stream) const;
 
     Name GetUniqueAssetName_Internal(Name baseName) const;
+    Name GetUniqueSubpackageName_Internal(Name baseName) const;
 
     HYP_FIELD(Serialize = true)
     Uuid m_uuid;

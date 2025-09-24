@@ -13,7 +13,14 @@
 #include <type_traits>
 
 namespace hyperion {
+namespace memory {
 
+/*! \brief An allocator that allocates memory as it needs, but does not allow freeing individual allocations.
+    \details All memory is freed when the pool is destroyed or Reset() is called.
+    This is useful for allocating many small objects that have the same lifetime as the pool itself.
+    It is also useful for temporary allocations that are only needed for a short period of time.
+
+    The LinearPool also supports types with non-trivial destructors and move constructors and are called as needed. */
 class HYP_API LinearPool
 {
 public:
@@ -22,15 +29,39 @@ public:
     LinearPool(const LinearPool& other) = delete;
     LinearPool& operator=(const LinearPool& other) = delete;
 
-    LinearPool(LinearPool&& other) noexcept = delete;
-    LinearPool& operator=(LinearPool&& other) noexcept = delete;
+    LinearPool(LinearPool&& other) noexcept
+        : m_pImpl(std::move(other.m_pImpl))
+    {
+    }
+
+    LinearPool& operator=(LinearPool&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        Reset();
+
+        m_pImpl = std::move(other.m_pImpl);
+
+        return *this;
+    }
 
     ~LinearPool();
 
+    void Reserve(SizeType size);
+    void Reset();
+
     template <class T, class... Args>
-    T* New(Args&&... args)
+    HYP_NODISCARD T* New(Args&&... args)
     {
-        if constexpr (std::is_trivially_destructible_v<T>)
+        static_assert(
+            std::is_trivially_destructible_v<T> || !std::is_trivially_move_constructible_v<T>,
+            "Types with non-trivial destructors must have non-trivial move constructors (ownership-transferring) "
+            "to be safely stored in LinearPool.");
+
+        if constexpr (std::is_trivially_move_constructible_v<T> && std::is_trivially_destructible_v<T>)
         {
             void* mem = Alloc(sizeof(T), alignof(T));
             HYP_CORE_ASSERT(mem != nullptr);
@@ -39,27 +70,45 @@ public:
         }
         else
         {
-            void* mem = AllocWithDeleter(sizeof(T), alignof(T), &Memory::Destruct<T>);
+            void (*moveFn)(void*, void*) = nullptr;
+            void (*destructFn)(void*) = nullptr;
+
+            if constexpr (!std::is_trivially_move_constructible_v<T>)
+            {
+                moveFn = [](void* dst, void* src)
+                {
+                    new (dst) T(std::move(*reinterpret_cast<T*>(src)));
+                };
+            }
+
+            if constexpr (!std::is_trivially_destructible_v<T>)
+            {
+                destructFn = &Memory::Destruct<T>;
+            }
+
+            void* mem = AllocWithDeleter(sizeof(T), alignof(T), moveFn, destructFn);
             HYP_CORE_ASSERT(mem != nullptr);
 
             return new (mem) T(std::forward<Args>(args)...);
         }
     }
 
-    void Reset();
-
 private:
     void* Alloc(SizeType size, SizeType alignment);
-    
-    void* AllocWithDeleter(SizeType size, SizeType alignment, void (*destructFn)(void*));
-    
-    void* Alloc(
-        SizeType size,
-        SizeType alignment,
-        void (*moveFn)(void* dst, void* src),
-        void (*destructFn)(void*));
+    void* AllocWithDeleter(SizeType size, SizeType alignment, void (*moveFn)(void*, void*), void (*destructFn)(void*));
 
     Pimpl<class LinearPoolImpl> m_pImpl;
 };
+
+template <class T, class... Args>
+static inline HYP_NODISCARD T* PoolNew(LinearPool& pool, Args&&... args)
+{
+    return pool.New<T>(std::forward<Args>(args)...);
+}
+
+} // namespace memory
+
+using memory::LinearPool;
+using memory::PoolNew;
 
 } // namespace hyperion

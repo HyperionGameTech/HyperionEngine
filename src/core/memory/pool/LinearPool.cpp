@@ -11,8 +11,9 @@
 #include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
+namespace memory {
 
-struct AllocHeader
+struct DeleterInfo
 {
     uint32 offset;
     uint32 size;
@@ -24,8 +25,36 @@ class LinearPoolImpl
 {
 public:
     ByteBuffer buffer;
-    Array<AllocHeader> headers;
+    Array<DeleterInfo> deleters;
     uint32 offset = 0;
+
+    void ReallocateBuffer(SizeType newSize)
+    {
+        ByteBuffer newBuffer;
+        newBuffer.SetSize(MathUtil::Max<SizeType>(newSize, buffer.Size() * 2));
+
+        Memory::MemCpy(newBuffer.Data(), buffer.Data(), buffer.Size());
+
+        // invoke move constructor into new buffer since address would have changed,
+        // destruct the old objects
+        for (DeleterInfo& deleter : deleters)
+        {
+            if (deleter.moveFn)
+            {
+                deleter.moveFn(
+                    reinterpret_cast<void*>(newBuffer.Data() + deleter.offset),
+                    reinterpret_cast<void*>(buffer.Data() + deleter.offset));
+            }
+
+            // destruct old objects
+            if (deleter.destructFn)
+            {
+                deleter.destructFn(reinterpret_cast<void*>(buffer.Data() + deleter.offset));
+            }
+        }
+
+        buffer = std::move(newBuffer);
+    }
 
     void* Allocate(SizeType size, SizeType alignment)
     {
@@ -37,36 +66,7 @@ public:
 
         if (buffer.Size() < alignedOffset + size)
         {
-            ByteBuffer newBuffer;
-            newBuffer.SetSize(MathUtil::Max<SizeType>(alignedOffset + size, buffer.Size() * 2));
-
-            // Move existing objects to new buffer
-            for (AllocHeader& header : headers)
-            {
-                if (header.moveFn)
-                {
-                    header.moveFn(
-                        reinterpret_cast<void*>(newBuffer.Data() + header.offset),
-                        reinterpret_cast<void*>(buffer.Data() + header.offset)
-                    );
-                }
-                else
-                {
-                    Memory::MemCpy(
-                        newBuffer.Data() + header.offset,
-                        buffer.Data() + header.offset,
-                        header.size
-                    );
-                }
-
-                // Destruct old objects
-                if (header.destructFn)
-                {
-                    header.destructFn(reinterpret_cast<void*>(buffer.Data() + header.offset));
-                }
-            }
-
-            buffer = std::move(newBuffer);
+            ReallocateBuffer(alignedOffset + size);
         }
 
         void* ptr = buffer.Data() + alignedOffset;
@@ -85,63 +85,55 @@ public:
 
         if (buffer.Size() < alignedOffset + size)
         {
-            ByteBuffer newBuffer;
-            newBuffer.SetSize(MathUtil::Max<SizeType>(alignedOffset + size, buffer.Size() * 2));
-
-            // Move existing objects to new buffer
-            for (AllocHeader& header : headers)
-            {
-                if (header.moveFn)
-                {
-                    header.moveFn(
-                        reinterpret_cast<void*>(newBuffer.Data() + header.offset),
-                        reinterpret_cast<void*>(buffer.Data() + header.offset)
-                    );
-                }
-                else
-                {
-                    Memory::MemCpy(
-                        newBuffer.Data() + header.offset,
-                        buffer.Data() + header.offset,
-                        header.size
-                    );
-                }
-
-                // Destruct old objects
-                if (header.destructFn)
-                {
-                    header.destructFn(reinterpret_cast<void*>(buffer.Data() + header.offset));
-                }
-            }
-
-            buffer = std::move(newBuffer);
+            ReallocateBuffer(alignedOffset + size);
         }
 
         void* ptr = buffer.Data() + alignedOffset;
         offset = alignedOffset + size;
 
-        AllocHeader& header = headers.EmplaceBack();
-        header.offset = alignedOffset;
-        header.size = size;
-        header.moveFn = moveFn;
-        header.destructFn = destructFn;
+        // only track allocation if deleter functions are provided
+        if (moveFn != nullptr || destructFn != nullptr)
+        {
+            DeleterInfo& deleter = deleters.EmplaceBack();
+            deleter.offset = alignedOffset;
+            deleter.size = size;
+            deleter.moveFn = moveFn;
+            deleter.destructFn = destructFn;
+        }
 
         return ptr;
+    }
+
+    void Reserve(SizeType size)
+    {
+        HYP_SCOPE;
+
+        if (buffer.Size() < size)
+        {
+            ReallocateBuffer(size);
+        }
     }
 
     void Reset()
     {
         HYP_SCOPE;
 
-        for (int i = int(headers.Size()) - 1; i >= 0; i--)
+        if (offset == 0)
         {
-            if (headers[i].destructFn)
+            // if offset is 0, nothing to do
+            return;
+        }
+
+        // destruct all tracked objects in reverse order
+        for (int i = int(deleters.Size()) - 1; i >= 0; i--)
+        {
+            if (deleters[i].destructFn)
             {
-                headers[i].destructFn(reinterpret_cast<void*>(buffer.Data() + headers[i].offset));
+                deleters[i].destructFn(reinterpret_cast<void*>(buffer.Data() + deleters[i].offset));
             }
         }
 
-        headers.Clear();
+        deleters.Clear();
         offset = 0;
     }
 };
@@ -159,19 +151,9 @@ LinearPool::~LinearPool()
     }
 }
 
-void* LinearPool::Alloc(SizeType size, SizeType alignment)
+void LinearPool::Reserve(SizeType size)
 {
-    return m_pImpl->Allocate(size, alignment);
-}
-
-void* LinearPool::AllocWithDeleter(SizeType size, SizeType alignment, void (*destructFn)(void*))
-{
-    return m_pImpl->AllocateWithDeleter(size, alignment, nullptr, destructFn);
-}
-
-void* LinearPool::Alloc(SizeType size, SizeType alignment, void (*moveFn)(void* dst, void* src), void (*destructFn)(void*))
-{
-    return m_pImpl->AllocateWithDeleter(size, alignment, moveFn, destructFn);
+    m_pImpl->Reserve(size);
 }
 
 void LinearPool::Reset()
@@ -179,4 +161,15 @@ void LinearPool::Reset()
     m_pImpl->Reset();
 }
 
+void* LinearPool::Alloc(SizeType size, SizeType alignment)
+{
+    return m_pImpl->Allocate(size, alignment);
+}
+
+void* LinearPool::AllocWithDeleter(SizeType size, SizeType alignment, void (*moveFn)(void* dst, void* src), void (*destructFn)(void*))
+{
+    return m_pImpl->AllocateWithDeleter(size, alignment, moveFn, destructFn);
+}
+
+} // namespace memory
 } // namespace hyperion

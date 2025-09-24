@@ -4,6 +4,8 @@
 
 #include <core/containers/HashMap.hpp>
 
+#include <core/memory/pool/LinearPool.hpp>
+
 #include <core/utilities/Uuid.hpp>
 
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
@@ -11,6 +13,7 @@
 namespace hyperion {
 namespace serialization {
 
+// @TODO: Use GlobalContext interface so we can use LinearPool while loading
 class FBOMLoadContext
 {
 public:
