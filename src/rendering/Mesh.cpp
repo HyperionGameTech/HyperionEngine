@@ -383,15 +383,12 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
 
     m_aabb = meshData.CalculateAABB();
 
-    Handle<MeshAsset> newAsset = CreateObject<MeshAsset>(GetName(), meshDesc, meshData);
-    m_assetReference = TAssetReference<MeshAsset>(newAsset);
+    Handle<MeshAsset> asset = CreateObject<MeshAsset>(GetName(), meshDesc, meshData);
+    m_assetReference = TAssetReference<MeshAsset>(asset);
 
     if (IsInitCalled())
     {
-        if (!newAsset->IsRegistered())
-        {
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", newAsset);
-        }
+        g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
 
         CreateGpuBuffers();
     }

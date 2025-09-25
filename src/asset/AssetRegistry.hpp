@@ -261,8 +261,6 @@ public:
     HYP_METHOD()
     Result Save(const FilePath& outputDirectory);
 
-    Result OpenAssetReadStream(Name assetName, BufferedReader& stream) const;
-
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
 

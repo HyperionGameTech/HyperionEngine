@@ -59,8 +59,6 @@ WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject)
 
 HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr)
 {
-    static const Array<char> s_invalidChars = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
-
     String newString;
     newString.Reserve(nameStr.Size());
 
@@ -68,7 +66,7 @@ HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr)
     {
         const utf::u32char c = *it;
 
-        if (c <= CHAR_MAX && s_invalidChars.Contains(char(c)))
+        if (!std::isalnum(int(c)) && c != '$')
         {
             newString.Append('_');
 
@@ -874,51 +872,6 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
     manifestJson["Path"] = *BuildPackagePath();
 
     stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
-
-    return {};
-}
-
-Result AssetPackage::OpenAssetReadStream(Name assetName, BufferedReader& stream) const
-{
-    HYP_SCOPE;
-    AssertReady();
-
-    if (!assetName.IsValid())
-    {
-        return HYP_MAKE_ERROR(Error, "Asset name is invalid");
-    }
-
-    Mutex::Guard guard(m_mutex);
-    auto it = m_assetObjects.Find(assetName);
-
-    if (it == m_assetObjects.End())
-    {
-        return HYP_MAKE_ERROR(Error, "AssetObject '{}' not found in package '{}'", assetName, m_name);
-    }
-
-    Handle<AssetObject> assetObject = *it;
-
-    if (!m_packageDir.IsDirectory())
-    {
-        // package not saved
-
-        return HYP_MAKE_ERROR(Error, "Package not saved; cannot load asset");
-    }
-
-    const FilePath assetFilepath = m_packageDir / *assetObject->GetName();
-
-    FileBufferedReaderSource* source = new FileBufferedReaderSource(assetFilepath);
-
-    stream = BufferedReader { source };
-
-    if (!stream.IsOpen())
-    {
-        stream.Close();
-
-        delete source;
-
-        return HYP_MAKE_ERROR(Error, "Failed to open stream for asset '{}'", assetName);
-    }
 
     return {};
 }

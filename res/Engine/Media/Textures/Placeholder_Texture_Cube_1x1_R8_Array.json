@@ -1,0 +1,18 @@
+{
+  "Uuid": "73c93f15-53c8-4113-8f7a-7ac0f37d45b6",
+  "OriginalFilepath": "",
+  "TextureDesc": {
+    "Format": 4,
+    "TextureWrapMode": 0,
+    "ImageUsage": 3,
+    "Extent": [1, 1, 1],
+    "Type": 4,
+    "MagFilterMode": 0,
+    "NumLayers": 1,
+    "MinFilterMode": 0
+  },
+  "$Class": "TextureAsset",
+  "Name": "Placeholder_Texture_Cube_1x1_R8_Array",
+  "Flags": 0,
+  "FriendlyName": "PlaceholderTextureCube1x1R8Array"
+}

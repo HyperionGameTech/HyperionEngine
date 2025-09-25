@@ -1,0 +1,19 @@
+{
+  "Uuid": "c9f0eb4d-801c-4f30-9942-c71d079d57a6",
+  "OriginalFilepath": "",
+  "$Class": "MeshAsset",
+  "Name": "BoxDebugDrawShape",
+  "Flags": 0,
+  "MeshDesc": {
+    "NumIndices": 36,
+    "NumVertices": 24,
+    "MeshAttributes": {
+      "Topology": 0,
+      "IndexBufferElemType": 4,
+      "VertexAttributes": {
+        "FlagMask": 63
+      }
+    }
+  },
+  "FriendlyName": "BoxDebugDrawShape"
+}

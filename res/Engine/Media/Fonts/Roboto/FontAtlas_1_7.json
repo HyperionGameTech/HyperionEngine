@@ -1,0 +1,18 @@
+{
+  "Uuid": "51d699a2-62a2-4cb4-a53a-e4a1cfaaaa95",
+  "OriginalFilepath": "",
+  "TextureDesc": {
+    "Format": 4,
+    "TextureWrapMode": 0,
+    "ImageUsage": 1,
+    "Extent": [1880, 570, 1],
+    "Type": 0,
+    "MagFilterMode": 0,
+    "NumLayers": 1,
+    "MinFilterMode": 0
+  },
+  "$Class": "TextureAsset",
+  "Name": "FontAtlas_1_7",
+  "Flags": 1,
+  "FriendlyName": "FontAtlas17"
+}

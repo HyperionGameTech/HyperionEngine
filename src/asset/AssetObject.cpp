@@ -90,6 +90,26 @@ void AssetDataResourceBase::Initialize()
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
+    if (Result result = Load_Internal(); result.HasError())
+    {
+        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
+    }
+}
+
+void AssetDataResourceBase::Destroy()
+{
+    HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject.GetUnsafe()->IsRegistered() ? *m_assetObject.GetUnsafe()->GetPath().ToString() : *m_assetObject.GetUnsafe()->GetName());
+
+    Unload_Internal();
+}
+
+Result AssetDataResourceBase::Load_Internal()
+{
+    HYP_SCOPE;
+
+    AssetObject* assetObject = m_assetObject.GetUnsafe();
+    Assert(assetObject != nullptr);
+
     BufferedReader stream;
 
     HYP_DEFER({
@@ -103,29 +123,27 @@ void AssetDataResourceBase::Initialize()
 
     if (Result openStreamResult = assetObject->OpenReadStream(stream); openStreamResult.HasError())
     {
-        HYP_LOG(Assets, Error, "Failed to open stream for asset '{}': {}", assetObject->GetPath().ToString(), openStreamResult.GetError().GetMessage());
-
-        return;
+        return openStreamResult;
     }
 
     if (Result loadResult = LoadFromStream(stream); loadResult.HasError())
     {
-        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", assetObject->GetPath().ToString(), loadResult.GetError().GetMessage());
-
-        return;
+        return loadResult;
     }
-}
 
-void AssetDataResourceBase::Destroy()
-{
-    HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject.GetUnsafe()->IsRegistered() ? *m_assetObject.GetUnsafe()->GetPath().ToString() : *m_assetObject.GetUnsafe()->GetName());
-
-    Unload_Internal();
+    return {};
 }
 
 Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 {
+    HYP_SCOPE;
     // mutex will already be locked by the asset object that owns this resource
+
+    // temp
+    if (path.Contains("dragger"))
+    {
+        HYP_BREAKPOINT;
+    }
 
     AssetObject* assetObject = m_assetObject.GetUnsafe();
     Assert(assetObject != nullptr);
@@ -159,7 +177,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
     FileByteWriter byteWriter { path };
     if (FBOMResult err = writer.Emit(&byteWriter))
     {
-        return HYP_MAKE_ERROR(Error, "Failed to write asset to disk");
+        return HYP_MAKE_ERROR(Error, "Failed to write asset to disk: {}", err.message);
     }
 
     HYP_LOG(Assets, Debug, "Saved asset to '{}'", path);
@@ -179,7 +197,7 @@ AssetObject::AssetObject()
 }
 
 AssetObject::AssetObject(Name name)
-    : m_name(name),
+    : m_name(SanitizeName(name)),
       m_resource(&GetNullResource()),
       m_flags(AOF_NONE),
       m_pool(nullptr)
@@ -304,6 +322,8 @@ Result AssetObject::Save()
     }
 
     AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
+    resource->IncRef();
+    HYP_DEFER({ resource->DecRef(); });
 
     Mutex::Guard guard(resource->m_mutex);
 
@@ -443,13 +463,25 @@ Result AssetObject::Load(
 
 Result AssetObject::OpenReadStream(BufferedReader& stream) const
 {
-    Handle<AssetPackage> package = GetPackage();
-    if (!package.IsValid())
+    if (m_filepath.Empty())
     {
-        return HYP_MAKE_ERROR(Error, "Package is invalid");
+        return HYP_MAKE_ERROR(Error, "Asset path is empty, cannot open read stream");
     }
 
-    return package->OpenAssetReadStream(m_name, stream);
+    FileBufferedReaderSource* source = new FileBufferedReaderSource(m_filepath);
+
+    stream = BufferedReader { source };
+
+    if (!stream.IsOpen())
+    {
+        stream.Close();
+
+        delete source;
+
+        return HYP_MAKE_ERROR(Error, "Failed to open stream for asset '{}'", m_name);
+    }
+
+    return {};
 }
 
 #pragma endregion AssetObject

@@ -1,0 +1,19 @@
+{
+  "Uuid": "f84bca25-608c-4386-b738-ba4798c20223",
+  "OriginalFilepath": "",
+  "$Class": "MeshAsset",
+  "Name": "SphereDebugDrawShape",
+  "Flags": 0,
+  "MeshDesc": {
+    "NumIndices": 576,
+    "NumVertices": 150,
+    "MeshAttributes": {
+      "Topology": 0,
+      "IndexBufferElemType": 4,
+      "VertexAttributes": {
+        "FlagMask": 63
+      }
+    }
+  },
+  "FriendlyName": "SphereDebugDrawShape"
+}
