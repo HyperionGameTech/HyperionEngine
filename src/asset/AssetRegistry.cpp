@@ -14,6 +14,7 @@
 
 #include <core/object/HypClassUtils.hpp>
 #include <core/object/HypDataJSONHelpers.hpp>
+#include <core/object/HypData.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -1646,6 +1647,124 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
     }
 
     return assetPackage->AddAssetObject(assetObject);
+}
+
+Result AssetRegistry::RegisterAssetsRecursively(
+    const UTF8StringView& packagePath,
+    const HypData& target,
+    bool forceRelocation)
+{
+    HYP_SCOPE;
+
+    if (!target.IsValid() || target.IsNull())
+    {
+        return HYP_MAKE_ERROR(Error, "Target reference is invalid");
+    }
+
+    /// @TODO: Change to a Stack, recursion could get impressively deep.
+
+    HashSet<const void*> visited; // to avoid infinite recursion
+
+    Proc<Result(const HypData&)> iterate;
+    iterate = [&](const HypData& current) -> Result
+    {
+        if (!current.IsValid() || current.IsNull())
+        {
+            return {};
+        }
+
+        if (!visited.Insert(current.ToRef().GetPointer()).second)
+        {
+            // already visited; skip.
+            return {};
+        }
+
+        if (current.IsArray()) // array needs special handling: iterate over elements (if possible)
+        {
+            HypDataArray& array = current.Get<HypDataArray>();
+
+            if (!array.CanGetElementByIndex())
+            {
+                return HYP_MAKE_ERROR(Error, "Cannot iterate over {}: not indexable", LookupTypeName(current.GetTypeId()));
+            }
+
+            SizeType size = array.Size();
+
+            for (SizeType i = 0; i < size; ++i)
+            {
+                AnyRef elementRef = array.ElementAt(i);
+
+                if (Result result = iterate(HypData(elementRef)); result.HasError())
+                {
+                    return result;
+                }
+            }
+
+            return {};
+        }
+
+        const TypeId typeId = current.GetTypeId();
+        const HypClass* hypClass = GetClass(typeId);
+
+        if (!hypClass) // no HypClass; not an object we can iterate over.
+        {
+            return {};
+        }
+
+        // loop over properties
+        for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
+        {
+            HypData memberData;
+            switch (member.GetMemberType())
+            {
+            case HypMemberType::TYPE_PROPERTY:
+            {
+                const HypProperty* property = static_cast<const HypProperty*>(&member);
+                memberData = property->Get(current);
+            }
+            break;
+            case HypMemberType::TYPE_FIELD:
+            {
+                const HypField* field = static_cast<const HypField*>(&member);
+                memberData = field->Get(current);
+            }
+            break;
+            default:
+                HYP_UNREACHABLE();
+                break;
+            }
+
+            if (!memberData.IsValid() || memberData.IsNull())
+            {
+                continue;
+            }
+
+            if (Result result = iterate(memberData); result.HasError())
+            {
+                return result;
+            }
+
+            if (memberData.Is<AssetObject>())
+            {
+                const AssetObject& assetObject = memberData.Get<AssetObject>();
+
+                if (!forceRelocation && assetObject.IsRegistered())
+                {
+                    // already registered, skip.
+                    continue;
+                }
+
+                if (Result result = RegisterAsset(packagePath, assetObject.HandleFromThis()); result.HasError())
+                {
+                    return result;
+                }
+            }
+        }
+
+        return {};
+    };
+
+    return iterate(target);
 }
 
 Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const

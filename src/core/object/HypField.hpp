@@ -99,26 +99,19 @@ public:
     {
         m_getProc = [member](const HypData& targetData) -> HypData
         {
-            if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
-            {
-                HYP_FAIL("Cannot assign non-copy-assignable field");
-            }
-            else
-            {
-                HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+            HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
 
-                decltype(auto) target = targetData.Get<ThisType>();
+            decltype(auto) target = targetData.Get<ThisType>();
 
-                return HypData(target.*member);
-            }
+            return HypData(AnyRef(&(target.*member)));
         };
 
         m_setProc = [member](HypData& targetData, const HypData& data) -> void
         {
             if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
             {
-                HYP_FAIL("Cannot deserialize non-copy-assignable field");
+                HYP_FAIL("Cannot set non-copy-assignable field");
             }
             else
             {
@@ -166,21 +159,14 @@ public:
         {
             m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
             {
-                if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
-                {
-                    HYP_FAIL("Cannot serialize non-copy-assignable field");
-                }
-                else
-                {
-                    HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                        TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+                HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
 
-                    decltype(auto) target = targetData.Get<ThisType>();
+                decltype(auto) target = targetData.Get<ThisType>();
 
-                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                    }
+                if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                 }
 
                 return {};

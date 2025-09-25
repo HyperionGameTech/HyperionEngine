@@ -1,15 +1,18 @@
 {
-  "Uuid": "5d3c9ed0-7457-4085-8f7a-33d5632c4a5f",
+  "Uuid": "fca43b3c-ce4b-4afd-b22d-f21ee18f7c58",
   "OriginalFilepath": "",
   "TextureDesc": {
     "Format": 4,
+    "WrapMode": 0,
     "TextureWrapMode": 0,
     "ImageUsage": 3,
     "Extent": [1, 1, 1],
+    "FilterModeMin": 0,
     "Type": 0,
     "MagFilterMode": 0,
     "NumLayers": 1,
-    "MinFilterMode": 0
+    "MinFilterMode": 0,
+    "FilterModeMag": 0
   },
   "$Class": "TextureAsset",
   "Name": "Placeholder_Texture_2D_1x1_R8",

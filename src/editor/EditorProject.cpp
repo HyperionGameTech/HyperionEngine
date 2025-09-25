@@ -215,6 +215,15 @@ Result EditorProject::SaveAs(FilePath filepath)
         }
     }
 
+    if (Result registerAssetsResult = g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+            m_package->BuildPackagePath(),
+            HypData(AnyRef(*this)),
+            /* forceRelocation */ false);
+        registerAssetsResult.HasError())
+    {
+        return registerAssetsResult.GetError();
+    }
+
     if (filepath.Empty())
     {
         filepath = GetProjectsDirectory() / *m_name;

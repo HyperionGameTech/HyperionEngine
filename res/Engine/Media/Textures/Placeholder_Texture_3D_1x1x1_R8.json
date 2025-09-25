@@ -1,15 +1,18 @@
 {
-  "Uuid": "7b92550c-e6a0-4016-90d0-bfea98cf4294",
+  "Uuid": "4cd7ff7e-e9db-451a-a5b7-dbe7ece46720",
   "OriginalFilepath": "",
   "TextureDesc": {
     "Format": 1,
+    "WrapMode": 0,
     "TextureWrapMode": 0,
     "ImageUsage": 3,
     "Extent": [1, 1, 1],
+    "FilterModeMin": 0,
     "Type": 1,
     "MagFilterMode": 0,
     "NumLayers": 1,
-    "MinFilterMode": 0
+    "MinFilterMode": 0,
+    "FilterModeMag": 0
   },
   "$Class": "TextureAsset",
   "Name": "Placeholder_Texture_3D_1x1x1_R8",

@@ -1,15 +1,18 @@
 {
-  "Uuid": "d2594c1c-0401-46b7-b789-e56f67b2201d",
+  "Uuid": "ff9a1755-ec4e-4c9a-b61b-3f329ace613a",
   "OriginalFilepath": "",
   "TextureDesc": {
     "Format": 4,
+    "WrapMode": 0,
     "TextureWrapMode": 0,
     "ImageUsage": 3,
     "Extent": [1, 1, 1],
+    "FilterModeMin": 0,
     "Type": 4,
     "MagFilterMode": 0,
     "NumLayers": 1,
-    "MinFilterMode": 0
+    "MinFilterMode": 0,
+    "FilterModeMag": 0
   },
   "$Class": "TextureAsset",
   "Name": "Placeholder_Texture_Cube_1x1_R8_Array",

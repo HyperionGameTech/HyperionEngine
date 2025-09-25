@@ -38,6 +38,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 class AssetRegistry;
 class AssetPackage;
 class AssetObject;
+struct HypData;
 
 extern WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
@@ -385,6 +386,17 @@ public:
 
         return assetObject;
     }
+
+    /*! \brief Registers `target` if it is a subclass of AssetObject and registers all
+     *  of its members that are subclasses of AssetObject as well, recursively.
+     *  \param packagePath The base/root path in which to register the asset and its members.
+     *  \param target The object to register.
+     *  \param forceRelocation If true, will relocate assets that are already registered to the new package path.
+     *  \return Result indicating success or failure of the operation. */
+    Result RegisterAssetsRecursively(
+        const UTF8StringView& packagePath,
+        const HypData& target,
+        bool forceRelocation = false);
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
 
