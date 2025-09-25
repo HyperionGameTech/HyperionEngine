@@ -2,6 +2,7 @@
 
 #include <asset/AssetReference.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 #include <asset/Assets.hpp>
 
 #include <core/logging/LogChannels.hpp>

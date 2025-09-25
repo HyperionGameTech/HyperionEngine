@@ -1,10 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <scene/World.hpp>
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -16,6 +15,9 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 
 #include <core/logging/Logger.hpp>
+
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

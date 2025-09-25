@@ -2,9 +2,10 @@
 
 #include <asset/model_loaders/OBJModelLoader.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <scene/World.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/Mesh.hpp>
+
+#include <scene/World.hpp>
 #include <scene/Node.hpp>
 
 #include <scene/EntityManager.hpp>
@@ -12,6 +13,9 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
+
+#include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <core/containers/HashMap.hpp>
 

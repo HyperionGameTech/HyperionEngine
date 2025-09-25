@@ -26,6 +26,11 @@ public:
 
     virtual ~EntityMeshDirtyStateSystem() override = default;
 
+    virtual bool AllowUpdate() const
+    {
+        return false;
+    }
+
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;
 

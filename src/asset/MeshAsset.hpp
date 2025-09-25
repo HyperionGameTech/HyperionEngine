@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 
 #include <core/math/Vertex.hpp>
 #include <core/math/BoundingBox.hpp>

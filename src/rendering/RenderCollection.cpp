@@ -63,10 +63,10 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyM
     HYP_SCOPE;
 
     Mesh* mesh = proxy.mesh;
-    Assert(mesh != nullptr);
+    AssertDebug(mesh != nullptr);
 
     Material* material = proxy.material;
-    Assert(material != nullptr);
+    AssertDebug(material != nullptr);
 
     RenderableAttributeSet attributes {
         mesh->GetMeshAttributes(),

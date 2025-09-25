@@ -55,7 +55,8 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
     ResourceState initialState;
     GpuImageRef image;
 
-    RENDER_COMMAND(CreateTextureGpuImage)(
+    RENDER_COMMAND(CreateTextureGpuImage)
+    (
         const WeakHandle<Texture>& textureWeak,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
@@ -197,31 +198,31 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
 Texture::Texture()
     : Texture(TextureDesc {
-          TT_TEX2D,
-          TF_RGBA8,
-          Vec3u { 1, 1, 1 },
-          TFM_NEAREST,
-          TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE })
+        TT_TEX2D,
+        TF_RGBA8,
+        Vec3u { 1, 1, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE })
 {
 }
 
 Texture::Texture(const TextureDesc& textureDesc)
-    : m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, TextureData {}))
+    : AssetObject(g_nameTextureDefault),
+      m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, TextureData {}))
 {
-    m_name = g_nameTextureDefault;
 }
 
 Texture::Texture(const TextureDesc& textureDesc, const TextureData& textureData)
-    : m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, textureData))
+    : AssetObject(g_nameTextureDefault),
+      m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, textureData))
 {
-    m_name = g_nameTextureDefault;
 }
 
 Texture::Texture(const Handle<TextureAsset>& asset)
-    : m_assetReference(asset)
+    : AssetObject(g_nameTextureDefault),
+      m_assetReference(asset)
 {
-    m_name = g_nameTextureDefault;
 }
 
 Texture::~Texture()
@@ -273,14 +274,17 @@ void Texture::Init()
     SetReady(true);
 }
 
-void Texture::SetName(Name name)
+Result Texture::Rename(Name name)
 {
     if (name == m_name)
     {
-        return;
+        return {};
     }
 
-    m_name = name;
+    if (Result result = AssetObject::Rename(name); result.HasError())
+    {
+        return result;
+    }
 
     const Handle<TextureAsset>& asset = GetAsset();
 
@@ -299,6 +303,8 @@ void Texture::SetName(Name name)
             }
         }
     }
+
+    return {};
 }
 
 const Handle<TextureAsset>& Texture::GetAsset() const

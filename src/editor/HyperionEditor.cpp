@@ -37,7 +37,10 @@
 #include <script/HypScript.hpp>
 
 #include <asset/AssetBatch.hpp>
+#include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
+
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 
 #include <rendering/Shared.hpp>
 

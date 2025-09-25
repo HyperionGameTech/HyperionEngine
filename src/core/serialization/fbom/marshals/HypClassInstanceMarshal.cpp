@@ -19,6 +19,7 @@
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 #endif
 
 namespace hyperion::serialization {

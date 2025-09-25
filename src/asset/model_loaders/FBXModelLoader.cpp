@@ -19,6 +19,8 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <core/functional/Proc.hpp>
 
 #include <core/compression/Archive.hpp>

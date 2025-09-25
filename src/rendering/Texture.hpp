@@ -28,13 +28,14 @@
 #include <scene/VisibilityState.hpp>
 
 #include <asset/AssetReference.hpp>
+#include <asset/AssetObject.hpp>
 
 namespace hyperion {
 
 class TextureAsset;
 
 HYP_CLASS()
-class HYP_API Texture final : public HypObjectBase
+class HYP_API Texture final : public AssetObject
 {
     HYP_OBJECT_BODY(Texture);
 
@@ -54,19 +55,13 @@ public:
     Texture(Texture&& other) noexcept = delete;
     Texture& operator=(Texture&& other) noexcept = delete;
 
-    ~Texture();
+    ~Texture() override;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    HYP_METHOD()
-    void SetName(Name name);
+    virtual Result Rename(Name name) override;
 
     const Handle<TextureAsset>& GetAsset() const;
-    
+
     HYP_METHOD(Property = "AssetReference", Serialize = true)
     const AssetReference& GetAssetReference() const
     {
@@ -141,7 +136,7 @@ public:
     /*! \brief Blocking call to readback GPU image data into a CPU-side buffer. Must be called on the render thread.
      *  Do not use frequently as this will stall the gpu */
     void Readback(ByteBuffer& outByteBuffer);
-    
+
     /*! \brief Enqueues commands to read GPU image data into a CPU-side buffer. Must be called on the render thread.
      *  The callback will be called when the current frame is no longer being used by the GPU. If no current frame exists,
      *  Readback() will be called instead. */
@@ -161,14 +156,10 @@ protected:
         m_assetReference = TAssetReference<TextureAsset>(assetReference);
     }
 
-    HYP_FIELD(Property = "Name", Serialize, Editor)
-    Name m_name;
-
     TAssetReference<TextureAsset> m_assetReference;
-    
+
     HYP_FIELD(Serialize = false)
     GpuImageRef m_gpuImage;
 };
 
 } // namespace hyperion
-
