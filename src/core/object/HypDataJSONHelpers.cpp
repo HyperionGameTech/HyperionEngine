@@ -19,119 +19,121 @@ namespace hyperion {
 
 bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson)
 {
-    for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
+    HashSet<Name> usedMembers;
+
+    while (hypClass != nullptr)
     {
-        if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+        for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY, /* deep */ false))
         {
-            continue;
-        }
-
-        switch (member.GetMemberType())
-        {
-        case HypMemberType::TYPE_PROPERTY:
-        {
-            const HypProperty* property = static_cast<const HypProperty*>(&member);
-
-            json::JSONValue jsonValue;
-
-            if (!HypDataToJSON(property->Get(target), jsonValue))
-            {
-                return false;
-            }
-
-            String path = *property->GetName();
-
-            if (const HypClassAttributeValue& pathAttribute = property->GetAttribute("jsonpath"); pathAttribute.IsValid())
-            {
-                path = pathAttribute.GetString();
-
-                json::JSONValue temp(std::move(outJson));
-                temp.Set(path, jsonValue);
-
-                outJson = std::move(temp.AsObject());
-            }
-            else
-            {
-                outJson[path] = std::move(jsonValue);
-            }
-
-            break;
-        }
-        case HypMemberType::TYPE_FIELD:
-        {
-            const HypField* field = static_cast<const HypField*>(&member);
-
-            // skip fields that act as synthetic properties - they will be included twice otherwise
-            if (field->GetAttribute("property").IsValid())
+            if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
             }
 
-            json::JSONValue jsonValue;
-
-            if (!HypDataToJSON(field->Get(target), jsonValue))
-            {
-                return false;
-            }
-
-            String path = *field->GetName();
-
-            if (const HypClassAttributeValue& pathAttribute = field->GetAttribute("jsonpath"); pathAttribute.IsValid())
-            {
-                path = pathAttribute.GetString();
-
-                json::JSONValue temp(std::move(outJson));
-                temp.Set(path, jsonValue);
-
-                json::JSONObject& obj = temp.AsObject();
-
-                outJson = std::move(obj);
-            }
-            else
-            {
-                outJson[path] = std::move(jsonValue);
-            }
-
-            break;
-        }
-        case HypMemberType::TYPE_CONSTANT:
-        {
-            const HypConstant* constant = static_cast<const HypConstant*>(&member);
-
-            // skip fields that act as synthetic properties - they will be included twice otherwise
-            if (constant->GetAttribute("property").IsValid())
+            if (usedMembers.Contains(member.GetName()))
             {
                 continue;
             }
 
-            json::JSONValue jsonValue;
+            usedMembers.Insert(member.GetName());
 
-            if (!HypDataToJSON(constant->Get(), jsonValue))
+            switch (member.GetMemberType())
             {
-                return false;
-            }
-
-            String path = *constant->GetName();
-
-            if (const HypClassAttributeValue& pathAttribute = constant->GetAttribute("jsonpath"); pathAttribute.IsValid())
+            case HypMemberType::TYPE_PROPERTY:
             {
-                path = pathAttribute.GetString();
+                const HypProperty* property = static_cast<const HypProperty*>(&member);
 
-                json::JSONValue temp(std::move(outJson));
-                temp.Set(path, jsonValue);
+                json::JSONValue jsonValue;
 
-                outJson = std::move(temp.AsObject());
+                if (!HypDataToJSON(property->Get(target), jsonValue))
+                {
+                    return false;
+                }
+
+                String path = *property->GetName();
+
+                if (const HypClassAttributeValue& pathAttribute = property->GetAttribute("jsonpath"); pathAttribute.IsValid())
+                {
+                    path = pathAttribute.GetString();
+
+                    json::JSONValue temp(std::move(outJson));
+                    temp.Set(path, jsonValue);
+
+                    outJson = std::move(temp.AsObject());
+                }
+                else
+                {
+                    outJson[path] = std::move(jsonValue);
+                }
+
+                break;
             }
-            else
+            case HypMemberType::TYPE_FIELD:
             {
-                outJson[path] = std::move(jsonValue);
-            }
+                const HypField* field = static_cast<const HypField*>(&member);
 
-            break;
+                json::JSONValue jsonValue;
+
+                if (!HypDataToJSON(field->Get(target), jsonValue))
+                {
+                    return false;
+                }
+
+                String path = *field->GetName();
+
+                if (const HypClassAttributeValue& pathAttribute = field->GetAttribute("jsonpath"); pathAttribute.IsValid())
+                {
+                    path = pathAttribute.GetString();
+
+                    json::JSONValue temp(std::move(outJson));
+                    temp.Set(path, jsonValue);
+
+                    json::JSONObject& obj = temp.AsObject();
+
+                    outJson = std::move(obj);
+                }
+                else
+                {
+                    outJson[path] = std::move(jsonValue);
+                }
+
+                break;
+            }
+            case HypMemberType::TYPE_CONSTANT:
+            {
+                const HypConstant* constant = static_cast<const HypConstant*>(&member);
+
+                json::JSONValue jsonValue;
+
+                if (!HypDataToJSON(constant->Get(), jsonValue))
+                {
+                    return false;
+                }
+
+                String path = *constant->GetName();
+
+                if (const HypClassAttributeValue& pathAttribute = constant->GetAttribute("jsonpath"); pathAttribute.IsValid())
+                {
+                    path = pathAttribute.GetString();
+
+                    json::JSONValue temp(std::move(outJson));
+                    temp.Set(path, jsonValue);
+
+                    outJson = std::move(temp.AsObject());
+                }
+                else
+                {
+                    outJson[path] = std::move(jsonValue);
+                }
+
+                break;
+            }
+            default:
+                break;
+            }
         }
-        default:
-            break;
-        }
+
+        hypClass = hypClass->GetParent();
     }
 
     return true;
@@ -166,12 +168,6 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
         case HypMemberType::TYPE_FIELD:
         {
             const HypField& field = static_cast<const HypField&>(member);
-
-            // skip fields that act as synthetic properties - they will be included twice otherwise
-            if (field.GetAttribute("property").IsValid())
-            {
-                break;
-            }
 
             const TypeId typeId = field.Get(target).ToRef().GetTypeId();
 

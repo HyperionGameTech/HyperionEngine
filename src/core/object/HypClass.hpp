@@ -170,51 +170,17 @@ class HypClassMemberIterator
         return nextPhase;
     }
 
-    HYP_API HypClassMemberIterator(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, Phase phase);
+    HYP_API HypClassMemberIterator(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep = true);
 
 public:
-    HypClassMemberIterator(const HypClassMemberIterator& other)
-        : m_memberTypes(other.m_memberTypes),
-          m_phase(other.m_phase),
-          m_target(other.m_target),
-          m_currentIndex(other.m_currentIndex),
-          m_currentValue(other.m_currentValue)
-    {
-    }
+    HypClassMemberIterator(const HypClassMemberIterator& other) = default;
+    HypClassMemberIterator& operator=(const HypClassMemberIterator& other) = default;
 
-    HypClassMemberIterator& operator=(const HypClassMemberIterator& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
+    HypClassMemberIterator(HypClassMemberIterator&& other) noexcept = default;
+    HypClassMemberIterator& operator=(HypClassMemberIterator&& other) noexcept = default;
 
-        m_memberTypes = other.m_memberTypes;
-        m_phase = other.m_phase;
-        m_target = other.m_target;
-        m_currentIndex = other.m_currentIndex;
-        m_currentValue = other.m_currentValue;
-
-        return *this;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const HypClassMemberIterator& other) const
-    {
-        return m_memberTypes == other.m_memberTypes
-            && m_phase == other.m_phase
-            && m_target == other.m_target
-            && m_currentIndex == other.m_currentIndex
-            && m_currentValue == other.m_currentValue;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const HypClassMemberIterator& other) const
-    {
-        return m_memberTypes != other.m_memberTypes
-            || m_phase != other.m_phase
-            || m_target != other.m_target
-            || m_currentIndex != other.m_currentIndex
-            || m_currentValue != other.m_currentValue;
-    }
+    HYP_FORCE_INLINE bool operator==(const HypClassMemberIterator& other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const HypClassMemberIterator& other) const = default;
 
     HYP_FORCE_INLINE HypClassMemberIterator& operator++()
     {
@@ -254,11 +220,11 @@ private:
     HYP_API void Advance();
 
     EnumFlags<HypMemberType> m_memberTypes;
-
     Phase m_phase;
     const HypClass* m_target;
-    SizeType m_currentIndex;
+    bool m_deep;
 
+    SizeType m_currentIndex;
     mutable IHypMember* m_currentValue;
 };
 
@@ -268,9 +234,10 @@ public:
     using Iterator = HypClassMemberIterator;
     using ConstIterator = HypClassMemberIterator;
 
-    HypClassMemberList(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes)
+    HypClassMemberList(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, bool deep = true)
         : m_hypClass(hypClass),
-          m_memberTypes(memberTypes)
+          m_memberTypes(memberTypes),
+          m_deep(deep)
     {
     }
 
@@ -282,11 +249,12 @@ public:
 
     ~HypClassMemberList() = default;
 
-    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hypClass, m_memberTypes, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(nullptr, m_memberTypes, HypClassMemberIterator::Phase::MAX))
+    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hypClass, m_memberTypes, HypClassMemberIterator::Phase::ITERATE_PROPERTIES, m_deep), HypClassMemberIterator(nullptr, m_memberTypes, HypClassMemberIterator::Phase::MAX, m_deep))
 
 private:
     const HypClass* m_hypClass;
     EnumFlags<HypMemberType> m_memberTypes;
+    bool m_deep;
 };
 
 enum class HypClassCallbackType
@@ -527,19 +495,30 @@ public:
         return m_attributes.Get(key, defaultValue);
     }
 
-    HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> memberTypes) const
+    HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> memberTypes, bool deep = true) const
     {
-        return { this, memberTypes };
+        return {
+            this,
+            memberTypes,
+            deep
+        };
     }
 
-    HYP_FORCE_INLINE HypClassMemberList GetMembers(bool includeProperties = false) const
+    HYP_FORCE_INLINE HypClassMemberList GetMembers(bool includeProperties = true, bool deep = true) const
     {
-        return { this, HypMemberType::TYPE_METHOD | HypMemberType::TYPE_FIELD | HypMemberType::TYPE_CONSTANT | (includeProperties ? HypMemberType::TYPE_PROPERTY : HypMemberType::NONE) };
+        return {
+            this,
+            HypMemberType::TYPE_METHOD
+                | HypMemberType::TYPE_FIELD
+                | HypMemberType::TYPE_CONSTANT
+                | (includeProperties ? HypMemberType::TYPE_PROPERTY : HypMemberType::NONE),
+            deep
+        };
     }
 
-    IHypMember* GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL) const;
+    IHypMember* GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes = HypMemberType::ALL, bool deep = true) const;
 
-    HypProperty* GetProperty(WeakName name) const;
+    HypProperty* GetProperty(WeakName name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<HypProperty*>& GetProperties() const
     {
@@ -548,7 +527,7 @@ public:
 
     Array<HypProperty*> GetPropertiesInherited() const;
 
-    HypMethod* GetMethod(WeakName name) const;
+    HypMethod* GetMethod(WeakName name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<HypMethod*>& GetMethods() const
     {
@@ -557,7 +536,7 @@ public:
 
     Array<HypMethod*> GetMethodsInherited() const;
 
-    HypField* GetField(WeakName name) const;
+    HypField* GetField(WeakName name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<HypField*>& GetFields() const
     {
@@ -566,7 +545,7 @@ public:
 
     Array<HypField*> GetFieldsInherited() const;
 
-    HypConstant* GetConstant(WeakName name) const;
+    HypConstant* GetConstant(WeakName name, bool deep = true) const;
 
     HYP_FORCE_INLINE const Array<HypConstant*>& GetConstants() const
     {

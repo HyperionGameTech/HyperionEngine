@@ -432,9 +432,10 @@ const char* LookupTypeName(TypeId typeId)
 
 #pragma region HypClassMemberIterator
 
-HypClassMemberIterator::HypClassMemberIterator(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, Phase phase)
+HypClassMemberIterator::HypClassMemberIterator(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep)
     : m_memberTypes(memberTypes),
       m_phase(phase),
+      m_deep(deep),
       m_target(hypClass),
       m_currentIndex(0),
       m_currentValue(nullptr)
@@ -454,7 +455,7 @@ void HypClassMemberIterator::Advance()
 
     if (m_phase == Phase::MAX)
     {
-        m_target = m_target->GetParent();
+        m_target = m_deep ? m_target->GetParent() : nullptr;
         m_currentIndex = 0;
         m_currentValue = nullptr;
 
@@ -814,11 +815,11 @@ bool HypClass::CanSerialize() const
     return false;
 }
 
-IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes) const
+IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes, bool deep) const
 {
     if (memberTypes & HypMemberType::TYPE_PROPERTY)
     {
-        if (HypProperty* property = GetProperty(name))
+        if (HypProperty* property = GetProperty(name, /* deep */ false))
         {
             return property;
         }
@@ -826,7 +827,7 @@ IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTy
 
     if (memberTypes & HypMemberType::TYPE_FIELD)
     {
-        if (HypField* field = GetField(name))
+        if (HypField* field = GetField(name, /* deep */ false))
         {
             return field;
         }
@@ -834,29 +835,43 @@ IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTy
 
     if (memberTypes & HypMemberType::TYPE_METHOD)
     {
-        if (HypMethod* method = GetMethod(name))
+        if (HypMethod* method = GetMethod(name, /* deep */ false))
         {
             return method;
         }
     }
 
-    if (const HypClass* parent = GetParent())
+    if (memberTypes & HypMemberType::TYPE_CONSTANT)
     {
-        return parent->GetMember(name, memberTypes);
+        if (HypConstant* constant = GetConstant(name, /* deep */ false))
+        {
+            return constant;
+        }
+    }
+
+    if (deep)
+    {
+        if (const HypClass* parent = GetParent())
+        {
+            return parent->GetMember(name, memberTypes, /* deep */ true);
+        }
     }
 
     return nullptr;
 }
 
-HypProperty* HypClass::GetProperty(WeakName name) const
+HypProperty* HypClass::GetProperty(WeakName name, bool deep) const
 {
     const auto it = m_propertiesByName.FindAs(name);
 
     if (it == m_propertiesByName.End())
     {
-        if (const HypClass* parent = GetParent())
+        if (deep)
         {
-            return parent->GetProperty(name);
+            if (const HypClass* parent = GetParent())
+            {
+                return parent->GetProperty(name);
+            }
         }
 
         return nullptr;
@@ -884,15 +899,18 @@ Array<HypProperty*> HypClass::GetPropertiesInherited() const
     return m_properties;
 }
 
-HypMethod* HypClass::GetMethod(WeakName name) const
+HypMethod* HypClass::GetMethod(WeakName name, bool deep) const
 {
     const auto it = m_methodsByName.FindAs(name);
 
     if (it == m_methodsByName.End())
     {
-        if (const HypClass* parent = GetParent())
+        if (deep)
         {
-            return parent->GetMethod(name);
+            if (const HypClass* parent = GetParent())
+            {
+                return parent->GetMethod(name);
+            }
         }
 
         return nullptr;
@@ -920,15 +938,18 @@ Array<HypMethod*> HypClass::GetMethodsInherited() const
     return m_methods;
 }
 
-HypField* HypClass::GetField(WeakName name) const
+HypField* HypClass::GetField(WeakName name, bool deep) const
 {
     const auto it = m_fieldsByName.FindAs(name);
 
     if (it == m_fieldsByName.End())
     {
-        if (const HypClass* parent = GetParent())
+        if (deep)
         {
-            return parent->GetField(name);
+            if (const HypClass* parent = GetParent())
+            {
+                return parent->GetField(name);
+            }
         }
 
         return nullptr;
@@ -956,15 +977,18 @@ Array<HypField*> HypClass::GetFieldsInherited() const
     return m_fields;
 }
 
-HypConstant* HypClass::GetConstant(WeakName name) const
+HypConstant* HypClass::GetConstant(WeakName name, bool deep) const
 {
     const auto it = m_constantsByName.FindAs(name);
 
     if (it == m_constantsByName.End())
     {
-        if (const HypClass* parent = GetParent())
+        if (deep)
         {
-            return parent->GetConstant(name);
+            if (const HypClass* parent = GetParent())
+            {
+                return parent->GetConstant(name);
+            }
         }
 
         return nullptr;

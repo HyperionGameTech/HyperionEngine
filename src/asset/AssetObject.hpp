@@ -185,13 +185,13 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name);
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "FriendlyName", Serialize = true)
     HYP_FORCE_INLINE Name GetFriendlyName() const
     {
         return m_friendlyName.IsValid() ? m_friendlyName : m_name;
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "FriendlyName", Serialize = true)
     HYP_FORCE_INLINE void SetFriendlyName(Name friendlyName)
     {
         m_friendlyName = friendlyName;
@@ -287,7 +287,7 @@ protected:
     HYP_FIELD(Serialize)
     Name m_name;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     Name m_friendlyName;
 
     HYP_FIELD(Serialize)

@@ -5,6 +5,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 
 #include <core/logging/Logger.hpp>
 

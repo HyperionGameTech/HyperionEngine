@@ -5,6 +5,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/World.hpp>

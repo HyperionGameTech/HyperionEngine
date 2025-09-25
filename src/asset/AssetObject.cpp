@@ -139,12 +139,6 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
     HYP_SCOPE;
     // mutex will already be locked by the asset object that owns this resource
 
-    // temp
-    if (path.Contains("dragger"))
-    {
-        HYP_BREAKPOINT;
-    }
-
     AssetObject* assetObject = m_assetObject.GetUnsafe();
     Assert(assetObject != nullptr);
 
