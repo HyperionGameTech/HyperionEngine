@@ -67,8 +67,12 @@ template <class T>
 constexpr bool implementationExists = decltype(implementationExistsImpl(std::declval<T*>()))::value;
 
 template <class T>
-constexpr bool isConstPointer = std::is_pointer_v<T> && std::is_const_v<std::remove_pointer_t<T>>;
+constexpr bool is_const_pointer_v = std::is_pointer_v<T> && std::is_const_v<std::remove_pointer_t<T>>;
+
 template <class T>
-using RemoveConstPointer = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
+using remove_const_pointer_t = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
+
+template <class T>
+constexpr bool is_const_lvalue_reference_v = std::is_lvalue_reference_v<T> && std::is_const_v<std::remove_reference_t<T>>;
 
 } // namespace hyperion

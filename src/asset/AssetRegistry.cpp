@@ -1746,6 +1746,13 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
             if (memberData.Is<AssetObject>())
             {
+                //temp testing
+                decltype(auto) ref = memberData.Get<AnyRef>();
+                const HypClass* refHypClass = ref.GetHypClass();
+                Assert(ref.Is<AssetObject>());
+                HYP_LOG_TEMP("ref typename: {}", LookupTypeName(ref.GetTypeId()));
+                constexpr auto tid = TypeId::ForType<Handle<Texture>>();
+
                 const AssetObject& assetObject = memberData.Get<AssetObject>();
 
                 if (!forceRelocation && assetObject.IsRegistered())

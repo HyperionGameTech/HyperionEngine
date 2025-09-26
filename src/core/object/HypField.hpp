@@ -104,7 +104,7 @@ public:
 
             decltype(auto) target = targetData.Get<ThisType>();
 
-            return HypData(AnyRef(&(target.*member)));
+            return HypData(target.*member);
         };
 
         m_setProc = [member](HypData& targetData, const HypData& data) -> void

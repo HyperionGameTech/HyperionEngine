@@ -215,13 +215,22 @@ Result EditorProject::SaveAs(FilePath filepath)
         }
     }
 
-    if (Result registerAssetsResult = g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-            m_package->BuildPackagePath(),
-            HypData(AnyRef(*this)),
-            /* forceRelocation */ false);
-        registerAssetsResult.HasError())
-    {
-        return registerAssetsResult.GetError();
+    { // register objects under PkgName/Objects
+        Handle<AssetPackage> objectsSubpackage = g_assetManager->GetAssetRegistry()->GetSubpackage(
+            m_package,
+            NAME("Objects"),
+            /* createIfNotExist */ true);
+
+        Assert(objectsSubpackage.IsValid());
+
+        if (Result registerAssetsResult = g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+                objectsSubpackage->BuildPackagePath(),
+                HypData(AnyRef(*this)),
+                /* forceRelocation */ false);
+            registerAssetsResult.HasError())
+        {
+            return registerAssetsResult.GetError();
+        }
     }
 
     if (filepath.Empty())

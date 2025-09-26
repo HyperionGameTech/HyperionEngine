@@ -44,6 +44,9 @@ extern WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPack
 extern WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
 using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction>;
+
+/// @TODO: Make AssetObjectSet hold AssetReferences instead, and periodically release
+/// 	  AssetObjects that have no references to them (besides the loaded reference itself).
 using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction>;
 
 HYP_ENUM()

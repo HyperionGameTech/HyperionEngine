@@ -186,13 +186,18 @@ struct HypData
         Memory::MemSet(&extData, 0, sizeof(extData));
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_same_v<T, HypData>>>
+    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, HypData>>>
     explicit HypData(T&& value)
         : HypData()
     {
-        HYP_NAMED_SCOPE("Construct HypData from T");
-
-        HypDataHelper<NormalizedType<T>> {}.Set(*this, std::forward<T>(value));
+        if constexpr (std::is_lvalue_reference_v<T> && !std::is_const_v<std::remove_reference_t<T>>)
+        {
+            HypDataHelper<AnyRef> {}.Set(*this, AnyRef(&value));
+        }
+        else
+        {
+            HypDataHelper<NormalizedType<T>> {}.Set(*this, std::forward<T>(value));
+        }
     }
 
     HypData(const HypData& other)
@@ -327,10 +332,10 @@ struct HypData
 
             if (strict)
             {
-                return HypDataTypeChecker_Tuple<T, Tuple<>> {}(value);
+                return HypDataTypeChecker_Tuple<T, Tuple<>> {}(value, /* checkReference */ true);
             }
 
-            return HypDataTypeChecker_Tuple<T, typename HypDataHelper<T>::ConvertibleFrom> {}(value);
+            return HypDataTypeChecker_Tuple<T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, /* checkReference */ true);
         }
     }
 
@@ -609,23 +614,6 @@ struct HypDataArray
 
 template <class T>
 constexpr bool isHypData = std::is_same_v<NormalizedType<T>, HypData>;
-
-template <class T>
-struct DefaultHypDataSerializeFunction
-{
-    static inline FBOMResult Serialize(const HypData& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
-    {
-        if (FBOMResult err = HypDataHelper<NormalizedType<T>>::Serialize(data.Get<NormalizedType<T>>(), out, flags))
-        {
-            return err;
-        }
-
-        return {};
-    }
-};
-
-template <class T>
-struct HypDataPlaceholderSerializedType;
 
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_fundamental_v<T>>>
@@ -1460,12 +1448,12 @@ struct HypDataHelper<AnyRef>
 };
 
 template <class T>
-struct HypDataHelperDecl<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v<T*, void*>>>
+struct HypDataHelperDecl<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T*, std::enable_if_t<!isConstPointer<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
+struct HypDataHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
 {
     using ConvertibleFrom = Tuple<AnyHandle, RC<void>>;
 
@@ -3470,23 +3458,26 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
 template <class T>
 struct HypDataTypeChecker
 {
-    HYP_FORCE_INLINE bool operator()(const HypData::VariantType& value) const
+    HYP_FORCE_INLINE bool operator()(const HypData::VariantType& value, bool checkReference) const
     {
         constexpr bool shouldSkipAdditionalIsCheck = std::is_same_v<T, typename HypDataHelper<T>::StorageType>;
 
         static_assert(HypData::canStoreDirectly<typename HypDataHelper<T>::StorageType>, "StorageType must be a type that can be stored directly in the HypData variant without allocating memory dynamically");
 
-        return value.Is<typename HypDataHelper<T>::StorageType>()
-            && (shouldSkipAdditionalIsCheck || HypDataHelper<T> {}.Is(value.Get<typename HypDataHelper<T>::StorageType>()));
+        return (value.Is<typename HypDataHelper<T>::StorageType>() && (shouldSkipAdditionalIsCheck || HypDataHelper<T> {}.Is(value.Get<typename HypDataHelper<T>::StorageType>())))
+            || (checkReference && value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<T>());
+
     }
 };
 
 template <class T, class... ConvertibleFrom>
 struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleFrom...>>
 {
-    HYP_FORCE_INLINE bool operator()(const HypData::VariantType& value) const
+    HYP_FORCE_INLINE bool operator()(const HypData::VariantType& value, bool checkReference) const
     {
-        return HypDataTypeChecker<T> {}(value) || (HypDataTypeChecker<ConvertibleFrom> {}(value) || ...);
+        return HypDataTypeChecker<T> {}(value, false)
+            || (HypDataTypeChecker<ConvertibleFrom> {}(value, false) || ...)
+            || (checkReference && value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<T>());
     }
 };
 
@@ -3732,58 +3723,6 @@ HypDataArray::HypDataArray(LinkedList<T>&& list)
 
 #pragma endregion HypDataArray template constructor implementations
 
-#pragma region Helpers
-
-template <class T>
-struct HypDataPlaceholderSerializedType
-{
-    static inline FBOMType Get()
-    {
-        static thread_local bool s_isInit = false;
-        static thread_local FBOMType s_placeholderType = FBOMPlaceholderType();
-
-        if (!s_isInit)
-        {
-            s_isInit = true;
-
-            FBOMData placeholderData;
-
-            if (FBOMResult err = HypDataHelper<T>::Serialize(T {}, placeholderData))
-            {
-                HYP_FAIL("Failed to serialize placeholder data for type %s: %s", TypeNameHelper<T>::value.Data(), *err.message);
-            }
-
-            s_placeholderType = placeholderData.GetType();
-        }
-
-        return s_placeholderType;
-    }
-};
-
-template <class T>
-struct HypDataPlaceholderSerializedType<Handle<T>>
-{
-    static inline FBOMType Get()
-    {
-        static thread_local bool s_isInit = false;
-        static thread_local FBOMType s_placeholderType = FBOMPlaceholderType();
-
-        if (!s_isInit)
-        {
-            s_isInit = true;
-
-            const HypClass* hypClass = GetClass(TypeId::ForType<T>());
-            HYP_CORE_ASSERT(hypClass, "HypClass for type %s is not registered", TypeName<T>().Data());
-
-            s_placeholderType = FBOMObjectType(hypClass);
-        }
-
-        return s_placeholderType;
-    }
-};
-
-#pragma endregion Helpers
-
 #pragma region HypDataGetter implementation
 
 // template <class ReturnType, class T>
@@ -3837,7 +3776,8 @@ HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType&& value, Optional<Ret
         return true;
     };
 
-    return ((HypDataTypeChecker<Types> {}(value) && getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {})) || ...);
+    return ((HypDataTypeChecker<Types> {}(value, /* checkReference */ false) && getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {})) || ...)
+        || (value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<NormalizedType<ReturnType>>() && (outValue.Set(value.GetUnchecked<AnyRef>().template Get<NormalizedType<ReturnType>>()), true));
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>
