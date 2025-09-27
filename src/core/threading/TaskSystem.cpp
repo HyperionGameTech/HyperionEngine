@@ -3,7 +3,6 @@
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

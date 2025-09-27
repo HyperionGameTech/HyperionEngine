@@ -14,12 +14,11 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypData.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
-
-#include <core/object/HypClassUtils.hpp>
-#include <core/object/HypData.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -32,6 +31,23 @@ static constexpr uint32 g_entityManagerCommandQueueWarningSize = 8192;
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
+
+// @TODO: Move to ComponentContainer.cpp
+#pragma region ComponentContainer
+
+bool ComponentContainerBase::TryGetComponent(ComponentId id, HypData& outHypData)
+{
+    if (AnyRef ref = TryGetComponent(id))
+    {
+        outHypData = HypData(ref);
+
+        return true;
+    }
+
+    return false;
+}
+
+#pragma endregion ComponentContainer
 
 #pragma region EntityManager
 

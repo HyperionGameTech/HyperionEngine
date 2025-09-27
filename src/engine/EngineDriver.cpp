@@ -50,8 +50,6 @@
 
 #include <core/cli/CommandLine.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <system/AppContext.hpp>
 #include <system/App.hpp>
 

@@ -32,8 +32,6 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <ui/UIObject.hpp>
 
 #include <core/filesystem/FsUtil.hpp>

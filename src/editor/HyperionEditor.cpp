@@ -379,8 +379,8 @@ void HyperionEditor::Init()
                     Assert(scriptData != nullptr);
 
                     scriptAsset->GetScriptData()->language = SL_HYPSCRIPT;
-                    Memory::StrCpy(scriptData->path, "tmp.hyp", sizeof(scriptData->path));
-                    Memory::StrCpy(scriptData->className, "MyClass", sizeof(scriptData->className));
+                    Memory::StrCpy(scriptData->path.Data(), "tmp.hyp", ArraySize(scriptData->path));
+                    Memory::StrCpy(scriptData->className.Data(), "MyClass", ArraySize(scriptData->className));
 
                     ScriptComponent& scriptComponent = firstEntity->AddComponent<ScriptComponent>(ScriptComponent {
                         TAssetReference<ScriptAsset>(scriptAsset) });

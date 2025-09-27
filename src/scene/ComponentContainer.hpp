@@ -145,7 +145,7 @@ public:
      *
      *  \return True if the component was found, false otherwise
      */
-    virtual bool TryGetComponent(ComponentId id, HypData& outHypData) = 0;
+    bool TryGetComponent(ComponentId id, HypData& outHypData);
 
     /*! \brief Checks if the component container has a component with the given Id.
      *
@@ -292,22 +292,6 @@ public:
         }
 
         return ConstAnyRef(&it->second);
-    }
-
-    virtual bool TryGetComponent(ComponentId id, HypData& outHypData) override
-    {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
-        auto it = m_components.Find(id);
-
-        if (it == m_components.End())
-        {
-            return false;
-        }
-
-        outHypData = HypData(&it->second);
-
-        return true;
     }
 
     HYP_FORCE_INLINE Component& GetComponent(ComponentId id)

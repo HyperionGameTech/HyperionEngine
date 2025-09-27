@@ -142,7 +142,7 @@ ScriptSystem::ScriptSystem(EntityManager& entityManager)
                         ScriptData* scriptData = scriptAsset->GetScriptData();
                         Assert(scriptData != nullptr);
 
-                        if (ANSIStringView(script.assemblyPath) == ANSIStringView(scriptData->assemblyPath))
+                        if (Memory::StrCmp(script.assemblyPath.Data(), scriptData->assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptData->assemblyPath))) == 0)
                         {
                             HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->Id());
 

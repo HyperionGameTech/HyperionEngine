@@ -6,8 +6,6 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/object/HypData.hpp>
-
 namespace hyperion {
 
 class IComponentFactory

@@ -7,8 +7,6 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderResult.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

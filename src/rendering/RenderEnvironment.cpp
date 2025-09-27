@@ -15,7 +15,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/object/HypClassUtils.hpp>
 #include <core/object/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>

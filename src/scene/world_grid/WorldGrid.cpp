@@ -12,8 +12,6 @@
 
 #include <streaming/StreamingManager.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/utilities/ForEach.hpp>

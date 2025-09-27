@@ -81,4 +81,16 @@ const Handle<AssetObject>& AssetReference::Resolve() const
     return Handle<AssetObject>::empty;
 }
 
+void AssetReference::Reload()
+{
+    // only re-resolve if we're currently loaded
+    if (m_data.Is<Handle<AssetObject>>())
+    {
+        AssetPath path = GetAssetPath();
+        m_data = path;
+
+        (void)Resolve();
+    }
+}
+
 } // namespace hyperion

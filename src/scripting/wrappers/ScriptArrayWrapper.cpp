@@ -19,8 +19,6 @@ HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
         }),
     HypMethod(NAME("PopBack"), +[](Script_Array& array) -> HypData
         {
-            // tets
-            using Foo = decltype(std::declval<HypData>().Get<HypData>());
             Assert(!array.Empty());
             return array.PopBack();
         }),

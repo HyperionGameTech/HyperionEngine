@@ -994,7 +994,7 @@ public:
                     }
 
                     // copy the asset path to script the data
-                    Memory::StrCpy(scriptData->path, assetObject->GetPath().Data(), sizeof(scriptData->path));
+                    Memory::StrCpy(scriptData->path.Data(), assetObject->GetPath().Data(), ArraySize(scriptData->path));
                     
                     if (entityManager->HasComponent<ScriptComponent>(entity)) {
                         entityManager->RemoveComponent<ScriptComponent>(entity);

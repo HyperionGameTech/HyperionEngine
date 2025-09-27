@@ -10,9 +10,10 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/debug/Debug.hpp>
+
+// for EnumToString
+#include <core/object/HypEnum.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

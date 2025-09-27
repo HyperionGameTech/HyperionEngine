@@ -9,8 +9,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/utilities/Format.hpp>
 
 #include <engine/EngineDriver.hpp>

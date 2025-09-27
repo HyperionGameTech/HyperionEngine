@@ -2,8 +2,6 @@
 
 #include <physics/RigidBody.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <scene/World.hpp>
 
 #include <engine/EngineGlobals.hpp>

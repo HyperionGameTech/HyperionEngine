@@ -24,8 +24,6 @@
 
 #include <scene/View.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/threading/Threads.hpp>
 
 #include <core/utilities/ForEach.hpp>

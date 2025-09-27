@@ -13,6 +13,8 @@
 #include <core/threading/Threads.hpp>
 #endif
 
+#include <core/utilities/FormatFwd.hpp>
+
 #include <core/Constants.hpp>
 
 #include <type_traits>
@@ -33,6 +35,11 @@ class HypObjectContainerBase;
 class HypClass;
 class HypObjectBase;
 struct HypObjectHeader;
+class IHypMember;
+class HypField;
+class HypMethod;
+class HypConstant;
+class HypProperty;
 
 template <class T>
 struct Handle;

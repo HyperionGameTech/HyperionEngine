@@ -8,8 +8,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/containers/SparsePagedArray.hpp>
 
 #include <core/logging/LogChannels.hpp>

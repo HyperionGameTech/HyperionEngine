@@ -4,8 +4,6 @@
 #include <core/math/Triangle.hpp>
 #include <core/math/MathUtil.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 namespace hyperion {
 
 HYP_API BoundingBox operator*(const Matrix4& transform, const BoundingBox& aabb)

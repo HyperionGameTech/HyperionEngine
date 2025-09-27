@@ -12,9 +12,11 @@
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/object/HypClassUtils.hpp>
 #include <core/object/HypDataJSONHelpers.hpp>
 #include <core/object/HypData.hpp>
+#include <core/object/HypClass.hpp>
+#include <core/object/HypField.hpp>
+#include <core/object/HypProperty.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -1649,6 +1651,7 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
     return assetPackage->AddAssetObject(assetObject);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 Result AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
@@ -1743,6 +1746,7 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
             if (memberData.Is<AssetObject>())
             {
+                const AssetObject& assetObject = memberData.Get<AssetObject>();
                 // temp testing
                 decltype(auto) ref = memberData.Get<AnyRef>();
                 const HypClass* refHypClass = ref.GetHypClass();
@@ -1750,7 +1754,6 @@ Result AssetRegistry::RegisterAssetsRecursively(
                 HYP_LOG_TEMP("ref typename: {}", LookupTypeName(ref.GetTypeId()));
                 constexpr auto tid = TypeId::ForType<Handle<Texture>>();
 
-                const AssetObject& assetObject = memberData.Get<AssetObject>();
 
                 if (!forceRelocation && assetObject.IsRegistered())
                 {
@@ -1770,6 +1773,7 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
     return iterate(target);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const
 {

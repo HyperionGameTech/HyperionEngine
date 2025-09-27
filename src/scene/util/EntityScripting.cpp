@@ -127,7 +127,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
         return;
     }
-    
+
     const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
     AssertDebug(scriptAsset != nullptr);
 
@@ -155,7 +155,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             if (!scriptComponent.assembly)
             {
-                ANSIString assemblyPath(scriptData->assemblyPath);
+                ANSIString assemblyPath(scriptData->assemblyPath.Data(), scriptData->assemblyPath.Data() + ArraySize(scriptData->assemblyPath));
 
                 if (scriptData->hotReloadVersion > 0)
                 {
@@ -182,19 +182,19 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 }
                 else
                 {
-                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", scriptData->assemblyPath);
+                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", assemblyPath.Data());
 
                     return;
                 }
             }
 
-            if (RC<dotnet::Class> classPtr = scriptComponent.assembly->FindClassByName(scriptData->className))
+            if (RC<dotnet::Class> classPtr = scriptComponent.assembly->FindClassByName(scriptData->className.Data()))
             {
-                HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptData->className, scriptData->assemblyPath);
+                HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
 
                 if (!classPtr->HasParentClass("Script"))
                 {
-                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", scriptData->className, scriptData->assemblyPath);
+                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", scriptData->className.Data(), scriptData->assemblyPath.Data());
 
                     return;
                 }
@@ -236,13 +236,13 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 #ifdef HYP_DEBUG_MODE
             else
             {
-                HYP_FAIL("Failed to load .NET class {} from Assembly {}", scriptData->className, scriptComponent.assembly->GetGuid().ToUUID().ToString());
+                HYP_FAIL("Failed to load .NET class {} from Assembly {}", scriptData->className.Data(), scriptComponent.assembly->GetGuid().ToUUID().ToString());
             }
 #endif
 
             if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
             {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptData->className, scriptData->assemblyPath);
+                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
 
                 if (scriptComponent.scriptObjectResource)
                 {
@@ -272,11 +272,11 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             ResourceHandle resourceHandle(*scriptAsset->GetResource());
 
             // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
-            FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path);
+            FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path.Data());
 
             if (!path.Exists() || !path.CanRead())
             {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptData->path);
+                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptData->path.Data());
                 return;
             }
 
@@ -285,7 +285,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             if (!reader.IsOpen())
             {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptData->path);
+                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptData->path.Data());
                 return;
             }
 
@@ -302,7 +302,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             {
                 SystemMessageBox(MessageBoxType::CRITICAL)
                     .Title("Script Compilation Error")
-                    .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", scriptData->path))
+                    .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", scriptData->path.Data()))
                     .Button("Close", []()
                         {
                         })

@@ -31,8 +31,6 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <input/InputManager.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

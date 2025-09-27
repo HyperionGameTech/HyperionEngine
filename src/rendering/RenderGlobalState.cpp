@@ -10,6 +10,7 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Material.hpp>
 #include <rendering/RenderStats.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderShader.hpp>
@@ -28,7 +29,6 @@
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
-#include <rendering/Material.hpp>
 #include <scene/Light.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -46,10 +46,11 @@
 
 #include <core/memory/MemoryPool.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+// for EnumToString
+#include <core/object/HypEnum.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

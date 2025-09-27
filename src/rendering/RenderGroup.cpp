@@ -27,8 +27,6 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/utilities/ForEach.hpp>
 
 #include <core/logging/LogChannels.hpp>

@@ -7,8 +7,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/logging/Logger.hpp>
 
 #include <util/MeshBuilder.hpp>

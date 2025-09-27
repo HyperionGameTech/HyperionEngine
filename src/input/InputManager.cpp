@@ -2,8 +2,6 @@
 
 #include <input/InputManager.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <system/AppContext.hpp>
 #include <system/SystemEvent.hpp>
 

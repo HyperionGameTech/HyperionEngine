@@ -12,9 +12,9 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <core/object/HypClass.hpp>
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/utilities/Format.hpp>
 
 #include <core/config/Config.hpp>
 

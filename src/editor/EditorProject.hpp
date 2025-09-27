@@ -9,7 +9,6 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/object/HypObject.hpp>
-#include <core/object/HypClassUtils.hpp>
 
 #include <core/functional/Delegate.hpp>
 #include <core/functional/ScriptableDelegate.hpp>

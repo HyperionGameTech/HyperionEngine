@@ -27,8 +27,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/math/Halton.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

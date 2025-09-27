@@ -22,9 +22,10 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/threading/Threads.hpp>
+
+// for EnumToString
+#include <core/object/HypEnum.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

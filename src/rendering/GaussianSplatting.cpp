@@ -22,8 +22,6 @@
 #include <scene/View.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

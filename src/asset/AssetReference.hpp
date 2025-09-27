@@ -84,6 +84,7 @@ public:
     }
 
     const Handle<AssetObject>& Resolve() const;
+    void Reload();
 
 private:
     mutable Variant<AssetPath, Handle<AssetObject>> m_data;

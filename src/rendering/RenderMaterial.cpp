@@ -13,8 +13,6 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

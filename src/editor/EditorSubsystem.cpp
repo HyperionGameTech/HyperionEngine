@@ -52,8 +52,6 @@
 #include <system/AppContext.hpp>
 #include <system/OpenFileDialog.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/io/ByteWriter.hpp>
@@ -73,6 +71,9 @@
 
 #include <console/ui/ConsoleUI.hpp>
 
+// for EnumToString
+#include <core/object/HypEnum.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 #include <dotnet/Class.hpp>
@@ -85,6 +86,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+
 #include <HyperionEngine.hpp>
 
 namespace hyperion {

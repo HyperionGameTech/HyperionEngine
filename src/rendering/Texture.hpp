@@ -2,33 +2,20 @@
 
 #pragma once
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/Pimpl.hpp>
+#include <asset/AssetReference.hpp>
+#include <asset/AssetObject.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <rendering/RenderObject.hpp>
 
 #include <core/containers/FixedArray.hpp>
-
-#include <core/threading/Mutex.hpp>
 
 #include <core/utilities/Pair.hpp>
 
 #include <core/object/HypObject.hpp>
 
-#include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
 
 #include <core/Types.hpp>
-
-#include <rendering/RenderObject.hpp>
-#include <rendering/RenderGpuImage.hpp>
-#include <rendering/RenderGpuImageView.hpp>
-
-#include <scene/VisibilityState.hpp>
-
-#include <asset/AssetReference.hpp>
-#include <asset/AssetObject.hpp>
 
 namespace hyperion {
 

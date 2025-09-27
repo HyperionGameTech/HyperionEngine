@@ -3,11 +3,12 @@
 #include <ui/UIUpdateManager.hpp>
 #include <ui/UIObject.hpp>
 
+// for EnumToString
+#include <core/object/HypEnum.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/logging/Logger.hpp>
-
-#include <core/object/HypClassUtils.hpp>
 
 namespace hyperion {
 

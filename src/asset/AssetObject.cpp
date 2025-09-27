@@ -12,8 +12,8 @@
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/object/HypClassUtils.hpp>
 #include <core/object/HypDataJSONHelpers.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

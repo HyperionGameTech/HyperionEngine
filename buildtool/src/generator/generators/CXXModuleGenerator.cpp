@@ -45,9 +45,21 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 {
     FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 
+    HashSet<String> addedIncludes;
+    const auto addInclude = [&writer, &addedIncludes](const String& include)
+    {
+        if (addedIncludes.Contains(include))
+        {
+            return;
+        }
+
+        addedIncludes.Insert(include);
+        writer.WriteString(HYP_FORMAT("#include <{}>\n", include));
+    };
+
     writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relativePath));
 
-    writer.WriteString(HYP_FORMAT("#include <{}>\n\n", relativePath));
+    addInclude(relativePath);
 
     for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
     {
@@ -62,21 +74,21 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         if (isComponent || isEntity)
         {
-            writer.WriteString("#include <scene/ComponentInterface.hpp>\n");
+            addInclude("scene/ComponentInterface.hpp");
         }
 
         if (isEntity)
         {
-            writer.WriteString("#include <scene/EntityTag.hpp>\n");
+            addInclude("scene/EntityTag.hpp");
         }
 
         if (hasScriptableMethods)
         {
-            writer.WriteString("#include <scripting/ScriptObjectResource.hpp>\n");
+            addInclude("scripting/ScriptObjectResource.hpp");
             writer.WriteString("\n");
-            writer.WriteString("#include <dotnet/Object.hpp>\n");
-            writer.WriteString("#include <dotnet/Class.hpp>\n");
-            writer.WriteString("#include <dotnet/Method.hpp>\n");
+            addInclude("dotnet/Object.hpp");
+            addInclude("dotnet/Class.hpp");
+            addInclude("dotnet/Method.hpp");
         }
 
         writer.WriteString("\nnamespace hyperion {\n\n");

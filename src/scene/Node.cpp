@@ -22,8 +22,8 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/object/HypClassUtils.hpp>
 #include <core/object/HypData.hpp>
+#include <core/object/HypClass.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>

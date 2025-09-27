@@ -35,8 +35,6 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <scene/World.hpp>
 #include <scene/View.hpp>
 #include <scene/EnvGrid.hpp>

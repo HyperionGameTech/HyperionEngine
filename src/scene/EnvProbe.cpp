@@ -15,8 +15,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 

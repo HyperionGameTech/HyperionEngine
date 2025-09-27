@@ -9,8 +9,6 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

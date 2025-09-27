@@ -35,14 +35,14 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <system/AppContext.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
+
+#include <system/AppContext.hpp>
 
 namespace hyperion {
 
