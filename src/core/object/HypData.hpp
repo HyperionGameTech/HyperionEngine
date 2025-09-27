@@ -2214,6 +2214,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
     }
 };
 
+#if 0
 template <class T, SizeType Size>
 struct HypDataHelperDecl<T[Size]>
 {
@@ -2322,6 +2323,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         return { FBOMResult::FBOM_OK };
     }
 };
+#endif
 
 template <class K, class V>
 struct HypDataHelperDecl<Pair<K, V>>

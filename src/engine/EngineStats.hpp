@@ -56,7 +56,7 @@ public:
     Name name;
 
     HYP_FIELD()
-    EngineStatEntry entries[g_maxStatEntriesPerGroup];
+    FixedArray<EngineStatEntry, g_maxStatEntriesPerGroup> entries;
 
     HYP_FIELD()
     uint32 numEntries = 0;
@@ -71,7 +71,7 @@ public:
     ~EngineStats() override = default;
 
     HYP_FIELD()
-    Handle<EngineStatGroup> statGroups[g_maxStatGroups];
+    FixedArray<Handle<EngineStatGroup>, g_maxStatGroups> statGroups;
 };
 
 class EngineStatTimer

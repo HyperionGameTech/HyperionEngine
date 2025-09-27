@@ -870,10 +870,10 @@ public:
 
                 ScriptData scriptData {};
                 scriptData.language = SL_CSHARP;
-                Memory::StrCpy(scriptData.assemblyPath, assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
-                Memory::StrCpy(scriptData.className, classIt->second.Data(), ArraySize(scriptData.className));
+                Memory::StrCpy(scriptData.assemblyPath.Data(), assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
+                Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
 
-                Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath), scriptData);
+                Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
                 InitObject(scriptAsset);
 
                 Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);

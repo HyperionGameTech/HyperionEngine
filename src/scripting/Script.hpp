@@ -36,13 +36,13 @@ struct ScriptData
     ScriptLanguage language = SL_HYPSCRIPT;
 
     HYP_FIELD(Serialize)
-    char path[scriptMaxPathLength];
+    FixedArray<char, scriptMaxPathLength> path;
 
     HYP_FIELD(Serialize)
-    char assemblyPath[scriptMaxPathLength]; // C# only
+    FixedArray<char, scriptMaxPathLength> assemblyPath; // C# only
 
     HYP_FIELD(Serialize)
-    char className[scriptMaxClassNameLength];
+    FixedArray<char, scriptMaxClassNameLength> className;
 
     HYP_FIELD(Serialize)
     uint32 compileStatus;
@@ -59,9 +59,9 @@ struct ScriptData
 
         hashCode.Add(uuid);
         hashCode.Add(language);
-        hashCode.Add(&path[0]);
-        hashCode.Add(&assemblyPath[0]);
-        hashCode.Add(&className[0]);
+        hashCode.Add(HashCode::GetHashCode(&path[0], &path[0] + path.Size()));
+        hashCode.Add(HashCode::GetHashCode(&assemblyPath[0], &assemblyPath[0] + assemblyPath.Size()));
+        hashCode.Add(HashCode::GetHashCode(&className[0], &className[0] + className.Size()));
         hashCode.Add(compileStatus);
 
         return hashCode;

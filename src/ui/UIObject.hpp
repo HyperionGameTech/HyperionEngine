@@ -323,7 +323,7 @@ struct UIObjectAspectRatio
 HYP_STRUCT()
 struct UIObjectSize
 {
-    enum Flags
+    enum Flags : uint32
     {
         AUTO = 0x04,
 
@@ -336,25 +336,25 @@ struct UIObjectSize
     };
 
     HYP_FIELD()
-    uint32 flags[2];
+    uint64 flags;
 
     HYP_FIELD()
     Vec2i value;
 
     UIObjectSize()
-        : flags { DEFAULT, DEFAULT },
+        : flags { uint64(DEFAULT) | (uint64(DEFAULT) << 32) },
           value { 0, 0 }
     {
     }
 
     explicit UIObjectSize(Vec2i value)
-        : flags { DEFAULT, DEFAULT },
+        : flags { uint64(DEFAULT) | (uint64(DEFAULT) << 32) },
           value(value)
     {
     }
 
     UIObjectSize(Vec2i value, uint32 flags)
-        : flags { flags, flags },
+        : flags { uint64(flags) | (uint64(flags) << 32) },
           value(value)
     {
         ApplyDefaultFlags();
@@ -362,7 +362,7 @@ struct UIObjectSize
 
     /*! \brief Construct by only providing flags. Used primarily for the DYNAMIC type. */
     UIObjectSize(uint32 flags)
-        : flags { flags, flags },
+        : flags { uint64(flags) | (uint64(flags) << 32) },
           value { 0, 0 }
     {
         ApplyDefaultFlags();
@@ -370,7 +370,7 @@ struct UIObjectSize
 
     /*! \brief Construct by providing specific flags for each axis. */
     UIObjectSize(const Pair<int, uint32>& x, const Pair<int, uint32>& y)
-        : flags { x.second, y.second },
+        : flags { uint64(x.second) | (uint64(y.second) << 32) },
           value { x.first, y.first }
     {
         ApplyDefaultFlags();
@@ -378,8 +378,10 @@ struct UIObjectSize
 
     UIObjectSize(const UIObjectSize& other) = default;
     UIObjectSize& operator=(const UIObjectSize& other) = default;
+
     UIObjectSize(UIObjectSize&& other) noexcept = default;
     UIObjectSize& operator=(UIObjectSize&& other) noexcept = default;
+
     ~UIObjectSize() = default;
 
     HYP_FORCE_INLINE const Vec2i& GetValue() const
@@ -389,27 +391,29 @@ struct UIObjectSize
 
     HYP_FORCE_INLINE uint32 GetFlagsX() const
     {
-        return flags[0];
+        return flags & 0xFFFFFFFFu;
     }
 
     HYP_FORCE_INLINE uint32 GetFlagsY() const
     {
-        return flags[1];
+        return uint32(flags >> 32);
     }
 
     HYP_FORCE_INLINE uint32 GetAllFlags() const
     {
-        return flags[0] | flags[1];
+        return GetFlagsX() | GetFlagsY();
     }
 
     HYP_FORCE_INLINE void ApplyDefaultFlags()
     {
-        for (int i = 0; i < 2; i++)
+        if (!GetFlagsX())
         {
-            if (!flags[i])
-            {
-                flags[i] = DEFAULT;
-            }
+            flags = uint64(DEFAULT) | (uint64(GetFlagsY()) << 32);
+        }
+
+        if (!GetFlagsY())
+        {
+            flags = uint64(GetFlagsX()) | (uint64(DEFAULT) << 32);
         }
     }
 };
