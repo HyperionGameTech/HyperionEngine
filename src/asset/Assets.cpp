@@ -3,6 +3,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetBatch.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetLoader.hpp>
 
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
@@ -432,6 +433,21 @@ void AssetManager::AddPendingBatch(const RC<AssetBatch>& batch)
 
     m_pendingBatches.PushBack(batch);
     m_numPendingBatches.Increment(1, MemoryOrder::RELEASE);
+}
+
+HYP_NODISCARD AssetLoadResult AssetManager::Load(const TypeId& typeId, const String& path, const String& batchIdentifier)
+{
+    const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, typeId);
+
+    if (!loaderDefinition)
+    {
+        return HYP_MAKE_ERROR(AssetLoadError, "No registered loader for the given path", AssetLoadError::ERR_NO_LOADER);
+    }
+
+    const Handle<AssetLoaderBase>& loader = loaderDefinition->loader;
+    Assert(loader.IsValid());
+
+    return AssetLoadResult(loader->Load(*this, path, batchIdentifier));
 }
 
 #pragma endregion AssetManager

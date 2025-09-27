@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/font_loaders/FontAtlasLoader.hpp>
+#include <asset/Assets.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 

@@ -18,6 +18,9 @@
 #include <core/object/HypField.hpp>
 #include <core/object/HypProperty.hpp>
 
+#include <core/io/ByteWriter.hpp>
+#include <core/io/BufferedByteReader.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>

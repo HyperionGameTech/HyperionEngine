@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <asset/Assets.hpp>
+#include <asset/AssetLoader.hpp>
 
 #include <core/math/Quaternion.hpp>
 

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <asset/AssetLoader.hpp>
+#include <asset/AssetPath.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <core/filesystem/FilePath.hpp>
 
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
@@ -12,6 +12,7 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/ForEach.hpp>
+#include <core/utilities/Result.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -20,8 +21,6 @@
 #include <core/threading/Semaphore.hpp>
 
 #include <core/memory/resource/Resource.hpp>
-
-#include <core/io/BufferedByteReader.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
 
@@ -39,6 +38,7 @@ class AssetRegistry;
 class AssetPackage;
 class AssetObject;
 struct HypData;
+class ByteWriter;
 
 extern WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern WeakName AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);

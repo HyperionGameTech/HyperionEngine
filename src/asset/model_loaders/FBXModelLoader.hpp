@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include <asset/Assets.hpp>
+#include <asset/AssetLoader.hpp>
+
 #include <scene/Node.hpp>
 
 #include <core/Types.hpp>

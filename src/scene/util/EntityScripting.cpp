@@ -16,6 +16,8 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
+#include <core/io/BufferedByteReader.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 

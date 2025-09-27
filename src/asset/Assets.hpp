@@ -3,23 +3,21 @@
 #pragma once
 
 #include <asset/AssetLoader.hpp>
-#include <asset/AssetCache.hpp>
-
-#include <core/filesystem/FsUtil.hpp>
 
 #include <core/object/Handle.hpp>
-
 #include <core/object/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/Defines.hpp>
+#include <core/filesystem/FsUtil.hpp>
+#include <core/filesystem/FilePath.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
 
 #include <scene/Node.hpp>
 
 #include <core/Constants.hpp>
+#include <core/Defines.hpp>
 
 #include <algorithm>
 #include <type_traits>
@@ -241,20 +239,7 @@ public:
      *  \param path The path to the asset
      *  \param batchIdentifier Optional string identifier used to group assets together once they're imported.
      *  \return The result of the load operation */
-    HYP_NODISCARD AssetLoadResult Load(const TypeId& typeId, const String& path, const String& batchIdentifier = String::empty)
-    {
-        const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, typeId);
-
-        if (!loaderDefinition)
-        {
-            return HYP_MAKE_ERROR(AssetLoadError, "No registered loader for the given path", AssetLoadError::ERR_NO_LOADER);
-        }
-
-        const Handle<AssetLoaderBase>& loader = loaderDefinition->loader;
-        Assert(loader.IsValid());
-
-        return AssetLoadResult(loader->Load(*this, path, batchIdentifier));
-    }
+    HYP_NODISCARD AssetLoadResult Load(const TypeId& typeId, const String& path, const String& batchIdentifier = String::empty);
 
     /*! \brief Load a single asset synchronously
      *  \tparam T The type of asset to load

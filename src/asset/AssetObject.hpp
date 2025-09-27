@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include <asset/AssetLoader.hpp>
+#include <asset/AssetPath.hpp>
 
 #include <core/utilities/Uuid.hpp>
+#include <core/utilities/Result.hpp>
+
+#include <core/filesystem/FilePath.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -21,6 +24,10 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 class AssetPackage;
 class AssetObject;
+class ByteWriter;
+
+class BufferedReader;
+using BufferedByteReader = BufferedReader;
 
 class AssetDataResourceBase : public ResourceBase
 {
@@ -53,7 +60,7 @@ protected:
 
     virtual void Unload_Internal() = 0;
 
-    virtual void Extract_Internal(HypData&& data) = 0;
+    virtual void Extract_Internal(AnyRef ref) = 0;
 
     virtual TypeId GetAssetTypeId() const = 0;
     virtual AnyRef GetAssetRef() = 0;
@@ -92,9 +99,9 @@ protected:
         m_data = {};
     }
 
-    virtual void Extract_Internal(HypData&& data) override
+    virtual void Extract_Internal(AnyRef ref) override
     {
-        m_data = std::move(data.Get<T>());
+        m_data = std::move(ref.Get<T>());
     }
 
     virtual TypeId GetAssetTypeId() const override

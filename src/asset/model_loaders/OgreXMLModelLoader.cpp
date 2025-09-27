@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
+#include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
 #include <scene/World.hpp>

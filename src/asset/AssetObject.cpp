@@ -23,6 +23,9 @@
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
+#include <core/io/BufferedByteReader.hpp>
+#include <core/io/ByteWriter.hpp>
+
 #include <core/json/JSON.hpp>
 
 #include <system/MessageBox.hpp>
@@ -78,7 +81,8 @@ Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
         return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
     }
 
-    Extract_Internal(std::move(data));
+    Extract_Internal(data.ToRef());
+    data.Reset();
 
     return {};
 }

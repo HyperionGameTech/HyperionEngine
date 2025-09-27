@@ -20,6 +20,7 @@
 #include <scene/components/VisibilityStateComponent.hpp>
 
 #include <asset/AssetRegistry.hpp>
+#include <asset/Assets.hpp>
 
 #include <core/functional/Proc.hpp>
 

@@ -1,6 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/model_loaders/OBJModelLoader.hpp>
+#include <asset/Assets.hpp>
+#include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
@@ -13,9 +16,6 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
-
-#include <asset/AssetObject.hpp>
-#include <asset/AssetRegistry.hpp>
 
 #include <core/containers/HashMap.hpp>
 

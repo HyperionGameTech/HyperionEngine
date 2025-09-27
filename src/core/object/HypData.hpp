@@ -3464,7 +3464,7 @@ HYP_FORCE_INLINE static bool HypData_Is_Impl(const HypData::VariantType& value)
 {
     static_assert(HypData::canStoreDirectly<typename HypDataHelper<From>::StorageType>, "StorageType must be a type that can be stored directly in the HypData variant without allocating memory dynamically");
 
-    constexpr bool skipAdditionalCheck = std::is_same_v<From, typename HypDataHelper<From>::StorageType>;
+    constexpr bool skipAdditionalCheck = std::is_same_v<To, typename HypDataHelper<From>::StorageType>;
 
     return value.Is<typename HypDataHelper<From>::StorageType>()
         && (skipAdditionalCheck || HypDataHelper<To> {}.Is(value.GetUnchecked<typename HypDataHelper<From>::StorageType>()));

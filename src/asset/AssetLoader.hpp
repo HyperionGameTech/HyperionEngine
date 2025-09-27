@@ -8,8 +8,6 @@
 #include <core/object/ObjId.hpp>
 #include <core/object/Handle.hpp>
 
-#include <core/memory/Any.hpp>
-
 #include <core/object/HypData.hpp>
 #include <core/object/HypObject.hpp>
 
@@ -31,9 +29,6 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
 class AssetManager;
-
-template <class T>
-struct AssetLoaderWrapper;
 
 template <class T>
 struct TLoadedAsset;
@@ -186,58 +181,5 @@ protected:
 
 template <class T>
 struct AssetLoadResultWrapper;
-
-template <class T>
-struct AssetLoaderWrapper
-{
-private:
-public:
-    static constexpr bool isHandle = std::is_base_of_v<HypObjectBase, T>;
-
-    using CastedType = std::conditional_t<isHandle, Handle<T>, Optional<T&>>;
-
-    AssetLoaderBase& loader;
-
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData& value)
-    {
-        if constexpr (isHandle)
-        {
-            if (Handle<T>* handlePtr = value.TryGet<Handle<T>>())
-            {
-                return *handlePtr;
-            }
-
-            return Handle<T>::empty;
-        }
-        else
-        {
-            return Optional<T&>(value.TryGet<T>());
-        }
-    }
-
-    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase& loader)
-        : loader(loader)
-    {
-    }
-};
-
-template <class T>
-struct AssetLoaderWrapper<RC<T>>
-{
-public:
-    using CastedType = RC<T>;
-
-    AssetLoaderBase& loader;
-
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData& value)
-    {
-        return value.Get<RC<T>>();
-    }
-
-    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase& loader)
-        : loader(loader)
-    {
-    }
-};
 
 } // namespace hyperion
