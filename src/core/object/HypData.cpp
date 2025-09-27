@@ -49,4 +49,9 @@ HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFun
     map[typeId] = func;
 }
 
+HYP_API void SetHypDataFromReference(HypData& hypData, AnyRef ref)
+{
+    HypDataHelper<AnyRef> {}.Set(hypData, ref);
+}
+
 } // namespace hyperion

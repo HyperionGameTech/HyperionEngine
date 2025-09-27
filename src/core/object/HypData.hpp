@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-
+#include <core/object/HypDataFwd.hpp>
 #include <core/object/ObjId.hpp>
 #include <core/object/Handle.hpp>
 #include <core/object/HypObjectFwd.hpp>
@@ -14,7 +13,6 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/utilities/TypeId.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/StringView.hpp>
@@ -39,8 +37,6 @@
 #include <type_traits>
 
 namespace hyperion {
-
-struct HypData;
 
 class Node;
 class Entity;
@@ -88,6 +84,7 @@ using HypDataSerializeFunction = FBOMResult (*)(const HypData& data, FBOMData& o
 
 extern HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeId);
 extern HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFunction func);
+extern HYP_API void SetHypDataFromReference(HypData& hypData, AnyRef ref);
 
 /*! \brief A struct that can hold 128 bits (16 bytes) of user data.
  *  Useful for storing small amounts of data directly in HypData without heap allocation.
@@ -192,7 +189,7 @@ struct HypData
     {
         if constexpr (std::is_lvalue_reference_v<T> && !std::is_const_v<std::remove_reference_t<T>>)
         {
-            HypDataHelper<AnyRef> {}.Set(*this, AnyRef(&value));
+            SetHypDataFromReference(*this, AnyRef(&value));
         }
         else
         {
@@ -357,9 +354,9 @@ struct HypData
             HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getterInstance {};
 
             HYP_CORE_ASSERT(getterInstance(value, resultValue),
-                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeId = %u)",
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current type = %s)",
                 TypeName<T>().Data(),
-                GetTypeId().Value());
+                LookupTypeName(GetTypeId()));
 
             return *resultValue;
         }
@@ -383,9 +380,9 @@ struct HypData
             HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getterInstance {};
 
             HYP_CORE_ASSERT(getterInstance(value, resultValue),
-                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeId = %u)",
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current type = %s)",
                 TypeName<T>().Data(),
-                GetTypeId().Value());
+                LookupTypeName(GetTypeId()));
 
             return *resultValue;
         }
@@ -611,9 +608,6 @@ struct HypDataArray
 };
 
 #pragma endregion HypDataArray
-
-template <class T>
-constexpr bool isHypData = std::is_same_v<NormalizedType<T>, HypData>;
 
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_fundamental_v<T>>>
@@ -2046,7 +2040,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
         for (SizeType i = 0; i < size; i++)
         {
-            if constexpr (isHypData<T>)
+            if constexpr (is_hyp_data_v<T>)
             {
                 if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
                 {
@@ -2163,7 +2157,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
         for (SizeType i = 0; i < Size; i++)
         {
-            if constexpr (isHypData<T>)
+            if constexpr (is_hyp_data_v<T>)
             {
                 if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
                 {
@@ -2272,8 +2266,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 
         for (SizeType i = 0; i < Size; i++)
         {
-
-            if constexpr (isHypData<T>)
+            if constexpr (is_hyp_data_v<T>)
             {
                 if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
                 {
@@ -2708,7 +2701,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if constexpr (isHypData<T>)
+            if constexpr (is_hyp_data_v<T>)
             {
                 if (FBOMResult err = value.Serialize(element, FBOMDataFlags::NONE))
                 {
@@ -3466,7 +3459,6 @@ struct HypDataTypeChecker
 
         return (value.Is<typename HypDataHelper<T>::StorageType>() && (shouldSkipAdditionalIsCheck || HypDataHelper<T> {}.Is(value.Get<typename HypDataHelper<T>::StorageType>())))
             || (checkReference && value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<T>());
-
     }
 };
 
@@ -3499,7 +3491,7 @@ HypDataArray::HypDataArray(const Array<T, AllocatorType>& arr)
     {
         auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
 
-        if constexpr (isHypData<T>)
+        if constexpr (is_hyp_data_v<T>)
         {
             return AnyRef(arr.PushBack(std::move(value)));
         }
@@ -3534,7 +3526,7 @@ HypDataArray::HypDataArray(Array<T, AllocatorType>&& arr)
     {
         auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
 
-        if constexpr (isHypData<T>)
+        if constexpr (is_hyp_data_v<T>)
         {
             return AnyRef(arr.PushBack(std::move(value)));
         }
@@ -3677,7 +3669,7 @@ HypDataArray::HypDataArray(const LinkedList<T>& list)
     {
         auto& list = array.internalArray.Get<LinkedList<T>>();
 
-        if constexpr (isHypData<T>)
+        if constexpr (is_hyp_data_v<T>)
         {
             return AnyRef(list.PushBack(std::move(value)));
         }
@@ -3706,7 +3698,7 @@ HypDataArray::HypDataArray(LinkedList<T>&& list)
     {
         auto& list = array.internalArray.Get<LinkedList<T>>();
 
-        if constexpr (isHypData<T>)
+        if constexpr (is_hyp_data_v<T>)
         {
             return AnyRef(list.PushBack(std::move(value)));
         }
@@ -3777,7 +3769,7 @@ HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType&& value, Optional<Ret
     };
 
     return ((HypDataTypeChecker<Types> {}(value, /* checkReference */ false) && getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {})) || ...)
-        || (value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<NormalizedType<ReturnType>>() && (outValue.Set(value.GetUnchecked<AnyRef>().template Get<NormalizedType<ReturnType>>()), true));
+        || (value.template Is<AnyRef>() && value.template GetUnchecked<AnyRef>().template Is<NormalizedType<ReturnType>>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template Get<NormalizedType<ReturnType>>()), true));
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>

@@ -357,6 +357,7 @@ static void InitFormattedStringMap(void* mem)
 
 #define ADD_TYPE_NAME(type) map[TypeId::ForType<type>()] = #type
 
+    // pre-initialize some common type names for easier debugging
     ADD_TYPE_NAME(void);
     ADD_TYPE_NAME(bool);
     ADD_TYPE_NAME(int8);
@@ -385,6 +386,7 @@ static void InitFormattedStringMap(void* mem)
     ADD_TYPE_NAME(char*);
     ADD_TYPE_NAME(const char*);
     ADD_TYPE_NAME(HypData);
+    ADD_TYPE_NAME(ConstAnyRef);
     ADD_TYPE_NAME(AnyRef);
     ADD_TYPE_NAME(Any);
 

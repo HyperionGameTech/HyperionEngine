@@ -51,7 +51,7 @@ struct LoadedAsset
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !isHypData<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !is_hyp_data_v<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
     LoadedAsset(T&& value)
         : value(std::forward<T>(value))
     {
@@ -241,4 +241,3 @@ public:
 };
 
 } // namespace hyperion
-

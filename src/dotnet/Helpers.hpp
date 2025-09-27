@@ -32,7 +32,7 @@ class Object;
 template <class T>
 static inline const HypData* SetArg_HypData(HypData* arr, SizeType index, T&& arg)
 {
-    if constexpr (isHypData<T>)
+    if constexpr (is_hyp_data_v<T>)
     {
         return &arg;
     }

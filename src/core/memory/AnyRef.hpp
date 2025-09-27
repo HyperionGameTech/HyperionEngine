@@ -216,16 +216,8 @@ public:
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
-    AnyRef& operator=(T* value)
-    {
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
-
-        m_typeId = newTypeId;
-        m_ptr = value;
-
-        return *this;
-    }
+    template <class T>
+    AnyRef(const AnyRefBase* value) = delete;
 
     AnyRef(const AnyRef& other)
         : AnyRefBase(static_cast<const AnyRefBase&>(other))
@@ -345,16 +337,7 @@ public:
     {
     }
 
-    template <class T>
-    ConstAnyRef& operator=(const T* value)
-    {
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
-
-        m_typeId = newTypeId;
-        m_ptr = const_cast<T*>(value);
-
-        return *this;
-    }
+    ConstAnyRef(const ConstAnyRef* value) = delete;
 
     ConstAnyRef(const ConstAnyRef& other)
         : AnyRefBase(static_cast<const AnyRefBase&>(other))

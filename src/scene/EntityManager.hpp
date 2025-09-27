@@ -357,7 +357,7 @@ public:
      *  \note Must be called from the owner thread.
      *
      *  \tparam T The type of the Entity to add. Must be a subclass of Entity.
-     * 
+     *
      *  \param [in] args The arguments to pass to the Entity constructor.
      *
      *  \return The Entity that was added. */
@@ -396,7 +396,6 @@ public:
     HYP_FORCE_INLINE bool HasEntity(ObjId<Entity> id) const
     {
         Threads::AssertOnThread(m_ownerThreadId);
-
 
         return id.IsValid() && m_entities.HasEntity(id);
     }
@@ -668,12 +667,12 @@ public:
         Threads::AssertOnThread(m_ownerThreadId);
 
         const EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
-        
+
         if (!entityData)
         {
             return {};
         }
-        
+
         return entityData->components;
     }
 
@@ -739,7 +738,7 @@ public:
         else
         {
             // Notify the entity that a component was added
-            entity->OnComponentAdded(componentPtr);
+            entity->OnComponentAdded(AnyRef(componentPtr));
         }
 
         // Notify systems that entity is being added to them
@@ -926,16 +925,16 @@ public:
     HYP_FORCE_INLINE void ForEachEntity(Callback&& callback) const
     {
         Threads::AssertOnThread(m_ownerThreadId);
-        
+
         for (auto& subtypeData : m_entities.GetSubtypeData())
         {
             for (auto entitiesIt = subtypeData.data.Begin(); entitiesIt != subtypeData.data.End(); ++entitiesIt)
             {
                 EntityData& entityData = *entitiesIt;
-                
+
                 Entity* entity = entityData.entityWeak.GetUnsafe();
                 Assert(entity != nullptr);
-                
+
                 callback(entity);
             }
         }
@@ -1014,7 +1013,7 @@ private:
     {
         Assert(system.IsValid());
         Assert(system->m_entityManager == nullptr || system->m_entityManager == this);
-        
+
         system->InitComponentInfos_Internal();
 
         bool wasAdded = false;
@@ -1066,7 +1065,7 @@ private:
     void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& componentIds);
 
     /*! \brief Removes an entity from the EntityManager.
-    
+
      *  \return True if the entity was removed, false otherwise.
      */
     bool RemoveEntity(Entity* entity);
@@ -1097,4 +1096,3 @@ private:
 };
 
 } // namespace hyperion
-

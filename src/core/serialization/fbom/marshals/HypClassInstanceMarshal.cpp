@@ -310,8 +310,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
         }
     }
 
-    HypData targetData { ref };
-
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hypClass->GetName());
 
@@ -360,10 +358,10 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                         switch (pMember->GetMemberType())
                         {
                         case HypMemberType::TYPE_FIELD:
-                            tmpData = static_cast<const HypField*>(pMember)->Get(targetData);
+                            tmpData = static_cast<const HypField*>(pMember)->Get(HypData(AnyRef(ref)));
                             break;
                         case HypMemberType::TYPE_PROPERTY:
-                            tmpData = static_cast<const HypProperty*>(pMember)->Get(targetData);
+                            tmpData = static_cast<const HypProperty*>(pMember)->Get(HypData(AnyRef(ref)));
                             break;
                         default:
                             HYP_UNREACHABLE();
@@ -388,6 +386,8 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                             continue;
                         }
 
+                        HypData targetData { AnyRef(ref) };
+
                         switch (pTargetMember->GetMemberType())
                         {
                         case HypMemberType::TYPE_FIELD:
@@ -404,6 +404,12 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                         continue;
                     }
                 }
+
+                HypData targetData { AnyRef(ref) };
+
+                constexpr auto x = TypeId::ForType<AnyRef>();
+
+                HYP_LOG_TEMP("Member type     : {}", pMember->GetTargetTypeId().Value());
 
                 if (Result deserializeResult = pMember->Deserialize(context, targetData, it.second); deserializeResult.HasError())
                 {

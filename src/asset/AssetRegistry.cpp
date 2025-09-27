@@ -1692,9 +1692,7 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
             for (SizeType i = 0; i < size; ++i)
             {
-                AnyRef elementRef = array.ElementAt(i);
-
-                if (Result result = iterate(HypData(elementRef)); result.HasError())
+                if (Result result = iterate(HypData(AnyRef(array.ElementAt(i)))); result.HasError())
                 {
                     return result;
                 }
@@ -1711,7 +1709,6 @@ Result AssetRegistry::RegisterAssetsRecursively(
             return {};
         }
 
-        // loop over properties
         for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
         {
             HypData memberData;
@@ -1746,7 +1743,7 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
             if (memberData.Is<AssetObject>())
             {
-                //temp testing
+                // temp testing
                 decltype(auto) ref = memberData.Get<AnyRef>();
                 const HypClass* refHypClass = ref.GetHypClass();
                 Assert(ref.Is<AssetObject>());
