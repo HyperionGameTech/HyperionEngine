@@ -3459,15 +3459,15 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
 
 #pragma region HypData_Is implementation
 
-template <class T>
+template <class To, class From = To>
 HYP_FORCE_INLINE static bool HypData_Is_Impl(const HypData::VariantType& value)
 {
-    constexpr bool shouldSkipAdditionalIsCheck = std::is_same_v<T, typename HypDataHelper<T>::StorageType>;
+    static_assert(HypData::canStoreDirectly<typename HypDataHelper<From>::StorageType>, "StorageType must be a type that can be stored directly in the HypData variant without allocating memory dynamically");
 
-    static_assert(HypData::canStoreDirectly<typename HypDataHelper<T>::StorageType>, "StorageType must be a type that can be stored directly in the HypData variant without allocating memory dynamically");
+    constexpr bool skipAdditionalCheck = std::is_same_v<From, typename HypDataHelper<From>::StorageType>;
 
-    return value.Is<typename HypDataHelper<T>::StorageType>()
-        && (shouldSkipAdditionalIsCheck || HypDataHelper<T> {}.Is(value.Get<typename HypDataHelper<T>::StorageType>()));
+    return value.Is<typename HypDataHelper<From>::StorageType>()
+        && (skipAdditionalCheck || HypDataHelper<To> {}.Is(value.GetUnchecked<typename HypDataHelper<From>::StorageType>()));
 }
 
 template <class T, class... ConvertibleFrom>
@@ -3475,7 +3475,7 @@ struct HypData_Is<T, Tuple<ConvertibleFrom...>>
 {
     HYP_FORCE_INLINE bool operator()(const HypData::VariantType& value, bool checkReference) const
     {
-        return (HypData_Is_Impl<T>(value) || (HypData_Is_Impl<ConvertibleFrom>(value) || ...))
+        return (HypData_Is_Impl<T>(value) || (HypData_Is_Impl<T, ConvertibleFrom>(value) || ...))
             || (checkReference && value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<T>());
     }
 };
@@ -3742,11 +3742,6 @@ HYP_FORCE_INLINE bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>
         {
             decltype(auto) internalValue = value.template Get<StorageType>();
 
-            if (!HypDataHelper<NormalizedType<ReturnType>> {}.Is(internalValue))
-            {
-                return false;
-            }
-
             outValue.Set(HypDataHelper<NormalizedType<ReturnType>> {}.Get(std::forward<decltype(internalValue)>(internalValue)));
         }
 
@@ -3755,8 +3750,8 @@ HYP_FORCE_INLINE bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>
 
     using FirstType = typename TupleElement<0, Types...>::Type;
 
-    return ((HypData_Is<Types, Tuple<>> {}(value, /* checkReference */ false) && getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {})) || ...)
-        || (value.template Is<AnyRef>() && ((value.template GetUnchecked<AnyRef>().template Is<FirstType>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template Get<FirstType>()), true))));
+    return ((HypData_Is_Impl<Types>(value) ? getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {}) : false) || ...)
+        || (value.template Is<AnyRef>() && ((value.template GetUnchecked<AnyRef>().template Is<FirstType>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template GetUnchecked<FirstType>()), true))));
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>

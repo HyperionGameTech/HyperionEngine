@@ -96,6 +96,21 @@ namespace editor {
 HyperionEditor::HyperionEditor()
     : Game()
 {
+    Array<Handle<Scene>> scenes;
+    HypData tmpHypData { AnyRef(&scenes) };
+    Assert(tmpHypData.Is<AnyRef>());
+    AnyRef& ref = tmpHypData.Get<AnyRef>();
+    Assert(ref.Is<Array<Handle<Scene>>>());
+    Assert(!ref.Is<AssetObject>());
+    auto res = HypData_Is<AssetObject, typename HypDataHelper<AssetObject>::ConvertibleFrom> {}(tmpHypData.value, true);
+    Assert(!res);
+    using TempType = typename HypDataHelper<AssetObject>::ConvertibleFrom;
+    Assert(!tmpHypData.Is<AssetObject>());
+    HypData tmpHypData2(CreateObject<Texture>());
+    Assert(tmpHypData2.Is<AssetObject>());
+    Assert(tmpHypData2.Get<AssetObject>().GetTypeId() == TypeId::ForType<Texture>());
+
+    HYP_BREAKPOINT;
 }
 
 HyperionEditor::~HyperionEditor()

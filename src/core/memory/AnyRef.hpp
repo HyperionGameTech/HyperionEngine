@@ -29,16 +29,19 @@ class AnyRefBase
 {
     using PointerType = void*;
 
-public:
-    friend class AnyBase;
-    friend class Any;
-    friend class Any;
+protected:
+    AnyRefBase() = default;
 
     AnyRefBase(TypeId typeId, PointerType ptr)
         : m_typeId(typeId),
           m_ptr(ptr)
     {
     }
+
+public:
+    friend class AnyBase;
+    friend class Any;
+    friend class Any;
 
     AnyRefBase(const AnyRefBase& other)
         : m_typeId(other.m_typeId),
@@ -152,16 +155,14 @@ public:
     {
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
-        return m_typeId == typeId
-            || IsA(GetClass(typeId), m_ptr, m_typeId);
+        return m_ptr && (m_typeId == typeId || IsA(GetClass(typeId), m_ptr, m_typeId));
     }
 
     /*! \brief Returns true if the held object is of type \ref{typeId}.
      *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {
-        return m_typeId == typeId
-            || IsA(GetClass(typeId), m_ptr, m_typeId);
+        return m_ptr && (m_typeId == typeId || IsA(GetClass(typeId), m_ptr, m_typeId));
     }
 
     /*! \brief Resets the current value held in the AnyRef. */
@@ -256,8 +257,15 @@ public:
     HYP_FORCE_INLINE T& Get() const
     {
         constexpr TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId), "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)), "Held type not equal to requested type!");
 
+        return *static_cast<NormalizedType<T>*>(m_ptr);
+    }
+
+    /*! \brief Returns the held object as a reference to type T. Ensure the held type is T, as no extra check is done before casting the internal pointer to T. */
+    template <class T>
+    HYP_FORCE_INLINE T& GetUnchecked() const
+    {
         return *static_cast<NormalizedType<T>*>(m_ptr);
     }
 
@@ -267,7 +275,7 @@ public:
     {
         constexpr TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
 
-        if (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId))
+        if (m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)))
         {
             return static_cast<NormalizedType<T>*>(m_ptr);
         }
@@ -400,8 +408,15 @@ public:
     HYP_FORCE_INLINE const T& Get() const
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId), "Held type not equal to requested type!");
+        HYP_CORE_ASSERT(m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)), "Held type not equal to requested type!");
 
+        return *static_cast<const NormalizedType<T>*>(m_ptr);
+    }
+
+    /*! \brief Returns the held object as a reference to type T. Ensure the held type is T, as no extra check is done before casting the internal pointer to T. */
+    template <class T>
+    HYP_FORCE_INLINE const T& GetUnchecked() const
+    {
         return *static_cast<const NormalizedType<T>*>(m_ptr);
     }
 
@@ -411,8 +426,7 @@ public:
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
 
-        // fixme args
-        if (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId))
+        if (m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)))
         {
             return static_cast<const NormalizedType<T>*>(m_ptr);
         }
