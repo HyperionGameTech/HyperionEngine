@@ -3768,8 +3768,10 @@ HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType&& value, Optional<Ret
         return true;
     };
 
+    using FirstType = typename TupleElement<0, Types...>::Type;
+
     return ((HypDataTypeChecker<Types> {}(value, /* checkReference */ false) && getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {})) || ...)
-        || (value.template Is<AnyRef>() && value.template GetUnchecked<AnyRef>().template Is<NormalizedType<ReturnType>>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template Get<NormalizedType<ReturnType>>()), true));
+        || (value.template Is<AnyRef>() && ((value.template GetUnchecked<AnyRef>().template Is<FirstType>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template Get<FirstType>()), true))));
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>
