@@ -60,13 +60,13 @@ template <class T, class T2 = void>
 struct IsHypObject;
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<!implementationExists<typename T::HypClassInfo::Type> && implementationExists<T>>>
+struct IsHypObject<T, std::enable_if_t<!ImplementationExistsV<typename T::HypClassInfo::Type> && ImplementationExistsV<T>>>
 {
     static constexpr bool value = false;
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<implementationExists<typename T::HypClassInfo::Type>>>
+struct IsHypObject<T, std::enable_if_t<ImplementationExistsV<typename T::HypClassInfo::Type>>>
 {
     static constexpr bool value = true;
 
@@ -388,8 +388,8 @@ extern HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypCla
 template <class ExpectedType, class InstanceType>
 static inline bool IsA()
 {
-    static_assert(implementationExists<ExpectedType>, "Implementation does not exist for the expected type! Ensure proper headers are included.");
-    static_assert(implementationExists<InstanceType>, "Implementation does not exist for the instance type! Ensure proper headers are included.");
+    static_assert(ImplementationExistsV<ExpectedType>, "Implementation does not exist for the expected type! Ensure proper headers are included.");
+    static_assert(ImplementationExistsV<InstanceType>, "Implementation does not exist for the instance type! Ensure proper headers are included.");
 
     static const HypClass* instanceHypClass = GetClass(TypeId::ForType<InstanceType>());
 

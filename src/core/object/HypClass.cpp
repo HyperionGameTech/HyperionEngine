@@ -185,6 +185,7 @@ SizeType GetNumDescendants(TypeId typeId)
     return base->GetNumDescendants();
 }
 
+#if 0
 HypProperty* MakeHypProperty(const HypField* field)
 {
     HYP_CORE_ASSERT(field != nullptr);
@@ -236,8 +237,9 @@ HypProperty* MakeHypProperty(const HypField* field)
 
     return pResult;
 }
+#endif
 
-HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
+HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, const HypMethod* setter)
 {
     HypProperty* pResult = new HypProperty();
     HypProperty& result = *pResult;
@@ -262,6 +264,39 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
 
         result.m_attributes = getter->GetAttributes();
     }
+    
+    if (field != nullptr)
+    {
+        if (!propertyAttributeOpt)
+        {
+            if (const HypClassAttributeValue& attr = field->GetAttribute("property"))
+            {
+                propertyAttributeOpt = attr.GetString();
+            }
+        }
+
+        const TypeId fieldTypeId = field->GetTypeId();
+
+        if (typeId.HasValue())
+        {
+            HYP_CORE_ASSERT(*typeId == fieldTypeId, "Getter TypeId (%u) does not match field TypeId (%u)", typeId->Value(), fieldTypeId.Value());
+        }
+        else
+        {
+            typeId = fieldTypeId;
+        }
+
+        if (targetTypeId.HasValue())
+        {
+            HYP_CORE_ASSERT(*targetTypeId == field->GetTargetTypeId(), "Getter target TypeId (%u) does not match field target TypeId (%u)", targetTypeId->Value(), field->GetTargetTypeId().Value());
+        }
+        else
+        {
+            targetTypeId = field->GetTargetTypeId();
+        }
+
+        result.m_attributes.Merge(field->GetAttributes());
+    }
 
     if (hasSetter)
     {
@@ -277,21 +312,16 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
 
         if (typeId.HasValue())
         {
-            HYP_CORE_ASSERT(*typeId == setterTypeId, "Getter TypeId (%u) does not match setter TypeId (%u)", typeId->Value(), setterTypeId.Value());
+            HYP_CORE_ASSERT(*typeId == setterTypeId, "Getter/field TypeId (%u) does not match setter TypeId (%u)", typeId->Value(), setterTypeId.Value());
         }
         else
         {
             typeId = setterTypeId;
         }
 
-        if (!typeId.HasValue())
-        {
-            typeId = setterTypeId;
-        }
-
         if (targetTypeId.HasValue())
         {
-            HYP_CORE_ASSERT(*targetTypeId == setter->GetTargetTypeId(), "Getter target TypeId (%u) does not match setter target TypeId (%u)", targetTypeId->Value(), setter->GetTargetTypeId().Value());
+            HYP_CORE_ASSERT(*targetTypeId == setter->GetTargetTypeId(), "Getter/field target TypeId (%u) does not match setter target TypeId (%u)", targetTypeId->Value(), setter->GetTargetTypeId().Value());
         }
         else
         {
@@ -301,17 +331,13 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
         result.m_attributes.Merge(setter->GetAttributes());
     }
 
-    HYP_CORE_ASSERT(propertyAttributeOpt.HasValue(), "A HypProperty composed of getter/setter pair must have at least one method that has \"Property=\" attribute");
-    HYP_CORE_ASSERT(typeId.HasValue(), "Cannot determine TypeId from getter/setter pair");
+    HYP_CORE_ASSERT(propertyAttributeOpt.HasValue());
+    HYP_CORE_ASSERT(typeId.HasValue(), "Cannot determine TypeId from getter/setter pair or field");
 
     result.m_name = CreateNameFromDynamicString(*propertyAttributeOpt);
     result.m_typeId = *typeId;
-    result.m_ownerClass = hasGetter
-        ? getter->GetOwnerClass()
-        : hasSetter
-        ? setter->GetOwnerClass()
-        : nullptr;
-
+    result.m_ownerClass = nullptr;
+    
     if (hasGetter)
     {
         result.m_getter = HypPropertyGetter();
@@ -326,6 +352,31 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
             return getter->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
         };
         result.m_originalMember = getter;
+        result.m_ownerClass = getter->GetOwnerClass();
+    }
+    else if (field != nullptr)
+    {
+        result.m_getter = HypPropertyGetter();
+        result.m_getter.typeInfo.targetTypeId = *targetTypeId;
+        result.m_getter.typeInfo.valueTypeId = *typeId;
+        result.m_getter.getProc = [field](const HypData& target) -> HypData
+        {
+            return field->Get(target);
+        };
+        result.m_getter.serializeProc = [field](const HypData& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+        {
+            return field->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, out, flags);
+        };
+
+        if (!result.m_originalMember)
+        {
+            result.m_originalMember = field;
+        }
+
+        if (!result.m_ownerClass)
+        {
+            result.m_ownerClass = field->GetOwnerClass();
+        }
     }
 
     if (hasSetter)
@@ -341,7 +392,40 @@ HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter)
         {
             return setter->Deserialize(context, target, value);
         };
-        result.m_originalMember = setter;
+
+        if (!result.m_originalMember)
+        {
+            result.m_originalMember = setter;
+        }
+
+        if (!result.m_ownerClass)
+        {
+            result.m_ownerClass = setter->GetOwnerClass();
+        }
+    }
+    else if (field != nullptr)
+    {
+        result.m_setter = HypPropertySetter();
+        result.m_setter.typeInfo.targetTypeId = *targetTypeId;
+        result.m_setter.typeInfo.valueTypeId = *typeId;
+        result.m_setter.setProc = [field](HypData& target, const HypData& value) -> void
+        {
+            field->Set(target, value);
+        };
+        result.m_setter.deserializeProc = [field](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> Result
+        {
+            return field->Deserialize(context, target, value);
+        };
+
+        if (!result.m_originalMember)
+        {
+            result.m_originalMember = field;
+        }
+
+        if (!result.m_ownerClass)
+        {
+            result.m_ownerClass = field->GetOwnerClass();
+        }
     }
 
     return pResult;
@@ -716,7 +800,7 @@ void HypClass::Initialize()
     // Build properties from `Property=` attributes on methods and fields
     Array<Pair<String, Array<IHypMember*>>> propertiesToBuild;
 
-    for (IHypMember& member : GetMembers(false))
+    for (IHypMember& member : GetMembers(/* includeProperties */ false, /* deep */ false))
     {
         if (const HypClassAttributeValue& attr = member.GetAttribute("property"))
         {
@@ -748,17 +832,6 @@ void HypClass::Initialize()
                 return member->GetMemberType() == HypMemberType::TYPE_FIELD;
             });
 
-        if (findFieldIt != it.second.End())
-        {
-            HypProperty* pProperty = MakeHypProperty(static_cast<HypField*>(*findFieldIt));
-            AssertDebug(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
-
-            m_properties.PushBack(pProperty);
-            m_propertiesByName.Set(pProperty->GetName(), pProperty);
-
-            continue;
-        }
-
         const auto findGetterIt = it.second.FindIf([](IHypMember* member)
             {
                 return member->GetMemberType() == HypMemberType::TYPE_METHOD
@@ -771,13 +844,15 @@ void HypClass::Initialize()
                     && static_cast<HypMethod*>(member)->GetParameters().Size() == 2;
             });
 
-        if (findGetterIt != it.second.End() || findSetterIt != it.second.End())
+        if (findFieldIt != it.second.End() || findGetterIt != it.second.End() || findSetterIt != it.second.End())
         {
             HypProperty* pProperty = MakeHypProperty(
+                findFieldIt != it.second.End() ? static_cast<HypField*>(*findFieldIt) : nullptr,
                 findGetterIt != it.second.End() ? static_cast<HypMethod*>(*findGetterIt) : nullptr,
                 findSetterIt != it.second.End() ? static_cast<HypMethod*>(*findSetterIt) : nullptr);
 
-            AssertDebug(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
+            HYP_CORE_ASSERT(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
+            HYP_CORE_ASSERT(!GetProperty(pProperty->GetName(), /* deep */ false), "Property with name \"%s\" already exists in class \"%s\"", *pProperty->GetName(), *GetName());
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);
@@ -785,7 +860,7 @@ void HypClass::Initialize()
             continue;
         }
 
-        HYP_FAIL("Invalid property definition for \"%s\": Must be HYP_FIELD() or getter/setter pair of HYP_METHOD()", it.first.Data());
+        HYP_FAIL("Invalid property definition for \"{}\": Must be HYP_FIELD() or getter/setter pair of HYP_METHOD()", it.first.Data());
     }
 }
 

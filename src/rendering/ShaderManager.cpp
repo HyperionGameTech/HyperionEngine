@@ -187,7 +187,7 @@ SizeType ShaderManager::CalculateMemoryUsage() const
         {
             if (ShaderRef shader = entry->shader.Lock())
             {
-                for (const ByteBuffer& byteBuffer : shader->GetCompiledShader()->GetModules())
+                for (const ByteBuffer& byteBuffer : shader->GetCompiledShader()->modules)
                 {
                     totalMemoryUsage += byteBuffer.Size();
                 }

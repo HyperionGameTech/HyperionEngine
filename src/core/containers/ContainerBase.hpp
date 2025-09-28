@@ -26,8 +26,20 @@ constexpr decltype(auto) KeyBy_Identity(const ValueType& value)
 
 namespace containers {
 
+/*! \brief Interface used by all container types. Used for type traits and static assertions. */
+class IContainer
+{
+public:
+};
+
+/*! \brief Base class for all container types.
+ *  \tparam Container The derived container type.
+ *  \tparam Key The key type used for searching and indexing.
+ *
+ *  Provides common functionality for all container types. Provides some shared functionality such as Find, FindIf, Contains, etc.
+ */
 template <class Container, class Key>
-class ContainerBase
+class ContainerBase : public IContainer
 {
 protected:
     using Base = ContainerBase;
@@ -488,6 +500,8 @@ auto Sum(ContainerType&& container, Func&& func)
 
 } // namespace containers
 
+using containers::ContainerBase;
+using containers::IContainer;
 using containers::AnyOf;
 using containers::Fill;
 using containers::Find;

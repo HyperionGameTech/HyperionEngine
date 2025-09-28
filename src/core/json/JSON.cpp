@@ -357,7 +357,7 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint32 index) const
 {
-    return JSONSubscriptWrapper<const JSONValue> { const_cast<remove_const_pointer_t<decltype(this)>>(this)->operator[](index).value };
+    return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointerT<decltype(this)>>(this)->operator[](index).value };
 }
 
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8StringView key)
@@ -386,7 +386,7 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8StringView key) const
 {
-    return JSONSubscriptWrapper<const JSONValue> { const_cast<remove_const_pointer_t<decltype(this)>>(this)->operator[](key).value };
+    return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointerT<decltype(this)>>(this)->operator[](key).value };
 }
 
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path, bool createIntermediateObjects)

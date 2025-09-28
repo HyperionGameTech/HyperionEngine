@@ -170,7 +170,7 @@ struct NodeUnlockTransformScope;
 HYP_API extern void Node_OnPostLoad(Node& node);
 
 HYP_STRUCT()
-class NodeTagSet : HashSet<NodeTag, &NodeTag::name>
+class NodeTagSet : public HashSet<NodeTag, &NodeTag::name>
 {
 public:
     using Base = HashSet<NodeTag, &NodeTag::name>;
@@ -179,6 +179,16 @@ public:
     using ConstIterator = typename Base::ConstIterator;
 
     NodeTagSet() = default;
+
+    NodeTagSet(const Base& other)
+        : Base(other)
+    {
+    }
+
+    NodeTagSet(Base&& other) noexcept
+        : Base(std::move(other))
+    {
+    }
 
     NodeTagSet(const NodeTagSet& other) = default;
     NodeTagSet& operator=(const NodeTagSet& other) = default;
@@ -373,7 +383,7 @@ public:
     }
 
     /*! \returns A pointer to the Scene this Node and its children are attached to. May be null. */
-    HYP_METHOD(Property = "Scene")
+    HYP_METHOD(Property = "Scene", Transient)
     HYP_FORCE_INLINE Scene* GetScene() const
     {
         return m_scene;
@@ -381,11 +391,11 @@ public:
 
     /*! \brief Set the Scene this Node and its children are attached to.
      *  \internal Not intended to be used in user code. Use Remove() instead. */
-    HYP_METHOD(Property = "Scene")
+    HYP_METHOD(Property = "Scene", Transient)
     virtual void SetScene(Scene* scene);
 
     /*! \returns A pointer to the World this Node and its children are attached to. May be null. */
-    HYP_METHOD(Property = "World")
+    HYP_METHOD(Property = "World", Transient)
     World* GetWorld() const;
 
     /*! \brief \returns The underlying entity AABB for this node. */
@@ -775,12 +785,22 @@ protected:
     HYP_FIELD(Property = "Name", Serialize = true, Editor = true, Label = "Name", Description = "The name of the node.")
     Name m_name;
 
+    HYP_FIELD(Property = "Parent", Transient)
     Node* m_parentNode;
-    NodeList m_childNodes;
-    Transform m_localTransform;
-    Transform m_worldTransform;
-    BoundingBox m_entityAabb;
 
+    HYP_FIELD(Property = "Children", Transient)
+    NodeList m_childNodes;
+
+    HYP_FIELD(Property = "LocalTransform")
+    Transform m_localTransform;
+    
+    HYP_FIELD(Property = "LocalTransform")
+    Transform m_worldTransform;
+
+    HYP_FIELD(Property = "EntityAABB")
+    BoundingBox m_entityAabb;
+    
+    HYP_FIELD(Property = "Scene", Transient)
     Scene* m_scene;
 
     bool m_transformLocked : 1;

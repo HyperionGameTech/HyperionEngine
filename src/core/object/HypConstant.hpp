@@ -51,18 +51,15 @@ public:
             return HypData(value);
         };
 
-        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        m_serializeProc = [value](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            m_serializeProc = [value](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+            if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out, flags))
             {
-                if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out, flags))
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
-                }
+                return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
+            }
 
-                return {};
-            };
-        }
+            return {};
+        };
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
@@ -77,20 +74,17 @@ public:
             return HypData(AnyRef(const_cast<NormalizedType<ConstantType>*>(pValue)));
         };
 
-        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        m_serializeProc = [pValue](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            m_serializeProc = [pValue](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+            HYP_CORE_ASSERT(pValue != nullptr);
+
+            if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
             {
-                HYP_CORE_ASSERT(pValue != nullptr);
+                return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
+            }
 
-                if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
-                {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
-                }
-
-                return {};
-            };
-        }
+            return {};
+        };
     }
 
     HypConstant(const HypConstant& other) = delete;

@@ -921,9 +921,9 @@ template <class T>
 inline bool InitObject(const Handle<T>& handle)
 {
     // provide a better error message for attempting to initialize incomplete types.
-    if constexpr (!implementationExists<T>)
+    if constexpr (!ImplementationExistsV<T>)
     {
-        static_assert(implementationExists<T>, "Cannot initialize an incomplete type. Make sure the type is fully defined before calling InitObject.");
+        static_assert(ImplementationExistsV<T>, "Cannot initialize an incomplete type. Make sure the type is fully defined before calling InitObject.");
     }
     else if constexpr (!std::is_base_of_v<HypObjectBase, T>)
     {

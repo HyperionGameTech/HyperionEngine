@@ -155,7 +155,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute("serialize");
 
-    if (serializeAttribute == false)
+    if (!serializeAttribute.GetBool(true))
     {
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=false", hypClass->GetName()) };
     }
@@ -183,6 +183,8 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     out = FBOMObject(FBOMObjectType(hypClass));
 
+    HashSet<Name> serializedMembers;
+
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
 
@@ -208,11 +210,11 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         {
             if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
             {
-                // skip fields with synthetic properties
+                // skip fields with synthetic properties (we'll serialize the property instead)
                 continue;
             }
 
-            if (!member.GetAttribute("serialize"))
+            if (!member.GetAttribute("serialize").GetBool(true) || member.GetAttribute("transient").GetBool(false))
             {
                 continue;
             }
@@ -226,6 +228,12 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
             if (assetReferenceTargetMembersMap.Contains(&member))
             {
+                continue;
+            }
+
+            if (!serializedMembers.Insert(member.GetName()).second)
+            {
+                HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' shadows another member with the same name, skipping serialization", member.GetName(), hypClass->GetName());
                 continue;
             }
 
@@ -326,10 +334,8 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     continue;
                 }
 
-                if (!pMember->GetAttribute("serialize"))
+                if (!pMember->GetAttribute("serialize").GetBool(true) || pMember->GetAttribute("transient").GetBool(false))
                 {
-                    HYP_LOG_TEMP("Skipping deserialization of member '{}' on HypClass '{}' because it has attribute 'serialize' set to false", pMember->GetName(), hypClass->GetName());
-
                     continue;
                 }
 

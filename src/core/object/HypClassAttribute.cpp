@@ -17,11 +17,11 @@ bool HypClassAttributeValue::IsString() const
     return value.Is<String>();
 }
 
-const String& HypClassAttributeValue::GetString() const
+const String& HypClassAttributeValue::GetString(const String& defaultValue) const
 {
     if (!IsString())
     {
-        return String::empty;
+        return defaultValue;
     }
 
     return value.Get<String>();
@@ -32,11 +32,11 @@ bool HypClassAttributeValue::IsBool() const
     return value.Is<bool>();
 }
 
-bool HypClassAttributeValue::GetBool() const
+bool HypClassAttributeValue::GetBool(bool defaultValue) const
 {
     if (!value.HasValue())
     {
-        return false;
+        return defaultValue;
     }
 
     if (const bool* boolPtr = value.TryGet<bool>())
@@ -54,7 +54,7 @@ bool HypClassAttributeValue::GetBool() const
         return *intPtr != 0;
     }
 
-    return true;
+    return defaultValue;
 }
 
 bool HypClassAttributeValue::IsInt() const
@@ -62,11 +62,11 @@ bool HypClassAttributeValue::IsInt() const
     return value.Is<int>();
 }
 
-int HypClassAttributeValue::GetInt() const
+int HypClassAttributeValue::GetInt(int defaultValue) const
 {
     if (!value.HasValue())
     {
-        return 0;
+        return defaultValue;
     }
 
     if (const int* intPtr = value.TryGet<int>())
@@ -83,7 +83,7 @@ int HypClassAttributeValue::GetInt() const
             return intValue;
         }
 
-        return 0;
+        return defaultValue;
     }
 
     if (const bool* boolPtr = value.TryGet<bool>())
@@ -91,7 +91,7 @@ int HypClassAttributeValue::GetInt() const
         return *boolPtr != false;
     }
 
-    return 0;
+    return defaultValue;
 }
 
 String HypClassAttributeValue::ToString() const

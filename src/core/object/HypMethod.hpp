@@ -214,74 +214,71 @@ public:
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
 
-        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        m_serializeProc = [memFn](Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            m_serializeProc = [memFn](Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+            if (args.Size() != sizeof...(ArgTypes) + 1)
             {
-                if (args.Size() != sizeof...(ArgTypes) + 1)
-                {
-                    return HYP_MAKE_ERROR(Error, "Invalid number of arguments for serialization");
-                }
+                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for serialization");
+            }
 
+            const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
+
+            HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+            for (SizeType i = 0; i < args.Size(); ++i)
+            {
+                argPtrs[i] = &args[i];
+            }
+
+            if constexpr (std::is_void_v<ReturnType> || sizeof...(ArgTypes) != 0)
+            {
+                return HYP_MAKE_ERROR(Error, "Cannot serialize void return type or non-zero number of arguments");
+            }
+            else
+            {
+                if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
+                }
+            }
+
+            return {};
+        };
+
+        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<HypData> args, const FBOMData& data) -> Result
+        {
+            if (args.Size() != sizeof...(ArgTypes))
+            {
+                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for deserialization");
+            }
+
+            if constexpr (sizeof...(ArgTypes) >= 1)
+            {
                 const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
-                HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+                HypData value;
+
+                if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
+                }
+
+                HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
                 for (SizeType i = 0; i < args.Size(); ++i)
                 {
                     argPtrs[i] = &args[i];
                 }
 
-                if constexpr (std::is_void_v<ReturnType> || sizeof...(ArgTypes) != 0)
-                {
-                    return HYP_MAKE_ERROR(Error, "Cannot serialize void return type or non-zero number of arguments");
-                }
-                else
-                {
-                    if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                    }
-                }
+                argPtrs[args.Size()] = &value;
 
-                return {};
-            };
-
-            m_deserializeProc = [memFn](FBOMLoadContext& context, Span<HypData> args, const FBOMData& data) -> Result
+                CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
+            }
+            else
             {
-                if (args.Size() != sizeof...(ArgTypes))
-                {
-                    return HYP_MAKE_ERROR(Error, "Invalid number of arguments for deserialization");
-                }
+                return HYP_MAKE_ERROR(Error, "Cannot deserialize using non-setter method");
+            }
 
-                if constexpr (sizeof...(ArgTypes) >= 1)
-                {
-                    const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
-
-                    HypData value;
-
-                    if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                    }
-
-                    HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
-                    for (SizeType i = 0; i < args.Size(); ++i)
-                    {
-                        argPtrs[i] = &args[i];
-                    }
-
-                    argPtrs[args.Size()] = &value;
-
-                    CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
-                }
-                else
-                {
-                    return HYP_MAKE_ERROR(Error, "Cannot deserialize using non-setter method");
-                }
-
-                return {};
-            };
-        }
+            return {};
+        };
     }
 
     template <class ReturnType, class TargetType, class... ArgTypes>
@@ -318,74 +315,71 @@ public:
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
 
-        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        m_serializeProc = [memFn](Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            m_serializeProc = [memFn](Span<HypData> args, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
+            if (args.Size() != sizeof...(ArgTypes) + 1)
             {
-                if (args.Size() != sizeof...(ArgTypes) + 1)
-                {
-                    return HYP_MAKE_ERROR(Error, "Invalid number of arguments for serialization");
-                }
+                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for serialization");
+            }
 
+            const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
+
+            HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+            for (SizeType i = 0; i < args.Size(); ++i)
+            {
+                argPtrs[i] = &args[i];
+            }
+
+            if constexpr (std::is_void_v<ReturnType> || sizeof...(ArgTypes) != 0)
+            {
+                return HYP_MAKE_ERROR(Error, "Cannot serialize void return type or non-zero number of arguments");
+            }
+            else
+            {
+                if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
+                }
+            }
+
+            return {};
+        };
+
+        m_deserializeProc = [memFn](FBOMLoadContext& context, Span<HypData> args, const FBOMData& data) -> Result
+        {
+            if (args.Size() != sizeof...(ArgTypes))
+            {
+                return HYP_MAKE_ERROR(Error, "Invalid number of arguments for deserialization");
+            }
+
+            if constexpr (sizeof...(ArgTypes) >= 1)
+            {
                 const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
 
-                HypData** argPtrs = (HypData**)StackAlloc(args.Size() * sizeof(HypData*));
+                HypData value;
+
+                if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
+                }
+
+                HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
                 for (SizeType i = 0; i < args.Size(); ++i)
                 {
                     argPtrs[i] = &args[i];
                 }
 
-                if constexpr (std::is_void_v<ReturnType> || sizeof...(ArgTypes) != 0)
-                {
-                    return HYP_MAKE_ERROR(Error, "Cannot serialize void return type or non-zero number of arguments");
-                }
-                else
-                {
-                    if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                    }
-                }
+                argPtrs[args.Size()] = &value;
 
-                return {};
-            };
-
-            m_deserializeProc = [memFn](FBOMLoadContext& context, Span<HypData> args, const FBOMData& data) -> Result
+                CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
+            }
+            else
             {
-                if (args.Size() != sizeof...(ArgTypes))
-                {
-                    return HYP_MAKE_ERROR(Error, "Invalid number of arguments for deserialization");
-                }
+                return HYP_MAKE_ERROR(Error, "Cannot deserialize using non-setter method");
+            }
 
-                if constexpr (sizeof...(ArgTypes) >= 1)
-                {
-                    const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(memFn);
-
-                    HypData value;
-
-                    if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
-                    }
-
-                    HypData** argPtrs = (HypData**)StackAlloc((args.Size() + 1) * sizeof(HypData*));
-                    for (SizeType i = 0; i < args.Size(); ++i)
-                    {
-                        argPtrs[i] = &args[i];
-                    }
-
-                    argPtrs[args.Size()] = &value;
-
-                    CallHypMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs);
-                }
-                else
-                {
-                    return HYP_MAKE_ERROR(Error, "Cannot deserialize using non-setter method");
-                }
-
-                return {};
-            };
-        }
+            return {};
+        };
     }
 
     // Static method or free function

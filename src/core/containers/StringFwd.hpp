@@ -75,6 +75,10 @@ class StringView;
 
 } // namespace utilities
 
+namespace filesystem {
+class FilePath;
+} // namespace filesystem
+
 using StringType = containers::StringType;
 
 using String = containers::String<StringType::UTF8>;
@@ -105,5 +109,14 @@ struct IsString<containers::String<TStringType>>
 {
     static constexpr bool value = true;
 };
+
+template <>
+struct IsString<filesystem::FilePath>
+{
+    static constexpr bool value = true;
+};
+
+template <class T>
+static constexpr bool IsStringV = IsString<T>::value;
 
 } // namespace hyperion

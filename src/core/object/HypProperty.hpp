@@ -353,8 +353,7 @@ class HypProperty : public IHypMember
 {
 public:
     friend class HypClass;
-    friend HypProperty* MakeHypProperty(const HypField* field);
-    friend HypProperty* MakeHypProperty(const HypMethod* getter, const HypMethod* setter);
+    friend HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, const HypMethod* setter);
 
     HypProperty()
         : m_originalMember(nullptr)

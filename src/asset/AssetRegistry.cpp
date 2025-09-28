@@ -1685,7 +1685,7 @@ Result AssetRegistry::RegisterAssetsRecursively(
             return {};
         }
 
-        if (current.IsArray()) // array needs special handling: iterate over elements (if possible)
+        if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
         {
             HypDataArray& array = current.Get<HypDataArray>();
 
@@ -1749,16 +1749,7 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
             if (memberData.Is<AssetObject>())
             {
-                constexpr auto tid = TypeId::ForType<AnyHandle>();
-                constexpr auto tid2 = TypeId::ForType<AnyRef>();
-
                 const AssetObject& assetObject = memberData.Get<AssetObject>();
-                // temp testing
-                decltype(auto) ref = memberData.Get<AnyRef>();
-                const HypClass* refHypClass = ref.GetHypClass();
-                Assert(ref.Is<AssetObject>());
-                HYP_LOG_TEMP("ref typename: {}", LookupTypeName(ref.GetTypeId()));
-
 
                 if (!forceRelocation && assetObject.IsRegistered())
                 {

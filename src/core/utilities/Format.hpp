@@ -273,10 +273,10 @@ containers::String<StringType> FormatString_FormatElement_Runtime(const T& eleme
         std::add_pointer_t<std::remove_cvref_t<std::remove_pointer_t<T>>>,
         std::remove_cvref_t<T>>;
 
-    static_assert(implementationExists<Formatter<containers::String<StringType>, FormatterSpecializationType>>, "No Formatter specialization exists for type");
+    static_assert(ImplementationExistsV<Formatter<containers::String<StringType>, FormatterSpecializationType>>, "No Formatter specialization exists for type");
 
     // if-constexpr is to prevent a huge swath of errors preventing the user from seeing the assertion failure.
-    if constexpr (implementationExists<Formatter<containers::String<StringType>, FormatterSpecializationType>>)
+    if constexpr (ImplementationExistsV<Formatter<containers::String<StringType>, FormatterSpecializationType>>)
     {
         return Formatter<containers::String<StringType>, FormatterSpecializationType> {}(element);
     }

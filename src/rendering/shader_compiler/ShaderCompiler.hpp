@@ -1082,7 +1082,7 @@ struct CompiledShader
     String entryPointName = "main";
 
     HYP_FIELD(Property = "Modules", Serialize = false) // custom serialization used
-    HeapArray<ByteBuffer, SMT_MAX> modules;
+    FixedArray<ByteBuffer, SMT_MAX> modules;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -1123,11 +1123,6 @@ struct CompiledShader
     HYP_FORCE_INLINE const ShaderProperties& GetProperties() const
     {
         return definition.properties;
-    }
-
-    HYP_FORCE_INLINE const HeapArray<ByteBuffer, SMT_MAX>& GetModules() const
-    {
-        return modules;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

@@ -3,13 +3,16 @@
 #pragma once
 
 #include <core/object/HypDataFwd.hpp>
-#include <core/object/ObjId.hpp>
-#include <core/object/Handle.hpp>
-#include <core/object/HypObjectFwd.hpp>
 
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
+#include <core/containers/LinkedList.hpp>
+
+#include <core/object/ObjId.hpp>
+#include <core/object/Handle.hpp>
+#include <core/object/HypObjectFwd.hpp>
+#include <core/object/HypDataArray.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 
@@ -354,7 +357,7 @@ struct HypData
 
             Optional<ReturnType> resultValue;
             HypData_Get<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, resultValue);
-            
+
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
                 "Failed to invoke HypData Get method with T = %s (TypeId: %u) - Mismatched types or T could not be converted to the held type %s (TypeId: %u)",
@@ -387,7 +390,7 @@ struct HypData
 
             Optional<ReturnType> resultValue;
             HypData_Get<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, resultValue);
-            
+
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
                 "Failed to invoke HypData Get method with T = %s (TypeId: %u) - Mismatched types or T could not be converted to the held type %s (TypeId: %u)",
@@ -504,119 +507,6 @@ struct HypData
         this->value.Set<NormalizedType<T>>(std::forward<T>(value));
     }
 };
-
-#pragma region HypDataArray
-
-struct HypDataArray
-{
-    using SerializeFunction = FBOMResult (*)(const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags);
-
-    Any internalArray;
-    TypeId elementTypeId;
-
-    SerializeFunction serializeFunction;
-
-    struct FunctionTable
-    {
-        AnyRef (*pushBack)(HypDataArray& array, HypData&& value);
-        AnyRef (*elementAt)(HypDataArray& array, SizeType index);
-        SizeType (*size)(const HypDataArray& array);
-    };
-
-    FunctionTable functionTable;
-
-    HypDataArray()
-        : elementTypeId(TypeId::Void()),
-          serializeFunction(nullptr)
-    {
-        Memory::MemSet(&functionTable, 0, sizeof(FunctionTable));
-    }
-
-    template <class T, class AllocatorType>
-    explicit HypDataArray(const Array<T, AllocatorType>& arr);
-
-    template <class T, class AllocatorType>
-    explicit HypDataArray(Array<T, AllocatorType>&& arr);
-
-    template <class T, SizeType Sz>
-    explicit HypDataArray(const FixedArray<T, Sz>& arr);
-
-    template <class T, SizeType Sz>
-    explicit HypDataArray(FixedArray<T, Sz>&& arr);
-
-    template <class T, auto KeyByFunction, class AllocatorType>
-    explicit HypDataArray(const HashSet<T, KeyByFunction, AllocatorType>& set);
-
-    template <class T, auto KeyByFunction, class AllocatorType>
-    explicit HypDataArray(HashSet<T, KeyByFunction, AllocatorType>&& set);
-
-    template <class K, class V, class AllocatorType>
-    explicit HypDataArray(const HashMap<K, V, AllocatorType>& map);
-
-    template <class K, class V, class AllocatorType>
-    explicit HypDataArray(HashMap<K, V, AllocatorType>&& map);
-
-    template <class T>
-    explicit HypDataArray(const LinkedList<T>& list);
-
-    template <class T>
-    explicit HypDataArray(LinkedList<T>&& list);
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return internalArray.HasValue();
-    }
-
-    HYP_FORCE_INLINE SizeType Size() const
-    {
-        if (!IsValid())
-        {
-            return 0;
-        }
-
-        HYP_CORE_ASSERT(functionTable.size != nullptr, "HypDataArray size function pointer is null");
-
-        return functionTable.size(*this);
-    }
-
-    HYP_FORCE_INLINE bool CanPushBack() const
-    {
-        return functionTable.pushBack != nullptr;
-    }
-
-    HYP_FORCE_INLINE AnyRef PushBack(HypData&& value)
-    {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(CanPushBack(), "Cannot push to HypDataArray (internal type: %s)", LookupTypeName(internalArray.GetTypeId()));
-
-        return functionTable.pushBack(*this, std::move(value));
-    }
-
-    HYP_FORCE_INLINE bool CanGetElementByIndex() const
-    {
-        return functionTable.elementAt != nullptr;
-    }
-
-    HYP_FORCE_INLINE AnyRef ElementAt(SizeType index)
-    {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(CanGetElementByIndex(), "Cannot get element by index from HypDataArray (internal type: %s)", LookupTypeName(internalArray.GetTypeId()));
-        HYP_CORE_ASSERT(index < Size(), "Index out of bounds when accessing HypDataArray (index: %llu, size: %llu)", index, Size());
-
-        return functionTable.elementAt(*this, index);
-    }
-
-    HYP_FORCE_INLINE ConstAnyRef ElementAt(SizeType index) const
-    {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(CanGetElementByIndex(), "Cannot get element by index from HypDataArray (internal type: %s)", LookupTypeName(internalArray.GetTypeId()));
-        HYP_CORE_ASSERT(index < Size(), "Index out of bounds when accessing HypDataArray (index: %llu, size: %llu)", index, Size());
-
-        return functionTable.elementAt(*const_cast<HypDataArray*>(this), index);
-    }
-};
-
-#pragma endregion HypDataArray
 
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_fundamental_v<T>>>
@@ -1451,12 +1341,12 @@ struct HypDataHelper<AnyRef>
 };
 
 template <class T>
-struct HypDataHelperDecl<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>>
+struct HypDataHelperDecl<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T*, std::enable_if_t<!is_const_pointer_v<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
+struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
 {
     using ConvertibleFrom = Tuple<AnyHandle, RC<void>>;
 
@@ -1999,7 +1889,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
     {
         if (const HypDataArray* arr = value.TryGet<HypDataArray>())
         {
-            return arr->internalArray.Is<Array<T, AllocatorType>>();
+            return arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
         }
 
         return false;
@@ -2007,27 +1897,35 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
     HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const Any& value) const
     {
-        return value.Get<HypDataArray>().internalArray.Get<Array<T, AllocatorType>>();
+        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        {
+            if (arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>())
+            {
+                return *static_cast<Array<T, AllocatorType>*>(arr->pInternalArray);
+            }
+        }
+
+        HYP_UNREACHABLE();
     }
 
     HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
     {
-        return value.internalArray.Is<Array<T, AllocatorType>>();
+        return value.arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
     }
 
     HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const HypDataArray& value) const
     {
-        return value.internalArray.Get<Array<T, AllocatorType>>();
+        return *static_cast<Array<T, AllocatorType>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const Array<T, AllocatorType>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(value));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, Array<T, AllocatorType>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(std::move(value)));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const Array<T, AllocatorType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2118,7 +2016,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
     {
         if (const HypDataArray* arr = value.TryGet<HypDataArray>())
         {
-            return arr->internalArray.Is<FixedArray<T, Size>>();
+            return arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
         }
 
         return false;
@@ -2126,27 +2024,35 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
     HYP_FORCE_INLINE FixedArray<T, Size>& Get(const Any& value) const
     {
-        return value.Get<HypDataArray>().internalArray.Get<FixedArray<T, Size>>();
+        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        {
+            if (arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>())
+            {
+                return *static_cast<FixedArray<T, Size>*>(arr->pInternalArray);
+            }
+        }
+
+        HYP_UNREACHABLE();
     }
 
     HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
     {
-        return value.internalArray.Is<FixedArray<T, Size>>();
+        return value.arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
     }
 
     HYP_FORCE_INLINE FixedArray<T, Size>& Get(const HypDataArray& value) const
     {
-        return value.internalArray.Get<FixedArray<T, Size>>();
+        return *static_cast<FixedArray<T, Size>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const FixedArray<T, Size>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(value));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, FixedArray<T, Size>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(std::move(value)));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const FixedArray<T, Size>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2434,7 +2340,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
     {
         if (const HypDataArray* array = value.TryGet<HypDataArray>())
         {
-            return array->internalArray.Is<HashMap<K, V>>();
+            return array->arrayTypeId == TypeId::ForType<HashMap<K, V>>();
         }
 
         return false;
@@ -2442,27 +2348,35 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
 
     HYP_FORCE_INLINE HashMap<K, V>& Get(const Any& value) const
     {
-        return value.Get<HypDataArray>().internalArray.Get<HashMap<K, V>>();
+        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        {
+            if (arr->arrayTypeId == TypeId::ForType<HashMap<K, V>>())
+            {
+                return *static_cast<HashMap<K, V>*>(arr->pInternalArray);
+            }
+        }
+
+        HYP_UNREACHABLE();
     }
 
     HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
     {
-        return value.internalArray.Is<HashMap<K, V>>();
+        return value.arrayTypeId == TypeId::ForType<HashMap<K, V>>();
     }
 
     HYP_FORCE_INLINE HashMap<K, V>& Get(const HypDataArray& value) const
     {
-        return value.internalArray.Get<HashMap<K, V>>();
+        return *static_cast<HashMap<K, V>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const HashMap<K, V>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(value));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, HashMap<K, V>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(std::move(value)));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const HashMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2546,7 +2460,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
     {
         if (const HypDataArray* array = value.TryGet<HypDataArray>())
         {
-            return array->internalArray.Is<HashSet<ValueType, KeyByFunction>>();
+            return array->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
         }
 
         return false;
@@ -2554,27 +2468,35 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
 
     HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const Any& value) const
     {
-        return value.Get<HypDataArray>().internalArray.Get<HashSet<ValueType, KeyByFunction>>();
+        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        {
+            if (arr->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
+            {
+                return *static_cast<HashSet<ValueType, KeyByFunction>*>(arr->pInternalArray);
+            }
+        }
+
+        HYP_UNREACHABLE();
     }
 
     HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
     {
-        return value.internalArray.Is<HashSet<ValueType, KeyByFunction>>();
+        return value.arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
     }
 
     HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const HypDataArray& value) const
     {
-        return value.internalArray.Get<HashSet<ValueType, KeyByFunction>>();
+        return *static_cast<HashSet<ValueType, KeyByFunction>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const HashSet<ValueType, KeyByFunction>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(value));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, HashSet<ValueType, KeyByFunction>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(std::move(value)));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const HashSet<ValueType, KeyByFunction>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2658,7 +2580,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
     {
         if (const HypDataArray* array = value.TryGet<HypDataArray>())
         {
-            return array->internalArray.Is<LinkedList<T>>();
+            return array->arrayTypeId == TypeId::ForType<LinkedList<T>>();
         }
 
         return false;
@@ -2666,27 +2588,35 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
 
     HYP_FORCE_INLINE LinkedList<T>& Get(const Any& value) const
     {
-        return value.Get<HypDataArray>().internalArray.Get<LinkedList<T>>();
+        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        {
+            if (arr->arrayTypeId == TypeId::ForType<LinkedList<T>>())
+            {
+                return *static_cast<LinkedList<T>*>(arr->pInternalArray);
+            }
+        }
+
+        HYP_UNREACHABLE();
     }
 
     HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
     {
-        return value.internalArray.Is<LinkedList<T>>();
+        return value.arrayTypeId == TypeId::ForType<LinkedList<T>>();
     }
 
     HYP_FORCE_INLINE LinkedList<T>& Get(const HypDataArray& value) const
     {
-        return value.internalArray.Get<LinkedList<T>>();
+        return *static_cast<LinkedList<T>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const LinkedList<T>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(value));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, LinkedList<T>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(std::move(value)));
+        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const LinkedList<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3320,7 +3250,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
 
 #if 1
 template <class T>
-struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !implementationExists<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
+struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !ImplementationExistsV<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<T*, AnyRef, AnyHandle, RC<void>>;
 
@@ -3457,6 +3387,8 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !imple
 };
 #endif
 
+#include <core/object/HypDataArray.inl>
+
 #pragma region HypData_Is implementation
 
 template <class To, class From = To>
@@ -3481,246 +3413,6 @@ struct HypData_Is<T, Tuple<ConvertibleFrom...>>
 };
 
 #pragma endregion HypData_Is implementation
-
-#pragma region HypDataArray template constructor implementations
-
-template <class T, class AllocatorType>
-HypDataArray::HypDataArray(const Array<T, AllocatorType>& arr)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<Array<T, AllocatorType>>(arr), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<Array<T, AllocatorType>>::Serialize(array.internalArray.Get<Array<T, AllocatorType>>(), outData, flags);
-    };
-    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-    {
-        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-
-        if constexpr (is_hyp_data_v<T>)
-        {
-            return AnyRef(arr.PushBack(std::move(value)));
-        }
-        else
-        {
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
-        }
-    };
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-    {
-        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<Array<T, AllocatorType>>().Size();
-    };
-}
-
-template <class T, class AllocatorType>
-HypDataArray::HypDataArray(Array<T, AllocatorType>&& arr)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<Array<T, AllocatorType>>(std::move(arr)), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<Array<T, AllocatorType>>::Serialize(array.internalArray.Get<Array<T, AllocatorType>>(), outData, flags);
-    };
-    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-    {
-        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-
-        if constexpr (is_hyp_data_v<T>)
-        {
-            return AnyRef(arr.PushBack(std::move(value)));
-        }
-        else
-        {
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
-        }
-    };
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-    {
-        auto& arr = array.internalArray.Get<Array<T, AllocatorType>>();
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<Array<T, AllocatorType>>().Size();
-    };
-}
-
-template <class T, SizeType Sz>
-HypDataArray::HypDataArray(const FixedArray<T, Sz>& arr)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<FixedArray<T, Sz>>(arr), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
-    };
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-    {
-        auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<FixedArray<T, Sz>>().Size();
-    };
-}
-
-template <class T, SizeType Sz>
-HypDataArray::HypDataArray(FixedArray<T, Sz>&& arr)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<FixedArray<T, Sz>>(std::move(arr)), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<FixedArray<T, Sz>>::Serialize(array.internalArray.Get<FixedArray<T, Sz>>(), outData, flags);
-    };
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
-    {
-        auto& arr = array.internalArray.Get<FixedArray<T, Sz>>();
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<FixedArray<T, Sz>>().Size();
-    };
-}
-
-template <class T, auto KeyByFunction, class AllocatorType>
-HypDataArray::HypDataArray(const HashSet<T, KeyByFunction, AllocatorType>& set)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<HashSet<T, KeyByFunction, AllocatorType>>(set), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>(), outData, flags);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>().Size();
-    };
-}
-
-template <class T, auto KeyByFunction, class AllocatorType>
-HypDataArray::HypDataArray(HashSet<T, KeyByFunction, AllocatorType>&& set)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<HashSet<T, KeyByFunction, AllocatorType>>(std::move(set)), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>(), outData, flags);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<HashSet<T, KeyByFunction, AllocatorType>>().Size();
-    };
-}
-
-template <class K, class V, class AllocatorType>
-HypDataArray::HypDataArray(const HashMap<K, V, AllocatorType>& map)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<HashMap<K, V, AllocatorType>>(map), TypeId::ForType<KeyValuePair<K, V>>();
-    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(array.internalArray.Get<HashMap<K, V, AllocatorType>>(), outData, flags);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<HashMap<K, V, AllocatorType>>().Size();
-    };
-}
-
-template <class K, class V, class AllocatorType>
-HypDataArray::HypDataArray(HashMap<K, V, AllocatorType>&& map)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<HashMap<K, V, AllocatorType>>(std::move(map)), TypeId::ForType<KeyValuePair<K, V>>();
-    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(array.internalArray.Get<HashMap<K, V, AllocatorType>>(), outData, flags);
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<HashMap<K, V, AllocatorType>>().Size();
-    };
-}
-
-template <class T>
-HypDataArray::HypDataArray(const LinkedList<T>& list)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<LinkedList<T>>(list), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<LinkedList<T>>::Serialize(array.internalArray.Get<LinkedList<T>>(), outData, flags);
-    };
-    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-    {
-        auto& list = array.internalArray.Get<LinkedList<T>>();
-
-        if constexpr (is_hyp_data_v<T>)
-        {
-            return AnyRef(list.PushBack(std::move(value)));
-        }
-        else
-        {
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
-        }
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<LinkedList<T>>().Size();
-    };
-}
-
-template <class T>
-HypDataArray::HypDataArray(LinkedList<T>&& list)
-    : HypDataArray()
-{
-    internalArray = Any::Construct<LinkedList<T>>(std::move(list)), TypeId::ForType<T>();
-    elementTypeId = TypeId::ForType<T>();
-    serializeFunction = [](const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
-    {
-        return HypDataHelper<LinkedList<T>>::Serialize(array.internalArray.Get<LinkedList<T>>(), outData, flags);
-    };
-    functionTable.pushBack = [](HypDataArray& array, HypData&& value) -> AnyRef
-    {
-        auto& list = array.internalArray.Get<LinkedList<T>>();
-
-        if constexpr (is_hyp_data_v<T>)
-        {
-            return AnyRef(list.PushBack(std::move(value)));
-        }
-        else
-        {
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
-        }
-    };
-    functionTable.size = [](const HypDataArray& array) -> SizeType
-    {
-        return array.internalArray.Get<LinkedList<T>>().Size();
-    };
-}
-
-#pragma endregion HypDataArray template constructor implementations
 
 #pragma region HypData_Get implementation
 

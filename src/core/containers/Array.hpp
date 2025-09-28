@@ -34,19 +34,19 @@ template <class T, SizeType MaxInlineCapacityBytes = 256, class T2 = void>
 struct ArrayDefaultAllocatorSelector;
 
 template <class T, SizeType MaxInlineCapacityBytes>
-struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<!implementationExists<T>>>
+struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<!ImplementationExistsV<T>>>
 {
     using Type = DynamicAllocator;
 };
 
 template <class T, SizeType MaxInlineCapacityBytes>
-struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<implementationExists<T> && (sizeof(T) <= MaxInlineCapacityBytes)>>
+struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<ImplementationExistsV<T> && (sizeof(T) <= MaxInlineCapacityBytes)>>
 {
     using Type = InlineAllocator<MaxInlineCapacityBytes / sizeof(T)>;
 };
 
 template <class T, SizeType MaxInlineCapacityBytes>
-struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<implementationExists<T> && (sizeof(T) > MaxInlineCapacityBytes)>>
+struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<ImplementationExistsV<T> && (sizeof(T) > MaxInlineCapacityBytes)>>
 {
     using Type = DynamicAllocator;
 };

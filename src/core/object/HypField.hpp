@@ -104,7 +104,17 @@ public:
 
             decltype(auto) target = targetData.Get<ThisType>();
 
-            return HypData(AnyRef(&(target.*member)));
+            // Use HypDataArray wrapper type for containers so we can iterate over them generically.
+            // Skip doing this for strings though, as they are also containers but should be treated as a single value.
+            if constexpr (std::is_base_of_v<IContainer, NormalizedType<FieldType>> && !IsStringV<NormalizedType<FieldType>>)
+            {
+                // Containers are always returned as a reference to avoid copies
+                return HypData(HypDataArray(HypDataArray::AS_REFERENCE, (target.*member)));
+            }
+            else
+            {
+                return HypData(AnyRef(&(target.*member)));
+            }
         };
 
         m_setProc = [member](HypData& targetData, const HypData& data) -> void
@@ -155,83 +165,80 @@ public:
             }
         };
 
-        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
         {
-            m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
+            HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+
+            decltype(auto) target = targetData.Get<ThisType>();
+
+            if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
             {
-                HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+                return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
+            }
+
+            return {};
+        };
+
+        m_deserializeProc = [member](FBOMLoadContext& context, HypData& targetData, const FBOMData& data) -> Result
+        {
+            if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
+            {
+                return HYP_MAKE_ERROR(Error, "Cannot deserialize non-copy-assignable field");
+            }
+            else
+            {
+                if (!targetData.Is<ThisType>())
+                {
+                    return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeId: {}), but got TypeId: {}",
+                        TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+                }
+
+                HypData value;
+
+                if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
+                {
+                    return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
+                }
 
                 decltype(auto) target = targetData.Get<ThisType>();
 
-                if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
+                if constexpr (std::is_array_v<NormalizedType<FieldType>>)
                 {
-                    return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
-                }
+                    using InnerType = std::remove_extent_t<NormalizedType<FieldType>>;
 
-                return {};
-            };
-
-            m_deserializeProc = [member](FBOMLoadContext& context, HypData& targetData, const FBOMData& data) -> Result
-            {
-                if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
-                {
-                    return HYP_MAKE_ERROR(Error, "Cannot deserialize non-copy-assignable field");
-                }
-                else
-                {
-                    if (!targetData.Is<ThisType>())
+                    if (value.IsNull())
                     {
-                        return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeId: {}), but got TypeId: {}",
-                            TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
-                    }
-
-                    HypData value;
-
-                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
-                    {
-                        return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
-                    }
-
-                    decltype(auto) target = targetData.Get<ThisType>();
-
-                    if constexpr (std::is_array_v<NormalizedType<FieldType>>)
-                    {
-                        using InnerType = std::remove_extent_t<NormalizedType<FieldType>>;
-
-                        if (value.IsNull())
+                        for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
                         {
-                            for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
-                            {
-                                (target.*member)[i] = NormalizedType<InnerType> {};
-                            }
-                        }
-                        else
-                        {
-                            auto& arrayValue = value.Get<NormalizedType<FieldType>>();
-
-                            for (SizeType i = 0; i < arrayValue.Size(); i++)
-                            {
-                                (target.*member)[i] = arrayValue[i];
-                            }
+                            (target.*member)[i] = NormalizedType<InnerType> {};
                         }
                     }
                     else
                     {
-                        if (value.IsNull())
+                        auto& arrayValue = value.Get<NormalizedType<FieldType>>();
+
+                        for (SizeType i = 0; i < arrayValue.Size(); i++)
                         {
-                            target.*member = NormalizedType<FieldType> {};
-                        }
-                        else
-                        {
-                            target.*member = value.Get<NormalizedType<FieldType>>();
+                            (target.*member)[i] = arrayValue[i];
                         }
                     }
                 }
+                else
+                {
+                    if (value.IsNull())
+                    {
+                        target.*member = NormalizedType<FieldType> {};
+                    }
+                    else
+                    {
+                        target.*member = value.Get<NormalizedType<FieldType>>();
+                    }
+                }
+            }
 
-                return {};
-            };
-        }
+            return {};
+        };
     }
 
     HypField(const HypField& other) = delete;

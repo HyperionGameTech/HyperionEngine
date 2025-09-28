@@ -93,13 +93,13 @@ struct HypClassAttributeValue final
     }
 
     HYP_API bool IsString() const;
-    HYP_API const String& GetString() const;
+    HYP_API const String& GetString(const String& defaultValue = String::empty) const;
 
     HYP_API bool IsBool() const;
-    HYP_API bool GetBool() const;
+    HYP_API bool GetBool(bool defaultValue = false) const;
 
     HYP_API bool IsInt() const;
-    HYP_API int GetInt() const;
+    HYP_API int GetInt(int defaultValue = 0) const;
 
     HYP_API String ToString() const;
 
