@@ -223,14 +223,10 @@ Result EditorProject::SaveAs(FilePath filepath)
 
         Assert(objectsSubpackage.IsValid());
 
-        if (Result registerAssetsResult = g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-                objectsSubpackage->BuildPackagePath(),
-                HypData(AnyRef(*this)),
-                /* forceRelocation */ false);
-            registerAssetsResult.HasError())
-        {
-            return registerAssetsResult.GetError();
-        }
+        g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+            objectsSubpackage->BuildPackagePath(),
+            HypData(AnyRef(*this)),
+            /* forceRelocation */ false);
     }
 
     if (filepath.Empty())

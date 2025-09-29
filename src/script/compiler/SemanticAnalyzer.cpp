@@ -47,7 +47,7 @@ SymbolTypeRef SemanticAnalyzer::Helpers::ResolvePlaceholderType(
     {
         if (entry.first == unaliasedInputType && entry.second != nullptr)
         {
-            HYP_LOG(HypScript, Debug, "Using cached placeholder type for '{}' : {}", inputType->GetName(), entry.second->ToString());
+            //HYP_LOG(HypScript, Debug, "Using cached placeholder type for '{}' : {}", inputType->GetName(), entry.second->ToString());
 
             return entry.second->RefCountedPtrFromThis();
         }

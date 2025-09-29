@@ -253,5 +253,14 @@ public:
     }
 };
 
+template <class ReturnType, class... Args>
+struct IsDelegate<ScriptableDelegate<ReturnType, Args...>> : std::true_type
+{
+};
+
 } // namespace functional
+
+using functional::ScriptableDelegate;
+using functional::IScriptableDelegate;
+
 } // namespace hyperion

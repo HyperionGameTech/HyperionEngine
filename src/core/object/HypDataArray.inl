@@ -31,11 +31,18 @@ HypDataArray::HypDataArray(AsReferenceTag, Array<T, AllocatorType>& arr)
         }
     };
 
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    functionTable.elementAt = [](HypDataArray& array, SizeType index, HypData& out) -> bool
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        out = HypData(arr[index]);
+
+        return true;
     };
 
     functionTable.size = [](const HypDataArray& array) -> SizeType
@@ -79,11 +86,18 @@ HypDataArray::HypDataArray(AsCopyTag, const Array<T, AllocatorType>& arr)
         }
     };
 
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    functionTable.elementAt = [](HypDataArray& array, SizeType index, HypData& out) -> bool
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        out = HypData(arr[index]);
+
+        return true;
     };
 
     functionTable.size = [](const HypDataArray& array) -> SizeType
@@ -127,11 +141,18 @@ HypDataArray::HypDataArray(AsCopyTag, Array<T, AllocatorType>&& arr)
         }
     };
 
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    functionTable.elementAt = [](HypDataArray& array, SizeType index, HypData& out) -> bool
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        out = HypData(arr[index]);
+
+        return true;
     };
 
     functionTable.size = [](const HypDataArray& array) -> SizeType
@@ -159,11 +180,18 @@ HypDataArray::HypDataArray(AsReferenceTag, FixedArray<T, Sz>& arr)
     arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
     elementTypeId = TypeId::ForType<T>();
 
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    functionTable.elementAt = [](HypDataArray& array, SizeType index, HypData& out) -> bool
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        out = HypData(arr[index]);
+
+        return true;
     };
 
     functionTable.size = [](const HypDataArray& array) -> SizeType
@@ -193,11 +221,18 @@ HypDataArray::HypDataArray(AsCopyTag, const FixedArray<T, Sz>& arr)
     arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
     elementTypeId = TypeId::ForType<T>();
 
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    functionTable.elementAt = [](HypDataArray& array, SizeType index, HypData& out) -> bool
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        out = HypData(arr[index]);
+
+        return true;
     };
 
     functionTable.size = [](const HypDataArray& array) -> SizeType
@@ -227,12 +262,20 @@ HypDataArray::HypDataArray(AsCopyTag, FixedArray<T, Sz>&& arr)
     arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
     elementTypeId = TypeId::ForType<T>();
 
-    functionTable.elementAt = [](HypDataArray& array, SizeType index) -> AnyRef
+    functionTable.elementAt = [](HypDataArray& array, SizeType index, HypData& out) -> bool
     {
         auto& arr = *static_cast<FixedArray<T, Sz>*>(array.pInternalArray);
-        HYP_CORE_ASSERT(index < arr.Size(), "Index out of bounds");
-        return AnyRef(arr[index]);
+
+        if (index >= arr.Size())
+        {
+            return false;
+        }
+
+        out = HypData(arr[index]);
+
+        return true;
     };
+
     functionTable.size = [](const HypDataArray& array) -> SizeType
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);

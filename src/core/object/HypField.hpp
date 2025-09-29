@@ -89,7 +89,7 @@ public:
     }
 
     template <class ThisType, class FieldType>
-    HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
+    HypField(Name name, FieldType ThisType::*member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
           m_typeId(TypeId::ForType<FieldType>()),
           m_targetTypeId(TypeId::ForType<ThisType>()),
@@ -97,13 +97,16 @@ public:
           m_size(sizeof(FieldType)),
           m_attributes(attributes)
     {
+        if constexpr (IsDelegateV<NormalizedType<FieldType>>)
+        {
+            m_flags |= HypMemberFlags::DELEGATE;
+        }
+
         m_getProc = [member](const HypData& targetData) -> HypData
         {
-            HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
-
             decltype(auto) target = targetData.Get<ThisType>();
 
+#if 0
             // Use HypDataArray wrapper type for containers so we can iterate over them generically.
             // Skip doing this for strings though, as they are also containers but should be treated as a single value.
             if constexpr (std::is_base_of_v<IContainer, NormalizedType<FieldType>> && !IsStringV<NormalizedType<FieldType>>)
@@ -115,6 +118,17 @@ public:
             {
                 return HypData(AnyRef(&(target.*member)));
             }
+#else
+            if constexpr (IsDelegateV<NormalizedType<FieldType>>)
+            {
+                // special handling for delegate fields: always return reference instead of value.
+                return HypData(AnyRef(&(target.*member)));
+            }
+            else
+            {
+                return HypData(target.*member);
+            }
+#endif
         };
 
         m_setProc = [member](HypData& targetData, const HypData& data) -> void
@@ -167,9 +181,6 @@ public:
 
         m_serializeProc = [member](const HypData& targetData, EnumFlags<FBOMDataFlags> flags, FBOMData& outData) -> Result
         {
-            HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
-
             decltype(auto) target = targetData.Get<ThisType>();
 
             if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))

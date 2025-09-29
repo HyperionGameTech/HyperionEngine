@@ -52,7 +52,7 @@ struct HypDataArray
     struct FunctionTable
     {
         AnyRef (*pushBack)(HypDataArray& array, HypData&& value);
-        AnyRef (*elementAt)(HypDataArray& array, SizeType index);
+        bool (*elementAt)(HypDataArray& array, SizeType index, HypData& out);
         SizeType (*size)(const HypDataArray& array);
     };
 
@@ -274,22 +274,14 @@ struct HypDataArray
         return functionTable.elementAt != nullptr;
     }
 
-    HYP_FORCE_INLINE AnyRef ElementAt(SizeType index)
+    HYP_FORCE_INLINE bool ElementAt(SizeType index, HypData& out)
     {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(CanGetElementByIndex());
-        HYP_CORE_ASSERT(index < Size(), "Index out of bounds when accessing HypDataArray (index: %llu, size: %llu)", index, Size());
+        if (!IsValid() || !CanGetElementByIndex() || index >= Size())
+        {
+            return false;
+        }
 
-        return functionTable.elementAt(*this, index);
-    }
-
-    HYP_FORCE_INLINE ConstAnyRef ElementAt(SizeType index) const
-    {
-        HYP_CORE_ASSERT(IsValid());
-        HYP_CORE_ASSERT(CanGetElementByIndex());
-        HYP_CORE_ASSERT(index < Size(), "Index out of bounds when accessing HypDataArray (index: %llu, size: %llu)", index, Size());
-
-        return functionTable.elementAt(*const_cast<HypDataArray*>(this), index);
+        return functionTable.elementAt(*this, index, out);
     }
 };
 

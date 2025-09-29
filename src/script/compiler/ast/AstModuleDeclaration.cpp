@@ -55,9 +55,6 @@ void AstModuleDeclaration::PreRegisterClassTypes(AstVisitor* visitor, Module* mo
         {
             classNode->SetPreRegister(true);
 
-            DebugLog(LogType::Debug, "Pre-registering class type %s\n",
-                classNode->GetName().Data());
-
             classNode->Visit(visitor, mod);
 
             classNode->SetPreRegister(false);

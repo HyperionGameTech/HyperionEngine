@@ -394,9 +394,8 @@ public:
      *  of its members that are subclasses of AssetObject as well, recursively.
      *  \param packagePath The base/root path in which to register the asset and its members.
      *  \param target The object to register.
-     *  \param forceRelocation If true, will relocate assets that are already registered to the new package path.
-     *  \return Result indicating success or failure of the operation. */
-    Result RegisterAssetsRecursively(
+     *  \param forceRelocation If true, will relocate assets that are already registered to the new package path. */
+    void RegisterAssetsRecursively(
         const UTF8StringView& packagePath,
         const HypData& target,
         bool forceRelocation = false);

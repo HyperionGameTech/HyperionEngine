@@ -993,11 +993,26 @@ public:
     HYP_DEF_STL_BEGIN_END(HashMap::Begin(), HashMap::End())
 };
 
+template <class T>
+struct IsDelegate : std::false_type
+{
+};
+
+template <class ReturnType, class... Args>
+struct IsDelegate<Delegate<ReturnType, Args...>> : std::true_type
+{
+};
+
+template <class T>
+inline constexpr bool IsDelegateV = IsDelegate<T>::value;
+
 } // namespace functional
 
 using functional::Delegate;
 using functional::DelegateHandler;
 using functional::DelegateHandlerSet;
 using functional::IDelegate;
+using functional::IsDelegateV;
+using functional::IsDelegate;
 
 } // namespace hyperion

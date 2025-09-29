@@ -840,7 +840,15 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
                     outString += Script_String(", ");
                 }
 
-                outString += ScriptApi_ValueToString(HypData(pArray->ElementAt(i)), currDepth + 1);
+                HypData element;
+                if (pArray->ElementAt(i, element))
+                {
+                    outString += ScriptApi_ValueToString(element, currDepth + 1);
+                }
+                else
+                {
+                    outString += Script_String("<Error accessing element>");
+                }
             }
 
             outString += "]";

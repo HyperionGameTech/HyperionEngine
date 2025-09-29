@@ -43,11 +43,27 @@ enum class HypMemberType : uint8
 
 HYP_MAKE_ENUM_FLAGS(HypMemberType)
 
+enum class HypMemberFlags : uint32
+{
+    NONE = 0x0,
+    DELEGATE = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(HypMemberFlags);
+
 class IHypMember
 {
-public:
     friend class HypClass;
 
+protected:
+    IHypMember()
+        : m_ownerClass(nullptr),
+          m_flags(HypMemberFlags::NONE)
+    {
+    }
+
+
+public:
     virtual ~IHypMember() = default;
 
     virtual HypMemberType GetMemberType() const = 0;
@@ -63,6 +79,16 @@ public:
         return m_ownerClass;
     }
 
+    HYP_FORCE_INLINE EnumFlags<HypMemberFlags> GetFlags() const
+    {
+        return m_flags;
+    }
+
+    HYP_FORCE_INLINE bool IsDelegate() const
+    {
+        return m_flags[HypMemberFlags::DELEGATE];
+    }
+
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;
 
@@ -75,6 +101,7 @@ public:
 
 protected:
     const HypClass* m_ownerClass;
+    EnumFlags<HypMemberFlags> m_flags;
 };
 
 } // namespace hyperion

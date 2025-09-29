@@ -31,6 +31,9 @@
 
 #include <core/json/JSON.hpp>
 
+#include <scene/Entity.hpp>
+#include <scene/EntityManager.hpp>
+
 #include <system/MessageBox.hpp>
 
 #include <engine/EngineGlobals.hpp>
@@ -1655,7 +1658,7 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
 }
 
 HYP_DISABLE_OPTIMIZATION;
-Result AssetRegistry::RegisterAssetsRecursively(
+void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
     bool forceRelocation)
@@ -1664,47 +1667,89 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
     if (!target.IsValid() || target.IsNull())
     {
-        return HYP_MAKE_ERROR(Error, "Target reference is invalid");
+        return;
     }
 
     /// @TODO: Change to a Stack, recursion could get impressively deep.
 
     HashSet<const void*> visited; // to avoid infinite recursion
 
-    Proc<Result(const HypData&)> iterate;
-    iterate = [&](const HypData& current) -> Result
+    Proc<void(const HypData&)> iterate;
+    iterate = [&](const HypData& current) -> void
     {
         if (!current.IsValid() || current.IsNull())
         {
-            return {};
+            return;
         }
 
         if (!visited.Insert(current.ToRef().GetPointer()).second)
         {
-            // already visited; skip.
-            return {};
+            return;
         }
+        
+        if (current.Is<AssetObject>())
+        {
+            const AssetObject& assetObject = current.Get<AssetObject>();
 
-        if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
+            if (forceRelocation || !assetObject.IsRegistered())
+            {
+                if (Result result = RegisterAsset(packagePath, assetObject.HandleFromThis()); result.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject.GetName(), result.GetError().GetMessage());
+                }
+            }
+        }
+        else if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
         {
             HypDataArray& array = current.Get<HypDataArray>();
 
             if (!array.CanGetElementByIndex())
             {
-                return HYP_MAKE_ERROR(Error, "Cannot iterate over {}: not indexable", LookupTypeName(current.GetTypeId()));
+                HYP_LOG(Assets, Error, "Cannot iterate over {}: not indexable", LookupTypeName(current.GetTypeId()));
+                return;
             }
 
             SizeType size = array.Size();
 
             for (SizeType i = 0; i < size; ++i)
             {
-                if (Result result = iterate(HypData(AnyRef(array.ElementAt(i)))); result.HasError())
+                HypData element;
+                if (!array.ElementAt(i, element))
                 {
-                    return result;
+                    HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
+                    continue;
                 }
+
+                iterate(element);
             }
 
-            return {};
+            return;
+        }
+
+        // special handling for Entity: needs to collect from components
+        // @TODO: Move to a method that can be overridden for custom handling?
+        if (current.Is<Entity>())
+        {
+            const Entity& entity = current.Get<Entity>();
+
+            EntityManager* entityManager = entity.GetEntityManager();
+            if (entityManager != nullptr)
+            {
+                const auto componentIds = entityManager->GetAllComponents(&entity);
+                if (componentIds.HasValue())
+                {
+                    for (const auto& [typeId, componentId] : *componentIds)
+                    {
+                        const auto componentRef = entityManager->TryGetComponent(typeId, &entity);
+                        if (!componentRef.HasValue())
+                        {
+                            continue;
+                        }
+
+                        iterate(HypData(componentRef));
+                    }
+                }
+            }
         }
 
         const TypeId typeId = current.GetTypeId();
@@ -1712,7 +1757,13 @@ Result AssetRegistry::RegisterAssetsRecursively(
 
         if (!hypClass) // no HypClass; not an object we can iterate over.
         {
-            return {};
+            return;
+        }
+
+        // temp
+        if (hypClass->GetName() == "Texture")
+        {
+            HYP_BREAKPOINT;
         }
 
         for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
@@ -1742,32 +1793,11 @@ Result AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
-            if (Result result = iterate(memberData); result.HasError())
-            {
-                return result;
-            }
-
-            if (memberData.Is<AssetObject>())
-            {
-                const AssetObject& assetObject = memberData.Get<AssetObject>();
-
-                if (!forceRelocation && assetObject.IsRegistered())
-                {
-                    // already registered, skip.
-                    continue;
-                }
-
-                if (Result result = RegisterAsset(packagePath, assetObject.HandleFromThis()); result.HasError())
-                {
-                    return result;
-                }
-            }
+            iterate(memberData);
         }
-
-        return {};
     };
 
-    return iterate(target);
+    iterate(target);
 }
 HYP_ENABLE_OPTIMIZATION;
 
