@@ -69,9 +69,11 @@ static void ParseInnerContent(const String& content, String& outResult)
     int braceDepth = 0;
     int parenDepth = 0;
 
-    for (SizeType charIndex = 0; charIndex < content.Length(); charIndex++)
+    UTF8StringView sv = content;
+
+    for (auto it = sv.Begin(); it != sv.End(); ++it)
     {
-        const utf::u32char ch = content.GetChar(charIndex);
+        const utf::u32char ch = *it;
 
         if (ch == 0)
         {
@@ -99,27 +101,27 @@ static void ParseInnerContent(const String& content, String& outResult)
         {
             isInString = !isInString;
         }
-        else if (ch == '/' && !isInString && !isInComment && charIndex + 1 < content.Length())
+        else if (ch == '/' && !isInString && !isInComment && it + 1 < content.End())
         {
-            if (content.GetChar(charIndex + 1) == '/')
+            if (*(it + 1) == '/')
             {
                 isInComment = 1;
-                outResult.Append(content.GetChar(++charIndex)); // Append the '/' to the result
+                outResult.Append(*(++it)); // Append the '/' to the result
                 continue;
             }
-            else if (content.GetChar(charIndex + 1) == '*')
+            else if (*(it + 1) == '*')
             {
                 isInComment = 2;
-                outResult.Append(content.GetChar(++charIndex)); // Append the '/' to the result
+                outResult.Append(*(++it)); // Append the '/' to the result
                 continue;
             }
         }
-        else if (ch == '*' && !isInString && isInComment == 2 && charIndex + 1 < content.Length())
+        else if (ch == '*' && !isInString && isInComment == 2 && it + 1 < content.End())
         {
-            if (content.GetChar(charIndex + 1) == '/')
+            if (*(it + 1) == '/')
             {
                 isInComment = 0;
-                outResult.Append(content.GetChar(++charIndex)); // Append the '/' to the result
+                outResult.Append(*(++it)); // Append the '/' to the result
                 continue;
             }
         }
@@ -507,6 +509,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         hypClassDefinition.name = *optClassName;
 
         Array<String> baseClassNames = ExtractCXXBaseClasses(hypClassDefinition.source);
+
         for (const String& baseClassName : baseClassNames)
         {
             hypClassDefinition.baseClassNames.PushBack(baseClassName);
@@ -742,17 +745,43 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(co
 
 #pragma region Analyzer
 
+Analyzer::Analyzer()
+{
+    // clang-format off
+
+    // reserve 'HypObjectBase' class
+    m_builtinHypClasses.Emplace("HypObjectBase", HypClassDefinition {
+        .type = HypClassDefinitionType::CLASS,
+        .name = "HypObjectBase",
+        .staticIndex = 0
+    });
+
+    // clang-format on
+}
+
 const HypClassDefinition* Analyzer::FindHypClassDefinition(UTF8StringView className) const
 {
     Mutex::Guard guard(m_mutex);
 
-    for (const UniquePtr<Module>& module : m_modules)
-    {
-        const HypClassDefinition* hypClass = module->FindHypClassDefinition(className);
+    return FindHypClassDefinition_Internal(className);
+}
 
-        if (hypClass)
+const HypClassDefinition* Analyzer::FindHypClassDefinition_Internal(UTF8StringView className) const
+{
+    auto it = m_builtinHypClasses.FindAs(className);
+
+    if (it != m_builtinHypClasses.End())
+    {
+        return &it->second;
+    }
+
+    for (const UniquePtr<Module>& mod : m_modules)
+    {
+        const HypClassDefinition* hypClassDefinition = mod->FindHypClassDefinition(className);
+
+        if (hypClassDefinition)
         {
-            return hypClass;
+            return hypClassDefinition;
         }
     }
 
@@ -864,24 +893,9 @@ bool Analyzer::HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8St
 {
     Mutex::Guard guard(m_mutex);
 
-    auto findDefinition = [this](UTF8StringView name) -> const HypClassDefinition*
-    {
-        for (const UniquePtr<Module>& module : m_modules)
-        {
-            const HypClassDefinition* hypClass = module->FindHypClassDefinition(name);
-
-            if (hypClass)
-            {
-                return hypClass;
-            }
-        }
-
-        return nullptr;
-    };
-
     Proc<bool(const HypClassDefinition&, UTF8StringView)> performCheck;
 
-    performCheck = [&performCheck, &findDefinition](const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) -> bool
+    performCheck = [this, &performCheck](const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) -> bool
     {
         auto it = hypClassDefinition.baseClassNames.FindAs(baseClassName);
 
@@ -892,7 +906,7 @@ bool Analyzer::HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8St
 
         for (const String& baseClass : hypClassDefinition.baseClassNames)
         {
-            const HypClassDefinition* baseHypClass = findDefinition(baseClass);
+            const HypClassDefinition* baseHypClass = FindHypClassDefinition_Internal(baseClass);
 
             if (baseHypClass && performCheck(*baseHypClass, baseClassName))
             {

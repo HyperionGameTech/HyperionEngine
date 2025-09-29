@@ -36,25 +36,25 @@ HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 HYP_STRUCT(Component, NoScriptBindings, Label = "Script Component", Description = "A script component that can be attached to an entity.")
 struct ScriptComponent
 {
-    HYP_FIELD(NoScriptBindings)
+    HYP_FIELD(NoScriptBindings, Transient)
     TAssetReference<ScriptAsset> assetReference;
 
-    HYP_FIELD(NoScriptBindings)
+    HYP_FIELD(NoScriptBindings, Transient)
     RC<dotnet::Assembly> assembly;
 
-    HYP_FIELD(NoScriptBindings)
+    HYP_FIELD(NoScriptBindings, Transient)
     ScriptObjectResource* scriptObjectResource = nullptr;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
 
-    HYP_METHOD(Property = "AssetReference", Serialize)
+    HYP_METHOD(Property = "AssetReference")
     const AssetReference& GetAssetReference() const
     {
         return assetReference;
     }
 
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    HYP_METHOD(Property = "AssetReference")
     void SetAssetReference(const AssetReference& value)
     {
         assetReference = TAssetReference<ScriptAsset>(value);

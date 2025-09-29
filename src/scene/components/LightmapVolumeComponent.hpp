@@ -13,7 +13,7 @@ class LightmapVolume;
 HYP_STRUCT(Component)
 struct LightmapVolumeComponent
 {
-    HYP_FIELD(Property = "Volume", Serialize = true)
+    HYP_FIELD(Property = "Volume")
     Handle<LightmapVolume> volume;
 };
 

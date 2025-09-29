@@ -10,10 +10,10 @@ namespace hyperion {
 HYP_STRUCT(Component, Size = 64, Editor = false)
 struct BoundingBoxComponent
 {
-    HYP_FIELD(Property = "LocalAABB", Serialize = true)
+    HYP_FIELD(Property = "LocalAABB")
     BoundingBox localAabb;
 
-    HYP_FIELD(Property = "WorldAABB", Serialize = true)
+    HYP_FIELD(Property = "WorldAABB")
     BoundingBox worldAabb;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

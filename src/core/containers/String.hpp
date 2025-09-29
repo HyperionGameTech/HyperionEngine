@@ -51,8 +51,8 @@ public:
     using ValueType = typename Base::ValueType;
     using KeyType = typename Base::KeyType;
 
-    using Iterator = typename Base::Iterator;
-    using ConstIterator = typename Base::ConstIterator;
+    using Iterator = typename utilities::StringView<TStringType>::Iterator;
+    using ConstIterator = typename utilities::StringView<TStringType>::ConstIterator;
 
     static constexpr bool isContiguous = true;
 
@@ -251,7 +251,12 @@ public:
 
     HYP_FORCE_INLINE operator utilities::StringView<TStringType>() const
     {
-        return utilities::StringView<TStringType>(Begin(), End(), Length());
+        if (Base::Begin() == Base::End())
+        {
+            return utilities::StringView<TStringType>();
+        }
+
+        return utilities::StringView<TStringType>(Base::Begin(), Base::End() - 1, Length());
     }
 
     /*! \brief Conversion operator to return the raw data of the string. */
@@ -937,7 +942,7 @@ public:
         return HashCode(::hyperion::FNV1::DoHashString(Data()));
     }
 
-    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End() - 1)
+    HYP_DEF_STL_BEGIN_END(Base::Data(), Base::Data() + Size())
 
 protected:
     SizeType m_length;

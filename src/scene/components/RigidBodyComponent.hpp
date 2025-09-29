@@ -27,16 +27,16 @@ HYP_MAKE_ENUM_FLAGS(RigidBodyComponentFlags)
 HYP_STRUCT(Component, Label = "Rigid Body Component", Description = "Controls the properties of an object with rigid body physics.", Editor = true)
 struct RigidBodyComponent
 {
-    HYP_FIELD(Serialize, Property = "RigidBody")
+    HYP_FIELD(Property = "RigidBody")
     Handle<RigidBody> rigidBody;
 
-    HYP_FIELD(Serialize, Property = "PhysicsMaterial")
+    HYP_FIELD(Property = "PhysicsMaterial")
     PhysicsMaterial physicsMaterial;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     EnumFlags<RigidBodyComponentFlags> flags = RigidBodyComponentFlags::NONE;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     HashCode transformHashCode;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

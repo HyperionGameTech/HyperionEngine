@@ -34,7 +34,11 @@ const String& HypMemberTypeToString(HypMemberType type);
 class Analyzer
 {
 public:
-    Analyzer() = default;
+    Analyzer();
+    Analyzer(const Analyzer&) = delete;
+    Analyzer& operator=(const Analyzer&) = delete;
+    Analyzer(Analyzer&&) = delete;
+    Analyzer& operator=(Analyzer&&) = delete;
     ~Analyzer() = default;
 
     HYP_FORCE_INLINE const FilePath& GetWorkingDirectory() const
@@ -144,6 +148,16 @@ public:
         m_state.errors.PushBack(error);
     }
 
+    HYP_FORCE_INLINE HashMap<String, HypClassDefinition>& GetBuiltinHypClasses()
+    {
+        return m_builtinHypClasses;
+    }
+
+    HYP_FORCE_INLINE const HashMap<String, HypClassDefinition>& GetBuiltinHypClasses() const
+    {
+        return m_builtinHypClasses;
+    }
+
     const HypClassDefinition* FindHypClassDefinition(UTF8StringView className) const;
 
     Module* AddModule(const FilePath& path);
@@ -153,6 +167,8 @@ public:
     bool HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) const;
 
 private:
+    const HypClassDefinition* FindHypClassDefinition_Internal(UTF8StringView className) const;
+
     FilePath m_workingDirectory;
     FilePath m_sourceDirectory;
     FilePath m_cxxOutputDirectory;
@@ -167,6 +183,8 @@ private:
     mutable Mutex m_mutex;
     HashMap<String, String> m_globalDefines;
     HashSet<String> m_includePaths;
+
+    HashMap<String, HypClassDefinition> m_builtinHypClasses;
 };
 
 } // namespace buildtool

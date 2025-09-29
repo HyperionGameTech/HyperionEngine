@@ -19,7 +19,7 @@ namespace hyperion {
 class UIObject;
 class InputManager;
 
-HYP_STRUCT(Component, Size = 8)
+HYP_STRUCT(Component, Size = 8, Serialize = false)
 struct UIComponent
 {
     HYP_FIELD()

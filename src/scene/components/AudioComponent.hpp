@@ -40,16 +40,16 @@ enum AudioLoopMode : uint8
 HYP_STRUCT()
 struct AudioPlaybackState
 {
-    HYP_FIELD(Property = "Status", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Status", Editor = true)
     AudioPlaybackStatus status = APS_STOPPED;
 
-    HYP_FIELD(Property = "LoopMode", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "LoopMode", Editor = true)
     AudioLoopMode loopMode = ALM_ONCE;
 
-    HYP_FIELD(Property = "Speed", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "Speed", Editor = true)
     float speed = 1.0f;
 
-    HYP_FIELD(Property = "CurrentTime", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "CurrentTime", Editor = true)
     float currentTime = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -67,19 +67,19 @@ struct AudioPlaybackState
 HYP_STRUCT(Component, Label = "Audio Component", Description = "Controls the state of an audio source.", Editor = true)
 struct AudioComponent
 {
-    HYP_FIELD(Property = "AudioSource", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "AudioSource", Editor = true)
     Handle<AudioSource> audioSource;
 
-    HYP_FIELD(Property = "PlaybackState", Serialize = true, Editor = true)
+    HYP_FIELD(Property = "PlaybackState", Editor = true)
     AudioPlaybackState playbackState;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     EnumFlags<AudioComponentFlags> flags = AudioComponentFlags::NONE;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Vec3f lastPosition;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     float timer = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

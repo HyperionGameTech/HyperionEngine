@@ -264,7 +264,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         result.m_attributes = getter->GetAttributes();
     }
-    
+
     if (field != nullptr)
     {
         if (!propertyAttributeOpt)
@@ -337,7 +337,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     result.m_name = CreateNameFromDynamicString(*propertyAttributeOpt);
     result.m_typeId = *typeId;
     result.m_ownerClass = nullptr;
-    
+
     if (hasGetter)
     {
         result.m_getter = HypPropertyGetter();

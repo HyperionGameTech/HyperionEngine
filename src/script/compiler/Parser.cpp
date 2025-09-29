@@ -1024,10 +1024,12 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
 
             if (token.GetFlags()[0] == 'i' || token.GetFlags()[0] == 'l')
             {
+                const char* beginPtr = token.GetValue().Data();
                 char* endPtr = nullptr;
-                const int64 value = std::strtoll(token.GetValue().Begin(), &endPtr, 10);
 
-                if (!endPtr || endPtr != token.GetValue().End())
+                const int64 value = std::strtoll(beginPtr, &endPtr, 10);
+
+                if (!endPtr || (endPtr - beginPtr) < token.GetValue().Size())
                 {
                     m_compilationUnit->GetErrorList().AddError(CompilerError(
                         LEVEL_ERROR,
@@ -1044,10 +1046,12 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
             }
             else if (token.GetFlags()[0] == 'u')
             {
+                const char* beginPtr = token.GetValue().Data();
                 char* endPtr = nullptr;
-                const uint64 value = std::strtoull(token.GetValue().Begin(), &endPtr, 10);
 
-                if (!endPtr || endPtr != token.GetValue().End())
+                const uint64 value = std::strtoull(beginPtr, &endPtr, 10);
+
+                if (!endPtr || (endPtr - beginPtr) < token.GetValue().Size())
                 {
                     m_compilationUnit->GetErrorList().AddError(CompilerError(
                         LEVEL_ERROR,
@@ -1064,10 +1068,12 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
             }
             else if (token.GetFlags()[0] == 'f')
             {
+                const char* beginPtr = token.GetValue().Data();
                 char* endPtr = nullptr;
-                const double value = std::strtod(token.GetValue().Data(), &endPtr);
 
-                if (!endPtr || endPtr != token.GetValue().End())
+                const double value = std::strtod(beginPtr, &endPtr);
+
+                if (!endPtr || (endPtr - beginPtr) < token.GetValue().Size())
                 {
                     m_compilationUnit->GetErrorList().AddError(CompilerError(
                         LEVEL_ERROR,
@@ -1093,10 +1099,12 @@ RC<AstConstant> Parser::ParseIntegerLiteral()
         }
         else
         {
+            const char* beginPtr = token.GetValue().Data();
             char* endPtr = nullptr;
-            const int64 value = std::strtoll(token.GetValue().Begin(), &endPtr, 10);
 
-            if (!endPtr || endPtr != token.GetValue().End())
+            const int64 value = std::strtoll(beginPtr, &endPtr, 10);
+
+            if (!endPtr || (endPtr - beginPtr) < token.GetValue().Size())
             {
                 m_compilationUnit->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,

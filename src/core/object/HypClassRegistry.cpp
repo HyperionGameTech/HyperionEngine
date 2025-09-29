@@ -20,6 +20,8 @@
 
 namespace hyperion {
 
+HYP_API const HypClass* g_hypObjectBaseClass = nullptr;
+
 #pragma region HypClassRegistry
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
@@ -305,6 +307,15 @@ void HypClassRegistry::Initialize()
 
     HYP_CORE_ASSERT(!m_isInitialized);
     m_isInitialized = true;
+
+    auto hypObjectBaseClassIt = m_registeredClasses.FindIf([](auto&& item)
+        {
+            return item.second->GetName() == "HypObjectBase";
+        });
+
+    HYP_CORE_ASSERT(hypObjectBaseClassIt != m_registeredClasses.End(), "HypObjectBase class not registered");
+
+    g_hypObjectBaseClass = hypObjectBaseClassIt->second;
 
     for (auto&& it : m_registeredClasses)
     {

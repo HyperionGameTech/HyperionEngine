@@ -63,6 +63,13 @@ static void CollectAssetReferenceMembers(
 
                     continue;
                 }
+
+                if (pTargetMember->IsDelegate())
+                {
+                    HYP_LOG(Serialization, Warning, "Member '{}' of HypClass '{}' has 'ResolveAsset' attribute set to '{}', but that member is a delegate, skipping serialization", member.GetName(), member.GetOwnerClass()->GetName(), *targetAttr.GetString());
+
+                    continue;
+                }
             }
 
             outMembers.EmplaceBack(&member, pTargetMember);
@@ -70,8 +77,6 @@ static void CollectAssetReferenceMembers(
         }
     }
 }
-
-HYP_DISABLE_OPTIMIZATION;
 
 FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 {
@@ -208,6 +213,11 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
         for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
         {
+            if (member.IsDelegate())
+            {
+                continue;
+            }
+
             if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
             {
                 // skip fields with synthetic properties (we'll serialize the property instead)
@@ -291,8 +301,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
     return Deserialize_Internal(context, in, hypClass, ref);
 }
 
-HYP_ENABLE_OPTIMIZATION;
-
 FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, AnyRef ref) const
 {
     HYP_CORE_ASSERT(hypClass != nullptr);
@@ -323,14 +331,15 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
-            HYP_LOG(Serialization, Debug, "Deserializing property '{}' for HypClass '{}'", it.first, hypClass->GetName());
-
             if (const IHypMember* pMember = hypClass->GetMember(it.first, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
             {
+                if (pMember->IsDelegate())
+                {
+                    continue;
+                }
+
                 if (assetReferenceTargetMembersMap.Contains(pMember))
                 {
-                    HYP_LOG_TEMP("Skipping deserialization of member '{}' on HypClass '{}' because it is a target of an AssetReference", pMember->GetName(), hypClass->GetName());
-
                     continue;
                 }
 
@@ -412,10 +421,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                 }
 
                 HypData targetData { AnyRef(ref) };
-
-                constexpr auto x = TypeId::ForType<AnyRef>();
-
-                HYP_LOG_TEMP("Member type     : {}", pMember->GetTargetTypeId().Value());
 
                 if (Result deserializeResult = pMember->Deserialize(context, targetData, it.second); deserializeResult.HasError())
                 {

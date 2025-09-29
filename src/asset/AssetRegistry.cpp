@@ -1672,30 +1672,43 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     /// @TODO: Change to a Stack, recursion could get impressively deep.
 
-    HashSet<const void*> visited; // to avoid infinite recursion
+    HashSet<const HypObjectBase*> visited; // to avoid infinite recursion
 
     Proc<void(const HypData&)> iterate;
     iterate = [&](const HypData& current) -> void
     {
         if (!current.IsValid() || current.IsNull())
         {
+            HYP_LOG_TEMP("Current data is invalid or null, skipping");
             return;
         }
 
-        if (!visited.Insert(current.ToRef().GetPointer()).second)
         {
-            return;
+            HypObjectBase* pObject = current.TryGet<HypObjectBase*>().GetOr(nullptr);
+            if (pObject && !visited.Insert(pObject).second)
+            {
+                HYP_LOG_TEMP("Already visited {} with ID {}, skipping to avoid infinite recursion",
+                    pObject->InstanceClass() ? *pObject->InstanceClass()->GetName() : "<no class>", pObject->Id());
+
+                return;
+            }
         }
-        
+
         if (current.Is<AssetObject>())
         {
             const AssetObject& assetObject = current.Get<AssetObject>();
 
             if (forceRelocation || !assetObject.IsRegistered())
             {
+                HYP_LOG_TEMP("Registering asset '{}' at path '{}'", assetObject.GetName(), packagePath);
+
                 if (Result result = RegisterAsset(packagePath, assetObject.HandleFromThis()); result.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject.GetName(), result.GetError().GetMessage());
+                }
+                else
+                {
+                    HYP_LOG_TEMP("Registered asset '{}' to path '{}'", assetObject.GetName(), assetObject.GetPath().ToString());
                 }
             }
         }
@@ -1713,6 +1726,8 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             for (SizeType i = 0; i < size; ++i)
             {
+                HYP_LOG_TEMP("Iterating element {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
+
                 HypData element;
                 if (!array.ElementAt(i, element))
                 {
@@ -1746,9 +1761,15 @@ void AssetRegistry::RegisterAssetsRecursively(
                             continue;
                         }
 
+                        HYP_LOG_TEMP("Iterating component of type {} for Entity {}", LookupTypeName(typeId), entity.Id());
+
                         iterate(HypData(componentRef));
                     }
                 }
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "Entity {} has no valid EntityManager, cannot iterate components", entity.Id());
             }
         }
 
@@ -1760,14 +1781,19 @@ void AssetRegistry::RegisterAssetsRecursively(
             return;
         }
 
-        // temp
-        if (hypClass->GetName() == "Texture")
-        {
-            HYP_BREAKPOINT;
-        }
-
         for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
         {
+            if (member.IsDelegate())
+            {
+                continue;
+            }
+
+            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
+            {
+                // skip non-property members if they have the 'property' attribute (synthetic property)
+                continue;
+            }
+
             HypData memberData;
             switch (member.GetMemberType())
             {

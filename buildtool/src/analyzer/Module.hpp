@@ -23,6 +23,10 @@ class Module
 {
 public:
     Module(const FilePath& path);
+    Module(const Module&) = delete;
+    Module& operator=(const Module&) = delete;
+    Module(Module&&) = delete;
+    Module& operator=(Module&&) = delete;
     ~Module() = default;
 
     HYP_FORCE_INLINE const FilePath& GetPath() const

@@ -255,11 +255,11 @@ Result EditorProject::SaveAs(FilePath filepath)
     FBOMWriter writer { FBOMWriterConfig {} };
     writer.Append(*this);
 
-    if (auto err = writer.Emit(&byteWriter))
+    if (FBOMResult err = writer.Emit(&byteWriter); !err.IsOK())
     {
         m_lastSavedTime = previousLastSavedTime;
 
-        return HYP_MAKE_ERROR(Error, "Failed to write project to disk");
+        return HYP_MAKE_ERROR(Error, "Failed to write project to disk at '{}': {}", projectFilepath, err.message);
     }
 
     Result result;

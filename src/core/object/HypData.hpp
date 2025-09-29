@@ -4,11 +4,6 @@
 
 #include <core/object/HypDataFwd.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/LinkedList.hpp>
-
 #include <core/object/ObjId.hpp>
 #include <core/object/Handle.hpp>
 #include <core/object/HypObjectFwd.hpp>

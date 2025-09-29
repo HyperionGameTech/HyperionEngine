@@ -1,5 +1,10 @@
 #pragma once
 
+#include <core/containers/String.hpp>
+#include <core/containers/HashMap.hpp>
+#include <core/containers/HashSet.hpp>
+#include <core/containers/LinkedList.hpp>
+
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 

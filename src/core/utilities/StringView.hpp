@@ -105,6 +105,48 @@ private:
             }
         }
 
+        HYP_FORCE_INLINE IteratorBase operator+(SizeType n) const
+        {
+            if constexpr (isUtf8)
+            {
+                auto it = *this;
+
+                for (SizeType i = 0; i < n; i++)
+                {
+                    SizeType codepoints;
+                    utf::Char8to32(it.ptr, sizeof(utf::u32char), codepoints);
+
+                    it.ptr += codepoints;
+                }
+
+                return it;
+            }
+            else
+            {
+                return { ptr + n };
+            }
+        }
+
+        HYP_FORCE_INLINE IteratorBase& operator+=(SizeType n)
+        {
+            if constexpr (isUtf8)
+            {
+                for (SizeType i = 0; i < n; i++)
+                {
+                    SizeType codepoints;
+                    utf::Char8to32(ptr, sizeof(utf::u32char), codepoints);
+
+                    ptr += codepoints;
+                }
+            }
+            else
+            {
+                ptr += n;
+            }
+
+            return *this;
+        }
+
         HYP_FORCE_INLINE bool operator==(const IteratorBase& other) const
         {
             return ptr == other.ptr;
@@ -113,6 +155,26 @@ private:
         HYP_FORCE_INLINE bool operator!=(const IteratorBase& other) const
         {
             return ptr != other.ptr;
+        }
+
+        HYP_FORCE_INLINE bool operator<(const IteratorBase& other) const
+        {
+            return ptr < other.ptr;
+        }
+
+        HYP_FORCE_INLINE bool operator<=(const IteratorBase& other) const
+        {
+            return ptr <= other.ptr;
+        }
+
+        HYP_FORCE_INLINE bool operator>(const IteratorBase& other) const
+        {
+            return ptr > other.ptr;
+        }
+
+        HYP_FORCE_INLINE bool operator>=(const IteratorBase& other) const
+        {
+            return ptr >= other.ptr;
         }
     };
 

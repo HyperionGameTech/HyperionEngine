@@ -43,8 +43,6 @@ FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const M
 
 Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
-    FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
-
     HashSet<String> addedIncludes;
     const auto addInclude = [&writer, &addedIncludes](const String& include)
     {
@@ -57,9 +55,14 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         writer.WriteString(HYP_FORMAT("#include <{}>\n", include));
     };
 
-    writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relativePath));
+    if (mod.GetPath().Any())
+    {
+        FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 
-    addInclude(relativePath);
+        writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relativePath));
+
+        addInclude(relativePath);
+    }
 
     for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
     {

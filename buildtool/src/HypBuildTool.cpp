@@ -290,6 +290,23 @@ private:
                 Array<HypClassDefinition*> hypClassDefinitions;
                 HashMap<String, uint32> hypClassDefinitionIds;
 
+                for (auto& it : m_analyzer.GetBuiltinHypClasses())
+                {
+                    if (hypClassDefinitionIds.Contains(it.second.name))
+                    {
+                        m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate HypClassDefinition name found: {}", "<builtin>", 0, it.second.name));
+
+                        continue;
+                    }
+
+                    Assert(it.second.staticIndex != -1); // builtins should have static indices assigned
+
+                    const uint32 hypClassDefinitionId = uint32(hypClassDefinitions.Size());
+
+                    hypClassDefinitionIds[it.second.name] = hypClassDefinitionId;
+                    hypClassDefinitions.PushBack(&it.second);
+                }
+
                 for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
                 {
                     for (auto& it : mod->GetHypClasses())
@@ -359,10 +376,10 @@ private:
                 Array<uint32> stack;
                 stack.Reserve(hypClassDefinitions.Size());
 
-                uint32 nextOut = 0;
+                uint32 nextOut = 1; // 0 is reserved for HypObjectBase
 
-                Proc<void(uint32)> TopologicalSort;
-                TopologicalSort = [&](uint32 id)
+                Proc<void(uint32)> topologicalSort;
+                topologicalSort = [&](uint32 id)
                 {
                     Assert(id < hypClassDefinitions.Size());
 
@@ -370,27 +387,37 @@ private:
 
                     uint32 start = nextOut;
 
-                    hypClassDefinition->staticIndex = int(nextOut++);
+                    // skip assignment for builtin HypObjectBase type (0)
+                    const bool isBaseClass = hypClassDefinition->name == "HypObjectBase";
+
+                    if (!isBaseClass)
+                    {
+                        hypClassDefinition->staticIndex = int(nextOut++);
+                    }
 
                     stack.PushBack(id);
 
-                    for (uint32 child : derived[id])
+                    for (uint32 i : derived[id])
                     {
-                        if (hypClassDefinitions[child]->staticIndex == -1)
+                        if (hypClassDefinitions[i]->staticIndex == -1)
                         {
-                            TopologicalSort(child);
+                            topologicalSort(i);
                         }
                     }
 
                     stack.PopBack();
 
                     hypClassDefinition->numDescendants = nextOut - start - 1;
-                    hypClassDefinition->staticIndex = int(start + 1);
+
+                    if (!isBaseClass)
+                    {
+                        hypClassDefinition->staticIndex = int(start + 1);
+                    }
                 };
 
                 for (uint32 root : roots)
                 {
-                    TopologicalSort(root);
+                    topologicalSort(root);
                 }
             });
     }
@@ -412,11 +439,31 @@ private:
                 })
             .Detach();
 
+        RC<Module> builtinsModule = MakeRefCountedPtr<Module>(FilePath());
+
+        // add all builtins to a fake module for generation
+        for (auto& it : m_analyzer.GetBuiltinHypClasses())
+        {
+            builtinsModule->GetHypClasses().Set(it.second.name, it.second);
+        }
+
         if (m_analyzer.GetCSharpOutputDirectory().Any())
         {
             Assert(m_analyzer.GetCSharpOutputDirectory().MkDir(), "Failed to create C# output directory: {}", m_analyzer.GetCSharpOutputDirectory());
 
             RC<CSharpModuleGenerator> csharpModuleGenerator = MakeRefCountedPtr<CSharpModuleGenerator>();
+
+            if (builtinsModule->GetHypClasses().Any())
+            {
+                // generate builtins first
+                batch->AddTask([this, csharpModuleGenerator, builtinsModule]()
+                    {
+                        if (Result res = csharpModuleGenerator->Generate(m_analyzer, *builtinsModule); res.HasError())
+                        {
+                            m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
+                        }
+                    });
+            }
 
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
@@ -453,6 +500,15 @@ private:
             }
 
             hypscriptModuleWriter.WriteString(*g_hypscriptPreamble);
+
+            if (builtinsModule->GetHypClasses().Any())
+            {
+                // generate builtins first
+                if (Result res = hypscriptModuleGenerator->Generate(m_analyzer, *builtinsModule, hypscriptModuleWriter); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
+                }
+            }
 
             Array<Module*> sortedModules = SortModulesTopologically();
 
@@ -523,6 +579,22 @@ private:
 
             ++fileIndex;
         };
+
+        if (builtinsModule->GetHypClasses().Any())
+        {
+            // generate builtins first
+            updateFilenameBuffer();
+
+            cxxModuleWriter = new FileByteWriter(m_analyzer.GetCXXOutputDirectory() / filenameBuffer);
+
+            // add main required header that is shared across all generated modules.
+            cxxModuleWriter->WriteString("#include <core/object/HypClassUtils.hpp>\n");
+
+            if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, *cxxModuleWriter); res.HasError())
+            {
+                m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
+            }
+        }
 
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
@@ -764,8 +836,8 @@ int main(int argc, char** argv)
     definitions.Add("WorkingDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
     definitions.Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
     definitions.Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
-    definitions.Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
-    definitions.Add("HypScriptOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+    definitions.Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
+    definitions.Add("HypScriptOutputDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
