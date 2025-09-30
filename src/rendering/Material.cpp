@@ -70,7 +70,7 @@ Material::Material()
 }
 
 Material::Material(Name name, RenderBucket rb)
-    : m_name(name),
+    : AssetObject(name),
       m_attributes {
           .shaderDefinition = g_defaultShaderDefinition,
           .bucket = rb
@@ -92,7 +92,7 @@ Material::Material(
     const MaterialAttributes& attributes,
     const MaterialParameters& parameters,
     const MaterialTextures& textures)
-    : m_name(name),
+    : AssetObject(name),
       m_parameters(parameters),
       m_textures(textures),
       m_attributes(attributes),

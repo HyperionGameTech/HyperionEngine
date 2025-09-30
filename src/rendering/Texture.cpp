@@ -51,18 +51,18 @@ static const Name g_nameTextureDefault = NAME("<unnamed texture>");
 struct RENDER_COMMAND(CreateTextureGpuImage)
     : RenderCommand
 {
-    WeakHandle<Texture> textureWeak;
+    WeakHandle<TextureAsset> textureAssetWeak;
     ResourceHandle resourceHandle;
     ResourceState initialState;
     GpuImageRef image;
 
     RENDER_COMMAND(CreateTextureGpuImage)
     (
-        const WeakHandle<Texture>& textureWeak,
+        const WeakHandle<TextureAsset>& textureAssetWeak,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
         GpuImageRef image)
-        : textureWeak(textureWeak),
+        : textureAssetWeak(textureAssetWeak),
           resourceHandle(std::move(resourceHandle)),
           initialState(initialState),
           image(std::move(image))
@@ -74,25 +74,20 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
     virtual RendererResult operator()() override
     {
-        Handle<Texture> texture = textureWeak.Lock();
-
-        if (!texture.IsValid())
-        {
-            return {};
-        }
+        Handle<TextureAsset> textureAsset = textureAssetWeak.Lock();
 
         if (!image->IsCreated())
         {
             HYP_GFX_CHECK(image->Create());
 
-            if (texture->GetAsset().IsValid())
+            if (textureAsset.IsValid())
             {
                 Assert(resourceHandle);
 
-                TextureData* textureData = texture->GetAsset()->GetTextureData();
+                TextureData* textureData = textureAsset->GetTextureData();
                 Assert(textureData != nullptr);
 
-                const TextureDesc& textureDesc = texture->GetAsset()->GetTextureDesc();
+                const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
 
                 ByteBuffer const* imageData = &textureData->imageData;
                 LinkedList<ByteBuffer> placeholderBuffers;
@@ -113,7 +108,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
                     const TextureFormat nonSrgbFormat = ChangeFormatSrgb(image->GetTextureFormat(), false);
 
-                    switch (texture->GetType())
+                    switch (textureAsset->GetTextureDesc().type)
                     {
                     case TT_TEX2D:
                         switch (nonSrgbFormat)
@@ -199,12 +194,12 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
 Texture::Texture()
     : Texture(TextureDesc {
-        TT_TEX2D,
-        TF_RGBA8,
-        Vec3u { 1, 1, 1 },
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE })
+          TT_TEX2D,
+          TF_RGBA8,
+          Vec3u { 1, 1, 1 },
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE })
 {
 }
 
@@ -267,7 +262,7 @@ void Texture::Init()
 
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
-        WeakHandleFromThis(),
+        MakeWeakRef(asset),
         asset != nullptr ? ResourceHandle(*asset->GetResource()) : ResourceHandle(),
         RS_SHADER_RESOURCE,
         m_gpuImage);

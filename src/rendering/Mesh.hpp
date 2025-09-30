@@ -21,8 +21,9 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <asset/MeshAsset.hpp>
+#include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
+#include <asset/MeshAsset.hpp>
 
 #include <cstdint>
 
@@ -63,7 +64,7 @@ private:
 
 /*! \brief Represents a 3D mesh in the engine, containing vertex data, indices, and rendering attributes. */
 HYP_CLASS()
-class HYP_API Mesh final : public HypObjectBase
+class HYP_API Mesh final : public AssetObject
 {
     HYP_OBJECT_BODY(Mesh);
 
@@ -79,22 +80,10 @@ public:
     Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes);
     Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology = TOP_TRIANGLES);
 
-    Mesh(const Mesh& other) = delete;
-    Mesh& operator=(const Mesh& other) = delete;
-
-    Mesh(Mesh&& other) noexcept;
-    Mesh& operator=(Mesh&& other) noexcept;
-
     ~Mesh();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    HYP_METHOD()
-    void SetName(Name name);
+    virtual Result Rename(Name name) override;
 
     void SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData);
 
@@ -113,7 +102,7 @@ public:
         return m_indexBuffer;
     }
 
-    HYP_METHOD(Property = "VertexAttributes")
+    HYP_METHOD(Property = "VertexAttributes", Transient)
     HYP_FORCE_INLINE VertexAttributeSet GetVertexAttributes() const
     {
         const Handle<MeshAsset>& asset = GetAsset();
@@ -126,7 +115,7 @@ public:
         return asset ? asset->GetMeshDesc().meshAttributes : MeshAttributes();
     }
 
-    HYP_METHOD(Property = "Topology")
+    HYP_METHOD(Property = "Topology", Transient)
     HYP_FORCE_INLINE Topology GetTopology() const
     {
         return GetMeshAttributes().topology;
@@ -136,22 +125,22 @@ public:
     {
         return m_assetReference.Resolve();
     }
-    
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
+
+    HYP_METHOD(Property = "AssetReference")
     const AssetReference& GetAssetReference() const
     {
         return m_assetReference;
     }
 
     /*! \brief Get the axis-aligned bounding box for the mesh. */
-    HYP_METHOD(Property = "AABB", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "AABB", Editor = true)
     HYP_FORCE_INLINE const BoundingBox& GetAABB() const
     {
         return m_aabb;
     }
 
     /*! \brief Manually set the AABB for the mesh */
-    HYP_METHOD(Property = "AABB", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "AABB", Editor = true)
     HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
     {
         m_aabb = aabb;
@@ -171,18 +160,16 @@ private:
     void CreateGpuBuffers();
 
     /*! \internal Serialization only */
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    HYP_METHOD(Property = "AssetReference")
     void SetAssetReference(const AssetReference& assetReference)
     {
         m_assetReference = TAssetReference<MeshAsset>(assetReference);
     }
 
-    HYP_FIELD(Serialize, Editor)
-    Name m_name;
-
+    HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;
 
-    HYP_FIELD(Serialize = false)
+    HYP_FIELD(Transient)
     BVHNode m_bvh; // @TODO: Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
 
     TAssetReference<MeshAsset> m_assetReference;
@@ -194,4 +181,3 @@ private:
 };
 
 } // namespace hyperion
-

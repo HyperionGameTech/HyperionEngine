@@ -9,6 +9,8 @@
 #include <Windows.h>
 #endif
 
+#include <core/debug/Debug.hpp>
+
 namespace hyperion {
 namespace threading {
 
@@ -45,6 +47,9 @@ public:
         }
 #elif defined(HYP_WINDOWS)
         InitializeCriticalSection(&m_criticalSection);
+#endif
+
+#ifdef HYP_DEBUG_MODE
         m_locked = false;
 #endif
     }
@@ -75,6 +80,9 @@ public:
         pthread_mutex_lock(&m_mutex);
 #elif defined(HYP_WINDOWS)
         EnterCriticalSection(&m_criticalSection);
+#endif
+
+#ifdef HYP_DEBUG_MODE
         HYP_CORE_ASSERT(!m_locked, "Mutex is already locked");
         m_locked = true;
 #endif
@@ -85,8 +93,11 @@ public:
 #if defined(HYP_UNIX)
         pthread_mutex_unlock(&m_mutex);
 #elif defined(HYP_WINDOWS)
-        m_locked = false;
         LeaveCriticalSection(&m_criticalSection);
+#endif
+#ifdef HYP_DEBUG_MODE
+        HYP_CORE_ASSERT(m_locked, "Mutex is not locked");
+        m_locked = false;
 #endif
     }
 
@@ -95,6 +106,9 @@ private:
     pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 #elif defined(HYP_WINDOWS)
     CRITICAL_SECTION m_criticalSection;
+#endif
+
+#ifdef HYP_DEBUG_MODE
     bool m_locked : 1;
 #endif
 };

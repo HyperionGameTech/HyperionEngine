@@ -49,7 +49,7 @@ public:
 
     const Handle<TextureAsset>& GetAsset() const;
 
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    HYP_METHOD(Property = "AssetReference")
     const AssetReference& GetAssetReference() const
     {
         return m_assetReference;
@@ -137,7 +137,7 @@ protected:
     void Init() override;
 
     /*! \internal Serialization only */
-    HYP_METHOD(Property = "AssetReference", Serialize = true)
+    HYP_METHOD(Property = "AssetReference")
     void SetAssetReference(const AssetReference& assetReference)
     {
         m_assetReference = TAssetReference<TextureAsset>(assetReference);
@@ -145,7 +145,7 @@ protected:
 
     TAssetReference<TextureAsset> m_assetReference;
 
-    HYP_FIELD(Serialize = false)
+    HYP_FIELD(Transient)
     GpuImageRef m_gpuImage;
 };
 

@@ -18,9 +18,11 @@
 #include <core/math/Color.hpp>
 
 #include <core/Types.hpp>
+#include <core/HashCode.hpp>
+
+#include <asset/AssetObject.hpp>
 
 #include <util/EnumOptions.hpp>
-#include <core/HashCode.hpp>
 
 namespace hyperion {
 
@@ -514,7 +516,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Material final : public HypObjectBase
+class HYP_API Material final : public AssetObject
 {
     HYP_OBJECT_BODY(Material);
 
@@ -529,7 +531,7 @@ public:
     static const MaterialParameters& DefaultParameters();
 
     Material();
-    
+
     Material(
         Name name,
         RenderBucket rb = RB_OPAQUE);
@@ -543,26 +545,14 @@ public:
         const MaterialAttributes& attributes,
         const MaterialParameters& parameters,
         const MaterialTextures& textures);
-    
+
     Material(const Material& other) = delete;
     Material& operator=(const Material& other) = delete;
-    
+
     Material(Material&& other) noexcept = delete;
     Material& operator=(Material&& other) noexcept = delete;
-    
+
     ~Material() override;
-
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE void SetName(Name name)
-    {
-        m_name = name;
-    }
 
     /*! \brief Get the current mutation state of this Material.
         \return The current mutation state of this Material */
@@ -827,7 +817,7 @@ public:
     {
         ++m_renderProxyVersion;
     }
-    
+
     void UpdateRenderProxy(RenderProxyMaterial* proxy);
 
     /*! \brief Clone this Material. The cloned Material will have the same
@@ -846,18 +836,16 @@ public:
 private:
     void Init() override;
 
-    Name m_name;
-
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     MaterialParameters m_parameters;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     MaterialTextures m_textures;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     MaterialAttributes m_attributes;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     bool m_isDynamic;
 
     mutable DataMutationState m_mutationState;
@@ -941,4 +929,3 @@ private:
 };
 
 } // namespace hyperion
-

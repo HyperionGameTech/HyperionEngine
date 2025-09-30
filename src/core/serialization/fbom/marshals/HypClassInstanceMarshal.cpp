@@ -29,6 +29,10 @@ namespace hyperion::serialization {
 static const TypeId g_typeIdAssetReference = TypeId::ForType<AssetReference>();
 static const Name g_nameResolveAsset = NAME("resolveasset");
 
+struct SaveAssetsAsReferencesContext
+{
+};
+
 static void CollectAssetReferenceMembers(
     const HypClass* hypClass,
     Array<Pair<const IHypMember*, const IHypMember*>>& outMembers)
@@ -118,7 +122,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     {
         assetReference = in.Get<AssetReference>();
     }
-    else if (hypClass->IsDerivedFrom(AssetObject::Class()) && IsGlobalContextActive<EditorProjectSaveContext>())
+    else if (hypClass->IsDerivedFrom(AssetObject::Class()))
     {
         // Serialize AssetObject deriving classes by their asset reference if we're saving an Editor project.
         const AssetObject& assetObject = in.Get<AssetObject>();
@@ -141,8 +145,6 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
         if (!assetObject || !assetObject->GetPackage() || assetObject->GetPackage()->IsTransient())
         {
-            HYP_BREAKPOINT;
-
             return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize AssetReference to asset '{}' because it is not loaded or in a transient package", assetReference.GetAssetPath().ToString()) };
         }
     }
@@ -150,7 +152,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     // If we have an asset reference to serialize, we serialize that instead of the actual object inline.
     // This will reduce duplication and file sizes.
-    if (isAssetObject && assetReference.IsValid())
+    if (isAssetObject && assetReference.IsValid() && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
     {
         return Serialize(ConstAnyRef(assetReference), out);
     }
@@ -210,6 +212,9 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
     {
         HYP_NAMED_SCOPE_FMT("Serializing properties for HypClass '{}'", hypClass->GetName());
+
+        // Save AssetObject as AssetReferences for nested fields / objects.
+        GlobalContextScope contextScope { SaveAssetsAsReferencesContext {} };
 
         for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
         {

@@ -68,13 +68,13 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& v
 }
 
 Mesh::Mesh()
-    : HypObjectBase(),
+    : AssetObject(),
       m_aabb(BoundingBox::Empty())
 {
 }
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes)
-    : HypObjectBase(),
+    : AssetObject(),
       m_assetReference(asset),
       m_aabb(BoundingBox::Empty())
 {
@@ -101,7 +101,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 }
 
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes)
-    : HypObjectBase(),
+    : AssetObject(),
       m_aabb(BoundingBox::Empty())
 {
     const MeshDesc meshDesc {
@@ -118,28 +118,6 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
     m_aabb = meshData.CalculateAABB();
 
     m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(g_nameMeshDefault, meshDesc, meshData));
-}
-
-Mesh::Mesh(Mesh&& other) noexcept
-    : m_assetReference(std::move(other.m_assetReference)),
-      m_aabb(other.m_aabb)
-{
-    other.m_aabb = BoundingBox::Empty();
-}
-
-Mesh& Mesh::operator=(Mesh&& other) noexcept
-{
-    if (&other == this)
-    {
-        return *this;
-    }
-
-    m_assetReference = std::move(other.m_assetReference);
-    m_aabb = other.m_aabb;
-
-    other.m_aabb = BoundingBox::Empty();
-
-    return *this;
 }
 
 Mesh::~Mesh()
@@ -346,14 +324,17 @@ void Mesh::CreateGpuBuffers()
     PUSH_RENDER_COMMAND(CopyMeshGpuData, WeakHandleFromThis(), std::move(vertices), std::move(indices), std::move(vertexBuffer), std::move(indexBuffer));
 }
 
-void Mesh::SetName(Name name)
+Result Mesh::Rename(Name name)
 {
     if (m_name == name)
     {
-        return;
+        return {};
     }
 
-    m_name = name;
+    if (Result result = AssetObject::Rename(name); result.HasError())
+    {
+        return result;
+    }
 
     const Handle<MeshAsset>& asset = GetAsset();
 
@@ -372,6 +353,8 @@ void Mesh::SetName(Name name)
             }
         }
     }
+
+    return {};
 }
 
 void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
