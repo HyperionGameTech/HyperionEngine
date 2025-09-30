@@ -246,18 +246,23 @@ void UISubsystem::Update(float delta)
             // have the same depth but should be rendered in a different order.
             rpl.GetMeshEntities().Track(entity.Id(), entity, entity->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ false);
 
-            if (const Handle<Material>& material = meshComponent.material)
+            if (Mesh* mesh = meshComponent.mesh)
             {
-                rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ true);
+                rpl.GetMeshes().Track(mesh->Id(), mesh);
+            }
 
-                for (const Handle<Texture>& texture : material->GetTextures())
+            if (Material* material = meshComponent.material)
+            {
+                rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr(), /* allowDuplicatesInSameFrame */ true);
+
+                for (Texture* texture : material->GetTextures())
                 {
-                    if (!texture.IsValid())
+                    if (!texture)
                     {
                         continue;
                     }
 
-                    rpl.GetTextures().Track(texture.Id(), texture.Get());
+                    rpl.GetTextures().Track(texture->Id(), texture);
                 }
             }
 
@@ -275,7 +280,7 @@ void UISubsystem::Update(float delta)
         for (Entity* entity : added)
         {
             AssertDebug(entity->InstanceClass() == Entity::Class());
-            
+
             auto&& [meshComponent, transformComponent, boundingBoxComponent] = entity->GetEntityManager()->TryGetComponents<MeshComponent, TransformComponent, BoundingBoxComponent>(entity);
             AssertDebug(meshComponent != nullptr);
 

@@ -305,6 +305,7 @@ void FullScreenPass::CreateQuad()
     HYP_SCOPE;
 
     m_fullScreenQuad = MeshBuilder::Quad();
+    m_fullScreenQuad->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(m_fullScreenQuad);
 }
 
@@ -714,7 +715,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.HasView());
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    
+
     const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline();
 
     frame->renderQueue << BeginFramebuffer(m_framebuffer);

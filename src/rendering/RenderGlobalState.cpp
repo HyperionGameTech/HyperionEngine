@@ -11,6 +11,7 @@
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/Mesh.hpp>
 #include <rendering/RenderStats.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderShader.hpp>
@@ -134,6 +135,8 @@ static void WriteBufferData_Default(GpuBufferHolderBase* gpuBufferHolder, uint32
 extern void OnBindingChanged_MeshEntity(Entity* envProbe, uint32 prev, uint32 next);
 extern void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
 
+extern void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next);
+
 extern void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
 extern void OnBindingChanged_AmbientProbe(EnvProbe* envProbe, uint32 prev, uint32 next);
 extern void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
@@ -170,6 +173,9 @@ struct ResourceBindings
 
     ResourceBindingAllocator<> meshEntityBindingsAllocator;
     ResourceBinder<Entity, &OnBindingChanged_MeshEntity> meshEntityBinder { &meshEntityBindingsAllocator };
+
+    ResourceBindingAllocator<> meshBindingsAllocator;
+    ResourceBinder<Mesh, &OnBindingChanged_Mesh> meshBinder { &meshBindingsAllocator };
 
     ResourceBindingAllocator<> cameraBindingsAllocator;
     ResourceBinder<Camera, &OnBindingChanged_Default<Camera>> cameraBinder { &cameraBindingsAllocator };
@@ -1096,6 +1102,7 @@ void RenderApi_BeginFrame_RenderThread()
     // assign the actual bindings:
     /// TODO: This should be done in the ResourceBinder itself, not here.
     g_renderGlobalState->resourceBindings->meshEntityBinder.ApplyUpdates();
+    g_renderGlobalState->resourceBindings->meshBinder.ApplyUpdates();
     g_renderGlobalState->resourceBindings->cameraBinder.ApplyUpdates();
     g_renderGlobalState->resourceBindings->ambientProbeBinder.ApplyUpdates();
     g_renderGlobalState->resourceBindings->reflectionProbeBinder.ApplyUpdates();
@@ -1311,13 +1318,13 @@ void RenderApi_EndFrame_RenderThread()
     }
 
     g_safeDeleter->UpdateEntryListQueue();
-    
+
     // update render stats and copy to frame data so the game thread can read it
     // do this after calling UpdateEntryListQueue() on SafeDeleter so we can get the total
     // number of deletion queue items for our stats
     g_renderStatsCalculator.Advance(g_renderStats);
     frameData.renderStats = g_renderStats;
-    
+
     g_safeDeleter->Iterate();
 
     g_frameIndex[CONSUMER] = (g_frameIndex[CONSUMER] + 1) % g_numFrames;
@@ -1655,6 +1662,8 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
 #pragma endregion RenderGlobalState
 
 DECLARE_RENDER_DATA_CONTAINER(Entity, RenderProxyMesh, GRB_ENTITIES, &ResourceBindings::meshEntityBinder, &WriteBufferData_MeshEntity);
+
+DECLARE_RENDER_DATA_CONTAINER(Mesh, NullProxy, GRB_INVALID, &ResourceBindings::meshBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Camera, RenderProxyCamera, GRB_CAMERAS, &ResourceBindings::cameraBinder);
 

@@ -33,6 +33,7 @@ namespace hyperion {
 class Scene;
 class Camera;
 class Entity;
+class Mesh;
 class RenderGroup;
 struct RenderSetup;
 class IndirectRenderer;
@@ -103,6 +104,7 @@ class RenderProxyList
 public:
     using TrackedResourceTypes = Tuple<
         Entity, // mesh entities
+        Mesh,
         Camera,
         EnvProbe,
         Light,
@@ -114,6 +116,7 @@ public:
 
     using ResourceTrackerTypes = Tuple<
         ResourceTracker<ObjId<Entity>, Entity*, RenderProxyMesh>,
+        ResourceTracker<ObjId<Mesh>, Mesh*>,
         ResourceTracker<ObjId<Camera>, Camera*, RenderProxyCamera>,
         ResourceTracker<ObjId<EnvProbe>, EnvProbe*, RenderProxyEnvProbe>,
         ResourceTracker<ObjId<Light>, Light*, RenderProxyLight>,
@@ -185,6 +188,7 @@ public:
     }
 
     DEF_RESOURCE_TRACKER_GETTER(MeshEntities, Entity);
+    DEF_RESOURCE_TRACKER_GETTER(Meshes, Mesh);
     DEF_RESOURCE_TRACKER_GETTER(Cameras, Camera);
     DEF_RESOURCE_TRACKER_GETTER(EnvProbes, EnvProbe);
     DEF_RESOURCE_TRACKER_GETTER(Lights, Light);

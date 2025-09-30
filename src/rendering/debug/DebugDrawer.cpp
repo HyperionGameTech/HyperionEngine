@@ -120,6 +120,7 @@ Mesh* SphereDebugDrawShape::GetMesh_Internal() const
         MeshInitializer()
         {
             mesh = MeshBuilder::NormalizedCubeSphere(4);
+            mesh->SetFlags(MF_VIEW_INDEPENDENT);
             mesh->SetName(NAME("SphereDebugDrawShape"));
 
             g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh->GetAsset());
@@ -289,6 +290,7 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
         MeshInitializer()
         {
             mesh = MeshBuilder::Cube();
+            mesh->SetFlags(MF_VIEW_INDEPENDENT);
             mesh->SetName(NAME("BoxDebugDrawShape"));
 
             g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh->GetAsset());
@@ -353,6 +355,7 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
         MeshInitializer()
         {
             mesh = MeshBuilder::Quad();
+            mesh->SetFlags(MF_VIEW_INDEPENDENT);
             mesh->SetName(NAME("PlaneDebugDrawShape"));
 
             g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh->GetAsset());

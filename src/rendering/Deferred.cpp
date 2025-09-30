@@ -1382,6 +1382,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
 
     // Hack to fix driver crash when building TLAS with no meshes
     Handle<Mesh> defaultMesh = MeshBuilder::Cube();
+    defaultMesh->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(defaultMesh);
 
     BLASRef blas = MeshBlasBuilder::Build(defaultMesh);

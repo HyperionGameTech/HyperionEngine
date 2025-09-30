@@ -7,6 +7,7 @@
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
@@ -53,6 +54,17 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
     proxyCasted->bufferData.skeletonIndex = RenderApi_RetrieveResourceBinding(proxyCasted->skeleton);
 
     gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
+}
+
+void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
+{
+    AssertDebug(mesh != nullptr);
+
+    if (next != ~0u && prev == ~0u && !mesh->gpuUploadFence.IsSignaled())
+    {
+        HYP_LOG(Rendering, Warning, "Uploading GPU data for mesh {}", mesh->Id());
+        mesh->UploadGpuData();
+    }
 }
 
 void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 next)

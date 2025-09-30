@@ -90,14 +90,14 @@ public:
 
     void Unlock()
     {
+#ifdef HYP_DEBUG_MODE
+        HYP_CORE_ASSERT(m_locked, "Mutex is not locked");
+        m_locked = false;
+#endif
 #if defined(HYP_UNIX)
         pthread_mutex_unlock(&m_mutex);
 #elif defined(HYP_WINDOWS)
         LeaveCriticalSection(&m_criticalSection);
-#endif
-#ifdef HYP_DEBUG_MODE
-        HYP_CORE_ASSERT(m_locked, "Mutex is not locked");
-        m_locked = false;
 #endif
     }
 

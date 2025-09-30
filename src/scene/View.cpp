@@ -530,6 +530,11 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
+                    if (Mesh* mesh = meshComponent.mesh)
+                    {
+                        rpl.GetMeshes().Track(mesh->Id(), mesh);
+                    }
+
                     if (Material* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
@@ -581,6 +586,11 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
+                    if (Mesh* mesh = meshComponent.mesh)
+                    {
+                        rpl.GetMeshes().Track(mesh->Id(), mesh);
+                    }
+
                     if (Material* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
@@ -613,6 +623,11 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+
+                    if (Mesh* mesh = meshComponent.mesh)
+                    {
+                        rpl.GetMeshes().Track(mesh->Id(), mesh);
+                    }
 
                     if (Material* material = meshComponent.material)
                     {
@@ -665,6 +680,11 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
 
+                    if (Mesh* mesh = meshComponent.mesh)
+                    {
+                        rpl.GetMeshes().Track(mesh->Id(), mesh);
+                    }
+
                     if (Material* material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material->Id(), material, material->GetRenderProxyVersionPtr());
@@ -697,6 +717,11 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+
+                    if (Mesh* mesh = meshComponent.mesh)
+                    {
+                        rpl.GetMeshes().Track(mesh->Id(), mesh);
+                    }
 
                     if (Material* material = meshComponent.material)
                     {
@@ -748,6 +773,11 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                     ++numCollectedEntities;
 
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
+
+                    if (Mesh* mesh = meshComponent.mesh)
+                    {
+                        rpl.GetMeshes().Track(mesh->Id(), mesh);
+                    }
 
                     if (Material* material = meshComponent.material)
                     {

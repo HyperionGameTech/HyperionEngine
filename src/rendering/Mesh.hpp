@@ -5,6 +5,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/utilities/Pair.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -32,6 +33,15 @@ namespace hyperion {
 class BVHNode;
 class RenderMesh;
 class Material;
+
+HYP_ENUM()
+enum MeshFlags : uint32
+{
+    MF_NONE = 0x0,
+    MF_VIEW_INDEPENDENT = 0x1 //!< keep GPU data around even if mesh is not used by any View
+};
+
+HYP_MAKE_ENUM_FLAGS(MeshFlags)
 
 class MeshGpuUploadFence
 {
@@ -81,6 +91,15 @@ public:
     Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology = TOP_TRIANGLES);
 
     ~Mesh();
+
+    HYP_METHOD()
+    EnumFlags<MeshFlags> GetFlags() const
+    {
+        return m_flags;
+    }
+
+    HYP_METHOD()
+    void SetFlags(EnumFlags<MeshFlags> flags);
 
     HYP_METHOD()
     virtual Result Rename(Name name) override;
@@ -153,24 +172,25 @@ public:
 
     bool BuildBVH(int maxDepth = 3);
 
+    void UploadGpuData();
+
     MeshGpuUploadFence gpuUploadFence;
 
 private:
     void Init() override;
-    void CreateGpuBuffers();
 
     /*! \internal Serialization only */
     HYP_METHOD(Property = "AssetReference")
-    void SetAssetReference(const AssetReference& assetReference)
-    {
-        m_assetReference = TAssetReference<MeshAsset>(assetReference);
-    }
+    void SetAssetReference(const AssetReference& assetReference);
 
     HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;
 
     HYP_FIELD(Transient)
     BVHNode m_bvh; // @TODO: Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
+
+    HYP_FIELD()
+    EnumFlags<MeshFlags> m_flags;
 
     TAssetReference<MeshAsset> m_assetReference;
 

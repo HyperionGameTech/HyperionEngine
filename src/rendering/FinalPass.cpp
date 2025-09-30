@@ -133,6 +133,7 @@ void FinalPass::Create()
     Assert(m_extent.Volume() != 0);
 
     m_quadMesh = MeshBuilder::Quad();
+    m_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(m_quadMesh);
 
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));

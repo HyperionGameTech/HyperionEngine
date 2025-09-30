@@ -113,6 +113,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
         if (!mesh.IsValid())
         {
             mesh = MeshBuilder::Cube();
+            mesh->SetFlags(MF_VIEW_INDEPENDENT);
             mesh->SetName(NAME("Skybox_Mesh"));
 
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes/Skydome", mesh->GetAsset());

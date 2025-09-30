@@ -119,6 +119,40 @@ struct AssetPath
         }
     }
 
+    bool operator==(const AssetPath& other) const
+    {
+        if (chain == nullptr && other.chain == nullptr)
+        {
+            return true;
+        }
+
+        if (chain == nullptr || other.chain == nullptr)
+        {
+            return false;
+        }
+
+        Name* a = chain;
+        Name* b = other.chain;
+
+        while (a->IsValid() && b->IsValid())
+        {
+            if (*a != *b)
+            {
+                return false;
+            }
+
+            ++a;
+            ++b;
+        }
+
+        return a->IsValid() == b->IsValid();
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const AssetPath& other) const
+    {
+        return !(*this == other);
+    }
+
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsValid() const
     {

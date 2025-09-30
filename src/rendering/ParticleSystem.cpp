@@ -196,10 +196,10 @@ void ParticleSpawner::CreateBuffers()
 {
     m_particleBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, m_params.maxParticles * sizeof(ParticleShaderData));
     m_particleBuffer->SetRequireCpuAccessible(true);
-    
+
     m_noiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(float) * 128 * 128);
     m_noiseBuffer->SetRequireCpuAccessible(true);
-    
+
     m_indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
     m_indirectBuffer->SetRequireCpuAccessible(true);
 
@@ -305,6 +305,7 @@ ParticleSystem::~ParticleSystem()
 void ParticleSystem::Init()
 {
     m_quadMesh = MeshBuilder::Quad();
+    m_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
     InitObject(m_quadMesh);
 
     CreateBuffers();

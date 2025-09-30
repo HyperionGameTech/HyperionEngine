@@ -56,6 +56,16 @@ public:
         return !IsValid();
     }
 
+    HYP_FORCE_INLINE bool operator==(const AssetReference& other) const
+    {
+        return GetAssetPath() == other.GetAssetPath();
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const AssetReference& other) const
+    {
+        return GetAssetPath() != other.GetAssetPath();
+    }
+
     bool IsValid() const
     {
         bool isValid = false;

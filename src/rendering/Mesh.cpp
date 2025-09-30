@@ -69,14 +69,16 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& v
 
 Mesh::Mesh()
     : AssetObject(),
-      m_aabb(BoundingBox::Empty())
+      m_aabb(BoundingBox::Empty()),
+      m_flags(MF_NONE)
 {
 }
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes)
     : AssetObject(),
       m_assetReference(asset),
-      m_aabb(BoundingBox::Empty())
+      m_aabb(BoundingBox::Empty()),
+      m_flags(MF_NONE)
 {
     if (asset)
     {
@@ -102,7 +104,8 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes)
     : AssetObject(),
-      m_aabb(BoundingBox::Empty())
+      m_aabb(BoundingBox::Empty()),
+      m_flags(MF_NONE)
 {
     const MeshDesc meshDesc {
         .meshAttributes = { .vertexAttributes = vertexAttributes, .topology = topology },
@@ -142,22 +145,60 @@ void Mesh::Init()
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
         }
 
-        CreateGpuBuffers();
+        if (m_flags[MF_VIEW_INDEPENDENT])
+        {
+            UploadGpuData();
+        }
     }
-#ifdef HYP_DEBUG_MODE
     else
     {
-        HYP_LOG(Mesh, Error, "Mesh with ID {} (name: {}, asset path: {}) has no valid asset assigned, cannot create GPU buffers!",
-            Id(), GetName(), m_assetReference.GetAssetPath());
-
-        HYP_BREAKPOINT;
+        if (m_flags[MF_VIEW_INDEPENDENT])
+        {
+            HYP_LOG(Mesh, Warning, "Mesh {} (name: {}) has no asset, cannot upload GPU data!", Id(), GetName());
+        }
     }
-#endif
 
     SetReady(true);
 }
 
-void Mesh::CreateGpuBuffers()
+void Mesh::SetAssetReference(const AssetReference& assetReference)
+{
+    HYP_SCOPE;
+
+    if (assetReference == m_assetReference)
+    {
+        return;
+    }
+
+    m_assetReference = TAssetReference<MeshAsset>(assetReference);
+
+    if (m_assetReference.IsValid() && IsInitCalled())
+    {
+        const Handle<MeshAsset>& asset = m_assetReference.Resolve();
+        if (!asset)
+        {
+            HYP_LOG(Mesh, Error, "Failed to resolve mesh asset from asset reference with path '{}'", assetReference.GetAssetPath());
+            return;
+        }
+
+        if (!asset->IsRegistered())
+        {
+            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to rename mesh asset!", renameResult.GetError().GetMessage());
+            }
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
+        }
+
+        if (m_flags[MF_VIEW_INDEPENDENT])
+        {
+            UploadGpuData();
+        }
+    }
+}
+
+void Mesh::UploadGpuData()
 {
     const Handle<MeshAsset>& asset = GetAsset();
 
@@ -371,7 +412,26 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
     {
         g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
 
-        CreateGpuBuffers();
+        // CreateGpuBuffers();
+    }
+}
+
+void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
+{
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_dataRaceDetector);
+
+    if (m_flags == flags)
+    {
+        return;
+    }
+
+    const bool wasViewIndependent = m_flags[MF_VIEW_INDEPENDENT];
+    m_flags = flags;
+
+    if (m_flags[MF_VIEW_INDEPENDENT] && !wasViewIndependent && IsInitCalled())
+    {
+        UploadGpuData();
     }
 }
 
