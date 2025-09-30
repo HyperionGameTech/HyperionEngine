@@ -391,46 +391,35 @@ static glslang::EShTargetLanguageVersion SpvTargetFromNeeds(bool needsRt)
 {
     return needsRt ? glslang::EShTargetSpv_1_4 : glslang::EShTargetSpv_1_2;
 }
-
 class HyperionIncluder final : public glslang::TShader::Includer
 {
 public:
     explicit HyperionIncluder(String filename)
         : m_filename(std::move(filename)) {}
 
-    IncludeResult* includeSystem(
-        const char* headerName,
-        const char* includerName,
-        size_t includeDepth) override
+    IncludeResult* includeSystem(const char* headerName,
+                                 const char* includerName,
+                                 size_t includeDepth) override
     {
-        return IncludeInternal(headerName, includerName, includeDepth, /*system*/true);
+        return IncludeInternal(headerName, includerName, includeDepth);
     }
 
-    IncludeResult* includeLocal(
-        const char* headerName,
-        const char* includerName,
-        size_t includeDepth) override
+    IncludeResult* includeLocal(const char* headerName,
+                                const char* includerName,
+                                size_t includeDepth) override
     {
-        return IncludeInternal(headerName, includerName, includeDepth, /*system*/false);
+        return IncludeInternal(headerName, includerName, includeDepth);
     }
 
     void releaseInclude(IncludeResult* result) override
     {
-        if (!result)
-        {
-            return;
-        }
-
-        delete[] result->headerName;
-        delete[] result->headerData;
-        delete result;
+        delete result; // no manual cleanup, std::string handles it
     }
 
 private:
     IncludeResult* IncludeInternal(const char* headerName,
                                    const char* includerName,
-                                   size_t includeDepth,
-                                   bool /*system*/)
+                                   size_t includeDepth)
     {
         const FilePath basePath = FilePath(m_filename).BasePath();
 
@@ -442,7 +431,8 @@ private:
 
         if (!path.Exists())
         {
-            HYP_LOG(ShaderCompiler, Warning, "File at path {} does not exist, cannot include file {}", path, headerName);
+            HYP_LOG(ShaderCompiler, Warning,
+                "File at path {} does not exist, cannot include file {}", path, headerName);
             return nullptr;
         }
 
@@ -456,21 +446,17 @@ private:
 
         String contents = String::Join(reader.ReadAllLines(), '\n');
 
-        auto* res = new IncludeResult;
-        char* nameBuf = new char[path.Size() + 1];
-        Memory::MemCpy(nameBuf, path.Data(), path.Size() + 1);
-        res->headerName = nameBuf;
-
-        char* dataBuf = new char[contents.Size() + 1];
-        Memory::MemCpy(dataBuf, contents.Data(), contents.Size() + 1);
-        res->headerData = dataBuf;
-        res->headerLength = contents.Size();
-        res->userData = nullptr;
-        return res;
+        return new IncludeResult(
+            path.Data(),                 // headerName (std::string)
+            contents.Data(),             // headerData (std::string)
+            contents.Size(),
+            nullptr
+        );
     }
 
     String m_filename;
 };
+
 
 static bool PreprocessShaderSource(
     ShaderModuleType type,
@@ -604,7 +590,6 @@ static ByteBuffer CompileToSPIRV(
     shader.setEntryPoint("main");
     shader.setSourceEntryPoint("main");
 
-    shader.setHlslIoMapping(true);
     shader.setAutoMapBindings(true);
     shader.setAutoMapLocations(true);
 
