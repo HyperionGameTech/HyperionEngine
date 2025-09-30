@@ -34,7 +34,6 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
 
     WeakHandle<UIObject> weakHandle = uiObject->WeakHandleFromThis();
     
-    // Check if already registered and merge update types
     auto pendingIt = m_pendingObjects.Find(weakHandle);
     if (pendingIt != m_pendingObjects.End())
     {
@@ -43,7 +42,6 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
 
         const EnumFlags<UIObjectUpdateType> addedUpdateTypes = updateTypes & ~existingEntry->updateTypes;
 
-        // Find and update existing entries
         for (auto& kv : m_updateQueues)
         {
             const UIObjectUpdateType updateType = kv.first;
@@ -54,20 +52,16 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
             }
 
             Array<UpdateEntry*>& entries = kv.second;
-
-            // add the entry to the existing update type queue
             AssertDebug(!entries.Contains(existingEntry), "Entry should not already be in the queue");
 
             entries.PushBack(existingEntry);
         }
 
-        // Update the existing entry's update types
         existingEntry->updateTypes |= addedUpdateTypes;
 
         return;
     }
 
-    // Create entry with all requested update types
     const uint32 entryIndex = m_entryIdGenerator.Next();
 
     UpdateEntry* newEntry = &*m_entryPool.Emplace(entryIndex);
@@ -78,10 +72,8 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
         .updateTypes = updateTypes
     };
 
-    // Add to pending set
     m_pendingObjects.Insert(weakHandle, newEntry);
 
-    // Add to each individual update queue based on the flags set
     for (UIObjectUpdateType updateType : s_updateOrder)
     {
         if (updateTypes & updateType)
@@ -107,7 +99,6 @@ void UIUpdateManager::UnregisterFromUpdate(UIObject* uiObject)
         return; // Not registered
     }
 
-    // Remove from all queues
     for (auto& kv : m_updateQueues)
     {
         Array<UpdateEntry*>& entries = kv.second;
@@ -149,13 +140,11 @@ void UIUpdateManager::ProcessUpdates(float delta)
         return;
     }
 
-    // Process updates in optimal order
     for (const auto& updateType : s_updateOrder)
     {
         ProcessUpdateType(updateType, delta);
     }
 
-    // Clear all processed updates
     Clear();
 }
 
@@ -172,16 +161,14 @@ void UIUpdateManager::ProcessUpdateType(UIObjectUpdateType updateType, float del
     // copy the array so we can modify the original while processing
     Array<UpdateEntry*> entries = it->second;
     
-    // Sort by depth for optimal processing order (parents before children)
     SortByDepth(entries);
 
-    // Process all objects with this specific update type
     for (const UpdateEntry* entry : entries)
     {
         Handle<UIObject> object = entry->object.Lock();
         if (!object)
         {
-            continue; // Object was destroyed
+            continue;
         }
 
         switch (updateType)

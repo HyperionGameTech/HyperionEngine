@@ -55,10 +55,7 @@ private:
     SparsePagedArray<UpdateEntry, 2048> m_entryPool;
     IdGenerator m_entryIdGenerator;
 
-    // Objects that need updating, organized by individual update type for proper batching
     HashMap<UIObjectUpdateType, Array<UpdateEntry*>> m_updateQueues;
-
-    // All objects that have pending updates (for quick lookup)
     HashMap<WeakHandle<UIObject>, UpdateEntry*> m_pendingObjects;
 
     static constexpr UIObjectUpdateType s_updateOrder[] = {

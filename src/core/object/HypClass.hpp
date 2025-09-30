@@ -74,7 +74,7 @@ HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)
 
 static constexpr uint32 g_maxStaticClassIndex = 0xFFFu;
 
-extern HYP_API const HypClass* g_hypObjectBaseClass;
+ HYP_API extern const HypClass* g_hypObjectBaseClass;
 
 #pragma region Helpers
 

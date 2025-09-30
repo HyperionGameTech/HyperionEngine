@@ -314,17 +314,7 @@ bool AssetObject::IsLoaded() const
 
 Result AssetObject::Save()
 {
-    if (!m_resource || m_resource->IsNull())
-    {
-        return HYP_MAKE_ERROR(Error, "No resource set, cannot save");
-    }
-
-    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-    resource->IncRef();
-    HYP_DEFER({ resource->DecRef(); });
-
-    Mutex::Guard guard(resource->m_mutex);
-
+    // save our manifest first
     if (m_filepath.Empty())
     {
         return HYP_MAKE_ERROR(Error, "Asset path is empty, cannot save");
@@ -351,7 +341,40 @@ Result AssetObject::Save()
 
     manifestWriter.Close();
 
-    return resource->Save_Internal(m_filepath);
+    // use resource instead to save if it is not null
+    if (m_resource != nullptr && !m_resource->IsNull())
+    {
+        AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
+        resource->IncRef();
+        HYP_DEFER({ resource->DecRef(); });
+
+        Mutex::Guard guard(resource->m_mutex);
+
+        return resource->Save_Internal(m_filepath);
+    }
+
+    FBOMWriter writer { FBOMWriterConfig {} };
+
+    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeId());
+    Assert(marshal != nullptr);
+
+    FBOMObject object;
+    if (FBOMResult err = marshal->Serialize(ConstAnyRef(this), object))
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
+    }
+
+    writer.Append(std::move(object));
+
+    FileByteWriter byteWriter { m_filepath };
+    if (FBOMResult err = writer.Emit(&byteWriter))
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to write asset to disk: {}", err.message);
+    }
+
+    HYP_LOG(Assets, Debug, "Saved asset to '{}'", m_filepath);
+
+    return {};
 }
 
 Result AssetObject::SaveManifest(ByteWriter& stream) const
@@ -409,19 +432,41 @@ Result AssetObject::Load(
     {
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
+    
+    FBOMLoadContext context;
+    FBOMReader reader { FBOMReaderConfig {} };
+    FBOMResult err;
 
-    HypData targetData;
-    if (!hypClass->CreateInstance(targetData))
+    HypData data;
+    if ((err = reader.Deserialize(context, dataStream, data)))
     {
-        return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
+        return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
     }
 
-    // remove class property
-    jsonObject.Erase("$Class");
+    HypData targetData;
+    bool useResource = false;
 
-    if (!JSONToObject(jsonObject, hypClass, targetData))
+    if (data.Is<AssetObject>()) // data is an AssetObject directly
     {
-        return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
+        targetData = std::move(data);
+    }
+    else
+    {
+        useResource = true;
+
+        // load fields from manifest json file
+        if (!hypClass->CreateInstance(targetData))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
+        }
+
+        // remove class property
+        jsonObject.Erase("$Class");
+
+        if (!JSONToObject(jsonObject, hypClass, targetData))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
+        }
     }
 
     // Load the asset's data
@@ -429,11 +474,12 @@ Result AssetObject::Load(
     Assert(assetObject != nullptr);
 
     AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(assetObject->m_resource);
-    Assert(resource != nullptr);
 
-    if (Result loadResult = resource->LoadFromStream(dataStream); loadResult.HasError())
+    if (useResource)
     {
-        return loadResult;
+        Assert(resource != nullptr && !resource->IsNull());
+
+        resource->Extract_Internal(data.ToRef());
     }
 
     outAssetObject = assetObject;

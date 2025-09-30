@@ -40,8 +40,6 @@ struct Handle;
 template <class T>
 struct WeakHandle;
 
-extern HYP_API const HypClass* g_hypObjectBaseClass;
-
 #ifdef HYP_DOTNET
 namespace dotnet {
 class Class;
@@ -96,7 +94,8 @@ public:
 
     HYP_FORCE_INLINE static const HypClass* Class()
     {
-        return g_hypObjectBaseClass;
+        static const HypClass* hypClass = GetClass(TypeId::ForType<HypObjectBase>());
+        return hypClass;
     }
 
     HYP_FORCE_INLINE const HypClass* InstanceClass() const
