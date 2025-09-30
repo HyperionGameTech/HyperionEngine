@@ -47,7 +47,10 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 if (!HypDataToJSON(property->Get(target), jsonValue))
                 {
-                    return false;
+                    HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of HypClass \"{}\" to json",
+                        member.GetName(), hypClass->GetName());
+
+                    continue;
                 }
 
                 String path = *property->GetName();
@@ -76,7 +79,10 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 if (!HypDataToJSON(field->Get(target), jsonValue))
                 {
-                    return false;
+                    HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of HypClass \"{}\" to json",
+                        member.GetName(), hypClass->GetName());
+
+                    continue;
                 }
 
                 String path = *field->GetName();
@@ -107,7 +113,10 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 if (!HypDataToJSON(constant->Get(), jsonValue))
                 {
-                    return false;
+                    HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of HypClass \"{}\" to json",
+                        member.GetName(), hypClass->GetName());
+
+                    continue;
                 }
 
                 String path = *constant->GetName();
@@ -155,7 +164,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!JSONToHypData(value, typeId, hypData))
             {
-                HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
+                HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
                     member.GetName(), hypClass->GetName());
 
                 return false;
@@ -175,7 +184,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!JSONToHypData(value, typeId, hypData))
             {
-                HYP_LOG(Config, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json (TypeId: {})",
+                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json (TypeId: {})",
                     member.GetName(), hypClass->GetName(), typeId.Value());
 
                 return false;
@@ -215,16 +224,16 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
         if (!value.value)
         {
-            HYP_LOG(Config, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+            HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
 
             continue;
         }
 
         if (!resolveMember(member, value.Get()))
         {
-            HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+            HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
 
-            return false;
+            continue;
         }
     }
 
@@ -253,9 +262,9 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
         if (!resolveMember(*member, value))
         {
-            HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, hypClass->GetName());
+            HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, hypClass->GetName());
 
-            return false;
+            continue;
         }
     }
 

@@ -192,13 +192,13 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name);
 
-    HYP_METHOD(Property = "FriendlyName", Serialize = true)
+    HYP_METHOD(Property = "FriendlyName")
     HYP_FORCE_INLINE Name GetFriendlyName() const
     {
         return m_friendlyName.IsValid() ? m_friendlyName : m_name;
     }
 
-    HYP_METHOD(Property = "FriendlyName", Serialize = true)
+    HYP_METHOD(Property = "FriendlyName")
     HYP_FORCE_INLINE void SetFriendlyName(Name friendlyName)
     {
         m_friendlyName = friendlyName;
@@ -288,32 +288,37 @@ protected:
         return resourceCasted->GetAssetRef().TryGet<T>();
     }
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     Uuid m_uuid;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     Name m_name;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "FriendlyName")
     Name m_friendlyName;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     EnumFlags<AssetObjectFlags> m_flags;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD()
     FilePath m_originalFilepath; // used to determine if we should skip importing an asset
 
-    HYP_FIELD(JsonIgnore)
+    HYP_FIELD(JsonIgnore, Transient)
     WeakHandle<AssetPackage> m_package;
 
-    HYP_FIELD(JsonIgnore, NoScriptBindings)
+    HYP_FIELD(JsonIgnore, NoScriptBindings, Transient)
     IResource* m_resource;
 
-    HYP_FIELD(JsonIgnore)
+    HYP_FIELD(JsonIgnore, Transient)
     AssetPath m_assetPath;
-
+    
+    HYP_FIELD(JsonIgnore, Transient)
     FilePath m_filepath;
+
+    HYP_FIELD(JsonIgnore, NoScriptBindings, Transient)
     IResourceMemoryPool* m_pool;
+    
+    HYP_FIELD(JsonIgnore, NoScriptBindings, Transient)
     ResourceHandle m_persistentResource;
 };
 

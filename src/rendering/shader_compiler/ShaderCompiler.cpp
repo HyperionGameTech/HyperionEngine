@@ -42,10 +42,11 @@
 
 #ifdef HYP_GLSLANG
 
-#include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Include/Types.h>
 #include <glslang/Public/ShaderLang.h>
+#include <glslang/SPIRV/SpvTools.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 
 #ifdef HYP_SHADER_REFLECTION
 #include <glslang/MachineIndependent/reflection.h>
@@ -338,137 +339,100 @@ static TBuiltInResource DefaultResources()
     };
 }
 
-static bool PreprocessShaderSource(
-    ShaderModuleType type,
-    ShaderLanguage language,
-    String preamble,
-    String source,
-    String filename,
-    String& outPreprocessedSource,
-    Array<String>& outErrorMessages)
+static EShLanguage StageFromModuleType(ShaderModuleType type)
 {
-
-#define GLSL_ERROR(level, errorMessage, ...)                                \
-    {                                                                       \
-        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);        \
-        outErrorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__)); \
-    }
-
-    auto defaultResources = DefaultResources();
-
-    glslang_stage_t stage;
-    String stageString;
-
     switch (type)
     {
-    case SMT_VERTEX:
-        stage = GLSLANG_STAGE_VERTEX;
-        stageString = "VERTEX_SHADER";
-        break;
-    case SMT_FRAGMENT:
-        stage = GLSLANG_STAGE_FRAGMENT;
-        stageString = "FRAGMENT_SHADER";
-        break;
-    case SMT_GEOMETRY:
-        stage = GLSLANG_STAGE_GEOMETRY;
-        stageString = "GEOMETRY_SHADER";
-        break;
-    case SMT_COMPUTE:
-        stage = GLSLANG_STAGE_COMPUTE;
-        stageString = "COMPUTE_SHADER";
-        break;
-    case SMT_TASK:
-        stage = GLSLANG_STAGE_TASK_NV;
-        stageString = "TASK_SHADER";
-        break;
-    case SMT_MESH:
-        stage = GLSLANG_STAGE_MESH_NV;
-        stageString = "MESH_SHADER";
-        break;
-    case SMT_TESS_CONTROL:
-        stage = GLSLANG_STAGE_TESSCONTROL;
-        stageString = "TESS_CONTROL_SHADER";
-        break;
-    case SMT_TESS_EVAL:
-        stage = GLSLANG_STAGE_TESSEVALUATION;
-        stageString = "TESS_EVAL_SHADER";
-        break;
-    case SMT_RAY_GEN:
-        stage = GLSLANG_STAGE_RAYGEN_NV;
-        stageString = "RAY_GEN_SHADER";
-        break;
-    case SMT_RAY_INTERSECT:
-        stage = GLSLANG_STAGE_INTERSECT_NV;
-        stageString = "RAY_INTERSECT_SHADER";
-        break;
-    case SMT_RAY_ANY_HIT:
-        stage = GLSLANG_STAGE_ANYHIT_NV;
-        stageString = "RAY_ANY_HIT_SHADER";
-        break;
-    case SMT_RAY_CLOSEST_HIT:
-        stage = GLSLANG_STAGE_CLOSESTHIT_NV;
-        stageString = "RAY_CLOSEST_HIT_SHADER";
-        break;
-    case SMT_RAY_MISS:
-        stage = GLSLANG_STAGE_MISS_NV;
-        stageString = "RAY_MISS_SHADER";
-        break;
-    default:
-        HYP_THROW("Invalid shader type");
-        break;
+    case SMT_VERTEX:          return EShLangVertex;
+    case SMT_FRAGMENT:        return EShLangFragment;
+    case SMT_GEOMETRY:        return EShLangGeometry;
+    case SMT_COMPUTE:         return EShLangCompute;
+    case SMT_TASK:            return EShLangTaskNV;
+    case SMT_MESH:            return EShLangMeshNV;
+    case SMT_TESS_CONTROL:    return EShLangTessControl;
+    case SMT_TESS_EVAL:       return EShLangTessEvaluation;
+    case SMT_RAY_GEN:         return EShLangRayGenNV;
+    case SMT_RAY_INTERSECT:   return EShLangIntersectNV;
+    case SMT_RAY_ANY_HIT:     return EShLangAnyHitNV;
+    case SMT_RAY_CLOSEST_HIT: return EShLangClosestHitNV;
+    case SMT_RAY_MISS:        return EShLangMissNV;
+    default:                  HYP_THROW("Invalid shader type");
+    }
+}
+
+static const char* StageDefineFromModuleType(ShaderModuleType type)
+{
+    switch (type)
+    {
+    case SMT_VERTEX:          return "VERTEX_SHADER";
+    case SMT_FRAGMENT:        return "FRAGMENT_SHADER";
+    case SMT_GEOMETRY:        return "GEOMETRY_SHADER";
+    case SMT_COMPUTE:         return "COMPUTE_SHADER";
+    case SMT_TASK:            return "TASK_SHADER";
+    case SMT_MESH:            return "MESH_SHADER";
+    case SMT_TESS_CONTROL:    return "TESS_CONTROL_SHADER";
+    case SMT_TESS_EVAL:       return "TESS_EVAL_SHADER";
+    case SMT_RAY_GEN:         return "RAY_GEN_SHADER";
+    case SMT_RAY_INTERSECT:   return "RAY_INTERSECT_SHADER";
+    case SMT_RAY_ANY_HIT:     return "RAY_ANY_HIT_SHADER";
+    case SMT_RAY_CLOSEST_HIT: return "RAY_CLOSEST_HIT_SHADER";
+    case SMT_RAY_MISS:        return "RAY_MISS_SHADER";
+    default:                  return "";
+    }
+}
+
+static glslang::EShTargetClientVersion VulkanClientFromUint(uint32 vk)
+{
+    if (vk >= VK_API_VERSION_1_2) return glslang::EShTargetVulkan_1_2;
+    return glslang::EShTargetVulkan_1_1;
+}
+
+static glslang::EShTargetLanguageVersion SpvTargetFromNeeds(bool needsRt)
+{
+    return needsRt ? glslang::EShTargetSpv_1_4 : glslang::EShTargetSpv_1_2;
+}
+
+class HyperionIncluder final : public glslang::TShader::Includer
+{
+public:
+    explicit HyperionIncluder(String filename)
+        : m_filename(std::move(filename)) {}
+
+    IncludeResult* includeSystem(
+        const char* headerName,
+        const char* includerName,
+        size_t includeDepth) override
+    {
+        return IncludeInternal(headerName, includerName, includeDepth, /*system*/true);
     }
 
-    uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
-    uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
-    uint32 spirvVersion = 450;
-
-    if (IsRaytracingShaderModule(type))
+    IncludeResult* includeLocal(
+        const char* headerName,
+        const char* includerName,
+        size_t includeDepth) override
     {
-        vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
-        spirvApiVersion = MathUtil::Max(spirvApiVersion, GLSLANG_TARGET_SPV_1_4);
-        spirvVersion = MathUtil::Max(spirvVersion, 460);
+        return IncludeInternal(headerName, includerName, includeDepth, /*system*/false);
     }
 
-    struct CallbacksContext
+    void releaseInclude(IncludeResult* result) override
     {
-        String filename;
-
-        Stack<Proc<void()>> deleters;
-
-        ~CallbacksContext()
+        if (!result)
         {
-            // Run all deleters to free memory allocated in callbacks
-            while (!deleters.Empty())
-            {
-                deleters.Pop()();
-            }
+            return;
         }
-    } callbacksContext;
 
-    callbacksContext.filename = filename;
+        delete[] result->headerName;
+        delete[] result->headerData;
+        delete result;
+    }
 
-    glslang_input_t input {
-        .language = language == ShaderLanguage::HLSL ? GLSLANG_SOURCE_HLSL : GLSLANG_SOURCE_GLSL,
-        .stage = stage,
-        .client = GLSLANG_CLIENT_VULKAN,
-        .client_version = static_cast<glslang_target_client_version_t>(vulkanApiVersion),
-        .target_language = GLSLANG_TARGET_SPV,
-        .target_language_version = static_cast<glslang_target_language_version_t>(spirvApiVersion),
-        .code = source.Data(),
-        .default_version = int(spirvVersion),
-        .default_profile = GLSLANG_CORE_PROFILE,
-        .force_default_version_and_profile = false,
-        .forward_compatible = false,
-        .messages = GLSLANG_MSG_DEFAULT_BIT,
-        .resource = reinterpret_cast<const glslang_resource_t*>(&defaultResources),
-        .callbacks_ctx = &callbacksContext
-    };
-
-    input.callbacks.include_local = [](void* ctx, const char* headerName, const char* includerName, size_t includeDepth) -> glsl_include_result_t*
+private:
+    IncludeResult* IncludeInternal(const char* headerName,
+                                   const char* includerName,
+                                   size_t includeDepth,
+                                   bool /*system*/)
     {
-        CallbacksContext* callbacksContext = static_cast<CallbacksContext*>(ctx);
-
-        const FilePath basePath = FilePath(callbacksContext->filename).BasePath();
+        const FilePath basePath = FilePath(m_filename).BasePath();
 
         const FilePath dir = includeDepth > 1
             ? FilePath(includerName).BasePath()
@@ -479,72 +443,105 @@ static bool PreprocessShaderSource(
         if (!path.Exists())
         {
             HYP_LOG(ShaderCompiler, Warning, "File at path {} does not exist, cannot include file {}", path, headerName);
-
             return nullptr;
         }
 
         FileBufferedReaderSource source { path };
         BufferedReader reader { &source };
-
         if (!reader.IsOpen())
         {
             HYP_LOG(ShaderCompiler, Warning, "Failed to open include file {}", path);
-
             return nullptr;
         }
 
-        String linesJoined = String::Join(reader.ReadAllLines(), '\n');
+        String contents = String::Join(reader.ReadAllLines(), '\n');
 
-        glsl_include_result_t* result = new glsl_include_result_t;
+        auto* res = new IncludeResult;
+        char* nameBuf = new char[path.Size() + 1];
+        Memory::MemCpy(nameBuf, path.Data(), path.Size() + 1);
+        res->headerName = nameBuf;
 
-        char* headerNameStr = new char[path.Size() + 1];
-        Memory::MemCpy(headerNameStr, path.Data(), path.Size() + 1);
-        result->header_name = headerNameStr;
-
-        char* headerDataStr = new char[linesJoined.Size() + 1];
-        Memory::MemCpy(headerDataStr, linesJoined.Data(), linesJoined.Size() + 1);
-        result->header_data = headerDataStr;
-
-        result->header_length = linesJoined.Size();
-
-        callbacksContext->deleters.Push([result]
-            {
-                delete[] result->header_name;
-                delete[] result->header_data;
-                delete result;
-            });
-
-        return result;
-    };
-
-    glslang_shader_t* shader = glslang_shader_create(&input);
-
-    if (stageString.Any())
-    {
-        preamble += "\n#ifndef " + stageString + "\n#define " + stageString + "\n#endif\n";
+        char* dataBuf = new char[contents.Size() + 1];
+        Memory::MemCpy(dataBuf, contents.Data(), contents.Size() + 1);
+        res->headerData = dataBuf;
+        res->headerLength = contents.Size();
+        res->userData = nullptr;
+        return res;
     }
 
-    glslang_shader_set_preamble(shader, preamble.Data());
+    String m_filename;
+};
 
-    if (!glslang_shader_preprocess(shader, &input))
+static bool PreprocessShaderSource(
+    ShaderModuleType type,
+    ShaderLanguage language,
+    String preamble,
+    String source,
+    String filename,
+    String& outPreprocessedSource,
+    Array<String>& outErrorMessages)
+{
+#define GLSL_ERROR(level, errorMessage, ...)                                     \
+    {                                                                            \
+        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);             \
+        outErrorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__));      \
+    }
+
+    auto defaultResources = DefaultResources();
+
+    const EShLanguage stage = StageFromModuleType(type);
+    const char* stageDefine = StageDefineFromModuleType(type);
+
+    uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    uint32 spirvVersion = 450;
+    bool needsRt = IsRaytracingShaderModule(type);
+    if (needsRt)
+    {
+        vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
+        spirvVersion = MathUtil::Max(spirvVersion, 460);
+    }
+
+    // Inject stage macro like before.
+    if (stageDefine && *stageDefine)
+    {
+        preamble += "\n#ifndef ";
+        preamble += stageDefine;
+        preamble += "\n#define ";
+        preamble += stageDefine;
+        preamble += "\n#endif\n";
+    }
+
+    const glslang::EShTargetClientVersion clientVersion = VulkanClientFromUint(vulkanApiVersion);
+    const glslang::EShTargetLanguageVersion spvTarget   = SpvTargetFromNeeds(needsRt);
+    const int defaultGlslVersion = int(spirvVersion);
+    const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
+
+    glslang::TShader shader(stage);
+    const char* src = source.Data();
+    shader.setStrings(&src, 1);
+    shader.setPreamble(preamble.Data());
+
+    shader.setEnvInput(language == ShaderLanguage::HLSL ? glslang::EShSourceHlsl : glslang::EShSourceGlsl,
+                       stage, glslang::EShClientVulkan, 0);
+    shader.setEnvClient(glslang::EShClientVulkan, clientVersion);
+    shader.setEnvTarget(glslang::EShTargetSpv, spvTarget);
+
+    HyperionIncluder includer(filename);
+    
+    std::string preprocessedCode;
+
+    if (!shader.preprocess(&defaultResources, defaultGlslVersion, ECoreProfile,
+                           /*forceDefault*/ false, /*forwardCompatible*/ false, messages, &preprocessedCode, includer))
     {
         GLSL_ERROR(Error, "GLSL preprocessing failed {}", filename);
-        GLSL_ERROR(Error, "{}", glslang_shader_get_info_log(shader));
-        GLSL_ERROR(Error, "{}", glslang_shader_get_info_debug_log(shader));
-
-        glslang_shader_delete(shader);
-
+        GLSL_ERROR(Error, "{}", shader.getInfoLog());
+        GLSL_ERROR(Error, "{}", shader.getInfoDebugLog());
         return false;
     }
 
-    outPreprocessedSource = glslang_shader_get_preprocessed_code(shader);
-
-    // HYP_LOG(ShaderCompiler, Debug, "Preprocessed source for {}: Before: \n{}\nAfter:\n{}", filename, source, outPreprocessedSource);
-
-    glslang_shader_delete(shader);
+    outPreprocessedSource = preprocessedCode.c_str();
 
 #undef GLSL_ERROR
-
     return true;
 }
 
@@ -557,169 +554,120 @@ static ByteBuffer CompileToSPIRV(
     const ShaderProperties& properties,
     Array<String>& errorMessages)
 {
-
-#define GLSL_ERROR(level, errorMessage, ...)                             \
-    {                                                                    \
-        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);     \
-        errorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__)); \
+#define GLSL_ERROR(level, errorMessage, ...)                                \
+    {                                                                       \
+        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);        \
+        errorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__));    \
     }
 
     auto defaultResources = DefaultResources();
 
-    glslang_stage_t stage;
-    String stageString;
-
-    switch (type)
-    {
-    case SMT_VERTEX:
-        stage = GLSLANG_STAGE_VERTEX;
-        stageString = "VERTEX_SHADER";
-        break;
-    case SMT_FRAGMENT:
-        stage = GLSLANG_STAGE_FRAGMENT;
-        stageString = "FRAGMENT_SHADER";
-        break;
-    case SMT_GEOMETRY:
-        stage = GLSLANG_STAGE_GEOMETRY;
-        stageString = "GEOMETRY_SHADER";
-        break;
-    case SMT_COMPUTE:
-        stage = GLSLANG_STAGE_COMPUTE;
-        stageString = "COMPUTE_SHADER";
-        break;
-    case SMT_TASK:
-        stage = GLSLANG_STAGE_TASK_NV;
-        stageString = "TASK_SHADER";
-        break;
-    case SMT_MESH:
-        stage = GLSLANG_STAGE_MESH_NV;
-        stageString = "MESH_SHADER";
-        break;
-    case SMT_TESS_CONTROL:
-        stage = GLSLANG_STAGE_TESSCONTROL;
-        stageString = "TESS_CONTROL_SHADER";
-        break;
-    case SMT_TESS_EVAL:
-        stage = GLSLANG_STAGE_TESSEVALUATION;
-        stageString = "TESS_EVAL_SHADER";
-        break;
-    case SMT_RAY_GEN:
-        stage = GLSLANG_STAGE_RAYGEN_NV;
-        stageString = "RAY_GEN_SHADER";
-        break;
-    case SMT_RAY_INTERSECT:
-        stage = GLSLANG_STAGE_INTERSECT_NV;
-        stageString = "RAY_INTERSECT_SHADER";
-        break;
-    case SMT_RAY_ANY_HIT:
-        stage = GLSLANG_STAGE_ANYHIT_NV;
-        stageString = "RAY_ANY_HIT_SHADER";
-        break;
-    case SMT_RAY_CLOSEST_HIT:
-        stage = GLSLANG_STAGE_CLOSESTHIT_NV;
-        stageString = "RAY_CLOSEST_HIT_SHADER";
-        break;
-    case SMT_RAY_MISS:
-        stage = GLSLANG_STAGE_MISS_NV;
-        stageString = "RAY_MISS_SHADER";
-        break;
-    default:
-        HYP_THROW("Invalid shader type");
-        break;
-    }
+    const EShLanguage stage = StageFromModuleType(type);
+    const char* stageDefine = StageDefineFromModuleType(type);
 
     uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
-    uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
-    uint32 spirvVersion = 450;
-
-    if (IsRaytracingShaderModule(type))
+    bool needsRt = IsRaytracingShaderModule(type);
+    if (needsRt)
     {
         vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
-        spirvApiVersion = MathUtil::Max(spirvApiVersion, GLSLANG_TARGET_SPV_1_4);
-        spirvVersion = MathUtil::Max(spirvVersion, 460);
     }
 
-    glslang_input_t input {
-        .language = language == ShaderLanguage::HLSL ? GLSLANG_SOURCE_HLSL : GLSLANG_SOURCE_GLSL,
-        .stage = stage,
-        .client = GLSLANG_CLIENT_VULKAN,
-        .client_version = static_cast<glslang_target_client_version_t>(vulkanApiVersion),
-        .target_language = GLSLANG_TARGET_SPV,
-        .target_language_version = static_cast<glslang_target_language_version_t>(spirvApiVersion),
-        .code = source.Data(),
-        .default_version = int(spirvVersion),
-        .default_profile = GLSLANG_CORE_PROFILE,
-        .force_default_version_and_profile = false,
-        .forward_compatible = false,
-        .messages = GLSLANG_MSG_DEFAULT_BIT,
-        .resource = reinterpret_cast<const glslang_resource_t*>(&defaultResources),
-        .callbacks_ctx = nullptr
-    };
+    const glslang::EShTargetClientVersion clientVersion = VulkanClientFromUint(vulkanApiVersion);
+    const glslang::EShTargetLanguageVersion spvTarget   = SpvTargetFromNeeds(needsRt);
+    const int defaultGlslVersion = needsRt ? 460 : 450;
 
-    glslang_shader_t* shader = glslang_shader_create(&input);
+    const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
 
+    glslang::TShader shader(stage);
+    glslang::TProgram program;
+
+    const char* srcPtr = source.Data();
+    shader.setStrings(&srcPtr, 1);
+
+    // Keep your descriptor-table defines in the preamble.
     String preamble = BuildDescriptorTableDefines(descriptorUsages.BuildDescriptorTableDeclaration());
-
-    glslang_shader_set_preamble(shader, preamble.Data());
-
-    if (!glslang_shader_preprocess(shader, &input))
+    if (stageDefine && *stageDefine)
     {
-        GLSL_ERROR(Error, "GLSL preprocessing failed {}", filename);
-        GLSL_ERROR(Error, "{}", glslang_shader_get_info_log(shader));
-        GLSL_ERROR(Error, "{}", glslang_shader_get_info_debug_log(shader));
+        preamble += "\n#ifndef ";
+        preamble += stageDefine;
+        preamble += "\n#define ";
+        preamble += stageDefine;
+        preamble += "\n#endif\n";
+    }
+    shader.setPreamble(preamble.Data());
 
-        glslang_shader_delete(shader);
+    shader.setEnvInput(language == ShaderLanguage::HLSL ? glslang::EShSourceHlsl : glslang::EShSourceGlsl,
+                       stage, glslang::EShClientVulkan, 0);
+    shader.setEnvClient(glslang::EShClientVulkan, clientVersion);
+    shader.setEnvTarget(glslang::EShTargetSpv, spvTarget);
 
-        return ByteBuffer();
+    shader.setEntryPoint("main");
+    shader.setSourceEntryPoint("main");
+
+    shader.setHlslIoMapping(true);
+    shader.setAutoMapBindings(true);
+    shader.setAutoMapLocations(true);
+
+    std::string preprocessedCode;
+
+    {
+        HyperionIncluder includer(filename);
+        if (!shader.preprocess(&defaultResources, defaultGlslVersion, ECoreProfile,
+                               /*forceDefault*/ false, /*forwardCompatible*/ false, messages, &preprocessedCode, includer))
+        {
+            GLSL_ERROR(Error, "GLSL preprocessing failed {}", filename);
+            GLSL_ERROR(Error, "{}", shader.getInfoLog());
+            GLSL_ERROR(Error, "{}", shader.getInfoDebugLog());
+            return ByteBuffer();
+        }
     }
 
-    if (!glslang_shader_parse(shader, &input))
+    if (!shader.parse(&defaultResources, defaultGlslVersion, /*forwardCompatible*/ false, messages))
     {
         GLSL_ERROR(Error, "GLSL parsing failed {}", filename);
-        GLSL_ERROR(Error, "{}", glslang_shader_get_info_log(shader));
-        GLSL_ERROR(Error, "{}", glslang_shader_get_info_debug_log(shader));
-
-        glslang_shader_delete(shader);
-
+        GLSL_ERROR(Error, "{}", shader.getInfoLog());
+        GLSL_ERROR(Error, "{}", shader.getInfoDebugLog());
         return ByteBuffer();
     }
 
-    glslang_program_t* program = glslang_program_create();
-    glslang_program_add_shader(program, shader);
+    program.addShader(&shader);
 
-    if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT))
+    if (!program.link(messages))
     {
         GLSL_ERROR(Error, "GLSL linking failed {} {}", filename, source);
-        GLSL_ERROR(Error, "{}", glslang_program_get_info_log(program));
-        GLSL_ERROR(Error, "{}", glslang_program_get_info_debug_log(program));
-
-        glslang_program_delete(program);
-        glslang_shader_delete(shader);
-
+        GLSL_ERROR(Error, "{}", program.getInfoLog());
+        GLSL_ERROR(Error, "{}", program.getInfoDebugLog());
         return ByteBuffer();
     }
 
 #ifdef HYP_SHADER_REFLECTION
-    glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
-    if (!cppProgram->buildReflection())
+    if (!program.buildReflection())
     {
         GLSL_ERROR(Error, "Failed to build shader reflection!");
     }
 #endif
 
-    glslang_spv_options_t spvOptions {};
-    spvOptions.disable_optimizer = false;
+    std::vector<uint32> spirv;
+    glslang::SpvOptions spvOptions {};
+    spvOptions.disableOptimizer = false;
     spvOptions.validate = true;
 
-    glslang_program_SPIRV_generate_with_options(program, stage, &spvOptions);
+    const glslang::TIntermediate* intermediate = program.getIntermediate(stage);
+    if (!intermediate)
+    {
+        GLSL_ERROR(Error, "No intermediate generated for {}", filename);
+        return ByteBuffer();
+    }
+
+    glslang::GlslangToSpv(*intermediate, spirv, &spvOptions);
 
 #ifdef HYP_SHADER_REFLECTION
-    for (int i = 0; i < cppProgram->getNumUniformBlocks(); i++)
+    for (int i = 0; i < program.getNumUniformBlocks(); i++)
     {
-        const auto& uniformBlock = cppProgram->getUniformBlock(i);
+        const auto& uniformBlock = program.getUniformBlock(i);
 
-        const glslang::TType* type = uniformBlock.getType();
-        Assert(type != nullptr);
+        const glslang::TType* typePtr = uniformBlock.getType();
+        Assert(typePtr != nullptr);
 
         DescriptorUsage* descriptorUsage = descriptorUsages.Find(CreateWeakNameFromDynamicString(uniformBlock.name.data()));
 
@@ -727,11 +675,11 @@ static ByteBuffer CompileToSPIRV(
         {
             Proc<void(const glslang::TType*, DescriptorUsageType&)> HandleType;
 
-            HandleType = [&HandleType](const glslang::TType* type, DescriptorUsageType& outDescriptorUsageType)
+            HandleType = [&HandleType](const glslang::TType* t, DescriptorUsageType& outDescriptorUsageType)
             {
-                if (type->isStruct())
+                if (t->isStruct())
                 {
-                    for (auto it = type->getStruct()->begin(); it != type->getStruct()->end(); ++it)
+                    for (auto it = t->getStruct()->begin(); it != t->getStruct()->end(); ++it)
                     {
                         String fieldTypeName;
 
@@ -745,38 +693,33 @@ static ByteBuffer CompileToSPIRV(
                         }
 
                         auto& field = outDescriptorUsageType.AddField(
-                                                                CreateNameFromDynamicString(it->type->getFieldName().data()),
-                                                                DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName)))
-                                          .second;
+                            CreateNameFromDynamicString(it->type->getFieldName().data()),
+                            DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName))
+                        ).second;
 
                         HandleType(it->type, field);
                     }
                 }
             };
 
-            HandleType(type, descriptorUsage->type);
+            HandleType(typePtr, descriptorUsage->type);
             descriptorUsage->type.size = uniformBlock.size;
         }
     }
 #endif
 
-    ByteBuffer shaderModule(glslang_program_SPIRV_get_size(program) * sizeof(uint32));
-    glslang_program_SPIRV_get(program, reinterpret_cast<uint32*>(shaderModule.Data()));
-
-    const char* spirvMessages = glslang_program_SPIRV_get_messages(program);
-
-    if (spirvMessages)
+    if (const char* log = program.getInfoLog(); log && *log)
     {
-        GLSL_ERROR(Error, "{}:\n{}", filename, spirvMessages);
+        GLSL_ERROR(Error, "{}:\n{}", filename, log);
     }
 
-    glslang_program_delete(program);
-    glslang_shader_delete(shader);
+    ByteBuffer shaderModule(spirv.size() * sizeof(uint32));
+    std::memcpy(shaderModule.Data(), spirv.data(), shaderModule.Size());
 
 #undef GLSL_ERROR
-
     return shaderModule;
 }
+
 
 #else
 
