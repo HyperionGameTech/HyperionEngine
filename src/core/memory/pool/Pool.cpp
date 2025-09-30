@@ -16,7 +16,8 @@ HYP_NODISCARD void* Pool::Alloc(SizeType size, SizeType alignment)
         }
     }
 
-    m_blocks.EmplaceBack();
+    m_blocks.EmplaceBack(m_blockSize);
+
     Block& newBlock = m_blocks.Back();
 
     void* p = newBlock.Allocate(size, alignment);
@@ -33,6 +34,7 @@ void Pool::Free(void* ptr)
 {
     // Fast path: read header to find owner
     using AllocHeader = Block::AllocHeader;
+
     AllocHeader* hdr = reinterpret_cast<AllocHeader*>(reinterpret_cast<ubyte*>(ptr) - sizeof(AllocHeader));
     Block* owner = hdr->owner;
 
@@ -60,7 +62,7 @@ void Pool::Free(void* ptr)
     }
 
     // not found
-    HYP_FAIL("Pointer %p not found in any pool block!", ptr);
+    HYP_FAIL("Pointer {} not found in any pool block!", ptr);
 }
 
 } // namespace memory

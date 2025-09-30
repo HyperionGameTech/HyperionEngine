@@ -43,6 +43,8 @@ static inline const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& 
 
 #else
 
+struct EditorProjectSaveContext;
+
 extern const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference);
 
 #endif

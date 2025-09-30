@@ -28,6 +28,10 @@
 
 namespace hyperion {
 
+struct EditorProjectSaveContext
+{
+};
+
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const String g_defaultProjectName = "UntitledProject";
@@ -243,6 +247,8 @@ Result EditorProject::SaveAs(FilePath filepath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a directory", filepath);
     }
+
+    GlobalContextScope contextScope { EditorProjectSaveContext {} };
 
     const Time previousLastSavedTime = m_lastSavedTime;
     m_lastSavedTime = Time::Now();

@@ -20,6 +20,8 @@
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
+
+#include <core/utilities/GlobalContext.hpp>
 #endif
 
 namespace hyperion::serialization {
@@ -107,19 +109,18 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    UniquePtr<AssetReference> tmpAssetReference;
 
     // asset reference to serialize in place of serializing an actual object (used for AssetObject deriving classes)
-    const AssetReference* pAssetReference = nullptr;
+    AssetReference assetReference;
     bool isAssetObject = false;
 
     if (hypClass->IsDerivedFrom(AssetReference::Class()))
     {
-        pAssetReference = &in.Get<AssetReference>();
+        assetReference = in.Get<AssetReference>();
     }
-    else if (hypClass->IsDerivedFrom(AssetObject::Class()))
+    else if (hypClass->IsDerivedFrom(AssetObject::Class()) && IsGlobalContextActive<EditorProjectSaveContext>())
     {
-        // Serialize AssetObject deriving classes by their asset reference.
+        // Serialize AssetObject deriving classes by their asset reference if we're saving an Editor project.
         const AssetObject& assetObject = in.Get<AssetObject>();
         AssertDebug(assetObject.IsRegistered(), "Cannot serialize unregistered AssetObject");
 
@@ -128,34 +129,33 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
             return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize AssetObject '{}' because it is not registered to a package!", assetObject.GetPath().ToString()) };
         }
 
-        tmpAssetReference = MakeUnique<AssetReference>(assetObject.HandleFromThis());
-        pAssetReference = tmpAssetReference.Get();
+        assetReference = AssetReference(assetObject.HandleFromThis());
         isAssetObject = true;
     }
 
 #ifdef HYP_DEBUG_MODE
     // Check that the asset being referred to is not in a transient package -- deserialization will result in an asset that can't be found.
-    if (pAssetReference != nullptr)
+    if (assetReference.IsValid())
     {
-        const Handle<AssetObject>& assetObject = pAssetReference->Resolve();
+        const Handle<AssetObject>& assetObject = assetReference.Resolve();
 
         if (!assetObject || !assetObject->GetPackage() || assetObject->GetPackage()->IsTransient())
         {
             HYP_BREAKPOINT;
 
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize AssetReference to asset '{}' because it is not loaded or in a transient package", pAssetReference->GetAssetPath().ToString()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize AssetReference to asset '{}' because it is not loaded or in a transient package", assetReference.GetAssetPath().ToString()) };
         }
     }
 #endif
 
     // If we have an asset reference to serialize, we serialize that instead of the actual object inline.
     // This will reduce duplication and file sizes.
-    if (isAssetObject)
+    if (isAssetObject && assetReference.IsValid())
     {
-        Assert(pAssetReference != nullptr);
-
-        return Serialize(ConstAnyRef { g_typeIdAssetReference, pAssetReference }, out);
+        return Serialize(ConstAnyRef(assetReference), out);
     }
+
+    assetReference = AssetReference();
 #endif
 
     const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute("serialize");

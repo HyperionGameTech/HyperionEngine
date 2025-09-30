@@ -317,8 +317,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 
 add_definitions(-DHYP_SCRIPT=1)
 
-# set to explicitly disable dotnet
-set(HYP_NO_DOTNET 1)
+# uncomment to explicitly disable dotnet
+# set(HYP_NO_DOTNET 1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1
@@ -654,276 +654,300 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
     endif()
 
     if(CSHARP_SHARED_SOURCES)# make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionShared)
+        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared)
 
         # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <AssemblyName>HyperionShared</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <OutputType>Library</OutputType>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Nullable>enable</Nullable>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <AssemblyName>Hyperion.NET.Shared</AssemblyName>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
         if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
         endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "  </PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </PropertyGroup>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
         foreach(CSHARP_SHARED_SOURCE ${CSHARP_SHARED_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <Compile Include=\"${CSHARP_SHARED_SOURCE}\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <Compile Include=\"${CSHARP_SHARED_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj "</Project>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "    </None>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj "</Project>\n")
 
 
         # generate .xml file for DLL map
 
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.xml "<configuration>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "<configuration>\n")
 
         if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
         endif()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.xml "</configuration>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.xml "</configuration>\n")
 
         # run dotnet restore now
         execute_process(
             COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionShared
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
         )
 
-        add_custom_target(HyperionShared ALL
-            COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionShared/bin/${HYP_BUILD_TYPE}/net8.0/HyperionShared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionShared.dll
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionShared/bin/${HYP_BUILD_TYPE}/net8.0/HyperionShared.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionShared.xml
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionShared
-        )
+        if(NOT DEFINED MSVC)
+            add_custom_target(Hyperion.NET.Shared ALL
+                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Shared.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.xml
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared
+            )
+        endif()
     endif()
 
     if(CSHARP_RUNTIME_SOURCES)# make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionRuntime)
+        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime)
 
         # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <AssemblyName>HyperionRuntime</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <OutputType>Library</OutputType>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Nullable>enable</Nullable>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <AssemblyName>Hyperion.NET.Runtime</AssemblyName>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
         if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
         endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  </PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </PropertyGroup>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
         foreach(CSHARP_RUNTIME_SOURCE ${CSHARP_RUNTIME_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj\" >\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "      <Private>true</Private>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    </ProjectReference>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "      <Private>true</Private>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    </ProjectReference>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "</Project>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "    </None>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj "</Project>\n")
 
 
         # generate .xml file for DLL map
 
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.xml "<configuration>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "<configuration>\n")
 
         if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
         endif()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.xml "</configuration>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.xml "</configuration>\n")
 
         # run dotnet restore now
         execute_process(
             COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionRuntime
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
         )
 
-        add_custom_target(HyperionRuntime ALL
-            COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-            DEPENDS HyperionShared
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionRuntime/bin/${HYP_BUILD_TYPE}/net8.0/HyperionRuntime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionRuntime.dll
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionRuntime/bin/${HYP_BUILD_TYPE}/net8.0/HyperionRuntime.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionRuntime.xml
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionRuntime
-        )
+        if(NOT DEFINED MSVC)
+            add_custom_target(Hyperion.NET.Runtime ALL
+                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                DEPENDS Hyperion.NET.Shared
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Runtime.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.xml
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
+            )
+        endif()
     endif()
 
     if(CSHARP_INTEROP_SOURCES)
         # make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionInterop)
+        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop)
 
         # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <AssemblyName>HyperionInterop</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <OutputType>Library</OutputType>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Nullable>enable</Nullable>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <AssemblyName>Hyperion.NET.Interop</AssemblyName>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
         if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
         endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "  </PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </PropertyGroup>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
         foreach(CSHARP_INTEROP_SOURCE ${CSHARP_INTEROP_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <Compile Include=\"${CSHARP_INTEROP_SOURCE}\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <Compile Include=\"${CSHARP_INTEROP_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj\" >\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "      <Private>true</Private>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    </ProjectReference>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "      <Private>true</Private>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    </ProjectReference>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.csproj "</Project>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "    </None>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj "</Project>\n")
 
 
         # generate .xml file for DLL map
 
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.xml "<configuration>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "<configuration>\n")
 
         if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
         endif()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionInterop/HyperionInterop.xml "</configuration>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.xml "</configuration>\n")
 
         # run dotnet restore now
         execute_process(
             COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionInterop
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
         )
 
-        add_custom_target(HyperionInterop ALL
-            COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-            DEPENDS HyperionShared
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionInterop/bin/${HYP_BUILD_TYPE}/net8.0/HyperionInterop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionInterop.dll
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionInterop/bin/${HYP_BUILD_TYPE}/net8.0/HyperionInterop.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionInterop.xml
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionInterop
-        )
+        if(NOT DEFINED MSVC)
+            add_custom_target(Hyperion.NET.Interop ALL
+                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                DEPENDS Hyperion.NET.Shared
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Interop.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.xml
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
+            )
+        endif()
     endif()
 
     if(CSHARP_SCRIPTING_SOURCES)
         # make a directory for the .csproj file
-        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionScripting)
+        file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting)
 
         # generate .csproj file
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "  <PropertyGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <OutputType>Library</OutputType>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <Nullable>enable</Nullable>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <AssemblyName>HyperionScripting</AssemblyName>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <OutputType>Library</OutputType>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <TargetFramework>net8.0</TargetFramework>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <ImplicitUsings>enable</ImplicitUsings>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Nullable>enable</Nullable>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <AssemblyName>Hyperion.NET.Scripting</AssemblyName>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
         if(CSHARP_CONSTANTS)
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
         endif()
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "  </PropertyGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </PropertyGroup>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
         foreach(CSHARP_SCRIPTING_SOURCE ${CSHARP_SCRIPTING_SOURCES})
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <Compile Include=\"${CSHARP_SCRIPTING_SOURCE}\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <Compile Include=\"${CSHARP_SCRIPTING_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/HyperionShared/HyperionShared.csproj\" >\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "      <Private>true</Private>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    </ProjectReference>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" >\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "      <Private>true</Private>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    </ProjectReference>\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp.Scripting\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Scripting\" Version=\"4.9.2\" />\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Workspaces.MSBuild\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.CSharp.Scripting\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Scripting\" Version=\"4.9.2\" />\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <PackageReference Include=\"Microsoft.CodeAnalysis.Workspaces.MSBuild\" Version=\"4.9.2\" />\n")
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "  <ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.xml\">\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "    </None>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "  </ItemGroup>\n")
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.csproj "</Project>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  <ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    <None Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml\">\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "    </None>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "  </ItemGroup>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj "</Project>\n")
 
 
         # generate .xml file for DLL map
 
-        file(WRITE ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.xml "<configuration>\n")
+        file(WRITE ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "<configuration>\n")
 
         if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")
         elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
-            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
+            file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.so\" />\n")
         endif()
 
-        file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionScripting/HyperionScripting.xml "</configuration>\n")
+        file(APPEND ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.xml "</configuration>\n")
 
         # run dotnet restore now
         execute_process(
             COMMAND dotnet restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionScripting
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
         )
+
+        if(NOT DEFINED MSVC)
+            add_custom_target(Hyperion.NET.Scripting ALL
+                COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
+                DEPENDS Hyperion.NET.Shared
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Scripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.dll
+                COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/bin/${HYP_BUILD_TYPE}/net8.0/Hyperion.NET.Scripting.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Scripting.xml
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
+            )
+        endif()
     endif()
 
     if(HYP_BUILD_CSHARP_SOURCES)
-        add_custom_target(HyperionScripting ALL
-            COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-            DEPENDS HyperionShared
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionScripting/bin/${HYP_BUILD_TYPE}/net8.0/HyperionScripting.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionScripting.dll
-            COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECTS_DIR}/HyperionScripting/bin/${HYP_BUILD_TYPE}/net8.0/HyperionScripting.xml ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/HyperionScripting.xml
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionScripting
-        )
+        # Add C# projects to Visual Studio solution if building with MSVC
+        if(MSVC)
+            # Enable C# language support for proper project inclusion
+            enable_language(CSharp)
+            
+            # Include existing .csproj files in the solution
+            include_external_msproject(Hyperion.NET.Shared ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj)
+            include_external_msproject(Hyperion.NET.Runtime ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj)
+            include_external_msproject(Hyperion.NET.Interop ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj)
+            
+            # Check if Scripting project exists and include it
+            if(EXISTS ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
+                include_external_msproject(Hyperion.NET.Scripting ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting/Hyperion.NET.Scripting.csproj)
+            endif()
+        endif()
     endif()
         
 else()

@@ -37,9 +37,9 @@ public:
         ByteBuffer buffer;
         Array<Range> freeRanges;
 
-        Block()
+        explicit Block(SizeType capacity)
         {
-            buffer.SetCapacity(1024 * 1024);
+            buffer.SetCapacity(capacity);
             // whole block initially free
             freeRanges.PushBack({ 0, buffer.GetCapacity() });
         }
@@ -235,11 +235,23 @@ public:
         }
     };
 
-    Pool() = default;
+    Pool()
+        : m_blockSize(1024 * 1024) // 1 MiB
+    {
+    }
+
+    explicit Pool(SizeType blockSize)
+        : m_blockSize(blockSize)
+    {
+        HYP_CORE_ASSERT(m_blockSize > 0);
+    }
+
     Pool(const Pool&) = delete;
     Pool& operator=(const Pool&) = delete;
+
     Pool(Pool&&) = delete;
     Pool& operator=(Pool&&) = delete;
+
     ~Pool();
 
     HYP_NODISCARD void* Alloc(SizeType size, SizeType alignment = alignof(std::max_align_t));
@@ -254,6 +266,7 @@ public:
 
 protected:
     LinkedList<Block> m_blocks;
+    SizeType m_blockSize;
 };
 
 template <class T>

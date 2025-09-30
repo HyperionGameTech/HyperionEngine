@@ -115,7 +115,7 @@ namespace Hyperion
                     return (int)LoadAssemblyResult.NotFound;
                 }
 
-                AssemblyName hyperionSharedDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionShared");
+                AssemblyName hyperionSharedDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "Hyperion.NET.Shared");
 
                 if (hyperionSharedDependency != null)
                 {

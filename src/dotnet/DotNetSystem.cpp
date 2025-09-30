@@ -134,11 +134,11 @@ public:
             HYP_LOG(DotNET, Fatal, "Could not initialize .NET runtime: Failed to initialize runtime");
         }
 
-        const Optional<FilePath> interopAssemblyPath = FindAssemblyFilePath(m_basePath, "HyperionInterop.dll");
+        const Optional<FilePath> interopAssemblyPath = FindAssemblyFilePath(m_basePath, "Hyperion.NET.Interop.dll");
 
         if (!interopAssemblyPath.HasValue())
         {
-            HYP_LOG(DotNET, Fatal, "Could not initialize .NET runtime: Could not locate HyperionInterop.dll! Base path: {}", m_basePath);
+            HYP_LOG(DotNET, Fatal, "Could not initialize .NET runtime: Could not locate Hyperion.NET.Interop.dll! Base path: {}", m_basePath);
         }
 
         PlatformString interopAssemblyPathPlatform;
@@ -151,44 +151,44 @@ public:
 
         m_initializeRuntimeFptr = (InitializeRuntimeDelegate)GetDelegate(
             interopAssemblyPathPlatform.Data(),
-            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("Hyperion.NativeInterop, Hyperion.NET.Interop"),
             HYP_TEXT("InitializeRuntime"),
             UNMANAGEDCALLERSONLY_METHOD);
 
         Assert(
             m_initializeRuntimeFptr != nullptr,
-            "InitializeRuntime could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled.");
+            "InitializeRuntime could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
         m_initializeAssemblyFptr = (InitializeAssemblyDelegate)GetDelegate(
             interopAssemblyPathPlatform.Data(),
-            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("Hyperion.NativeInterop, Hyperion.NET.Interop"),
             HYP_TEXT("InitializeAssembly"),
             UNMANAGEDCALLERSONLY_METHOD);
 
         Assert(
             m_initializeAssemblyFptr != nullptr,
-            "InitializeAssembly could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled.");
+            "InitializeAssembly could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
         m_unloadAssemblyFptr = (UnloadAssemblyDelegate)GetDelegate(
             interopAssemblyPathPlatform.Data(),
-            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("Hyperion.NativeInterop, Hyperion.NET.Interop"),
             HYP_TEXT("UnloadAssembly"),
             UNMANAGEDCALLERSONLY_METHOD);
 
         Assert(
             m_unloadAssemblyFptr != nullptr,
-            "UnloadAssembly could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled.");
+            "UnloadAssembly could not be found in Hyperion.NET.Interop.dll! Ensure .NET libraries are properly compiled.");
 
         static const FixedArray<Pair<String, FilePath>, 3> coreAssemblies = {
             Pair<String, FilePath> { "interop", *interopAssemblyPath },
-            Pair<String, FilePath> { "shared", FindAssemblyFilePath(m_basePath, "HyperionShared.dll").GetOr([]() -> FilePath
+            Pair<String, FilePath> { "shared", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Shared.dll").GetOr([]() -> FilePath
                                                    {
-                                                       HYP_FAIL("Failed to get HyperionShared.dll");
+                                                       HYP_FAIL("Failed to get Hyperion.NET.Shared.dll");
                                                        return {};
                                                    }) },
-            Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "HyperionRuntime.dll").GetOr([]() -> FilePath
+            Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Runtime.dll").GetOr([]() -> FilePath
                                                     {
-                                                        HYP_FAIL("Failed to get HyperionRuntime.dll");
+                                                        HYP_FAIL("Failed to get Hyperion.NET.Runtime.dll");
                                                         return {};
                                                     }) }
         };

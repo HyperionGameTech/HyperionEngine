@@ -5,7 +5,9 @@
 #include <core/containers/Stack.hpp>
 #include <core/containers/TypeMap.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <core/memory/Memory.hpp>
+
+#include <core/memory/pool/Pool.hpp>
 
 #include <core/threading/Thread.hpp>
 
@@ -18,15 +20,55 @@ namespace utilities {
 
 class GlobalContextRegistry;
 
+HYP_API Pool* GetGlobalContextPoolForCurrentThread();
 HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread();
 
-class IGlobalContextHolder
+class GlobalContextHolderBase
 {
-public:
-    virtual ~IGlobalContextHolder() = default;
+    friend class GlobalContextRegistry;
 
-    virtual SizeType Size() const = 0;
-    virtual void Pop() = 0;
+protected:
+    GlobalContextHolderBase()
+        : m_pool(GetGlobalContextPoolForCurrentThread()),
+          m_pFnDestructor(nullptr)
+    {
+    }
+
+public:
+    ~GlobalContextHolderBase()
+    {
+        for (SizeType i = m_stack.Size(); i > 0; i--)
+        {
+            if (m_pFnDestructor != nullptr)
+            {
+                m_pFnDestructor(m_stack[i - 1]);
+            }
+
+            m_pool->Free(m_stack[i - 1]);
+        }
+    }
+
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        return m_stack.Size();
+    }
+
+    void Pop()
+    {
+        HYP_CORE_ASSERT(m_stack.Size() > 0);
+
+        if (m_pFnDestructor != nullptr)
+        {
+            m_pFnDestructor(m_stack.Back());
+        }
+
+        m_pool->Free(m_stack.PopBack());
+    }
+
+protected:
+    Pool* m_pool;
+    Array<void*> m_stack;
+    void (*m_pFnDestructor)(void*);
 };
 
 template <class ContextType>
@@ -43,68 +85,89 @@ public:
     ~GlobalContextRegistry();
 
     template <class T>
-    HYP_FORCE_INLINE GlobalContextHolder<T>& GetContextHolder()
+    HYP_FORCE_INLINE GlobalContextHolder<T>& GetOrCreateContextHolder()
     {
         auto it = m_contextHolders.Find<T>();
 
         if (it == m_contextHolders.End())
         {
-            it = m_contextHolders.Set<T>(MakeUnique<GlobalContextHolder<T>>()).first;
+            it = m_contextHolders.Set<T>(new GlobalContextHolder<T>()).first;
         }
 
-        return *static_cast<GlobalContextHolder<T>*>(it->second.Get());
+        return *static_cast<GlobalContextHolder<T>*>(it->second);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE GlobalContextHolder<T>* GetContextHolder()
+    {
+        auto it = m_contextHolders.Find<T>();
+
+        if (it == m_contextHolders.End())
+        {
+            nullptr;
+        }
+
+        return static_cast<GlobalContextHolder<T>*>(it->second);
     }
 
 private:
     ThreadId m_ownerThreadId;
-    TypeMap<UniquePtr<IGlobalContextHolder>> m_contextHolders;
+    TypeMap<GlobalContextHolderBase*> m_contextHolders;
 };
 
 template <class ContextType>
-class GlobalContextHolder final : public IGlobalContextHolder
+class GlobalContextHolder final : public GlobalContextHolderBase
 {
 public:
     GlobalContextHolder() = default;
+
     GlobalContextHolder(const GlobalContextHolder& other) = delete;
     GlobalContextHolder& operator=(const GlobalContextHolder& other) = delete;
+
     GlobalContextHolder(GlobalContextHolder&& other) noexcept = delete;
     GlobalContextHolder& operator=(GlobalContextHolder&& other) noexcept = delete;
-    ~GlobalContextHolder() = default;
 
     static GlobalContextHolder& GetInstance()
     {
-        thread_local GlobalContextHolder<ContextType>& result = GetGlobalContextRegistryForCurrentThread()->GetContextHolder<ContextType>();
+        thread_local GlobalContextHolder<ContextType>& result = GetGlobalContextRegistryForCurrentThread()->GetOrCreateContextHolder<ContextType>();
 
         return result;
     }
 
-    virtual SizeType Size() const override
+    static GlobalContextHolder* GetInstanceIfNotNull()
     {
-        return m_contexts.Size();
+        return GetGlobalContextRegistryForCurrentThread()->GetContextHolder<ContextType>();
     }
 
-    void Push(ContextType&& context)
+    template <class... Args>
+    void Push(Args&&... args)
     {
-        m_contexts.Push(std::move(context));
-    }
+        void* mem = m_pool->Alloc(sizeof(ContextType), alignof(ContextType));
+        HYP_CORE_ASSERT(mem != nullptr);
 
-    virtual void Pop() override
-    {
-        m_contexts.Pop();
+        m_stack.PushBack(new (mem) ContextType(std::forward<Args>(args)...));
+        
+        if constexpr (!std::is_trivially_destructible_v<ContextType>)
+        {
+            if (HYP_UNLIKELY(m_pFnDestructor == nullptr))
+            {
+                // set destructor on first call to Push() - that way we can use undefined class in places to check if a context is active.
+                m_pFnDestructor = &Memory::Destruct<ContextType>;
+            }
+        }
     }
 
     ContextType& Current()
     {
-        return m_contexts.Top();
-    }
+        HYP_CORE_ASSERT(m_stack.Size() > 0);
 
-private:
-    Stack<ContextType> m_contexts;
+        return *reinterpret_cast<ContextType*>(m_stack.Back());
+    }
 };
 
 struct GlobalContextScope
 {
-    IGlobalContextHolder* holder;
+    GlobalContextHolderBase* holder;
 
     template <class ContextType>
     GlobalContextScope(ContextType&& context)
@@ -128,9 +191,9 @@ struct GlobalContextScope
 template <class ContextType>
 static inline bool IsGlobalContextActive()
 {
-    GlobalContextHolder<ContextType>& holder = GlobalContextHolder<ContextType>::GetInstance();
+    GlobalContextHolder<ContextType>* holder = GlobalContextHolder<ContextType>::GetInstanceIfNotNull();
 
-    return holder.Size() != 0;
+    return holder && holder->Size() != 0;
 }
 
 template <class ContextType>
