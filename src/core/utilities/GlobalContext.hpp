@@ -104,7 +104,7 @@ public:
 
         if (it == m_contextHolders.End())
         {
-            nullptr;
+            return nullptr;
         }
 
         return static_cast<GlobalContextHolder<T>*>(it->second);
@@ -146,7 +146,7 @@ public:
         HYP_CORE_ASSERT(mem != nullptr);
 
         m_stack.PushBack(new (mem) ContextType(std::forward<Args>(args)...));
-        
+
         if constexpr (!std::is_trivially_destructible_v<ContextType>)
         {
             if (HYP_UNLIKELY(m_pFnDestructor == nullptr))

@@ -343,20 +343,34 @@ static EShLanguage StageFromModuleType(ShaderModuleType type)
 {
     switch (type)
     {
-    case SMT_VERTEX:          return EShLangVertex;
-    case SMT_FRAGMENT:        return EShLangFragment;
-    case SMT_GEOMETRY:        return EShLangGeometry;
-    case SMT_COMPUTE:         return EShLangCompute;
-    case SMT_TASK:            return EShLangTaskNV;
-    case SMT_MESH:            return EShLangMeshNV;
-    case SMT_TESS_CONTROL:    return EShLangTessControl;
-    case SMT_TESS_EVAL:       return EShLangTessEvaluation;
-    case SMT_RAY_GEN:         return EShLangRayGenNV;
-    case SMT_RAY_INTERSECT:   return EShLangIntersectNV;
-    case SMT_RAY_ANY_HIT:     return EShLangAnyHitNV;
-    case SMT_RAY_CLOSEST_HIT: return EShLangClosestHitNV;
-    case SMT_RAY_MISS:        return EShLangMissNV;
-    default:                  HYP_THROW("Invalid shader type");
+    case SMT_VERTEX:
+        return EShLangVertex;
+    case SMT_FRAGMENT:
+        return EShLangFragment;
+    case SMT_GEOMETRY:
+        return EShLangGeometry;
+    case SMT_COMPUTE:
+        return EShLangCompute;
+    case SMT_TASK:
+        return EShLangTaskNV;
+    case SMT_MESH:
+        return EShLangMeshNV;
+    case SMT_TESS_CONTROL:
+        return EShLangTessControl;
+    case SMT_TESS_EVAL:
+        return EShLangTessEvaluation;
+    case SMT_RAY_GEN:
+        return EShLangRayGenNV;
+    case SMT_RAY_INTERSECT:
+        return EShLangIntersectNV;
+    case SMT_RAY_ANY_HIT:
+        return EShLangAnyHitNV;
+    case SMT_RAY_CLOSEST_HIT:
+        return EShLangClosestHitNV;
+    case SMT_RAY_MISS:
+        return EShLangMissNV;
+    default:
+        HYP_UNREACHABLE();
     }
 }
 
@@ -364,26 +378,41 @@ static const char* StageDefineFromModuleType(ShaderModuleType type)
 {
     switch (type)
     {
-    case SMT_VERTEX:          return "VERTEX_SHADER";
-    case SMT_FRAGMENT:        return "FRAGMENT_SHADER";
-    case SMT_GEOMETRY:        return "GEOMETRY_SHADER";
-    case SMT_COMPUTE:         return "COMPUTE_SHADER";
-    case SMT_TASK:            return "TASK_SHADER";
-    case SMT_MESH:            return "MESH_SHADER";
-    case SMT_TESS_CONTROL:    return "TESS_CONTROL_SHADER";
-    case SMT_TESS_EVAL:       return "TESS_EVAL_SHADER";
-    case SMT_RAY_GEN:         return "RAY_GEN_SHADER";
-    case SMT_RAY_INTERSECT:   return "RAY_INTERSECT_SHADER";
-    case SMT_RAY_ANY_HIT:     return "RAY_ANY_HIT_SHADER";
-    case SMT_RAY_CLOSEST_HIT: return "RAY_CLOSEST_HIT_SHADER";
-    case SMT_RAY_MISS:        return "RAY_MISS_SHADER";
-    default:                  return "";
+    case SMT_VERTEX:
+        return "VERTEX_SHADER";
+    case SMT_FRAGMENT:
+        return "FRAGMENT_SHADER";
+    case SMT_GEOMETRY:
+        return "GEOMETRY_SHADER";
+    case SMT_COMPUTE:
+        return "COMPUTE_SHADER";
+    case SMT_TASK:
+        return "TASK_SHADER";
+    case SMT_MESH:
+        return "MESH_SHADER";
+    case SMT_TESS_CONTROL:
+        return "TESS_CONTROL_SHADER";
+    case SMT_TESS_EVAL:
+        return "TESS_EVAL_SHADER";
+    case SMT_RAY_GEN:
+        return "RAY_GEN_SHADER";
+    case SMT_RAY_INTERSECT:
+        return "RAY_INTERSECT_SHADER";
+    case SMT_RAY_ANY_HIT:
+        return "RAY_ANY_HIT_SHADER";
+    case SMT_RAY_CLOSEST_HIT:
+        return "RAY_CLOSEST_HIT_SHADER";
+    case SMT_RAY_MISS:
+        return "RAY_MISS_SHADER";
+    default:
+        HYP_UNREACHABLE();
     }
 }
 
 static glslang::EShTargetClientVersion VulkanClientFromUint(uint32 vk)
 {
-    if (vk >= VK_API_VERSION_1_2) return glslang::EShTargetVulkan_1_2;
+    if (vk >= VK_API_VERSION_1_2)
+        return glslang::EShTargetVulkan_1_2;
     return glslang::EShTargetVulkan_1_1;
 }
 
@@ -395,31 +424,38 @@ class HyperionIncluder final : public glslang::TShader::Includer
 {
 public:
     explicit HyperionIncluder(String filename)
-        : m_filename(std::move(filename)) {}
+        : m_filename(std::move(filename))
+    {
+    }
 
     IncludeResult* includeSystem(const char* headerName,
-                                 const char* includerName,
-                                 size_t includeDepth) override
+        const char* includerName,
+        size_t includeDepth) override
     {
         return IncludeInternal(headerName, includerName, includeDepth);
     }
 
     IncludeResult* includeLocal(const char* headerName,
-                                const char* includerName,
-                                size_t includeDepth) override
+        const char* includerName,
+        size_t includeDepth) override
     {
         return IncludeInternal(headerName, includerName, includeDepth);
     }
 
     void releaseInclude(IncludeResult* result) override
     {
-        delete result; // no manual cleanup, std::string handles it
+        if (result->headerData)
+        {
+            delete[] result->headerData;
+        }
+
+        delete result;
     }
 
 private:
     IncludeResult* IncludeInternal(const char* headerName,
-                                   const char* includerName,
-                                   size_t includeDepth)
+        const char* includerName,
+        size_t includeDepth)
     {
         const FilePath basePath = FilePath(m_filename).BasePath();
 
@@ -444,19 +480,21 @@ private:
             return nullptr;
         }
 
-        String contents = String::Join(reader.ReadAllLines(), '\n');
+        String contents = String::Join(reader.ReadAllLines(), '\n') + '\n';
+
+        char* headerData = new char[contents.Size() + 1];
+        Memory::MemCpy(headerData, contents.Data(), contents.Size());
+        headerData[contents.Size()] = '\0';
 
         return new IncludeResult(
-            path.Data(),                 // headerName (std::string)
-            contents.Data(),             // headerData (std::string)
+            path.Data(),
+            headerData,
             contents.Size(),
-            nullptr
-        );
+            nullptr);
     }
 
     String m_filename;
 };
-
 
 static bool PreprocessShaderSource(
     ShaderModuleType type,
@@ -467,10 +505,10 @@ static bool PreprocessShaderSource(
     String& outPreprocessedSource,
     Array<String>& outErrorMessages)
 {
-#define GLSL_ERROR(level, errorMessage, ...)                                     \
-    {                                                                            \
-        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);             \
-        outErrorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__));      \
+#define GLSL_ERROR(level, errorMessage, ...)                                \
+    {                                                                       \
+        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);        \
+        outErrorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__)); \
     }
 
     auto defaultResources = DefaultResources();
@@ -487,7 +525,6 @@ static bool PreprocessShaderSource(
         spirvVersion = MathUtil::Max(spirvVersion, 460);
     }
 
-    // Inject stage macro like before.
     if (stageDefine && *stageDefine)
     {
         preamble += "\n#ifndef ";
@@ -498,7 +535,7 @@ static bool PreprocessShaderSource(
     }
 
     const glslang::EShTargetClientVersion clientVersion = VulkanClientFromUint(vulkanApiVersion);
-    const glslang::EShTargetLanguageVersion spvTarget   = SpvTargetFromNeeds(needsRt);
+    const glslang::EShTargetLanguageVersion spvTarget = SpvTargetFromNeeds(needsRt);
     const int defaultGlslVersion = int(spirvVersion);
     const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
 
@@ -508,16 +545,16 @@ static bool PreprocessShaderSource(
     shader.setPreamble(preamble.Data());
 
     shader.setEnvInput(language == ShaderLanguage::HLSL ? glslang::EShSourceHlsl : glslang::EShSourceGlsl,
-                       stage, glslang::EShClientVulkan, 0);
+        stage, glslang::EShClientVulkan, 0);
     shader.setEnvClient(glslang::EShClientVulkan, clientVersion);
     shader.setEnvTarget(glslang::EShTargetSpv, spvTarget);
 
     HyperionIncluder includer(filename);
-    
+
     std::string preprocessedCode;
 
     if (!shader.preprocess(&defaultResources, defaultGlslVersion, ECoreProfile,
-                           /*forceDefault*/ false, /*forwardCompatible*/ false, messages, &preprocessedCode, includer))
+            /*forceDefault*/ false, /*forwardCompatible*/ false, messages, &preprocessedCode, includer))
     {
         GLSL_ERROR(Error, "GLSL preprocessing failed {}", filename);
         GLSL_ERROR(Error, "{}", shader.getInfoLog());
@@ -540,10 +577,10 @@ static ByteBuffer CompileToSPIRV(
     const ShaderProperties& properties,
     Array<String>& errorMessages)
 {
-#define GLSL_ERROR(level, errorMessage, ...)                                \
-    {                                                                       \
-        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);        \
-        errorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__));    \
+#define GLSL_ERROR(level, errorMessage, ...)                             \
+    {                                                                    \
+        HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);     \
+        errorMessages.PushBack(HYP_FORMAT(errorMessage, ##__VA_ARGS__)); \
     }
 
     auto defaultResources = DefaultResources();
@@ -559,7 +596,7 @@ static ByteBuffer CompileToSPIRV(
     }
 
     const glslang::EShTargetClientVersion clientVersion = VulkanClientFromUint(vulkanApiVersion);
-    const glslang::EShTargetLanguageVersion spvTarget   = SpvTargetFromNeeds(needsRt);
+    const glslang::EShTargetLanguageVersion spvTarget = SpvTargetFromNeeds(needsRt);
     const int defaultGlslVersion = needsRt ? 460 : 450;
 
     const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
@@ -583,7 +620,7 @@ static ByteBuffer CompileToSPIRV(
     shader.setPreamble(preamble.Data());
 
     shader.setEnvInput(language == ShaderLanguage::HLSL ? glslang::EShSourceHlsl : glslang::EShSourceGlsl,
-                       stage, glslang::EShClientVulkan, 0);
+        stage, glslang::EShClientVulkan, 0);
     shader.setEnvClient(glslang::EShClientVulkan, clientVersion);
     shader.setEnvTarget(glslang::EShTargetSpv, spvTarget);
 
@@ -593,12 +630,11 @@ static ByteBuffer CompileToSPIRV(
     shader.setAutoMapBindings(true);
     shader.setAutoMapLocations(true);
 
-    std::string preprocessedCode;
-
     {
+        std::string preprocessedCode;
         HyperionIncluder includer(filename);
         if (!shader.preprocess(&defaultResources, defaultGlslVersion, ECoreProfile,
-                               /*forceDefault*/ false, /*forwardCompatible*/ false, messages, &preprocessedCode, includer))
+                /*forceDefault*/ false, /*forwardCompatible*/ false, messages, &preprocessedCode, includer))
         {
             GLSL_ERROR(Error, "GLSL preprocessing failed {}", filename);
             GLSL_ERROR(Error, "{}", shader.getInfoLog());
@@ -678,9 +714,9 @@ static ByteBuffer CompileToSPIRV(
                         }
 
                         auto& field = outDescriptorUsageType.AddField(
-                            CreateNameFromDynamicString(it->type->getFieldName().data()),
-                            DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName))
-                        ).second;
+                                                                CreateNameFromDynamicString(it->type->getFieldName().data()),
+                                                                DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName)))
+                                          .second;
 
                         HandleType(it->type, field);
                     }
@@ -704,7 +740,6 @@ static ByteBuffer CompileToSPIRV(
 #undef GLSL_ERROR
     return shaderModule;
 }
-
 
 #else
 

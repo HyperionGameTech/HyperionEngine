@@ -28,11 +28,11 @@ public:
             return;
         }
 
-        RC<dotnet::Assembly> managedAssembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("HyperionScripting.dll");
-        Assert(managedAssembly != nullptr, "Failed to load HyperionScripting assembly");
+        RC<dotnet::Assembly> managedAssembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
+        Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
         RC<dotnet::Class> classPtr = managedAssembly->FindClassByName("ScriptTracker");
-        Assert(classPtr != nullptr, "Failed to load ScriptTracker class from HyperionScripting assembly");
+        Assert(classPtr != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly");
 
         object = UniquePtr<dotnet::Object>(classPtr->NewObject());
         assembly = std::move(managedAssembly);
