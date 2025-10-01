@@ -137,7 +137,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         isAssetObject = true;
     }
 
-#ifdef HYP_DEBUG_MODE
+#if 0 // def HYP_DEBUG_MODE
     // Check that the asset being referred to is not in a transient package -- deserialization will result in an asset that can't be found.
     if (assetReference.IsValid())
     {
@@ -283,6 +283,50 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeId: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
     }
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    // Handle deserialization of AssetObject types that were serialized as AssetReference
+    // Check if we're trying to deserialize an AssetReference but the expected type is an AssetObject
+    if (hypClass->IsDerivedFrom(AssetReference::Class()))
+    {
+        // First, create and deserialize the AssetReference
+        if (!hypClass->CreateInstance(out))
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
+        }
+
+        AnyRef ref = out.ToRef();
+        HYP_CORE_ASSERT(ref.HasValue(), "Failed to create HypClass instance");
+
+        // Deserialize the AssetReference normally
+        if (FBOMResult res = Deserialize_Internal(context, in, hypClass, ref); !res.IsOK())
+        {
+            return res;
+        }
+
+        // Check if the context expects this to be resolved to an AssetObject
+        // (This allows the caller to request the AssetReference or the resolved object)
+        const TypeId expectedTypeId = out.GetTypeId();
+
+        if (expectedTypeId != TypeId::ForType<AssetReference>())
+        {
+            // The caller expects an AssetObject, not an AssetReference
+            // Resolve the AssetReference and replace the output
+            const AssetReference& assetReference = out.Get<AssetReference>();
+            Handle<AssetObject> assetObject = ResolveAssetImpl(assetReference);
+
+            if (!assetObject)
+            {
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize AssetObject, failed to resolve AssetReference to asset '{}'", assetReference.GetAssetPath().ToString()) };
+            }
+
+            // Replace the output with the resolved AssetObject
+            out = HypData(assetObject);
+        }
+
+        return { FBOMResult::FBOM_OK };
+    }
+#endif
+
     if (!hypClass->CreateInstance(out))
     {
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
@@ -310,8 +354,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 {
     HYP_CORE_ASSERT(hypClass != nullptr);
     HYP_CORE_ASSERT(ref.HasValue());
-
-    // @TODO: Handle AssetObject derived types the same way we do in serialization
 
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;

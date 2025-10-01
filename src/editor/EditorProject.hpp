@@ -39,7 +39,7 @@ public:
     EditorProject();
 
     explicit EditorProject(Name name);
-    
+
     EditorProject(const EditorProject& other) = delete;
     EditorProject& operator=(const EditorProject& other) = delete;
 
@@ -129,7 +129,7 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectSaved;
-    
+
     Delegate<void, Handle<AssetPackage>> OnPackageCreated;
 
 private:
@@ -144,29 +144,28 @@ private:
 
     Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
 
-    HYP_FIELD(Property = "UUID", Serialize)
+    HYP_FIELD(Property = "UUID")
     Uuid m_uuid;
 
-    HYP_FIELD(Property = "Name", Serialize)
+    HYP_FIELD(Property = "Name")
     Name m_name;
 
-    HYP_FIELD(Property = "LastSavedTime", Serialize)
+    HYP_FIELD(Property = "LastSavedTime")
     Time m_lastSavedTime;
 
-    HYP_FIELD(Property = "FilePath", Serialize)
+    HYP_FIELD(Property = "FilePath")
     FilePath m_filepath;
 
-    HYP_FIELD(Property = "Scenes", Serialize)
+    HYP_FIELD(Property = "Scenes")
     Array<Handle<Scene>> m_scenes;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Handle<AssetPackage> m_package;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;
 
     WeakHandle<EditorSubsystem> m_editorSubsystem;
 };
 
 } // namespace hyperion
-

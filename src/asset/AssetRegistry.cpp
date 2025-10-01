@@ -1661,7 +1661,8 @@ HYP_DISABLE_OPTIMIZATION;
 void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
-    bool forceRelocation)
+    bool forceRelocation,
+    ProcRef<String(const AssetObject&)> getObjectSubpath)
 {
     HYP_SCOPE;
 
@@ -1694,25 +1695,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
-        if (current.Is<AssetObject>())
-        {
-            const AssetObject& assetObject = current.Get<AssetObject>();
-
-            if (forceRelocation || !assetObject.IsRegistered())
-            {
-                HYP_LOG_TEMP("Registering asset '{}' at path '{}'", assetObject.GetName(), packagePath);
-
-                if (Result result = RegisterAsset(packagePath, assetObject.HandleFromThis()); result.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject.GetName(), result.GetError().GetMessage());
-                }
-                else
-                {
-                    HYP_LOG_TEMP("Registered asset '{}' to path '{}'", assetObject.GetName(), assetObject.GetPath().ToString());
-                }
-            }
-        }
-        else if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
+        if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
         {
             HypDataArray& array = current.Get<HypDataArray>();
 
@@ -1820,6 +1803,30 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
 
             iterate(memberData);
+        }
+
+        // need to register objects after their members (or else could save unregistered objects upon saving this obj)
+        if (current.Is<AssetObject>())
+        {
+            const AssetObject& assetObject = current.Get<AssetObject>();
+
+            if (forceRelocation || !assetObject.IsRegistered())
+            {
+                const String packagePathWithSubpath = getObjectSubpath
+                    ? packagePath + "/" + getObjectSubpath(assetObject)
+                    : String(packagePath);
+
+                HYP_LOG_TEMP("Registering asset '{}' at path '{}'", assetObject.GetName(), packagePathWithSubpath);
+
+                if (Result result = RegisterAsset(packagePathWithSubpath, assetObject.HandleFromThis()); result.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject.GetName(), result.GetError().GetMessage());
+                }
+                else
+                {
+                    HYP_LOG_TEMP("Registered asset '{}' to path '{}'", assetObject.GetName(), assetObject.GetPath().ToString());
+                }
+            }
         }
     };
 

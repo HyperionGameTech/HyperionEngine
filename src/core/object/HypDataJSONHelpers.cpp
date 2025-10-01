@@ -17,7 +17,7 @@
 
 namespace hyperion {
 
-bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson)
+bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson, bool skipTransientProperties)
 {
     HashSet<Name> usedMembers;
 
@@ -25,6 +25,14 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
     {
         for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY, /* deep */ false))
         {
+            if (skipTransientProperties)
+            {
+                if (const HypClassAttributeValue& attribute = member.GetAttribute("transient"); attribute.IsValid() && attribute.GetBool())
+                {
+                    continue;
+                }
+            }
+
             if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
@@ -45,7 +53,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(property->Get(target), jsonValue))
+                if (!HypDataToJSON(property->Get(target), jsonValue, skipTransientProperties))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -77,7 +85,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(field->Get(target), jsonValue))
+                if (!HypDataToJSON(field->Get(target), jsonValue, skipTransientProperties))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -111,7 +119,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(constant->Get(), jsonValue))
+                if (!HypDataToJSON(constant->Get(), jsonValue, skipTransientProperties))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -562,7 +570,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
     return false;
 }
 
-bool HypDataToJSON(const HypData& value, json::JSONValue& outJson)
+bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties)
 {
     if (value.IsNull())
     {
@@ -742,7 +750,7 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson)
     {
         json::JSONObject jsonObject;
 
-        if (!ObjectToJSON(hypClass, value, jsonObject))
+        if (!ObjectToJSON(hypClass, value, jsonObject, skipTransientProperties))
         {
             return false;
         }

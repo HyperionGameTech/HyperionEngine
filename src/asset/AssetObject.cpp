@@ -380,7 +380,7 @@ Result AssetObject::Save()
 Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     json::JSONObject manifestJson;
-    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson);
+    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson, /* skipTransientProperties */ true);
 
     manifestJson["$Class"] = *InstanceClass()->GetName();
 
@@ -432,7 +432,7 @@ Result AssetObject::Load(
     {
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
-    
+
     FBOMLoadContext context;
     FBOMReader reader { FBOMReaderConfig {} };
     FBOMResult err;

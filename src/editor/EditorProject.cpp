@@ -5,6 +5,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetObject.hpp>
 
 #include <scene/Scene.hpp>
 
@@ -23,7 +24,10 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <core/object/HypClass.hpp>
+
 #include <engine/EngineGlobals.hpp>
+
 #include <HyperionEngine.hpp>
 
 namespace hyperion {
@@ -230,7 +234,12 @@ Result EditorProject::SaveAs(FilePath filepath)
         g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
             objectsSubpackage->BuildPackagePath(),
             HypData(AnyRef(*this)),
-            /* forceRelocation */ false);
+            /* forceRelocation */ false,
+            [](const AssetObject& assetObject) -> String
+            {
+                //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
+                return HYP_FORMAT("Types/{}", assetObject.InstanceClass()->GetName());
+            });
     }
 
     if (filepath.Empty())

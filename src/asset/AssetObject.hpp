@@ -303,22 +303,22 @@ protected:
     HYP_FIELD()
     FilePath m_originalFilepath; // used to determine if we should skip importing an asset
 
-    HYP_FIELD(JsonIgnore, Transient)
+    HYP_FIELD(Transient)
     WeakHandle<AssetPackage> m_package;
 
-    HYP_FIELD(JsonIgnore, NoScriptBindings, Transient)
+    HYP_FIELD(NoScriptBindings, Transient)
     IResource* m_resource;
 
-    HYP_FIELD(JsonIgnore, Transient)
+    HYP_FIELD(Transient)
     AssetPath m_assetPath;
-    
-    HYP_FIELD(JsonIgnore, Transient)
+
+    HYP_FIELD(Transient)
     FilePath m_filepath;
 
-    HYP_FIELD(JsonIgnore, NoScriptBindings, Transient)
+    HYP_FIELD(NoScriptBindings, Transient)
     IResourceMemoryPool* m_pool;
-    
-    HYP_FIELD(JsonIgnore, NoScriptBindings, Transient)
+
+    HYP_FIELD(NoScriptBindings, Transient)
     ResourceHandle m_persistentResource;
 };
 
