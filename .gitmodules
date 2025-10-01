@@ -1,7 +1,6 @@
 [submodule "submodules/glslang"]
 	path = submodules/glslang
 	url = https://github.com/KhronosGroup/glslang
-	commit = a57276bf558f5cf94d3a9854ebdf5a2236849a5a
 [submodule "submodules/libdatachannel"]
 	path = submodules/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel
