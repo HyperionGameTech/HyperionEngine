@@ -412,7 +412,10 @@ static const char* StageDefineFromModuleType(ShaderModuleType type)
 static glslang::EShTargetClientVersion VulkanClientFromUint(uint32 vk)
 {
     if (vk >= VK_API_VERSION_1_2)
+    {
         return glslang::EShTargetVulkan_1_2;
+    }
+
     return glslang::EShTargetVulkan_1_1;
 }
 
@@ -420,6 +423,7 @@ static glslang::EShTargetLanguageVersion SpvTargetFromNeeds(bool needsRt)
 {
     return needsRt ? glslang::EShTargetSpv_1_4 : glslang::EShTargetSpv_1_2;
 }
+
 class HyperionIncluder final : public glslang::TShader::Includer
 {
 public:
@@ -428,14 +432,16 @@ public:
     {
     }
 
-    IncludeResult* includeSystem(const char* headerName,
+    IncludeResult* includeSystem(
+        const char* headerName,
         const char* includerName,
         size_t includeDepth) override
     {
         return IncludeInternal(headerName, includerName, includeDepth);
     }
 
-    IncludeResult* includeLocal(const char* headerName,
+    IncludeResult* includeLocal(
+        const char* headerName,
         const char* includerName,
         size_t includeDepth) override
     {
@@ -568,6 +574,7 @@ static bool PreprocessShaderSource(
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 static ByteBuffer CompileToSPIRV(
     ShaderModuleType type,
     ShaderLanguage language,
@@ -740,6 +747,7 @@ static ByteBuffer CompileToSPIRV(
 #undef GLSL_ERROR
     return shaderModule;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #else
 

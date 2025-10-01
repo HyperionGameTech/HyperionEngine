@@ -119,6 +119,8 @@ Material::~Material()
 
 void Material::Init()
 {
+    HYP_SCOPE;
+
     FlatMap<MaterialTextureKey, Handle<Texture>> textures;
 
     for (SizeType i = 0; i < m_textures.Size(); i++)
@@ -134,6 +136,8 @@ void Material::Init()
     }
 
     m_mutationState |= DataMutationState::DIRTY;
+    
+    AssetObject::Init();
 
     SetReady(true);
 

@@ -131,6 +131,8 @@ Mesh::~Mesh()
 
 void Mesh::Init()
 {
+    HYP_SCOPE;
+
     if (const Handle<MeshAsset>& asset = GetAsset())
     {
         if (!asset->IsRegistered())
@@ -157,6 +159,8 @@ void Mesh::Init()
             HYP_LOG(Mesh, Warning, "Mesh {} (name: {}) has no asset, cannot upload GPU data!", Id(), GetName());
         }
     }
+
+    AssetObject::Init();
 
     SetReady(true);
 }

@@ -5,19 +5,57 @@
 #pragma region Compiler and Platform Switches
 
 #if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
-#define HYPERION_BUILD_RELEASE 1 // just to ensure
+
+#if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
+#define HYPERION_BUILD_RELEASE 1
+#endif
+
+#endif
+
+#if defined(HYPERION_BUILD_RELEASE) && HYPERION_BUILD_RELEASE
+#ifdef HYP_DEBUG_MODE
+#undef HYP_DEBUG_MODE
+#endif
 #endif
 
 #if defined(__clang__)
+
+#if !defined(HYP_CLANG) || !HYP_CLANG
+#ifdef HYP_CLANG
+#undef HYP_CLANG
+#endif
 #define HYP_CLANG 1
+#endif
+
 #elif defined(__GNUC__) || defined(__GNUG__)
+
+#if !defined(HYP_GCC) || !HYP_GCC
+#ifdef HYP_GCC
+#undef HYP_GCC
+#endif
 #define HYP_GCC 1
 #endif
 
+#endif
+
 #if defined(HYP_GCC) || defined(HYP_CLANG)
+
+#if !defined(HYP_CLANG_OR_GCC) || !HYP_CLANG_OR_GCC
+#ifdef HYP_CLANG_OR_GCC
+#undef HYP_CLANG_OR_GCC
+#endif
 #define HYP_CLANG_OR_GCC 1
+#endif
+
 #elif defined(_MSC_VER)
+
+#if !defined(HYP_MSVC) || !HYP_MSVC
+#ifdef HYP_MSVC
+#undef HYP_MSVC
+#endif
 #define HYP_MSVC 1
+#endif
+
 #else
 #error Unknown compiler
 #endif
@@ -63,7 +101,13 @@
 #endif
 
 #if defined(_WIN32) && _WIN32
+
+#if !defined(HYP_WINDOWS) || !HYP_WINDOWS
+#ifdef HYP_WINDOWS
+#undef HYP_WINDOWS
+#endif
 #define HYP_WINDOWS 1
+#endif
 
 #define HYP_FILESYSTEM_SEPARATOR "\\"
 #else
@@ -71,42 +115,89 @@
 #endif
 
 #if defined(unix) || defined(__unix) || defined(__unix__)
+
+#if !defined(HYP_UNIX) || !HYP_UNIX
+#ifdef HYP_UNIX
+#undef HYP_UNIX
+#endif
 #define HYP_UNIX 1
+#endif
+
 #endif
 
 #if defined(__linux__) || defined(linux) || defined(__linux)
+
+#if !defined(HYP_UNIX) || !HYP_UNIX
+#ifdef HYP_UNIX
+#undef HYP_UNIX
+#endif
+#define HYP_UNIX 1
+#endif
+
+#if !defined(HYP_LINUX) || !HYP_LINUX
+#ifdef HYP_LINUX
+#undef HYP_LINUX
+#endif
 #define HYP_LINUX 1
+#endif
+
 #endif
 
 #if defined(__arm__) || defined(__aarch64__) || defined(__ARM_ARCH)
+
+#if !defined(HYP_ARM) || !HYP_ARM
+#ifdef HYP_ARM
+#undef HYP_ARM
+#endif
 #define HYP_ARM 1
+#endif
+
 #endif
 
 #ifdef __APPLE__
+
+#if !defined(HYP_UNIX) || !HYP_UNIX
+#ifdef HYP_UNIX
+#undef HYP_UNIX
+#endif
 #define HYP_UNIX 1
+#endif
+
+#if !defined(HYP_APPLE) || !HYP_APPLE
+#ifdef HYP_APPLE
+#undef HYP_APPLE
+#endif
 #define HYP_APPLE 1
+#endif
 
 #include <TargetConditionals.h>
 
-#ifndef HYP_ARM
 // for m1
-#if TARGET_CPU_ARM64
-#define HYP_ARM 1
+#if TARGET_CPU_ARM64 && !defined(HYP_ARM) || !HYP_ARM
+#ifdef HYP_ARM
+#undef HYP_ARM
 #endif
+#define HYP_ARM 1
 #endif
 
 #if (TARGET_IPHONE_SIMULATOR == 1) || (TARGET_OS_IPHONE == 1)
+
+#if !defined(HYP_IOS) || !HYP_IOS
+#ifdef HYP_IOS
+#undef HYP_IOS
+#endif
 #define HYP_IOS 1
+#endif
+
 #elif (TARGET_OS_OSX == 1)
+
+#if !defined(HYP_MACOS) || !HYP_MACOS
+#ifdef HYP_MACOS
+#undef HYP_MACOS
+#endif
 #define HYP_MACOS 1
 #endif
-#endif
 
-#ifdef __linux__
-#define HYP_LINUX 1
-
-#ifndef HYP_UNIX
-#define HYP_UNIX 1
 #endif
 #endif
 

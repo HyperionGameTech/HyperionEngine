@@ -94,6 +94,8 @@ bool DynamicLibrary::Load()
     }
 
     m_impl->handle = reinterpret_cast<UIntPtr>(handle);
+
+    return true;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     m_impl->handle = reinterpret_cast<UIntPtr>(dlopen(m_impl->path.Data(), RTLD_NOW));
 
@@ -103,9 +105,9 @@ bool DynamicLibrary::Load()
     }
 
     return true;
-#endif
-
+#else
     return false;
+#endif
 }
 
 UIntPtr DynamicLibrary::GetFunction(const char* name) const

@@ -388,6 +388,12 @@ private:
 
         HYP_LOG(DotNET, Debug, "Loading hostfxr from: {}", wpath);
 
+        if (!FilePath(wpath).Exists())
+        {
+            HYP_LOG(DotNET, Error, "Failed to load hostfxr: hostfxr does not exist at path {}", wpath);
+            return false;
+        }
+
         // Load hostfxr and get desired exports
         m_dll = DynamicLibrary(wpath.ToUTF8());
 
