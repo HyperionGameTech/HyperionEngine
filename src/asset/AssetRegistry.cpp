@@ -1539,6 +1539,28 @@ Result AssetRegistry::LoadPackageFromManifest(
 
     outPackage->m_packageDir = dir;
 
+    // load dependency packages first
+    for (const AssetPath& dependencyPath : outPackage->GetDependencies())
+    {
+        if (!dependencyPath.IsValid())
+        {
+            HYP_LOG(Assets, Warning, "Invalid dependency path in package '{}'", outPackage->GetName());
+
+            continue;
+        }
+
+        String tmp;
+        Handle<AssetPackage> dependencyPackage = GetPackageFromPath_Internal(dependencyPath.ToString(), AssetRegistryPathType::PACKAGE, /* createIfNotExist */ false, tmp);
+
+        if (!dependencyPackage.IsValid())
+        {
+            HYP_LOG(Assets, Warning, "Failed to load dependency package '{}' for package '{}'", dependencyPath, outPackage->GetName());
+
+            continue;
+        }
+    }
+
+    // load assets
     for (const FilePath& entry : dir.GetAllFilesInDirectory())
     {
         // only iterate over files (manifests)
@@ -1591,10 +1613,12 @@ Result AssetRegistry::LoadPackageFromManifest(
         }
     }
 
+    // @TODO: Load subpackages before assets? That way we can minimize the amount of dependencies needed to be added to the manifest
+    // by ensuring subpackages are loaded first and their assets are available
+
+    // load subpackages
     if (loadSubpackages)
     {
-        // Load subpackages
-
         for (const FilePath& subdirectory : dir.GetSubdirectories())
         {
             for (const FilePath& entry : subdirectory.GetAllFilesInDirectory())
@@ -1610,8 +1634,7 @@ Result AssetRegistry::LoadPackageFromManifest(
                         result.HasError())
                     {
                         HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", entry, result.GetError().GetMessage());
-
-                        continue;
+                        break;
                     }
 
                     if (subpackage.IsValid())
@@ -1748,6 +1771,9 @@ void AssetRegistry::RegisterAssetsRecursively(
     }
 
     /// @TODO: Change to a Stack, recursion could get impressively deep.
+
+    Handle<AssetPackage> currentPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ true);
+    Assert(currentPackage.IsValid());
 
     HashSet<const HypObjectBase*> visited; // to avoid infinite recursion
 
@@ -1901,6 +1927,26 @@ void AssetRegistry::RegisterAssetsRecursively(
                 else
                 {
                     HYP_LOG_TEMP("Registered asset '{}' to path '{}'", assetObject.GetName(), assetObject.GetPath().ToString());
+                }
+            }
+
+            if (assetObject.IsRegistered())
+            {
+                if (const Handle<AssetPackage> otherPackage = assetObject.GetPackage(); otherPackage.IsValid())
+                {
+                    if (otherPackage != currentPackage)
+                    {
+                        // set as dependency package if not a subpackage or transient package.
+                        if (!otherPackage->IsTransient() /* && !otherPackage->IsSubpackageOf(currentPackage) */)
+                        {
+                            const AssetPath assetPath { otherPackage->BuildPackagePath() };
+
+                            if (!currentPackage->m_dependencies.Contains(assetPath))
+                            {
+                                currentPackage->m_dependencies.PushBack(assetPath);
+                            }
+                        }
+                    }
                 }
             }
         }

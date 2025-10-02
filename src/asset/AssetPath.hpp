@@ -21,6 +21,70 @@ struct AssetPath
 
     AssetPath() = default;
 
+    explicit AssetPath(const Array<Name>& names)
+        : chain(nullptr)
+    {
+        if (names.Empty())
+        {
+            return;
+        }
+
+        chain = new Name[names.Size() + 1];
+
+        for (SizeType i = 0; i < names.Size(); i++)
+        {
+            chain[i] = names[i];
+        }
+
+        chain[names.Size()] = Name::Invalid();
+    }
+
+    explicit AssetPath(const UTF8StringView& path)
+        : chain(nullptr)
+    {
+        if (!path)
+        {
+            return;
+        }
+
+        Array<Name> names;
+
+        SizeType start = 0;
+        SizeType current = 0;
+
+        for (auto it = path.Begin(); it != path.End(); ++it, ++current)
+        {
+            if (*it == '/')
+            {
+                if (current > start)
+                {
+                    names.PushBack(CreateNameFromDynamicString(path.Substr(start, current - start)));
+                }
+
+                start = current + 1;
+            }
+        }
+
+        if (start < path.Length())
+        {
+            names.PushBack(CreateNameFromDynamicString(path.Substr(start, path.Length() - start)));
+        }
+
+        if (names.Empty())
+        {
+            return;
+        }
+
+        chain = new Name[names.Size() + 1];
+
+        for (SizeType i = 0; i < names.Size(); i++)
+        {
+            chain[i] = names[i];
+        }
+
+        chain[names.Size()] = Name::Invalid();
+    }
+
     AssetPath(const AssetPath& other)
     {
         if (other.chain)

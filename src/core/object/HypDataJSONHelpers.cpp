@@ -726,6 +726,43 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
         return true;
     }
 
+    if (value.IsArray())
+    {
+        HypDataArray& array = value.Get<HypDataArray>();
+
+        if (!array.CanGetElementByIndex())
+        {
+            return false;
+        }
+
+        const SizeType size = array.Size();
+
+        json::JSONArray jsonArray;
+        jsonArray.Reserve(size);
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            json::JSONValue jsonValue;
+
+            HypData element;
+            if (!array.ElementAt(i, element))
+            {
+                return false;
+            }
+
+            if (!HypDataToJSON(element, jsonValue, skipTransientProperties))
+            {
+                return false;
+            }
+
+            jsonArray.PushBack(std::move(jsonValue));
+        }
+
+        outJson = std::move(jsonArray);
+
+        return true;
+    }
+
     if (value.Is<Uuid>())
     {
         const Uuid& uuid = value.Get<Uuid>();
@@ -740,6 +777,43 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
         const Name name = value.Get<Name>();
 
         outJson = json::JSONString(name.LookupString());
+
+        return true;
+    }
+
+    if (value.IsArray())
+    {
+        HypDataArray& array = value.Get<HypDataArray>();
+
+        if (!array.CanGetElementByIndex())
+        {
+            return false;
+        }
+
+        const SizeType size = array.Size();
+
+        json::JSONArray jsonArray;
+        jsonArray.Reserve(size);
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            json::JSONValue jsonValue;
+
+            HypData element;
+            if (!array.ElementAt(i, element))
+            {
+                return false;
+            }
+
+            if (!HypDataToJSON(element, jsonValue, skipTransientProperties))
+            {
+                return false;
+            }
+
+            jsonArray.PushBack(std::move(jsonValue));
+        }
+
+        outJson = std::move(jsonArray);
 
         return true;
     }

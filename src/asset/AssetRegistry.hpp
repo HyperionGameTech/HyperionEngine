@@ -265,6 +265,12 @@ public:
     HYP_METHOD()
     Result Save(const FilePath& outputDirectory);
 
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Array<AssetPath>& GetDependencies() const
+    {
+        return m_dependencies;
+    }
+
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
 
@@ -290,6 +296,9 @@ private:
 
     HYP_FIELD()
     EnumFlags<AssetPackageFlags> m_flags;
+
+    HYP_FIELD()
+    Array<AssetPath> m_dependencies;
 
     WeakHandle<AssetRegistry> m_registry;
     WeakHandle<AssetPackage> m_parentPackage;
