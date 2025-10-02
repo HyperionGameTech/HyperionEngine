@@ -1,6 +1,6 @@
 {
   "runtimeOptions": {
-    "additionalProbingPaths": ["../../res/data/dotnet/lib", "."],
+    "additionalProbingPaths": ["..\\..\\res\\data\\dotnet\\lib", "..\\bin"],
     "tfm": "net8.0",
     "framework": {
       "name": "Microsoft.NETCore.App",
