@@ -196,7 +196,7 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
     }
 
     ~JSONSubscriptWrapper() = default;
-    
+
     HYP_FORCE_INLINE operator JSONSubscriptWrapper<const JSONValue>() const
     {
         return JSONSubscriptWrapper<const JSONValue>(const_cast<JSONValue* const>(value));

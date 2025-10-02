@@ -267,6 +267,23 @@ void AssetPackage::Init()
     SetReady(true);
 }
 
+bool AssetPackage::IsSubpackageOf(const AssetPackage& other) const
+{
+    Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+    while (parentPackage.IsValid())
+    {
+        if (parentPackage == &other)
+        {
+            return true;
+        }
+
+        parentPackage = parentPackage->GetParentPackage().Lock();
+    }
+
+    return false;
+}
+
 void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
 {
     if (IsInitCalled())
@@ -889,6 +906,54 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
+void AssetPackage::AddDependency(const AssetPath& dependency)
+{
+    if (!dependency.chain || dependency.chain[0] == Name::Invalid() || dependency == AssetPath(BuildPackagePath()))
+    {
+        return;
+    }
+
+    if (!m_dependencies.Contains(dependency))
+    {
+        m_dependencies.PushBack(dependency);
+
+        HYP_LOG(Assets, Debug, "Added dependency to package '{}': {}", m_name, dependency.ToString());
+    }
+}
+
+Array<String> AssetPackage::GetRelativeDependencies() const
+{
+    HYP_SCOPE;
+    Array<String> result;
+
+    const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
+
+    for (const AssetPath& dependency : m_dependencies)
+    {
+        result.PushBack(AssetPath::MakeRelativePath(thisPackagePath, dependency));
+    }
+
+    return result;
+}
+
+void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
+{
+    HYP_SCOPE;
+    m_dependencies.Clear();
+
+    const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
+
+    for (const String& path : relativePaths)
+    {
+        const AssetPath dependency = AssetPath::FromRelativePath(thisPackagePath, path);
+
+        if (dependency.chain && dependency.chain[0] != Name::Invalid() && dependency != thisPackagePath)
+        {
+            m_dependencies.PushBack(dependency);
+        }
+    }
+}
+
 #pragma endregion AssetPackage
 
 #pragma region AssetRegistry
@@ -1266,7 +1331,10 @@ Handle<AssetPackage> AssetRegistry::GetPackageFromPath(const UTF8StringView& pat
     return GetPackageFromPath_Internal(path, AssetRegistryPathType::PACKAGE, createIfNotExist, assetName);
 }
 
-Handle<AssetPackage> AssetRegistry::GetSubpackage(const Handle<AssetPackage>& parentPackage, Name subpackageName, bool createIfNotExist)
+Handle<AssetPackage> AssetRegistry::GetSubpackage(
+    const Handle<AssetPackage>& parentPackage,
+    Name subpackageName,
+    bool createIfNotExist)
 {
     HYP_SCOPE;
     AssertReady();
@@ -1539,24 +1607,46 @@ Result AssetRegistry::LoadPackageFromManifest(
 
     outPackage->m_packageDir = dir;
 
-    // load dependency packages first
+    // Load dependency packages first (always, regardless of loadSubpackages flag)
+    // Dependencies must be loaded before assets to ensure all referenced packages exist
     for (const AssetPath& dependencyPath : outPackage->GetDependencies())
     {
         if (!dependencyPath.IsValid())
         {
             HYP_LOG(Assets, Warning, "Invalid dependency path in package '{}'", outPackage->GetName());
-
             continue;
         }
 
-        String tmp;
-        Handle<AssetPackage> dependencyPackage = GetPackageFromPath_Internal(dependencyPath.ToString(), AssetRegistryPathType::PACKAGE, /* createIfNotExist */ false, tmp);
+        const String depPathStr = dependencyPath.ToString();
+
+        HYP_LOG(Assets, Debug, "Loading dependency package '{}' for package '{}'", depPathStr, outPackage->GetName());
+
+        Handle<AssetPackage> dependencyPackage = GetPackageFromPath(depPathStr, /* createIfNotExist */ false);
 
         if (!dependencyPackage.IsValid())
         {
-            HYP_LOG(Assets, Warning, "Failed to load dependency package '{}' for package '{}'", dependencyPath, outPackage->GetName());
+            // Dependency package doesn't exist yet, try to load it from filesystem
+            const FilePath basePath = g_assetManager->GetBasePath();
+            const FilePath depFullPath = basePath / depPathStr;
+            const FilePath depManifestPath = depFullPath / "PackageManifest.json";
 
-            continue;
+            if (depManifestPath.Exists() && !depManifestPath.IsDirectory())
+            {
+                if (Result result = LoadPackageFromManifest(
+                        depManifestPath,
+                        dependencyPackage,
+                        /* loadSubpackages */ false);
+                    result.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to load dependency package '{}' from manifest '{}': {}", depPathStr, depManifestPath, result.GetError().GetMessage());
+                    continue;
+                }
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "Dependency package '{}' for package '{}' not found at '{}'", depPathStr, outPackage->GetName(), depManifestPath);
+                continue;
+            }
         }
     }
 
@@ -1613,10 +1703,8 @@ Result AssetRegistry::LoadPackageFromManifest(
         }
     }
 
-    // @TODO: Load subpackages before assets? That way we can minimize the amount of dependencies needed to be added to the manifest
-    // by ensuring subpackages are loaded first and their assets are available
-
-    // load subpackages
+    // Load subpackages after assets (if requested)
+    // Each subpackage will be loaded with loadSubpackages=true to recursively load their children
     if (loadSubpackages)
     {
         for (const FilePath& subdirectory : dir.GetSubdirectories())
@@ -1627,6 +1715,7 @@ Result AssetRegistry::LoadPackageFromManifest(
                 {
                     Handle<AssetPackage> subpackage;
 
+                    // Load WITH sub-subpackages recursively
                     if (Result result = LoadPackageFromManifest(
                             entry,
                             subpackage,
@@ -1772,19 +1861,25 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     /// @TODO: Change to a Stack, recursion could get impressively deep.
 
-    Handle<AssetPackage> currentPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ true);
-    Assert(currentPackage.IsValid());
-
     HashSet<const HypObjectBase*> visited; // to avoid infinite recursion
 
-    Proc<void(const HypData&)> iterate;
-    iterate = [&](const HypData& current) -> void
+    Proc<void(const Handle<AssetPackage>&, const HypData&, HashSet<AssetPath>&)> iterate;
+    iterate = [&](const Handle<AssetPackage>& inPackage, const HypData& current, HashSet<AssetPath>& outDeps) -> void
     {
+        Assert(inPackage != nullptr);
+
         if (!current.IsValid() || current.IsNull())
         {
-            HYP_LOG_TEMP("Current data is invalid or null, skipping");
             return;
         }
+
+        HashSet<AssetPath> currDeps;
+        HYP_DEFER({
+            if (currDeps.Any())
+            {
+                outDeps.Merge(std::move(currDeps));
+            }
+        });
 
         {
             HypObjectBase* pObject = current.TryGet<HypObjectBase*>().GetOr(nullptr);
@@ -1795,6 +1890,29 @@ void AssetRegistry::RegisterAssetsRecursively(
 
                 return;
             }
+        }
+
+        Handle<AssetPackage> parentPackage = inPackage;
+        Handle<AssetObject> assetObject;
+
+        if (current.Is<AssetObject>())
+        {
+            assetObject = MakeStrongRef(&current.Get<AssetObject>());
+            Assert(assetObject != nullptr);
+
+            const String packagePathWithSubpath = getObjectSubpath
+                ? packagePath + "/" + getObjectSubpath(*assetObject)
+                : String(packagePath);
+
+            Handle<AssetPackage> newPackage = GetPackageFromPath(packagePathWithSubpath, /* createIfNotExist */ true);
+            Assert(newPackage != nullptr);
+
+            if (!newPackage->IsSubpackageOf(*inPackage))
+            {
+                inPackage->AddDependency(AssetPath(packagePathWithSubpath));
+            }
+
+            parentPackage = std::move(newPackage);
         }
 
         if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
@@ -1820,7 +1938,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                     continue;
                 }
 
-                iterate(element);
+                iterate(parentPackage, element, currDeps);
             }
 
             return;
@@ -1848,7 +1966,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
                         HYP_LOG_TEMP("Iterating component of type {} for Entity {}", LookupTypeName(typeId), entity.Id());
 
-                        iterate(HypData(componentRef));
+                        iterate(parentPackage, HypData(componentRef), currDeps);
                     }
                 }
             }
@@ -1904,55 +2022,27 @@ void AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
-            iterate(memberData);
+            iterate(parentPackage, memberData, currDeps);
         }
 
-        // need to register objects after their members (or else could save unregistered objects upon saving this obj)
-        if (current.Is<AssetObject>())
+        if (assetObject != nullptr)
         {
-            const AssetObject& assetObject = current.Get<AssetObject>();
-
-            if (forceRelocation || !assetObject.IsRegistered())
+            if (forceRelocation || !assetObject->IsRegistered())
             {
-                const String packagePathWithSubpath = getObjectSubpath
-                    ? packagePath + "/" + getObjectSubpath(assetObject)
-                    : String(packagePath);
-
-                HYP_LOG_TEMP("Registering asset '{}' at path '{}'", assetObject.GetName(), packagePathWithSubpath);
-
-                if (Result result = RegisterAsset(packagePathWithSubpath, assetObject.HandleFromThis()); result.HasError())
+                if (Result result = parentPackage->AddAssetObject(assetObject); result.HasError())
                 {
-                    HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject.GetName(), result.GetError().GetMessage());
-                }
-                else
-                {
-                    HYP_LOG_TEMP("Registered asset '{}' to path '{}'", assetObject.GetName(), assetObject.GetPath().ToString());
-                }
-            }
-
-            if (assetObject.IsRegistered())
-            {
-                if (const Handle<AssetPackage> otherPackage = assetObject.GetPackage(); otherPackage.IsValid())
-                {
-                    if (otherPackage != currentPackage)
-                    {
-                        // set as dependency package if not a subpackage or transient package.
-                        if (!otherPackage->IsTransient() /* && !otherPackage->IsSubpackageOf(currentPackage) */)
-                        {
-                            const AssetPath assetPath { otherPackage->BuildPackagePath() };
-
-                            if (!currentPackage->m_dependencies.Contains(assetPath))
-                            {
-                                currentPackage->m_dependencies.PushBack(assetPath);
-                            }
-                        }
-                    }
+                    HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
                 }
             }
         }
     };
 
-    iterate(target);
+    Handle<AssetPackage> rootPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ true);
+    Assert(rootPackage.IsValid());
+
+    HashSet<AssetPath> deps;
+
+    iterate(rootPackage, target, deps);
 }
 HYP_ENABLE_OPTIMIZATION;
 

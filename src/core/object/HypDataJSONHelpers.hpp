@@ -26,6 +26,7 @@ class JSONObject;
 /*! \brief Converts a JSONValue to a HypData of the specified TypeId.
  *  Supports basic types: int8, int16, int32, int64, uint8, uint16, uint32, uint64, float, double, bool, String
  *  Supports Vec2i, Vec3i, Vec4i, Vec2u, Vec3u, Vec4u, Vec2f, Vec3f, Vec4f as arrays of numbers.
+ *  Supports Array<T> and LinkedList<T> for common primitive types (int8-uint64, float, double, bool, String, Name, Vec types, Uuid).
  *
  *  \param jsonValue The JSONValue to convert.
  *  \param typeId The TypeId of the target HypData type.

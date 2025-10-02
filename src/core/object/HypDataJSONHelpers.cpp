@@ -8,6 +8,10 @@
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
 #include <core/object/HypConstant.hpp>
+#include <core/object/HypData.hpp>
+
+#include <core/containers/Array.hpp>
+#include <core/containers/LinkedList.hpp>
 
 #include <core/utilities/Format.hpp>
 #include <core/utilities/Uuid.hpp>
@@ -279,243 +283,88 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
     return true;
 }
 
+// Macro to reduce repetition for scalar types
+#define HYP_JSON_TO_HYPDATA_SCALAR(Type, ConversionFunc)        \
+    if (typeId == TypeId::ForType<Type>())                      \
+    {                                                           \
+        outHypData = HypData(Type(jsonValue.ConversionFunc())); \
+        return true;                                            \
+    }
+
+// Macro to reduce repetition for vector types
+#define HYP_JSON_TO_HYPDATA_VECTOR(VecType, ElementConversionFunc) \
+    if (typeId == TypeId::ForType<VecType>())                      \
+    {                                                              \
+        if (!jsonValue.IsArray())                                  \
+        {                                                          \
+            return false;                                          \
+        }                                                          \
+        VecType vec;                                               \
+        const json::JSONArray& jsonArray = jsonValue.AsArray();    \
+        if (jsonArray.Size() != HYP_ARRAY_SIZE(vec.values))        \
+        {                                                          \
+            return false;                                          \
+        }                                                          \
+        for (SizeType i = 0; i < HYP_ARRAY_SIZE(vec.values); i++)  \
+        {                                                          \
+            vec[i] = jsonArray[i].ElementConversionFunc();         \
+        }                                                          \
+        outHypData = HypData(vec);                                 \
+        return true;                                               \
+    }
+
+// Generic helper to load JSON array into a container type
+// This macro generates the deserialization code for ContainerType<ElementType>
+#define HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, ElementType)                       \
+    if (typeId == TypeId::ForType<ContainerType<ElementType>>())                           \
+    {                                                                                      \
+        ContainerType<ElementType> result;                                                 \
+        for (SizeType i = 0; i < jsonArray.Size(); i++)                                    \
+        {                                                                                  \
+            HypData elementData;                                                           \
+            if (!JSONToHypData(jsonArray[i], TypeId::ForType<ElementType>(), elementData)) \
+            {                                                                              \
+                return false;                                                              \
+            }                                                                              \
+            result.Add(elementData.Get<ElementType>());                                    \
+        }                                                                                  \
+        outHypData = HypData(std::move(result));                                           \
+        return true;                                                                       \
+    }
+
 bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& outHypData)
 {
-    if (typeId == TypeId::ForType<int8>())
-    {
-        outHypData = HypData(int8(jsonValue.ToNumber()));
+    // Scalar types
+    HYP_JSON_TO_HYPDATA_SCALAR(int8, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(int16, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(int32, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(int64, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(uint8, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(uint16, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(uint32, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(uint64, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(float, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(double, ToNumber)
+    HYP_JSON_TO_HYPDATA_SCALAR(bool, ToBool)
 
-        return true;
-    }
-    else if (typeId == TypeId::ForType<int16>())
-    {
-        outHypData = HypData(int16(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<int32>())
-    {
-        outHypData = HypData(int32(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<int64>())
-    {
-        outHypData = HypData(int64(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<uint8>())
-    {
-        outHypData = HypData(uint8(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<uint16>())
-    {
-        outHypData = HypData(uint16(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<uint32>())
-    {
-        outHypData = HypData(uint32(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<uint64>())
-    {
-        outHypData = HypData(uint64(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<float>())
-    {
-        outHypData = HypData(float(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<double>())
-    {
-        outHypData = HypData(double(jsonValue.ToNumber()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<bool>())
-    {
-        outHypData = HypData(jsonValue.ToBool());
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<String>())
+    if (typeId == TypeId::ForType<String>())
     {
         outHypData = HypData(jsonValue.ToString());
-
         return true;
     }
-    else if (typeId == TypeId::ForType<Vec2i>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
 
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
+    // Vector types
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec2i, ToInt32)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec3i, ToInt32)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec4i, ToInt32)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec2u, ToUInt32)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec3u, ToUInt32)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec4u, ToUInt32)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec2f, ToFloat)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec3f, ToFloat)
+    HYP_JSON_TO_HYPDATA_VECTOR(Vec4f, ToFloat)
 
-        if (jsonArray.Size() != 2)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec2i(jsonArray[0].ToInt32(), jsonArray[1].ToInt32()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec3i>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 3)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec3i(jsonArray[0].ToInt32(), jsonArray[1].ToInt32(), jsonArray[2].ToInt32()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec4i>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 4)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec4i(jsonArray[0].ToInt32(), jsonArray[1].ToInt32(), jsonArray[2].ToInt32(), jsonArray[3].ToInt32()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec2u>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 2)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec2u(jsonArray[0].ToUInt32(), jsonArray[1].ToUInt32()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec3u>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 3)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec3u(jsonArray[0].ToUInt32(), jsonArray[1].ToUInt32(), jsonArray[2].ToUInt32()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec4u>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 4)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec4u(jsonArray[0].ToUInt32(), jsonArray[1].ToUInt32(), jsonArray[2].ToUInt32(), jsonArray[3].ToUInt32()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec2f>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 2)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec2f(jsonArray[0].ToFloat(), jsonArray[1].ToFloat()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec3f>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 3)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec3f(jsonArray[0].ToFloat(), jsonArray[1].ToFloat(), jsonArray[2].ToFloat()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Vec4f>())
-    {
-        if (!jsonValue.IsArray())
-        {
-            return false;
-        }
-
-        const json::JSONArray& jsonArray = jsonValue.AsArray();
-
-        if (jsonArray.Size() != 4)
-        {
-            return false;
-        }
-
-        outHypData = HypData(Vec4f(jsonArray[0].ToFloat(), jsonArray[1].ToFloat(), jsonArray[2].ToFloat(), jsonArray[3].ToFloat()));
-
-        return true;
-    }
-    else if (typeId == TypeId::ForType<Uuid>())
+    if (typeId == TypeId::ForType<Uuid>())
     {
         if (!jsonValue.IsString())
         {
@@ -530,27 +379,79 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
         }
 
         outHypData = HypData(Uuid(*jsonString));
-
         return true;
     }
-    else if (typeId == TypeId::ForType<Name>())
+
+    if (typeId == TypeId::ForType<Name>())
     {
         outHypData = HypData(Name(CreateNameFromDynamicString(*jsonValue.ToString())));
-
         return true;
     }
-    else
+
+    // Check for array types
+    if (jsonValue.IsArray())
     {
-        if (!jsonValue.IsObject())
+        const json::JSONArray& jsonArray = jsonValue.AsArray();
+
+#define HYP_TRY_CONTAINER_TYPE(ContainerType)               \
+    /* Primitive types */                                   \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, int8)   \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, int16)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, int32)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, int64)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, uint8)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, uint16) \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, uint32) \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, uint64) \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, float)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, double) \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, bool)   \
+    /* String types */                                      \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, String) \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Name)   \
+    /* Vector types */                                      \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec2i)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec3i)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec4i)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec2u)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec3u)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec4u)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec2f)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec3f)  \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Vec4f)  \
+    /* Other types */                                       \
+    HYP_JSON_ARRAY_TO_CONTAINER_IMPL(ContainerType, Uuid)
+
+        HYP_TRY_CONTAINER_TYPE(Array)
+        HYP_TRY_CONTAINER_TYPE(SortedArray)
+        HYP_TRY_CONTAINER_TYPE(LinkedList)
+        HYP_TRY_CONTAINER_TYPE(Stack)
+        HYP_TRY_CONTAINER_TYPE(Queue)
+        HYP_TRY_CONTAINER_TYPE(HashSet)
+        HYP_TRY_CONTAINER_TYPE(FlatSet)
+
+#undef HYP_TRY_CONTAINER_TYPE
+
+        if (jsonArray.Size() > 0)
         {
-            return false;
+            // We need to know the element type to proceed
+            // This is a limitation - we can't infer the element type from JSON alone
+            // The caller must provide the correct TypeId
+            HYP_LOG(Core, Warning, "Failed to deserialize JSON array - unknown element type for TypeId: {}", typeId.Value());
         }
 
+        return false;
+    }
+
+    // Object types
+    if (jsonValue.IsObject())
+    {
         const HypClass* hypClass = GetClass(typeId);
 
         if (hypClass)
         {
             HypData propertyValueHypData;
+
             if (!hypClass->CreateInstance(propertyValueHypData))
             {
                 return false;
@@ -562,13 +463,15 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
             }
 
             outHypData = std::move(propertyValueHypData);
-
             return true;
         }
     }
 
     return false;
 }
+
+#undef HYP_JSON_TO_HYPDATA_SCALAR
+#undef HYP_JSON_TO_HYPDATA_VECTOR
 
 bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties)
 {

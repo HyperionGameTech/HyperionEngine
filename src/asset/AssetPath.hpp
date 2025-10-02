@@ -6,6 +6,8 @@
 
 #include <core/Name.hpp>
 
+#include <core/math/MathUtil.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
@@ -16,7 +18,9 @@ namespace hyperion {
 HYP_STRUCT(Size = 8)
 struct AssetPath
 {
-    HYP_FIELD(NoScriptBindings)
+    HYP_PROPERTY(Value, &AssetPath::ToString, &AssetPath::Set)
+
+    HYP_FIELD(NoScriptBindings, Transient)
     Name* chain = nullptr;
 
     AssetPath() = default;
@@ -35,8 +39,6 @@ struct AssetPath
         {
             chain[i] = names[i];
         }
-
-        chain[names.Size()] = Name::Invalid();
     }
 
     explicit AssetPath(const UTF8StringView& path)
@@ -49,25 +51,27 @@ struct AssetPath
 
         Array<Name> names;
 
-        SizeType start = 0;
-        SizeType current = 0;
+        SizeType index = 0;
 
-        for (auto it = path.Begin(); it != path.End(); ++it, ++current)
+        UTF8StringView substr = path;
+
+        for (auto it = substr.Begin(); it != substr.End(); ++it, ++index)
         {
             if (*it == '/')
             {
-                if (current > start)
+                if (index != 0)
                 {
-                    names.PushBack(CreateNameFromDynamicString(path.Substr(start, current - start)));
+                    names.PushBack(CreateNameFromDynamicString(substr.Substr(0, index)));
                 }
 
-                start = current + 1;
+                substr = substr.Substr(index + 1, SizeType(-1));
+                index = SizeType(-1); // will become 0 on next iteration
             }
         }
 
-        if (start < path.Length())
+        if (substr.Size() > 0)
         {
-            names.PushBack(CreateNameFromDynamicString(path.Substr(start, path.Length() - start)));
+            names.PushBack(CreateNameFromDynamicString(substr));
         }
 
         if (names.Empty())
@@ -81,8 +85,6 @@ struct AssetPath
         {
             chain[i] = names[i];
         }
-
-        chain[names.Size()] = Name::Invalid();
     }
 
     AssetPath(const AssetPath& other)
@@ -253,6 +255,11 @@ struct AssetPath
         return *last;
     }
 
+    void Set(const String& path)
+    {
+        *this = AssetPath(path);
+    }
+
     HYP_METHOD()
     String ToString() const
     {
@@ -285,7 +292,7 @@ struct AssetPath
         return ToString().GetHashCode();
     }
 
-    HYP_METHOD(Property = "Chain", Serialize = true)
+    HYP_METHOD()
     Array<Name> GetChain() const
     {
         Array<Name> result;
@@ -304,7 +311,7 @@ struct AssetPath
         return result;
     }
 
-    HYP_METHOD(Property = "Chain", Serialize = true)
+    HYP_METHOD()
     void SetChain(const Array<Name>& names)
     {
         if (chain)
@@ -326,6 +333,113 @@ struct AssetPath
         }
 
         chain[names.Size()] = Name::Invalid();
+    }
+
+    static String MakeRelativePath(const AssetPath& from, const AssetPath& to)
+    {
+        if (!from.IsValid() || !to.IsValid())
+        {
+            return String::empty;
+        }
+
+        Array<Name> fromChain = from.GetChain();
+        Array<Name> toChain = to.GetChain();
+
+        const SizeType minSize = MathUtil::Min(fromChain.Size(), toChain.Size());
+
+        SizeType len = 0;
+
+        for (SizeType i = 0; i < minSize; i++)
+        {
+            if (fromChain[i] != toChain[i])
+            {
+                break;
+            }
+
+            len++;
+        }
+
+        String result;
+
+        // add ".." for each remaining element in from_chain
+        for (SizeType i = len; i < fromChain.Size(); i++)
+        {
+            if (result.Length() > 0)
+            {
+                result.Append('/');
+            }
+
+            result.Append("..");
+        }
+
+        // add remaining elements in to_chain
+        for (SizeType i = len; i < toChain.Size(); i++)
+        {
+            if (result.Length() > 0)
+            {
+                result.Append('/');
+            }
+
+            result.Append(*toChain[i]);
+        }
+
+        return result;
+    }
+
+    static AssetPath FromRelativePath(const AssetPath& from, const String& relativePath)
+    {
+        if (!from.IsValid() || relativePath.Empty())
+        {
+            return AssetPath();
+        }
+
+        Array<Name> resultChain = from.GetChain();
+
+        UTF8StringView substr = relativePath;
+        SizeType index = 0;
+
+        for (auto it = substr.Begin(); it != substr.End(); ++it, ++index)
+        {
+            if (*it == '/')
+            {
+                if (index != 0)
+                {
+                    UTF8StringView segment = substr.Substr(0, index);
+
+                    if (segment == "..")
+                    {
+                        if (!resultChain.Empty())
+                        {
+                            resultChain.PopBack();
+                        }
+                    }
+                    else if (segment != ".")
+                    {
+                        resultChain.PushBack(CreateNameFromDynamicString(segment));
+                    }
+                }
+
+                substr = substr.Substr(index + 1, SizeType(-1));
+                index = SizeType(-1); // will become 0 on next iteration
+            }
+        }
+
+        if (substr.Size() > 0)
+        {
+            if (substr == "..")
+            {
+                if (!resultChain.Empty())
+                {
+                    resultChain.PopBack();
+                }
+            }
+            else if (substr != ".")
+            {
+                resultChain.PushBack(CreateNameFromDynamicString(substr));
+            }
+        }
+
+        return AssetPath(resultChain);
     }
 };
 

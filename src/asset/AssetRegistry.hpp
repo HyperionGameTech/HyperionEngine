@@ -190,6 +190,9 @@ public:
         m_subpackages = subpackages;
     }
 
+    HYP_METHOD()
+    bool IsSubpackageOf(const AssetPackage& other) const;
+
     template <class Callback>
     void ForEachSubpackage(Callback&& callback) const
     {
@@ -271,6 +274,21 @@ public:
         return m_dependencies;
     }
 
+    /*! \brief Method to save dependencies as relative paths to this package rather than absolute
+     *   \warning Not thread-safe.
+     *  \return Array of relative dependency paths. */
+    HYP_METHOD(Property = "Dependencies", Serialize = true)
+    Array<String> GetRelativeDependencies() const;
+
+    /*! \brief Sets dependencies from relative paths to this package rather than absolute
+     *   \warning Not thread-safe.
+     *  \param relativePaths Array of relative dependency paths. */
+    HYP_METHOD(Property = "Dependencies", Serialize = true)
+    void SetRelativeDependencies(const Array<String>& relativePaths);
+
+    HYP_METHOD()
+    void AddDependency(const AssetPath& dependency);
+
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
 
@@ -297,7 +315,7 @@ private:
     HYP_FIELD()
     EnumFlags<AssetPackageFlags> m_flags;
 
-    HYP_FIELD()
+    HYP_FIELD(Serialize = false)
     Array<AssetPath> m_dependencies;
 
     WeakHandle<AssetRegistry> m_registry;
@@ -364,7 +382,10 @@ public:
     Handle<AssetPackage> GetPackageFromPath(const UTF8StringView& path, bool createIfNotExist = true);
 
     HYP_METHOD()
-    Handle<AssetPackage> GetSubpackage(const Handle<AssetPackage>& parentPackage, Name subpackageName, bool createIfNotExist = true);
+    Handle<AssetPackage> GetSubpackage(
+        const Handle<AssetPackage>& parentPackage,
+        Name subpackageName,
+        bool createIfNotExist = true);
 
     HYP_METHOD()
     void LoadSubpackages(const Handle<AssetPackage>& parentPackage, bool recursive);
