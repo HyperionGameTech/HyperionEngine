@@ -444,6 +444,7 @@ Result AssetObject::Load(
     }
 
     HypData targetData;
+    const AssetObject* targetAssetObject = nullptr;
     bool useResource = false;
 
     if (data.Is<AssetObject>()) // data is an AssetObject directly
@@ -452,13 +453,14 @@ Result AssetObject::Load(
     }
     else
     {
-        useResource = true;
-
         // load fields from manifest json file
         if (!hypClass->CreateInstance(targetData))
         {
             return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
         }
+        
+        targetAssetObject = &targetData.Get<AssetObject>();
+        useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
 
         // remove class property
         jsonObject.Erase("$Class");
@@ -469,11 +471,7 @@ Result AssetObject::Load(
         }
     }
 
-    // Load the asset's data
-    const Handle<AssetObject>& assetObject = targetData.Get<Handle<AssetObject>>();
-    Assert(assetObject != nullptr);
-
-    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(assetObject->m_resource);
+    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(targetAssetObject->m_resource);
 
     if (useResource)
     {
@@ -482,7 +480,7 @@ Result AssetObject::Load(
         resource->Extract_Internal(data.ToRef());
     }
 
-    outAssetObject = assetObject;
+    outAssetObject = targetAssetObject->HandleFromThis();
 
 #if 0
     FBOMLoadContext loadContext {};
