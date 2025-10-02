@@ -93,6 +93,11 @@ public:
         m_data = assetPath;
     }
 
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        return GetAssetPath().GetName();
+    }
+
     const Handle<AssetObject>& Resolve() const;
     void Reload();
 

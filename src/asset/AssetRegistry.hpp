@@ -279,16 +279,16 @@ private:
     Name GetUniqueAssetName_Internal(Name baseName) const;
     Name GetUniqueSubpackageName_Internal(Name baseName) const;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD()
     Uuid m_uuid;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD()
     Name m_name;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD()
     Name m_friendlyName;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD()
     EnumFlags<AssetPackageFlags> m_flags;
 
     WeakHandle<AssetRegistry> m_registry;
@@ -358,6 +358,9 @@ public:
     Handle<AssetPackage> GetSubpackage(const Handle<AssetPackage>& parentPackage, Name subpackageName, bool createIfNotExist = true);
 
     HYP_METHOD()
+    void LoadSubpackages(const Handle<AssetPackage>& parentPackage, bool recursive);
+
+    HYP_METHOD()
     bool RemovePackage(AssetPackage* package);
 
     Result LoadPackageFromManifest(
@@ -410,7 +413,7 @@ public:
 private:
     void Init() override;
 
-    void LoadPackagesAsync();
+    void LoadPackagesAsync(bool loadSubpackages = false);
 
     Handle<AssetPackage> GetPackageFromPath_Internal(const UTF8StringView& path, AssetRegistryPathType pathType, bool createIfNotExist, String& outAssetName);
 

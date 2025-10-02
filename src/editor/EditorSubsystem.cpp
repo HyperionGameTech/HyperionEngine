@@ -2700,7 +2700,7 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
                         return;
                     }
 
-                    m_contentBrowserContents->GetDataSource()->Push(assetObject->GetUUID(), HypData(std::move(assetObject)));
+                    m_contentBrowserContents->GetDataSource()->Push(assetObject->GetUUID(), HypData(assetObject));
                 },
                 g_gameThread));
 
@@ -2739,6 +2739,8 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
                     m_contentBrowserContents->GetDataSource()->Remove(subpackage->GetUUID());
                 },
                 g_gameThread));
+
+        g_assetManager->GetAssetRegistry()->LoadSubpackages(package, /* recursive */ false);
 
         package->ForEachSubpackage([this](const Handle<AssetPackage>& subpackage)
             {

@@ -169,6 +169,26 @@ struct AssetPath
         return !IsValid();
     }
 
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        // name is the last element in the chain
+        if (!chain)
+        {
+            return Name::Invalid();
+        }
+
+        Name* curr = chain;
+        Name* last = curr;
+
+        while (curr->IsValid())
+        {
+            last = curr;
+            ++curr;
+        }
+
+        return *last;
+    }
+
     HYP_METHOD()
     String ToString() const
     {

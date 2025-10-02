@@ -182,6 +182,10 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
 
 void AssetPackage::Init()
 {
+    HYP_SCOPE;
+
+    HypObjectBase::Init();
+
     Handle<AssetRegistry> registry = m_registry.Lock();
     Assert(registry.IsValid());
 
@@ -907,6 +911,8 @@ void AssetRegistry::Init()
 {
     HYP_SCOPE;
 
+    HypObjectBase::Init();
+
     SetReady(true);
 
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
@@ -918,7 +924,7 @@ void AssetRegistry::Init()
 
     Handle<AssetPackage> memoryPackage = GetPackageFromPath("$Memory", true);
 
-    LoadPackagesAsync();
+    LoadPackagesAsync(/* loadSubpackages */ false);
 
 #ifdef HYP_EDITOR
     // Add transient package for imported assets in editor mode
@@ -926,7 +932,7 @@ void AssetRegistry::Init()
 #endif
 }
 
-void AssetRegistry::LoadPackagesAsync()
+void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 {
     HYP_SCOPE;
 
@@ -938,7 +944,7 @@ void AssetRegistry::LoadPackagesAsync()
         return;
     }
 
-    TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), rootDir]()
+    TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), rootDir, loadSubpackages]()
         {
             HYP_NAMED_SCOPE("AssetRegistry::LoadPackagesAsync");
 
@@ -967,7 +973,7 @@ void AssetRegistry::LoadPackagesAsync()
                     if (Result result = LoadPackageFromManifest(
                             manifestPath,
                             package,
-                            /* loadSubpackages */ true);
+                            loadSubpackages);
                         result.HasError())
                     {
                         HYP_LOG(Assets, Error, "Failed to load package from manifest '{}': {}", manifestPath, result.GetError().GetMessage());
@@ -1350,6 +1356,76 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(const Handle<AssetPackage>& pa
     }
 
     return subpackage;
+}
+
+void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool recursive)
+{
+    HYP_SCOPE;
+    AssertReady();
+
+    if (!package)
+    {
+        return;
+    }
+
+    if (package->m_registry.GetUnsafe() != this)
+    {
+        return;
+    }
+
+    if (package->m_packageDir.Length() == 0 || !package->m_packageDir.Exists() || !package->m_packageDir.IsDirectory())
+    {
+        return;
+    }
+
+    for (const FilePath& subdirectory : package->m_packageDir.GetSubdirectories())
+    {
+        const FilePath manifestPath = subdirectory / "PackageManifest.json";
+
+        if (!manifestPath.Exists() || manifestPath.IsDirectory())
+        {
+            continue;
+        }
+
+        Handle<AssetPackage> subpackage;
+
+        if (Result result = LoadPackageFromManifest(
+                manifestPath,
+                subpackage,
+                /* loadSubpackages */ recursive);
+            result.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", manifestPath, result.GetError().GetMessage());
+
+            continue;
+        }
+
+        if (!subpackage.IsValid())
+        {
+            HYP_LOG(Assets, Error, "Subpackage at path '{}' is invalid!", subdirectory);
+
+            continue;
+        }
+
+        if (!subpackage->GetName().IsValid())
+        {
+            HYP_LOG(Assets, Error, "Subpackage at path '{}' has an invalid name!", subdirectory);
+
+            continue;
+        }
+
+        subpackage->m_parentPackage = package;
+        subpackage->m_flags |= package->m_flags;
+
+        // Add to our package
+        Handle<AssetPackage> existingSubpackage = GetSubpackage(package, subpackage->GetName(), /* createIfNotExist */ true);
+        Assert(existingSubpackage != nullptr);
+
+        if (existingSubpackage != subpackage)
+        {
+            HYP_LOG(Assets, Warning, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'", subpackage->GetName(), package->GetName(), manifestPath);
+        }
+    }
 }
 
 bool AssetRegistry::RemovePackage(AssetPackage* package)
