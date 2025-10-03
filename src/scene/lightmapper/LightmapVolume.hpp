@@ -109,22 +109,16 @@ public:
 
     LightmapVolume();
 
-    LightmapVolume(const BoundingBox& aabb);
+    explicit LightmapVolume(const BoundingBox& aabb);
 
     LightmapVolume(const LightmapVolume& other) = delete;
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume() override;
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "UUID")
     HYP_FORCE_INLINE const Uuid& GetUUID() const
     {
         return m_uuid;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
-    {
-        return m_aabb;
     }
 
     HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(LightmapTextureType type) const
@@ -181,7 +175,7 @@ public:
     const LightmapElement* GetElement(LightmapElement::Id elementId) const;
 
     bool BuildElementTextures(const LightmapUVMap& uvMap, LightmapElement::Id elementId);
-    
+
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
 private:
@@ -191,21 +185,17 @@ private:
         uint16 atlasIndex,
         HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures);
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Property = "UUID")
     Uuid m_uuid;
 
-    HYP_FIELD(Serialize = true)
-    BoundingBox m_aabb;
-
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Property = "RadianceAtlasTextures")
     Array<Handle<Texture>, FixedAllocator<s_maxAtlases>> m_radianceAtlasTextures;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Property = "IrradianceAtlasTextures")
     Array<Handle<Texture>, FixedAllocator<s_maxAtlases>> m_irradianceAtlasTextures;
 
-    HYP_FIELD(Serialize = true)
+    HYP_FIELD(Property = "Atlases")
     Array<LightmapVolumeAtlas, DynamicAllocator> m_atlases;
 };
 
 } // namespace hyperion
-

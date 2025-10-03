@@ -188,8 +188,10 @@ LightmapVolume::LightmapVolume()
 }
 
 LightmapVolume::LightmapVolume(const BoundingBox& aabb)
-    : m_aabb(aabb)
+    : Entity()
 {
+    m_entityAabb = aabb;
+
     m_atlases.Reserve(s_maxAtlases);
     m_atlases.EmplaceBack(Vec2u(4096, 4096));
 
@@ -366,8 +368,8 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 {
     proxy->lightmapVolume = WeakHandleFromThis();
 
-    proxy->bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);
-    proxy->bufferData.aabbMin = Vec4f(m_aabb.min, 1.0f);
+    proxy->bufferData.aabbMax = Vec4f(m_entityAabb.max, 1.0f);
+    proxy->bufferData.aabbMin = Vec4f(m_entityAabb.min, 1.0f);
     proxy->bufferData.textureIndex = ~0u; // @TODO: Set the correct texture index based on the element
 }
 

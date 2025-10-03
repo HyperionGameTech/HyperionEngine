@@ -119,7 +119,7 @@ public:
     /*! \brief Get the position for the light. For directional lights, this is the direction the light is pointing.
      *
      *  \return The position or direction. */
-    HYP_METHOD(Property = "Position", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Position", Editor = true)
     const Vec3f& GetPosition() const
     {
         return m_position;
@@ -128,13 +128,13 @@ public:
     /*! \brief Set the position for the light. For directional lights, this is the direction the light is pointing.
      *
      *  \param position The position or direction to set. */
-    HYP_METHOD(Property = "Position", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Position", Editor = true)
     void SetPosition(const Vec3f& position);
 
     /*! \brief Get the normal for the light. This is used only for area lights.
      *
      *  \return The normal. */
-    HYP_METHOD(Property = "Normal", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Normal", Editor = true)
     const Vec3f& GetNormal() const
     {
         return m_normal;
@@ -143,13 +143,13 @@ public:
     /*! \brief Set the normal for the light. This is used only for area lights.
      *
      *  \param normal The normal to set. */
-    HYP_METHOD(Property = "Normal", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Normal", Editor = true)
     void SetNormal(const Vec3f& normal);
 
     /*! \brief Get the area size for the light. This is used only for area lights.
      *
      *  \return The area size. (x = width, y = height) */
-    HYP_METHOD(Property = "AreaSize", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "AreaSize", Editor = true)
     const Vec2f& GetAreaSize() const
     {
         return m_areaSize;
@@ -158,13 +158,13 @@ public:
     /*! \brief Set the area size for the light. This is used only for area lights.
      *
      *  \param areaSize The area size to set. (x = width, y = height) */
-    HYP_METHOD(Property = "AreaSize", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "AreaSize", Editor = true)
     void SetAreaSize(const Vec2f& areaSize);
 
     /*! \brief Get the color for the light.
      *
      *  \return The color. */
-    HYP_METHOD(Property = "Color", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Color", Editor = true)
     const Color& GetColor() const
     {
         return m_color;
@@ -173,13 +173,13 @@ public:
     /*! \brief Set the color for the light.
      *
      *  \param color The color to set. */
-    HYP_METHOD(Property = "Color", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Color", Editor = true)
     void SetColor(const Color& color);
 
     /*! \brief Get the intensity for the light. This is used to determine how bright the light is.
      *
      *  \return The intensity. */
-    HYP_METHOD(Property = "Intensity", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Intensity", Editor = true)
     float GetIntensity() const
     {
         return m_intensity;
@@ -188,13 +188,13 @@ public:
     /*! \brief Set the intensity for the light. This is used to determine how bright the light is.
      *
      *  \param intensity The intensity to set. */
-    HYP_METHOD(Property = "Intensity", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Intensity", Editor = true)
     void SetIntensity(float intensity);
 
     /*! \brief Get the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
      *
      *  \return The radius. */
-    HYP_METHOD(Property = "Radius", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Radius", Editor = true)
     float GetRadius() const
     {
         switch (m_type)
@@ -211,13 +211,13 @@ public:
     /*! \brief Set the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
      *
      *  \param radius The radius to set. */
-    HYP_METHOD(Property = "Radius", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Radius", Editor = true)
     void SetRadius(float radius);
 
     /*! \brief Get the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
      *
      *  \return The falloff. */
-    HYP_METHOD(Property = "Falloff", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Falloff", Editor = true)
     float GetFalloff() const
     {
         return m_falloff;
@@ -226,13 +226,13 @@ public:
     /*! \brief Set the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
      *
      *  \param falloff The falloff to set. */
-    HYP_METHOD(Property = "Falloff", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Falloff", Editor = true)
     void SetFalloff(float falloff);
 
     /*! \brief Get the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
      *  \return The spotlight angles. */
-    HYP_METHOD(Property = "SpotAngles", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "SpotAngles", Editor = true)
     const Vec2f& GetSpotAngles() const
     {
         return m_spotAngles;
@@ -241,13 +241,13 @@ public:
     /*! \brief Set the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
      *  \param spotAngles The angles to set for the spotlight. */
-    HYP_METHOD(Property = "SpotAngles", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "SpotAngles", Editor = true)
     void SetSpotAngles(const Vec2f& spotAngles);
 
     /*! \brief Get the material  for the light. Used for area lights.
      *
      *  \return The material handle associated with the Light. */
-    HYP_METHOD(Property = "Material", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Material", Editor = true)
     const Handle<Material>& GetMaterial() const
     {
         return m_material;
@@ -256,34 +256,34 @@ public:
     /*! \brief Sets the material handle associated with the Light. Used for textured area lights.
      *
      *  \param material The material to set for this Light. */
-    HYP_METHOD(Property = "Material", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Material", Editor = true)
     void SetMaterial(Handle<Material> material);
 
-    HYP_METHOD(Property="ShadowMapDimensions", Serialize=true, Editor=true)
+    HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
     HYP_FORCE_INLINE const Vec2u& GetShadowMapDimensions() const
     {
         return m_shadowMapDimensions;
     }
 
-    HYP_METHOD(Property="ShadowMapDimensions", Serialize=true, Editor=true)
+    HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
     void SetShadowMapDimensions(Vec2u shadowMapDimensions);
 
     HYP_METHOD()
     BoundingBox GetAABB() const;
 
-    HYP_METHOD(Property="ShadowMapFilter", Serialize=false, Editor=true)
+    HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
     ShadowMapFilter GetShadowMapFilter() const
     {
         return (ShadowMapFilter)((uint32(m_flags) & LF_SHADOW_FILTER_MASK)
-            ? MathUtil::FastLog2(uint32(m_flags) & LF_SHADOW_FILTER_MASK)
-            : 0);
+                ? MathUtil::FastLog2(uint32(m_flags) & LF_SHADOW_FILTER_MASK)
+                : 0);
     }
 
-    HYP_METHOD(Property="ShadowMapFilter", Serialize=false, Editor=true)
+    HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
     void SetShadowMapFilter(ShadowMapFilter shadowMapFilter);
 
     BoundingSphere GetBoundingSphere() const;
-    
+
     void UpdateRenderProxy(RenderProxyLight* proxy);
 
 protected:
@@ -295,16 +295,16 @@ protected:
 
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
-    
+
     void OnTransformUpdated(const Transform& transform) override;
-    
+
     void CreateShadowViews();
     void UpdateShadowViews();
 
     HYP_FIELD()
     LightType m_type;
 
-    HYP_FIELD(Property="LightFlags", Serialize)
+    HYP_FIELD(Property = "LightFlags")
     EnumFlags<LightFlags> m_flags;
 
     Vec3f m_position;
@@ -316,7 +316,7 @@ protected:
     float m_falloff;
     Vec2f m_spotAngles;
     Handle<Material> m_material;
-    
+
     Vec2u m_shadowMapDimensions;
     Handle<Camera> m_shadowMapCamera;
     Array<Handle<View>> m_shadowViews;
@@ -380,6 +380,7 @@ HYP_CLASS()
 class HYP_API SpotLight : public Light
 {
     HYP_OBJECT_BODY(SpotLight);
+
 public:
     SpotLight()
         : Light(LT_SPOT, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
@@ -414,4 +415,3 @@ public:
 };
 
 } // namespace hyperion
-

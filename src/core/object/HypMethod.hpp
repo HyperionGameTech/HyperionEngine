@@ -35,7 +35,7 @@ enum class Script_FunctionAddress : uint32;
 
 struct HypMethodParameter
 {
-    TypeId typeId;
+    const TypeInfo* typeInfo = &TypeInfo::Void();
 };
 
 #pragma region CallHypMethod
@@ -78,8 +78,7 @@ void InitHypMethodParams_Impl(Array<HypMethodParameter>& outParams, std::index_s
 {
     auto addParameter = [&outParams]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
-        outParams.PushBack(HypMethodParameter {
-            TypeId::ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
+        outParams.PushBack(HypMethodParameter { &TypeInfo::ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
 
         return true;
     };
@@ -88,8 +87,7 @@ void InitHypMethodParams_Impl(Array<HypMethodParameter>& outParams, std::index_s
 
     if constexpr (!std::is_void_v<ThisType>)
     {
-        outParams.PushBack(HypMethodParameter {
-            TypeId::ForType<NormalizedType<ThisType>>() });
+        outParams.PushBack(HypMethodParameter { &TypeInfo::ForType<NormalizedType<ThisType>>() });
     }
 }
 
@@ -159,8 +157,8 @@ class HypMethod final : public IHypMember
 public:
     HypMethod(Span<const HypClassAttribute> attributes = {})
         : m_name(Name::Invalid()),
-          m_returnTypeId(TypeId::Void()),
-          m_targetTypeId(TypeId::Void()),
+          m_returnTypeInfo(&TypeInfo::Void()),
+          m_targetTypeInfo(&TypeInfo::Void()),
           m_flags(HypMethodFlags::NONE),
           m_attributes(attributes)
     {
@@ -170,14 +168,16 @@ public:
     }
 
 #ifdef HYP_SCRIPT
-    HypMethod(Name name, TypeId returnTypeId, TypeId targetTypeId, Script_FunctionAddress scriptAddress, EnumFlags<HypMethodFlags> flags, Span<const HypClassAttribute> attributes = {})
+    HypMethod(Name name, const TypeInfo* returnTypeInfo, const TypeInfo* targetTypeInfo, Script_FunctionAddress scriptAddress, EnumFlags<HypMethodFlags> flags, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_returnTypeId(returnTypeId),
-          m_targetTypeId(targetTypeId),
+          m_returnTypeInfo(returnTypeInfo),
+          m_targetTypeInfo(targetTypeInfo),
           m_scriptAddress(scriptAddress),
           m_flags(flags),
           m_attributes(attributes)
     {
+        HYP_CORE_ASSERT(m_returnTypeInfo != nullptr, "Return TypeInfo cannot be null");
+        HYP_CORE_ASSERT(m_targetTypeInfo != nullptr, "Target TypeInfo cannot be null");
     }
 #endif
 
@@ -208,8 +208,8 @@ public:
         m_scriptAddress = INVALID_FUNCTION_ADDRESS;
 #endif
 
-        m_returnTypeId = TypeId::ForType<NormalizedType<ReturnType>>();
-        m_targetTypeId = TypeId::ForType<NormalizedType<TargetType>>();
+        m_returnTypeInfo = &TypeInfo::ForType<NormalizedType<ReturnType>>();
+        m_targetTypeInfo = &TypeInfo::ForType<NormalizedType<TargetType>>();
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
@@ -309,8 +309,8 @@ public:
         m_scriptAddress = INVALID_FUNCTION_ADDRESS;
 #endif
 
-        m_returnTypeId = TypeId::ForType<NormalizedType<ReturnType>>();
-        m_targetTypeId = TypeId::ForType<NormalizedType<TargetType>>();
+        m_returnTypeInfo = &TypeInfo::ForType<NormalizedType<ReturnType>>();
+        m_targetTypeInfo = &TypeInfo::ForType<NormalizedType<TargetType>>();
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
@@ -408,8 +408,8 @@ public:
         m_scriptAddress = INVALID_FUNCTION_ADDRESS;
 #endif
 
-        m_returnTypeId = TypeId::ForType<NormalizedType<ReturnType>>();
-        m_targetTypeId = TypeId::Void();
+        m_returnTypeInfo = &TypeInfo::ForType<NormalizedType<ReturnType>>();
+        m_targetTypeInfo = &TypeInfo::Void();
 
         m_params.Reserve(sizeof...(ArgTypes));
         InitHypMethodParams_Tuple<ReturnType, void, Tuple<ArgTypes...>> {}(m_params);
@@ -433,14 +433,14 @@ public:
         return m_name;
     }
 
-    virtual TypeId GetTypeId() const override
+    virtual const TypeInfo& GetTypeInfo() const override
     {
-        return m_returnTypeId;
+        return *m_returnTypeInfo;
     }
 
-    virtual TypeId GetTargetTypeId() const override
+    virtual const TypeInfo& GetTargetTypeInfo() const override
     {
-        return m_targetTypeId;
+        return *m_targetTypeInfo;
     }
 
     virtual bool CanSerialize() const override
@@ -538,8 +538,8 @@ public:
 
 private:
     Name m_name;
-    TypeId m_returnTypeId;
-    TypeId m_targetTypeId;
+    const TypeInfo* m_returnTypeInfo;
+    const TypeInfo* m_targetTypeInfo;
     Array<HypMethodParameter> m_params;
     EnumFlags<HypMethodFlags> m_flags;
     HypClassAttributeSet m_attributes;

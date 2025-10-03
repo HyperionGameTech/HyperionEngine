@@ -131,7 +131,7 @@ private:
 
         Handle<UIObject> result;
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return Create(parent, value);
         }
@@ -148,7 +148,7 @@ private:
         m_context = context.ToRef();
         HYP_DEFER({ m_context = AnyRef(); });
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return Update(uiObject, value);
         }
@@ -175,7 +175,7 @@ private:
 class HYP_API UIDataSourceElement
 {
 public:
-    template <class T, typename = std::enable_if_t<!is_hyp_data_v<T>>>
+    template <class T, typename = std::enable_if_t<!IsHypDataV<T>>>
     UIDataSourceElement(Uuid uuid, T&& value)
         : m_uuid(uuid),
           m_value(HypData(std::forward<T>(value)))

@@ -1657,7 +1657,7 @@ struct IsArray
 };
 
 template <class T, class AllocatorType>
-struct IsArray<Array<T, AllocatorType>>
+struct IsArray<containers::Array<T, AllocatorType>>
 {
     enum
     {

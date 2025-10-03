@@ -5,7 +5,7 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 
-#include <core/utilities/TypeAttributes.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 namespace hyperion {
 

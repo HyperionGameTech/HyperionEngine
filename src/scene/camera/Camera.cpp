@@ -44,6 +44,11 @@ static const Handle<NullCameraController>& GetNullCameraController()
 
 #pragma region CameraController
 
+CameraController::CameraController()
+    : CameraController(CameraProjectionMode::NONE)
+{
+}
+
 CameraController::CameraController(CameraProjectionMode projectionMode)
     : m_inputHandler(GetNullInputHandler()),
       m_camera(nullptr),
@@ -171,8 +176,7 @@ Camera::Camera()
 
 Camera::Camera(int width, int height)
     : Entity(),
-      m_name(Name::Unique("Camera_")),
-      m_flags(CameraFlags::NONE),
+      m_cameraFlags(CameraFlags::NONE),
       m_matchWindowSizeRatio(1.0f),
       m_fov(50.0f),
       m_width(width),
@@ -196,8 +200,7 @@ Camera::Camera(int width, int height)
 
 Camera::Camera(float fov, int width, int height, float _near, float _far)
     : Entity(),
-      m_name(Name::Unique("Camera_")),
-      m_flags(CameraFlags::NONE),
+      m_cameraFlags(CameraFlags::NONE),
       m_matchWindowSizeRatio(1.0f),
       m_fov(fov),
       m_width(width),
@@ -217,8 +220,7 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
 
 Camera::Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far)
     : Entity(),
-      m_name(Name::Unique("Camera_")),
-      m_flags(CameraFlags::NONE),
+      m_cameraFlags(CameraFlags::NONE),
       m_matchWindowSizeRatio(1.0f),
       m_fov(0.0f),
       m_width(width),
@@ -249,13 +251,15 @@ Camera::~Camera()
 
 void Camera::Init()
 {
+    HYP_SCOPE;
+
     m_streamingVolume = CreateObject<CameraStreamingVolume>();
     m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
     InitObject(m_streamingVolume);
-    
+
     Entity::Init();
 
-    if (m_flags & CameraFlags::MATCH_WINDOW_SIZE)
+    if (m_cameraFlags & CameraFlags::MATCH_WINDOW_SIZE)
     {
         auto initMatchWindowSize = [this]() -> TResult<>
         {

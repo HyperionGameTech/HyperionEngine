@@ -17,6 +17,11 @@ static const float movementBlending = 0.01f;
 
 #pragma region FirstPersonCameraInputHandler
 
+FirstPersonCameraInputHandler::FirstPersonCameraInputHandler()
+    : m_controller()
+{
+}
+
 FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(const WeakHandle<CameraController>& controller)
     : m_controller(WeakHandle<FirstPersonCameraController>(controller))
 {

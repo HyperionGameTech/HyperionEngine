@@ -31,18 +31,19 @@ class HypClass;
 class HypConstant : public IHypMember
 {
 public:
-    HypConstant(Name name, TypeId typeId, uint32 size, Span<const HypClassAttribute> attributes = {})
+    HypConstant(Name name, const TypeInfo* typeInfo, uint32 size, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeId(typeId),
+          m_typeInfo(typeInfo),
           m_size(size),
           m_attributes(attributes)
     {
+        HYP_CORE_ASSERT(m_typeInfo != nullptr);
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeId(TypeId::ForType<NormalizedType<ConstantType>>()),
+          m_typeInfo(&TypeInfo::ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -65,7 +66,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, const ConstantType* pValue, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeId(TypeId::ForType<NormalizedType<ConstantType>>()),
+          m_typeInfo(&TypeInfo::ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -105,14 +106,14 @@ public:
         return m_name;
     }
 
-    virtual TypeId GetTypeId() const override
+    virtual const TypeInfo& GetTypeInfo() const override
     {
-        return m_typeId;
+        return *m_typeInfo;
     }
 
-    virtual TypeId GetTargetTypeId() const override
+    virtual const TypeInfo& GetTargetTypeInfo() const override
     {
-        return TypeId::Void();
+        return TypeInfo::Void();
     }
 
     HYP_FORCE_INLINE uint32 GetSize() const
@@ -178,7 +179,7 @@ public:
     HYP_FORCE_INLINE bool IsValid() const
     {
         return m_name.IsValid()
-            && m_typeId != TypeId::Void()
+            && m_typeInfo && m_typeInfo->id != TypeId::Void()
             && m_size != 0;
     }
 
@@ -189,7 +190,7 @@ public:
 
 private:
     Name m_name;
-    TypeId m_typeId;
+    const TypeInfo* m_typeInfo;
     uint32 m_size;
     HypClassAttributeSet m_attributes;
 

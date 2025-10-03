@@ -46,6 +46,8 @@ public:
     friend class Node;
 
     Entity();
+    explicit Entity(Name name);
+
     virtual ~Entity() override;
 
     HYP_FORCE_INLINE World* GetWorld() const
@@ -148,4 +150,3 @@ private:
 #include <scene/Entity.inl>
 
 } // namespace hyperion
-

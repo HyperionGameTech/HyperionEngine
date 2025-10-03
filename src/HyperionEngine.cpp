@@ -82,7 +82,7 @@ template <auto DirectoryStaticString>
 struct DirectoryInitializer
 {
     FilePath path;
-    
+
     DirectoryInitializer()
     {
 #if defined(HYP_DEBUG_MODE) && defined(HYP_ROOT_DIR)
@@ -104,7 +104,6 @@ struct DirectoryInitializer
         Assert(path.CanWrite(), "Resource directory is not writable: {}", path.Data());
     }
 };
-
 
 HYP_API const FilePath& GetResourceDirectory()
 {
@@ -128,7 +127,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     HypClassRegistry::GetInstance().Initialize();
     HypScript::GetInstance().Initialize();
 
-    if (!CoreApi_InitializeCommandLineArguments(argc, argv))
+    if (!CoreApi_Initialize(argc, argv))
     {
         return false;
     }
@@ -237,6 +236,8 @@ HYP_API void DestroyEngine()
     {
         TaskSystem::GetInstance().Stop();
     }
+
+    CoreApi_Shutdown();
 
     g_assetManager.Reset();
     g_editorState.Reset();

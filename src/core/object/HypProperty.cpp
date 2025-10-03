@@ -9,7 +9,12 @@ namespace hyperion {
 
 const HypClass* HypProperty::GetHypClass() const
 {
-    return HypClassRegistry::GetInstance().GetClass(m_typeId);
+    if (!m_typeInfo)
+    {
+        return nullptr;
+    }
+
+    return m_typeInfo->GetHypClass();
 }
 
 } // namespace hyperion

@@ -636,9 +636,19 @@ void LinkedList<T>::Clear()
     m_tail = nullptr;
     m_size = 0;
 }
+
 } // namespace containers
 
+using containers::LinkedList;
+
 template <class T>
-using LinkedList = containers::LinkedList<T>;
+struct IsLinkedList : std::false_type
+{
+};
+
+template <class T>
+struct IsLinkedList<containers::LinkedList<T>> : std::true_type
+{
+};
 
 } // namespace hyperion

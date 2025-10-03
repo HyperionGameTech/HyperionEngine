@@ -3,11 +3,13 @@
 #include <core/Core.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/containers/LinkedList.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 namespace hyperion {
 
 static Mutex g_globalsMutex;
 static FilePath g_executablePath;
+static Array<void (*)()> g_onShutdownFuncs;
 
 FilePath CoreApi_GetExecutablePath()
 {
@@ -46,7 +48,7 @@ const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefiniti
     return initializer.definitions;
 }
 
-bool CoreApi_InitializeCommandLineArguments(int argc, char** argv)
+bool CoreApi_Initialize(int argc, char** argv)
 {
     g_commandLineArguments = CommandLineArguments(argv[0]);
 
@@ -118,6 +120,28 @@ const GlobalConfig& CoreApi_GetGlobalConfig()
     }
 
     return g_globalConfigChain.Back();
+}
+
+void CoreApi_OnShutdown(void (*func)())
+{
+    Mutex::Guard guard(g_globalsMutex);
+    g_onShutdownFuncs.PushBack(func);
+}
+
+void CoreApi_Shutdown()
+{
+    TypeInfo_DestroyCache();
+
+    {
+        Mutex::Guard guard(g_globalsMutex);
+
+        for (SizeType i = g_onShutdownFuncs.Size(); i > 0; --i)
+        {
+            g_onShutdownFuncs[i - 1]();
+        }
+
+        g_onShutdownFuncs.Clear();
+    }
 }
 
 } // namespace hyperion

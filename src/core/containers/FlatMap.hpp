@@ -445,9 +445,19 @@ FlatSet<Value> FlatMap<Key, Value>::Values() const
 
     return values;
 }
+
 } // namespace containers
 
+using containers::FlatMap;
+
+template <class T>
+struct IsFlatMap : std::false_type
+{
+};
+
 template <class Key, class Value>
-using FlatMap = containers::FlatMap<Key, Value>;
+struct IsFlatMap<FlatMap<Key, Value>> : std::true_type
+{
+};
 
 } // namespace hyperion

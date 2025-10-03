@@ -1999,7 +1999,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
         for (SizeType i = 0; i < size; i++)
         {
-            if constexpr (is_hyp_data_v<T>)
+            if constexpr (IsHypDataV<T>)
             {
                 if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
                 {
@@ -2126,7 +2126,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
         for (SizeType i = 0; i < Size; i++)
         {
-            if constexpr (is_hyp_data_v<T>)
+            if constexpr (IsHypDataV<T>)
             {
                 if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
                 {
@@ -2236,7 +2236,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 
         for (SizeType i = 0; i < Size; i++)
         {
-            if constexpr (is_hyp_data_v<T>)
+            if constexpr (IsHypDataV<T>)
             {
                 if (FBOMResult err = value[i].Serialize(elements[i], FBOMDataFlags::NONE))
                 {
@@ -2704,7 +2704,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if constexpr (is_hyp_data_v<T>)
+            if constexpr (IsHypDataV<T>)
             {
                 if (FBOMResult err = value.Serialize(element, FBOMDataFlags::NONE))
                 {

@@ -346,4 +346,14 @@ auto HashMap<Key, Value, NodeAllocatorType>::Insert(KeyValuePair<Key, Value>&& p
 
 using containers::HashMap;
 
+template <class T>
+struct IsHashMap : std::false_type
+{
+};
+
+template <class Key, class Value, class NodeAllocatorType>
+struct IsHashMap<containers::HashMap<Key, Value, NodeAllocatorType>> : std::true_type
+{
+};
+
 } // namespace hyperion

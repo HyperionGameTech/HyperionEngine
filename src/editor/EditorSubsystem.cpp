@@ -211,8 +211,8 @@ void EditorManipulationWidgetBase::Init()
 
     m_node->UnlockTransform();
 
-    m_node->SetFlags(
-        m_node->GetFlags()
+    m_node->SetNodeFlags(
+        m_node->GetNodeFlags()
         | NodeFlags::HIDE_IN_SCENE_OUTLINE // don't display transform widget in the outline
         | NodeFlags::TRANSIENT             // should not ever be serialized to disk
     );
@@ -1136,7 +1136,7 @@ void EditorSubsystem::OnAddedToWorld()
     m_camera = CreateObject<Camera>();
     m_camera->AddCameraController(CreateObject<EditorCameraController>());
     m_camera->SetName(NAME("EditorCamera"));
-    m_camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
+    m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetFOV(70.0f);
     m_camera->SetNear(0.1f);
     m_camera->SetFar(3000.0f);

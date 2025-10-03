@@ -15,6 +15,7 @@
 
 #include <core/utilities/Format.hpp>
 #include <core/utilities/Uuid.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -473,8 +474,24 @@ bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& out
 #undef HYP_JSON_TO_HYPDATA_SCALAR
 #undef HYP_JSON_TO_HYPDATA_VECTOR
 
+// used to prevent infinite recursion when serializing nested objects
+static thread_local HashSet<const void*> g_serialized;
+
 bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties)
 {
+    if (!g_serialized.Insert(value.ToRef().GetPointer()).second)
+    {
+        HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
+
+        HYP_BREAKPOINT_DEBUG_MODE;
+
+        return false;
+    }
+
+    HYP_DEFER({
+        g_serialized.Erase(value.ToRef().GetPointer());
+    });
+
     if (value.IsNull())
     {
         outJson = json::JSONNull();

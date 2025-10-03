@@ -1,14 +1,18 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
 
+/// We need to include containers for TypeInfo traits.
 #include <core/containers/String.hpp>
+#include <core/containers/HashMap.hpp>
+#include <core/containers/HashSet.hpp>
+#include <core/containers/Array.hpp>
 
 #include <core/utilities/StringView.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfo.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Result.hpp>
 
@@ -62,7 +66,6 @@ protected:
     {
     }
 
-
 public:
     virtual ~IHypMember() = default;
 
@@ -70,9 +73,18 @@ public:
 
     virtual Name GetName() const = 0;
 
-    virtual TypeId GetTypeId() const = 0;
+    virtual const TypeInfo& GetTypeInfo() const = 0;
+    virtual const TypeInfo& GetTargetTypeInfo() const = 0;
 
-    virtual TypeId GetTargetTypeId() const = 0;
+    HYP_FORCE_INLINE const TypeId& GetTypeId() const
+    {
+        return GetTypeInfo().id;
+    }
+
+    HYP_FORCE_INLINE const TypeId& GetTargetTypeId() const
+    {
+        return GetTargetTypeInfo().id;
+    }
 
     HYP_FORCE_INLINE const HypClass* GetOwnerClass() const
     {

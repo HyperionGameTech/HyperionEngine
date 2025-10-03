@@ -9,6 +9,6 @@ namespace hyperion {
 struct HypData;
 
 template <class T>
-constexpr bool is_hyp_data_v = TypeId::ForType<T>() == TypeId::ForType<HypData>();
+constexpr bool IsHypDataV = TypeId::ForType<T>() == TypeId::ForType<HypData>();
 
 } // namespace hyperion

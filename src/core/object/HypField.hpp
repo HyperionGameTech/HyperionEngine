@@ -34,8 +34,8 @@ class HypField final : public IHypMember
 public:
     HypField(const Span<const HypClassAttribute>& attributes = {})
         : m_name(Name::Invalid()),
-          m_typeId(TypeId::Void()),
-          m_targetTypeId(TypeId::Void()),
+          m_typeInfo(&TypeInfo::Void()),
+          m_targetTypeInfo(&TypeInfo::Void()),
           m_offset(~0u),
           m_size(0),
           m_attributes(attributes)
@@ -43,15 +43,18 @@ public:
     }
 
     /*! \brief Script object (HypObjectBase) overload */
-    HypField(Name name, TypeId typeId, TypeId targetTypeId, uint32 offset, uint32 size, const Span<const HypClassAttribute>& attributes = {})
+    HypField(Name name, const TypeInfo* typeInfo, const TypeInfo* targetTypeInfo, uint32 offset, uint32 size, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
-          m_typeId(typeId),
-          m_targetTypeId(targetTypeId),
+          m_typeInfo(typeInfo),
+          m_targetTypeInfo(targetTypeInfo),
           m_offset(offset),
           m_size(size),
           m_attributes(attributes)
     {
-        HYP_CORE_ASSERT(typeId == TypeId::ForType<HypData>(), "HypField typeId must be HypData");
+        HYP_CORE_ASSERT(m_typeInfo != nullptr, "TypeInfo cannot be null");
+        HYP_CORE_ASSERT(m_targetTypeInfo != nullptr, "Target TypeInfo cannot be null");
+
+        HYP_CORE_ASSERT(typeInfo->id == TypeId::ForType<HypData>(), "HypField must be HypData for script objects");
 
         m_getProc = [offset](const HypData& targetData) -> HypData
         {
@@ -89,10 +92,10 @@ public:
     }
 
     template <class ThisType, class FieldType>
-    HypField(Name name, FieldType ThisType::*member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
+    HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
-          m_typeId(TypeId::ForType<FieldType>()),
-          m_targetTypeId(TypeId::ForType<ThisType>()),
+          m_typeInfo(&TypeInfo::ForType<FieldType>()),
+          m_targetTypeInfo(&TypeInfo::ForType<ThisType>()),
           m_offset(offset),
           m_size(sizeof(FieldType)),
           m_attributes(attributes)
@@ -270,14 +273,14 @@ public:
         return m_name;
     }
 
-    virtual TypeId GetTypeId() const override
+    virtual const TypeInfo& GetTypeInfo() const override
     {
-        return m_typeId;
+        return *m_typeInfo;
     }
 
-    virtual TypeId GetTargetTypeId() const override
+    virtual const TypeInfo& GetTargetTypeInfo() const override
     {
-        return m_targetTypeId;
+        return *m_targetTypeInfo;
     }
 
     virtual bool CanSerialize() const override
@@ -338,7 +341,7 @@ public:
     HYP_FORCE_INLINE bool IsValid() const
     {
         return m_name.IsValid()
-            && m_typeId != TypeId::Void()
+            && m_typeInfo != nullptr && m_typeInfo->id != TypeId::Void()
             && m_size != 0;
     }
 
@@ -364,8 +367,8 @@ public:
 
 private:
     Name m_name;
-    TypeId m_typeId;
-    TypeId m_targetTypeId;
+    const TypeInfo* m_typeInfo;
+    const TypeInfo* m_targetTypeInfo;
     uint32 m_offset;
     uint32 m_size;
 

@@ -956,7 +956,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
             LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
             Assert(lightmapVolume != nullptr);
 
-            const BoundingBox& volumeAabb = lightmapVolume->GetAABB();
+            const BoundingBox volumeAabb = lightmapVolume->GetWorldAABB();
 
             if (!volumeAabb.IsValid() || !volumeAabb.IsFinite())
             {

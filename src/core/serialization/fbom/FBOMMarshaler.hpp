@@ -59,7 +59,7 @@ struct FBOMMarshalerRegistration : FBOMMarshalerRegistrationBase
 };
 
 template <class T>
-class FBOMObjectMarshalerBase<T, std::enable_if_t<is_hyp_object_v<T>>> : public FBOMMarshalerBase
+class FBOMObjectMarshalerBase<T, std::enable_if_t<IsHypObjectV<T>>> : public FBOMMarshalerBase
 {
 public:
     using HypClassType = typename T::HypClassInfo::Type;
@@ -92,7 +92,9 @@ public:
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override = 0;
 };
 
-#define HYP_DEFINE_MARSHAL(T, MarshalType) \
-    static ::hyperion::FBOMMarshalerRegistration<typename T::HypClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration) {}
+#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                                                         \
+    static ::hyperion::FBOMMarshalerRegistration<typename T::HypClassInfo::Type, MarshalType> HYP_UNIQUE_NAME(marshalRegistration) \
+    {                                                                                                                              \
+    }
 
 } // namespace hyperion::serialization

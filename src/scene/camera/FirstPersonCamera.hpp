@@ -23,7 +23,8 @@ class HYP_API FirstPersonCameraInputHandler : public InputHandlerBase
     HYP_OBJECT_BODY(FirstPersonCameraInputHandler);
 
 public:
-    FirstPersonCameraInputHandler(const WeakHandle<CameraController>& controller);
+    FirstPersonCameraInputHandler();
+    explicit FirstPersonCameraInputHandler(const WeakHandle<CameraController>& controller);
     virtual ~FirstPersonCameraInputHandler() override = default;
 
 protected:
@@ -49,13 +50,13 @@ public:
     FirstPersonCameraController(FirstPersonCameraControllerMode mode = FirstPersonCameraControllerMode::MOUSE_FREE);
     virtual ~FirstPersonCameraController() = default;
 
-    HYP_METHOD(Property = "Mode")
+    HYP_METHOD(Property = "Mode", Transient)
     FirstPersonCameraControllerMode GetMode() const
     {
         return m_mode;
     }
 
-    HYP_METHOD(Property = "Mode")
+    HYP_METHOD(Property = "Mode", Transient)
     void SetMode(FirstPersonCameraControllerMode mode);
 
     HYP_METHOD()
@@ -90,4 +91,3 @@ protected:
 };
 
 } // namespace hyperion
-

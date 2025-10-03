@@ -53,6 +53,8 @@ public:
     void Reserve(SizeType size);
     void Reset();
 
+    void* Alloc(SizeType size, SizeType alignment);
+
     template <class T, class... Args>
     HYP_NODISCARD T* New(Args&&... args)
     {
@@ -94,7 +96,6 @@ public:
     }
 
 private:
-    void* Alloc(SizeType size, SizeType alignment);
     void* AllocWithDeleter(SizeType size, SizeType alignment, void (*moveFn)(void*, void*), void (*destructFn)(void*));
 
     Pimpl<class LinearPoolImpl> m_pImpl;
@@ -106,9 +107,16 @@ static inline HYP_NODISCARD T* PoolNew(LinearPool& pool, Args&&... args)
     return pool.New<T>(std::forward<Args>(args)...);
 }
 
+template <class T>
+static inline HYP_NODISCARD T* PoolAlloc(LinearPool& pool)
+{
+    return reinterpret_cast<T*>(pool.Alloc(sizeof(T), alignof(T)));
+}
+
 } // namespace memory
 
 using memory::LinearPool;
+using memory::PoolAlloc;
 using memory::PoolNew;
 
 } // namespace hyperion

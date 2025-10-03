@@ -102,8 +102,10 @@ class HYP_API CameraController : public HypObjectBase
 
     HYP_OBJECT_BODY(CameraController);
 
+    CameraController();
+
 public:
-    CameraController(CameraProjectionMode projectionMode);
+    explicit CameraController(CameraProjectionMode projectionMode);
     virtual ~CameraController() = default;
 
     HYP_METHOD(Property = "InputHandler")
@@ -180,10 +182,13 @@ protected:
 
     void SetIsMouseLockRequested(bool mouseLockRequested);
 
+    HYP_FIELD(Property = "Camera", Transient)
     Camera* m_camera;
 
+    HYP_FIELD(Property = "InputHandler", Transient)
     Handle<InputHandlerBase> m_inputHandler;
 
+    HYP_FIELD(Property = "ProjectionMode", Editor = true)
     CameraProjectionMode m_projectionMode;
 
     std::mutex m_commandQueueMutex;
@@ -236,51 +241,23 @@ public:
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
     ~Camera() override;
 
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE Name GetName() const
+    HYP_METHOD(Property = "Flags", Editor = true)
+    HYP_FORCE_INLINE EnumFlags<CameraFlags> GetCameraFlags() const
     {
-        return m_name;
+        return m_cameraFlags;
     }
 
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE void SetName(Name name)
+    HYP_METHOD(Property = "Flags", Editor = true)
+    HYP_FORCE_INLINE void SetCameraFlags(EnumFlags<CameraFlags> flags)
     {
-        m_name = name;
+        m_cameraFlags = flags;
     }
 
-    HYP_METHOD(Property = "Flags", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE EnumFlags<CameraFlags> GetFlags() const
-    {
-        return m_flags;
-    }
-
-    HYP_METHOD(Property = "Flags", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE void SetFlags(EnumFlags<CameraFlags> flags)
-    {
-        m_flags = flags;
-    }
-
-    HYP_METHOD(Property = "MatchWindowSizeRatio", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE float GetMatchWindowSizeRatio() const
-    {
-        return m_matchWindowSizeRatio;
-    }
-
-    HYP_METHOD(Property = "MatchWindowSizeRatio", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE void SetMatchWindowSizeRatio(float matchWindowSizeRatio)
-    {
-        m_matchWindowSizeRatio = matchWindowSizeRatio;
-    }
-
-    HYP_METHOD(Property = "CameraControllers", Serialize = true)
+    HYP_METHOD(Property = "CameraControllers")
     HYP_FORCE_INLINE const Array<Handle<CameraController>>& GetCameraControllers() const
     {
         return m_cameraControllers;
     }
-
-    /*! \internal For serialization only. */
-    HYP_METHOD(Property = "CameraControllers", Serialize = true)
-    void SetCameraControllers(const Array<Handle<CameraController>>& cameraControllers);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<CameraController>& GetCameraController() const
@@ -335,25 +312,25 @@ public:
         UpdateViewProjectionMatrix();
     }
 
-    HYP_METHOD(Property = "Width", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Width", Editor = true)
     HYP_FORCE_INLINE int GetWidth() const
     {
         return m_width;
     }
 
-    HYP_METHOD(Property = "Width", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Width", Editor = true)
     HYP_FORCE_INLINE void SetWidth(int width)
     {
         m_width = width;
     }
 
-    HYP_METHOD(Property = "Height", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Height", Editor = true)
     HYP_FORCE_INLINE int GetHeight() const
     {
         return m_height;
     }
 
-    HYP_METHOD(Property = "Height", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Height", Editor = true)
     HYP_FORCE_INLINE void SetHeight(int height)
     {
         m_height = height;
@@ -372,127 +349,127 @@ public:
         m_height = dimensions.y;
     }
 
-    HYP_METHOD(Property = "Near", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Near", Editor = true)
     HYP_FORCE_INLINE float GetNear() const
     {
         return m_near;
     }
 
-    HYP_METHOD(Property = "Near", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Near", Editor = true)
     HYP_FORCE_INLINE void SetNear(float _near)
     {
         m_near = _near;
     }
 
-    HYP_METHOD(Property = "Far", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Far", Editor = true)
     HYP_FORCE_INLINE float GetFar() const
     {
         return m_far;
     }
 
-    HYP_METHOD(Property = "Far", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Far", Editor = true)
     HYP_FORCE_INLINE void SetFar(float _far)
     {
         m_far = _far;
     }
 
     // perspective only
-    HYP_METHOD(Property = "FOV", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "FOV", Editor = true)
     HYP_FORCE_INLINE float GetFOV() const
     {
         return m_fov;
     }
 
     // perspective only
-    HYP_METHOD(Property = "FOV", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "FOV", Editor = true)
     HYP_FORCE_INLINE void SetFOV(float fov)
     {
         m_fov = fov;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Left", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Left", Editor = true)
     HYP_FORCE_INLINE float GetLeft() const
     {
         return m_left;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Left", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Left", Editor = true)
     HYP_FORCE_INLINE void SetLeft(float left)
     {
         m_left = left;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Right", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Right", Editor = true)
     HYP_FORCE_INLINE float GetRight() const
     {
         return m_right;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Right", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Right", Editor = true)
     HYP_FORCE_INLINE void SetRight(float right)
     {
         m_right = right;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Bottom", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Bottom", Editor = true)
     HYP_FORCE_INLINE float GetBottom() const
     {
         return m_bottom;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Bottom", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Bottom", Editor = true)
     HYP_FORCE_INLINE void SetBottom(float bottom)
     {
         m_bottom = bottom;
     }
 
-    HYP_METHOD(Property = "Top", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Top", Editor = true)
     HYP_FORCE_INLINE float GetTop() const
     {
         return m_top;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Top", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Top", Editor = true)
     HYP_FORCE_INLINE void SetTop(float top)
     {
         m_top = top;
     }
 
     // ortho only
-    HYP_METHOD(Property = "Translation", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Translation", Editor = true)
     HYP_FORCE_INLINE const Vec3f& GetTranslation() const
     {
         return m_translation;
     }
 
-    HYP_METHOD(Property = "Translation", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Translation", Editor = true)
     void SetTranslation(const Vec3f& translation);
 
     void SetNextTranslation(const Vec3f& translation);
 
-    HYP_METHOD(Property = "Direction", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Direction", Editor = true)
     HYP_FORCE_INLINE const Vec3f& GetDirection() const
     {
         return m_direction;
     }
 
-    HYP_METHOD(Property = "Direction", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Direction", Editor = true)
     void SetDirection(const Vec3f& direction);
 
-    HYP_METHOD(Property = "Up", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Up", Editor = true)
     HYP_FORCE_INLINE const Vec3f& GetUpVector() const
     {
         return m_up;
     }
 
-    HYP_METHOD(Property = "Up", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Up", Editor = true)
     HYP_FORCE_INLINE void SetUpVector(const Vec3f& up);
 
     HYP_METHOD()
@@ -521,34 +498,34 @@ public:
         return m_streamingVolume;
     }
 
-    HYP_METHOD(Property = "Frustum", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Frustum", Editor = true)
     HYP_FORCE_INLINE const Frustum& GetFrustum() const
     {
         return m_frustum;
     }
 
-    HYP_METHOD(Property = "Frustum", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Frustum", Editor = true)
     HYP_FORCE_INLINE void SetFrustum(const Frustum& frustum)
     {
         m_frustum = frustum;
     }
 
-    HYP_METHOD(Property = "ViewMatrix", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "ViewMatrix", Editor = true)
     HYP_FORCE_INLINE const Matrix4& GetViewMatrix() const
     {
         return m_viewMat;
     }
 
-    HYP_METHOD(Property = "ViewMatrix", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "ViewMatrix", Editor = true)
     void SetViewMatrix(const Matrix4& viewMat);
 
-    HYP_METHOD(Property = "ViewMatrix", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "ViewMatrix", Editor = true)
     HYP_FORCE_INLINE const Matrix4& GetProjectionMatrix() const
     {
         return m_projMat;
     }
 
-    HYP_METHOD(Property = "ViewMatrix", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "ViewMatrix", Editor = true)
     void SetProjectionMatrix(const Matrix4& projMat);
 
     HYP_METHOD()
@@ -595,7 +572,7 @@ public:
 
     void Update(float delta) override;
     void UpdateMatrices();
-    
+
     void UpdateRenderProxy(RenderProxyCamera* proxy);
 
 protected:
@@ -605,12 +582,12 @@ protected:
     void UpdateProjectionMatrix();
     void UpdateViewProjectionMatrix();
 
-    Name m_name;
+    EnumFlags<CameraFlags> m_cameraFlags;
 
-    EnumFlags<CameraFlags> m_flags;
-
+    HYP_FIELD(Property = "MatchWindowSizeRatio", Editor)
     float m_matchWindowSizeRatio;
 
+    HYP_FIELD(Property = "CameraControllers")
     Array<Handle<CameraController>> m_cameraControllers;
 
     Vec3f m_translation, m_nextTranslation, m_direction, m_up;
@@ -627,6 +604,10 @@ protected:
     float m_left, m_right, m_bottom, m_top;
 
 private:
+    /*! \internal For serialization only. */
+    HYP_METHOD(Property = "CameraControllers")
+    void SetCameraControllers(const Array<Handle<CameraController>>& cameraControllers);
+
     void UpdateMouseLocked();
 
     virtual void OnAddedToWorld(World* world) override;
@@ -641,4 +622,3 @@ private:
 };
 
 } // namespace hyperion
-

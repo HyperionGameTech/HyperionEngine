@@ -335,7 +335,16 @@ auto FlatSet<T>::Erase(const T& value) -> Iterator
 
 } // namespace containers
 
+using containers::FlatSet;
+
 template <class T>
-using FlatSet = containers::FlatSet<T>;
+struct IsFlatSet : std::false_type
+{
+};
+
+template <class T>
+struct IsFlatSet<FlatSet<T>> : std::true_type
+{
+};
 
 } // namespace hyperion

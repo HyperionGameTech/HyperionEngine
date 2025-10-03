@@ -21,7 +21,7 @@ HypDataArray::HypDataArray(AsReferenceTag, Array<T, AllocatorType>& arr)
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return AnyRef(arr.PushBack(std::move(value)));
         }
@@ -76,7 +76,7 @@ HypDataArray::HypDataArray(AsCopyTag, const Array<T, AllocatorType>& arr)
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return AnyRef(arr.PushBack(std::move(value)));
         }
@@ -131,7 +131,7 @@ HypDataArray::HypDataArray(AsCopyTag, Array<T, AllocatorType>&& arr)
     {
         auto& arr = *static_cast<Array<T, AllocatorType>*>(array.pInternalArray);
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return AnyRef(arr.PushBack(std::move(value)));
         }
@@ -463,7 +463,7 @@ HypDataArray::HypDataArray(AsReferenceTag, LinkedList<T>& list)
     {
         auto& list = *static_cast<LinkedList<T>*>(array.pInternalArray);
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return AnyRef(list.PushBack(std::move(value)));
         }
@@ -504,7 +504,7 @@ HypDataArray::HypDataArray(AsCopyTag, const LinkedList<T>& list)
     {
         auto& list = *static_cast<LinkedList<T>*>(array.pInternalArray);
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return AnyRef(list.PushBack(std::move(value)));
         }
@@ -545,7 +545,7 @@ HypDataArray::HypDataArray(AsCopyTag, LinkedList<T>&& list)
     {
         auto& list = *static_cast<LinkedList<T>*>(array.pInternalArray);
 
-        if constexpr (is_hyp_data_v<T>)
+        if constexpr (IsHypDataV<T>)
         {
             return AnyRef(list.PushBack(std::move(value)));
         }

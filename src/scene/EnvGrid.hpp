@@ -147,7 +147,7 @@ protected:
 
     EnvGridOptions m_options;
 
-    HYP_FIELD(Property = "AABB", Serialize = true)
+    HYP_FIELD(Property = "AABB")
     BoundingBox m_aabb;
 
     Vec3f m_offset;
@@ -236,7 +236,7 @@ private:
 
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
-    
+
     void CreateEnvProbes();
 
     Handle<View> m_view;
@@ -255,4 +255,3 @@ private:
 };
 
 } // namespace hyperion
-

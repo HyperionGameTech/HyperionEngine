@@ -283,7 +283,7 @@ public:
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), std::addressof(value));
-        
+
         if (HYP_UNLIKELY(!constructResult))
         {
             m_currentIndex = invalidTypeIndex;
@@ -300,7 +300,7 @@ public:
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), std::addressof(value));
-        
+
         if (HYP_UNLIKELY(!constructResult))
         {
             m_currentIndex = invalidTypeIndex;
@@ -462,7 +462,7 @@ public:
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
-        
+
         if (HYP_UNLIKELY(!constructResult))
         {
             m_currentIndex = invalidTypeIndex;
@@ -488,7 +488,7 @@ public:
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
 
         const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
-        
+
         if (HYP_UNLIKELY(!constructResult))
         {
             m_currentIndex = invalidTypeIndex;
@@ -1130,5 +1130,21 @@ template <class... Types>
 using Variant = utilities::Variant<Types...>;
 
 using utilities::Visit;
+
+template <class T>
+struct IsVariant : std::false_type
+{
+};
+
+template <class... Types>
+struct IsVariant<utilities::Variant<Types...>> : std::true_type
+{
+    using VariantType = utilities::Variant<Types...>;
+
+    template <SizeType Index>
+    using TypeAtIndex = typename std::tuple_element<Index, std::tuple<Types...>>::type;
+
+    static constexpr SizeType size = sizeof...(Types);
+};
 
 } // namespace hyperion

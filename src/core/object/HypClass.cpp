@@ -246,8 +246,8 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
     Optional<String> propertyAttributeOpt;
 
-    Optional<TypeId> typeId;
-    Optional<TypeId> targetTypeId;
+    const TypeInfo* typeInfo = nullptr;
+    const TypeInfo* targetTypeInfo = nullptr;
 
     const bool hasGetter = getter != nullptr && getter->GetParameters().Size() >= 1;
     const bool hasSetter = setter != nullptr && setter->GetParameters().Size() >= 2;
@@ -259,8 +259,8 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
             propertyAttributeOpt = attr.GetString();
         }
 
-        typeId = getter->GetTypeId();
-        targetTypeId = getter->GetParameters()[0].typeId;
+        typeInfo = &getter->GetTypeInfo();
+        targetTypeInfo = getter->GetParameters()[0].typeInfo;
 
         result.m_attributes = getter->GetAttributes();
     }
@@ -275,24 +275,24 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
             }
         }
 
-        const TypeId fieldTypeId = field->GetTypeId();
+        const TypeInfo& fieldTypeInfo = field->GetTypeInfo();
 
-        if (typeId.HasValue())
+        if (typeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*typeId == fieldTypeId, "Getter TypeId (%u) does not match field TypeId (%u)", typeId->Value(), fieldTypeId.Value());
+            HYP_CORE_ASSERT(*typeInfo == fieldTypeInfo, "Getter TypeId (%u) does not match field TypeId (%u)", typeInfo->id.Value(), fieldTypeInfo.id.Value());
         }
         else
         {
-            typeId = fieldTypeId;
+            typeInfo = &fieldTypeInfo;
         }
 
-        if (targetTypeId.HasValue())
+        if (targetTypeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*targetTypeId == field->GetTargetTypeId(), "Getter target TypeId (%u) does not match field target TypeId (%u)", targetTypeId->Value(), field->GetTargetTypeId().Value());
+            HYP_CORE_ASSERT(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target TypeId (%u) does not match field target TypeId (%u)", targetTypeInfo->id.Value(), field->GetTargetTypeInfo().id.Value());
         }
         else
         {
-            targetTypeId = field->GetTargetTypeId();
+            targetTypeInfo = &field->GetTargetTypeInfo();
         }
 
         result.m_attributes.Merge(field->GetAttributes());
@@ -308,41 +308,41 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
             }
         }
 
-        const TypeId setterTypeId = setter->GetParameters()[0].typeId;
+        const TypeInfo& setterTypeInfo = *setter->GetParameters()[0].typeInfo;
 
-        if (typeId.HasValue())
+        if (typeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*typeId == setterTypeId, "Getter/field TypeId (%u) does not match setter TypeId (%u)", typeId->Value(), setterTypeId.Value());
+            HYP_CORE_ASSERT(*typeInfo == setterTypeInfo, "Getter/field TypeId (%u) does not match setter TypeId (%u)", typeInfo->id.Value(), setterTypeInfo.id.Value());
         }
         else
         {
-            typeId = setterTypeId;
+            typeInfo = &setterTypeInfo;
         }
 
-        if (targetTypeId.HasValue())
+        if (targetTypeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*targetTypeId == setter->GetTargetTypeId(), "Getter/field target TypeId (%u) does not match setter target TypeId (%u)", targetTypeId->Value(), setter->GetTargetTypeId().Value());
+            HYP_CORE_ASSERT(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target TypeId (%u) does not match setter target TypeId (%u)", targetTypeInfo->id.Value(), setter->GetTargetTypeInfo().id.Value());
         }
         else
         {
-            targetTypeId = setter->GetTargetTypeId();
+            targetTypeInfo = &setter->GetTargetTypeInfo();
         }
 
         result.m_attributes.Merge(setter->GetAttributes());
     }
 
     HYP_CORE_ASSERT(propertyAttributeOpt.HasValue());
-    HYP_CORE_ASSERT(typeId.HasValue(), "Cannot determine TypeId from getter/setter pair or field");
+    HYP_CORE_ASSERT(typeInfo != nullptr, "Cannot determine TypeId from getter/setter pair or field");
 
     result.m_name = CreateNameFromDynamicString(*propertyAttributeOpt);
-    result.m_typeId = *typeId;
+    result.m_typeInfo = typeInfo;
     result.m_ownerClass = nullptr;
 
     if (hasGetter)
     {
         result.m_getter = HypPropertyGetter();
-        result.m_getter.typeInfo.targetTypeId = *targetTypeId;
-        result.m_getter.typeInfo.valueTypeId = *typeId;
+        result.m_getter.typeInfo.targetTypeInfo = targetTypeInfo;
+        result.m_getter.typeInfo.valueTypeInfo = typeInfo;
         result.m_getter.getProc = [getter](const HypData& target) -> HypData
         {
             return getter->Invoke(Span<HypData> { const_cast<HypData*>(&target), 1 });
@@ -357,8 +357,8 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     else if (field != nullptr)
     {
         result.m_getter = HypPropertyGetter();
-        result.m_getter.typeInfo.targetTypeId = *targetTypeId;
-        result.m_getter.typeInfo.valueTypeId = *typeId;
+        result.m_getter.typeInfo.targetTypeInfo = targetTypeInfo;
+        result.m_getter.typeInfo.valueTypeInfo = typeInfo;
         result.m_getter.getProc = [field](const HypData& target) -> HypData
         {
             return field->Get(target);
@@ -382,8 +382,8 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     if (hasSetter)
     {
         result.m_setter = HypPropertySetter();
-        result.m_setter.typeInfo.targetTypeId = *targetTypeId;
-        result.m_setter.typeInfo.valueTypeId = setter->GetParameters()[0].typeId;
+        result.m_setter.typeInfo.targetTypeInfo = targetTypeInfo;
+        result.m_setter.typeInfo.valueTypeInfo = setter->GetParameters()[0].typeInfo;
         result.m_setter.setProc = [setter](HypData& target, const HypData& value) -> void
         {
             setter->Invoke(Span<HypData*> { { &target, const_cast<HypData*>(&value) } });
@@ -406,8 +406,8 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     else if (field != nullptr)
     {
         result.m_setter = HypPropertySetter();
-        result.m_setter.typeInfo.targetTypeId = *targetTypeId;
-        result.m_setter.typeInfo.valueTypeId = *typeId;
+        result.m_setter.typeInfo.targetTypeInfo = targetTypeInfo;
+        result.m_setter.typeInfo.valueTypeInfo = typeInfo;
         result.m_setter.setProc = [field](HypData& target, const HypData& value) -> void
         {
             field->Set(target, value);
@@ -667,6 +667,8 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
         }
     }
 
+    const TypeInfo& thisTypeInfo = TypeInfo::ForHypClass(this);
+
     // initialize properties containers
     for (HypMember& member : members)
     {
@@ -674,11 +676,8 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
         {
             HypProperty* pProperty = new HypProperty(std::move(member.value.GetUnchecked<HypProperty>()));
             pProperty->m_ownerClass = this;
-
-#ifdef HYP_DEBUG_MODE
-            pProperty->m_getter.typeInfo.targetTypeId = typeId;
-            pProperty->m_setter.typeInfo.targetTypeId = typeId;
-#endif
+            pProperty->m_getter.typeInfo.targetTypeInfo = &thisTypeInfo;
+            pProperty->m_setter.typeInfo.targetTypeInfo = &thisTypeInfo;
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);

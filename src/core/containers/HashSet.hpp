@@ -1361,4 +1361,14 @@ using containers::HashTable_DefaultNodeAllocator;
 using containers::HashTable_DynamicNodeAllocator;
 using containers::HashTable_PooledNodeAllocator;
 
+template <class T>
+struct IsHashSet : std::false_type
+{
+};
+
+template <class Value, auto KeyBy, class NodeAllocatorType>
+struct IsHashSet<HashSet<Value, KeyBy, NodeAllocatorType>> : std::true_type
+{
+};
+
 } // namespace hyperion

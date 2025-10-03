@@ -12,7 +12,7 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/TypeAttributes.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/memory/Any.hpp>
 #include <core/memory/ByteBuffer.hpp>

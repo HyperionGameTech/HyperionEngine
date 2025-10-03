@@ -212,7 +212,7 @@ public:
     {
         return m_shData;
     }
-    
+
     HYP_FORCE_INLINE void SetSphericalHarmonicsData(const EnvProbeSphericalHarmonics& shData)
     {
         m_shData = shData;
@@ -224,15 +224,15 @@ public:
     void UpdateRenderProxy(RenderProxyEnvProbe* proxy);
 
     uint32 m_gridSlot = ~0u; // temp
-    Vec4i m_positionInGrid; // temp
+    Vec4i m_positionInGrid;  // temp
 
 protected:
     virtual void OnAttachedToNode(Node* node) override;
     virtual void OnDetachedFromNode(Node* node) override;
-    
+
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
-    
+
     virtual void OnAddedToScene(Scene* scene) override;
     virtual void OnRemovedFromScene(Scene* scene) override;
 
@@ -254,16 +254,16 @@ protected:
 
     Handle<View> m_view;
 
-    HYP_FIELD(Property = "AABB", Serialize = true)
+    HYP_FIELD(Property = "AABB")
     BoundingBox m_aabb;
 
-    HYP_FIELD(Property = "Dimensions", Serialize = true)
+    HYP_FIELD(Property = "Dimensions")
     Vec2u m_dimensions;
 
-    HYP_FIELD(Property = "EnvProbeType", Serialize = true)
+    HYP_FIELD(Property = "EnvProbeType")
     EnvProbeType m_envProbeType;
 
-    HYP_FIELD(Property = "SHData", Serialize = true)
+    HYP_FIELD(Property = "SHData")
     EnvProbeSphericalHarmonics m_shData;
 
     float m_cameraNear;
@@ -336,4 +336,3 @@ private:
 };
 
 } // namespace hyperion
-
