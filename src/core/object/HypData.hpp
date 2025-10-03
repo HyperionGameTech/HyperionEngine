@@ -300,7 +300,7 @@ struct HypData
             return anyPtr->ToRef();
         }
 
-        return AnyRef(value.GetTypeId(), value.GetPointer());
+        return AnyRef(value.GetCurrentTypeInfo(), value.GetPointer());
     }
 
     HYP_FORCE_INLINE AnyRef ToRef() const
@@ -1422,7 +1422,7 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T* value) const
     {
-        HypDataHelper<AnyRef>::Set(hypData, AnyRef(TypeId::ForType<T>(), value));
+        HypDataHelper<AnyRef>::Set(hypData, AnyRef(&TypeInfo::ForType<T>(), value));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
@@ -1471,7 +1471,7 @@ struct HypDataHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> : H
 {
     HYP_FORCE_INLINE const T* Get(const ConstAnyRef& value) const
     {
-        return HypDataHelper<T*>::Get(AnyRef(value.GetTypeId(), const_cast<void*>(value.GetPointer())));
+        return HypDataHelper<T*>::Get(AnyRef(value.GetTypeInfo(), const_cast<void*>(value.GetPointer())));
     }
 
     HYP_FORCE_INLINE const T* Get(const AnyRef& value) const

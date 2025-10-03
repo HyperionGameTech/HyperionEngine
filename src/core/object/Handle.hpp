@@ -6,6 +6,8 @@
 #include <core/object/HypObjectPool.hpp>
 #include <core/object/HypObjectBase.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 #include <core/Util.hpp>
 
 namespace hyperion {
@@ -184,13 +186,23 @@ struct Handle final : HandleBase
     }
 
     /*! \brief Get the TypeId of the object that the handle is referencing. If the handle is null, it returns the TypeId of T.
-     *  otherwise, it returns the TypeId of the object that the handle is referencing, which can be different from T if the object is a derived type.
+     *  otherwise, it returns the TypeId of the object that the handle is referencing, which can be a derived type.
      *  \return The TypeId of the object. */
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        static const TypeId typeId = TypeId::ForType<T>();
+        static const TypeId s_typeId = TypeId::ForType<T>();
 
-        return ptr ? GetTypeIdForClass(ptr->m_header->hypClass) : typeId;
+        return ptr ? GetTypeIdForClass(ptr->m_header->hypClass) : s_typeId;
+    }
+
+    /*! \brief Get TypeInfo for the object that the handle is referencing. If the handle is null, it returns the TypeInfo for T.
+     *  otherwise, it returns the TypeInfo for the object that the handle is referencing, which can be a derived type.
+     *  \return The TypeInfo of the object. */
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        static const TypeInfo* s_typeInfo = &TypeInfo::ForType<T>();
+
+        return ptr ? &TypeInfo::ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -314,7 +326,7 @@ struct Handle final : HandleBase
 
     HYP_FORCE_INLINE AnyRef ToRef() const
     {
-        return AnyRef { GetTypeId(), ptr };
+        return AnyRef { GetTypeInfo(), ptr };
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -531,13 +543,23 @@ struct WeakHandle final
     }
 
     /*! \brief Get the TypeId of the object that the handle is referencing. If the handle is null, it returns the TypeId of T.
-     *  otherwise, it returns the TypeId of the object that the handle is referencing, which can be different from T if the object is a derived type.
+     *  otherwise, it returns the TypeId of the object that the handle is referencing, which can be a derived type.
      *  \return The TypeId of the object. */
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        static const TypeId typeId = TypeId::ForType<T>();
+        static const TypeId s_typeId = TypeId::ForType<T>();
 
-        return ptr ? GetTypeIdForClass(ptr->m_header->hypClass) : typeId;
+        return ptr ? GetTypeIdForClass(ptr->m_header->hypClass) : s_typeId;
+    }
+
+    /*! \brief Get TypeInfo for the object that the handle is referencing. If the handle is null, it returns the TypeInfo for T.
+     *  otherwise, it returns the TypeInfo for the object that the handle is referencing, which can be a derived type.
+     *  \return The TypeInfo of the object. */
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        static const TypeInfo* s_typeInfo = &TypeInfo::ForType<T>();
+
+        return ptr ? &TypeInfo::ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const

@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfo.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/Types.hpp>
@@ -30,10 +31,14 @@ class AnyRefBase
     using PointerType = void*;
 
 protected:
-    AnyRefBase() = default;
+    AnyRefBase()
+        : m_typeInfo(&TypeInfo::Void()),
+          m_ptr(nullptr)
+    {
+    }
 
-    AnyRefBase(TypeId typeId, PointerType ptr)
-        : m_typeId(typeId),
+    AnyRefBase(const TypeInfo* typeInfo, PointerType ptr)
+        : m_typeInfo(typeInfo),
           m_ptr(ptr)
     {
     }
@@ -44,7 +49,7 @@ public:
     friend class Any;
 
     AnyRefBase(const AnyRefBase& other)
-        : m_typeId(other.m_typeId),
+        : m_typeInfo(other.m_typeInfo),
           m_ptr(other.m_ptr)
     {
     }
@@ -56,17 +61,17 @@ public:
             return *this;
         }
 
-        m_typeId = other.m_typeId;
+        m_typeInfo = other.m_typeInfo;
         m_ptr = other.m_ptr;
 
         return *this;
     }
 
     AnyRefBase(AnyRefBase&& other) noexcept
-        : m_typeId(std::move(other.m_typeId)),
+        : m_typeInfo(other.m_typeInfo),
           m_ptr(other.m_ptr)
     {
-        other.m_typeId = TypeId::ForType<void>();
+        other.m_typeInfo = &TypeInfo::Void();
         other.m_ptr = nullptr;
     }
 
@@ -77,10 +82,10 @@ public:
             return *this;
         }
 
-        m_typeId = other.m_typeId;
+        m_typeInfo = other.m_typeInfo;
         m_ptr = other.m_ptr;
 
-        other.m_typeId = TypeId::ForType<void>();
+        other.m_typeInfo = &TypeInfo::Void();
         other.m_ptr = nullptr;
 
         return *this;
@@ -139,13 +144,18 @@ public:
     /*! \brief Returns the TypeId of the held object. */
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return m_typeId;
+        return m_typeInfo ? m_typeInfo->id : TypeId::Void();
+    }
+
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        return m_typeInfo;
     }
 
     /*! \brief Returns the HypClass of the held object, if one is registered. */
     HYP_FORCE_INLINE const HypClass* GetHypClass() const
     {
-        return GetClass(m_typeId);
+        return m_typeInfo ? m_typeInfo->GetHypClass() : nullptr;
     }
 
     /*! \brief Returns true if the held object is of type T.
@@ -154,26 +164,29 @@ public:
     HYP_FORCE_INLINE bool Is() const
     {
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
 
-        return m_ptr && (m_typeId == typeId || IsA(GetClass(typeId), m_ptr, m_typeId));
+        return m_ptr && (thisTypeId == typeId || IsA(GetClass(typeId), m_ptr, thisTypeId));
     }
 
     /*! \brief Returns true if the held object is of type \ref{typeId}.
      *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeId typeId) const
     {
-        return m_ptr && (m_typeId == typeId || IsA(GetClass(typeId), m_ptr, m_typeId));
+        const TypeId thisTypeId = GetTypeId();
+
+        return m_ptr && (thisTypeId == typeId || IsA(GetClass(typeId), m_ptr, thisTypeId));
     }
 
     /*! \brief Resets the current value held in the AnyRef. */
     HYP_FORCE_INLINE void Reset()
     {
-        m_typeId = TypeId::ForType<void>();
+        m_typeInfo = &TypeInfo::Void();
         m_ptr = nullptr;
     }
 
 protected:
-    TypeId m_typeId;
+    const TypeInfo* m_typeInfo;
     PointerType m_ptr;
 };
 
@@ -185,27 +198,25 @@ public:
     friend class Any;
 
     AnyRef()
-        : AnyRefBase(TypeId::ForType<void>(), nullptr)
+        : AnyRefBase()
     {
     }
 
-    AnyRef(TypeId typeId, void* ptr)
-        : AnyRefBase(typeId, ptr)
+    AnyRef(const TypeInfo* typeInfo, void* ptr)
+        : AnyRefBase(typeInfo, ptr)
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit AnyRef(T& value)
-        : AnyRefBase(TypeId::ForType<NormalizedType<T>>(), &value)
+        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), &value)
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     AnyRef& operator=(T& value)
     {
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
-
-        m_typeId = newTypeId;
+        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
         m_ptr = &value;
 
         return *this;
@@ -213,7 +224,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
     AnyRef(T* value)
-        : AnyRefBase(TypeId::ForType<NormalizedType<T>>(), value)
+        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), value)
     {
     }
 
@@ -227,6 +238,11 @@ public:
 
     AnyRef& operator=(const AnyRef& other)
     {
+        if (this == &other)
+        {
+            return *this;
+        }
+
         static_cast<AnyRefBase&>(*this) = static_cast<const AnyRefBase&>(other);
 
         return *this;
@@ -239,6 +255,11 @@ public:
 
     AnyRef& operator=(AnyRef&& other) noexcept
     {
+        if (this == &other)
+        {
+            return *this;
+        }
+
         static_cast<AnyRefBase&>(*this) = static_cast<AnyRefBase&&>(other);
 
         return *this;
@@ -257,7 +278,9 @@ public:
     HYP_FORCE_INLINE T& Get() const
     {
         constexpr TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)), "Held type not equal to requested type!");
+        const TypeId thisTypeId = GetTypeId();
+
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T>*>(m_ptr);
     }
@@ -274,8 +297,9 @@ public:
     HYP_FORCE_INLINE T* TryGet() const
     {
         constexpr TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
 
-        if (m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)))
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)))
         {
             return static_cast<NormalizedType<T>*>(m_ptr);
         }
@@ -286,7 +310,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_const_v<T> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(T& value)
     {
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
         m_ptr = &value;
     }
 
@@ -298,7 +322,7 @@ public:
     template <class T>
     static AnyRef Empty()
     {
-        return AnyRef(TypeId::ForType<T>(), nullptr);
+        return AnyRef(&TypeInfo::ForType<NormalizedType<T>>(), nullptr);
     }
 };
 
@@ -310,18 +334,18 @@ public:
     friend class Any;
 
     ConstAnyRef()
-        : AnyRefBase(TypeId::ForType<void>(), nullptr)
+        : AnyRefBase()
     {
     }
 
-    ConstAnyRef(TypeId typeId, const void* ptr)
-        : AnyRefBase(typeId, const_cast<void*>(ptr))
+    ConstAnyRef(const TypeInfo* typeInfo, const void* ptr)
+        : AnyRefBase(typeInfo, const_cast<void*>(ptr))
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit ConstAnyRef(T&& value)
-        : AnyRefBase(TypeId::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
+        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
     }
@@ -331,9 +355,7 @@ public:
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
 
-        const TypeId newTypeId = TypeId::ForType<NormalizedType<T>>();
-
-        m_typeId = newTypeId;
+        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
         m_ptr = const_cast<T*>(&value);
 
         return *this;
@@ -341,7 +363,7 @@ public:
 
     template <class T>
     ConstAnyRef(const T* value)
-        : AnyRefBase(TypeId::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
+        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
     {
     }
 
@@ -354,6 +376,11 @@ public:
 
     ConstAnyRef& operator=(const ConstAnyRef& other)
     {
+        if (this == &other)
+        {
+            return *this;
+        }
+
         static_cast<AnyRefBase&>(*this) = static_cast<const AnyRefBase&>(other);
 
         return *this;
@@ -366,6 +393,11 @@ public:
 
     ConstAnyRef& operator=(ConstAnyRef&& other) noexcept
     {
+        if (this == &other)
+        {
+            return *this;
+        }
+
         static_cast<AnyRefBase&>(*this) = static_cast<AnyRefBase&&>(other);
 
         return *this;
@@ -408,7 +440,9 @@ public:
     HYP_FORCE_INLINE const T& Get() const
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
-        HYP_CORE_ASSERT(m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)), "Held type not equal to requested type!");
+        const TypeId thisTypeId = GetTypeId();
+
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
 
         return *static_cast<const NormalizedType<T>*>(m_ptr);
     }
@@ -425,8 +459,9 @@ public:
     HYP_FORCE_INLINE const T* TryGet() const
     {
         const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
 
-        if (m_ptr && (m_typeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, m_typeId)))
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)))
         {
             return static_cast<const NormalizedType<T>*>(m_ptr);
         }
@@ -437,7 +472,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(const T& value)
     {
-        m_typeId = TypeId::ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
         m_ptr = const_cast<T*>(&value);
     }
 
@@ -449,7 +484,7 @@ public:
     template <class T>
     static ConstAnyRef Empty()
     {
-        return ConstAnyRef(TypeId::ForType<T>(), nullptr);
+        return ConstAnyRef(&TypeInfo::ForType<NormalizedType<T>>(), nullptr);
     }
 };
 

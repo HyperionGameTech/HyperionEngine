@@ -5,7 +5,7 @@
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -193,6 +193,8 @@ public:
     static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
     static constexpr SizeType typeCount = sizeof...(Types);
 
+    static const TypeInfo* typeInfos[sizeof...(Types) + 1];
+
     constexpr VariantBase()
         : m_currentIndex(-1)
     {
@@ -326,6 +328,11 @@ public:
     HYP_FORCE_INLINE constexpr int GetTypeIndex() const
     {
         return m_currentIndex;
+    }
+
+    HYP_FORCE_INLINE const TypeInfo* GetCurrentTypeInfo() const
+    {
+        return typeInfos[m_currentIndex + 1];
     }
 
     HYP_FORCE_INLINE constexpr void* GetPointer()
@@ -574,6 +581,10 @@ protected:
     int m_currentIndex;
 };
 
+// define static type infos
+template <class... Types>
+const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeInfo::ForType<Types>()... };
+
 template <bool IsCopyable, class... Types>
 struct VariantHolder : public VariantBase<Types...>
 {
@@ -760,6 +771,11 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
         return m_holder.GetTypeIndex();
     }
 
+    HYP_FORCE_INLINE const TypeInfo* GetCurrentTypeInfo() const
+    {
+        return m_holder.GetCurrentTypeInfo();
+    }
+
     HYP_FORCE_INLINE constexpr bool operator==(const Variant& other) const
     {
         return m_holder == other.m_holder;
@@ -942,7 +958,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
             return ConstAnyRef();
         }
 
-        return ConstAnyRef(m_holder.GetTypeId(), m_holder.GetPointer());
+        return ConstAnyRef(m_holder.GetCurrentTypeInfo(), m_holder.GetPointer());
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

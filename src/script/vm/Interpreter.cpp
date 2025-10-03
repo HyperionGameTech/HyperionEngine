@@ -1875,7 +1875,7 @@ public:
                     // Create constant
                     members.PushBack(HypMember(HypConstant(
                         CreateNameFromDynamicString(memberNameStr),
-                        TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<HypData>(), // TypeId(memberTypeIdValue),
                         size,
                         attrs.ToSpan())));
 
@@ -1896,8 +1896,8 @@ public:
                     // Create field
                     members.PushBack(HypMember(HypField(
                         CreateNameFromDynamicString(memberNameStr),
-                        TypeId(memberTypeIdValue),
-                        TypeId(targetTypeIdValue),
+                        &TypeInfo::ForType<HypData>(),       // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<HypObjectBase>(), // TypeId(targetTypeIdValue),
                         offset,
                         size,
                         attrs.ToSpan())));
@@ -1928,8 +1928,8 @@ public:
 
                     HypMethod method(
                         CreateNameFromDynamicString(memberNameStr),
-                        TypeId(memberTypeIdValue),
-                        TypeId(targetTypeIdValue),
+                        &TypeInfo::ForType<HypData>(),       // TypeId(memberTypeIdValue),
+                        &TypeInfo::ForType<HypObjectBase>(), // TypeId(targetTypeIdValue),
                         functionAddress,
                         funcVmData->func.m_flags | flags, // combine flags
                         attrs.ToSpan());
@@ -1947,7 +1947,7 @@ public:
 
                     for (uint8 j = 0; j < nargs; j++)
                     {
-                        method.GetParameters().PushBack(HypMethodParameter { TypeId::ForType<HypData>() });
+                        method.GetParameters().PushBack(HypMethodParameter { &TypeInfo::ForType<HypData>() });
                     }
 
                     members.PushBack(HypMember(std::move(method)));

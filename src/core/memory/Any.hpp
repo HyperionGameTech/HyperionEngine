@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfo.hpp>
 #include <core/utilities/ByteUtil.hpp>
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/Memory.hpp>
@@ -41,7 +41,7 @@ class Any final : public AnyBase
 
     struct Block
     {
-        TypeId typeId;
+        const TypeInfo* typeInfo;
         void* objectPtr;
         CopyConstructor copyCtor;  // nullptr if not copyable (eg external without known T)
         DeleteFunction objectDtor; // may be nullptr for inline-owned objects
@@ -62,7 +62,7 @@ class Any final : public AnyBase
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { TypeId::ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
+        Block* hdr = new (base) Block { &TypeInfo::ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
         T* obj = ::new (base + objOffset) T(val);
         hdr->objectPtr = obj;
         return hdr;
@@ -266,7 +266,12 @@ public:
     /*! \brief Returns the TypeId of the held object. */
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeId : TypeId::ForType<void>();
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo->id : TypeId::Void();
+    }
+
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo : &TypeInfo::Void();
     }
 
     /*! \brief Returns true if the held object is of type T.
@@ -355,7 +360,7 @@ public:
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { TypeId::ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
+        Block* hdr = new (base) Block { &TypeInfo::ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
         U* obj = ::new (base + objOffset) U(std::forward<Args>(args)...);
         hdr->objectPtr = obj;
 
@@ -378,7 +383,7 @@ public:
         if (ptr)
         {
             void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
-            Block* hdr = new (raw) Block { TypeId::ForType<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
+            Block* hdr = new (raw) Block { &TypeInfo::ForType<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
             m_block = hdr;
         }
         else
@@ -387,13 +392,15 @@ public:
         }
     }
 
-    static Any FromVoidPointer(TypeId typeId, void* ptr, CopyConstructor copyCtor, DeleteFunction dtor)
+    static Any FromVoidPointer(const TypeInfo* typeInfo, void* ptr, CopyConstructor copyCtor, DeleteFunction dtor)
     {
+        HYP_CORE_ASSERT(typeInfo != nullptr, "typeInfo must not be null");
+
         Any result;
         if (ptr)
         {
             void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
-            Block* hdr = new (raw) Block { typeId, ptr, copyCtor, dtor, &Any::ExternalBlockDeleter };
+            Block* hdr = new (raw) Block { typeInfo, ptr, copyCtor, dtor, &Any::ExternalBlockDeleter };
             result.m_block = hdr;
         }
         return result;
@@ -418,23 +425,23 @@ public:
     /*! \brief Returns the held object as a reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef()
     {
-        return AnyRef(GetTypeId(), GetPointer());
+        return AnyRef(GetTypeInfo(), GetPointer());
     }
 
     /*! \brief Returns the held object as a const reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE ConstAnyRef ToRef() const
     {
-        return ConstAnyRef(GetTypeId(), GetPointer());
+        return ConstAnyRef(GetTypeInfo(), GetPointer());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator AnyRef()
     {
-        return AnyRef(GetTypeId(), GetPointer());
+        return AnyRef(GetTypeInfo(), GetPointer());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator ConstAnyRef() const
     {
-        return ConstAnyRef(GetTypeId(), GetPointer());
+        return ConstAnyRef(GetTypeInfo(), GetPointer());
     }
 
 protected:

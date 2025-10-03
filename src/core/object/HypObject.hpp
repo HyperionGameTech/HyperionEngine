@@ -97,6 +97,12 @@ private:
     {                                                                     \
         static const TypeId s_typeId = TypeId::ForType<T>();              \
         return s_typeId;                                                  \
+    }                                                                     \
+                                                                          \
+    HYP_FORCE_INLINE static const TypeInfo& GetTypeInfo()                 \
+    {                                                                     \
+        static const TypeInfo s_typeInfo = TypeInfo::ForType<T>();        \
+        return s_typeInfo;                                                \
     }
 
 } // namespace hyperion

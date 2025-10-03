@@ -4,7 +4,6 @@
 
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Variant.hpp>
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/memory/AnyRef.hpp>
@@ -243,10 +242,23 @@ public:
 /*! \brief Additional type information for containers and complex types */
 struct HYP_API TypeInfoEx
 {
-    /*! \brief Variant holding either:
+    enum DataType
+    {
+        DT_NONE = 0,
+        DT_TYPE_INFO = 1,
+        DT_HYP_CLASS = 2
+    };
+
+    /*! \brief Tagged union holding either:
      *  - const TypeInfo* for container element types (single type)
      *  - const HypClass* for types with HypClass reflection info */
-    Variant<const TypeInfo*, const HypClass*> data;
+    union
+    {
+        const TypeInfo* typeInfo;
+        const HypClass* hypClass;
+    } data;
+
+    DataType dataType : 2;
 
     ITypeAttributeHandler* handler = nullptr;
 
@@ -256,7 +268,11 @@ struct HYP_API TypeInfoEx
      *  - String types: character encoding type info */
     TypeInfoEx* next = nullptr;
 
-    TypeInfoEx() = default;
+    TypeInfoEx()
+        : dataType(DT_NONE)
+    {
+        data.typeInfo = nullptr;
+    }
 
     TypeInfoEx(const TypeInfoEx& other);
     TypeInfoEx& operator=(const TypeInfoEx& other);
@@ -269,9 +285,9 @@ struct HYP_API TypeInfoEx
     /*! \brief Get element type pointer if this holds a TypeInfo* */
     HYP_FORCE_INLINE const TypeInfo* GetElementType() const
     {
-        if (data.Is<const TypeInfo*>())
+        if (dataType == DT_TYPE_INFO)
         {
-            return data.Get<const TypeInfo*>();
+            return data.typeInfo;
         }
 
         return nullptr;
@@ -280,9 +296,9 @@ struct HYP_API TypeInfoEx
     /*! \brief Get HypClass pointer if this holds a const HypClass* */
     HYP_FORCE_INLINE const HypClass* GetHypClass() const
     {
-        if (data.Is<const HypClass*>())
+        if (dataType == DT_HYP_CLASS)
         {
-            return data.Get<const HypClass*>();
+            return data.hypClass;
         }
 
         return nullptr;
@@ -303,7 +319,7 @@ struct TypeInfo
     EnumFlags<TypeAttributeFlags> flags = TypeAttributeFlags::NONE;
     TypeInfoEx extendedInfo;
 
-    constexpr TypeInfo() = default;
+    TypeInfo() = default;
 
     TypeInfo(const TypeInfo& other) = default;
     TypeInfo& operator=(const TypeInfo& other) = default;
@@ -355,438 +371,427 @@ struct TypeInfo
         {
             return Void();
         }
-
-        // Check cache first
-        if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, sizeof(NormalizedT), alignof(NormalizedT)))
-        {
-            return *cached;
-        }
-
-        TypeInfo result;
-        result.id = typeId;
-        result.name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedT>().Data());
-        result.size = sizeof(NormalizedT);
-        result.alignment = alignof(NormalizedT);
-        result.flags = TypeAttributeFlags::NONE;
-
-        const HypClass* hypClass = nullptr;
-
-        if constexpr (std::is_class_v<NormalizedT>)
-        {
-            result.flags |= TypeAttributeFlags::CLASS_TYPE;
-
-            hypClass = GetClass(typeId);
-
-            if (hypClass)
-            {
-                result.flags |= TypeAttributeFlags::HYP_CLASS;
-            }
-
-            if constexpr (isPodType<NormalizedT>)
-            {
-                result.flags |= TypeAttributeFlags::POD_TYPE;
-            }
-        }
-
-        if constexpr (std::is_enum_v<NormalizedT>)
-        {
-            result.flags |= TypeAttributeFlags::ENUM_TYPE;
-        }
-
-        if constexpr (std::is_fundamental_v<NormalizedT>)
-        {
-            result.flags |= TypeAttributeFlags::FUNDAMENTAL_TYPE;
-        }
-
-        if constexpr (std::is_integral_v<NormalizedT>)
-        {
-            result.flags |= TypeAttributeFlags::INTEGRAL_TYPE;
-        }
-
-        if constexpr (std::is_floating_point_v<NormalizedT>)
-        {
-            result.flags |= TypeAttributeFlags::FLOAT_TYPE;
-        }
-
-        // Store HypClass in extended info if present
-        if (hypClass)
-        {
-            result.extendedInfo.data = hypClass;
-        }
         else
         {
-            // Detect container types using type traits
-            // Check Array types
-            if constexpr (IsArray<NormalizedT>::value)
+
+            // Check cache first
+            if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, sizeof(NormalizedT), alignof(NormalizedT)))
             {
-                class ArrayHandler final : public ITypeAttributeArrayHandler
+                return *cached;
+            }
+
+            TypeInfo result;
+            result.id = typeId;
+            result.name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedT>().Data());
+            result.size = sizeof(NormalizedT);
+            result.alignment = alignof(NormalizedT);
+            result.flags = TypeAttributeFlags::NONE;
+
+            const HypClass* hypClass = nullptr;
+
+            if constexpr (std::is_class_v<NormalizedT>)
+            {
+                result.flags |= TypeAttributeFlags::CLASS_TYPE;
+
+                hypClass = GetClass(typeId);
+
+                if (hypClass)
                 {
-                public:
-                    virtual ITypeAttributeHandler* Clone() const override
-                    {
-                        return new ArrayHandler();
-                    }
+                    result.flags |= TypeAttributeFlags::HYP_CLASS;
+                }
 
-                    virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
-                    {
-                        using ArrayType = NormalizedT;
-                        using ValueType = typename ArrayType::ValueType;
-
-                        ArrayType* pArray = arrayRef.Get<ArrayType>();
-                        HYP_CORE_ASSERT(pArray != nullptr);
-
-                        return AnyRef(&(*pArray)[index]);
-                    }
-
-                    virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
-                    {
-                        using ArrayType = NormalizedT;
-                        using ValueType = typename ArrayType::ValueType;
-
-                        ArrayType* pArray = arrayRef.Get<ArrayType>();
-                        HYP_CORE_ASSERT(pArray != nullptr);
-
-                        ValueType* pValue = value.Get<ValueType>();
-                        HYP_CORE_ASSERT(pValue != nullptr);
-
-                        (*pArray)[index] = *pValue;
-                    }
-
-                    virtual SizeType GetSize(AnyRef arrayRef) const override
-                    {
-                        using ArrayType = NormalizedT;
-
-                        ArrayType* pArray = arrayRef.Get<ArrayType>();
-                        HYP_CORE_ASSERT(pArray != nullptr);
-
-                        return pArray->Size();
-                    }
-
-                    virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
-                    {
-                        using ArrayType = NormalizedT;
-
-                        ArrayType* pArray = arrayRef.Get<ArrayType>();
-                        HYP_CORE_ASSERT(pArray != nullptr);
-
-                        pArray->Resize(newSize);
-                    }
-                };
-
-                result.flags |= TypeAttributeFlags::ARRAY_TYPE;
-
-                result.extendedInfo.data = &ForType<typename NormalizedT::ValueType>();
-                result.extendedInfo.handler = new ArrayHandler();
-            }
-            // Check String types
-            else if constexpr (IsString<NormalizedT>::value)
-            {
-                class StringHandler final : public ITypeAttributeStringHandler
+                if constexpr (isPodType<NormalizedT>)
                 {
-                public:
-                    virtual ITypeAttributeHandler* Clone() const override
-                    {
-                        return new StringHandler();
-                    }
-
-                    virtual String GetValue(AnyRef stringRef) const override
-                    {
-                        using StringType = NormalizedT;
-
-                        StringType* pString = stringRef.Get<StringType>();
-                        HYP_CORE_ASSERT(pString != nullptr);
-
-                        return *pString;
-                    }
-                };
-
-                result.flags |= TypeAttributeFlags::STRING_TYPE;
-
-                result.extendedInfo.data = &ForType<typename NormalizedT::ValueType>();
-                result.extendedInfo.handler = new StringHandler();
-            }
-            // Check HashMap types
-            else if constexpr (IsHashMap<NormalizedT>::value)
-            {
-                class HashMapHandler final : public ITypeAttributeMapHandler
-                {
-                public:
-                    virtual ITypeAttributeHandler* Clone() const override
-                    {
-                        return new HashMapHandler();
-                    }
-
-                    virtual AnyRef GetValueAt(AnyRef mapRef, AnyRef key) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-                        using ValueType = typename MapType::ValueType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        auto it = pMap->Find(*pKey);
-                        if (it != pMap->End())
-                        {
-                            return AnyRef(&it->second);
-                        }
-
-                        return AnyRef();
-                    }
-
-                    virtual void SetValueAt(AnyRef mapRef, AnyRef key, AnyRef value) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-                        using ValueType = typename MapType::ValueType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        ValueType* pValue = value.Get<ValueType>();
-                        HYP_CORE_ASSERT(pValue != nullptr);
-
-                        (*pMap)[*pKey] = *pValue;
-                    }
-
-                    virtual bool ContainsKey(AnyRef mapRef, AnyRef key) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        return pMap->Find(*pKey) != pMap->End();
-                    }
-
-                    virtual bool RemoveKey(AnyRef mapRef, AnyRef key) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        return pMap->Erase(*pKey) > 0;
-                    }
-
-                    virtual SizeType GetSize(AnyRef mapRef) const override
-                    {
-                        using MapType = NormalizedT;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        return pMap->Size();
-                    }
-                };
-
-                result.flags |= TypeAttributeFlags::HASHMAP_TYPE;
-
-                result.extendedInfo.data = &ForType<typename NormalizedT::KeyType>();
-                result.extendedInfo.next = new TypeInfoEx();
-                result.extendedInfo.next->data = &ForType<typename NormalizedT::ValueType>();
-                result.extendedInfo.handler = new HashMapHandler();
-            }
-            // Check HashSet types
-            else if constexpr (IsHashSet<NormalizedT>::value)
-            {
-                result.flags |= TypeAttributeFlags::HASHSET_TYPE;
-                using ValueType = typename NormalizedT::ValueType;
-                result.extendedInfo.data = &ForType<ValueType>();
-            }
-            // Check FlatMap types
-            else if constexpr (IsFlatMap<NormalizedT>::value)
-            {
-                class FlatMapHandler final : public ITypeAttributeMapHandler
-                {
-                public:
-                    virtual ITypeAttributeHandler* Clone() const override
-                    {
-                        return new FlatMapHandler();
-                    }
-
-                    virtual AnyRef GetValueAt(AnyRef mapRef, AnyRef key) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-                        using ValueType = typename MapType::ValueType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        auto it = pMap->Find(*pKey);
-                        if (it != pMap->End())
-                        {
-                            return AnyRef(&it->second);
-                        }
-
-                        return AnyRef();
-                    }
-
-                    virtual void SetValueAt(AnyRef mapRef, AnyRef key, AnyRef value) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-                        using ValueType = typename MapType::ValueType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        ValueType* pValue = value.Get<ValueType>();
-                        HYP_CORE_ASSERT(pValue != nullptr);
-
-                        (*pMap)[*pKey] = *pValue;
-                    }
-
-                    virtual bool ContainsKey(AnyRef mapRef, AnyRef key) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        return pMap->Find(*pKey) != pMap->End();
-                    }
-
-                    virtual bool RemoveKey(AnyRef mapRef, AnyRef key) const override
-                    {
-                        using MapType = NormalizedT;
-                        using KeyType = typename MapType::KeyType;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        KeyType* pKey = key.Get<KeyType>();
-                        HYP_CORE_ASSERT(pKey != nullptr);
-
-                        return pMap->Erase(*pKey) > 0;
-                    }
-
-                    virtual SizeType GetSize(AnyRef mapRef) const override
-                    {
-                        using MapType = NormalizedT;
-
-                        MapType* pMap = mapRef.Get<MapType>();
-                        HYP_CORE_ASSERT(pMap != nullptr);
-
-                        return pMap->Size();
-                    }
-                };
-
-                result.flags |= TypeAttributeFlags::FLATMAP_TYPE;
-
-                result.extendedInfo.data = &ForType<typename NormalizedT::KeyType>();
-                result.extendedInfo.next = new TypeInfoEx();
-                result.extendedInfo.next->data = &ForType<typename NormalizedT::ValueType>();
-                result.extendedInfo.handler = new FlatMapHandler();
-            }
-            // Check FlatSet types
-            else if constexpr (IsFlatSet<NormalizedT>::value)
-            {
-                result.flags |= TypeAttributeFlags::FLATSET_TYPE;
-                using ValueType = typename NormalizedT::ValueType;
-                result.extendedInfo.data = &ForType<ValueType>();
-            }
-            // Check Variant types
-            else if constexpr (IsVariant<NormalizedT>::value)
-            {
-                result.flags |= TypeAttributeFlags::VARIANT_TYPE;
-
-                constexpr SizeType variantSize = IsVariant<NormalizedT>::size;
-
-                // Store alternative types in linked list
-                if constexpr (variantSize > 0)
-                {
-                    // Helper to build linked list of variant alternative types
-                    auto buildVariantTypes = []<SizeType... Indices>(std::index_sequence<Indices...>) -> TypeInfoEx*
-                    {
-                        TypeInfoEx* head = nullptr;
-                        TypeInfoEx* current = nullptr;
-
-                        ((void)[&]() {
-                            using AlternativeType = typename IsVariant<NormalizedT>::template TypeAtIndex<Indices>;
-
-                            TypeInfoEx* node = new TypeInfoEx();
-                            node->data = &ForType<AlternativeType>();
-
-                            if (!head)
-                            {
-                                head = node;
-                                current = node;
-                            }
-                            else
-                            {
-                                current->next = node;
-                                current = node;
-                            }
-                        }(),
-                            ...);
-
-                        return head;
-                    };
-
-                    result.extendedInfo.next = buildVariantTypes(std::make_index_sequence<variantSize> {});
+                    result.flags |= TypeAttributeFlags::POD_TYPE;
                 }
             }
-            else if constexpr (IsVec2<NormalizedT>::value)
+
+            if constexpr (std::is_enum_v<NormalizedT>)
             {
-                result.flags |= TypeAttributeFlags::VEC2_TYPE;
-                using ElementType = typename NormalizedT::Type;
-                result.extendedInfo.data = &ForType<ElementType>();
+                result.flags |= TypeAttributeFlags::ENUM_TYPE;
             }
-            else if constexpr (IsVec3<NormalizedT>::value)
+
+            if constexpr (std::is_fundamental_v<NormalizedT>)
             {
-                result.flags |= TypeAttributeFlags::VEC3_TYPE;
-                using ElementType = typename NormalizedT::Type;
-                result.extendedInfo.data = &ForType<ElementType>();
+                result.flags |= TypeAttributeFlags::FUNDAMENTAL_TYPE;
             }
-            else if constexpr (IsVec4<NormalizedT>::value)
+
+            if constexpr (std::is_integral_v<NormalizedT>)
             {
-                result.flags |= TypeAttributeFlags::VEC4_TYPE;
-                using ElementType = typename NormalizedT::Type;
-                result.extendedInfo.data = &ForType<ElementType>();
+                result.flags |= TypeAttributeFlags::INTEGRAL_TYPE;
             }
+
+            if constexpr (std::is_floating_point_v<NormalizedT>)
+            {
+                result.flags |= TypeAttributeFlags::FLOAT_TYPE;
+            }
+
+            // Store HypClass in extended info if present
+            if (hypClass)
+            {
+                result.extendedInfo.data.hypClass = hypClass;
+                result.extendedInfo.dataType = TypeInfoEx::DT_HYP_CLASS;
+            }
+            else
+            {
+                // Detect container types using type traits
+                // Check Array types
+                if constexpr (IsArray<NormalizedT>::value)
+                {
+                    class ArrayHandler final : public ITypeAttributeArrayHandler
+                    {
+                    public:
+                        virtual ITypeAttributeHandler* Clone() const override
+                        {
+                            return new ArrayHandler();
+                        }
+
+                        virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
+                        {
+                            using ArrayType = NormalizedT;
+                            using ValueType = typename ArrayType::ValueType;
+
+                            ArrayType& array = arrayRef.Get<ArrayType>();
+                            return AnyRef(&array[index]);
+                        }
+
+                        virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
+                        {
+                            using ArrayType = NormalizedT;
+                            using ValueType = typename ArrayType::ValueType;
+
+                            ArrayType& array = arrayRef.Get<ArrayType>();
+                            ValueType& v = value.Get<ValueType>();
+
+                            array[index] = v;
+                        }
+
+                        virtual SizeType GetSize(AnyRef arrayRef) const override
+                        {
+                            using ArrayType = NormalizedT;
+
+                            ArrayType& array = arrayRef.Get<ArrayType>();
+                            return array.Size();
+                        }
+
+                        virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
+                        {
+                            using ArrayType = NormalizedT;
+
+                            ArrayType& array = arrayRef.Get<ArrayType>();
+                            array.Resize(newSize);
+                        }
+                    };
+
+                    result.flags |= TypeAttributeFlags::ARRAY_TYPE;
+
+                    result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                    result.extendedInfo.handler = new ArrayHandler();
+                }
+                // Check String types
+                else if constexpr (IsString<NormalizedT>::value)
+                {
+                    class StringHandler final : public ITypeAttributeStringHandler
+                    {
+                    public:
+                        virtual ITypeAttributeHandler* Clone() const override
+                        {
+                            return new StringHandler();
+                        }
+
+                        virtual String GetValue(AnyRef stringRef) const override
+                        {
+                            using StringType = NormalizedT;
+
+                            StringType& string = stringRef.Get<StringType>();
+                            return string.ToUTF8();
+                        }
+                    };
+
+                    result.flags |= TypeAttributeFlags::STRING_TYPE;
+
+                    result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                    result.extendedInfo.handler = new StringHandler();
+                }
+                // Check HashMap types
+                else if constexpr (IsHashMap<NormalizedT>::value)
+                {
+                    class HashMapHandler final : public ITypeAttributeMapHandler
+                    {
+                    public:
+                        virtual ITypeAttributeHandler* Clone() const override
+                        {
+                            return new HashMapHandler();
+                        }
+
+                        virtual AnyRef GetValueAt(AnyRef mapRef, AnyRef key) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+                            using ValueType = typename MapType::ValueType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+
+                            auto it = map.Find(k);
+                            if (it != map.End())
+                            {
+                                return AnyRef(&it->second);
+                            }
+
+                            return AnyRef();
+                        }
+
+                        virtual void SetValueAt(AnyRef mapRef, AnyRef key, AnyRef value) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+                            using ValueType = typename MapType::ValueType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+                            ValueType& v = value.Get<ValueType>();
+
+                            map[k] = v;
+                        }
+
+                        virtual bool ContainsKey(AnyRef mapRef, AnyRef key) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+
+                            return map.Find(k) != map.End();
+                        }
+
+                        virtual bool RemoveKey(AnyRef mapRef, AnyRef key) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+
+                            auto it = map.Find(k);
+                            if (it != map.End())
+                            {
+                                map.Erase(it);
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        virtual SizeType GetSize(AnyRef mapRef) const override
+                        {
+                            using MapType = NormalizedT;
+
+                            MapType& map = mapRef.Get<MapType>();
+
+                            return map.Size();
+                        }
+                    };
+
+                    result.flags |= TypeAttributeFlags::HASHMAP_TYPE;
+
+                    result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::KeyType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                    result.extendedInfo.next = new TypeInfoEx();
+                    result.extendedInfo.next->data.typeInfo = &ForType<typename NormalizedT::ValueType>();
+                    result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
+                    result.extendedInfo.handler = new HashMapHandler();
+                }
+                // Check HashSet types
+                else if constexpr (IsHashSet<NormalizedT>::value)
+                {
+                    result.flags |= TypeAttributeFlags::HASHSET_TYPE;
+                    using ValueType = typename NormalizedT::ValueType;
+                    result.extendedInfo.data.typeInfo = &ForType<ValueType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
+                // Check FlatMap types
+                else if constexpr (IsFlatMap<NormalizedT>::value)
+                {
+                    class FlatMapHandler final : public ITypeAttributeMapHandler
+                    {
+                    public:
+                        virtual ITypeAttributeHandler* Clone() const override
+                        {
+                            return new FlatMapHandler();
+                        }
+
+                        virtual AnyRef GetValueAt(AnyRef mapRef, AnyRef key) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+                            using ValueType = typename MapType::ValueType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+
+                            auto it = map.Find(k);
+                            if (it != map.End())
+                            {
+                                return AnyRef(&it->second);
+                            }
+
+                            return AnyRef();
+                        }
+
+                        virtual void SetValueAt(AnyRef mapRef, AnyRef key, AnyRef value) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+                            using ValueType = typename MapType::ValueType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+                            ValueType& v = value.Get<ValueType>();
+
+                            map[k] = v;
+                        }
+
+                        virtual bool ContainsKey(AnyRef mapRef, AnyRef key) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+
+                            return map.Find(k) != map.End();
+                        }
+
+                        virtual bool RemoveKey(AnyRef mapRef, AnyRef key) const override
+                        {
+                            using MapType = NormalizedT;
+                            using KeyType = typename MapType::KeyType;
+
+                            MapType& map = mapRef.Get<MapType>();
+                            KeyType& k = key.Get<KeyType>();
+
+                            auto it = map.Find(k);
+                            if (it != map.End())
+                            {
+                                map.Erase(it);
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        virtual SizeType GetSize(AnyRef mapRef) const override
+                        {
+                            using MapType = NormalizedT;
+
+                            MapType& map = mapRef.Get<MapType>();
+
+                            return map.Size();
+                        }
+                    };
+
+                    result.flags |= TypeAttributeFlags::FLATMAP_TYPE;
+
+                    result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::KeyType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                    result.extendedInfo.next = new TypeInfoEx();
+                    result.extendedInfo.next->data.typeInfo = &ForType<typename NormalizedT::ValueType>();
+                    result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
+                    result.extendedInfo.handler = new FlatMapHandler();
+                }
+                // Check FlatSet types
+                else if constexpr (IsFlatSet<NormalizedT>::value)
+                {
+                    result.flags |= TypeAttributeFlags::FLATSET_TYPE;
+                    using ValueType = typename NormalizedT::ValueType;
+                    result.extendedInfo.data.typeInfo = &ForType<ValueType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
+                // Check Variant types
+                else if constexpr (IsVariant<NormalizedT>::value)
+                {
+                    result.flags |= TypeAttributeFlags::VARIANT_TYPE;
+
+                    constexpr SizeType variantSize = IsVariant<NormalizedT>::size;
+
+                    // Store alternative types in linked list
+                    if constexpr (variantSize > 0)
+                    {
+                        // Helper to build linked list of variant alternative types
+                        auto buildVariantTypes = []<SizeType... Indices>(std::index_sequence<Indices...>) -> TypeInfoEx*
+                        {
+                            TypeInfoEx* head = nullptr;
+                            TypeInfoEx* current = nullptr;
+
+                            ((void)[&]() {
+                                using AlternativeType = typename IsVariant<NormalizedT>::template TypeAtIndex<Indices>;
+
+                                TypeInfoEx* node = new TypeInfoEx();
+                                node->data.typeInfo = &ForType<AlternativeType>();
+                                node->dataType = TypeInfoEx::DT_TYPE_INFO;
+
+                                if (!head)
+                                {
+                                    head = node;
+                                    current = node;
+                                }
+                                else
+                                {
+                                    current->next = node;
+                                    current = node;
+                                }
+                            }(),
+                                ...);
+
+                            return head;
+                        };
+
+                        result.extendedInfo.next = buildVariantTypes(std::make_index_sequence<variantSize> {});
+                    }
+                }
+                else if constexpr (IsVec2<NormalizedT>::value)
+                {
+                    result.flags |= TypeAttributeFlags::VEC2_TYPE;
+                    using ElementType = typename NormalizedT::Type;
+                    result.extendedInfo.data.typeInfo = &ForType<ElementType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
+                else if constexpr (IsVec3<NormalizedT>::value)
+                {
+                    result.flags |= TypeAttributeFlags::VEC3_TYPE;
+                    using ElementType = typename NormalizedT::Type;
+                    result.extendedInfo.data.typeInfo = &ForType<ElementType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
+                else if constexpr (IsVec4<NormalizedT>::value)
+                {
+                    result.flags |= TypeAttributeFlags::VEC4_TYPE;
+                    using ElementType = typename NormalizedT::Type;
+                    result.extendedInfo.data.typeInfo = &ForType<ElementType>();
+                    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                }
+            }
+
+            ValueStorage<Mutex::Guard> guardStorage;
+
+            TypeInfo* pTypeInfo = TypeInfo_Alloc(
+                typeId,
+                sizeof(NormalizedT),
+                alignof(NormalizedT),
+                guardStorage.GetPointer());
+
+            HYP_CORE_ASSERT(pTypeInfo != nullptr);
+
+            new (pTypeInfo) TypeInfo(std::move(result));
+
+            guardStorage.GetPointer()->~Guard();
+
+            return *pTypeInfo;
         }
-
-        ValueStorage<Mutex::Guard> guardStorage;
-
-        TypeInfo* pTypeInfo = TypeInfo_Alloc(
-            typeId,
-            sizeof(NormalizedT),
-            alignof(NormalizedT),
-            guardStorage.GetPointer());
-
-        HYP_CORE_ASSERT(pTypeInfo != nullptr);
-
-        new (pTypeInfo) TypeInfo(std::move(result));
-
-        guardStorage.GetPointer()->~Guard();
-
-        return *pTypeInfo;
     }
 
     HYP_FORCE_INLINE constexpr bool IsPOD() const

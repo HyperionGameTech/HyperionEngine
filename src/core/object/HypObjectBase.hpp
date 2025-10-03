@@ -10,7 +10,7 @@
 #include <core/object/ObjId.hpp>
 #include <core/object/HypObjectPool.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfo.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/threading/AtomicVar.hpp>
@@ -90,6 +90,13 @@ public:
         HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
 
         return GetTypeIdForClass(m_header->hypClass);
+    }
+
+    HYP_FORCE_INLINE const TypeInfo& GetTypeInfo() const
+    {
+        HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
+
+        return TypeInfo::ForHypClass(m_header->hypClass);
     }
 
     HYP_FORCE_INLINE static const HypClass* Class()

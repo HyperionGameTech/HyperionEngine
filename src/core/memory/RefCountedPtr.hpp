@@ -5,7 +5,7 @@
 #include <core/Defines.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>
@@ -118,7 +118,7 @@ struct RefCountData
 {
     using Count = CountType;
 
-    TypeId typeId;
+    const TypeInfo* typeInfo;
     Count strongCount;
     Count weakCount;
     void (*dtor)(void*);
@@ -130,7 +130,7 @@ struct RefCountData
         : strongCount(0),
           weakCount(0)
     {
-        typeId = TypeId::Void();
+        typeInfo = &TypeInfo::Void();
         dtor = nullptr;
         incRefCount = nullptr;
         decRefCount = nullptr;
@@ -153,7 +153,7 @@ struct RefCountData
 
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return typeId != TypeId::Void();
+        return typeInfo->id != TypeId::Void();
     }
 
     HYP_FORCE_INLINE uint32 UseCount_Strong() const
@@ -187,7 +187,7 @@ struct RefCountData
 
         static_assert(!std::is_void_v<T>, "Cannot initialize RefCountedPtr data with void pointer");
 
-        typeId = TypeId::ForType<Normalized>();
+        typeInfo = &TypeInfo::ForType<Normalized>();
         dtor = &Memory::DestructAndFree<Normalized>;
         incRefCount = &IncRefCount_Impl<T, RefCountData>;
         decRefCount = &DecRefCount_Impl<T, RefCountData>;
@@ -201,7 +201,7 @@ struct RefCountData
         incRefCount = nullptr;
         decRefCount = nullptr;
 
-        typeId = TypeId::Void();
+        typeInfo = &TypeInfo::Void();
 
         currentDtor(ptr);
     }
@@ -336,7 +336,12 @@ public:
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return m_ref ? m_ref->typeId : TypeId::Void();
+        return m_ref ? m_ref->typeInfo->id : TypeId::Void();
+    }
+
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        return m_ref ? m_ref->typeInfo : &TypeInfo::Void();
     }
 
     /*! \brief Returns true if no value has been assigned to the reference counted pointer. */
@@ -414,7 +419,7 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef() const
     {
-        return AnyRef(GetTypeId(), m_ptr);
+        return AnyRef(GetTypeInfo(), m_ptr);
     }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */

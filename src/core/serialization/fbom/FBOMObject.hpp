@@ -364,7 +364,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
         if constexpr (IsHypObjectV<T>)
         {
             marshal = FBOMObject::GetMarshal(in.GetTypeId());
-            ref = ConstAnyRef(in.GetTypeId(), &in);
+            ref = ConstAnyRef(&in.GetTypeInfo(), &in);
         }
         else
         {

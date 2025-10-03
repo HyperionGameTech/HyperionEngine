@@ -104,6 +104,7 @@ HYP_API void TypeInfo_DestroyCache()
 
 TypeInfoEx::TypeInfoEx(const TypeInfoEx& other)
     : data(other.data),
+      dataType(other.dataType),
       next(other.next ? new TypeInfoEx(*other.next) : nullptr),
       handler(other.handler ? other.handler->Clone() : nullptr)
 {
@@ -124,6 +125,7 @@ TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
         }
 
         data = other.data;
+        dataType = other.dataType;
         next = other.next ? new TypeInfoEx(*other.next) : nullptr;
         handler = other.handler ? other.handler->Clone() : nullptr;
     }
@@ -132,11 +134,13 @@ TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
 }
 
 TypeInfoEx::TypeInfoEx(TypeInfoEx&& other) noexcept
-    : data(std::move(other.data)),
+    : data(other.data),
+      dataType(other.dataType),
       next(other.next),
       handler(other.handler)
 {
-    other.data = {};
+    other.data.typeInfo = nullptr;
+    other.dataType = DT_NONE;
     other.next = nullptr;
     other.handler = nullptr;
 }
@@ -155,11 +159,13 @@ TypeInfoEx& TypeInfoEx::operator=(TypeInfoEx&& other) noexcept
             delete handler;
         }
 
-        data = std::move(other.data);
+        data = other.data;
+        dataType = other.dataType;
         next = other.next;
         handler = other.handler;
 
-        other.data = {};
+        other.data.typeInfo = nullptr;
+        other.dataType = DT_NONE;
         other.next = nullptr;
         other.handler = nullptr;
     }
@@ -184,18 +190,21 @@ HashCode TypeInfoEx::GetHashCode() const
 {
     HashCode hc;
 
-    if (data.Is<const TypeInfo*>())
-    {
-        const TypeInfo* elementType = data.Get<const TypeInfo*>();
+    hc.Add(static_cast<uint32>(dataType));
 
-        if (elementType)
-        {
-            hc.Add(elementType->GetHashCode());
-        }
-    }
-    else if (data.Is<const HypClass*>())
+    switch (dataType)
     {
-        hc.Add(data.Get<const HypClass*>());
+    case DT_TYPE_INFO:
+        if (data.typeInfo)
+        {
+            hc.Add(data.typeInfo->GetHashCode());
+        }
+        break;
+    case DT_HYP_CLASS:
+        hc.Add(data.hypClass);
+        break;
+    default:
+        break;
     }
 
     if (next)
@@ -265,7 +274,8 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
         pTypeInfo->flags |= TypeAttributeFlags::ENUM_TYPE;
     }
 
-    pTypeInfo->extendedInfo.data = hypClass;
+    pTypeInfo->extendedInfo.data.hypClass = hypClass;
+    pTypeInfo->extendedInfo.dataType = TypeInfoEx::DT_HYP_CLASS;
 
     return *pTypeInfo;
 }
