@@ -25,7 +25,7 @@ public:
 
         HYP_LOG(Serialization, Debug, "Serializing Node with name '{}'...", inObject.GetName());
 
-        if (inObject.GetFlags() & NodeFlags::TRANSIENT)
+        if (inObject.GetNodeFlags() & NodeFlags::TRANSIENT)
         {
             return { FBOMResult::FBOM_ERR, "Cannot serialize Node: TRANSIENT flag is set" };
         }
@@ -48,7 +48,7 @@ public:
 
         for (const Handle<Node>& child : inObject.GetChildren())
         {
-            if (!child.IsValid() || (child->GetFlags() & NodeFlags::TRANSIENT))
+            if (!child.IsValid() || (child->GetNodeFlags() & NodeFlags::TRANSIENT))
             {
                 continue;
             }

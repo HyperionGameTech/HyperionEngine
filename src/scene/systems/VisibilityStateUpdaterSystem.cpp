@@ -173,7 +173,7 @@ void VisibilityStateUpdaterSystem::Process(float delta)
             HYP_LOG(Scene, Warning, "Updating visibility states for a lot of entities ({})! This will have a performance impact if it happens frequently."
                                     "\n\tMaybe the Scene's octree should have a different bounding size or be broken into multiple Scenes."
                                     "\n\tScene name: {}, flags: {}",
-                updatedEntities.Size(), GetScene()->GetName(), uint32(GetScene()->GetFlags()));
+                updatedEntities.Size(), GetScene()->GetName(), uint32(GetScene()->GetSceneFlags()));
         }
 #endif
 

@@ -1307,7 +1307,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 void EditorSubsystem::CreateHighlightNode()
 {
     // m_highlightNode = Handle<Node>(CreateObject<Node>("Editor_Highlight"));
-    // m_highlightNode->SetFlags(m_highlightNode->GetFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
+    // m_highlightNode->SetFlags(m_highlightNode->GetNodeFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
 
     // const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -1891,7 +1891,7 @@ static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node
 {
     Assert(node != nullptr);
 
-    if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+    if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
     {
         return;
     }
@@ -1917,7 +1917,7 @@ static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node
 
     for (Node* child : node->GetChildren())
     {
-        if (child->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+        if (child->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
         {
             continue;
         }
@@ -1950,7 +1950,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     //        [this, listViewWeak = listView.ToWeak()](Node* node, const HypProperty* property)
     //        {
     //            // Update name in list view
-    //            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+    //            if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
     //            {
     //                return;
     //            }
@@ -1980,7 +1980,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
         {
             Assert(node != nullptr);
 
-            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+            if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
             {
                 return;
             }

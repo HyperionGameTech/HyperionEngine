@@ -871,12 +871,12 @@ public:
      *  \param isEnabled Whether to set the object as enabled or not. */
     HYP_METHOD(Property = "IsEnabled")
     void SetIsEnabled(bool isEnabled);
-    
+
     HYP_FORCE_INLINE const HypData& GetCurrentValue() const
     {
         return m_currentValue;
     }
-    
+
     void SetCurrentValue(HypData&& value, bool triggerEvent = true);
 
     /*! \brief Check if the UI object has focus. If \ref{includeChildren} is true, also return true if any child objects have focus.
@@ -1096,14 +1096,14 @@ public:
      *  \param coords The screen coordinates to transform.
      *  \return The relative coordinates within the UIObject. */
     Vec2f TransformScreenCoordsToRelative(Vec2i coords) const;
-    
+
     /*! \brief Does this object allow the material to be updated?
      *  If true, a dynamic material will be created for this object. */
     bool AllowMaterialUpdate() const
     {
         return m_allowMaterialUpdate;
     }
-    
+
     void SetAllowMaterialUpdate(bool allowMaterialUpdate);
 
     /*! \brief Get the data source associated with this UIObject. The data source is used to populate the UIObject with data.
@@ -1139,7 +1139,7 @@ public:
 
     /*! \internal */
     void ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject*)> proc, bool deep = true) const;
-    
+
     /*! \brief Spawn a new UIObject with the given HypClass \ref{hypClass}. The object will not be attached to the current UIStage.
      *  The object will not be named. To name the object, use the other CreateUIObject overload.
      *
@@ -1196,7 +1196,7 @@ public:
         entity->SetName(name);
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        entity->SetFlags(entity->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+        entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
         Handle<UIObject> uiObject = CreateUIObjectInternal<T>(name, entity, false /* init */);
         uiObject->SetPosition(position);
@@ -1279,7 +1279,7 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<UIEventHandlerResult> OnDisabled;
-    
+
     HYP_FIELD()
     ScriptableDelegate<UIEventHandlerResult, const HypData&> OnValueChange;
 
@@ -1427,7 +1427,7 @@ protected:
 
     EnumFlags<UIObjectUpdateType> m_deferredUpdates;
     EnumFlags<UIObjectUpdateType> m_lockedUpdates;
-    
+
     HypData m_currentValue;
 
 private:
@@ -1535,4 +1535,3 @@ struct UILockedUpdatesScope
 #pragma endregion UILockedUpdatesScope
 
 } // namespace hyperion
-

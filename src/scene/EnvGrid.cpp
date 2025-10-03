@@ -418,7 +418,7 @@ void LegacyEnvGrid::CreateEnvProbes()
                         m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe()));
 
                     Handle<EnvProbe> envProbe = CreateObject<EnvProbe>(EPT_AMBIENT, envProbeAabb, probeDimensions);
-                    envProbe->SetFlags(envProbe->GetFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
+                    envProbe->GetNodeFlags(envProbe->GetNodeFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
                     envProbe->m_gridSlot = index;
                     envProbe->m_positionInGrid = Vec4i {
 

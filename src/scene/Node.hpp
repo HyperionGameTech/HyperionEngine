@@ -326,7 +326,7 @@ public:
     Node& operator=(const Node& other) = delete;
     Node(Node&& other) noexcept = delete;
     Node& operator=(Node&& other) noexcept = delete;
-    
+
     virtual ~Node() override;
 
     /*! \brief Get the Uuid of the Node. */
@@ -352,19 +352,19 @@ public:
     /*! \brief Get the flags of the Node.
      *  \see NodeFlagBits
      *  \returns The flags of the Node. */
-    HYP_METHOD(Property = "Flags", Serialize = true)
-    HYP_FORCE_INLINE EnumFlags<NodeFlags> GetFlags() const
+    HYP_METHOD(Property = "NodeFlags", Serialize = true)
+    HYP_FORCE_INLINE EnumFlags<NodeFlags> GetNodeFlags() const
     {
-        return m_flags;
+        return m_nodeFlags;
     }
 
     /*! \brief Set the flags of the Node.
      *  \see NodeFlagBits
      *  \param flags The flags to set on the Node. */
-    HYP_METHOD(Property = "Flags", Serialize = true)
-    void SetFlags(EnumFlags<NodeFlags> flags);
+    HYP_METHOD(Property = "NodeFlags")
+    void SetNodeFlags(EnumFlags<NodeFlags> flags);
 
-    HYP_METHOD(Property = "Parent")
+    HYP_METHOD(Property = "Parent", Transient)
     HYP_FORCE_INLINE Node* GetParent() const
     {
         return m_parentNode;
@@ -399,7 +399,7 @@ public:
     World* GetWorld() const;
 
     /*! \brief \returns The underlying entity AABB for this node. */
-    HYP_METHOD(Property = "EntityAABB", Serialize = true, Editor = true, Label = "Bounding Box", Description = "The underlying axis-aligned bounding box for this node, not considering child nodes or transform")
+    HYP_METHOD(Property = "Aabb", Editor = true, Label = "Bounding Box", Description = "The underlying axis-aligned bounding box for this node, not considering child nodes or transform")
     HYP_FORCE_INLINE const BoundingBox& GetEntityAABB() const
     {
         return m_entityAabb;
@@ -408,7 +408,7 @@ public:
     /*! \brief Set the underlying entity AABB of the Node. Does not update the Entity's BoundingBoxComponent.
      *   \param aabb The entity bounding box to set
      *   \note Calls to RefreshEntityTransform() will override this value. */
-    HYP_METHOD(Property = "EntityAABB", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Aabb", Editor = true)
     void SetEntityAABB(const BoundingBox& aabb);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
@@ -487,25 +487,25 @@ public:
     Array<Node*> GetDescendants() const;
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
-    HYP_METHOD(Property = "LocalTransform", Serialize = true, Editor = true, Label = "Local-space Transform", EditorPropertyPanelClass = "TransformEditorPropertyPanel")
+    HYP_METHOD(Property = "LocalTransform", Editor = true, Label = "Local-space Transform", EditorPropertyPanelClass = "TransformEditorPropertyPanel")
     void SetLocalTransform(const Transform& transform);
 
     /*! \returns The local-space translation, scale, rotation of this Node. */
-    HYP_METHOD(Property = "LocalTransform", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "LocalTransform", Editor = true)
     HYP_FORCE_INLINE const Transform& GetLocalTransform() const
     {
         return m_localTransform;
     }
 
     /*! \returns The local-space translation of this Node. */
-    HYP_METHOD()
+    HYP_METHOD(Property = "LocalTranslation", Transient)
     HYP_FORCE_INLINE const Vec3f& GetLocalTranslation() const
     {
         return m_localTransform.GetTranslation();
     }
 
     /*! \brief Set the local-space translation of this Node (not influenced by the parent Node) */
-    HYP_METHOD()
+    HYP_METHOD(Property = "LocalTranslation", Transient)
     HYP_FORCE_INLINE void SetLocalTranslation(const Vec3f& translation)
     {
         SetLocalTransform(Transform { translation, m_localTransform.GetScale(), m_localTransform.GetRotation() });
@@ -521,14 +521,14 @@ public:
     }
 
     /*! \returns The local-space scale of this Node. */
-    HYP_METHOD()
+    HYP_METHOD(Property = "LocalScale", Transient)
     HYP_FORCE_INLINE const Vec3f& GetLocalScale() const
     {
         return m_localTransform.GetScale();
     }
 
     /*! \brief Set the local-space scale of this Node (not influenced by the parent Node) */
-    HYP_METHOD()
+    HYP_METHOD(Property = "LocalScale", Transient)
     HYP_FORCE_INLINE void SetLocalScale(const Vec3f& scale)
     {
         SetLocalTransform(Transform { m_localTransform.GetTranslation(), scale, m_localTransform.GetRotation() });
@@ -543,14 +543,14 @@ public:
     }
 
     /*! \returns The local-space rotation of this Node. */
-    HYP_METHOD()
+    HYP_METHOD(Property = "LocalRotation", Transient)
     HYP_FORCE_INLINE const Quaternion& GetLocalRotation() const
     {
         return m_localTransform.GetRotation();
     }
 
     /*! \brief Set the local-space rotation of this Node (not influenced by the parent Node) */
-    HYP_METHOD()
+    HYP_METHOD(Property = "LocalRotation", Transient)
     HYP_FORCE_INLINE void SetLocalRotation(const Quaternion& rotation)
     {
         SetLocalTransform(Transform { m_localTransform.GetTranslation(), m_localTransform.GetScale(), rotation });
@@ -565,14 +565,14 @@ public:
     }
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
-    HYP_METHOD(Property = "WorldTransform", Editor = true, Label = "World-space Transform", EditorPropertyPanelClass = "TransformEditorPropertyPanel")
+    HYP_METHOD(Property = "WorldTransform", Transient, Editor = true, Label = "World-space Transform", EditorPropertyPanelClass = "TransformEditorPropertyPanel")
     const Transform& GetWorldTransform() const
     {
         return m_worldTransform;
     }
 
     /*! \brief Set the world-space translation, scale, rotation of this Node  */
-    HYP_METHOD(Property = "WorldTransform", Editor = true)
+    HYP_METHOD(Property = "WorldTransform", Transient, Editor = true)
     void SetWorldTransform(const Transform& transform)
     {
         if (m_parentNode == nullptr)
@@ -588,17 +588,17 @@ public:
     }
 
     /*! \returns The world-space translation of this Node. */
-    HYP_METHOD()
+    HYP_METHOD(Property = "WorldTranslation", Transient)
     HYP_FORCE_INLINE const Vec3f& GetWorldTranslation() const
     {
         return m_worldTransform.GetTranslation();
     }
 
     /*! \brief Set the world-space translation of this Node by offsetting the local-space translation */
-    HYP_METHOD()
+    HYP_METHOD(Property = "WorldTranslation", Transient)
     void SetWorldTranslation(const Vec3f& translation)
     {
-        if (m_parentNode == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION))
+        if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION))
         {
             SetLocalTranslation(translation);
 
@@ -609,17 +609,17 @@ public:
     }
 
     /*! \returns The local-space scale of this Node. */
-    HYP_METHOD()
+    HYP_METHOD(Property = "WorldScale", Transient)
     HYP_FORCE_INLINE const Vec3f& GetWorldScale() const
     {
         return m_worldTransform.GetScale();
     }
 
     /*! \brief Set the local-space scale of this Node by offsetting the local-space scale */
-    HYP_METHOD()
+    HYP_METHOD(Property = "WorldScale", Transient)
     void SetWorldScale(const Vec3f& scale)
     {
-        if (m_parentNode == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_SCALE))
+        if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE))
         {
             SetLocalScale(scale);
 
@@ -630,17 +630,17 @@ public:
     }
 
     /*! \returns The world-space rotation of this Node. */
-    HYP_METHOD()
+    HYP_METHOD(Property = "WorldRotation", Transient)
     HYP_FORCE_INLINE const Quaternion& GetWorldRotation() const
     {
         return m_worldTransform.GetRotation();
     }
 
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
-    HYP_METHOD()
+    HYP_METHOD(Property = "WorldRotation", Transient)
     void SetWorldRotation(const Quaternion& rotation)
     {
-        if (m_parentNode == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_ROTATION))
+        if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION))
         {
             SetLocalRotation(rotation);
 
@@ -676,12 +676,12 @@ public:
 
     /*! \brief Get the local-space (model) aabb of the node.
      *  \returns The local-space (model) of the node's aabb. */
-    HYP_METHOD(Property = "LocalAABB")
+    HYP_METHOD(Property = "LocalAabb", Transient)
     BoundingBox GetLocalAABB() const;
 
     /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes. */
-    HYP_METHOD(Property = "WorldAABB")
+    HYP_METHOD(Property = "WorldAabb", Transient)
     BoundingBox GetWorldAABB() const;
 
     /*! \brief Update the world transform of the Node to reflect changes in the local transform and parent transform.
@@ -780,26 +780,26 @@ protected:
     void GetEditorDelegates(Function&& func);
 #endif
 
-    EnumFlags<NodeFlags> m_flags = NodeFlags::NONE;
+    EnumFlags<NodeFlags> m_nodeFlags = NodeFlags::NONE;
 
-    HYP_FIELD(Property = "Name", Serialize = true, Editor = true, Label = "Name", Description = "The name of the node.")
+    HYP_FIELD(Property = "Name", Editor = true, Label = "Name", Description = "The name of the node.")
     Name m_name;
 
     HYP_FIELD(Property = "Parent", Transient)
     Node* m_parentNode;
 
-    HYP_FIELD(Property = "Children", Transient)
+    HYP_FIELD(Property = "Children")
     NodeList m_childNodes;
 
     HYP_FIELD(Property = "LocalTransform")
     Transform m_localTransform;
-    
+
     HYP_FIELD(Property = "LocalTransform")
     Transform m_worldTransform;
 
-    HYP_FIELD(Property = "EntityAABB")
+    HYP_FIELD(Property = "Aabb")
     BoundingBox m_entityAabb;
-    
+
     HYP_FIELD(Property = "Scene", Transient)
     Scene* m_scene;
 
@@ -807,10 +807,10 @@ protected:
 
     UniquePtr<Delegates> m_delegates;
 
-    HYP_FIELD(Property = "Tags", Serialize = true)
+    HYP_FIELD(Property = "Tags")
     NodeTagSet m_tags;
 
-    HYP_FIELD(Property = "Uuid", Serialize = true)
+    HYP_FIELD(Property = "Uuid")
     Uuid m_uuid;
 };
 
@@ -839,4 +839,3 @@ struct NodeUnlockTransformScope
 };
 
 } // namespace hyperion
-

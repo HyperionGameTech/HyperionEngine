@@ -1246,12 +1246,12 @@ void UIObject::SetIsVisible(bool isVisible)
         {
             if (m_affectsParentSize)
             {
-                node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+                node->SetNodeFlags(node->GetNodeFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
             }
         }
         else
         {
-            node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            node->SetNodeFlags(node->GetNodeFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 
@@ -1852,11 +1852,11 @@ void UIObject::SetAffectsParentSize(bool affectsParentSize)
     {
         if (m_affectsParentSize)
         {
-            m_node->SetFlags(m_node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetNodeFlags(m_node->GetNodeFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
         else
         {
-            m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
@@ -2647,7 +2647,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
 
         if (!m_affectsParentSize || !m_isVisible)
         {
-            m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
@@ -3065,7 +3065,7 @@ Handle<UIObject> UIObject::CreateUIObject(const HypClass* hypClass, Name name, V
     Handle<Entity> entity = CreateObject<Entity>();
     entity->SetName(name);
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
-    entity->SetFlags(entity->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+    entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
     Handle<UIObject> uiObject = std::move(uiObjectHypData).Get<Handle<UIObject>>();
     Assert(uiObject != nullptr);

@@ -3,6 +3,7 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
 #include <asset/AssetBatch.hpp>
+#include <asset/AssetReference.hpp>
 #include <asset/Assets.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -1856,7 +1857,6 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
     return assetPackage->AddAssetObject(assetObject);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
@@ -1874,8 +1874,8 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     HashSet<const HypObjectBase*> visited; // to avoid infinite recursion
 
-    Proc<void(const Handle<AssetPackage>&, const HypData&, HashSet<AssetPath>&)> iterate;
-    iterate = [&](const Handle<AssetPackage>& inPackage, const HypData& current, HashSet<AssetPath>& outDeps) -> void
+    Proc<void(const Handle<AssetPackage>&, const HypData&)> iterate;
+    iterate = [&](const Handle<AssetPackage>& inPackage, const HypData& current) -> void
     {
         Assert(inPackage != nullptr);
 
@@ -1883,14 +1883,6 @@ void AssetRegistry::RegisterAssetsRecursively(
         {
             return;
         }
-
-        HashSet<AssetPath> currDeps;
-        HYP_DEFER({
-            if (currDeps.Any())
-            {
-                outDeps.Merge(std::move(currDeps));
-            }
-        });
 
         {
             HypObjectBase* pObject = current.TryGet<HypObjectBase*>().GetOr(nullptr);
@@ -1906,6 +1898,8 @@ void AssetRegistry::RegisterAssetsRecursively(
         Handle<AssetPackage> parentPackage = inPackage;
         Handle<AssetObject> assetObject;
 
+        // add dependency if current is an AssetObject or AssetReference and not a subpackage
+        // of inPackage
         if (current.Is<AssetObject>())
         {
             assetObject = MakeStrongRef(&current.Get<AssetObject>());
@@ -1924,6 +1918,28 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
 
             parentPackage = std::move(newPackage);
+        }
+        else if (current.Is<AssetReference>())
+        {
+            const AssetReference& assetReference = current.Get<AssetReference>();
+
+            if (assetReference.IsValid())
+            {
+                Array<Name> chain = assetReference.GetAssetPath().GetChain();
+
+                if (chain.Size() > 1) // has at least one package in chain
+                {
+                    chain.PopBack(); // remove asset name
+
+                    const String packagePath = String::Join(chain, '/', &Name::ToString);
+                    const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
+
+                    if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(*inPackage))
+                    {
+                        inPackage->AddDependency(AssetPath(packagePath));
+                    }
+                }
+            }
         }
 
         if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
@@ -1949,7 +1965,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                     continue;
                 }
 
-                iterate(parentPackage, element, currDeps);
+                iterate(parentPackage, element);
             }
 
             return;
@@ -1977,7 +1993,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
                         HYP_LOG_TEMP("Iterating component of type {} for Entity {}", LookupTypeName(typeId), entity.Id());
 
-                        iterate(parentPackage, HypData(componentRef), currDeps);
+                        iterate(parentPackage, HypData(componentRef));
                     }
                 }
             }
@@ -2033,7 +2049,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
-            iterate(parentPackage, memberData, currDeps);
+            iterate(parentPackage, memberData);
         }
 
         if (assetObject != nullptr)
@@ -2051,11 +2067,8 @@ void AssetRegistry::RegisterAssetsRecursively(
     Handle<AssetPackage> rootPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ true);
     Assert(rootPackage.IsValid());
 
-    HashSet<AssetPath> deps;
-
-    iterate(rootPackage, target, deps);
+    iterate(rootPackage, target);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const
 {

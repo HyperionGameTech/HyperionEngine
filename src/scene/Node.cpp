@@ -148,19 +148,19 @@ bool Node::HasName() const
     return m_name.IsValid() && m_name != unnamed;
 }
 
-void Node::SetFlags(EnumFlags<NodeFlags> flags)
+void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)
 {
-    if (m_flags == flags)
+    if (m_nodeFlags == flags)
     {
         return;
     }
 
-    m_flags = flags;
+    m_nodeFlags = flags;
 
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editorDelegates)
         {
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Flags")));
+            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("NodeFlags")));
         });
 #endif
 }
@@ -690,7 +690,7 @@ BoundingBox Node::GetLocalAABBExcludingSelf() const
             continue;
         }
 
-        if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
+        if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
         {
             aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalAABB());
         }
@@ -710,7 +710,7 @@ BoundingBox Node::GetLocalAABB() const
             continue;
         }
 
-        if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
+        if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
         {
             aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalAABB());
         }
@@ -730,7 +730,7 @@ BoundingBox Node::GetWorldAABB() const
             continue;
         }
 
-        if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
+        if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
         {
             aabb = aabb.Union(child->GetWorldAABB());
         }
@@ -759,19 +759,19 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
     {
         worldTransform = m_parentNode->GetWorldTransform() * m_localTransform;
 
-        if (m_flags & NodeFlags::IGNORE_PARENT_TRANSFORM)
+        if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSFORM)
         {
-            if (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION)
+            if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION)
             {
                 worldTransform.GetTranslation() = m_localTransform.GetTranslation();
             }
 
-            if (m_flags & NodeFlags::IGNORE_PARENT_ROTATION)
+            if (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION)
             {
                 worldTransform.GetRotation() = m_localTransform.GetRotation();
             }
 
-            if (m_flags & NodeFlags::IGNORE_PARENT_SCALE)
+            if (m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE)
             {
                 worldTransform.GetScale() = m_localTransform.GetScale();
             }

@@ -376,8 +376,10 @@ Result AssetObject::Save()
 
     manifestWriter.Close();
 
+    const bool doSaveResource = m_resource != nullptr && !m_resource->IsNull();
+
     // use resource instead to save if it is not null
-    if (m_resource != nullptr && !m_resource->IsNull())
+    if (doSaveResource)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
         resource->IncRef();
@@ -388,6 +390,7 @@ Result AssetObject::Save()
         return resource->Save_Internal(m_filepath);
     }
 
+#if 0 // just use manifest if no resource
     FBOMWriter writer { FBOMWriterConfig {} };
 
     FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeId());
@@ -406,6 +409,7 @@ Result AssetObject::Save()
     {
         return HYP_MAKE_ERROR(Error, "Failed to write asset to disk: {}", err.message);
     }
+#endif
 
     HYP_LOG(Assets, Debug, "Saved asset to '{}'", m_filepath);
 
@@ -483,31 +487,20 @@ Result AssetObject::Load(
     }
 
     HypData targetData;
-    const AssetObject* targetAssetObject = nullptr;
-    bool useResource = false;
-
-    if (data.Is<AssetObject>()) // data is an AssetObject directly
+    if (!hypClass->CreateInstance(targetData))
     {
-        targetData = std::move(data);
+        return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
     }
-    else
+
+    const AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
+    const bool useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
+
+    // remove class property
+    jsonObject.Erase("$Class");
+
+    if (!JSONToObject(jsonObject, hypClass, targetData))
     {
-        // load fields from manifest json file
-        if (!hypClass->CreateInstance(targetData))
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
-        }
-        
-        targetAssetObject = &targetData.Get<AssetObject>();
-        useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
-
-        // remove class property
-        jsonObject.Erase("$Class");
-
-        if (!JSONToObject(jsonObject, hypClass, targetData))
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
-        }
+        return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
 
     AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(targetAssetObject->m_resource);
