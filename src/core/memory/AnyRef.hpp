@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <core/Defines.hpp>
 
@@ -26,13 +27,13 @@ class AnyBase;
 
 /*! \brief A non-owning reference to an object of any type.
  *  Type enforcement is done at runtime. */
-class AnyRefBase
+class HYP_API AnyRefBase
 {
     using PointerType = void*;
 
 protected:
     AnyRefBase()
-        : m_typeInfo(&TypeInfo::Void()),
+        : m_typeInfo(&TypeInfo_Void()),
           m_ptr(nullptr)
     {
     }
@@ -71,7 +72,7 @@ public:
         : m_typeInfo(other.m_typeInfo),
           m_ptr(other.m_ptr)
     {
-        other.m_typeInfo = &TypeInfo::Void();
+        other.m_typeInfo = &TypeInfo_Void();
         other.m_ptr = nullptr;
     }
 
@@ -85,7 +86,7 @@ public:
         m_typeInfo = other.m_typeInfo;
         m_ptr = other.m_ptr;
 
-        other.m_typeInfo = &TypeInfo::Void();
+        other.m_typeInfo = &TypeInfo_Void();
         other.m_ptr = nullptr;
 
         return *this;
@@ -142,10 +143,7 @@ public:
     }
 
     /*! \brief Returns the TypeId of the held object. */
-    HYP_FORCE_INLINE TypeId GetTypeId() const
-    {
-        return m_typeInfo ? m_typeInfo->id : TypeId::Void();
-    }
+    TypeId GetTypeId() const;
 
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
@@ -153,10 +151,7 @@ public:
     }
 
     /*! \brief Returns the HypClass of the held object, if one is registered. */
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
-    {
-        return m_typeInfo ? m_typeInfo->GetHypClass() : nullptr;
-    }
+    const HypClass* GetHypClass() const;
 
     /*! \brief Returns true if the held object is of type T.
      *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T. */
@@ -181,7 +176,7 @@ public:
     /*! \brief Resets the current value held in the AnyRef. */
     HYP_FORCE_INLINE void Reset()
     {
-        m_typeInfo = &TypeInfo::Void();
+        m_typeInfo = &TypeInfo_Void();
         m_ptr = nullptr;
     }
 
@@ -209,14 +204,14 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit AnyRef(T& value)
-        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), &value)
+        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), &value)
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     AnyRef& operator=(T& value)
     {
-        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
         m_ptr = &value;
 
         return *this;
@@ -224,7 +219,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
     AnyRef(T* value)
-        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), value)
+        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), value)
     {
     }
 
@@ -310,7 +305,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_const_v<T> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(T& value)
     {
-        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
         m_ptr = &value;
     }
 
@@ -322,7 +317,7 @@ public:
     template <class T>
     static AnyRef Empty()
     {
-        return AnyRef(&TypeInfo::ForType<NormalizedType<T>>(), nullptr);
+        return AnyRef(&TypeInfo_ForType<NormalizedType<T>>(), nullptr);
     }
 };
 
@@ -345,7 +340,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit ConstAnyRef(T&& value)
-        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
+        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
     }
@@ -355,7 +350,7 @@ public:
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
 
-        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
         m_ptr = const_cast<T*>(&value);
 
         return *this;
@@ -363,7 +358,7 @@ public:
 
     template <class T>
     ConstAnyRef(const T* value)
-        : AnyRefBase(&TypeInfo::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
+        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
     {
     }
 
@@ -472,7 +467,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(const T& value)
     {
-        m_typeInfo = &TypeInfo::ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
         m_ptr = const_cast<T*>(&value);
     }
 
@@ -484,7 +479,7 @@ public:
     template <class T>
     static ConstAnyRef Empty()
     {
-        return ConstAnyRef(&TypeInfo::ForType<NormalizedType<T>>(), nullptr);
+        return ConstAnyRef(&TypeInfo_ForType<NormalizedType<T>>(), nullptr);
     }
 };
 

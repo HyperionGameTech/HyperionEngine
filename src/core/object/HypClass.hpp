@@ -440,6 +440,11 @@ public:
         return m_typeId;
     }
 
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        return m_typeInfo;
+    }
+
     HYP_FORCE_INLINE EnumFlags<HypClassFlags> GetFlags() const
     {
         return m_flags;
@@ -460,7 +465,7 @@ public:
         return m_flags & HypClassFlags::ENUM_TYPE;
     }
 
-    HYP_FORCE_INLINE bool IsPOD() const
+    HYP_FORCE_INLINE bool IsPodType() const
     {
         return m_flags & HypClassFlags::POD_TYPE;
     }
@@ -639,6 +644,7 @@ protected:
     void AddConstant(HypConstant* constant);
 
     TypeId m_typeId;
+    const TypeInfo* m_typeInfo;
     Name m_name;
     int m_staticIndex;
     uint32 m_numDescendants;

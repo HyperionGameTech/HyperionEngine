@@ -20,6 +20,7 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/Types.hpp>
+#include <core/Traits.hpp>
 #include <core/HashCode.hpp>
 
 #include <algorithm>
@@ -1647,22 +1648,10 @@ using containers::Filter;
 using containers::Map;
 
 // traits
-template <class T>
-struct IsArray
-{
-    enum
-    {
-        value = false
-    };
-};
 
 template <class T, class AllocatorType>
-struct IsArray<containers::Array<T, AllocatorType>>
+struct IsArray<containers::Array<T, AllocatorType>> : std::true_type
 {
-    enum
-    {
-        value = true
-    };
 };
 
 } // namespace hyperion

@@ -4,8 +4,20 @@
 
 #include <core/object/HypClass.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 namespace hyperion {
 namespace memory {
+
+TypeId AnyRefBase::GetTypeId() const
+{
+    return m_typeInfo ? m_typeInfo->id : TypeId::Void();
+}
+
+const HypClass* AnyRefBase::GetHypClass() const
+{
+    return m_typeInfo ? m_typeInfo->GetHypClass() : nullptr;
+}
 
 } // namespace memory
 } // namespace hyperion

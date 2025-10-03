@@ -219,6 +219,11 @@ HashCode TypeInfoEx::GetHashCode() const
 
 #pragma region TypeInfo
 
+HYP_API const TypeInfo& TypeInfo_Void()
+{
+    return TypeInfo::Void();
+}
+
 const TypeInfo& TypeInfo::Void()
 {
     static TypeInfo s_voidTypeInfo;
@@ -261,17 +266,22 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
 
     if (hypClass->IsClassType())
     {
-        pTypeInfo->flags |= TypeAttributeFlags::CLASS_TYPE | TypeAttributeFlags::HYP_CLASS;
+        pTypeInfo->flags |= TypeAttributeFlags::CLASS_TYPE;
     }
 
-    if (hypClass->IsPOD())
+    if (hypClass->IsStructType())
     {
-        pTypeInfo->flags |= TypeAttributeFlags::POD_TYPE;
+        pTypeInfo->flags |= TypeAttributeFlags::STRUCT_TYPE;
     }
 
     if (hypClass->IsEnumType())
     {
         pTypeInfo->flags |= TypeAttributeFlags::ENUM_TYPE;
+    }
+
+    if (hypClass->IsPodType())
+    {
+        pTypeInfo->flags |= TypeAttributeFlags::POD_TYPE;
     }
 
     pTypeInfo->extendedInfo.data.hypClass = hypClass;

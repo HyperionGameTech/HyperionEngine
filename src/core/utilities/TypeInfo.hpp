@@ -10,6 +10,7 @@
 
 #include <core/Name.hpp>
 #include <core/Types.hpp>
+#include <core/Traits.hpp>
 #include <core/HashCode.hpp>
 
 #include <type_traits>
@@ -21,8 +22,10 @@ enum class TypeAttributeFlags : uint32
     NONE = 0x0,
     POD_TYPE = 0x1,
     CLASS_TYPE = 0x2,
-    ENUM_TYPE = 0x4,
-    FUNDAMENTAL_TYPE = 0x8,
+    STRUCT_TYPE = 0x4,
+    CLASS_OR_STRUCT_TYPE = CLASS_TYPE | STRUCT_TYPE,
+    ENUM_TYPE = 0x8,
+    FUNDAMENTAL_TYPE = 0x10,
     INTEGRAL_TYPE = 0x20,
     FLOAT_TYPE = 0x40,
 
@@ -84,32 +87,6 @@ struct Vec4;
 } // namespace math
 
 // Type traits
-
-/// Container IsXX Forward declarations
-/// - these are defined elsewhere (needs proper includes before including this header)
-template <class T>
-struct IsArray;
-
-template <class T>
-struct IsLinkedList;
-
-template <class T>
-struct IsString;
-
-template <class T>
-struct IsHashMap;
-
-template <class T>
-struct IsHashSet;
-
-template <class T>
-struct IsFlatMap;
-
-template <class T>
-struct IsFlatSet;
-
-template <class T>
-struct IsVariant;
 
 template <class T>
 struct IsVec2 : std::false_type
@@ -794,7 +771,7 @@ struct TypeInfo
         }
     }
 
-    HYP_FORCE_INLINE constexpr bool IsPOD() const
+    HYP_FORCE_INLINE constexpr bool IsPod() const
     {
         return flags & TypeAttributeFlags::POD_TYPE;
     }
@@ -802,6 +779,11 @@ struct TypeInfo
     HYP_FORCE_INLINE constexpr bool IsClass() const
     {
         return flags & TypeAttributeFlags::CLASS_TYPE;
+    }
+
+    HYP_FORCE_INLINE constexpr bool IsStruct() const
+    {
+        return flags & TypeAttributeFlags::STRUCT_TYPE;
     }
 
     HYP_FORCE_INLINE constexpr bool IsEnum() const
@@ -966,7 +948,18 @@ struct TypeInfo
     }
 };
 
+extern HYP_API const TypeInfo& TypeInfo_Void();
+
+template <class T>
+inline const TypeInfo& TypeInfo_ForType()
+{
+    return TypeInfo::ForType<T>();
+}
+
 } // namespace utilities
+
+using utilities::TypeInfo_ForType;
+using utilities::TypeInfo_Void;
 
 using utilities::TypeInfo;
 using utilities::TypeInfo_DestroyCache;

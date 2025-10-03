@@ -79,6 +79,16 @@ namespace Hyperion
             }
         }
 
+        public TypeInfo TypeInfo
+        {
+            get
+            {
+                TypeInfo typeInfo;
+                HypClass_GetTypeInfo(ptr, out typeInfo);
+                return typeInfo;
+            }
+        }
+
         public uint Size
         {
             get
@@ -469,6 +479,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetTypeId")]
         private static extern void HypClass_GetTypeId([In] IntPtr hypClassPtr, [Out] out TypeId typeId);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetTypeInfo")]
+        private static extern void HypClass_GetTypeInfo([In] IntPtr hypClassPtr, [Out] out TypeInfo typeInfo);
         
         [DllImport("hyperion", EntryPoint = "HypClass_GetSize")]
         private static extern uint HypClass_GetSize([In] IntPtr hypClassPtr);

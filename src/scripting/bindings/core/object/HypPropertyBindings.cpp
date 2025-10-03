@@ -53,7 +53,7 @@ extern "C"
             return false;
         }
 
-        HypData targetData { AnyRef(targetClass->GetTypeId(), targetPtr) };
+        HypData targetData { AnyRef(targetClass->GetTypeInfo(), targetPtr) };
 
         *outResult = property->Get(targetData);
 
@@ -72,7 +72,7 @@ extern "C"
             return false;
         }
 
-        HypData targetData { AnyRef(targetClass->GetTypeId(), targetPtr) };
+        HypData targetData { AnyRef(targetClass->GetTypeInfo(), targetPtr) };
 
         property->Set(targetData, *value);
 

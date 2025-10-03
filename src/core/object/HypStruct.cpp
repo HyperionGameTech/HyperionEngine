@@ -99,7 +99,9 @@ bool DynamicHypStructInstance::ToHypData(ByteView memory, HypData& out) const
     void* data = Memory::Allocate(m_size);
     Memory::MemCpy(data, memory.Data(), m_size);
 
-    out = HypData(Any::FromVoidPointer(m_typeId, data, m_copyFunction, m_destructFunction));
+    const TypeInfo& typeInfo = TypeInfo::ForHypClass(this);
+
+    out = HypData(Any::FromVoidPointer(&typeInfo, data, m_copyFunction, m_destructFunction));
 
     return true;
 }

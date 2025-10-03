@@ -5,8 +5,10 @@
 #include <core/containers/HashSet.hpp>
 
 #include <core/utilities/Pair.hpp>
+
 #include <core/functional/FunctionWrapper.hpp>
 
+#include <core/Traits.hpp>
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -345,11 +347,6 @@ auto HashMap<Key, Value, NodeAllocatorType>::Insert(KeyValuePair<Key, Value>&& p
 } // namespace containers
 
 using containers::HashMap;
-
-template <class T>
-struct IsHashMap : std::false_type
-{
-};
 
 template <class Key, class Value, class NodeAllocatorType>
 struct IsHashMap<containers::HashMap<Key, Value, NodeAllocatorType>> : std::true_type

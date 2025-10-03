@@ -4,6 +4,7 @@
 
 #include <util/UTF8.hpp>
 
+#include <core/Traits.hpp>
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -98,22 +99,15 @@ using UTF32StringView = StringView<StringType::UTF32>;
 using WideStringView = StringView<StringType::WIDE_CHAR>;
 
 // traits
-template <class T>
-struct IsString
-{
-    static constexpr bool value = false;
-};
 
 template <int TStringType>
-struct IsString<containers::String<TStringType>>
+struct IsString<containers::String<TStringType>> : std::true_type
 {
-    static constexpr bool value = true;
 };
 
 template <>
-struct IsString<filesystem::FilePath>
+struct IsString<filesystem::FilePath> : std::true_type
 {
-    static constexpr bool value = true;
 };
 
 template <class T>

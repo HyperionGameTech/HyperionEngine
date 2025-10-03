@@ -4,7 +4,10 @@
 
 #include <core/containers/ContainerBase.hpp>
 #include <core/containers/SortedArray.hpp>
+
 #include <core/utilities/Pair.hpp>
+
+#include <core/Traits.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -336,11 +339,6 @@ auto FlatSet<T>::Erase(const T& value) -> Iterator
 } // namespace containers
 
 using containers::FlatSet;
-
-template <class T>
-struct IsFlatSet : std::false_type
-{
-};
 
 template <class T>
 struct IsFlatSet<FlatSet<T>> : std::true_type

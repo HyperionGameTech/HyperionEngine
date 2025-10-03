@@ -4,9 +4,11 @@
 
 #include <core/containers/FlatSet.hpp>
 #include <core/containers/Array.hpp>
-#include <core/utilities/Pair.hpp>
 #include <core/containers/ContainerBase.hpp>
 
+#include <core/utilities/Pair.hpp>
+
+#include <core/Traits.hpp>
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -449,11 +451,6 @@ FlatSet<Value> FlatMap<Key, Value>::Values() const
 } // namespace containers
 
 using containers::FlatMap;
-
-template <class T>
-struct IsFlatMap : std::false_type
-{
-};
 
 template <class Key, class Value>
 struct IsFlatMap<FlatMap<Key, Value>> : std::true_type

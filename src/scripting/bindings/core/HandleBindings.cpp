@@ -13,7 +13,7 @@ extern "C"
         Assert(outHypData != nullptr);
         Assert(ptr != nullptr);
 
-        outHypData->Construct(AnyRef(ptr->GetObjectHeader_Internal()->hypClass->GetTypeId(), ptr));
+        outHypData->Construct(AnyRef(ptr->GetObjectHeader_Internal()->hypClass->GetTypeInfo(), ptr));
     }
 
     HYP_EXPORT void Handle_Set(HypData* hypData, HypObjectBase** outPtr)
@@ -48,7 +48,7 @@ extern "C"
     HYP_EXPORT uint8 WeakHandle_Lock(HypObjectBase* ptr)
     {
         Assert(ptr != nullptr);
-        
+
         HypObjectHeader* header = ptr->GetObjectHeader_Internal();
         AssertDebug(header != nullptr);
 

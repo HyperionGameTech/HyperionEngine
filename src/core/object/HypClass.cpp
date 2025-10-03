@@ -628,6 +628,7 @@ void HypClassMemberIterator::Advance()
 
 HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : m_typeId(typeId),
+      m_typeInfo(&TypeInfo::ForHypClass(this)),
       m_name(name),
       m_staticIndex(staticIndex),
       m_numDescendants(numDescendants),
@@ -667,8 +668,6 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
         }
     }
 
-    const TypeInfo& thisTypeInfo = TypeInfo::ForHypClass(this);
-
     // initialize properties containers
     for (HypMember& member : members)
     {
@@ -676,8 +675,8 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
         {
             HypProperty* pProperty = new HypProperty(std::move(member.value.GetUnchecked<HypProperty>()));
             pProperty->m_ownerClass = this;
-            pProperty->m_getter.typeInfo.targetTypeInfo = &thisTypeInfo;
-            pProperty->m_setter.typeInfo.targetTypeInfo = &thisTypeInfo;
+            pProperty->m_getter.typeInfo.targetTypeInfo = m_typeInfo;
+            pProperty->m_setter.typeInfo.targetTypeInfo = m_typeInfo;
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);
@@ -752,7 +751,7 @@ void HypClass::Initialize()
 
             if (stringValue == "bitwise")
             {
-                if (!IsPOD())
+                if (!IsPodType())
                 {
                     HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: %s", m_name.LookupString());
                 }

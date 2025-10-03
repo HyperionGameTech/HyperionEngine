@@ -9,6 +9,7 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/Name.hpp>
 
@@ -94,6 +95,16 @@ extern "C"
         }
 
         *outTypeId = hypClass->GetTypeId();
+    }
+
+    HYP_EXPORT void HypClass_GetTypeInfo(const HypClass* hypClass, TypeInfo const** outPTypeInfo)
+    {
+        if (!hypClass || !outPTypeInfo)
+        {
+            return;
+        }
+
+        *outPTypeInfo = hypClass->GetTypeInfo();
     }
 
     HYP_EXPORT uint32 HypClass_GetSize(const HypClass* hypClass)

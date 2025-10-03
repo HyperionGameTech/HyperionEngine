@@ -12,7 +12,6 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/Traits.hpp>
-
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
 #include <core/Util.hpp>
@@ -1146,11 +1145,6 @@ template <class... Types>
 using Variant = utilities::Variant<Types...>;
 
 using utilities::Visit;
-
-template <class T>
-struct IsVariant : std::false_type
-{
-};
 
 template <class... Types>
 struct IsVariant<utilities::Variant<Types...>> : std::true_type

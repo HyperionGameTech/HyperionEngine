@@ -9,6 +9,7 @@
 #include <core/debug/Debug.hpp>
 
 #include <core/HashCode.hpp>
+#include <core/Traits.hpp>
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -640,11 +641,6 @@ void LinkedList<T>::Clear()
 } // namespace containers
 
 using containers::LinkedList;
-
-template <class T>
-struct IsLinkedList : std::false_type
-{
-};
 
 template <class T>
 struct IsLinkedList<containers::LinkedList<T>> : std::true_type

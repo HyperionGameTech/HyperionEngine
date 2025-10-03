@@ -322,4 +322,44 @@ struct FunctionTraits<T const volatile> : public FunctionTraits<T>
 
 #define HYP_HAS_STATIC_METHOD(T, methodName) HasStaticMethod_##methodName<T>::value
 
+template <class T>
+struct IsArray : std::false_type
+{
+};
+
+template <class T>
+struct IsFlatMap : std::false_type
+{
+};
+
+template <class T>
+struct IsHashMap : std::false_type
+{
+};
+
+template <class T>
+struct IsHashSet : std::false_type
+{
+};
+
+template <class T>
+struct IsFlatSet : std::false_type
+{
+};
+
+template <class T>
+struct IsLinkedList : std::false_type
+{
+};
+
+template <class T>
+struct IsVariant : std::false_type
+{
+};
+
+template <class T>
+struct IsString : std::false_type
+{
+};
+
 } // namespace hyperion
