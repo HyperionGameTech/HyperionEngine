@@ -1914,8 +1914,12 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             const Handle<RaytracingPassData>& raytracingPassData = ObjCast<RaytracingPassData>(FetchViewPassData(raytracingView));
             Assert(raytracingPassData != nullptr);
 
-            if (raytracingPassData->raytracingTlases[frameIndex] != nullptr)
+            const TLASRef& tlas = raytracingPassData->raytracingTlases[frameIndex];
+
+            if (tlas && tlas->IsCreated())
             {
+                HYP_GFX_ASSERT(tlas->GetMeshDescriptionsBuffer() != nullptr);
+
                 raytracingPassData->parentPass = &passData;
 
                 RenderSetup newRs = rs;

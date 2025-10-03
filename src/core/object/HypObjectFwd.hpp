@@ -57,21 +57,27 @@ template <class T>
 struct HypStructRegistration;
 
 template <class T, class T2 = void>
-struct IsHypObject;
+struct is_hyp_object;
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<!ImplementationExistsV<typename T::HypClassInfo::Type> && ImplementationExistsV<T>>>
+struct is_hyp_object<T, std::enable_if_t<!ImplementationExistsV<typename T::HypClassInfo::Type> && ImplementationExistsV<T>>>
 {
     static constexpr bool value = false;
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<ImplementationExistsV<typename T::HypClassInfo::Type>>>
+struct is_hyp_object<T, std::enable_if_t<ImplementationExistsV<typename T::HypClassInfo::Type>>>
 {
     static constexpr bool value = true;
 
     using Type = typename T::HypClassInfo::Type;
 };
+
+template <class T>
+constexpr bool is_hyp_object_v = is_hyp_object<T>::value;
+
+template <class T>
+using is_hyp_object_t = typename is_hyp_object<T>::Type;
 
 enum class HypObjectInitializerFlags : uint32
 {
@@ -108,7 +114,7 @@ public:
     {
     }
 
-    template <class T, typename = std::enable_if_t<IsHypObject<T>::value>>
+    template <class T, typename = std::enable_if_t<is_hyp_object_v<T>>>
     explicit HypObjectPtr(T* ptr)
         : m_ptr(ptr),
           m_hypClass(T::Class())

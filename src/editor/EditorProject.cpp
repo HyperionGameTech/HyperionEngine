@@ -367,7 +367,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
             return HYP_MAKE_ERROR(Error, "Failed to read project data: {}", err.message);
         }
 
-        Optional<const Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
+        Optional<Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
 
         if (!projectOpt)
         {

@@ -63,7 +63,7 @@ struct HypData_Get;
 template <class T, bool IsConst>
 struct HypDataGetReturnTypeHelper
 {
-    using Type = decltype(std::declval<HypDataHelper<T>>().Get(*std::declval<std::add_pointer_t<std::conditional_t<IsConst, std::add_const_t<T>, T>>>()));
+    using Type = decltype(std::declval<HypDataHelper<T>>().Get(std::declval<std::conditional_t<IsConst, const typename HypDataHelper<T>::StorageType&, typename HypDataHelper<T>::StorageType&>>()));
 };
 
 template <>
@@ -147,7 +147,7 @@ struct HypData
         || std::is_same_v<T, HypClassRef>
 
         /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
-        || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle>
+        || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle> || std::is_base_of_v<HypObjectBase, T>
 
         /*! RC<T> gets stored as RC<void> and can be converted back */
         || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
@@ -400,7 +400,7 @@ struct HypData
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto TryGet() -> Optional<std::conditional_t<std::is_same_v<T, HypData>, HypData&, typename HypDataGetReturnTypeHelper<T, false>::Type>>
+    HYP_FORCE_INLINE auto TryGet() -> Optional<typename HypDataGetReturnTypeHelper<T, false>::Type>
     {
         HYP_SCOPE;
 
@@ -420,7 +420,7 @@ struct HypData
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto TryGet() const -> Optional<std::conditional_t<std::is_same_v<T, HypData>, const HypData&, typename HypDataGetReturnTypeHelper<T, true>::Type>>
+    HYP_FORCE_INLINE auto TryGet() const -> Optional<typename HypDataGetReturnTypeHelper<T, true>::Type>
     {
         HYP_SCOPE;
 
@@ -821,6 +821,8 @@ struct HypDataHelper<EnumFlags<T>> : HypDataHelper<typename EnumFlags<T>::Underl
     }
 };
 
+/// ObjIdBase specialization - stores as ObjIdBase internally, ObjId<T> converts to/from this.
+
 template <>
 struct HypDataHelperDecl<ObjIdBase>
 {
@@ -875,6 +877,8 @@ struct HypDataHelper<ObjIdBase>
     }
 };
 
+/// ObjId<T> specialization - stores as ObjIdBase internally, converts to/from ObjIdBase and AnyHandle.
+
 template <class T>
 struct HypDataHelperDecl<ObjId<T>>
 {
@@ -910,6 +914,8 @@ struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
         HypDataHelper<ObjIdBase>::Set(hypData, static_cast<const ObjIdBase&>(value));
     }
 };
+
+/// HypClassRef specialization - stores as HypClassRef internally, not serializable.
 
 template <>
 struct HypDataHelperDecl<HypClassRef>
@@ -958,6 +964,8 @@ struct HypDataHelper<HypClassRef>
         return { FBOMResult::FBOM_ERR, "Cannot deserialize HypClassRef!" };
     }
 };
+
+/// AnyHandle specialization - stores as AnyHandle internally, serializable
 
 template <>
 struct HypDataHelperDecl<AnyHandle>
@@ -1061,6 +1069,8 @@ struct HypDataHelper<AnyHandle>
     }
 };
 
+/// Handle<T> specialization - stores as AnyHandle internally, converts to/from AnyHandle
+
 template <class T>
 struct HypDataHelperDecl<Handle<T>>
 {
@@ -1129,6 +1139,31 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
         return FBOMResult::FBOM_OK;
     }
 };
+
+/// HypObjects can be stored inline via AnyHandle like Handle<T>, and converted to/from Handle<T>
+
+template <class T>
+struct HypDataHelperDecl<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+{
+};
+
+template <class T>
+struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>> : HypDataHelper<Handle<T>>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE T& Get(const AnyHandle& value) const
+    {
+        return *HypDataHelper<Handle<T>>::Get(value);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const T& value) const
+    {
+        HypDataHelper<Handle<T>>::Set(hypData, value.HandleFromThis());
+    }
+};
+
+/// RefCountedPtr void type can be used to hold any other RefCountedPtr type
 
 template <>
 struct HypDataHelperDecl<RC<void>>
@@ -1266,6 +1301,8 @@ struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelpe
     }
 };
 
+/// AnyRef - type erased reference - @TODO: Add ConstAnyRef support
+
 template <>
 struct HypDataHelperDecl<AnyRef>
 {
@@ -1334,6 +1371,8 @@ struct HypDataHelper<AnyRef>
         return FBOMResult::FBOM_OK;
     }
 };
+
+/// T* - raw pointer (non-owning, non-const) held as AnyRef
 
 template <class T>
 struct HypDataHelperDecl<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>>
@@ -1420,6 +1459,8 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
     }
 };
 
+/// const T* - raw pointer (non-owning, const) held as AnyRef
+
 template <class T>
 struct HypDataHelperDecl<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>>
 {
@@ -1453,6 +1494,8 @@ struct HypDataHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> : H
         HypDataHelper<T*>::Set(hypData, const_cast<T*>(value));
     }
 };
+
+/// Any - type erased value, allocated on the heap
 
 template <>
 struct HypDataHelperDecl<Any>
@@ -1517,6 +1560,8 @@ struct HypDataHelper<Any>
         return FBOMResult::FBOM_OK;
     }
 };
+
+/// HypDataArray - generic array / container type wrapper - @TODO Add HypDataMap for associative containers
 
 template <>
 struct HypDataHelperDecl<HypDataArray>
@@ -1611,6 +1656,8 @@ struct HypDataHelper<HypData_UserData128>
     }
 };
 
+/// String types
+
 template <int StringType>
 struct HypDataHelperDecl<containers::String<StringType>>
 {
@@ -1670,6 +1717,8 @@ struct HypDataHelper<containers::String<StringType>> : HypDataHelper<Any>
     }
 };
 
+/// StringView types - held as String, memory is owned
+
 template <int StringType>
 struct HypDataHelperDecl<utilities::StringView<StringType>>
 {
@@ -1695,6 +1744,8 @@ struct HypDataHelper<utilities::StringView<StringType>> : HypDataHelper<containe
         HypDataHelper<containers::String<StringType>>::Set(hypData, value);
     }
 };
+
+/// C String - converted to String, memory is owned
 
 template <>
 struct HypDataHelperDecl<const char*>
@@ -1722,6 +1773,8 @@ struct HypDataHelper<const char*> : HypDataHelper<String>
     }
 };
 
+/// FilePath - stored as String (base class of FilePath)
+
 template <>
 struct HypDataHelperDecl<FilePath>
 {
@@ -1745,6 +1798,8 @@ struct HypDataHelper<FilePath> : HypDataHelper<String>
         HypDataHelper<Any>::Set(hypData, Any::Construct<String>(std::move(value)));
     }
 };
+
+/// Name and WeakName - stored as String value
 
 template <>
 struct HypDataHelperDecl<Name>
@@ -1869,6 +1924,8 @@ struct HypDataHelper<WeakName>
         return { FBOMResult::FBOM_OK };
     }
 };
+
+/// Array types
 
 template <class T, class AllocatorType>
 struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
@@ -1996,6 +2053,8 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         return { FBOMResult::FBOM_OK };
     }
 };
+
+/// FixedArray
 
 template <class T, SizeType Size>
 struct HypDataHelperDecl<FixedArray<T, Size>>
@@ -2235,6 +2294,8 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 };
 #endif
 
+/// Pair
+
 template <class K, class V>
 struct HypDataHelperDecl<Pair<K, V>>
 {
@@ -2320,6 +2381,8 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
         return { FBOMResult::FBOM_OK };
     }
 };
+
+/// HashMap
 
 template <class K, class V>
 struct HypDataHelperDecl<HashMap<K, V>>
@@ -2441,6 +2504,8 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
     }
 };
 
+/// HashSet
+
 template <class ValueType, auto KeyByFunction>
 struct HypDataHelperDecl<HashSet<ValueType, KeyByFunction>>
 {
@@ -2560,6 +2625,8 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
         return { FBOMResult::FBOM_OK };
     }
 };
+
+/// LinkedList
 
 template <class T>
 struct HypDataHelperDecl<LinkedList<T>>
@@ -2690,6 +2757,8 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         return { FBOMResult::FBOM_OK };
     }
 };
+
+/// Matrix and Vector types
 
 // fwd decl for math types
 namespace math {
@@ -3123,7 +3192,7 @@ struct HypDataHelperDecl<Variant<Types...>>
 template <class... Types>
 struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
 {
-    using ConvertibleFrom = Tuple<Types...>;
+    using ConvertibleFrom = Tuple<>;
 
     template <class T>
     static FBOMResult VariantElementSerializeHelper(const Variant<Types...>& variant, FBOMData& outData)
@@ -3169,6 +3238,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         return true;
     }
 
+#if 0
     template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, Variant<Types...>> && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...>>>
     HYP_FORCE_INLINE Variant<Types...> Get(const T& value) const
     {
@@ -3180,6 +3250,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
     {
         return Variant<Types...>(std::forward<T>(value));
     }
+#endif
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const Variant<Types...>& value) const
     {

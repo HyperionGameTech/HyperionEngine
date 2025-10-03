@@ -111,10 +111,13 @@ class HYP_API AssetPackage final : public HypObjectBase
 public:
     AssetPackage();
     AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags = APF_NONE);
+
     AssetPackage(const AssetPackage& other) = delete;
     AssetPackage& operator=(const AssetPackage& other) = delete;
+
     AssetPackage(AssetPackage&& other) noexcept = delete;
     AssetPackage& operator=(AssetPackage&& other) noexcept = delete;
+
     ~AssetPackage() = default;
 
     HYP_METHOD()

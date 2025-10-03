@@ -968,6 +968,12 @@ static inline Handle<T> MakeStrongRef(T* ptr)
     return Handle<T>::FromPointer(ptr);
 }
 
+template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+static inline Handle<T> MakeStrongRef(const T* ptr)
+{
+    return Handle<T>::FromPointer(const_cast<T*>(ptr));
+}
+
 template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<HypObjectBase, T>>>
 static inline WeakHandle<T> MakeWeakRef(const WeakHandle<T>& weakHandle)
 {
@@ -984,6 +990,12 @@ template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_ba
 static inline WeakHandle<T> MakeWeakRef(T* ptr)
 {
     return WeakHandle<T>::FromPointer(ptr);
+}
+
+template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T>>>
+static inline WeakHandle<T> MakeWeakRef(const T* ptr)
+{
+    return WeakHandle<T>::FromPointer(const_cast<T*>(ptr));
 }
 
 } // namespace hyperion
