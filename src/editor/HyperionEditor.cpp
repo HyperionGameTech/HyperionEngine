@@ -304,7 +304,7 @@ void HyperionEditor::Init()
 #endif
 
     // Add Skybox
-    if (false)
+    if (true)
     {
         Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
 

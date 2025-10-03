@@ -19,6 +19,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
@@ -42,6 +43,7 @@ void SkydomeRenderer::Init()
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR });
 
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures/SkydomeRenderer_Cubemap", m_cubemap);
     InitObject(m_cubemap);
 
     m_virtualScene = CreateObject<Scene>(SceneFlags::NONE);

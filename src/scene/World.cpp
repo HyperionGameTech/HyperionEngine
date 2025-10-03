@@ -70,7 +70,7 @@ World::~World()
                 subsystem->OnSceneDetached(scene);
             }
 
-            if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
             {
                 for (const Handle<View>& view : m_views)
                 {
@@ -181,7 +181,7 @@ void World::Init()
             subsystem->OnSceneAttached(scene);
         }
 
-        if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
         {
             for (const Handle<View>& view : m_views)
             {
@@ -361,7 +361,7 @@ void World::Update(float delta)
 
         // sanity checks
         Assert(scene->GetWorld() == this);
-        Assert(!(scene->GetFlags() & SceneFlags::DETACHED));
+        Assert(!(scene->GetSceneFlags() & SceneFlags::DETACHED));
 
         scene->Update(delta);
 
@@ -624,7 +624,7 @@ void World::AddScene(const Handle<Scene>& scene)
             subsystem->OnSceneAttached(scene);
         }
 
-        if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
         {
             for (const Handle<View>& view : m_views)
             {
@@ -755,7 +755,7 @@ void World::AddView(const Handle<View>& view)
                     continue;
                 }
 
-                if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+                if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
                 {
                     view->AddScene(scene);
                 }

@@ -47,6 +47,8 @@ extern HYP_NODISCARD Name CreateFriendlyName(Name name);
 template <class T>
 static Name GetUniqueName(Name baseName, T&& elements)
 {
+    HYP_SCOPE;
+
     baseName = SanitizeName(baseName);
 
     String str = *baseName;
@@ -71,6 +73,8 @@ static Name GetUniqueName(Name baseName, T&& elements)
 
 Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
 {
+    HYP_SCOPE;
+
     FBOMLoadContext context;
     FBOMReader reader { FBOMReaderConfig {} };
     FBOMResult err;
@@ -89,6 +93,8 @@ Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
 
 void AssetDataResourceBase::Initialize()
 {
+    HYP_SCOPE;
+
     Mutex::Guard guard(m_mutex);
 
     Handle<AssetObject> assetObject = m_assetObject.Lock();
@@ -102,6 +108,8 @@ void AssetDataResourceBase::Initialize()
 
 void AssetDataResourceBase::Destroy()
 {
+    HYP_SCOPE;
+
     HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject.GetUnsafe()->IsRegistered() ? *m_assetObject.GetUnsafe()->GetPath().ToString() : *m_assetObject.GetUnsafe()->GetName());
 
     Unload_Internal();
@@ -217,6 +225,9 @@ AssetObject::~AssetObject()
 
 void AssetObject::Init()
 {
+    HYP_SCOPE;
+    HypObjectBase::Init();
+
     if (m_resource && !m_resource->IsNull())
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
@@ -233,6 +244,8 @@ void AssetObject::Init()
 
 void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded)
 {
+    HYP_SCOPE;
+
     m_flags[AOF_PERSISTENT] = persistentlyLoaded;
 
     if (persistentlyLoaded)
@@ -256,8 +269,26 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded)
     m_persistentResource.Reset();
 }
 
+void AssetObject::SetIsTransient(bool isTransient)
+{
+    HYP_SCOPE;
+
+    m_flags[AOF_TRANSIENT] = isTransient;
+
+    if (isTransient)
+    {
+        // needs to be kept in memory if transient
+        SetIsPersistentlyLoaded(true);
+
+        // transient assets don't have a filepath as they are not saved to disk.
+        m_filepath = FilePath();
+    }
+}
+
 Result AssetObject::Rename(Name name)
 {
+    HYP_SCOPE;
+
     if (name == m_name)
     {
         // same name, do nothing
@@ -304,6 +335,8 @@ Result AssetObject::Rename(Name name)
 
 bool AssetObject::IsLoaded() const
 {
+    HYP_SCOPE;
+
     if (!m_resource || m_resource->IsNull())
     {
         return false;
@@ -314,6 +347,8 @@ bool AssetObject::IsLoaded() const
 
 Result AssetObject::Save()
 {
+    HYP_SCOPE;
+
     // save our manifest first
     if (m_filepath.Empty())
     {
@@ -379,6 +414,8 @@ Result AssetObject::Save()
 
 Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
+    HYP_SCOPE;
+
     json::JSONObject manifestJson;
     ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson, /* skipTransientProperties */ true);
 
@@ -394,6 +431,8 @@ Result AssetObject::Load(
     BufferedReader& dataStream,
     Handle<AssetObject>& outAssetObject)
 {
+    HYP_SCOPE;
+
     if (!manifestStream.IsOpen() || !dataStream.IsOpen())
     {
         return HYP_MAKE_ERROR(Error, "Manifest or data stream not open");
@@ -505,6 +544,8 @@ Result AssetObject::Load(
 
 Result AssetObject::OpenReadStream(BufferedReader& stream) const
 {
+    HYP_SCOPE;
+
     if (m_filepath.Empty())
     {
         return HYP_MAKE_ERROR(Error, "Asset path is empty, cannot open read stream");

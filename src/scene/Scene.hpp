@@ -22,6 +22,8 @@
 
 #include <core/Types.hpp>
 
+#include <asset/AssetObject.hpp>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Scene);
@@ -77,7 +79,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API Scene final : public HypObjectBase
+class HYP_API Scene final : public AssetObject
 {
     friend class World;
     friend class UIStage;
@@ -86,11 +88,14 @@ class HYP_API Scene final : public HypObjectBase
 
 public:
     Scene();
+
     Scene(EnumFlags<SceneFlags> flags);
     Scene(World* world, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
     Scene(World* world, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
+
     Scene(const Scene& other) = delete;
     Scene& operator=(const Scene& other) = delete;
+
     ~Scene();
 
     /*! \brief Get the thread Id that owns this Scene. */
@@ -108,45 +113,27 @@ public:
     Camera* GetPrimaryCamera() const;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE EnumFlags<SceneFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<SceneFlags> GetSceneFlags() const
     {
-        return m_flags;
+        return m_sceneFlags;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetFlags(EnumFlags<SceneFlags> flags)
+    HYP_FORCE_INLINE void SetSceneFlags(EnumFlags<SceneFlags> flags)
     {
-        m_flags = flags;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
-    {
-        return m_uuid;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE void SetName(Name name)
-    {
-        m_name = name;
+        m_sceneFlags = flags;
     }
 
     HYP_METHOD()
     HYP_NODISCARD Handle<Node> FindNodeByName(WeakName name) const;
 
-    HYP_METHOD(Property = "Root", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Root", Editor = true)
     HYP_FORCE_INLINE const Handle<Node>& GetRoot() const
     {
         return m_root;
     }
 
-    HYP_METHOD(Property = "Root", Serialize = true, Editor = true)
+    HYP_METHOD(Property = "Root", Editor = true)
     void SetRoot(const Handle<Node>& root);
 
     HYP_METHOD()
@@ -176,27 +163,29 @@ public:
     {
         return m_world;
     }
-
+    
+    HYP_METHOD()
     void SetWorld(World* world);
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsForegroundScene() const
     {
-        return m_flags & SceneFlags::FOREGROUND;
+        return m_sceneFlags & SceneFlags::FOREGROUND;
     }
-
+    
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsBackgroundScene() const
     {
-        return !(m_flags & SceneFlags::FOREGROUND);
+        return !(m_sceneFlags & SceneFlags::FOREGROUND);
     }
 
-    HYP_METHOD(Property = "IsAudioListener", Serialize = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsAudioListener() const
     {
         return m_isAudioListener;
     }
 
-    HYP_METHOD(Property = "IsAudioListener", Serialize = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE void SetIsAudioListener(bool isAudioListener)
     {
         m_isAudioListener = isAudioListener;
@@ -225,29 +214,29 @@ private:
     template <class SystemType>
     void AddSystemIfApplicable();
 
-    HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
-    Name m_name;
+    HYP_FIELD(Property = "SceneFlags")
+    EnumFlags<SceneFlags> m_sceneFlags;
 
-    HYP_FIELD(Property = "Flags", Serialize = true)
-    EnumFlags<SceneFlags> m_flags;
-
-    HYP_FIELD(Property = "Uuid", Serialize = true)
-    Uuid m_uuid;
-
+    HYP_FIELD(Property = "Root")
     Handle<Node> m_root;
 
+    HYP_FIELD(Property = "OwnerThreadId", Transient)
     ThreadId m_ownerThreadId;
 
+    HYP_FIELD(Property = "World", Transient)
     World* m_world;
 
     FogParams m_fogParams;
 
+    HYP_FIELD(Property = "EntityManager", Transient)
     Handle<EntityManager> m_entityManager;
 
     SceneOctree m_octree;
 
+    HYP_FIELD(Property = "IsAudioListener")
     bool m_isAudioListener;
 
+    HYP_FIELD(Property = "PreviousDelta", Transient)
     float m_previousDelta;
 };
 

@@ -124,8 +124,8 @@ Scene::Scene(World* world, EnumFlags<SceneFlags> flags)
 }
 
 Scene::Scene(World* world, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
-    : m_name(Name::Unique("Scene")),
-      m_flags(flags),
+    : AssetObject(Name::Unique("Scene")),
+      m_sceneFlags(flags),
       m_ownerThreadId(ownerThreadId),
       m_world(world),
       m_isAudioListener(false),

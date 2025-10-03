@@ -16,7 +16,7 @@ namespace Hyperion
     {
         private static LogChannel defaultChannel = LogChannel.ByName("Default");
 
-        public static void Log(LogType logLevel, string message, params object[] args)
+        public static void Log(LogType logLevel, string message, params object?[] args)
         {
             var frame = new System.Diagnostics.StackFrame(1, true);
 
@@ -57,7 +57,7 @@ namespace Hyperion
             Logger_Log(defaultChannel.ptr, (uint)logLevel, funcName, line, formattedMessage);
         }
 
-        public static void Log(LogChannel channel, LogType logLevel, string message, params object[] args)
+        public static void Log(LogChannel channel, LogType logLevel, string message, params object?[] args)
         {
             var frame = new System.Diagnostics.StackFrame(1, true);
 

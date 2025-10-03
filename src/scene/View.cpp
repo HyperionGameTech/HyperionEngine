@@ -507,7 +507,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
         Assert(scene.IsValid());
         Assert(scene->IsReady());
 
-        if (scene->GetFlags() & SceneFlags::DETACHED)
+        if (scene->GetSceneFlags() & SceneFlags::DETACHED)
         {
             HYP_LOG(Scene, Warning, "Scene \"{}\" has DETACHED flag set, cannot collect entities for render collector!", scene->GetName());
 

@@ -121,7 +121,8 @@ HYP_ENUM()
 enum AssetObjectFlags : uint32
 {
     AOF_NONE = 0x0,
-    AOF_PERSISTENT = 0x1 //!< Asset is persistently loaded in memory
+    AOF_PERSISTENT = 0x1, //!< Asset is persistently loaded in memory
+    AOF_TRANSIENT = 0x2  //!< Asset is not saved to disk
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
@@ -173,13 +174,13 @@ public:
     virtual ~AssetObject();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
+    const Uuid& GetUUID() const
     {
         return m_uuid;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Name GetName() const
+    Name GetName() const
     {
         return m_name;
     }
@@ -193,31 +194,31 @@ public:
     virtual Result Rename(Name name);
 
     HYP_METHOD(Property = "FriendlyName")
-    HYP_FORCE_INLINE Name GetFriendlyName() const
+    Name GetFriendlyName() const
     {
         return m_friendlyName.IsValid() ? m_friendlyName : m_name;
     }
 
     HYP_METHOD(Property = "FriendlyName")
-    HYP_FORCE_INLINE void SetFriendlyName(Name friendlyName)
+    void SetFriendlyName(Name friendlyName)
     {
         m_friendlyName = friendlyName;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const FilePath& GetOriginalFilepath() const
+    const FilePath& GetOriginalFilepath() const
     {
         return m_originalFilepath;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetOriginalFilepath(const FilePath& originalFilepath)
+    void SetOriginalFilepath(const FilePath& originalFilepath)
     {
         m_originalFilepath = originalFilepath;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE Handle<AssetPackage> GetPackage() const
+    Handle<AssetPackage> GetPackage() const
     {
         return m_package.Lock();
     }
@@ -228,7 +229,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const AssetPath& GetPath() const
+    const AssetPath& GetPath() const
     {
         AssertDebug(IsRegistered(), "Calling GetPath() on an unregistered asset object");
 
@@ -236,25 +237,49 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsRegistered() const
+    bool IsRegistered() const
     {
         return m_package.IsValid();
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE EnumFlags<AssetObjectFlags> GetFlags() const
+    EnumFlags<AssetObjectFlags> GetAssetFlags() const
     {
         return m_flags;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsPersistentlyLoaded() const
+    void SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
+    {
+        const bool wasPersistent = m_flags[AOF_PERSISTENT];
+
+        m_flags = flags;
+
+        const bool isPersistent = m_flags[AOF_PERSISTENT];
+
+        if (wasPersistent != isPersistent)
+        {
+            SetIsPersistentlyLoaded(isPersistent);
+        }
+    }
+
+    HYP_METHOD()
+    bool IsPersistentlyLoaded() const
     {
         return bool(m_persistentResource);
     }
 
     HYP_METHOD()
     void SetIsPersistentlyLoaded(bool persistentlyLoaded);
+
+    HYP_METHOD()
+    bool IsTransient() const
+    {
+        return m_flags[AOF_TRANSIENT];
+    }
+
+    HYP_METHOD()
+    void SetIsTransient(bool isTransient);
 
     HYP_METHOD()
     bool IsLoaded() const;

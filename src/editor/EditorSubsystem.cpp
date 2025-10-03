@@ -2073,7 +2073,7 @@ void EditorSubsystem::UpdateWatchedNodes()
     {
         for (const Handle<Scene>& scene : GetWorld()->GetScenes())
         {
-            if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::EDITOR | SceneFlags::UI)) == SceneFlags::FOREGROUND)
+            if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::EDITOR | SceneFlags::UI)) == SceneFlags::FOREGROUND)
             {
                 StartWatchingNode(scene->GetRoot());
             }

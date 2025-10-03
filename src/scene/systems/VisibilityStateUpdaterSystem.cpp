@@ -15,7 +15,7 @@ namespace hyperion {
 
 bool VisibilityStateUpdaterSystem::ShouldCreateForScene(Scene* scene) const
 {
-    return !(scene->GetFlags() & (SceneFlags::UI | SceneFlags::DETACHED));
+    return !(scene->GetSceneFlags() & (SceneFlags::UI | SceneFlags::DETACHED));
 }
 
 void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)

@@ -206,7 +206,7 @@ void AssetPackage::Init()
 
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
-            if (IsTransient())
+            if (IsTransient() || assetObject->IsTransient())
             {
                 // transient data isn't saved to disk so we have to keep it in memory
                 assetObject->SetIsPersistentlyLoaded(true);
@@ -242,6 +242,8 @@ void AssetPackage::Init()
     {
         if (assetObjectsToSave.Contains(assetObject.Get()))
         {
+            AssertDebug(!assetObject->IsTransient());
+
             // save the asset in our package
             if (Result saveAssetResult = assetObject->Save(); saveAssetResult.HasError())
             {
@@ -333,7 +335,7 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
-            if (IsTransient())
+            if (IsTransient() || assetObject->IsTransient())
             {
                 // transient data isn't saved to disk so we have to keep it in memory
                 assetObject->SetIsPersistentlyLoaded(true);
@@ -362,6 +364,8 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
         {
             if (assetObjectsToSave.Contains(assetObject.Get()))
             {
+                AssertDebug(!assetObject->IsTransient());
+
                 // save the file in our package
                 Result saveAssetResult = assetObject->Save();
 
@@ -427,7 +431,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
         }
 
-        if (IsTransient())
+        if (IsTransient() || assetObject->IsTransient())
         {
             // transient data isn't saved to disk so we have to keep it in memory
             assetObject->SetIsPersistentlyLoaded(true);
@@ -467,6 +471,8 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
 
         if (doSaveAsset)
         {
+            AssertDebug(!assetObject->IsTransient());
+
             // save the file in our package
             Result saveAssetResult = assetObject->Save();
 
@@ -876,6 +882,11 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
     {
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
+            if (assetObject->IsTransient())
+            {
+                continue;
+            }
+
             assetObject->m_filepath = packageDir / *assetObject->GetName();
 
             if (Result saveAssetResult = assetObject->Save(); saveAssetResult.HasError())
