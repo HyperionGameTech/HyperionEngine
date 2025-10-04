@@ -4,8 +4,12 @@
 
 #include <core/functional/Proc.hpp>
 
+#include <core/logging/Logger.hpp>
+
 namespace hyperion {
 namespace buildtool {
+
+HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 Module::Module(const FilePath& path)
     : m_path(path)
@@ -23,7 +27,8 @@ Result Module::AddHypClassDefinition(HypClassDefinition&& hypClassDefinition)
         return HYP_MAKE_ERROR(Error, "HypClassDefinition already exists");
     }
 
-    m_hypClasses.Insert(hypClassDefinition.name, std::move(hypClassDefinition));
+    it = m_hypClasses.Insert(hypClassDefinition.name, std::move(hypClassDefinition)).first;
+    it->second.declModule = this;
 
     return {};
 }

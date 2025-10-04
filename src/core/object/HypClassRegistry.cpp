@@ -28,7 +28,12 @@ HYP_API const HypClass* g_hypObjectBaseClass = nullptr;
 
 using ThreadLocalCacheMap = HashMap<TypeId, const HypClass*>;
 
-static const ThreadLocalCacheMap g_dummyThreadLocalCache;
+static ThreadLocalCacheMap& GetDummyThreadLocalCache()
+{
+    static ThreadLocalCacheMap s_dummy;
+    return s_dummy;
+}
+
 thread_local ThreadLocalCacheMap* g_pThreadLocalCache;
 
 static void InitThreadLocalCache()
@@ -53,16 +58,15 @@ static void InitThreadLocalCache()
     }
 
     // not mutated, just used as a fallback for searching from (won't return any results)
-    g_pThreadLocalCache = const_cast<ThreadLocalCacheMap*>(&g_dummyThreadLocalCache);
+    g_pThreadLocalCache = &GetDummyThreadLocalCache();
 }
 
 #endif
 
 HypClassRegistry& HypClassRegistry::GetInstance()
 {
-    static HypClassRegistry instance;
-
-    return instance;
+    static HypClassRegistry s_instance;
+    return s_instance;
 }
 
 HypClassRegistry::HypClassRegistry()
@@ -116,7 +120,7 @@ const HypClass* HypClassRegistry::GetClass(TypeId typeId) const
     }
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
-    if (g_pThreadLocalCache && g_pThreadLocalCache != &g_dummyThreadLocalCache)
+    if (g_pThreadLocalCache && g_pThreadLocalCache != &GetDummyThreadLocalCache())
     {
         (*g_pThreadLocalCache)[typeId] = it->second;
     }
@@ -230,7 +234,7 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
         InitThreadLocalCache();
     }
 
-    if (g_pThreadLocalCache && g_pThreadLocalCache != &g_dummyThreadLocalCache)
+    if (g_pThreadLocalCache && g_pThreadLocalCache != &GetDummyThreadLocalCache())
     {
         (*g_pThreadLocalCache)[typeId] = hypClass;
     }

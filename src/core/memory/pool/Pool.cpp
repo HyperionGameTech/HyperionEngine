@@ -65,5 +65,19 @@ void Pool::Free(void* ptr)
     HYP_FAIL("Pointer {} not found in any pool block!", ptr);
 }
 
+void Pool::Reset()
+{
+    for (auto& block : m_blocks)
+    {
+        block = Block(m_blockSize);
+    }
+
+    // free all blocks except the first one
+    while (m_blocks.Size() > 1)
+    {
+        m_blocks.PopBack();
+    }
+}
+
 } // namespace memory
 } // namespace hyperion

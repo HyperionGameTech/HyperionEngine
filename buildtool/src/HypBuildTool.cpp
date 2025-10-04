@@ -307,10 +307,70 @@ private:
                     hypClassDefinitions.PushBack(&it.second);
                 }
 
+                // init ids and add dependency modules
                 for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
                 {
+                    HashSet<Module*> dependencyModules;
+
+                    Proc<void(const HypClassDefinition& srcClassDef, const ASTType* type)> addDependenciesRecur;
+                    addDependenciesRecur = [&](const HypClassDefinition& srcClassDef, const ASTType* type)
+                    {
+                        if (!type)
+                        {
+                            return;
+                        }
+
+                        if (type->isPointer)
+                        {
+                            addDependenciesRecur(srcClassDef, type->ptrTo.Get());
+                            return;
+                        }
+
+                        if (type->isLvalueReference || type->isRvalueReference)
+                        {
+                            addDependenciesRecur(srcClassDef, type->refTo.Get());
+                            return;
+                        }
+
+                        if (type->isArray)
+                        {
+                            addDependenciesRecur(srcClassDef, type->arrayOf.Get());
+                            return;
+                        }
+
+                        if (type->isFunction)
+                        {
+                            const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(type);
+                            Assert(functionType != nullptr);
+
+                            addDependenciesRecur(srcClassDef, functionType->returnType.Get());
+
+                            for (const RC<ASTMemberDecl>& param : functionType->parameters)
+                            {
+                                addDependenciesRecur(srcClassDef, param->type.Get());
+                            }
+
+                            return;
+                        }
+
+                        if (type->typeName.HasValue())
+                        {
+                            const HypClassDefinition* depHypClass = m_analyzer.FindHypClassDefinition(type->typeName->ToString(/* includeNamespace */ false));
+
+                            if (depHypClass != nullptr && depHypClass->declModule != nullptr && depHypClass->declModule != mod.Get())
+                            {
+                                dependencyModules.Insert(depHypClass->declModule);
+                            }
+                        }
+                    };
+
                     for (auto& it : mod->GetHypClasses())
                     {
+                        for (HypMemberDefinition& definition : it.second.members)
+                        {
+                            addDependenciesRecur(it.second, definition.cxxType.Get());
+                        }
+
                         if (hypClassDefinitionIds.Contains(it.second.name))
                         {
                             m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate HypClassDefinition name found: {}", mod->GetPath(), 0, it.second.name));
@@ -326,6 +386,14 @@ private:
                         hypClassDefinitionIds[it.second.name] = hypClassDefinitionId;
 
                         hypClassDefinitions.PushBack(&it.second);
+                    }
+
+                    if (dependencyModules.Any())
+                    {
+                        for (Module* dependencyModule : dependencyModules)
+                        {
+                            mod->AddDependencyModule(dependencyModule);
+                        }
                     }
                 }
 

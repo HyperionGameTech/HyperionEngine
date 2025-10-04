@@ -819,6 +819,8 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
             res = BuildHypEnumMembers(*this, mod, hypClassDefinition);
 
             break;
+        default:
+            return HYP_MAKE_ERROR(AnalyzerError, "Unknown HypClassDefinitionType", mod.GetPath());
         }
 
         if (res.HasError())
@@ -830,7 +832,6 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 
         Array<HypMemberDefinition> members = std::move(res.GetValue());
 
-#if defined(HYP_BUILD_TOOL_FRIENDLY_NAMES) && HYP_BUILD_TOOL_FRIENDLY_NAMES
         for (HypMemberDefinition& definition : members)
         {
             switch (definition.type)
@@ -838,6 +839,9 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
             case HypMemberType::TYPE_CONSTANT:
             case HypMemberType::TYPE_FIELD: // fallthrough
             {
+
+                // friendly names:
+#if defined(HYP_BUILD_TOOL_FRIENDLY_NAMES) && HYP_BUILD_TOOL_FRIENDLY_NAMES
                 bool preserveCase = true;
 
                 if (hypClassDefinition.type == HypClassDefinitionType::ENUM)
@@ -866,20 +870,21 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                 {
                     definition.friendlyName = StringUtil::ToPascalCase(nameWithoutPrefix, preserveCase);
                 }
+#else
+                for (HypMemberDefinition& definition : members)
+                {
+                    definition.friendlyName = definition.name;
+                }
+#endif
 
                 break;
             }
+            case HypMemberType::TYPE_METHOD: // fallthrough
             default:
                 definition.friendlyName = definition.name;
                 break;
             }
         }
-#else
-        for (HypMemberDefinition& definition : members)
-        {
-            definition.friendlyName = definition.name;
-        }
-#endif
 
         hypClassDefinition.members = std::move(members);
 

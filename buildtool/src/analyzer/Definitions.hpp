@@ -23,6 +23,7 @@ namespace buildtool {
 struct ASTType;
 struct ASTMemberDecl;
 class Analyzer;
+class Module;
 
 enum class HypClassDefinitionType
 {
@@ -87,6 +88,7 @@ struct HypClassDefinition
     Array<String> baseClassNames;
     Array<HypMemberDefinition> members;
     String source;
+    Module* declModule = nullptr;
 
     HYP_FORCE_INLINE bool HasAttribute(UTF8StringView key) const
     {

@@ -64,6 +64,27 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         addInclude(relativePath);
     }
 
+    if (mod.GetDependencyModules().Any())
+    {
+        for (Module* dependencyModule : mod.GetDependencyModules())
+        {
+            Assert(dependencyModule != nullptr);
+
+            if (!dependencyModule->GetPath().Any())
+            {
+                HYP_LOG(BuildTool, Error, "Dependency module has no path! Skipping include.");
+
+                continue;
+            }
+
+            FilePath relativePath = FilePath(FileSystem::RelativePath(dependencyModule->GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+
+            addInclude(relativePath);
+        }
+
+        writer.WriteString("\n");
+    }
+
     for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
     {
         const HypClassDefinition& hypClass = pair.second;

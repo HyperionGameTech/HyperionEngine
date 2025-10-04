@@ -121,6 +121,20 @@ public:
         return m_modules;
     }
 
+    template <class Predicate>
+    HYP_FORCE_INLINE Module* FindModule(Predicate&& predicate) const
+    {
+        for (const auto& mod : m_modules)
+        {
+            if (predicate(*mod))
+            {
+                return mod.Get();
+            }
+        }
+
+        return nullptr;
+    }
+
     HYP_FORCE_INLINE const HashMap<String, String>& GetGlobalDefines() const
     {
         return m_globalDefines;

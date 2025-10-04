@@ -254,15 +254,21 @@ public:
 
     ~Pool();
 
+    /*! \brief Allocates memory from the pool with the given size and alignment. */
     HYP_NODISCARD void* Alloc(SizeType size, SizeType alignment = alignof(std::max_align_t));
 
+    /*! \brief Allocates an object of type T from the pool. */
     template <class T>
     HYP_FORCE_INLINE HYP_NODISCARD T* Alloc()
     {
         return reinterpret_cast<T*>(Alloc(sizeof(T), alignof(T)));
     }
 
+    /*! \brief Frees a pointer previously allocated by this pool. */
     void Free(void* ptr);
+
+    /*! \brief Frees all memory allocated by the pool and resets it to its initial state. */
+    void Reset();
 
 protected:
     LinkedList<Block> m_blocks;
@@ -309,8 +315,8 @@ static inline void PoolDelete(Pool& pool, T* ptr)
 
 using memory::Pool;
 using memory::PoolAlloc;
+using memory::PoolDelete;
 using memory::PoolFree;
 using memory::PoolNew;
-using memory::PoolDelete;
 
 } // namespace hyperion

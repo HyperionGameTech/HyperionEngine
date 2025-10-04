@@ -140,8 +140,11 @@ HYP_API extern TypeInfo* TypeInfo_Alloc(
     TypeId typeId, SizeType typeSize, SizeType typeAlignment,
     Mutex::Guard* pGuard);
 
+/*! \brief Initialize the TypeInfo system, must be called before any other TypeInfo functions */
+HYP_API extern void TypeInfo_Initialize();
+
 /*! \brief Free all allocated TypeInfo instances and clear the cache */
-HYP_API extern void TypeInfo_DestroyCache();
+HYP_API extern void TypeInfo_Shutdown();
 
 class ITypeAttributeHandler
 {
@@ -962,6 +965,7 @@ using utilities::TypeInfo_ForType;
 using utilities::TypeInfo_Void;
 
 using utilities::TypeInfo;
-using utilities::TypeInfo_DestroyCache;
+using utilities::TypeInfo_Initialize;
+using utilities::TypeInfo_Shutdown;
 
 } // namespace hyperion

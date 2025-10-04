@@ -50,6 +50,8 @@ const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefiniti
 
 bool CoreApi_Initialize(int argc, char** argv)
 {
+    TypeInfo_Initialize();
+
     g_commandLineArguments = CommandLineArguments(argv[0]);
 
     CommandLineParser argParse { &CoreApi_DefaultCommandLineArgumentDefinitions() };
@@ -130,7 +132,7 @@ void CoreApi_OnShutdown(void (*func)())
 
 void CoreApi_Shutdown()
 {
-    TypeInfo_DestroyCache();
+    TypeInfo_Shutdown();
 
     {
         Mutex::Guard guard(g_globalsMutex);

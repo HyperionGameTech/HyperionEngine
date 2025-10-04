@@ -6,7 +6,7 @@
 
 #include <core/containers/HashMap.hpp>
 
-#include <core/memory/pool/LinearPool.hpp>
+#include <core/memory/pool/Pool.hpp>
 
 #include <core/object/HypClass.hpp>
 
@@ -21,7 +21,7 @@ struct TypeAttributeCacheKey
     SizeType size;
     SizeType alignment;
 
-    bool operator==(const TypeAttributeCacheKey& other) const
+    HYP_FORCE_INLINE bool operator==(const TypeAttributeCacheKey& other) const
     {
         return typeId == other.typeId
             && size == other.size
@@ -39,11 +39,43 @@ struct TypeAttributeCacheKey
     }
 };
 
-static LinearPool g_typeAttributePool;
-static HashMap<TypeAttributeCacheKey, TypeInfo*> g_typeAttributeCache;
+using TypeAttributeCache = HashMap<TypeAttributeCacheKey, TypeInfo*>;
 
-// mutex for cache and pool
-static Mutex g_typeAttributeCacheMutex;
+static bool g_typeInfoSystemInitialized = false;
+static TypeAttributeCache* g_typeAttributeCache = nullptr;
+static Pool* g_typeAttributePool = nullptr;
+
+static Mutex& GetTypeAttributeCacheMutex()
+{
+    static Mutex s_typeAttributeCacheMutex;
+    return s_typeAttributeCacheMutex;
+}
+
+static HashMap<TypeAttributeCacheKey, TypeInfo*>& GetTypeAttributeCache()
+{
+    static struct Initializer
+    {
+        Initializer()
+        {
+            g_typeAttributeCache = new TypeAttributeCache();
+        }
+    } s_initializer;
+
+    return *g_typeAttributeCache;
+}
+
+static Pool& GetTypeAttributePool()
+{
+    static struct Initializer
+    {
+        Initializer()
+        {
+            g_typeAttributePool = new Pool(1024 * 1024); // 1 MB blocks
+        }
+    } s_initializer;
+
+    return *g_typeAttributePool;
+}
 
 HYP_API TypeInfo* TypeInfo_Alloc(
     TypeId typeId, SizeType typeSize, SizeType typeAlignment,
@@ -53,19 +85,21 @@ HYP_API TypeInfo* TypeInfo_Alloc(
 
     if (outPGuard) // otherwise assumed to be called from a context where the mutex is already held
     {
-        new (outPGuard) Mutex::Guard(g_typeAttributeCacheMutex);
+        new (outPGuard) Mutex::Guard(GetTypeAttributeCacheMutex());
     }
 
-    const auto it = g_typeAttributeCache.Find(cacheKey);
-    if (it != g_typeAttributeCache.End())
+    TypeAttributeCache& typeAttributeCache = g_typeInfoSystemInitialized ? *g_typeAttributeCache : GetTypeAttributeCache();
+
+    const auto it = typeAttributeCache.Find(cacheKey);
+    if (it != typeAttributeCache.End())
     {
         return it->second;
     }
 
-    TypeInfo* pTypeInfo = PoolAlloc<TypeInfo>(g_typeAttributePool);
+    TypeInfo* pTypeInfo = PoolAlloc<TypeInfo>(GetTypeAttributePool());
     HYP_CORE_ASSERT(pTypeInfo != nullptr);
 
-    g_typeAttributeCache.Insert({ cacheKey, pTypeInfo });
+    typeAttributeCache.Insert({ cacheKey, pTypeInfo });
 
     return pTypeInfo;
 }
@@ -74,10 +108,12 @@ HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, SizeType size, SizeType
 {
     const TypeAttributeCacheKey key { typeId, size, alignment };
 
-    Mutex::Guard guard(g_typeAttributeCacheMutex);
+    Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
-    const auto it = g_typeAttributeCache.Find(key);
-    if (it != g_typeAttributeCache.End())
+    TypeAttributeCache& typeAttributeCache = g_typeInfoSystemInitialized ? *g_typeAttributeCache : GetTypeAttributeCache();
+
+    const auto it = typeAttributeCache.Find(key);
+    if (it != typeAttributeCache.End())
     {
         return it->second;
     }
@@ -85,17 +121,40 @@ HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, SizeType size, SizeType
     return nullptr;
 }
 
-HYP_API void TypeInfo_DestroyCache()
+HYP_API void TypeInfo_Initialize()
 {
-    Mutex::Guard guard(g_typeAttributeCacheMutex);
+    Threads::AssertOnThread(g_mainThread, "TypeInfo system must be initialized on the main thread");
 
-    for (auto& pair : g_typeAttributeCache)
+    HYP_CORE_ASSERT(!g_typeInfoSystemInitialized, "TypeInfo system is already initialized");
+
+    Mutex::Guard guard(GetTypeAttributeCacheMutex());
+
+    // ensure the cache and pool are created
+    (void)GetTypeAttributeCache();
+    (void)GetTypeAttributePool();
+
+    g_typeInfoSystemInitialized = true;
+}
+
+HYP_API void TypeInfo_Shutdown()
+{
+    Threads::AssertOnThread(g_mainThread, "TypeInfo system must be shutdown on the main thread");
+
+    Mutex::Guard guard(GetTypeAttributeCacheMutex());
+
+    HYP_CORE_ASSERT(g_typeInfoSystemInitialized, "TypeInfo system is not initialized");
+    g_typeInfoSystemInitialized = false;
+
+    for (auto& pair : *g_typeAttributeCache)
     {
         pair.second->~TypeInfo();
     }
 
-    g_typeAttributeCache.Clear();
-    g_typeAttributePool.Reset();
+    delete g_typeAttributeCache;
+    g_typeAttributeCache = nullptr;
+
+    delete g_typeAttributePool;
+    g_typeAttributePool = nullptr;
 }
 
 #pragma endregion Cache
@@ -239,10 +298,10 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
 
     const TypeAttributeCacheKey key { hypClass->GetTypeId(), hypClass->GetSize(), hypClass->GetAlignment() };
 
-    Mutex::Guard guard(g_typeAttributeCacheMutex);
+    Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
-    const auto it = g_typeAttributeCache.Find(key);
-    if (it != g_typeAttributeCache.End())
+    const auto it = GetTypeAttributeCache().Find(key);
+    if (it != GetTypeAttributeCache().End())
     {
         HYP_CORE_ASSERT(it->second != nullptr && it->second->GetHypClass() == hypClass);
         return *it->second;
