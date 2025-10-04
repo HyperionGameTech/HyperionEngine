@@ -27,6 +27,8 @@
 
 #include <analyzer/Analyzer.hpp>
 
+#include <util/ParseUtil.hpp>
+
 #if !defined(HYP_BUILD_TOOL_VERSION_MAJOR) || !defined(HYP_BUILD_TOOL_VERSION_MINOR) || !defined(HYP_BUILD_TOOL_VERSION_PATCH)
 #error "HYP_BUILD_TOOL_VERSION_MAJOR, HYP_BUILD_TOOL_VERSION_MINOR, and HYP_BUILD_TOOL_VERSION_PATCH must be defined"
 #endif
@@ -596,6 +598,11 @@ private:
                     continue;
                 }
 
+                if (writer.Position() == 0) // nothing was written
+                {
+                    continue;
+                }
+
                 hypscriptModuleWriter.Write(writer.GetBuffer());
             }
 
@@ -655,6 +662,8 @@ private:
 
             cxxModuleWriter = new FileByteWriter(m_analyzer.GetCXXOutputDirectory() / filenameBuffer);
 
+            cxxModuleWriter->WriteString(GetGeneratedFilePreamble(String::empty));
+
             // add main required header that is shared across all generated modules.
             cxxModuleWriter->WriteString("#include <core/object/HypClassUtils.hpp>\n");
 
@@ -682,6 +691,8 @@ private:
                 updateFilenameBuffer();
 
                 cxxModuleWriter = new FileByteWriter(m_analyzer.GetCXXOutputDirectory() / filenameBuffer);
+
+                cxxModuleWriter->WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod->GetPath(), m_analyzer.GetSourceDirectory())));
 
                 // add main required header that is shared across all generated modules.
                 cxxModuleWriter->WriteString("#include <core/object/HypClassUtils.hpp>\n");

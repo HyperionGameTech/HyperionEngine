@@ -354,7 +354,7 @@ add_definitions(-DHYP_VERSION_MAJOR=${HYP_VERSION_MAJOR})
 add_definitions(-DHYP_VERSION_MINOR=${HYP_VERSION_MINOR})
 add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
 
-set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/build/generated")
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
 
 set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
@@ -823,7 +823,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
     endif()
 
     file(GLOB_RECURSE CSHARP_SHARED_SOURCES "src/dotnet/shared/**.cs")
-    file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs" "${HYP_GENERATED_DIR}/CSharp/**.cs")
+    file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs" "${HYP_GENERATED_DIR}/csharp/**.cs")
     file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "src/dotnet/interop/**.cs")
     file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 

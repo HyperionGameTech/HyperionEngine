@@ -14,6 +14,10 @@ namespace buildtool {
 Optional<String> ExtractCXXClassName(const String& line);
 Array<String> ExtractCXXBaseClasses(const String& line);
 
+String GetDateTimeString();
+
+String GetGeneratedFilePreamble(const String& srcPath);
+
 } // namespace buildtool
 } // namespace hyperion
 

@@ -41,7 +41,7 @@ Result GeneratorBase::Generate(const Analyzer& analyzer, const Module& mod) cons
 
     Result res = Generate(analyzer, mod, memoryWriter);
 
-    if (!res.HasError())
+    if (!res.HasError() && memoryWriter.Position() > 0)
     {
         FileByteWriter fileWriter { outputFilePath };
         fileWriter.Write(memoryWriter.GetBuffer());

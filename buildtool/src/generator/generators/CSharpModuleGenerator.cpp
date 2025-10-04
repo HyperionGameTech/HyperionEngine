@@ -11,6 +11,10 @@
 
 #include <core/io/ByteWriter.hpp>
 
+#include <util/ParseUtil.hpp>
+
+#include <time.h>
+
 namespace hyperion {
 namespace buildtool {
 
@@ -41,9 +45,54 @@ FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, cons
 
 Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
-    writer.WriteString("using System;\n");
-    writer.WriteString("using System.Runtime.InteropServices;\n");
-    writer.WriteString("\n");
+    static const auto noScriptBindingsPredicate = []<class T>(const T& item)
+    {
+        return item.GetAttribute("NoScriptBindings").GetBool();
+    };
+
+    static const auto noScriptBindingsPredicateInv = []<class T>(const T& item)
+    {
+        return !item.GetAttribute("NoScriptBindings").GetBool();
+    };
+
+    {
+        // check if all classes are empty; if so, skip generation entirely
+        bool allEmpty = true;
+
+        for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
+        {
+            const HypClassDefinition& hypClass = pair.second;
+
+            if (noScriptBindingsPredicate(hypClass))
+            {
+                continue;
+            }
+
+            if (hypClass.members.Any())
+            {
+                allEmpty = false;
+                break;
+            }
+        }
+
+        if (allEmpty)
+        {
+            return Result();
+        }
+    }
+
+    SizeType positionBeforeGlobal = writer.Position();
+    int numClassesWritten = 0;
+
+    HYP_DEFER({
+        if (numClassesWritten == 0)
+        {
+            writer.Seek(positionBeforeGlobal, /* truncate */ true);
+        }
+    });
+
+    writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory())));
+
     writer.WriteString("namespace Hyperion\n");
     writer.WriteString("{\n");
 
@@ -51,7 +100,27 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
     {
         const HypClassDefinition& hypClass = pair.second;
 
-        if (const HypClassAttributeValue& attr = hypClass.GetAttribute("NoScriptBindings"); attr.GetBool())
+        SizeType positionBeforeLocal = writer.Position();
+        int numMembersWritten = 0;
+
+        HYP_DEFER({
+            if (numMembersWritten == 0)
+            {
+                writer.Seek(positionBeforeLocal, /* truncate */ true);
+            }
+            else
+            {
+                ++numClassesWritten;
+            }
+        });
+
+        if (noScriptBindingsPredicate(hypClass))
+        {
+            continue;
+        }
+
+        // skip generation if no members to serialize
+        if (hypClass.members.Empty())
         {
             continue;
         }
@@ -63,9 +132,8 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         {
             const HypMemberDefinition& member = hypClass.members[i];
 
-            if (const HypClassAttributeValue& attr = member.GetAttribute("NoScriptBindings"); attr.GetBool())
+            if (noScriptBindingsPredicate(member))
             {
-                // skip generating script bindings for this
                 continue;
             }
 
@@ -192,6 +260,8 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
                 writer.WriteString("        }\n");
 
+                ++numMembersWritten;
+
                 continue;
             }
 
@@ -206,6 +276,8 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 writer.WriteString("            return new ScriptableDelegate(obj, fieldAddress);\n");
 
                 writer.WriteString("        }\n");
+
+                ++numMembersWritten;
 
                 continue;
             }
