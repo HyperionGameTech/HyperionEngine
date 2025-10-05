@@ -21,7 +21,13 @@ HYP_END_CLASS
 /* Generated from: editor/EditorSubsystem.hpp */
 
 #include <editor/EditorSubsystem.hpp>
+#include <editor/EditorProject.hpp>
+#include <scene/Scene.hpp>
+#include <editor/EditorTask.hpp>
+#include <scene/Node.hpp>
+#include <editor/ui/debug/EditorDebugOverlay.hpp>
 #include <core/NameInternal.hpp>
+#include <scene/World.hpp>
 #include <core/math/BoundingBox.hpp>
 
 

@@ -8,8 +8,12 @@
 #include <core/math/Transform.hpp>
 
 #include <core/containers/FlatSet.hpp>
+
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Tuple.hpp>
+#include <core/utilities/Span.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
@@ -27,6 +31,8 @@ using RayHitID = uint32;
 HYP_STRUCT(Size = 32, Serialize = "bitwise")
 struct HYP_API Ray
 {
+    HYP_STRUCT_BODY(Ray);
+
     HYP_FIELD(Property = "Position")
     Vec3f position;
 
@@ -68,7 +74,7 @@ struct HYP_API Ray
         const Transform& transform) const;
 
     Optional<RayHit> TestTriangleList(
-        const Array<Triangle>& triangles,
+        const Span<Triangle>& triangles,
         const Transform& transform) const;
 
     bool TestTriangleList(
@@ -78,7 +84,7 @@ struct HYP_API Ray
         RayTestResults& outResults) const;
 
     bool TestTriangleList(
-        const Array<Triangle>& triangles,
+        const Span<Triangle>& triangles,
         const Transform& transform,
         RayTestResults& outResults) const;
 
@@ -90,7 +96,7 @@ struct HYP_API Ray
         RayTestResults& outResults) const;
 
     bool TestTriangleList(
-        const Array<Triangle>& triangles,
+        const Span<Triangle>& triangles,
         const Transform& transform,
         RayHitID hitId,
         RayTestResults& outResults) const;
@@ -104,7 +110,7 @@ struct HYP_API Ray
         RayTestResults& outResults) const;
 
     bool TestTriangleList(
-        const Array<Triangle>& triangles,
+        const Span<Triangle>& triangles,
         const Transform& transform,
         RayHitID hitId,
         const void* userData,

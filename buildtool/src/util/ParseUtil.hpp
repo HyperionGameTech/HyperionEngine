@@ -14,6 +14,11 @@ namespace buildtool {
 Optional<String> ExtractCXXClassName(const String& line);
 Array<String> ExtractCXXBaseClasses(const String& line);
 
+bool IsCXXClassDecl(const String& line);
+bool IsCXXStructDecl(const String& line);
+bool IsCXXEnumDecl(const String& line);
+bool IsCXXEnumClassDecl(const String& line);
+
 String GetDateTimeString();
 
 String GetGeneratedFilePreamble(const String& srcPath);

@@ -12,6 +12,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
+#include <core/object/Handle.hpp>
 #include <core/object/HypObjectFwd.hpp>
 
 #include <core/containers/String.hpp>

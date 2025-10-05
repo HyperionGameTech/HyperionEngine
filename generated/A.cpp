@@ -149,6 +149,7 @@ HYP_END_CLASS
 
 #include <ui/UIStage.hpp>
 #include <scene/Scene.hpp>
+#include <scene/camera/Camera.hpp>
 
 
 namespace hyperion {
@@ -358,11 +359,16 @@ HYP_END_CLASS
 /* Generated from: ui/UIObject.hpp */
 
 #include <ui/UIObject.hpp>
+#include <scene/Entity.hpp>
 #include <ui/UIStage.hpp>
 #include <core/NameInternal.hpp>
 #include <core/math/Color.hpp>
+#include <scene/Node.hpp>
 #include <scene/World.hpp>
 #include <core/math/BoundingBox.hpp>
+#include <ui/UIDataSource.hpp>
+#include <input/Mouse.hpp>
+#include <input/Keyboard.hpp>
 
 
 namespace hyperion {
@@ -951,6 +957,8 @@ static_assert(sizeof(Transform) == 112, "Expected sizeof(Transform) to be 112 by
 /* Generated from: core/math/Triangle.hpp */
 
 #include <core/math/Triangle.hpp>
+#include <core/math/Vertex.hpp>
+
 
 namespace hyperion {
 
@@ -1421,6 +1429,7 @@ static_assert(sizeof(AssetReference) == 16, "Expected sizeof(AssetReference) to 
 #include <core/utilities/Uuid.hpp>
 #include <core/NameInternal.hpp>
 #include <core/utilities/Result.hpp>
+#include <asset/AssetRegistry.hpp>
 #include <asset/AssetPath.hpp>
 
 
@@ -1506,6 +1515,7 @@ static_assert(sizeof(AssetPath) == 8, "Expected sizeof(AssetPath) to be 8 bytes"
 /* Generated from: asset/MeshAsset.hpp */
 
 #include <asset/MeshAsset.hpp>
+#include <core/math/Vertex.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
 

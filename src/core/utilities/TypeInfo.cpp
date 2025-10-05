@@ -322,7 +322,7 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
     pTypeInfo->name = hypClass->GetName();
     pTypeInfo->size = hypClass->GetSize();
     pTypeInfo->alignment = hypClass->GetAlignment();
-    pTypeInfo->flags = TypeAttributeFlags::HYP_CLASS;
+    pTypeInfo->flags = TypeAttributeFlags::NONE;
 
     if (hypClass->IsClassType())
     {

@@ -90,6 +90,29 @@ struct HypClassDefinition
     String source;
     Module* declModule = nullptr;
 
+    // cached C++ parsing metadata, used for building forward declarations
+    bool isCXXClass : 1;     //<! original type is class
+    bool isCXXStruct : 1;    //<! original type is struct
+    bool isCXXEnum : 1;      //<! original type is enum
+    bool isCXXEnumClass : 1; //<! original type is enum class
+
+    HypClassDefinition()
+        : type(HypClassDefinitionType::NONE),
+          isCXXClass(false),
+          isCXXStruct(false),
+          isCXXEnum(false),
+          isCXXEnumClass(false)
+    {
+    }
+
+    HypClassDefinition(const HypClassDefinition& other) = default;
+    HypClassDefinition& operator=(const HypClassDefinition& other) = default;
+
+    HypClassDefinition(HypClassDefinition&& other) noexcept = default;
+    HypClassDefinition& operator=(HypClassDefinition&& other) noexcept = default;
+
+    ~HypClassDefinition() = default;
+
     HYP_FORCE_INLINE bool HasAttribute(UTF8StringView key) const
     {
         auto it = attributes.FindIf([keyLower = String(key).ToLower()](const auto& item)

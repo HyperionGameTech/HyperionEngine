@@ -507,6 +507,10 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         }
 
         hypClassDefinition.name = *optClassName;
+        hypClassDefinition.isCXXClass = IsCXXClassDecl(hypClassDefinition.source);
+        hypClassDefinition.isCXXStruct = !hypClassDefinition.isCXXClass && IsCXXStructDecl(hypClassDefinition.source);
+        hypClassDefinition.isCXXEnumClass = !hypClassDefinition.isCXXClass && !hypClassDefinition.isCXXStruct && IsCXXEnumClassDecl(hypClassDefinition.source);
+        hypClassDefinition.isCXXEnum = !hypClassDefinition.isCXXClass && !hypClassDefinition.isCXXStruct && (hypClassDefinition.isCXXEnumClass || IsCXXEnumDecl(hypClassDefinition.source));
 
         Array<String> baseClassNames = ExtractCXXBaseClasses(hypClassDefinition.source);
 
@@ -521,6 +525,9 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
 
             ParseInnerContent(remainingContent, hypClassDefinition.source);
         }
+
+        AssertDebug(hypClassDefinition.isCXXClass || hypClassDefinition.isCXXStruct || hypClassDefinition.isCXXEnum || hypClassDefinition.isCXXEnumClass,
+            "HypClassDefinition must be a class, struct, enum, or enum class. Got source:\n\t{}", hypClassDefinition.source);
 
         hypClassDefinitions.PushBack(std::move(hypClassDefinition));
     }
@@ -750,11 +757,11 @@ Analyzer::Analyzer()
     // clang-format off
 
     // reserve 'HypObjectBase' class
-    m_builtinHypClasses.Emplace("HypObjectBase", HypClassDefinition {
-        .type = HypClassDefinitionType::CLASS,
-        .name = "HypObjectBase",
-        .staticIndex = 0
-    });
+    HypClassDefinition& hypClassDefinition = m_builtinHypClasses.Emplace("HypObjectBase", HypClassDefinition { }).first->second;
+    hypClassDefinition.type = HypClassDefinitionType::CLASS;
+    hypClassDefinition.name = "HypObjectBase";
+    hypClassDefinition.staticIndex = 0;
+    hypClassDefinition.isCXXClass = true;
 
     // clang-format on
 }
@@ -887,6 +894,9 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
         }
 
         hypClassDefinition.members = std::move(members);
+
+        AssertDebug(hypClassDefinition.isCXXClass || hypClassDefinition.isCXXStruct || hypClassDefinition.isCXXEnumClass || hypClassDefinition.isCXXEnum,
+            "HypClassDefinition must be a C++ class, struct, or enum");
 
         mod.AddHypClassDefinition(std::move(hypClassDefinition));
     }

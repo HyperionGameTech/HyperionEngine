@@ -153,8 +153,7 @@ bool Ray::TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, 
         .normal = normal,
         .distance = t,
         .id = hitId,
-        .userData = userData
-    });
+        .userData = userData });
 
     return true;
 }
@@ -254,7 +253,7 @@ Optional<RayHit> Ray::TestTriangleList(
 }
 
 Optional<RayHit> Ray::TestTriangleList(
-    const Array<Triangle>& triangles,
+    const Span<Triangle>& triangles,
     const Transform& transform) const
 {
     RayTestResults outResults;
@@ -277,7 +276,7 @@ bool Ray::TestTriangleList(
 }
 
 bool Ray::TestTriangleList(
-    const Array<Triangle>& triangles,
+    const Span<Triangle>& triangles,
     const Transform& transform,
     RayTestResults& outResults) const
 {
@@ -295,7 +294,7 @@ bool Ray::TestTriangleList(
 }
 
 bool Ray::TestTriangleList(
-    const Array<Triangle>& triangles,
+    const Span<Triangle>& triangles,
     const Transform& transform,
     RayHitID hitId,
     RayTestResults& outResults) const
@@ -363,7 +362,7 @@ bool Ray::TestTriangleList(
 }
 
 bool Ray::TestTriangleList(
-    const Array<Triangle>& triangles,
+    const Span<Triangle>& triangles,
     const Transform& transform,
     RayHitID hitId,
     const void* userData,

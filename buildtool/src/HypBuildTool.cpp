@@ -340,6 +340,21 @@ private:
                             return;
                         }
 
+                        if (type->isTemplate)
+                        {
+                            for (const RC<ASTTemplateArgument>& templateArgument : type->templateArguments)
+                            {
+                                Assert(templateArgument != nullptr);
+
+                                if (templateArgument->type != nullptr)
+                                {
+                                    addDependenciesRecur(srcClassDef, templateArgument->type.Get());
+                                }
+                            }
+
+                            return;
+                        }
+
                         if (type->isFunction)
                         {
                             const ASTFunctionType* functionType = dynamic_cast<const ASTFunctionType*>(type);
@@ -610,6 +625,26 @@ private:
         }
 
         RC<CXXModuleGenerator> cxxModuleGenerator = MakeRefCountedPtr<CXXModuleGenerator>();
+
+        // Generate the HypClassDecl header file
+        {
+            FilePath hypClassDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "HypClasses.inl";
+            FileByteWriter hypClassDeclWriter(hypClassDeclHeaderPath);
+
+            if (!hypClassDeclWriter.IsOpen())
+            {
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypClassDecl header file: {}", {}, -1, hypClassDeclHeaderPath));
+            }
+            else
+            {
+                if (Result res = cxxModuleGenerator->GenerateHypClassDeclHeader(m_analyzer, hypClassDeclWriter); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), hypClassDeclHeaderPath));
+                }
+
+                hypClassDeclWriter.Close();
+            }
+        }
 
         static constexpr uint32 idealCxxModuleFileSize = g_cxxUnityBuildEnabled ? g_cxxUnityBuildIdealFileSize : 1;
 

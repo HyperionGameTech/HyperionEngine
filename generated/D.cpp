@@ -480,7 +480,9 @@ HYP_END_CLASS
 
 #include <scene/EnvProbe.hpp>
 #include <core/math/BoundingBox.hpp>
+#include <scene/camera/Camera.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Texture.hpp>
 
 
 namespace hyperion {
@@ -597,6 +599,7 @@ HYP_END_ENUM
 #include <core/NameInternal.hpp>
 #include <rendering/RenderStats.hpp>
 #include <scene/Subsystem.hpp>
+#include <scene/world_grid/WorldGrid.hpp>
 #include <scene/GameState.hpp>
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
@@ -857,6 +860,7 @@ static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_
 
 #include <scene/Light.hpp>
 #include <core/math/Color.hpp>
+#include <rendering/Material.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
 
@@ -997,6 +1001,7 @@ HYP_REGISTER_ENTITY_TYPE(Light);
 
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
+#include <scene/camera/Camera.hpp>
 
 
 namespace hyperion {
@@ -1020,6 +1025,7 @@ HYP_END_CLASS
 
 #include <scene/BVH.hpp>
 #include <core/math/BoundingBox.hpp>
+#include <core/math/Triangle.hpp>
 
 
 namespace hyperion {
@@ -1044,6 +1050,7 @@ HYP_END_STRUCT
 #include <scene/EntityManager.hpp>
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/Entity.hpp>
 #include <scene/System.hpp>
 #include <core/utilities/TypeId.hpp>
 
@@ -1070,6 +1077,7 @@ HYP_END_CLASS
 
 #include <scene/ScriptableSystem.hpp>
 #include <scene/Entity.hpp>
+#include <scene/ComponentContainer.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 
@@ -1242,7 +1250,9 @@ Array<ComponentInfo> ScriptableSystem::GetComponentInfos() const
 
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
+#include <scene/Node.hpp>
 #include <core/NameInternal.hpp>
+#include <scene/EntityManager.hpp>
 #include <scene/World.hpp>
 
 
@@ -1302,6 +1312,8 @@ HYP_END_ENUM
 
 #include <scene/EnvGrid.hpp>
 #include <core/math/BoundingBox.hpp>
+#include <scene/View.hpp>
+#include <scene/camera/Camera.hpp>
 
 #include <scene/ComponentInterface.hpp>
 #include <scene/EntityTag.hpp>
@@ -1459,6 +1471,7 @@ HYP_END_CLASS
 /* Generated from: scene/camera/Camera.hpp */
 
 #include <scene/camera/Camera.hpp>
+#include <input/InputHandler.hpp>
 #include <core/math/Frustum.hpp>
 #include <core/math/Matrix4.hpp>
 

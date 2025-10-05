@@ -708,6 +708,8 @@ HYP_END_CLASS
 /* Generated from: game/Game.hpp */
 
 #include <game/Game.hpp>
+#include <scene/World.hpp>
+
 
 namespace hyperion {
 
@@ -1439,6 +1441,7 @@ HYP_END_STRUCT
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/Texture.hpp>
 
 
 namespace hyperion {

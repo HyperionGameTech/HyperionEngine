@@ -6,7 +6,7 @@
 #include <core/math/Quaternion.hpp>
 #include <core/math/Matrix4.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/HashCode.hpp>
 

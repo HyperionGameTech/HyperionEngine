@@ -20,6 +20,8 @@ public:
     virtual Result Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const override;
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
+    Result GenerateHypClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
+
 protected:
 };
 

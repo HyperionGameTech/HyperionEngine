@@ -90,6 +90,9 @@ HYP_END_STRUCT
 /* Generated from: scene/animation/Skeleton.hpp */
 
 #include <scene/animation/Skeleton.hpp>
+#include <scene/animation/Bone.hpp>
+#include <scene/animation/Animation.hpp>
+
 
 namespace hyperion {
 
@@ -128,6 +131,7 @@ HYP_END_CLASS
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <core/utilities/Uuid.hpp>
+#include <rendering/Texture.hpp>
 
 
 namespace hyperion {
@@ -202,9 +206,13 @@ HYP_END_ENUM
 /* Generated from: scene/components/MeshComponent.hpp */
 
 #include <scene/components/MeshComponent.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
+#include <scene/animation/Skeleton.hpp>
 #include <rendering/MeshInstanceData.hpp>
 #include <core/math/Matrix4.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
 #include <core/utilities/Uuid.hpp>
 
 #include <scene/ComponentInterface.hpp>
@@ -318,6 +326,7 @@ HYP_REGISTER_COMPONENT(TransformComponent);
 /* Generated from: scene/components/ScriptComponent.hpp */
 
 #include <scene/components/ScriptComponent.hpp>
+#include <asset/ScriptAsset.hpp>
 #include <asset/AssetReference.hpp>
 
 
@@ -361,6 +370,8 @@ HYP_REGISTER_COMPONENT(ScriptComponent);
 /* Generated from: scene/components/UIComponent.hpp */
 
 #include <scene/components/UIComponent.hpp>
+#include <ui/UIObject.hpp>
+
 #include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
@@ -444,6 +455,8 @@ HYP_END_ENUM
 /* Generated from: scene/components/SkyComponent.hpp */
 
 #include <scene/components/SkyComponent.hpp>
+#include <rendering/subsystems/sky/SkydomeRenderer.hpp>
+
 #include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
@@ -462,6 +475,8 @@ HYP_REGISTER_COMPONENT(SkyComponent);
 /* Generated from: scene/components/AudioComponent.hpp */
 
 #include <scene/components/AudioComponent.hpp>
+#include <audio/AudioSource.hpp>
+
 
 namespace hyperion {
 
@@ -543,6 +558,8 @@ HYP_END_STRUCT
 /* Generated from: scene/components/LightmapVolumeComponent.hpp */
 
 #include <scene/components/LightmapVolumeComponent.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
+
 #include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
@@ -561,6 +578,8 @@ HYP_REGISTER_COMPONENT(LightmapVolumeComponent);
 /* Generated from: scene/components/NodeLinkComponent.hpp */
 
 #include <scene/components/NodeLinkComponent.hpp>
+#include <scene/Node.hpp>
+
 #include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
@@ -580,6 +599,7 @@ static_assert(sizeof(NodeLinkComponent) == 8, "Expected sizeof(NodeLinkComponent
 /* Generated from: scene/components/RigidBodyComponent.hpp */
 
 #include <scene/components/RigidBodyComponent.hpp>
+#include <physics/RigidBody.hpp>
 #include <physics/PhysicsMaterial.hpp>
 #include <core/HashCode.hpp>
 
@@ -619,6 +639,8 @@ HYP_END_ENUM
 /* Generated from: scene/components/ReflectionProbeComponent.hpp */
 
 #include <scene/components/ReflectionProbeComponent.hpp>
+#include <scene/EnvProbe.hpp>
+
 #include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
@@ -919,6 +941,7 @@ WorldGridLayerInfo WorldGridLayer::CreateLayerInfo() const
 
 #include <scene/world_grid/WorldGrid.hpp>
 #include <scene/World.hpp>
+#include <streaming/StreamingManager.hpp>
 #include <scene/world_grid/WorldGridLayer.hpp>
 
 
@@ -942,6 +965,7 @@ HYP_END_CLASS
 /* Generated from: scene/world_grid/terrain/TerrainWorldGridPlugin.hpp */
 
 #include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
+#include <scene/Scene.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 #include <streaming/StreamingCell.hpp>
 
@@ -1025,6 +1049,9 @@ HYP_END_STRUCT
 /* Generated from: engine/EngineDriver.hpp */
 
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
+#include <scene/World.hpp>
+
 
 namespace hyperion {
 
@@ -1045,6 +1072,8 @@ HYP_END_CLASS
 /* Generated from: editor/EditorActionStack.hpp */
 
 #include <editor/EditorActionStack.hpp>
+#include <editor/EditorAction.hpp>
+
 
 namespace hyperion {
 
@@ -1129,6 +1158,8 @@ HYP_END_CLASS
 /* Generated from: editor/EditorState.hpp */
 
 #include <editor/EditorState.hpp>
+#include <editor/EditorProject.hpp>
+
 
 namespace hyperion {
 
@@ -1150,7 +1181,10 @@ HYP_END_CLASS
 #include <core/utilities/Uuid.hpp>
 #include <core/NameInternal.hpp>
 #include <core/utilities/Time.hpp>
+#include <scene/Scene.hpp>
+#include <asset/AssetRegistry.hpp>
 #include <core/utilities/Result.hpp>
+#include <editor/EditorActionStack.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 

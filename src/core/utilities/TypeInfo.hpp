@@ -741,21 +741,6 @@ struct TypeInfo
                 result.extendedInfo.data.typeInfo = &ForType<ElementType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
             }
-            else
-            {
-                // Can't store HypClass here as the system may not be initialized yet
-                // so HypClass constructor will set the hypClass later (in Initialize)
-
-                static_assert(ImplementationExistsV<NormalizedT>);
-
-                if constexpr (ImplementationExistsV<NormalizedT>)
-                {
-                    if constexpr (IsHypObjectV<NormalizedT>)
-                    {
-                        result.flags |= TypeAttributeFlags::HYP_CLASS;
-                    }
-                }
-            }
 
             ValueStorage<Mutex::Guard> guardStorage;
 
@@ -808,11 +793,6 @@ struct TypeInfo
     HYP_FORCE_INLINE constexpr bool IsFloatType() const
     {
         return flags & TypeAttributeFlags::FLOAT_TYPE;
-    }
-
-    HYP_FORCE_INLINE constexpr bool HasHypClass() const
-    {
-        return flags & TypeAttributeFlags::HYP_CLASS;
     }
 
     HYP_FORCE_INLINE const HypClass* GetHypClass() const

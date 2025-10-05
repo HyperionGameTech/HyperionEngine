@@ -64,6 +64,50 @@ Array<String> ExtractCXXBaseClasses(const String& line)
     return results;
 }
 
+bool IsCXXClassDecl(const String& line)
+{
+    static const std::regex s_pattern(
+        "(?:class)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)");
+
+    std::string str = line.Data();
+    std::smatch match;
+
+    return std::regex_search(str, match, s_pattern);
+}
+
+bool IsCXXStructDecl(const String& line)
+{
+    static const std::regex s_pattern(
+        "(?:struct)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)");
+
+    std::string str = line.Data();
+    std::smatch match;
+
+    return std::regex_search(str, match, s_pattern);
+}
+
+bool IsCXXEnumDecl(const String& line)
+{
+    static const std::regex s_pattern(
+        "(?:enum|(?:enum class))\\s+(\\w+)");
+
+    std::string str = line.Data();
+    std::smatch match;
+
+    return std::regex_search(str, match, s_pattern);
+}
+
+bool IsCXXEnumClassDecl(const String& line)
+{
+    static const std::regex s_pattern(
+        "(?:enum class)\\s+(\\w+)");
+
+    std::string str = line.Data();
+    std::smatch match;
+
+    return std::regex_search(str, match, s_pattern);
+}
+
 String GetDateTimeString()
 {
     time_t now = time(nullptr);

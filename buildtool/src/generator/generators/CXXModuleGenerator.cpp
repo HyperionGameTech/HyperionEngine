@@ -43,6 +43,104 @@ FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const M
     return analyzer.GetCXXOutputDirectory() / relativePath.BasePath() / StringUtil::StripExtension(relativePath.Basename()) + ".generated.cpp";
 }
 
+Result CXXModuleGenerator::GenerateHypClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const
+{
+    writer.WriteString("template <class T>\n");
+    writer.WriteString("struct HypClassDecl;\n\n");
+
+    struct ClassInfo
+    {
+        const HypClassDefinition* definition;
+        String namespacePath;
+    };
+
+    Array<ClassInfo> allClasses;
+    HashSet<String> processedNames;
+
+    for (const auto& it : analyzer.GetBuiltinHypClasses())
+    {
+        if (processedNames.Contains(it.second.name))
+        {
+            continue;
+        }
+
+        processedNames.Insert(it.second.name);
+        allClasses.PushBack({ &it.second, "hyperion" });
+    }
+
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        for (const Pair<String, HypClassDefinition>& pair : mod->GetHypClasses())
+        {
+            if (processedNames.Contains(pair.second.name))
+            {
+                continue;
+            }
+
+            processedNames.Insert(pair.second.name);
+            allClasses.PushBack({ &pair.second, "hyperion" });
+        }
+    }
+
+    for (const ClassInfo& classInfo : allClasses)
+    {
+        const HypClassDefinition& hypClass = *classInfo.definition;
+
+        if (hypClass.isCXXClass)
+        {
+            writer.WriteString(HYP_FORMAT("class {};\n", hypClass.name));
+        }
+        else if (hypClass.isCXXStruct)
+        {
+            writer.WriteString(HYP_FORMAT("struct {};\n", hypClass.name));
+        }
+        else if (hypClass.isCXXEnum || hypClass.isCXXEnumClass)
+        {
+            if (hypClass.isCXXEnumClass)
+            {
+                if (hypClass.baseClassNames.Any())
+                {
+                    writer.WriteString(HYP_FORMAT("enum class {} : {};\n", hypClass.name, hypClass.baseClassNames.Front()));
+                }
+                else
+                {
+                    writer.WriteString(HYP_FORMAT("enum class {};\n", hypClass.name));
+                }
+            }
+            else
+            {
+                if (hypClass.baseClassNames.Any())
+                {
+                    writer.WriteString(HYP_FORMAT("enum {} : {};\n", hypClass.name, hypClass.baseClassNames.Front()));
+                }
+                else
+                {
+                    writer.WriteString(HYP_FORMAT("enum {};\n", hypClass.name));
+                }
+            }
+        }
+        else
+        {
+            HYP_LOG(BuildTool, Error, "Unknown C++ type for class '{}', cannot generate forward declaration", hypClass.name);
+        }
+    }
+
+    writer.WriteString("\n");
+
+    for (const ClassInfo& classInfo : allClasses)
+    {
+        const HypClassDefinition& hypClass = *classInfo.definition;
+
+        writer.WriteString(HYP_FORMAT("template <>\n"));
+        writer.WriteString(HYP_FORMAT("struct HypClassDecl<{}>\n", hypClass.name));
+        writer.WriteString("{\n");
+        writer.WriteString(HYP_FORMAT("    using Type = {};\n", hypClass.name));
+        writer.WriteString("};\n\n");
+    }
+
+    return {};
+}
+
 Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const
 {
     HashSet<String> addedIncludes;
