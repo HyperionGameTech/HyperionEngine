@@ -14,7 +14,7 @@ WORKING_DIR=`pwd`
 
 # Version-based rebuild logic
 REBUILD=false
-INC_FILE="$WORKING_DIR/build/generated/BuildToolOutput.inc"
+INC_FILE="$WORKING_DIR/generated/BuildToolOutput.inc"
 
 # Check if both the build tool and version file exist
 if [ ! -f ./build/hyperion-buildtool ]; then
@@ -76,4 +76,4 @@ else
 fi
 
 # Run the build tool
-./build/hyperion-buildtool --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/src --CXXOutputDirectory=$WORKING_DIR/build/generated --CSharpOutputDirectory=$WORKING_DIR/build/generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/build/bin --ExcludeDirectories=$WORKING_DIR/src/generated --ExcludeFiles=$WORKING_DIR/src/core/Defines.hpp
+./build/hyperion-buildtool --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/src --CXXOutputDirectory=$WORKING_DIR/generated --CSharpOutputDirectory=$WORKING_DIR/generated/csharp --HypScriptOutputDirectory=$WORKING_DIR/build/bin --ExcludeDirectories=$WORKING_DIR/generated --ExcludeFiles=$WORKING_DIR/src/core/Defines.hpp

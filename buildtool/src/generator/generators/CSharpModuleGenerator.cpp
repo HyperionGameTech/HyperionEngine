@@ -13,8 +13,6 @@
 
 #include <util/ParseUtil.hpp>
 
-#include <time.h>
-
 namespace hyperion {
 namespace buildtool {
 
