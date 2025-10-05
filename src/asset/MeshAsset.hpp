@@ -4,6 +4,8 @@
 
 #include <asset/AssetObject.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/math/Vertex.hpp>
 #include <core/math/BoundingBox.hpp>
 
@@ -22,6 +24,8 @@ class BVHNode;
 HYP_STRUCT()
 struct MeshDesc
 {
+    HYP_STRUCT_BODY(MeshDesc);
+
     HYP_FIELD(Serialize)
     MeshAttributes meshAttributes;
 
@@ -35,6 +39,8 @@ struct MeshDesc
 HYP_STRUCT()
 struct MeshData
 {
+    HYP_STRUCT_BODY(MeshData);
+
     HYP_FIELD(Serialize, Compressed)
     Array<Vertex> vertexData;
 

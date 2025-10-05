@@ -4,7 +4,7 @@
 
 #include <core/object/Handle.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -44,6 +44,8 @@ using threading::TaskBatch;
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>
 {
+    HYP_STRUCT_BODY(RendererConfig);
+
     HYP_FIELD(JsonPath = "raytracing.pathTracing.enabled")
     bool pathTracer = false;
 

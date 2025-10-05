@@ -9,11 +9,15 @@
 
 #include <core/Types.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 namespace hyperion {
 
 HYP_STRUCT(Serialize = "bitwise")
 struct HYP_API Triangle
 {
+    HYP_STRUCT_BODY(Triangle);
+
     HYP_FIELD()
     FixedArray<Vertex, 3> points;
 

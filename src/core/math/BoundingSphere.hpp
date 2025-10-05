@@ -6,6 +6,8 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Ray.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -14,7 +16,8 @@ HYP_STRUCT(Size = 32)
 
 struct HYP_API BoundingSphere
 {
-public:
+    HYP_STRUCT_BODY(BoundingSphere);
+
     static const BoundingSphere empty;
     static const BoundingSphere infinity;
 

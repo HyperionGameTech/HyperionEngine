@@ -6,11 +6,12 @@
 #include <rendering/RenderFramebuffer.hpp>
 #include <rendering/RenderBucket.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/Shared.hpp>
 
-#include <core/Defines.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
+#include <core/Defines.hpp>
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
@@ -31,6 +32,8 @@ HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags)
 HYP_STRUCT()
 struct MaterialAttributes
 {
+    HYP_STRUCT_BODY(MaterialAttributes);
+
     HYP_FIELD(Serialize)
     ShaderDefinition shaderDefinition;
 
@@ -92,6 +95,8 @@ struct MaterialAttributes
 HYP_STRUCT()
 struct MeshAttributes
 {
+    HYP_STRUCT_BODY(MeshAttributes);
+
     HYP_FIELD(Property = "VertexAttributes", Serialize = true)
     VertexAttributeSet vertexAttributes = staticMeshVertexAttributes;
 

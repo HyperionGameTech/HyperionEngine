@@ -37,11 +37,7 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
 {
     HYP_CORE_ASSERT(ptr.IsValid());
 
-#ifdef HYP_DEBUG_MODE
-    initializerThreadId = Threads::CurrentThreadId();
-#else
     count = 0;
-#endif
 
     HYP_CORE_ASSERT(ptr.GetClass()->UseHandles());
 
@@ -166,7 +162,7 @@ HypObjectBase::HypObjectBase()
 HypObjectBase::~HypObjectBase()
 {
     m_delegateHandlers = {};
-    
+
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
     if (m_scriptObjectResource)

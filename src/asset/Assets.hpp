@@ -5,7 +5,7 @@
 #include <asset/AssetLoader.hpp>
 
 #include <core/object/Handle.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -58,6 +58,8 @@ enum AssetLoadFlagBits : AssetLoadFlags
 HYP_STRUCT()
 struct AssetLoaderDefinition
 {
+    HYP_STRUCT_BODY(AssetLoaderDefinition);
+
     TypeId loaderTypeId;
     TypeId resultTypeId;
     const HypClass* resultHypClass = nullptr;
@@ -173,7 +175,7 @@ class AssetManager final : public HypObjectBase
     HYP_OBJECT_BODY(AssetManager);
 
 public:
-    typedef UniquePtr<ProcessAssetFunctorBase>(*ProcessAssetFunctorFactory)(
+    typedef UniquePtr<ProcessAssetFunctorBase> (*ProcessAssetFunctorFactory)(
         const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks);
 
     static constexpr bool assetCacheEnabled = false;
@@ -328,4 +330,3 @@ private:
 };
 
 } // namespace hyperion
-

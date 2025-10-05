@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/Name.hpp>
 
@@ -18,6 +18,8 @@ namespace hyperion {
 HYP_STRUCT(Size = 8)
 struct AssetPath
 {
+    HYP_STRUCT_BODY(AssetPath);
+
     HYP_PROPERTY(Value, &AssetPath::ToString, &AssetPath::Set)
 
     HYP_FIELD(NoScriptBindings, Transient)

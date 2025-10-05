@@ -12,7 +12,7 @@
 #include <core/containers/ArrayMap.hpp>
 #include <core/containers/FixedArray.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/utilities/Range.hpp>
 
@@ -104,6 +104,8 @@ enum class DescriptorSetElementType : uint32
 HYP_STRUCT()
 struct DescriptorSetOffsetMap
 {
+    HYP_STRUCT_BODY(DescriptorSetOffsetMap);
+
     static constexpr uint32 g_maxOffsets = 8;
 
     WeakName keys[g_maxOffsets];
@@ -159,6 +161,8 @@ struct DescriptorSetOffsetMap
 HYP_STRUCT()
 struct DescriptorTableOffsetMap
 {
+    HYP_STRUCT_BODY(DescriptorTableOffsetMap);
+
     static constexpr uint32 g_maxSets = 4;
 
     WeakName setNames[g_maxSets];
@@ -265,6 +269,8 @@ struct DescriptorSetElementTypeInfo<TLASBase>
 HYP_STRUCT()
 struct DescriptorSetLayoutElement
 {
+    HYP_STRUCT_BODY(DescriptorSetLayoutElement);
+
     HYP_FIELD()
     DescriptorSetElementType type = DescriptorSetElementType::UNSET;
 
@@ -311,6 +317,8 @@ enum DescriptorSlot : uint32
 HYP_STRUCT()
 struct DescriptorDeclaration
 {
+    HYP_STRUCT_BODY(DescriptorDeclaration);
+
     using ConditionFunction = bool (*)();
 
     HYP_FIELD(Property = "Slot", Serialize = true)
@@ -353,6 +361,8 @@ struct DescriptorDeclaration
 HYP_STRUCT()
 struct DescriptorSetDeclaration
 {
+    HYP_STRUCT_BODY(DescriptorSetDeclaration);
+
     HYP_FIELD(Property = "SetIndex", Serialize = true)
     uint32 setIndex = ~0u;
 
@@ -416,6 +426,8 @@ struct DescriptorSetDeclaration
 HYP_STRUCT()
 struct DescriptorTableDeclaration
 {
+    HYP_STRUCT_BODY(DescriptorTableDeclaration);
+
     HYP_FIELD(Property = "Elements", Serialize = true)
     Array<DescriptorSetDeclaration> elements;
 
@@ -722,7 +734,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;

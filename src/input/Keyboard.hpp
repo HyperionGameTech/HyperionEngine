@@ -1,6 +1,8 @@
 #pragma once
-#include <core/Defines.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
+#include <core/Defines.hpp>
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -93,6 +95,8 @@ HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, cha
 HYP_STRUCT(Size = 16)
 struct KeyboardEvent
 {
+    HYP_STRUCT_BODY(KeyboardEvent);
+
     HYP_FIELD()
     InputManager* inputManager = nullptr;
 

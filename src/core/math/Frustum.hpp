@@ -7,6 +7,8 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/containers/FixedArray.hpp>
 
 #include <core/Types.hpp>
@@ -16,6 +18,8 @@ namespace hyperion {
 HYP_STRUCT(Size = 224, Serialize = "bitwise")
 struct HYP_API Frustum
 {
+    HYP_STRUCT_BODY(Frustum);
+
     HYP_FIELD()
     FixedArray<Vec4f, 6> planes;
 

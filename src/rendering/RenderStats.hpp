@@ -1,9 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
+
 #include <core/containers/FixedArray.hpp>
 
 #include <util/GameCounter.hpp>
+
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/Types.hpp>
 
 #include <cfloat>
@@ -37,6 +41,8 @@ static_assert(ERS_MAX <= 16, "RenderStatsCountType must not exceed 16 types");
 HYP_STRUCT()
 struct RenderStatsCounts
 {
+    HYP_STRUCT_BODY(RenderStatsCounts);
+
     uint32 counts[16] = { 0 };
 
     HYP_FORCE_INLINE constexpr uint32& operator[](RenderStatsCountType type)
@@ -53,6 +59,8 @@ struct RenderStatsCounts
 HYP_STRUCT()
 struct RenderStats
 {
+    HYP_STRUCT_BODY(RenderStats);
+
     double framesPerSecond = INFINITY;
     double millisecondsPerFrame = 0.0;
     double millisecondsPerFrameAvg = 0.0;

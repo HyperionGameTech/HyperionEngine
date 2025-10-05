@@ -1,6 +1,10 @@
 #pragma once
+
 #include <core/math/Vector2.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
+
+#include <core/object/HypObjectFwd.hpp>
 
 namespace hyperion {
 
@@ -30,6 +34,8 @@ HYP_MAKE_ENUM_FLAGS(MouseButtonState)
 HYP_STRUCT(Size = 56)
 struct MouseEvent
 {
+    HYP_STRUCT_BODY(MouseEvent);
+
     HYP_FIELD()
     InputManager* inputManager = nullptr;
 

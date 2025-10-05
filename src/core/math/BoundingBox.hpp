@@ -9,6 +9,8 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
@@ -19,7 +21,8 @@ struct Triangle;
 HYP_STRUCT(Size = 32)
 struct HYP_API BoundingBox
 {
-public:
+    HYP_STRUCT_BODY(BoundingBox);
+
     BoundingBox();
     BoundingBox(const Vec3f& min, const Vec3f& max);
 

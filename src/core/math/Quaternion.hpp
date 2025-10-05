@@ -7,6 +7,8 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -14,9 +16,10 @@ namespace hyperion {
 class Matrix4;
 
 HYP_STRUCT(Size = 16)
-
 struct alignas(16) HYP_API Quaternion
 {
+    HYP_STRUCT_BODY(Quaternion);
+
     friend std::ostream& operator<<(std::ostream& out, const Quaternion& rot);
 
     HYP_FIELD()

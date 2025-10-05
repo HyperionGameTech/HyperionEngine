@@ -8,16 +8,17 @@
 #include <core/containers/FixedArray.hpp>
 
 #include <core/utilities/Variant.hpp>
-
-#include <core/Defines.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 #include <util/EnumOptions.hpp>
-#include <core/utilities/ByteUtil.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Transform.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
+#include <core/Defines.hpp>
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
@@ -73,6 +74,8 @@ struct VertexAttribute
 HYP_STRUCT()
 struct VertexAttributeSet
 {
+    HYP_STRUCT_BODY(VertexAttributeSet);
+
     HYP_FIELD(Property = "FlagMask", Serialize = true)
     uint64 flagMask;
 
@@ -248,6 +251,8 @@ constexpr VertexAttributeSet skeletonVertexAttributes(
 HYP_STRUCT(Size = 128, Serialize = "bitwise")
 struct alignas(16) Vertex
 {
+    HYP_STRUCT_BODY(Vertex);
+
     Vertex()
         : numIndices(0),
           numWeights(0)

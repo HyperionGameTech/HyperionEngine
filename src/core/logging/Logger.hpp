@@ -12,7 +12,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/containers/String.hpp>
 #include <core/containers/Bitset.hpp>
@@ -104,6 +104,8 @@ HYP_STRUCT()
 class HYP_API LogChannel
 {
 public:
+    HYP_STRUCT_BODY(LogChannel);
+
     friend class Logger;
     friend class LogChannelRegistrar;
 

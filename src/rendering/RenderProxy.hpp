@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/object/ObjId.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/utilities/UserData.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -41,6 +42,8 @@ class ShadowMap;
 HYP_STRUCT()
 struct MeshRaytracingData
 {
+    HYP_STRUCT_BODY(MeshRaytracingData);
+
     HYP_FIELD(NoScriptBindings)
     BLASRef blas;
 
@@ -134,6 +137,8 @@ public:
 HYP_STRUCT(Serialize = "bitwise")
 struct EnvProbeSphericalHarmonics
 {
+    HYP_STRUCT_BODY(EnvProbeSphericalHarmonics);
+
     Vec4f values[9];
 };
 

@@ -6,12 +6,16 @@
 
 #include <core/containers/String.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 namespace hyperion {
 
 HYP_STRUCT(Size = 16)
 class HYP_API DynamicLibrary
 {
 public:
+    HYP_STRUCT_BODY(DynamicLibrary);
+
     DynamicLibrary() = default;
 
     explicit DynamicLibrary(const String& path);

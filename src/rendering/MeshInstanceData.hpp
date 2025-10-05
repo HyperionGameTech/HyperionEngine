@@ -9,6 +9,8 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Matrix4.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 namespace hyperion {
 
 struct MeshInstanceData;
@@ -18,6 +20,8 @@ HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData&);
 HYP_STRUCT(PostLoad = "MeshInstanceData_PostLoad", Size = 104)
 struct MeshInstanceData
 {
+    HYP_STRUCT_BODY(MeshInstanceData);
+
     static constexpr uint32 maxBuffers = 8;
 
     HYP_FIELD(Property = "NumInstances", Serialize = true, Editor = true, Description = "The number of instances of this mesh. This is used to determine how many instances to render in a single draw call. If this is set to 1, the mesh will be rendered as a single instance. If this is greater than 1, the mesh will be rendered as multiple instances.")

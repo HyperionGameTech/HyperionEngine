@@ -4,7 +4,7 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 #include <core/object/Handle.hpp>
 
 #include <core/utilities/Variant.hpp>

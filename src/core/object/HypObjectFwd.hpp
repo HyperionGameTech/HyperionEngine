@@ -7,12 +7,6 @@
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/object/ObjId.hpp>
-
-#ifdef HYP_DEBUG_MODE
-#include <core/threading/Threads.hpp>
-#endif
-
 #include <core/utilities/FormatFwd.hpp>
 
 #include <core/Constants.hpp>
@@ -196,12 +190,7 @@ struct HypObjectInitializerGuardBase
     HYP_API ~HypObjectInitializerGuardBase();
 
     HypObjectPtr ptr;
-
-#ifdef HYP_DEBUG_MODE
-    ThreadId initializerThreadId;
-#else
     uint32 count;
-#endif
 };
 
 template <class T>

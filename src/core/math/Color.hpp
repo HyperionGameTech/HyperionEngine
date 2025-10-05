@@ -8,6 +8,8 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/memory/Memory.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
@@ -21,6 +23,8 @@ HYP_STRUCT()
 class alignas(uint32) HYP_API Color
 {
 public:
+    HYP_STRUCT_BODY(Color);
+
     static constexpr uint32 size = 4;
 
     union

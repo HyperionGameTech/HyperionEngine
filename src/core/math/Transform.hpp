@@ -6,6 +6,8 @@
 #include <core/math/Quaternion.hpp>
 #include <core/math/Matrix4.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -13,6 +15,8 @@ namespace hyperion {
 HYP_STRUCT(Size = 112, Serialize = "bitwise")
 struct alignas(16) HYP_API Transform
 {
+    HYP_STRUCT_BODY(Transform);
+
     static const Transform identity;
 
     HYP_FIELD()

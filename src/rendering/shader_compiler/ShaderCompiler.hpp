@@ -52,9 +52,9 @@ struct VertexAttributeDefinition
 HYP_STRUCT()
 struct ShaderProperty
 {
-    using Value = Variant<String, int, float>;
-
     HYP_STRUCT_BODY(ShaderProperty);
+
+    using Value = Variant<String, int, float>;
 
     Name name;
     bool isPermutation;
