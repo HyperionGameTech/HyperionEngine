@@ -37,6 +37,8 @@ enum LightmapTextureType : uint32
 HYP_STRUCT(NoScriptBindings)
 struct LightmapElement
 {
+    HYP_STRUCT_BODY(LightmapElement);
+
     using Id = uint32;
 
     HYP_FIELD(Serialize = true)
@@ -80,6 +82,8 @@ struct LightmapElement
 HYP_STRUCT()
 struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
 {
+    HYP_STRUCT_BODY(LightmapVolumeAtlas);
+
     HYP_PROPERTY(AtlasDimensions, &LightmapVolumeAtlas::atlasDimensions)
     HYP_PROPERTY(Elements, &LightmapVolumeAtlas::elements)
     HYP_PROPERTY(FreeSpaces, &LightmapVolumeAtlas::freeSpaces)

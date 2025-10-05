@@ -5,7 +5,6 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/LinkedList.hpp>
 
-#include <core/memory/UniquePtr.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
 #include <core/math/BoundingBox.hpp>
@@ -22,6 +21,8 @@ namespace hyperion {
 HYP_STRUCT()
 struct HYP_API BVHNode
 {
+    HYP_STRUCT_BODY(BVHNode);
+
     HYP_FIELD(Serialize)
     BoundingBox aabb;
 

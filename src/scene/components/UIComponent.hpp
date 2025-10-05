@@ -22,6 +22,8 @@ class InputManager;
 HYP_STRUCT(Component, Size = 8, Serialize = false)
 struct UIComponent
 {
+    HYP_STRUCT_BODY(UIComponent);
+
     HYP_FIELD()
     WeakHandle<UIObject> uiObject;
 };

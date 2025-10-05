@@ -4,8 +4,9 @@
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>
-
 #include <core/Traits.hpp>
+
+#include <core/object/HypObjectMacros.hpp>
 
 #include <type_traits>
 #include <bit>
@@ -91,6 +92,8 @@ struct FNV1
 HYP_STRUCT()
 struct HashCode
 {
+    HYP_STRUCT_BODY(HashCode);
+
     using ValueType = uint64;
 
     ValueType value;

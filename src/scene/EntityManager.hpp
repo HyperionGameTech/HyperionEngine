@@ -190,10 +190,12 @@ public:
         Assert(system.IsValid());
         Assert(IsValidForSystem(system.Get()), "System is not valid for this SystemExecutionGroup");
 
-        auto it = m_systems.Find(system->GetTypeId());
+        const TypeId typeId = GetTypeIdForClass(system->InstanceClass());
+
+        auto it = m_systems.Find(typeId);
         Assert(it == m_systems.End(), "System already exists");
 
-        auto insertResult = m_systems.Set(system->GetTypeId(), system);
+        auto insertResult = m_systems.Set(typeId, system);
 
         return insertResult.first->second;
     }

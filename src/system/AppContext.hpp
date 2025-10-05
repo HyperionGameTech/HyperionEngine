@@ -264,4 +264,3 @@ using sys::Win32AppContext;
 using sys::Win32ApplicationWindow;
 
 } // namespace hyperion
-

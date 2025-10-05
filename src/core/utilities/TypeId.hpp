@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include <core/Name.hpp>
 #include <core/Util.hpp>
-
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-#include <atomic>
+#include <core/object/HypObjectMacros.hpp>
 
 namespace hyperion {
 namespace utilities {
@@ -55,6 +53,8 @@ struct TypeId_FromString_Impl
 HYP_STRUCT()
 struct TypeId
 {
+    HYP_STRUCT_BODY(TypeId);
+
     using ValueType = TypeIdValue;
 
 private:

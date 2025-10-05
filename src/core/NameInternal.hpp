@@ -5,6 +5,10 @@
 #include <core/Defines.hpp>
 #include <core/containers/StaticString.hpp>
 
+#include <core/utilities/TypeId.hpp>
+
+#include <core/object/HypObjectMacros.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -42,6 +46,8 @@ extern HYP_API Name CreateNameFromDynamicString(const ANSIString& str);
 HYP_STRUCT()
 struct Name
 {
+    HYP_STRUCT_BODY(Name);
+
     friend constexpr bool operator==(const Name& lhs, const Name& rhs);
     friend constexpr bool operator==(const Name& lhs, const WeakName& rhs);
     friend constexpr bool operator!=(const Name& lhs, const Name& rhs);
@@ -127,6 +133,8 @@ struct Name
 HYP_STRUCT()
 struct WeakName
 {
+    HYP_STRUCT_BODY(WeakName);
+
     friend constexpr bool operator==(const WeakName& lhs, const WeakName& rhs);
     friend constexpr bool operator==(const WeakName& lhs, const Name& rhs);
     friend constexpr bool operator!=(const WeakName& lhs, const WeakName& rhs);

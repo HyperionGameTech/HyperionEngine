@@ -4,6 +4,8 @@
 
 #include <core/math/Transform.hpp>
 
+#include <core/object/HypObjectMacros.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -11,6 +13,8 @@ namespace hyperion {
 HYP_STRUCT(Component, Label = "Transform Component", Description = "Controls the translation, rotation, and scale of an object.", Editor = false)
 struct TransformComponent
 {
+    HYP_STRUCT_BODY(TransformComponent);
+
     HYP_FIELD(Property = "Transform")
     Transform transform;
 

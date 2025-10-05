@@ -12,6 +12,8 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/object/HypObjectMacros.hpp>
+
 #include <core/Types.hpp>
 
 #include <type_traits>
@@ -39,6 +41,8 @@ public:
 HYP_STRUCT(Size = 128)
 class Error : public IError
 {
+    HYP_STRUCT_BODY(Error);
+
 public:
     Error()
         : m_message(String::empty),
@@ -480,6 +484,8 @@ private:
 HYP_STRUCT(Size = 8)
 class Result : public TResult<void, Error>
 {
+    HYP_STRUCT_BODY(Result);
+
 public:
     using TResult::operator bool;
     using TResult::operator!;

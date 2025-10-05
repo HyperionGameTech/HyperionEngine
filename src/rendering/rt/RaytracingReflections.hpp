@@ -24,6 +24,8 @@ struct RenderCommand_CreateRTRadianceImageOutputs;
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.raytracing")
 struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConfig>
 {
+    HYP_STRUCT_BODY(RaytracingReflectionsConfig);
+
     HYP_FIELD(JsonIgnore)
     Vec2u extent = { 1280, 720 };
 

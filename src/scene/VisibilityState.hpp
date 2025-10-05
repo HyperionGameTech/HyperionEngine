@@ -16,6 +16,8 @@ class Camera;
 HYP_STRUCT()
 struct VisibilityStateSnapshot
 {
+    HYP_STRUCT_BODY(VisibilityStateSnapshot);
+
     uint16 validityMarker { 0u };
 
     HYP_FORCE_INLINE bool ValidToParent(const VisibilityStateSnapshot& parent) const
@@ -27,6 +29,8 @@ struct VisibilityStateSnapshot
 HYP_STRUCT()
 struct VisibilityState
 {
+    HYP_STRUCT_BODY(VisibilityState);
+
     // static_assert(std::is_final_v<Camera>, "ObjId<Camera> must be final (to prevent ID index issues with derived types)");
 
     Array<VisibilityStateSnapshot, InlineAllocator<16>> snapshots;

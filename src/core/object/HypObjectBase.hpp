@@ -85,24 +85,10 @@ public:
         return ObjIdBase { GetTypeIdForClass(m_header->hypClass), m_header->index + 1 };
     }
 
-    HYP_FORCE_INLINE TypeId GetTypeId() const
-    {
-        HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
-
-        return GetTypeIdForClass(m_header->hypClass);
-    }
-
-    HYP_FORCE_INLINE const TypeInfo& GetTypeInfo() const
-    {
-        HYP_CORE_ASSERT(m_header, "Invalid HypObject!");
-
-        return TypeInfo::ForHypClass(m_header->hypClass);
-    }
-
     HYP_FORCE_INLINE static const HypClass* Class()
     {
-        static const HypClass* hypClass = GetClass(TypeId::ForType<HypObjectBase>());
-        return hypClass;
+        HYP_API extern const HypClass* g_clsHypObjectBase;
+        return g_clsHypObjectBase;
     }
 
     HYP_FORCE_INLINE const HypClass* InstanceClass() const

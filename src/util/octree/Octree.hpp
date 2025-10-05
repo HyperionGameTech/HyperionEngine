@@ -35,6 +35,8 @@ namespace hyperion {
 HYP_STRUCT()
 struct OctantId
 {
+    HYP_STRUCT_BODY(OctantId);
+
     //! This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
     static constexpr uint64 invalidBits = 1ull << 63;
     static constexpr SizeType maxDepth = 64 / 3;

@@ -36,4 +36,3 @@ protected:
 using editor::HyperionEditor;
 
 } // namespace hyperion
-

@@ -20,7 +20,9 @@ static constexpr uint32 g_maxStatEntriesPerGroup = 32;
 
 HYP_STRUCT()
 struct EngineStatEntry
-{ 
+{
+    HYP_STRUCT_BODY(EngineStatEntry);
+
     Name name;
 
     union
@@ -102,7 +104,7 @@ public:
     {
         return m_clock.ElapsedMs();
     }
-    
+
 private:
     Name m_name;
     PerformanceClock m_clock;

@@ -302,7 +302,7 @@ int SDLAppContext::PollEvent(SystemEvent& event)
 
             break;
         }
-        case SDL_KEYDOWN:  // fallthrough
+        case SDL_KEYDOWN: // fallthrough
         case SDL_KEYUP:
         {
             switch (sdlEvent.type)
@@ -412,7 +412,8 @@ Win32ApplicationWindow::Win32ApplicationWindow(ANSIString title, Vec2i size)
 
 Win32ApplicationWindow::~Win32ApplicationWindow()
 {
-    if (m_hwnd) {
+    if (m_hwnd)
+    {
         DestroyWindow(m_hwnd);
         m_hwnd = nullptr;
     }
@@ -423,7 +424,7 @@ Win32ApplicationWindow::~Win32ApplicationWindow()
 void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     m_title = windowOptions.title;
-    m_size  = windowOptions.size;
+    m_size = windowOptions.size;
 
     WideString wTitle = m_title.ToWide();
 
@@ -436,7 +437,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
     RegisterClassW(&wc);
 
     DWORD style = WS_OVERLAPPEDWINDOW;
-    RECT r{0, 0, (LONG)m_size.x, (LONG)m_size.y};
+    RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
     AdjustWindowRect(&r, style, FALSE);
 
     m_hwnd = CreateWindowW(
@@ -462,7 +463,7 @@ LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPAR
     }
 
     Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
-    
+
     if (window)
     {
         return window->WndProc(hWnd, msg, wParam, lParam);
@@ -478,14 +479,14 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 
 void Win32ApplicationWindow::SetMousePosition(Vec2i position)
 {
-    POINT pt{ position.x, position.y };
+    POINT pt { position.x, position.y };
     ClientToScreen(m_hwnd, &pt);
     SetCursorPos(pt.x, pt.y);
 }
 
 Vec2i Win32ApplicationWindow::GetMousePosition() const
 {
-    POINT pt{};
+    POINT pt {};
     GetCursorPos(&pt);
     ScreenToClient(m_hwnd, &pt);
     return { pt.x, pt.y };
@@ -493,24 +494,25 @@ Vec2i Win32ApplicationWindow::GetMousePosition() const
 
 Vec2i Win32ApplicationWindow::GetDimensions() const
 {
-    RECT rc{};
+    RECT rc {};
     GetClientRect(m_hwnd, &rc);
     return { rc.right - rc.left, rc.bottom - rc.top };
 }
 
 void Win32ApplicationWindow::SetIsMouseLocked(bool locked)
 {
-    if (m_mouseLocked == locked) return;
+    if (m_mouseLocked == locked)
+        return;
     m_mouseLocked = locked;
 
     if (locked)
     {
-        RECT rc{};
+        RECT rc {};
         GetClientRect(m_hwnd, &rc);
-        POINT tl{ rc.left, rc.top }, br{ rc.right, rc.bottom };
+        POINT tl { rc.left, rc.top }, br { rc.right, rc.bottom };
         ClientToScreen(m_hwnd, &tl);
         ClientToScreen(m_hwnd, &br);
-        RECT clip{ tl.x, tl.y, br.x, br.y };
+        RECT clip { tl.x, tl.y, br.x, br.y };
         ClipCursor(&clip);
         SetCapture(m_hwnd);
         ShowCursor(FALSE);
@@ -601,7 +603,8 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     // Most VK_* keys are mapped directly to KeyCode, but some need special handling
     switch (wParam)
     {
-    case VK_TAB: return KeyCode::TAB;
+    case VK_TAB:
+        return KeyCode::TAB;
     case VK_SHIFT:
     {
         // Distinguish between left and right shift
@@ -620,21 +623,34 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
         const bool isRight = (lParam & (1 << 24)) != 0;
         return isRight ? KeyCode::RIGHT_ALT : KeyCode::LEFT_ALT;
     }
-    case VK_CAPITAL: return KeyCode::CAPSLOCK;
-    case VK_SPACE: return KeyCode::SPACE;
-    case VK_LEFT: return KeyCode::ARROW_LEFT;
-    case VK_UP: return KeyCode::ARROW_UP;
-    case VK_RIGHT: return KeyCode::ARROW_RIGHT;
-    case VK_DOWN: return KeyCode::ARROW_DOWN;
-    case VK_LMENU: return KeyCode::LEFT_ALT;
-    case VK_RMENU: return KeyCode::RIGHT_ALT;
-    case VK_LCONTROL: return KeyCode::LEFT_CTRL;
-    case VK_RCONTROL: return KeyCode::RIGHT_CTRL;
-    case VK_LSHIFT: return KeyCode::LEFT_SHIFT;
-    case VK_RSHIFT: return KeyCode::RIGHT_SHIFT;
-    default: break;
+    case VK_CAPITAL:
+        return KeyCode::CAPSLOCK;
+    case VK_SPACE:
+        return KeyCode::SPACE;
+    case VK_LEFT:
+        return KeyCode::ARROW_LEFT;
+    case VK_UP:
+        return KeyCode::ARROW_UP;
+    case VK_RIGHT:
+        return KeyCode::ARROW_RIGHT;
+    case VK_DOWN:
+        return KeyCode::ARROW_DOWN;
+    case VK_LMENU:
+        return KeyCode::LEFT_ALT;
+    case VK_RMENU:
+        return KeyCode::RIGHT_ALT;
+    case VK_LCONTROL:
+        return KeyCode::LEFT_CTRL;
+    case VK_RCONTROL:
+        return KeyCode::RIGHT_CTRL;
+    case VK_LSHIFT:
+        return KeyCode::LEFT_SHIFT;
+    case VK_RSHIFT:
+        return KeyCode::RIGHT_SHIFT;
+    default:
+        break;
     }
-    
+
     if (wParam >= 'A' && wParam <= 'Z')
     {
         return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'A'));
@@ -763,7 +779,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
                 event.GetEventData().Set(FilePath(filePath));
             }
             DragFinish(hDrop);*/
-            
+
             return 1;
         }
         case WM_CLOSE:
@@ -771,7 +787,7 @@ int Win32AppContext::PollEvent(SystemEvent& event)
         {
             event = SystemEvent(SystemEventType::EVENT_WINDOW_CLOSE, platformEvent);
             PostQuitMessage(0);
-            
+
             return 1;
         }
         case WM_SIZE:

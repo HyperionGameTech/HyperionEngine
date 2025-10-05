@@ -19,6 +19,8 @@ namespace hyperion {
 HYP_STRUCT(Size = 80)
 struct WorldGridLayerInfo
 {
+    HYP_STRUCT_BODY(WorldGridLayerInfo);
+
     HYP_FIELD(Property = "GridSize", Serialize = true)
     Vec2u gridSize { 64, 64 };
 
@@ -124,4 +126,3 @@ private:
 };
 
 } // namespace hyperion
-

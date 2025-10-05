@@ -16,9 +16,9 @@
 #include <core/utilities/Variant.hpp>
 
 #include <core/object/HypObject.hpp>
+#include <core/object/Handle.hpp>
 
 #include <core/Name.hpp>
-#include <core/object/Handle.hpp>
 
 #include <scene/EntityTag.hpp>
 
@@ -59,6 +59,8 @@ HYP_MAKE_ENUM_FLAGS(NodeFlags)
 HYP_STRUCT()
 struct NodeTag
 {
+    HYP_STRUCT_BODY(NodeTag);
+
     using VariantType = Variant<
         int8, int16, int32, int64,
         uint8, uint16, uint32, uint64,
@@ -172,6 +174,8 @@ HYP_API extern void Node_OnPostLoad(Node& node);
 HYP_STRUCT()
 class NodeTagSet : public HashSet<NodeTag, &NodeTag::name>
 {
+    HYP_STRUCT_BODY(NodeTagSet);
+
 public:
     using Base = HashSet<NodeTag, &NodeTag::name>;
 

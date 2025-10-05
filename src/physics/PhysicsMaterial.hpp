@@ -11,6 +11,8 @@ namespace hyperion {
 HYP_STRUCT()
 struct PhysicsMaterial
 {
+    HYP_STRUCT_BODY(PhysicsMaterial);
+
     HYP_FIELD(Serialize, Property = "Mass")
     float mass = 0.0f;
 

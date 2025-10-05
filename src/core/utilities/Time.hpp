@@ -106,6 +106,8 @@ struct HYP_API TimeDiff
 HYP_STRUCT(Serialize = "bitwise")
 class HYP_API Time
 {
+    HYP_STRUCT_BODY(Time);
+
 public:
     friend struct TimeDiff;
 

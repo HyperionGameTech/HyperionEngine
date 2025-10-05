@@ -71,7 +71,7 @@ class HYP_API UIStageUpdateManager final : public UIUpdateManager
 public:
     explicit UIStageUpdateManager(UIStage* stage);
     virtual ~UIStageUpdateManager() override = default;
-    
+
     /*! \brief Process all pending updates for this frame */
     virtual void ProcessUpdates(float delta) override;
 
@@ -219,4 +219,3 @@ private:
 };
 
 } // namespace hyperion
-

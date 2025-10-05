@@ -364,7 +364,7 @@ onValueChanged(42);
 - To interact with the reflection system, use `TypeId::ForType<T>()` to get the TypeId of a type, and `HypClass::GetClass(TypeId)` to get the `HypClass`. Use `HypField` and `HypMethod` to access fields and methods reflectively.
 
 ## Code Generation
-The `build/generated/` directory contains reflection data. Never edit these files directly - they're regenerated from source annotations.
+The `generated` directory contains reflection data. Never edit these files directly - they're regenerated from source annotations.
 
 ## Copilot Instructions
 Reduce summary of your changes to at most a single paragraph. If the change is trivial (e.g. fixing a typo, updating comments, formatting), simply state that. Otherwise, briefly describe the purpose of the change and any important details.

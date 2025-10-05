@@ -64,6 +64,8 @@ enum class LightmapShadingType : int
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "lightmapper")
 struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 {
+    HYP_STRUCT_BODY(LightmapperConfig);
+
     HYP_FIELD()
     LightmapTraceMode traceMode = LightmapTraceMode::GPU_PATH_TRACING;
 

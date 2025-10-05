@@ -40,6 +40,8 @@ enum AudioLoopMode : uint8
 HYP_STRUCT()
 struct AudioPlaybackState
 {
+    HYP_STRUCT_BODY(AudioPlaybackState);
+
     HYP_FIELD(Property = "Status", Editor = true)
     AudioPlaybackStatus status = APS_STOPPED;
 
@@ -67,6 +69,8 @@ struct AudioPlaybackState
 HYP_STRUCT(Component, Label = "Audio Component", Description = "Controls the state of an audio source.", Editor = true)
 struct AudioComponent
 {
+    HYP_STRUCT_BODY(AudioComponent);
+
     HYP_FIELD(Property = "AudioSource", Editor = true)
     Handle<AudioSource> audioSource;
 

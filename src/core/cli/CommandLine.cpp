@@ -62,7 +62,7 @@ static void AppendCommandLineArgumentValue(
 
 static void AppendCommandLineArgumentValue(
     Array<Pair<String, CommandLineArgumentValue>>& values,
-    const String& key, 
+    const String& key,
     const CommandLineArgumentValue& value,
     bool allowMultiple)
 {

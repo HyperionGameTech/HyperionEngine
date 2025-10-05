@@ -28,6 +28,8 @@ HYP_MAKE_ENUM_FLAGS(VisibilityStateFlags)
 HYP_STRUCT(Component, Size = 32, Serialize = false, Editor = false)
 struct VisibilityStateComponent
 {
+    HYP_STRUCT_BODY(VisibilityStateComponent);
+
     HYP_FIELD()
     EnumFlags<VisibilityStateFlags> flags = VisibilityStateFlags::NONE;
 

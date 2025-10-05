@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <core/object/HypObjectMacros.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace hyperion {
@@ -24,6 +26,8 @@ enum class AnimationLoopMode : uint32
 HYP_STRUCT()
 struct AnimationPlaybackState
 {
+    HYP_STRUCT_BODY(AnimationPlaybackState);
+
     HYP_FIELD(Property = "AnimationIndex", Editor = true)
     uint32 animationIndex = ~0u;
 
@@ -56,6 +60,8 @@ struct AnimationPlaybackState
 HYP_STRUCT(Component)
 struct AnimationComponent
 {
+    HYP_STRUCT_BODY(AnimationComponent);
+
     HYP_FIELD(Property = "PlaybackState", Serialize = true, Editor = true)
     AnimationPlaybackState playbackState;
 

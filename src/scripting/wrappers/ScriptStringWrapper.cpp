@@ -10,6 +10,8 @@
 
 namespace hyperion {
 
+HYP_API const HypClass* g_clsScript_String = nullptr;
+
 // clang-format off
 HYP_BEGIN_STRUCT(Script_String, -1, 0, {})
     HypMethod(NAME("operator+"), +[](const Script_String& a, const Script_String& b) -> Script_String

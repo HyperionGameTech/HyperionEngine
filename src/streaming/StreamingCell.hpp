@@ -39,6 +39,8 @@ enum class StreamingCellState : uint32
 HYP_STRUCT()
 struct StreamingCellNeighbor
 {
+    HYP_STRUCT_BODY(StreamingCellNeighbor);
+
     HYP_FIELD(Serialize, Property = "Coord")
     Vec2i coord;
 
@@ -51,6 +53,8 @@ struct StreamingCellNeighbor
 HYP_STRUCT(Size = 80)
 struct StreamingCellInfo
 {
+    HYP_STRUCT_BODY(StreamingCellInfo);
+
     HYP_FIELD(Serialize, Property = "Coord")
     Vec2i coord;
 
@@ -111,4 +115,3 @@ protected:
 };
 
 } // namespace hyperion
-

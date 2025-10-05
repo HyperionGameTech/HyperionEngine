@@ -16,6 +16,8 @@ namespace utilities {
 HYP_STRUCT(Serialize = "bitwise")
 struct HYP_API Uuid
 {
+    HYP_STRUCT_BODY(Uuid);
+
     HYP_FIELD(Serialize, Property = "Data0")
     uint64 data0;
 

@@ -10,6 +10,8 @@ namespace hyperion {
 HYP_STRUCT()
 struct HYP_API Keyframe
 {
+    HYP_STRUCT_BODY(Keyframe);
+
     HYP_FIELD(Property = "Time", Serialize = true)
     float time = 0.0f;
 

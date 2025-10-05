@@ -9,6 +9,8 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/IdGenerator.hpp>
 
+#include <core/object/HypObjectMacros.hpp>
+
 #include <util/AtlasPacker.hpp>
 
 #include <core/Types.hpp>
@@ -23,6 +25,8 @@ enum ShadowMapType : uint32;
 HYP_STRUCT()
 struct ShadowMapAtlasElement
 {
+    HYP_STRUCT_BODY(ShadowMapAtlasElement);
+
     // Directional and spot lights only: index of the atlas in the shadow map texture array
     // Point lights: index in the cubemap texture array
     uint32 layerIndex = ~0u;
@@ -66,6 +70,8 @@ struct ShadowMapAtlasElement
 HYP_STRUCT()
 struct ShadowMapAtlas : AtlasPacker<ShadowMapAtlasElement>
 {
+    HYP_STRUCT_BODY(ShadowMapAtlas);
+
     HYP_PROPERTY(AtlasDimensions, &ShadowMapAtlas::atlasDimensions)
     HYP_PROPERTY(Elements, &ShadowMapAtlas::elements)
     HYP_PROPERTY(FreeSpaces, &ShadowMapAtlas::freeSpaces)

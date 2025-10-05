@@ -628,7 +628,7 @@ private:
 
         // Generate the HypClassDecl header file
         {
-            FilePath hypClassDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "HypClasses.inl";
+            FilePath hypClassDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "HypClassDecls.inc";
             FileByteWriter hypClassDeclWriter(hypClassDeclHeaderPath);
 
             if (!hypClassDeclWriter.IsOpen())
@@ -643,6 +643,26 @@ private:
                 }
 
                 hypClassDeclWriter.Close();
+            }
+        }
+
+        // Generate the HypClassDecl implementation file
+        {
+            FilePath hypClassDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "HypClassDecls.cpp";
+            FileByteWriter hypClassDeclImplWriter(hypClassDeclImplPath);
+
+            if (!hypClassDeclImplWriter.IsOpen())
+            {
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open HypClassDecl implementation file: {}", {}, -1, hypClassDeclImplPath));
+            }
+            else
+            {
+                if (Result res = cxxModuleGenerator->GenerateHypClassDeclImplementation(m_analyzer, hypClassDeclImplWriter); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), hypClassDeclImplPath));
+                }
+
+                hypClassDeclImplWriter.Close();
             }
         }
 

@@ -170,7 +170,7 @@ class ResourceBinder : public ResourceBinderBase
             {
                 return;
             }
-            
+
             AssertDebug(id.GetTypeId() == typeId);
 
             currentFrameIds.Set(id.ToIndex(), false);
@@ -316,7 +316,7 @@ public:
         }
 
         constexpr TypeId baseTypeId = TypeId::ForType<T>();
-        const TypeId objectTypeId = object->GetTypeId();
+        const TypeId objectTypeId = GetTypeIdForClass(object->InstanceClass());
 
         if (objectTypeId == baseTypeId)
         {
@@ -346,17 +346,18 @@ public:
         AssertDebug(object != nullptr);
 
         constexpr TypeId typeId = TypeId::ForType<T>();
+        const TypeId objectTypeId = GetTypeIdForClass(object->InstanceClass());
 
-        if (object->GetTypeId() == typeId)
+        if (objectTypeId == typeId)
         {
             m_impl.Deconsider(m_bindingAllocator, object);
         }
         else
         {
-            const int subclassIndex = GetSubclassIndex(typeId, object->GetTypeId());
+            const int subclassIndex = GetSubclassIndex(typeId, objectTypeId);
             AssertDebug(subclassIndex >= 0 && subclassIndex < int(m_subclassImpls.Size()),
                 "ResourceBinder<{}>: Attempted to Deconsider object with TypeId {} which is not a subclass of the expected TypeId ({}) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), object->GetTypeId().Value(), typeId.Value());
+                TypeNameWithoutNamespace<T>().Data(), objectTypeId.Value(), typeId.Value());
 
             if (!m_subclassImplsInitialized.Test(subclassIndex))
             {

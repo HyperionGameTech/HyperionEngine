@@ -55,6 +55,8 @@ struct UIObjectInstanceData
 HYP_STRUCT(Size = 24)
 struct alignas(8) UIEventHandlerResult
 {
+    HYP_STRUCT_BODY(UIEventHandlerResult);
+
     enum Value : uint32
     {
         ERR = 0x1u << 31u,
@@ -283,6 +285,8 @@ static constexpr inline int ScrollAxisToIndex(ScrollAxis axis)
 HYP_STRUCT()
 struct UIObjectAspectRatio
 {
+    HYP_STRUCT_BODY(UIObjectAspectRatio);
+
     HYP_FIELD()
     float x = 1.0f;
 
@@ -324,6 +328,8 @@ struct UIObjectAspectRatio
 HYP_STRUCT()
 struct UIObjectSize
 {
+    HYP_STRUCT_BODY(UIObjectSize);
+
     enum Flags : uint32
     {
         AUTO = 0x04,

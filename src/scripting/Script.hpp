@@ -29,6 +29,8 @@ static constexpr SizeType scriptMaxClassNameLength = 1024;
 HYP_STRUCT()
 struct ScriptData
 {
+    HYP_STRUCT_BODY(ScriptData);
+
     HYP_FIELD(Serialize)
     Uuid uuid;
 

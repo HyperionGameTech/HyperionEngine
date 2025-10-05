@@ -50,6 +50,8 @@ struct ComponentDescriptor
 HYP_STRUCT(Size = 12)
 struct ComponentInfo
 {
+    HYP_STRUCT_BODY(ComponentInfo);
+
     HYP_FIELD()
     TypeId typeId;
 

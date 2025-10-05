@@ -21,6 +21,7 @@ public:
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
     Result GenerateHypClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
+    Result GenerateHypClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const;
 
 protected:
 };

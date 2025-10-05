@@ -361,10 +361,13 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
 
         /// @TODO: Move Marshal to HypClass.
 
-        if constexpr (IsHypObjectV<T>)
+        if constexpr (std::is_base_of_v<HypObjectBase, NormalizedType<T>>)
         {
-            marshal = FBOMObject::GetMarshal(in.GetTypeId());
-            ref = ConstAnyRef(&in.GetTypeInfo(), &in);
+            const HypClass* instanceClass = in.InstanceClass();
+            HYP_CORE_ASSERT(instanceClass != nullptr);
+
+            marshal = FBOMObject::GetMarshal(GetTypeIdForClass(instanceClass));
+            ref = ConstAnyRef(&TypeInfo::ForHypClass(instanceClass), &in);
         }
         else
         {

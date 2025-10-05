@@ -13,6 +13,8 @@ class SkydomeRenderer;
 HYP_STRUCT(Component, Label = "Sky Component", Description = "Controls the rendering of a dynamic skydome.", Editor = true)
 struct SkyComponent
 {
+    HYP_STRUCT_BODY(SkyComponent);
+
     HYP_FIELD(NoScriptBindings, Transient)
     Handle<SkydomeRenderer> subsystem;
 

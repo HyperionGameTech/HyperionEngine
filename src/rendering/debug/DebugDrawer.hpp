@@ -49,6 +49,8 @@ static constexpr int g_maxDebugDrawShapeTypes = 8; // increase if needed
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.debug.debugDrawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
+    HYP_STRUCT_BODY(DebugDrawerConfig);
+
     HYP_FIELD(Description = "Enable or disable the debug drawer.", JsonPath = "enabled")
     bool enabled = true;
 
@@ -90,7 +92,7 @@ public:
     }
 
     virtual void UpdateBufferData(DebugDrawCommand* cmd, ImmediateDrawShaderData* bufferData) const;
-    
+
     int shapeId = -1;
 };
 
@@ -281,7 +283,7 @@ private:
     FixedArray<GpuBufferRef, g_framesInFlight> m_instanceBuffers;
 
     typedef Array<ImmediateDrawShaderData, DynamicAllocator> CachedPartitionedShaderData[g_maxDebugDrawShapeTypes];
-    
+
     CachedPartitionedShaderData m_cachedPartitionedShaderData;
 };
 

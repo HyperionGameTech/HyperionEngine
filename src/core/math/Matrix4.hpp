@@ -22,6 +22,8 @@ class Matrix3;
 HYP_STRUCT(Size = 64)
 class alignas(16) HYP_API Matrix4
 {
+    HYP_STRUCT_BODY(Matrix4);
+
 public:
     static const Matrix4 identity;
     static const Matrix4 zeros;

@@ -65,10 +65,12 @@ protected:
     virtual Result Execute_Impl(const CommandLineArguments& args) override
     {
         PUSH_RENDER_COMMAND(DumpRenderCollectors);
-        
+
         return {}; // ok
     }
 };
+
+HYP_API const HypClass* g_clsDumpRenderCollectors = nullptr;
 
 HYP_BEGIN_CLASS(DumpRenderCollectors, -1, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "dumprendercollectors"))
 HYP_END_CLASS

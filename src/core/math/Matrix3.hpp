@@ -15,6 +15,8 @@ namespace hyperion {
 HYP_STRUCT(Size = 48)
 class HYP_API Matrix3
 {
+    HYP_STRUCT_BODY(Matrix3);
+
 public:
     union
     {

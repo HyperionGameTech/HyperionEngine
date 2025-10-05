@@ -38,6 +38,8 @@ protected:
     }
 };
 
+HYP_API const HypClass* g_clsLogMemoryPools = nullptr;
+
 HYP_BEGIN_CLASS(LogMemoryPools, -1, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "logmemorypools"))
 HYP_END_CLASS
 

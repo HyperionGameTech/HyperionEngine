@@ -13,8 +13,9 @@
 #include <core/math/Extent.hpp>
 #include <core/math/Vector2.hpp>
 
-#include <core/Defines.hpp>
+#include <core/object/HypObjectMacros.hpp>
 
+#include <core/Defines.hpp>
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
@@ -433,6 +434,8 @@ struct TextureFormatHelper
 HYP_STRUCT()
 struct TextureDesc
 {
+    HYP_STRUCT_BODY(TextureDesc);
+
     HYP_FIELD(Property = "Type", Serialize)
     TextureType type = TT_TEX2D;
 
@@ -559,6 +562,8 @@ struct TextureDesc
 HYP_STRUCT()
 struct TextureData
 {
+    HYP_STRUCT_BODY(TextureData);
+
     HYP_FIELD(Property = "ImageData", Serialize, Compressed)
     ByteBuffer imageData;
 
@@ -667,6 +672,8 @@ static_assert(uint32(BMF_MAX) <= 15, "BlendModeFactor enum too large to fit in 4
 HYP_STRUCT(Serialize = "bitwise", Size = 4)
 struct BlendFunction
 {
+    HYP_STRUCT_BODY(BlendFunction);
+
     uint32 value;
 
     BlendFunction()
@@ -793,6 +800,8 @@ enum StencilOp : uint8
 HYP_STRUCT()
 struct StencilFunction
 {
+    HYP_STRUCT_BODY(StencilFunction);
+
     HYP_FIELD(Serialize)
     StencilOp passOp = SO_KEEP;
 

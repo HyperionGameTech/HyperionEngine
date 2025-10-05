@@ -20,6 +20,8 @@ class GBuffer;
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.ssr")
 struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 {
+    HYP_STRUCT_BODY(SSRRendererConfig);
+
     HYP_FIELD()
     bool enabled = true;
 

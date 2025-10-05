@@ -102,12 +102,6 @@ static inline int GetSubclassIndex()
 }
 
 template <class T>
-HYP_FORCE_INLINE const HypClass* GetClass()
-{
-    return GetClass(TypeId::ForType<T>());
-}
-
-template <class T>
 HYP_FORCE_INLINE const HypClass* GetEnum()
 {
     return GetEnum(TypeId::ForType<T>());

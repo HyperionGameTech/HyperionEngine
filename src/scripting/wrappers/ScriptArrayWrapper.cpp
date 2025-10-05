@@ -10,6 +10,8 @@
 
 namespace hyperion {
 
+HYP_API const HypClass* g_clsScript_Array = nullptr;
+
 // clang-format off
 HYP_BEGIN_STRUCT(Script_Array, -1, 0, {})
     HypMethod(NAME("Size"), &Type::Size),

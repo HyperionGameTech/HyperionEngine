@@ -12,6 +12,10 @@
 
 namespace hyperion {
 
+HYP_API const HypClass* g_clsVec3f = nullptr;
+HYP_API const HypClass* g_clsVec3i = nullptr;
+HYP_API const HypClass* g_clsVec3u = nullptr;
+
 // clang-format off
 HYP_BEGIN_STRUCT(Vec3f, -1, 0, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),

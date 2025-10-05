@@ -13,6 +13,8 @@ class Node;
 HYP_STRUCT(Component, Size = 8, Serialize = false, Editor = false)
 struct NodeLinkComponent
 {
+    HYP_STRUCT_BODY(NodeLinkComponent);
+
     HYP_FIELD()
     WeakHandle<Node> node;
 

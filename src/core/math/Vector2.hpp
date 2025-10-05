@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include <core/HashCode.hpp>
-
 #include <core/utilities/FormatFwd.hpp>
 
+#include <core/HashCode.hpp>
 #include <core/Defines.hpp>
-
 #include <core/Types.hpp>
 
 #include <ostream>
@@ -357,7 +355,6 @@ struct alignas(alignof(T) * 2) HYP_API Vec2
 template <>
 struct alignas(alignof(float) * 2) HYP_API Vec2<float>
 {
-public:
     using Type = float;
 
     static constexpr uint32 size = 2;

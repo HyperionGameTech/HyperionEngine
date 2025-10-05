@@ -19,6 +19,8 @@ namespace hyperion {
 HYP_STRUCT()
 struct StreamableKey
 {
+    HYP_STRUCT_BODY(StreamableKey);
+
     HYP_FIELD(Property = "Uuid", Serialize = true)
     Uuid uuid = Uuid::Invalid();
 
@@ -58,7 +60,7 @@ public:
     virtual ~StreamableBase() = default;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const StreamableKey &GetKey() const
+    HYP_FORCE_INLINE const StreamableKey& GetKey() const
     {
         return m_key;
     }
@@ -104,4 +106,3 @@ protected:
 };
 
 } // namespace hyperion
-

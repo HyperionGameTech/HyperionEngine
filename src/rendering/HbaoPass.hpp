@@ -18,6 +18,8 @@ namespace hyperion {
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.hbao")
 struct HBAOConfig : public ConfigBase<HBAOConfig>
 {
+    HYP_STRUCT_BODY(HBAOConfig);
+
     HYP_FIELD(JsonPath = "radius")
     float radius = 2.5f;
 
@@ -40,7 +42,7 @@ HYP_CLASS(NoScriptBindings)
 class HBAO final : public FullScreenPass
 {
     HYP_OBJECT_BODY(HBAO);
-    
+
 public:
     HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer);
     HBAO(const HBAO& other) = delete;

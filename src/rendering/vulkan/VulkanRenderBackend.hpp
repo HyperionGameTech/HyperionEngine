@@ -157,14 +157,14 @@ public:
     }
 
     HYP_API RendererResult CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper>& layout,
-                                               VkDescriptorSet& outVkDescriptorSet,
-                                               VkDescriptorPool& outVkDescriptorPool);
-    
+        VkDescriptorSet& outVkDescriptorSet,
+        VkDescriptorPool& outVkDescriptorPool);
+
     HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet,
-                                                VkDescriptorPool vkDescriptorPool);
-    
+        VkDescriptorPool vkDescriptorPool);
+
     HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout,
-                                                            RC<VulkanDescriptorSetLayoutWrapper>& outRef);
+        RC<VulkanDescriptorSetLayoutWrapper>& outRef);
 
     VkSurfaceKHR CreateVkSurface(ApplicationWindow* window, VulkanInstance* instance);
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);

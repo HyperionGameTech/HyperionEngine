@@ -529,6 +529,28 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         AssertDebug(hypClassDefinition.isCXXClass || hypClassDefinition.isCXXStruct || hypClassDefinition.isCXXEnum || hypClassDefinition.isCXXEnumClass,
             "HypClassDefinition must be a class, struct, enum, or enum class. Got source:\n\t{}", hypClassDefinition.source);
 
+        // Validate that HYP_CLASS has HYP_OBJECT_BODY and HYP_STRUCT has HYP_STRUCT_BODY
+        if (hypClassDefinition.type == HypClassDefinitionType::CLASS)
+        {
+            if (!hypClassDefinition.isCXXEnum && !hypClassDefinition.isCXXEnumClass)
+            {
+                if (hypClassDefinition.source.FindFirstIndex("HYP_OBJECT_BODY") == String::notFound)
+                {
+                    return HYP_MAKE_ERROR(AnalyzerError, "HYP_CLASS '{}' must contain HYP_OBJECT_BODY(...) in its body", mod.GetPath(), 0, hypClassDefinition.name);
+                }
+            }
+        }
+        else if (hypClassDefinition.type == HypClassDefinitionType::STRUCT)
+        {
+            if (!hypClassDefinition.isCXXEnum && !hypClassDefinition.isCXXEnumClass)
+            {
+                if (hypClassDefinition.source.FindFirstIndex("HYP_STRUCT_BODY") == String::notFound)
+                {
+                    return HYP_MAKE_ERROR(AnalyzerError, "HYP_STRUCT '{}' must contain HYP_STRUCT_BODY(...) in its body", mod.GetPath(), 0, hypClassDefinition.name);
+                }
+            }
+        }
+
         hypClassDefinitions.PushBack(std::move(hypClassDefinition));
     }
 

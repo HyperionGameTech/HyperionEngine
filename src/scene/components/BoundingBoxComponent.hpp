@@ -10,6 +10,8 @@ namespace hyperion {
 HYP_STRUCT(Component, Size = 64, Editor = false)
 struct BoundingBoxComponent
 {
+    HYP_STRUCT_BODY(BoundingBoxComponent);
+
     HYP_FIELD(Property = "LocalAABB")
     BoundingBox localAabb;
 

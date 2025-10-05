@@ -2,12 +2,11 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-
 #include <core/utilities/FormatFwd.hpp>
 
 #include <core/math/Vector2.hpp>
 
+#include <core/Defines.hpp>
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 

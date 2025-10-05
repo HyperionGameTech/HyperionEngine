@@ -8,7 +8,6 @@
 #include <core/utilities/FormatFwd.hpp>
 
 #include <core/Defines.hpp>
-
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 

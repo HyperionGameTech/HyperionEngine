@@ -72,6 +72,8 @@ struct CommandLineArgumentDefinitionsImpl;
 HYP_STRUCT(Size = 8)
 struct HYP_API CommandLineArgumentDefinitions
 {
+    HYP_STRUCT_BODY(CommandLineArgumentDefinitions);
+
     Pimpl<CommandLineArgumentDefinitionsImpl> m_impl;
 
 public:
@@ -117,6 +119,8 @@ public:
 HYP_STRUCT()
 class HYP_API CommandLineArguments
 {
+    HYP_STRUCT_BODY(CommandLineArguments);
+
     String m_command;
     Array<Pair<String, CommandLineArgumentValue>> m_values;
 

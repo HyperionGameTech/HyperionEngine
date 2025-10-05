@@ -27,6 +27,8 @@ HYP_MAKE_ENUM_FLAGS(RigidBodyComponentFlags)
 HYP_STRUCT(Component, Label = "Rigid Body Component", Description = "Controls the properties of an object with rigid body physics.", Editor = true)
 struct RigidBodyComponent
 {
+    HYP_STRUCT_BODY(RigidBodyComponent);
+
     HYP_FIELD(Property = "RigidBody")
     Handle<RigidBody> rigidBody;
 

@@ -45,8 +45,10 @@ FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const M
 
 Result CXXModuleGenerator::GenerateHypClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const
 {
-    writer.WriteString("template <class T>\n");
-    writer.WriteString("struct HypClassDecl;\n\n");
+    writer.WriteString("class HypClass;\n\n");
+
+    // writer.WriteString("template <class T>\n");
+    // writer.WriteString("struct HypClassDecl;\n\n");
 
     struct ClassInfo
     {
@@ -82,7 +84,7 @@ Result CXXModuleGenerator::GenerateHypClassDeclHeader(const Analyzer& analyzer, 
         }
     }
 
-    for (const ClassInfo& classInfo : allClasses)
+    /*for (const ClassInfo& classInfo : allClasses)
     {
         const HypClassDefinition& hypClass = *classInfo.definition;
 
@@ -125,18 +127,85 @@ Result CXXModuleGenerator::GenerateHypClassDeclHeader(const Analyzer& analyzer, 
         }
     }
 
-    writer.WriteString("\n");
+    writer.WriteString("\n");*/
 
     for (const ClassInfo& classInfo : allClasses)
     {
         const HypClassDefinition& hypClass = *classInfo.definition;
 
-        writer.WriteString(HYP_FORMAT("template <>\n"));
-        writer.WriteString(HYP_FORMAT("struct HypClassDecl<{}>\n", hypClass.name));
-        writer.WriteString("{\n");
-        writer.WriteString(HYP_FORMAT("    using Type = {};\n", hypClass.name));
-        writer.WriteString("};\n\n");
+        writer.WriteString(HYP_FORMAT("HYP_API extern const HypClass* g_cls{};\n", hypClass.name));
+        // writer.WriteString(HYP_FORMAT("template <>\n"));
+        // writer.WriteString(HYP_FORMAT("struct HypClassDecl<{}>\n", hypClass.name));
+        // writer.WriteString("{\n");
+        // writer.WriteString(HYP_FORMAT("    using Type = {};\n\n", hypClass.name));
+        // writer.WriteString("    static const HypClass** s_pClass;\n");
+        // writer.WriteString("};\n\n");
     }
+
+    return {};
+}
+
+Result CXXModuleGenerator::GenerateHypClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const
+{
+    writer.WriteString(GetGeneratedFilePreamble(String::empty));
+    writer.WriteString("#include <core/object/HypClass.hpp>\n\n");
+
+    writer.WriteString("namespace hyperion {\n\n");
+    writer.WriteString("#include <HypClassDecls.inc>\n");
+
+    // Collect all HypClass definitions from builtins and modules
+    struct ClassInfo
+    {
+        const HypClassDefinition* definition;
+        String namespacePath;
+    };
+
+    Array<ClassInfo> allClasses;
+    HashSet<String> processedNames;
+
+    // Add builtins
+    for (const auto& it : analyzer.GetBuiltinHypClasses())
+    {
+        if (processedNames.Contains(it.second.name))
+        {
+            continue;
+        }
+
+        processedNames.Insert(it.second.name);
+        allClasses.PushBack({ &it.second, "hyperion" });
+    }
+
+    // Add module classes
+    for (const UniquePtr<Module>& mod : analyzer.GetModules())
+    {
+        for (const Pair<String, HypClassDefinition>& pair : mod->GetHypClasses())
+        {
+            if (processedNames.Contains(pair.second.name))
+            {
+                continue;
+            }
+
+            processedNames.Insert(pair.second.name);
+            allClasses.PushBack({ &pair.second, "hyperion" });
+        }
+    }
+
+    for (const ClassInfo& classInfo : allClasses)
+    {
+        const HypClassDefinition& hypClass = *classInfo.definition;
+
+        writer.WriteString(HYP_FORMAT("const HypClass* g_cls{} = nullptr;\n", hypClass.name));
+        // writer.WriteString(HYP_FORMAT("const HypClass** HypClassDecl<{}>::s_pClass = nullptr;\n\n", hypClass.name));
+        // writer.WriteString(HYP_FORMAT("static struct HypClassDeclInitializer_{}\n", hypClass.name));
+        // writer.WriteString("{\n");
+        // writer.WriteString(HYP_FORMAT("    HypClassDeclInitializer_{}()\n", hypClass.name));
+        // writer.WriteString("    {\n");
+        // writer.WriteString(HYP_FORMAT("        HypClassDecl<{}>::s_pClass = &g_cls{};\n", hypClass.name, hypClass.name));
+        // writer.WriteString("    }\n");
+        // writer.WriteString("} " + HYP_FORMAT(" g_hypClassDeclInitializer_{};\n\n", hypClass.name));
+    }
+
+    writer.WriteString("} // namespace hyperion\n");
 
     return {};
 }

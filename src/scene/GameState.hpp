@@ -17,6 +17,8 @@ enum class GameStateMode : uint32
 HYP_STRUCT()
 struct GameState
 {
+    HYP_STRUCT_BODY(GameState);
+
     HYP_FIELD()
     GameStateMode mode = GameStateMode::EDITOR;
 
