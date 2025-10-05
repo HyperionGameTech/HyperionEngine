@@ -13,6 +13,10 @@
 
 #include <type_traits>
 
+#ifdef HYP_UNIX
+#include <unistd.h>
+#endif
+
 namespace hyperion {
 
 using ByteWriterFlags = ubyte;
@@ -101,6 +105,7 @@ public:
     }
 
     virtual SizeType Position() const = 0;
+    virtual void Seek(SizeType position, bool truncate = false) = 0;
     virtual void Close() = 0;
 
 protected:
@@ -120,6 +125,24 @@ public:
     virtual SizeType Position() const override
     {
         return m_pos;
+    }
+
+    virtual void Seek(SizeType position, bool truncate = false) override
+    {
+        if (position < m_buffer.Size())
+        {
+            m_pos = position;
+
+            if (truncate)
+            {
+                m_buffer.SetSize(m_pos);
+            }
+        }
+        else
+        {
+            m_buffer.SetSize(position + 1);
+            m_pos = position;
+        }
     }
 
     virtual void Close() override
@@ -214,6 +237,27 @@ public:
         }
 
         return ftell(m_file);
+    }
+
+    virtual void Seek(SizeType position, bool truncate = false) override
+    {
+        if (m_file == nullptr)
+        {
+            return;
+        }
+
+        fseek(m_file, static_cast<long>(position), SEEK_SET);
+
+        if (truncate)
+        {
+#ifdef HYP_UNIX
+            ftruncate(fileno(m_file), static_cast<off_t>(position));
+#elif defined(HYP_WINDOWS)
+            _chsize_s(_fileno(m_file), static_cast<long>(position));
+#else
+#error "Unsupported platform"
+#endif
+        }
     }
 
     virtual void Close() override

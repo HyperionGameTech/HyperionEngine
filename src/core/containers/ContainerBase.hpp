@@ -500,12 +500,13 @@ auto Sum(ContainerType&& container, Func&& func)
 
 } // namespace containers
 
-using containers::ContainerBase;
-using containers::IContainer;
 using containers::AnyOf;
+using containers::ContainerBase;
+using containers::Every;
 using containers::Fill;
 using containers::Find;
 using containers::FindIf;
+using containers::IContainer;
 using containers::Sum;
 
 } // namespace hyperion

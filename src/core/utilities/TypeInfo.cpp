@@ -162,11 +162,11 @@ HYP_API void TypeInfo_Shutdown()
 #pragma region TypeInfoEx
 
 TypeInfoEx::TypeInfoEx(const TypeInfoEx& other)
-    : data(other.data),
-      dataType(other.dataType),
+    : dataType(other.dataType),
       next(other.next ? new TypeInfoEx(*other.next) : nullptr),
       handler(other.handler ? other.handler->Clone() : nullptr)
 {
+    Memory::MemCpy(&data, &other.data, sizeof(data));
 }
 
 TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
@@ -183,7 +183,8 @@ TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
             delete handler;
         }
 
-        data = other.data;
+        Memory::MemCpy(&data, &other.data, sizeof(data));
+
         dataType = other.dataType;
         next = other.next ? new TypeInfoEx(*other.next) : nullptr;
         handler = other.handler ? other.handler->Clone() : nullptr;
@@ -193,12 +194,13 @@ TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
 }
 
 TypeInfoEx::TypeInfoEx(TypeInfoEx&& other) noexcept
-    : data(other.data),
-      dataType(other.dataType),
+    : dataType(other.dataType),
       next(other.next),
       handler(other.handler)
 {
-    other.data.typeInfo = nullptr;
+    Memory::MemCpy(&data, &other.data, sizeof(data));
+    Memory::MemSet(&other.data, 0, sizeof(data));
+
     other.dataType = DT_NONE;
     other.next = nullptr;
     other.handler = nullptr;
@@ -218,12 +220,13 @@ TypeInfoEx& TypeInfoEx::operator=(TypeInfoEx&& other) noexcept
             delete handler;
         }
 
-        data = other.data;
+        Memory::MemCpy(&data, &other.data, sizeof(data));
+        Memory::MemSet(&other.data, 0, sizeof(data));
+
         dataType = other.dataType;
         next = other.next;
         handler = other.handler;
 
-        other.data.typeInfo = nullptr;
         other.dataType = DT_NONE;
         other.next = nullptr;
         other.handler = nullptr;
@@ -259,9 +262,6 @@ HashCode TypeInfoEx::GetHashCode() const
             hc.Add(data.typeInfo->GetHashCode());
         }
         break;
-    case DT_HYP_CLASS:
-        hc.Add(data.hypClass);
-        break;
     default:
         break;
     }
@@ -289,6 +289,7 @@ const TypeInfo& TypeInfo::Void()
     return s_voidTypeInfo;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
 {
     if (!hypClass)
@@ -343,11 +344,10 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
         pTypeInfo->flags |= TypeAttributeFlags::POD_TYPE;
     }
 
-    pTypeInfo->extendedInfo.data.hypClass = hypClass;
-    pTypeInfo->extendedInfo.dataType = TypeInfoEx::DT_HYP_CLASS;
-
     return *pTypeInfo;
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion TypeInfo
 

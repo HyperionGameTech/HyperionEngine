@@ -5,6 +5,9 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+// needed by dotnet/Class.hpp
+#include <core/object/HypData.hpp>
+
 #include <dotnet/Class.hpp>
 
 namespace hyperion {

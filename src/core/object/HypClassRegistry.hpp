@@ -45,6 +45,8 @@ class HypStructInstance;
 template <class T>
 struct Handle;
 
+HYP_API extern bool HypClassRegistry_IsInitialized();
+
 class HYP_API HypClassRegistry
 {
 public:
@@ -56,6 +58,11 @@ public:
     HypClassRegistry(HypClassRegistry&& other) noexcept = delete;
     HypClassRegistry& operator=(HypClassRegistry&& other) noexcept = delete;
     ~HypClassRegistry();
+
+    HYP_FORCE_INLINE bool IsInitialized() const
+    {
+        return m_isInitialized;
+    }
 
     /*! \brief Get the HypClass instance for the given type.
      *
@@ -134,7 +141,7 @@ private:
     HashMap<dotnet::Class*, HypClass*> m_managedClassesReverseMapping;
     mutable Mutex m_managedClassesMutex;
 
-    bool m_isInitialized;
+    bool m_isInitialized : 1;
 };
 
 } // namespace hyperion

@@ -7,6 +7,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/containers/Array.hpp>
+#include <core/containers/String.hpp>
 
 #include <core/functional/ScriptableDelegate.hpp>
 

@@ -59,9 +59,11 @@ struct HypStructRegistration;
 template <class T, class T2 = void>
 struct IsHypObject;
 
-template <class T>
-struct IsHypObject<T, std::enable_if_t<!ImplementationExistsV<typename T::HypClassInfo::Type> && ImplementationExistsV<T>>>
+template <class T, class T2>
+struct IsHypObject
 {
+    static_assert(ImplementationExistsV<T>, "Cannot use IsHypObject with undefined type!");
+
     static constexpr bool value = false;
 };
 
@@ -274,6 +276,101 @@ struct HypClassRef
 };
 
 extern HYP_API const HypClass* GetClass(TypeId typeId);
+
+/// Macros for class / struct body ///
+
+#define HYP_OBJECT_BODY(T, ...)                                                  \
+private:                                                                         \
+    friend struct HypClassInitializer_##T;                                       \
+                                                                                 \
+public:                                                                          \
+    struct HypClassInfo                                                          \
+    {                                                                            \
+        using Type = T;                                                          \
+    };                                                                           \
+                                                                                 \
+    HYP_FORCE_INLINE ObjId<T> Id() const                                         \
+    {                                                                            \
+        return (ObjId<T>)(HypObjectBase::Id());                                  \
+    }                                                                            \
+                                                                                 \
+    HYP_FORCE_INLINE static const HypClass* Class()                              \
+    {                                                                            \
+        static const HypClass* hypClass = GetClass(TypeId::ForType<T>());        \
+        return hypClass;                                                         \
+    }                                                                            \
+                                                                                 \
+    template <class TOther>                                                      \
+    HYP_FORCE_INLINE bool IsA() const                                            \
+    {                                                                            \
+        if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>) \
+        {                                                                        \
+            return true;                                                         \
+        }                                                                        \
+        else                                                                     \
+        {                                                                        \
+            static const HypClass* otherHypClass = TOther::Class();              \
+            if (!otherHypClass)                                                  \
+            {                                                                    \
+                return false;                                                    \
+            }                                                                    \
+            return hyperion::IsA(otherHypClass, InstanceClass());                \
+        }                                                                        \
+    }                                                                            \
+                                                                                 \
+    HYP_FORCE_INLINE bool IsA(const HypClass* otherHypClass) const               \
+    {                                                                            \
+        if (!otherHypClass)                                                      \
+        {                                                                        \
+            return false;                                                        \
+        }                                                                        \
+        return hyperion::IsA(otherHypClass, InstanceClass());                    \
+    }                                                                            \
+                                                                                 \
+    HYP_FORCE_INLINE Handle<T> HandleFromThis() const                            \
+    {                                                                            \
+        Handle<T> handle = Handle<T>::FromPointer(const_cast<T*>(this));         \
+                                                                                 \
+        if (!handle)                                                             \
+        {                                                                        \
+            HYP_FAIL("HandleFromThis() called in destructor!");                  \
+        }                                                                        \
+                                                                                 \
+        return handle;                                                           \
+    }                                                                            \
+                                                                                 \
+    HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const                    \
+    {                                                                            \
+        return WeakHandle<T>::FromPointer(const_cast<T*>(this));                 \
+    }                                                                            \
+                                                                                 \
+private:
+
+#define HYP_STRUCT_BODY(T, ...)                                           \
+    friend struct HypClassInitializer_##T;                                \
+                                                                          \
+    struct HypClassInfo                                                   \
+    {                                                                     \
+        using Type = T;                                                   \
+    };                                                                    \
+                                                                          \
+    HYP_FORCE_INLINE static const HypClass* Class()                       \
+    {                                                                     \
+        static const HypClass* hypClass = GetClass(TypeId::ForType<T>()); \
+        return hypClass;                                                  \
+    }                                                                     \
+                                                                          \
+    HYP_FORCE_INLINE static const TypeId& GetTypeId()                     \
+    {                                                                     \
+        static const TypeId s_typeId = TypeId::ForType<T>();              \
+        return s_typeId;                                                  \
+    }                                                                     \
+                                                                          \
+    HYP_FORCE_INLINE static const TypeInfo& GetTypeInfo()                 \
+    {                                                                     \
+        static const TypeInfo s_typeInfo = TypeInfo::ForType<T>();        \
+        return s_typeInfo;                                                \
+    }
 
 /// Casts ///
 

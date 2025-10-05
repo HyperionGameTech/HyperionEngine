@@ -2,8 +2,6 @@
 
 #include <core/memory/AnyRef.hpp>
 
-#include <core/object/HypClass.hpp>
-
 #include <core/utilities/TypeInfo.hpp>
 
 namespace hyperion {

@@ -63,6 +63,11 @@ static void InitThreadLocalCache()
 
 #endif
 
+HYP_API bool HypClassRegistry_IsInitialized()
+{
+    return HypClassRegistry::GetInstance().IsInitialized();
+}
+
 HypClassRegistry& HypClassRegistry::GetInstance()
 {
     static HypClassRegistry s_instance;

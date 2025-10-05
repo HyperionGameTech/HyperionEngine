@@ -4,23 +4,20 @@
 
 #include <core/Defines.hpp>
 
-#include <core/utilities/Uuid.hpp>
-
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
 namespace hyperion {
 namespace utilities {
 
-class UniqueId
+struct Uuid;
+
+class HYP_API UniqueId
 {
 public:
-    UniqueId()
-        : m_value(Generate().m_value)
-    {
-    }
+    UniqueId();
 
-    explicit constexpr UniqueId(const HashCode& hashCode)
+    explicit UniqueId(const HashCode& hashCode)
         : m_value(hashCode.Value())
     {
     }
@@ -38,6 +35,7 @@ public:
 
     UniqueId(const UniqueId& other) = default;
     UniqueId& operator=(const UniqueId& other) = default;
+
     UniqueId(UniqueId&& other) noexcept = default;
     UniqueId& operator=(UniqueId&& other) noexcept = default;
 
@@ -66,15 +64,7 @@ public:
         return HashCode(m_value);
     }
 
-    HYP_FORCE_INLINE ANSIString ToString() const
-    {
-        return ANSIString::ToString(m_value);
-    }
-
-    static inline UniqueId Generate()
-    {
-        return UniqueId { Uuid {}.GetHashCode() };
-    }
+    static UniqueId Generate();
 
     static inline constexpr UniqueId Invalid()
     {
@@ -86,10 +76,7 @@ public:
         return UniqueId { hashCode };
     }
 
-    static UniqueId FromUUID(const Uuid& uuid)
-    {
-        return UniqueId { HashCode::GetHashCode(uuid.data0).Combine(HashCode::GetHashCode(uuid.data1)) };
-    }
+    static UniqueId FromUUID(const Uuid& uuid);
 
 private:
     uint64 m_value;

@@ -23,6 +23,8 @@ HYP_DECLARE_LOG_CHANNEL(Object);
 
 #pragma region ScriptObjectResource
 
+ScriptObjectResource::ScriptObjectResource() = default;
+
 ScriptObjectResource::ScriptObjectResource(dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass)
 {
 #ifdef HYP_DOTNET

@@ -56,6 +56,7 @@ struct ScriptObjectData_HypScript final
 class HYP_API ScriptObjectResource final : public ResourceBase
 {
 public:
+    ScriptObjectResource();
     ScriptObjectResource(dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass);
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass);
     ScriptObjectResource(HypObjectPtr ptr, dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass);

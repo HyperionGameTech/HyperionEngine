@@ -5,6 +5,7 @@
 #include <core/utilities/EnumFlags.hpp>
 
 #include <scripting/Script.hpp>
+#include <scripting/ScriptObjectResource.hpp>
 
 #include <core/HashCode.hpp>
 
@@ -17,7 +18,6 @@ class Object;
 class Assembly;
 } // namespace dotnet
 
-class ScriptObjectResource;
 class ScriptAsset;
 
 HYP_ENUM()

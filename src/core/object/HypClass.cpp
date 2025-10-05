@@ -641,6 +641,8 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
       m_serializationMode(HypClassSerializationMode::DEFAULT),
       m_objectContainer(nullptr)
 {
+    HYP_CORE_ASSERT(m_typeInfo != nullptr);
+
     static const HashMap<Name, HypClassFlags> s_attributeToFlags = {
         { NAME("abstract"), HypClassFlags::ABSTRACT },
         { NAME("noscriptbindings"), HypClassFlags::NO_SCRIPT_BINDINGS }
@@ -738,6 +740,8 @@ HypClass::~HypClass()
 void HypClass::Initialize()
 {
     HYP_LOG(Object, Info, "Initializing HypClass \"{}\"", m_name);
+
+    HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
     m_serializationMode = HypClassSerializationMode::DEFAULT;
 

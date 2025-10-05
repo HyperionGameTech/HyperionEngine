@@ -3,7 +3,6 @@
 #pragma once
 
 #include <core/utilities/TypeId.hpp>
-#include <core/utilities/UniqueId.hpp>
 
 #include <core/utilities/FormatFwd.hpp>
 
@@ -87,11 +86,6 @@ struct ObjIdBase
     HYP_FORCE_INLINE constexpr uint32 ToIndex(uint32 invalidValue = 0) const
     {
         return value ? value - 1 : invalidValue;
-    }
-
-    HYP_FORCE_INLINE operator UniqueId() const
-    {
-        return UniqueId { GetHashCode() };
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const

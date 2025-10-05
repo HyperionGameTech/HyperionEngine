@@ -3,7 +3,9 @@
 #pragma once
 
 #include <core/object/Handle.hpp>
+
 #include <core/utilities/UserData.hpp>
+#include <core/utilities/Uuid.hpp>
 
 #include <core/math/Matrix4.hpp>
 
@@ -105,8 +107,10 @@ struct MeshComponent
     }
 
     HYP_API MeshComponent& operator=(const MeshComponent& other);
+
     HYP_API MeshComponent(MeshComponent&& other) noexcept;
     HYP_API MeshComponent& operator=(MeshComponent&& other) noexcept;
+
     HYP_API ~MeshComponent();
 
     HYP_FORCE_INLINE bool operator==(const MeshComponent& other) const
