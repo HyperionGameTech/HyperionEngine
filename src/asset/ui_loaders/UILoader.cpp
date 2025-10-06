@@ -740,7 +740,7 @@ public:
 
                     if (jsonParseResult.ok)
                     {
-                        if (!JSONToHypData(jsonParseResult.value, member.GetTypeId(), data))
+                        if (!JSONToHypData(jsonParseResult.value, member.GetTypeInfo(), data))
                         {
                             HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of HypClass \"{}\" from JSON",
                                 member.GetName(), uiObject->GetName());

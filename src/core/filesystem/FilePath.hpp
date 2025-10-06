@@ -36,8 +36,9 @@ public:
     {
     }
 
-    FilePath(const FilePath& other)
-        : String(other)
+    template <int TStringType>
+    FilePath(const utilities::StringView<TStringType>& string_view)
+        : String(string_view)
     {
     }
 
@@ -46,17 +47,15 @@ public:
     {
     }
 
-    FilePath(FilePath&& other) noexcept
-        : String(std::move(other))
-    {
-    }
-
     FilePath(String&& str) noexcept
         : String(std::move(str))
     {
     }
 
-    ~FilePath() = default;
+    FilePath(const FilePath& other)
+        : String(other)
+    {
+    }
 
     FilePath& operator=(const FilePath& other)
     {
@@ -65,12 +64,19 @@ public:
         return *this;
     }
 
+    FilePath(FilePath&& other) noexcept
+        : String(std::move(other))
+    {
+    }
+
     FilePath& operator=(FilePath&& other) noexcept
     {
         String::operator=(std::move(other));
 
         return *this;
     }
+
+    ~FilePath() = default;
 
     FilePath operator+(const FilePath& other) const
     {

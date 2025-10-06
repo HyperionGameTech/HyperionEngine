@@ -3,8 +3,7 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>
-
-#include <core/utilities/StringView.hpp>
+#include <core/containers/String.hpp>
 
 #include <core/Defines.hpp>
 

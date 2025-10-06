@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <core/utilities/TypeId.hpp>
-
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 
@@ -14,6 +12,14 @@ namespace hyperion {
 struct HypData;
 class HypClass;
 
+namespace utilities {
+struct TypeInfo;
+struct TypeId;
+} // namespace utilities
+
+using utilities::TypeId;
+using utilities::TypeInfo;
+
 namespace json {
 
 class JSONValue;
@@ -22,18 +28,6 @@ using JSONString = String;
 class JSONObject;
 
 } // namespace json
-
-/*! \brief Converts a JSONValue to a HypData of the specified TypeId.
- *  Supports basic types: int8, int16, int32, int64, uint8, uint16, uint32, uint64, float, double, bool, String
- *  Supports Vec2i, Vec3i, Vec4i, Vec2u, Vec3u, Vec4u, Vec2f, Vec3f, Vec4f as arrays of numbers.
- *  Supports Array<T> and LinkedList<T> for common primitive types (int8-uint64, float, double, bool, String, Name, Vec types, Uuid).
- *
- *  \param jsonValue The JSONValue to convert.
- *  \param typeId The TypeId of the target HypData type.
- *  \param outHypData The output HypData.
- *  \return True if conversion was successful, false otherwise.
- */
-bool JSONToHypData(const json::JSONValue& jsonValue, TypeId typeId, HypData& outHypData);
 
 /*! \brief Converts a HypData to a JSONValue.
  *  Supports basic types: int8, int16, int32, int64, uint8, uint16, uint32, uint64, float, double, bool, String
@@ -59,6 +53,15 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
  *  \return True if serialization was successful, false otherwise.
  */
 bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson, bool skipTransientProperties = true);
+
+/*! \brief Converts a JSONValue to HypData
+ *
+ *  \param jsonValue The JSONValue to convert.
+ *  \param typeInfo The TypeInfo for the target type.
+ *  \param outHypData The output HypData.
+ *  \return True if conversion was successful, false otherwise.
+ */
+bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData);
 
 /*! \brief Deserializes a JSONObject to a HypData object.
  *  Only fields and properties of the HypClass are deserialized.

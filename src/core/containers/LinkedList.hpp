@@ -68,6 +68,53 @@ public:
             return Iterator { node->next };
         }
 
+        HYP_FORCE_INLINE Iterator operator+(SizeType n) const
+        {
+            Iterator it = *this;
+            it += n;
+            return it;
+        }
+
+        Iterator& operator+=(SizeType n)
+        {
+            for (SizeType i = 0; i < n; i++)
+            {
+                HYP_CORE_ASSERT(node != nullptr);
+                node = node->next;
+            }
+
+            return *this;
+        }
+
+        HYP_FORCE_INLINE Iterator& operator--()
+        {
+            node = node->previous;
+            return *this;
+        }
+
+        HYP_FORCE_INLINE Iterator operator--(int)
+        {
+            return Iterator { node->previous };
+        }
+
+        HYP_FORCE_INLINE Iterator operator-(SizeType n) const
+        {
+            Iterator it = *this;
+            it -= n;
+            return it;
+        }
+
+        Iterator& operator-=(SizeType n)
+        {
+            for (SizeType i = 0; i < n; i++)
+            {
+                HYP_CORE_ASSERT(node != nullptr);
+                node = node->previous;
+            }
+
+            return *this;
+        }
+
         HYP_FORCE_INLINE bool operator==(const Iterator& other) const
         {
             return node == other.node;

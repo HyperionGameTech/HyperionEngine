@@ -2,13 +2,16 @@
 
 #pragma once
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/ByteUtil.hpp>
+
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/Memory.hpp>
-#include <core/debug/Debug.hpp>
-#include <core/Defines.hpp>
 
+#include <core/debug/Debug.hpp>
+
+#include <core/Defines.hpp>
 #include <core/Types.hpp>
 
 #include <type_traits>
@@ -62,7 +65,7 @@ class Any final : public AnyBase
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { &TypeInfo::ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
+        Block* hdr = new (base) Block { &TypeInfo_ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
         T* obj = ::new (base + objOffset) T(val);
         hdr->objectPtr = obj;
         return hdr;
@@ -264,14 +267,11 @@ public:
     }
 
     /*! \brief Returns the TypeId of the held object. */
-    HYP_FORCE_INLINE TypeId GetTypeId() const
-    {
-        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo->id : TypeId::Void();
-    }
+    TypeId GetTypeId() const;
 
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
-        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo : &TypeInfo::Void();
+        return HasValue() ? reinterpret_cast<const Block*>(m_block)->typeInfo : &TypeInfo_Void();
     }
 
     /*! \brief Returns true if the held object is of type T.
@@ -360,7 +360,7 @@ public:
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { &TypeInfo::ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
+        Block* hdr = new (base) Block { &TypeInfo_ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
         U* obj = ::new (base + objOffset) U(std::forward<Args>(args)...);
         hdr->objectPtr = obj;
 
@@ -383,7 +383,7 @@ public:
         if (ptr)
         {
             void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
-            Block* hdr = new (raw) Block { &TypeInfo::ForType<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
+            Block* hdr = new (raw) Block { &TypeInfo_ForType<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
             m_block = hdr;
         }
         else
