@@ -32,7 +32,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <util/Float16.hpp>
+#include <core/utilities/Float16.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

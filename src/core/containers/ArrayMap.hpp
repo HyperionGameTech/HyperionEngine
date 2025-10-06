@@ -48,14 +48,44 @@ public:
 
     ArrayMap(const ArrayMap& other);
     ArrayMap& operator=(const ArrayMap& other);
+
     ArrayMap(ArrayMap&& other) noexcept;
     ArrayMap& operator=(ArrayMap&& other) noexcept;
+
     ~ArrayMap();
 
-    [[nodiscard]] Iterator Find(const Key& key);
-    [[nodiscard]] ConstIterator Find(const Key& key) const;
+    Iterator Find(const Key& key);
+    ConstIterator Find(const Key& key) const;
 
-    [[nodiscard]] bool Contains(const Key& key) const;
+    template <class TFindAsType>
+    auto FindAs(const TFindAsType& key) -> Iterator
+    {
+        for (auto it = Begin(); it != End(); ++it)
+        {
+            if (it->first == key)
+            {
+                return it;
+            }
+        }
+
+        return End();
+    }
+
+    template <class TFindAsType>
+    auto FindAs(const TFindAsType& key) const -> ConstIterator
+    {
+        for (auto it = Begin(); it != End(); ++it)
+        {
+            if (it->first == key)
+            {
+                return it;
+            }
+        }
+
+        return End();
+    }
+
+    bool Contains(const Key& key) const;
 
     InsertResult Insert(const Key& key, const Value& value);
     InsertResult Insert(const Key& key, Value&& value);
@@ -135,6 +165,44 @@ public:
         }
 
         return Insert(key, Value {}).first->second;
+    }
+
+    template <class OtherContainerType>
+    ArrayMap& Merge(const OtherContainerType& other)
+    {
+        if (Empty())
+        {
+            *this = other;
+        }
+        else
+        {
+            for (const auto& item : other)
+            {
+                Set(item.first, item.second);
+            }
+        }
+
+        return *this;
+    }
+
+    template <class OtherContainerType>
+    ArrayMap& Merge(OtherContainerType&& other)
+    {
+        if (Empty())
+        {
+            *this = std::forward<OtherContainerType>(other);
+        }
+        else
+        {
+            for (auto& item : other)
+            {
+                Set(item.first, std::move(item.second));
+            }
+        }
+
+        other.Clear();
+
+        return *this;
     }
 
     HYP_DEF_STL_BEGIN_END(m_vector.Begin(), m_vector.End())
@@ -309,5 +377,10 @@ bool ArrayMap<Key, Value>::Erase(const Key& value)
 
 template <class Key, class Value>
 using ArrayMap = containers::ArrayMap<Key, Value>;
+
+template <class Key, class Value>
+struct IsArrayMap<containers::ArrayMap<Key, Value>> : std::true_type
+{
+};
 
 } // namespace hyperion

@@ -52,10 +52,10 @@
 
 #include <core/utilities/Time.hpp>
 #include <core/utilities/DeferredScope.hpp>
+#include <core/utilities/Float16.hpp>
 
 #include <core/math/Triangle.hpp>
 
-#include <util/Float16.hpp>
 #include <util/MeshBuilder.hpp>
 
 #include <system/AppContext.hpp>

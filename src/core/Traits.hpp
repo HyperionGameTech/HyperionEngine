@@ -328,12 +328,22 @@ struct IsArray : std::false_type
 };
 
 template <class T>
+struct IsFixedArray : std::false_type
+{
+};
+
+template <class T>
 struct IsFlatMap : std::false_type
 {
 };
 
 template <class T>
 struct IsHashMap : std::false_type
+{
+};
+
+template <class T>
+struct IsArrayMap : std::false_type
 {
 };
 

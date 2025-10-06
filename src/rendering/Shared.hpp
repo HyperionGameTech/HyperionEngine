@@ -7,6 +7,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Float16.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 
@@ -18,8 +19,6 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
-
-#include <util/Float16.hpp>
 
 namespace hyperion {
 

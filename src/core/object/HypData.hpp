@@ -16,6 +16,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Float16.hpp>
 #include <core/utilities/Result.hpp>
 
 #include <core/memory/Any.hpp>
@@ -122,6 +123,7 @@ struct HypData
         double,
         bool,
         void*,
+        Float16,
         Name,
         ObjIdBase,
         HypClassRef,
@@ -136,7 +138,12 @@ struct HypData
         /* Fundamental types - can be stored inline */
         std::is_same_v<T, int8> || std::is_same_v<T, int16> | std::is_same_v<T, int32> | std::is_same_v<T, int64> || std::is_same_v<T, uint8> || std::is_same_v<T, uint16> || std::is_same_v<T, uint32> || std::is_same_v<T, uint64>
 
-        || std::is_same_v<T, char> || std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, bool> || std::is_same_v<T, void*>
+        || std::is_same_v<T, char>
+        || std::is_same_v<T, float> || std::is_same_v<T, double>
+        || std::is_same_v<T, bool>
+        || std::is_same_v<T, void*>
+
+        || std::is_same_v<T, Float16>
 
         /*! Name is 32 bits and can be stored inline */
         || std::is_same_v<T, Name>
@@ -264,6 +271,11 @@ struct HypData
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return ToRef().GetTypeId();
+    }
+
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        return ToRef().GetTypeInfo();
     }
 
     HYP_FORCE_INLINE void Reset()
@@ -524,7 +536,10 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
         char,
         float,
         double,
-        bool>;
+        bool,
+        Float16>;
+
+    // Fundamental types
 
     HYP_FORCE_INLINE bool Is(T value) const
     {
@@ -547,6 +562,18 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
     HYP_FORCE_INLINE constexpr T Get(OtherT value) const
     {
         return static_cast<T>(value);
+    }
+
+    // Float16 Conversion
+
+    HYP_FORCE_INLINE constexpr bool Is(Float16 value) const
+    {
+        return true;
+    }
+
+    HYP_FORCE_INLINE constexpr T Get(Float16 value) const
+    {
+        return static_cast<T>(float(value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T value) const
@@ -653,6 +680,69 @@ struct HypDataHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64
 
 #endif
 
+template <>
+struct HypDataHelperDecl<Float16>
+{
+};
+
+template <>
+struct HypDataHelper<Float16> : HypDataHelper<uint16>
+{
+    using StorageType = Float16;
+    using ConvertibleFrom = Tuple<
+        float,
+        double>;
+
+    HYP_FORCE_INLINE bool Is(Float16 value) const
+    {
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, Float16>>>
+    HYP_FORCE_INLINE bool Is(OtherT value) const
+    {
+        return std::is_floating_point_v<OtherT>;
+    }
+
+    HYP_FORCE_INLINE constexpr Float16 Get(Float16 value) const
+    {
+        return value;
+    }
+
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, Float16>>>
+    HYP_FORCE_INLINE constexpr Float16 Get(OtherT value) const
+    {
+        return Float16(float(value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, Float16 value) const
+    {
+        hypData.Set_Internal(value);
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Serialize(Float16 value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        out = FBOMData(value.value, flags);
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        uint16 value;
+
+        if (FBOMResult err = data.Read(&value))
+        {
+            return err;
+        }
+
+        out = HypData(Float16(value));
+
+        return FBOMResult::FBOM_OK;
+    }
+};
+
 template <class T>
 struct HypDataHelperDecl<T, std::enable_if_t<std::is_enum_v<T>>>
 {
@@ -672,26 +762,14 @@ struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std
         return true;
     }
 
-    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, T> && !std::is_same_v<OtherT, std::underlying_type_t<T>>>>
-    HYP_FORCE_INLINE constexpr bool Is(OtherT value) const
-    {
-        return std::is_fundamental_v<OtherT>;
-    }
-
     HYP_FORCE_INLINE constexpr T Get(T value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE constexpr T Get(std::underlying_type<T> value) const
+    HYP_FORCE_INLINE constexpr T Get(std::underlying_type_t<T> value) const
     {
-        return static_cast<T>(value);
-    }
-
-    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<OtherT, T> && !std::is_same_v<OtherT, std::underlying_type<T>>>>
-    HYP_FORCE_INLINE constexpr T Get(OtherT value) const
-    {
-        return static_cast<T>(value);
+        return T(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T value) const

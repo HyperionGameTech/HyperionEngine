@@ -36,9 +36,14 @@ class JSONObject;
  *  \param value The HypData to convert.
  *  \param outJson The output JSONValue.
  *  \param skipTransientProperties If true, properties marked as transient will be skipped during serialization. Default is true.
+ * \param saveAssetObjectsAsReferences If true, AssetObject deriving classes will be serialized as AssetReference. Default is true.
  *  \return True if conversion was successful, false otherwise.
  */
-bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties = true);
+bool HypDataToJSON(
+    const HypData& value,
+    json::JSONValue& outJson,
+    bool skipTransientProperties = true,
+    bool saveAssetObjectsAsReferences = true);
 
 /*! \brief Serializes a HypData object to a JSONObject.
  *  Only fields and properties of the HypClass are serialized.
@@ -48,11 +53,16 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
  *  \param hypClass The HypClass of the object.
  *  \param target The HypData object to serialize.
  *  \param outJson The output JSONObject.
- *  \param skipTransientProperties If true, properties marked as transient will be skipped during serialization
- * .  Default is true.
+ *  \param skipTransientProperties If true, properties marked as transient will be skipped during serialization. Default is true.
+ * \param saveAssetObjectsAsReferences If true, AssetObject deriving classes will be serialized as AssetReference. Default is true.
  *  \return True if serialization was successful, false otherwise.
  */
-bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson, bool skipTransientProperties = true);
+bool ObjectToJSON(
+    const HypClass* hypClass,
+    const HypData& target,
+    json::JSONObject& outJson,
+    bool skipTransientProperties = true,
+    bool saveAssetObjectsAsReferences = true);
 
 /*! \brief Converts a JSONValue to HypData
  *

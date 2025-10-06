@@ -17,16 +17,28 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/TypeInfo.hpp>
+#include <core/utilities/Float16.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+#include <asset/AssetObject.hpp>
+#include <asset/AssetReference.hpp>
+
+#include <core/utilities/GlobalContext.hpp>
+#endif
+
 namespace hyperion {
+
+struct SaveAssetsAsReferencesContext
+{
+};
 
 // used to prevent infinite recursion when serializing nested objects
 static thread_local HashSet<const void*> g_serialized;
 
-bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties)
+bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties, bool saveAssetObjectsAsReferences)
 {
     if (!g_serialized.Insert(value.ToRef().GetPointer()).second)
     {
@@ -47,6 +59,38 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
 
         return true;
     }
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    AssetReference assetReference;
+    bool isAssetObject = false;
+
+    if (value.Is<AssetReference>())
+    {
+        assetReference = value.Get<AssetReference>();
+    }
+    else if (value.Is<AssetObject>())
+    {
+        // Serialize AssetObject deriving classes by their asset reference if we're saving an Editor project.
+        const AssetObject& assetObject = value.Get<AssetObject>();
+        AssertDebug(assetObject.IsRegistered(), "Cannot serialize unregistered AssetObject");
+
+        if (!assetObject.IsRegistered())
+        {
+            HYP_LOG(Core, Warning, "Cannot serialize unregistered AssetObject!");
+            return false;
+        }
+
+        assetReference = AssetReference(assetObject.HandleFromThis());
+        isAssetObject = true;
+    }
+
+    if (isAssetObject && assetReference.IsValid() && saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
+    {
+        return HypDataToJSON(HypData(assetReference), outJson, skipTransientProperties, true);
+    }
+
+    assetReference = AssetReference(); // reset
+#endif
 
     if (value.Is<bool>(/* strict */ true))
     {
@@ -195,43 +239,6 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
         return true;
     }
 
-    if (value.IsArray())
-    {
-        HypDataArray& array = value.Get<HypDataArray>();
-
-        if (!array.CanGetElementByIndex())
-        {
-            return false;
-        }
-
-        const SizeType size = array.Size();
-
-        json::JSONArray jsonArray;
-        jsonArray.Reserve(size);
-
-        for (SizeType i = 0; i < size; i++)
-        {
-            json::JSONValue jsonValue;
-
-            HypData element;
-            if (!array.ElementAt(i, element))
-            {
-                return false;
-            }
-
-            if (!HypDataToJSON(element, jsonValue, skipTransientProperties))
-            {
-                return false;
-            }
-
-            jsonArray.PushBack(std::move(jsonValue));
-        }
-
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
     if (value.Is<Uuid>())
     {
         const Uuid& uuid = value.Get<Uuid>();
@@ -274,7 +281,7 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
                 return false;
             }
 
-            if (!HypDataToJSON(element, jsonValue, skipTransientProperties))
+            if (!HypDataToJSON(element, jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
             {
                 return false;
             }
@@ -293,7 +300,9 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
     {
         json::JSONObject jsonObject;
 
-        if (!ObjectToJSON(hypClass, value, jsonObject, skipTransientProperties))
+        GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };
+
+        if (!ObjectToJSON(hypClass, value, jsonObject, skipTransientProperties, saveAssetObjectsAsReferences))
         {
             return false;
         }
@@ -306,7 +315,7 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
     return false;
 }
 
-bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson, bool skipTransientProperties)
+bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson, bool skipTransientProperties, bool saveAssetObjectsAsReferences)
 {
     HashSet<Name> usedMembers;
 
@@ -342,7 +351,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(property->Get(target), jsonValue, skipTransientProperties))
+                if (!HypDataToJSON(property->Get(target), jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -374,7 +383,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(field->Get(target), jsonValue, skipTransientProperties))
+                if (!HypDataToJSON(field->Get(target), jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -408,7 +417,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
 
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(constant->Get(), jsonValue, skipTransientProperties))
+                if (!HypDataToJSON(constant->Get(), jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -572,6 +581,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsNumber())
         {
+            HYP_LOG(Core, Warning, "Expected JSON number for integral TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
             return false;
         }
 
@@ -579,8 +589,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<int8>())
         {
-            if (number < std::numeric_limits<int8>::min() || number > std::numeric_limits<int8>::max())
+            if (number < INT8_MIN || number > INT8_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for int8", number);
                 return false;
             }
 
@@ -590,8 +601,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<int16>())
         {
-            if (number < std::numeric_limits<int16>::min() || number > std::numeric_limits<int16>::max())
+            if (number < INT16_MIN || number > INT16_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for int16", number);
                 return false;
             }
 
@@ -601,8 +613,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<int32>())
         {
-            if (number < std::numeric_limits<int32>::min() || number > std::numeric_limits<int32>::max())
+            if (number < INT32_MIN || number > INT32_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for int32", number);
                 return false;
             }
 
@@ -612,8 +625,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<int64>())
         {
-            if (number < std::numeric_limits<int64>::min() || number > std::numeric_limits<int64>::max())
+            if (number < INT64_MIN || number > INT64_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for int64", number);
                 return false;
             }
 
@@ -623,8 +637,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<uint8>())
         {
-            if (number < std::numeric_limits<uint8>::min() || number > std::numeric_limits<uint8>::max())
+            if (number < 0 || number > UINT8_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for uint8", number);
                 return false;
             }
 
@@ -634,8 +649,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<uint16>())
         {
-            if (number < std::numeric_limits<uint16>::min() || number > std::numeric_limits<uint16>::max())
+            if (number < 0 || number > UINT16_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for uint16", number);
                 return false;
             }
 
@@ -645,8 +661,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<uint32>())
         {
-            if (number < std::numeric_limits<uint32>::min() || number > std::numeric_limits<uint32>::max())
+            if (number < 0 || number > UINT32_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for uint32", number);
                 return false;
             }
 
@@ -656,8 +673,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (typeInfo.id == TypeId::ForType<uint64>())
         {
-            if (number < std::numeric_limits<uint64>::min() || number > std::numeric_limits<uint64>::max())
+            if (number < 0 || number > UINT64_MAX)
             {
+                HYP_LOG(Core, Warning, "Number {} out of range for uint64", number);
                 return false;
             }
 
@@ -670,7 +688,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         {
             if (typeInfo.id == TypeId::ForType<SizeType>())
             {
-                if (number < std::numeric_limits<SizeType>::min() || number > std::numeric_limits<SizeType>::max())
+                if (number < 0 || number > SIZE_T_MAX)
                 {
                     return false;
                 }
@@ -688,19 +706,23 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsNumber())
         {
+            HYP_LOG(Core, Warning, "Expected JSON number for float TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
             return false;
         }
 
         const json::JSONNumber number = jsonValue.AsNumber();
 
+        if (typeInfo.id == TypeId::ForType<Float16>())
+        {
+            // Clamp to representable range of Float16
+            const double clamped = MathUtil::Clamp(double(number), double(-FLT16_MAX), double(FLT16_MAX));
+            outHypData = HypData(Float16(float(MathUtil::Clamp(double(clamped), double(-FLT16_MAX), double(FLT16_MAX)))));
+            return true;
+        }
+
         if (typeInfo.id == TypeId::ForType<float>())
         {
-            if (number < -std::numeric_limits<float>::max() || number > std::numeric_limits<float>::max())
-            {
-                return false;
-            }
-
-            outHypData = HypData(float(number));
+            outHypData = HypData(float(MathUtil::Clamp(double(number), double(-FLT_MAX), double(FLT_MAX))));
             return true;
         }
 
@@ -717,6 +739,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsBool())
         {
+            HYP_LOG(Core, Warning, "Expected JSON bool for bool TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
             return false;
         }
 
@@ -728,6 +751,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsString())
         {
+            HYP_LOG(Core, Warning, "Expected JSON string for string TypeId: {}, but got: {}", typeInfo.id.Value(), jsonValue.ToString(true));
             return false;
         }
 
@@ -744,6 +768,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         Any stringInstance;
         if (!stringHandler->CreateInstance(stringInstance))
         {
+            HYP_LOG(Core, Warning, "Failed to create instance of string type");
             return false;
         }
 
@@ -756,6 +781,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsString())
         {
+            HYP_LOG(Core, Warning, "Expected JSON string for UUID, but got: {}", jsonValue.ToString(true));
             return false;
         }
 
@@ -763,6 +789,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (jsonString.Size() != 36)
         {
+            HYP_LOG(Core, Warning, "Invalid UUID string length: {}", jsonString.Size());
             return false;
         }
 
@@ -866,6 +893,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         Any arrayInstance;
         if (!arrayHandler->CreateInstance(arrayInstance))
         {
+            HYP_LOG(Core, Warning, "Failed to create instance of array type");
             return false;
         }
 
@@ -900,11 +928,13 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
             if (!hypClass->CreateInstance(propertyValueHypData))
             {
+                HYP_LOG(Core, Warning, "Failed to create instance of HypClass \"{}\"", hypClass->GetName());
                 return false;
             }
 
             if (!JSONToObject(jsonValue.AsObject(), hypClass, propertyValueHypData))
             {
+                HYP_LOG(Core, Warning, "Failed to deserialize HypClass \"{}\" from JSON", hypClass->GetName());
                 return false;
             }
 
@@ -912,6 +942,8 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             return true;
         }
     }
+
+    HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of TypeId: {}", typeInfo.id.Value());
 
     return false;
 }

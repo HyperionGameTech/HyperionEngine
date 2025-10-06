@@ -47,13 +47,12 @@
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
+#include <core/utilities/Float16.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <system/AppContext.hpp>
-
-#include <util/Float16.hpp>
 
 #include <util/MeshBuilder.hpp>
 

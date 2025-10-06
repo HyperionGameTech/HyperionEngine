@@ -366,4 +366,9 @@ constexpr inline FixedArray<T, N> MakeFixedArray(T* _begin, T* _end)
     return result;
 }
 
+template <class T, SizeType Sz>
+struct IsFixedArray<hyperion::containers::FixedArray<T, Sz>> : std::true_type
+{
+};
+
 } // namespace hyperion

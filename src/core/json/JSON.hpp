@@ -4,12 +4,14 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/utilities/Variant.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/Defines.hpp>
+#include <core/containers/ArrayMap.hpp>
 
+#include <core/utilities/Variant.hpp>
 #include <core/utilities/StringUtil.hpp>
+
+#include <core/memory/RefCountedPtr.hpp>
+
+#include <core/Defines.hpp>
 
 namespace hyperion {
 
@@ -739,10 +741,10 @@ private:
     InnerType m_inner;
 };
 
-class JSONObject : public HashMap<JSONString, JSONValue, HashTable_DynamicNodeAllocator<KeyValuePair<JSONString, JSONValue>>>
+class JSONObject final : public ArrayMap<JSONString, JSONValue>
 {
 public:
-    using Base = HashMap<JSONString, JSONValue, HashTable_DynamicNodeAllocator<KeyValuePair<JSONString, JSONValue>>>;
+    using Base = ArrayMap<JSONString, JSONValue>;
 
     JSONObject() = default;
 

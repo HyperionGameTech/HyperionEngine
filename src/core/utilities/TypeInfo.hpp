@@ -37,10 +37,10 @@ enum class TypeAttributeFlags : uint32
 
     // Container types
     ARRAY_TYPE = 0x2000,
-    LINKEDLIST_TYPE = 0x4000,
-    STRING_TYPE = 0x8000,
-    MAP_TYPE = 0x10000,
-    SET_TYPE = 0x20000,
+    LINKEDLIST_TYPE = 0x8000,
+    STRING_TYPE = 0x10000,
+    MAP_TYPE = 0x20000,
+    SET_TYPE = 0x40000,
     VARIANT_TYPE = 0x100000,
 
     // Vector types
@@ -53,6 +53,8 @@ enum class TypeAttributeFlags : uint32
 HYP_MAKE_ENUM_FLAGS(TypeAttributeFlags)
 
 class HypClass;
+
+struct Float16;
 
 HYP_API extern const HypClass* GetClass(TypeId typeId);
 HYP_API extern bool HypClassRegistry_IsInitialized();
@@ -75,6 +77,9 @@ class FlatMap;
 
 template <class T>
 class FlatSet;
+
+template <class Key, class Value>
+class ArrayMap;
 
 } // namespace containers
 
@@ -309,11 +314,6 @@ struct HYP_API TypeInfoEx
     DataType dataType : 2;
 
     ITypeInfoHandler* handler = nullptr;
-
-    /*! \brief Linked list pointer for:
-     *  - HashMap<K,V>, FlatMap<K,V>: next points to value type
-     *  - Variant<Types...>: next points to next alternative type in chain
-     *  - String types: character encoding type info */
     TypeInfoEx* next = nullptr;
 
     TypeInfoEx()
@@ -411,8 +411,6 @@ struct TypeInfo
         }
         else
         {
-
-            // Check cache first
             if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, sizeof(NormalizedT), alignof(NormalizedT)))
             {
                 return *cached;
@@ -450,13 +448,11 @@ struct TypeInfo
                 result.flags |= TypeAttributeFlags::INTEGRAL_TYPE;
             }
 
-            if constexpr (std::is_floating_point_v<NormalizedT>)
+            if constexpr (std::is_floating_point_v<NormalizedT> || std::is_same_v<NormalizedT, Float16>)
             {
                 result.flags |= TypeAttributeFlags::FLOAT_TYPE;
             }
 
-            // Detect container types using type traits
-            // Check Array types
             if constexpr (IsArray<NormalizedT>::value)
             {
                 class ArrayHandler final : public ITypeInfoArrayHandler
@@ -481,6 +477,8 @@ struct TypeInfo
                         using ValueType = typename ArrayType::ValueType;
 
                         ArrayType& array = arrayRef.Get<ArrayType>();
+                        HYP_CORE_ASSERT(index < array.Size());
+
                         return AnyRef(&array[index]);
                     }
 
@@ -490,6 +488,8 @@ struct TypeInfo
                         using ValueType = typename ArrayType::ValueType;
 
                         ArrayType& array = arrayRef.Get<ArrayType>();
+                        HYP_CORE_ASSERT(index < array.Size());
+
                         ValueType& v = value.Get<ValueType>();
 
                         array[index] = v;
@@ -517,6 +517,69 @@ struct TypeInfo
                 result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
                 result.extendedInfo.handler = new ArrayHandler();
+            }
+            else if constexpr (IsFixedArray<NormalizedT>::value)
+            {
+                class FixedArrayHandler final : public ITypeInfoArrayHandler
+                {
+                public:
+                    virtual ITypeInfoHandler* Clone() const override
+                    {
+                        return new FixedArrayHandler();
+                    }
+
+                    virtual bool CreateInstance(Any& outInstance) const override
+                    {
+                        using FixedArrayType = NormalizedT;
+
+                        outInstance = Any(FixedArrayType {});
+                        return true;
+                    }
+
+                    virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
+                    {
+                        using FixedArrayType = NormalizedT;
+                        using ValueType = typename FixedArrayType::ValueType;
+
+                        FixedArrayType& array = arrayRef.Get<FixedArrayType>();
+                        HYP_CORE_ASSERT(index < array.Size());
+
+                        return AnyRef(&array[index]);
+                    }
+
+                    virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
+                    {
+                        using FixedArrayType = NormalizedT;
+                        using ValueType = typename FixedArrayType::ValueType;
+
+                        FixedArrayType& array = arrayRef.Get<FixedArrayType>();
+                        HYP_CORE_ASSERT(index < array.Size());
+
+                        ValueType& v = value.Get<ValueType>();
+
+                        array[index] = v;
+                    }
+
+                    virtual SizeType GetSize(AnyRef arrayRef) const override
+                    {
+                        using FixedArrayType = NormalizedT;
+
+                        FixedArrayType& array = arrayRef.Get<FixedArrayType>();
+                        return array.Size();
+                    }
+
+                    virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
+                    {
+                        // FixedArray has a fixed size, so resizing is not supported
+                        // This operation is a no-op
+                    }
+                };
+
+                result.flags |= TypeAttributeFlags::ARRAY_TYPE;
+
+                result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
+                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                result.extendedInfo.handler = new FixedArrayHandler();
             }
             else if constexpr (IsLinkedList<NormalizedT>::value)
             {
@@ -588,9 +651,9 @@ struct TypeInfo
 
                 result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
                 result.extendedInfo.handler = new LinkedListHandler();
             }
-            // Check String types
             else if constexpr (IsString<NormalizedT>::value)
             {
                 class StringHandler final : public ITypeInfoStringHandler
@@ -632,7 +695,6 @@ struct TypeInfo
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
                 result.extendedInfo.handler = new StringHandler();
             }
-            // Check HashMap types
             else if constexpr (IsHashMap<NormalizedT>::value)
             {
                 class HashMapHandler final : public ITypeInfoMapHandler
@@ -725,20 +787,22 @@ struct TypeInfo
 
                 result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::KeyType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
                 result.extendedInfo.next = new TypeInfoEx();
                 result.extendedInfo.next->data.typeInfo = &ForType<typename NormalizedT::ValueType>();
                 result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
+
                 result.extendedInfo.handler = new HashMapHandler();
             }
-            // Check HashSet types
             else if constexpr (IsHashSet<NormalizedT>::value)
             {
                 result.flags |= TypeAttributeFlags::SET_TYPE;
+
                 using ValueType = typename NormalizedT::ValueType;
+
                 result.extendedInfo.data.typeInfo = &ForType<ValueType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
             }
-            // Check FlatMap types
             else if constexpr (IsFlatMap<NormalizedT>::value)
             {
                 class FlatMapHandler final : public ITypeInfoMapHandler
@@ -831,12 +895,112 @@ struct TypeInfo
 
                 result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::KeyType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
                 result.extendedInfo.next = new TypeInfoEx();
                 result.extendedInfo.next->data.typeInfo = &ForType<typename NormalizedT::ValueType>();
                 result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
+
                 result.extendedInfo.handler = new FlatMapHandler();
             }
-            // Check FlatSet types
+            else if constexpr (IsArrayMap<NormalizedT>::value)
+            {
+                class ArrayMapHandler final : public ITypeInfoMapHandler
+                {
+                public:
+                    virtual ITypeInfoHandler* Clone() const override
+                    {
+                        return new ArrayMapHandler();
+                    }
+
+                    virtual bool CreateInstance(Any& outInstance) const override
+                    {
+                        using MapType = NormalizedT;
+
+                        outInstance = Any(MapType {});
+                        return true;
+                    }
+
+                    virtual AnyRef GetValueAt(AnyRef mapRef, AnyRef key) const override
+                    {
+                        using MapType = NormalizedT;
+                        using KeyType = typename MapType::KeyType;
+                        using ValueType = typename MapType::ValueType;
+
+                        MapType& map = mapRef.Get<MapType>();
+                        KeyType& k = key.Get<KeyType>();
+
+                        auto it = map.Find(k);
+                        if (it != map.End())
+                        {
+                            return AnyRef(&it->second);
+                        }
+
+                        return AnyRef();
+                    }
+
+                    virtual void SetValueAt(AnyRef mapRef, AnyRef key, AnyRef value) const override
+                    {
+                        using MapType = NormalizedT;
+                        using KeyType = typename MapType::KeyType;
+                        using ValueType = typename MapType::ValueType;
+
+                        MapType& map = mapRef.Get<MapType>();
+                        KeyType& k = key.Get<KeyType>();
+                        ValueType& v = value.Get<ValueType>();
+
+                        map[k] = v;
+                    }
+
+                    virtual bool ContainsKey(AnyRef mapRef, AnyRef key) const override
+                    {
+                        using MapType = NormalizedT;
+                        using KeyType = typename MapType::KeyType;
+
+                        MapType& map = mapRef.Get<MapType>();
+                        KeyType& k = key.Get<KeyType>();
+
+                        return map.Find(k) != map.End();
+                    }
+
+                    virtual bool RemoveKey(AnyRef mapRef, AnyRef key) const override
+                    {
+                        using MapType = NormalizedT;
+                        using KeyType = typename MapType::KeyType;
+
+                        MapType& map = mapRef.Get<MapType>();
+                        KeyType& k = key.Get<KeyType>();
+
+                        auto it = map.Find(k);
+                        if (it != map.End())
+                        {
+                            map.Erase(it);
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    virtual SizeType GetSize(AnyRef mapRef) const override
+                    {
+                        using MapType = NormalizedT;
+
+                        MapType& map = mapRef.Get<MapType>();
+
+                        return map.Size();
+                    }
+                };
+
+                result.flags |= TypeAttributeFlags::MAP_TYPE;
+
+                result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::KeyType>();
+                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+                result.extendedInfo.next = new TypeInfoEx();
+                result.extendedInfo.next->data.typeInfo = &ForType<typename NormalizedT::ValueType>();
+                result.extendedInfo.next->dataType = TypeInfoEx::DT_TYPE_INFO;
+
+                result.extendedInfo.handler = new ArrayMapHandler();
+            }
             else if constexpr (IsFlatSet<NormalizedT>::value)
             {
                 result.flags |= TypeAttributeFlags::SET_TYPE;
@@ -844,7 +1008,6 @@ struct TypeInfo
                 result.extendedInfo.data.typeInfo = &ForType<ValueType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
             }
-            // Check Variant types
             else if constexpr (IsVariant<NormalizedT>::value)
             {
                 result.flags |= TypeAttributeFlags::VARIANT_TYPE;
@@ -952,6 +1115,8 @@ struct TypeInfo
                         }
                     }
                 };
+
+                result.extendedInfo.handler = new Vec2Handler();
             }
             else if constexpr (IsVec3<NormalizedT>::value)
             {
@@ -1025,6 +1190,8 @@ struct TypeInfo
                         }
                     }
                 };
+
+                result.extendedInfo.handler = new Vec3Handler();
             }
             else if constexpr (IsVec4<NormalizedT>::value)
             {
@@ -1103,6 +1270,8 @@ struct TypeInfo
                         }
                     }
                 };
+
+                result.extendedInfo.handler = new Vec4Handler();
             }
 
             ValueStorage<Mutex::Guard> guardStorage;
