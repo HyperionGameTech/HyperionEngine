@@ -61,9 +61,6 @@ class Scene;
 struct HypData;
 class Node;
 
-static constexpr uint32 g_moveEntityWriteFlag = 0x1u;
-static constexpr uint32 g_moveEntityReadMask = ~0u << 1;
-
 /*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
  */
 class HYP_API SystemExecutionGroup

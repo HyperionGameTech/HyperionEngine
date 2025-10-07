@@ -351,7 +351,7 @@ private:
 };
 
 template <class T>
-const Name HypObjectContainer<T>::s_poolName = CreateNameFromDynamicString(ANSIString("HypObjectPool_") + TypeNameWithoutNamespace<T>().Data());
+const Name HypObjectContainer<T>::s_poolName = CreateNameFromDynamicString(ANSIString("HypObjectPool_") + TypeNameHelper<T, false>::value.Data());
 
 class HypObjectPool
 {

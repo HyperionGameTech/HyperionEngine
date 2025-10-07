@@ -5,7 +5,7 @@
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -582,7 +582,7 @@ protected:
 
 // define static type infos
 template <class... Types>
-const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeInfo::ForType<Types>()... };
+const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeInfo_ForType<Types>()... };
 
 template <bool IsCopyable, class... Types>
 struct VariantHolder : public VariantBase<Types...>

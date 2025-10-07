@@ -6,6 +6,89 @@
 namespace hyperion {
 namespace threading {
 
+static Mutex s_deferredTasksMutex;
+static Array<TaskExecutorBase*> s_deferredTasks;
+
+static constexpr uint32 DeferredTasksCleanupThreshold = 32;
+
+static void CleanupDeferredTasks()
+{
+    Array<TaskExecutorBase*> toDelete;
+
+    for (auto it = s_deferredTasks.Begin(); it != s_deferredTasks.End();)
+    {
+        if ((*it)->IsCompleted())
+        {
+            toDelete.PushBack(*it);
+
+            it = s_deferredTasks.Erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    s_deferredTasksMutex.Unlock();
+
+    if (toDelete.Any())
+    {
+        for (TaskExecutorBase* taskExecutor : toDelete)
+        {
+            delete taskExecutor;
+        }
+    }
+}
+
+HYP_API void Task_DeleteAllDeferredTasks()
+{
+    Array<TaskExecutorBase*> toDelete;
+
+    s_deferredTasksMutex.Lock();
+
+    toDelete = std::move(s_deferredTasks);
+
+    s_deferredTasks.Clear();
+
+    s_deferredTasksMutex.Unlock();
+
+    if (toDelete.Any())
+    {
+        for (TaskExecutorBase* taskExecutor : toDelete)
+        {
+            HYP_CORE_ASSERT(taskExecutor->IsCompleted());
+
+            delete taskExecutor;
+        }
+    }
+}
+
+HYP_API void Task_DeferTaskDeletion(TaskExecutorBase* taskExecutor)
+{
+    if (!taskExecutor)
+    {
+        return;
+    }
+
+    if (taskExecutor->IsCompleted())
+    {
+        delete taskExecutor;
+        return;
+    }
+
+    s_deferredTasksMutex.Lock();
+    s_deferredTasks.PushBack(taskExecutor);
+
+    if (s_deferredTasks.Size() >= DeferredTasksCleanupThreshold)
+    {
+        CleanupDeferredTasks();
+    }
+    else
+    {
+        s_deferredTasksMutex.Unlock();
+    }
+}
+
 #pragma region TaskCallbackChain
 
 TaskCallbackChain::TaskCallbackChain(TaskCallbackChain&& other) noexcept

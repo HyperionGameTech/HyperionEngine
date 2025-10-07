@@ -61,30 +61,30 @@
 
 namespace hyperion {
 
-static constexpr float g_cameraJitterScale = 0.25f;
+static constexpr float CameraJitterScale = 0.25f;
 
-static constexpr TextureFormat g_envGridRadianceFormat = TF_RGBA8;
-static constexpr TextureFormat g_envGridIrradianceFormat = TF_R11G11B10F;
+static constexpr TextureFormat EnvGridRadianceFormat = TF_RGBA8;
+static constexpr TextureFormat EnvGridIrradianceFormat = TF_R11G11B10F;
 
-static constexpr TextureFormat g_envGridPassFormats[EGPM_MAX] = {
-    g_envGridRadianceFormat,  // EGPM_RADIANCE
-    g_envGridIrradianceFormat // EGPM_IRRADIANCE
+static constexpr TextureFormat EnvGridPassFormats[EGPM_MAX] = {
+    EnvGridRadianceFormat,  // EGPM_RADIANCE
+    EnvGridIrradianceFormat // EGPM_IRRADIANCE
 };
 
-static const Float16 g_ltcMatrix[] = {
+static const Float16 s_ltcMatrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
 };
 
-static_assert(sizeof(g_ltcMatrix) == 64 * 64 * 4 * 2, "Invalid LTC matrix size");
+static_assert(sizeof(s_ltcMatrix) == 64 * 64 * 4 * 2, "Invalid LTC matrix size");
 
-static const Float16 g_ltcBrdf[] = {
+static const Float16 s_ltcBrdf[] = {
 #include <rendering/inl/LTCBRDF.inl>
 };
 
-static_assert(sizeof(g_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
+static_assert(sizeof(s_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
 // Maps individual light types to per-light specific properties.
-static const FixedArray<ShaderProperties, LT_MAX> g_deferredLightTypeProperties {
+static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties {
     ShaderProperties { { NAME("LIGHT_TYPE_DIRECTIONAL") } },
     ShaderProperties { { NAME("LIGHT_TYPE_POINT") } },
     ShaderProperties { { NAME("LIGHT_TYPE_SPOT") } },
@@ -118,7 +118,7 @@ void GetDeferredShaderProperties(ShaderProperties& outShaderProperties)
     }
 }
 
-static constexpr TypeId g_envProbeTypeToTypeId[EPT_MAX] = {
+static constexpr TypeId EnvProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<SkyProbe>(),        // EPT_SKY
     TypeId::ForType<ReflectionProbe>(), // EPT_REFLECTION
     TypeId::ForType<EnvProbe>(),        // EPT_SHADOW (fixme when derived class)
@@ -169,7 +169,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
 
         DeferCreate(m_ltcSampler);
 
-        ByteBuffer ltcMatrixData(sizeof(g_ltcMatrix), g_ltcMatrix);
+        ByteBuffer ltcMatrixData(sizeof(s_ltcMatrix), s_ltcMatrix);
 
         m_ltcMatrixTexture = CreateObject<Texture>(
             TextureDesc {
@@ -183,7 +183,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
         m_ltcMatrixTexture->SetName(NAME("LtcMatrixLut"));
         InitObject(m_ltcMatrixTexture);
 
-        ByteBuffer ltcBrdfData(sizeof(g_ltcBrdf), g_ltcBrdf);
+        ByteBuffer ltcBrdfData(sizeof(s_ltcBrdf), s_ltcBrdf);
 
         m_ltcBrdfTexture = CreateObject<Texture>(
             TextureDesc {
@@ -204,7 +204,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
         ShaderProperties shaderProperties;
         GetDeferredShaderProperties(shaderProperties);
 
-        shaderProperties.Merge(g_deferredLightTypeProperties[i]);
+        shaderProperties.Merge(s_deferredLightTypeProperties[i]);
 
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
         Assert(shader != nullptr);
@@ -503,7 +503,7 @@ static EnvGridApplyMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
 }
 
 EnvGridPass::EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(g_envGridPassFormats[mode], extent, gbuffer),
+    : FullScreenPass(EnvGridPassFormats[mode], extent, gbuffer),
       m_mode(mode),
       m_isFirstFrame(true)
 {
@@ -859,7 +859,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
     {
         const EnvProbeType envProbeType = envProbeTypes[cubemapType];
 
-        for (EnvProbe* envProbe : rpl.GetEnvProbes().GetElements(g_envProbeTypeToTypeId[envProbeType]))
+        for (EnvProbe* envProbe : rpl.GetEnvProbes().GetElements(EnvProbeTypeToTypeId[envProbeType]))
         {
             probesPerCubemapType[cubemapType].PushBack(envProbe);
         }
@@ -1837,7 +1837,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             Vec4f jitter = Vec4f::Zero();
             Matrix4::Jitter(frameCounter, cameraBufferData.dimensions.x, cameraBufferData.dimensions.y, jitter);
 
-            cameraBufferData.jitter = jitter * g_cameraJitterScale;
+            cameraBufferData.jitter = jitter * CameraJitterScale;
 
             RenderApi_UpdateGpuData(view->GetCamera());
         }

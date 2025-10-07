@@ -35,8 +35,8 @@ HYP_API ANSIStringView GetCurrentThreadName()
 
 namespace logging {
 
-static volatile int32 g_maxLogChannelId = -1;
-static bool g_registerAllCalled = false;
+static volatile int32 s_maxLogChannelId = -1;
+static bool s_registerAllCalled = false;
 
 HYP_API Logger& GetLogger()
 {
@@ -63,7 +63,7 @@ private:
     AtomicVar<uint32> m_counter { 0 };
 };
 
-static LogChannelIdGenerator g_logChannelIdGenerator {};
+static LogChannelIdGenerator s_logChannelIdGenerator {};
 
 #pragma region LoggerOutputStream
 
@@ -384,12 +384,12 @@ LogChannel::LogChannel(Name name, LogChannel* parentChannel)
 
 void LogChannelRegistrar::RegisterAll()
 {
-    if (g_registerAllCalled)
+    if (s_registerAllCalled)
     {
         return;
     }
 
-    g_registerAllCalled = true;
+    s_registerAllCalled = true;
 
     const Array<LogChannel*>& channels = m_channels;
     const uint32 n = uint32(channels.Size());
@@ -578,13 +578,13 @@ void Logger::RegisterChannel(LogChannel* channel)
 
 DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* parentChannel)
 {
-    AssertDebug(g_registerAllCalled);
+    AssertDebug(s_registerAllCalled);
 
     Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
 
     LogChannel* channel = m_pImpl->m_dynamicLogChannels.PushBack(new LogChannel(name));
 
-    channel->id = AtomicIncrement(&g_maxLogChannelId);
+    channel->id = AtomicIncrement(&s_maxLogChannelId);
     channel->maskBitset = Bitset(1ull << channel->id);
 
     if (parentChannel)
@@ -606,9 +606,9 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
 
     if (channel.id == ~0u)
     {
-        AssertDebug(g_registerAllCalled);
+        AssertDebug(s_registerAllCalled);
 
-        channel.id = AtomicIncrement(&g_maxLogChannelId);
+        channel.id = AtomicIncrement(&s_maxLogChannelId);
     }
 
     channel.maskBitset = Bitset(1ull << channel.id);

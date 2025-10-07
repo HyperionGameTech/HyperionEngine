@@ -490,36 +490,36 @@ using BCRegister = uint8;
 
 #pragma region ScriptApi
 
-static const String g_nullString = "null";
-static const String g_boolStrings[2] = { "false", "true" };
+static const String s_nullString = "null";
+static const String s_boolStrings[2] = { "false", "true" };
 
-static const TypeId g_typeIdI8 = TypeId::ForType<int8>();
-static const TypeId g_typeIdI16 = TypeId::ForType<int16>();
-static const TypeId g_typeIdI32 = TypeId::ForType<int32>();
-static const TypeId g_typeIdI64 = TypeId::ForType<int64>();
-static const TypeId g_typeIdU8 = TypeId::ForType<uint8>();
-static const TypeId g_typeIdU16 = TypeId::ForType<uint16>();
-static const TypeId g_typeIdU32 = TypeId::ForType<uint32>();
-static const TypeId g_typeIdU64 = TypeId::ForType<uint64>();
-static const TypeId g_typeIdF32 = TypeId::ForType<float32>();
-static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
-static const TypeId g_typeIdBool = TypeId::ForType<bool>();
-static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
+static const TypeId s_typeIdI8 = TypeId::ForType<int8>();
+static const TypeId s_typeIdI16 = TypeId::ForType<int16>();
+static const TypeId s_typeIdI32 = TypeId::ForType<int32>();
+static const TypeId s_typeIdI64 = TypeId::ForType<int64>();
+static const TypeId s_typeIdU8 = TypeId::ForType<uint8>();
+static const TypeId s_typeIdU16 = TypeId::ForType<uint16>();
+static const TypeId s_typeIdU32 = TypeId::ForType<uint32>();
+static const TypeId s_typeIdU64 = TypeId::ForType<uint64>();
+static const TypeId s_typeIdF32 = TypeId::ForType<float32>();
+static const TypeId s_typeIdF64 = TypeId::ForType<float64>();
+static const TypeId s_typeIdBool = TypeId::ForType<bool>();
+static const TypeId s_typeIdString = TypeId::ForType<Script_String>();
 
 // clang-format off
-static const HashMap<TypeId, String (*)(const void*)> g_builtinToStringFunctions = {
-    { g_typeIdI8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int8*>(p)); } },
-    { g_typeIdI16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int16*>(p)); } },
-    { g_typeIdI32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int32*>(p)); } },
-    { g_typeIdI64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int64*>(p)); } },
-    { g_typeIdU8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint8*>(p)); } },
-    { g_typeIdU16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint16*>(p)); } },
-    { g_typeIdU32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint32*>(p)); } },
-    { g_typeIdU64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint64*>(p)); } },
-    { g_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
-    { g_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
-    { g_typeIdBool, [](const void* p) -> String { return g_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
-    { g_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
+static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions = {
+    { s_typeIdI8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int8*>(p)); } },
+    { s_typeIdI16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int16*>(p)); } },
+    { s_typeIdI32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int32*>(p)); } },
+    { s_typeIdI64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const int64*>(p)); } },
+    { s_typeIdU8, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint8*>(p)); } },
+    { s_typeIdU16, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint16*>(p)); } },
+    { s_typeIdU32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint32*>(p)); } },
+    { s_typeIdU64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const uint64*>(p)); } },
+    { s_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
+    { s_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
+    { s_typeIdBool, [](const void* p) -> String { return s_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
+    { s_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
 };
 // clang-format on
 
@@ -686,7 +686,7 @@ bool ScriptApi_ShouldValuePassByRef(const HypData& value)
     return PASS_AS_REF(value);
 }
 
-static const const char* g_unknownTypeString = "<Unknown type>";
+static const char s_unknownTypeString[] = "<Unknown type>";
 
 const char* ScriptApi_GetTypeString(TypeId typeId)
 {
@@ -750,7 +750,7 @@ const char* ScriptApi_GetTypeString(TypeId typeId)
         return typeName;
     }
 
-    return g_unknownTypeString;
+    return s_unknownTypeString;
 }
 
 const char* ScriptApi_GetTypeString(const HypData& data)
@@ -788,12 +788,12 @@ const char* ScriptApi_GetTypeString(const HypData& data)
 
     const char* typeIdString = ScriptApi_GetTypeString(typeId);
 
-    if (typeIdString && typeIdString != g_unknownTypeString)
+    if (typeIdString && typeIdString != s_unknownTypeString)
     {
         return typeIdString;
     }
 
-    return g_unknownTypeString;
+    return s_unknownTypeString;
 }
 
 bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int maxDepth, int currDepth);
@@ -812,13 +812,13 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
     if (!data.IsValid())
     {
-        outString = Script_String(g_nullString);
+        outString = Script_String(s_nullString);
 
         return true;
     }
 
-    auto formatIt = g_builtinToStringFunctions.Find(data.GetTypeId());
-    if (formatIt != g_builtinToStringFunctions.End())
+    auto formatIt = s_builtinToStringFunctions.Find(data.GetTypeId());
+    if (formatIt != s_builtinToStringFunctions.End())
     {
         outString = Script_String(formatIt->second(data.ToRef().GetPointer()));
 

@@ -1,4 +1,21 @@
 {
-  "$Class": "TextureAsset",
-  "FriendlyName": "PlaceholderTextureCube1x1R8"
+  "TextureDesc": {
+    "Type": 2,
+    "Format": 4,
+    "Extent": [1, 1, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 3,
+    "FilterModeMin": 0,
+    "FilterModeMag": 0,
+    "WrapMode": 0
+  },
+  "FriendlyName": "PlaceholderTextureCube1x1R8",
+  "Uuid": "45acf601-17ca-45fd-bdb2-40391d3b6d51",
+  "Name": "Placeholder_Texture_Cube_1x1_R8",
+  "Flags": 0,
+  "OriginalFilepath": "",
+  "$Class": "TextureAsset"
 }

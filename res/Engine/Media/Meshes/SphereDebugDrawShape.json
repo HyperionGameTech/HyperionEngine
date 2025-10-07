@@ -1,19 +1,19 @@
 {
-  "Uuid": "207683bb-a637-4494-a86c-51c0c095dc63",
-  "OriginalFilepath": "",
-  "$Class": "MeshAsset",
-  "Name": "SphereDebugDrawShape",
-  "Flags": 0,
   "MeshDesc": {
-    "NumIndices": 576,
-    "NumVertices": 150,
     "MeshAttributes": {
-      "Topology": 0,
-      "IndexBufferElemType": 4,
       "VertexAttributes": {
         "FlagMask": 63
-      }
-    }
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 150,
+    "NumIndices": 576
   },
-  "FriendlyName": "SphereDebugDrawShape"
+  "FriendlyName": "SphereDebugDrawShape",
+  "Uuid": "0d41d022-b986-44af-a29f-aae9765ce28b",
+  "Name": "SphereDebugDrawShape",
+  "Flags": 0,
+  "OriginalFilepath": "",
+  "$Class": "MeshAsset"
 }

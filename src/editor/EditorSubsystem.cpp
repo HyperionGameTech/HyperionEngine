@@ -2813,6 +2813,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
     }
 
     // register all textures within the atlas as assets:
+    Array<Task<Result>> futureResults;
     for (const auto& it : atlas->GetAtlasTextures().atlases)
     {
         const Handle<Texture>& texture = it.second;
@@ -2823,9 +2824,16 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
         HYP_LOG(Font, Debug, "Adding texture {} to package", texture->GetName());
 
-        if (Result addAssetResult = package->AddAssetObject(textureAsset); addAssetResult.HasError())
+        futureResults.PushBack(package->AddAssetObject(textureAsset));
+    }
+
+    AwaitAll(futureResults.ToSpan());
+
+    for (const Task<Result>& futureResult : futureResults)
+    {
+        if (const Result& result = futureResult.Await(); result.HasError())
         {
-            HYP_LOG(Editor, Error, "Failed to add texture asset to package: {}", addAssetResult.GetError().GetMessage());
+            HYP_LOG(Editor, Error, "Failed to add texture asset to package: {}", result.GetError().GetMessage());
         }
     }
 

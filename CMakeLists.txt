@@ -143,6 +143,8 @@ if(MSVC)
     add_definitions("/D_HAS_EXCEPTIONS=0")
     add_definitions("/DNOMINMAX")
 
+    add_compile_options(/MP6)
+
     if(HYP_DEBUG_MODE)
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /Zi /constexpr:depth1024 /bigobj /MP")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/src/Hyperion.natvis")

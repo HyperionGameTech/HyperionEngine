@@ -34,7 +34,7 @@ char* GetErrorStringBuffer()
     return &errorStringBuf[0];
 }
 
-static const char* g_logTypeTable[] = {
+static const char* s_logTypeTable[] = {
     "INFO",
     "WARN",
     "ERROR",
@@ -49,7 +49,7 @@ static const char* g_logTypeTable[] = {
 };
 
 /* Colours increase happiness by 200% */
-static const char* g_logColourTable[] = {
+static const char* s_logColorTable[] = {
     "\33[34m",
     "\33[33m",
     "\33[31m",
@@ -69,7 +69,7 @@ HYP_DEPRECATED void DebugLog_Write(LogType type, const char* fmt, ...)
 {
     /* Coloured files are less that ideal */
     const int typeN = static_cast<std::underlying_type_t<LogType>>(type);
-    fprintf(HYP_DEBUG_OUTPUT_STREAM, "[%s] ", g_logTypeTable[typeN]);
+    fprintf(HYP_DEBUG_OUTPUT_STREAM, "[%s] ", s_logTypeTable[typeN]);
 
     va_list args;
     va_start(args, fmt);
@@ -82,9 +82,9 @@ HYP_DEPRECATED void DebugLog_Write(LogType type, const char* callee, uint32_t li
     const int typeN = static_cast<std::underlying_type_t<LogType>>(type);
     /* Coloured files are less than ideal */
     if (HYP_DEBUG_OUTPUT_STREAM == stdout)
-        printf("%s[%s]\33[0m ", g_logColourTable[typeN], g_logTypeTable[typeN]);
+        printf("%s[%s]\33[0m ", s_logColorTable[typeN], s_logTypeTable[typeN]);
     else
-        fprintf(HYP_DEBUG_OUTPUT_STREAM, "[%s] ", g_logTypeTable[typeN]);
+        fprintf(HYP_DEBUG_OUTPUT_STREAM, "[%s] ", s_logTypeTable[typeN]);
 
     if (callee != nullptr)
         fprintf(HYP_DEBUG_OUTPUT_STREAM, "%s(line:%u): ", callee, line);

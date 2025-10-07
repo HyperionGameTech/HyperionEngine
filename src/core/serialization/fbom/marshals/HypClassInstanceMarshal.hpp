@@ -60,7 +60,7 @@ public:
 
     virtual FBOMType GetObjectType() const override
     {
-        return FBOMObjectType(TypeNameWithoutNamespace<HypClassInstanceStub>().Data());
+        return FBOMObjectType("HypClassInstanceStub");
     }
 
     virtual TypeId GetTypeId() const override final

@@ -36,9 +36,9 @@
 namespace hyperion {
 
 //! for debugging
-static constexpr bool g_disableAssetUnload = false;
+static constexpr bool DisableAssetUnload = false;
 
-extern HYP_API const FilePath& GetResourceDirectory();
+HYP_API extern const FilePath& GetResourceDirectory();
 
 extern HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr);
 extern HYP_NODISCARD Name SanitizeName(Name name);
@@ -233,7 +233,7 @@ void AssetObject::Init()
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
         resource->m_assetObject = WeakHandleFromThis();
 
-        if ((m_flags[AOF_PERSISTENT] || g_disableAssetUnload) && !m_persistentResource)
+        if ((m_flags[AOF_PERSISTENT] || DisableAssetUnload) && !m_persistentResource)
         {
             m_persistentResource = ResourceHandle(*m_resource);
         }
@@ -261,7 +261,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded)
         return;
     }
 
-    if (g_disableAssetUnload)
+    if (DisableAssetUnload)
     {
         return;
     }
@@ -303,7 +303,7 @@ Result AssetObject::Rename(Name name)
     {
         Handle<AssetObject> strongThis = HandleFromThis();
 
-        if (Result result = package->RemoveAssetObject(strongThis); result.HasError())
+        if (Result result = package->RemoveAssetObject(strongThis).Await(); result.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to remove asset object '{}' from package '{}': {}", m_name, package->GetName(), result.GetError().GetMessage());
 
@@ -313,7 +313,7 @@ Result AssetObject::Rename(Name name)
         const Name prevName = m_name;
         m_name = name;
 
-        if (Result result = package->AddAssetObject(strongThis); result.HasError())
+        if (Result result = package->AddAssetObject(strongThis).Await(); result.HasError())
         {
             m_name = prevName; // revert change
 

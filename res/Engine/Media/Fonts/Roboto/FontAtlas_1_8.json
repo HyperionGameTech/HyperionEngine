@@ -1,18 +1,21 @@
 {
-  "Uuid": "2dd5b605-9e57-4efa-b356-c7e501821dbb",
-  "OriginalFilepath": "",
   "TextureDesc": {
-    "Format": 4,
-    "TextureWrapMode": 0,
-    "ImageUsage": 1,
-    "Extent": [2000, 605, 1],
     "Type": 0,
+    "Format": 4,
+    "Extent": [2000, 605, 1],
+    "MinFilterMode": 0,
     "MagFilterMode": 0,
+    "TextureWrapMode": 0,
     "NumLayers": 1,
-    "MinFilterMode": 0
+    "ImageUsage": 1,
+    "FilterModeMin": 0,
+    "FilterModeMag": 0,
+    "WrapMode": 0
   },
-  "$Class": "TextureAsset",
+  "FriendlyName": "FontAtlas18",
+  "Uuid": "0261ed50-7cfa-41b3-aea6-ce2f98682d6c",
   "Name": "FontAtlas_1_8",
   "Flags": 1,
-  "FriendlyName": "FontAtlas18"
+  "OriginalFilepath": "",
+  "$Class": "TextureAsset"
 }

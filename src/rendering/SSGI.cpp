@@ -32,8 +32,8 @@
 
 namespace hyperion {
 
-static constexpr bool g_useTemporalBlending = true;
-static constexpr TextureFormat g_ssgiFormat = TF_RGBA8;
+static constexpr bool UseTemporalBlending = true;
+static constexpr TextureFormat SsgiFormat = TF_RGBA8;
 
 struct SSGIUniforms
 {
@@ -112,7 +112,7 @@ void SSGI::Create()
 {
     m_resultTexture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
-        g_ssgiFormat,
+        SsgiFormat,
         Vec3u(m_config.extent, 1),
         TFM_NEAREST,
         TFM_NEAREST,
@@ -124,11 +124,11 @@ void SSGI::Create()
 
     CreateUniformBuffers();
 
-    if (g_useTemporalBlending)
+    if (UseTemporalBlending)
     {
         m_temporalBlending = MakeUnique<TemporalBlending>(
             m_config.extent,
-            g_ssgiFormat,
+            SsgiFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             g_renderBackend->GetTextureImageView(m_resultTexture),
@@ -151,7 +151,7 @@ ShaderProperties SSGI::GetShaderProperties() const
 {
     ShaderProperties shaderProperties;
 
-    switch (g_ssgiFormat)
+    switch (SsgiFormat)
     {
     case TF_RGBA8:
         shaderProperties.Set(NAME("OUTPUT_RGBA8"));
@@ -256,7 +256,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
     // transition sample image back into read state
     frame->renderQueue << InsertBarrier(m_resultTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
-    if (g_useTemporalBlending && m_temporalBlending != nullptr)
+    if (UseTemporalBlending && m_temporalBlending != nullptr)
     {
         m_temporalBlending->Render(frame, renderSetup);
     }

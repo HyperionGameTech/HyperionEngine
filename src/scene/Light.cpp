@@ -39,25 +39,25 @@
 
 namespace hyperion {
 
-static const TextureFormat g_pointLightShadowFormat = TF_RG16F;
-static const TextureFormat g_directionalLightShadowFormats[SMF_MAX] = {
+static constexpr TextureFormat PointLightShadowFormat = TF_RG16F;
+static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
     TF_RGBA8, // STANDARD
     TF_RGBA8, // PCF
     TF_RGBA8, // CONTACT_HARDENING
     TF_RG16F  // VSM
 };
 
-static const Name g_shadowMapFilterPropertyNames[SMF_MAX] = {
+static const Name s_shadowMapFilterPropertyNames[SMF_MAX] = {
     NAME("MODE_STANDARD"),
     NAME("MODE_PCF"),
     NAME("MODE_CONTACT_HARDENED"),
     NAME("MODE_VSM")
 };
 
-static constexpr EnumFlags<ViewFlags> g_defaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
+static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS;
 
-static constexpr Vec2u g_defaultShadowMapDimensions[LT_MAX] = {
+static constexpr Vec2u DefaultShadowMapDimensions[LT_MAX] = {
     Vec2u(1024, 1024), // LT_DIRECTIONAL
     Vec2u(256, 256),   // LT_POINT
     Vec2u(256, 256),   // LT_SPOT
@@ -80,7 +80,7 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
       m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
-      m_shadowMapDimensions(g_defaultShadowMapDimensions[type])
+      m_shadowMapDimensions(DefaultShadowMapDimensions[type])
 {
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
@@ -99,7 +99,7 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
-      m_shadowMapDimensions(g_defaultShadowMapDimensions[type])
+      m_shadowMapDimensions(DefaultShadowMapDimensions[type])
 {
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
@@ -170,7 +170,7 @@ void Light::CreateShadowViews()
     }
 
     const ShadowMapFilter shadowMapFilter = GetShadowMapFilter();
-    AssertDebug(shadowMapFilter < std::size(g_shadowMapFilterPropertyNames));
+    AssertDebug(shadowMapFilter < std::size(s_shadowMapFilterPropertyNames));
 
     // Per shadow view flags
     Array<EnumFlags<ViewFlags>> shadowViewFlags = { ViewFlags::COLLECT_ALL_ENTITIES };
@@ -179,7 +179,7 @@ void Light::CreateShadowViews()
 
     ShaderProperties shaderProperties;
     shaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
-    shaderProperties.Set(g_shadowMapFilterPropertyNames[shadowMapFilter]);
+    shaderProperties.Set(s_shadowMapFilterPropertyNames[shadowMapFilter]);
 
     ViewOutputTargetDesc outputTargetDesc {};
     outputTargetDesc.extent = m_shadowMapDimensions;
@@ -195,7 +195,7 @@ void Light::CreateShadowViews()
 
         // depth, depth^2 texture (for variance shadow map)
         ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = g_pointLightShadowFormat;
+        attachmentDesc.format = PointLightShadowFormat;
         attachmentDesc.imageType = TT_CUBEMAP;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
@@ -219,7 +219,7 @@ void Light::CreateShadowViews()
 
         // depth, depth^2 texture (for variance shadow map)
         ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = g_directionalLightShadowFormats[shadowMapFilter];
+        attachmentDesc.format = DirectionalLightShadowFormats[shadowMapFilter];
         attachmentDesc.imageType = TT_TEX2D;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
@@ -275,7 +275,7 @@ void Light::CreateShadowViews()
     for (int i = 0; i < int(shadowViewFlags.Size()); i++)
     {
         ViewDesc viewDesc {
-            .flags = shadowViewFlags[i] | g_defaultShadowViewFlags,
+            .flags = shadowViewFlags[i] | DefaultShadowViewFlags,
             .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
             .outputTargetDesc = outputTargetDesc,
             .scenes = {},

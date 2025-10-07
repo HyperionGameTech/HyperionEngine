@@ -64,7 +64,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
         }                                                                                                             \
     }
 
-static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const HypClass*>(UIObject*, Name, Vec2i, UIObjectSize)>> g_nodeCreateFunctions {
+static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const HypClass*>(UIObject*, Name, Vec2i, UIObjectSize)>> s_nodeCreateFunctions {
     UI_OBJECT_CREATE_FUNCTION(Stage),
     UI_OBJECT_CREATE_FUNCTION(Button),
     UI_OBJECT_CREATE_FUNCTION(Text),
@@ -97,7 +97,7 @@ static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Hyp
         }                                                                   \
     }
 
-static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> g_getDelegateFunctions {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> s_getDelegateFunctions {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnInit),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnRemoved)
@@ -114,7 +114,7 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
         }                                                                              \
     }
 
-static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> g_getDelegateFunctionsChildren {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> s_getDelegateFunctionsChildren {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildRemoved)
 };
@@ -130,7 +130,7 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
         }                                                                                      \
     }
 
-static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> g_getDelegateFunctionsMouse {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> s_getDelegateFunctionsMouse {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseUp),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDrag),
@@ -155,14 +155,14 @@ static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandle
         }                                                                                         \
     }
 
-static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> g_getDelegateFunctionsKeyboard {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> s_getDelegateFunctionsKeyboard {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyUp)
 };
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-static const HashMap<String, UIObjectAlignment> g_uiAlignmentStrings {
+static const HashMap<String, UIObjectAlignment> s_uiAlignmentStrings {
     { "TOPLEFT", UIObjectAlignment::TOP_LEFT },
     { "TOPRIGHT", UIObjectAlignment::TOP_RIGHT },
     { "CENTER", UIObjectAlignment::CENTER },
@@ -170,7 +170,7 @@ static const HashMap<String, UIObjectAlignment> g_uiAlignmentStrings {
     { "BOTTOMRIGHT", UIObjectAlignment::BOTTOM_RIGHT }
 };
 
-static const Array<String> g_standardUiObjectAttributes {
+static const Array<String> s_standardUiObjectAttributes {
     "NAME",
     "POSITION",
     "SIZE",
@@ -191,9 +191,9 @@ static UIObjectAlignment ParseUIObjectAlignment(const String& str)
 {
     const String strUpper = str.ToUpper();
 
-    const auto alignmentIt = g_uiAlignmentStrings.Find(strUpper);
+    const auto alignmentIt = s_uiAlignmentStrings.Find(strUpper);
 
-    if (alignmentIt != g_uiAlignmentStrings.End())
+    if (alignmentIt != s_uiAlignmentStrings.End())
     {
         return alignmentIt->second;
     }
@@ -420,9 +420,9 @@ public:
 
         const String nodeNameUpper = name.ToUpper();
 
-        const auto nodeCreateFunctionsIt = g_nodeCreateFunctions.Find(nodeNameUpper);
+        const auto nodeCreateFunctionsIt = s_nodeCreateFunctions.Find(nodeNameUpper);
 
-        if (nodeCreateFunctionsIt != g_nodeCreateFunctions.End())
+        if (nodeCreateFunctionsIt != s_nodeCreateFunctions.End())
         {
             Name uiObjectName = Name::Invalid();
 
@@ -562,7 +562,7 @@ public:
 
                 const String attributeNameUpper = attributeName.ToUpper();
 
-                if (g_standardUiObjectAttributes.Contains(attributeNameUpper))
+                if (s_standardUiObjectAttributes.Contains(attributeNameUpper))
                 {
                     continue;
                 }
@@ -662,9 +662,9 @@ public:
 #else
                     bool found = false;
 
-                    const auto getDelegateFunctionsIt = g_getDelegateFunctions.Find(attributeNameUpper);
+                    const auto getDelegateFunctionsIt = s_getDelegateFunctions.Find(attributeNameUpper);
 
-                    if (getDelegateFunctionsIt != g_getDelegateFunctions.End())
+                    if (getDelegateFunctionsIt != s_getDelegateFunctions.End())
                     {
                         ScriptableDelegate<UIEventHandlerResult>* delegate = getDelegateFunctionsIt->second(uiObject.Get());
 
@@ -678,9 +678,9 @@ public:
                         continue;
                     }
 
-                    const auto getDelegateFunctionsChildrenIt = g_getDelegateFunctionsChildren.Find(attributeNameUpper);
+                    const auto getDelegateFunctionsChildrenIt = s_getDelegateFunctionsChildren.Find(attributeNameUpper);
 
-                    if (getDelegateFunctionsChildrenIt != g_getDelegateFunctionsChildren.End())
+                    if (getDelegateFunctionsChildrenIt != s_getDelegateFunctionsChildren.End())
                     {
                         ScriptableDelegate<UIEventHandlerResult, UIObject*>* delegate = getDelegateFunctionsChildrenIt->second(uiObject.Get());
 
@@ -694,9 +694,9 @@ public:
                         continue;
                     }
 
-                    const auto getDelegateFunctionsMouseIt = g_getDelegateFunctionsMouse.Find(attributeNameUpper);
+                    const auto getDelegateFunctionsMouseIt = s_getDelegateFunctionsMouse.Find(attributeNameUpper);
 
-                    if (getDelegateFunctionsMouseIt != g_getDelegateFunctionsMouse.End())
+                    if (getDelegateFunctionsMouseIt != s_getDelegateFunctionsMouse.End())
                     {
                         ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* delegate = getDelegateFunctionsMouseIt->second(uiObject.Get());
 
@@ -710,9 +710,9 @@ public:
                         continue;
                     }
 
-                    const auto getDelegateFunctionsKeyboardIt = g_getDelegateFunctionsKeyboard.Find(attributeNameUpper);
+                    const auto getDelegateFunctionsKeyboardIt = s_getDelegateFunctionsKeyboard.Find(attributeNameUpper);
 
-                    if (getDelegateFunctionsKeyboardIt != g_getDelegateFunctionsKeyboard.End())
+                    if (getDelegateFunctionsKeyboardIt != s_getDelegateFunctionsKeyboard.End())
                     {
                         ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* delegate = getDelegateFunctionsKeyboardIt->second(uiObject.Get());
 
@@ -876,7 +876,7 @@ public:
                 Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
                 InitObject(scriptAsset);
 
-                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
 
                 if (assetObjectResult)
                 {
@@ -907,9 +907,9 @@ public:
     {
         const String nodeNameUpper = name.ToUpper();
 
-        const auto nodeCreateFunctionsIt = g_nodeCreateFunctions.Find(nodeNameUpper);
+        const auto nodeCreateFunctionsIt = s_nodeCreateFunctions.Find(nodeNameUpper);
 
-        if (nodeCreateFunctionsIt != g_nodeCreateFunctions.End())
+        if (nodeCreateFunctionsIt != s_nodeCreateFunctions.End())
         {
             UIObject* lastObject = LastObject();
 

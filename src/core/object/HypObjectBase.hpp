@@ -46,10 +46,10 @@ class Class;
 } // namespace dotnet
 #endif
 
-extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
+HYP_API extern bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
+HYP_API extern bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
 
-extern HYP_API TypeId GetTypeIdForClass(const HypClass* hypClass);
+HYP_API extern TypeId GetTypeIdForClass(const HypClass* hypClass);
 
 class HYP_API HypObjectBase
 {
@@ -85,11 +85,7 @@ public:
         return ObjIdBase { GetTypeIdForClass(m_header->hypClass), m_header->index + 1 };
     }
 
-    HYP_FORCE_INLINE static const HypClass* Class()
-    {
-        HYP_API extern const HypClass* g_clsHypObjectBase;
-        return g_clsHypObjectBase;
-    }
+    static const HypClass* Class();
 
     HYP_FORCE_INLINE const HypClass* InstanceClass() const
     {

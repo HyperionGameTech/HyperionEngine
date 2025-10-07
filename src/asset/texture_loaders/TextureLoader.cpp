@@ -23,7 +23,7 @@ struct LoadedTextureData
     TextureFormat format;
 };
 
-static const stbi_io_callbacks callbacks {
+static const stbi_io_callbacks s_callbacks {
     .read = [](void* user, char* data, int size) -> int
     {
         LoaderState* state = static_cast<LoaderState*>(user);
@@ -59,7 +59,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     LoadedTextureData data;
 
     unsigned char* imageBytes = stbi_load_from_callbacks(
-        &callbacks,
+        &s_callbacks,
         (void*)&state,
         &data.width,
         &data.height,

@@ -12,13 +12,13 @@
 namespace hyperion {
 namespace json {
 
-static const JSONValue g_undefined = json::JSONUndefined();
-static const JSONValue g_null = json::JSONNull();
-static const JSONValue g_emptyObject = json::JSONObject();
-static const JSONValue g_emptyArray = json::JSONArray();
-static const JSONValue g_emptyString = json::JSONString();
-static const JSONValue g_true = json::JSONBool(true);
-static const JSONValue g_false = json::JSONBool(false);
+static const JSONValue s_undefined = json::JSONUndefined();
+static const JSONValue s_null = json::JSONNull();
+static const JSONValue s_emptyObject = json::JSONObject();
+static const JSONValue s_emptyArray = json::JSONArray();
+static const JSONValue s_emptyString = json::JSONString();
+static const JSONValue s_true = json::JSONBool(true);
+static const JSONValue s_false = json::JSONBool(false);
 
 #pragma region Helpers
 
@@ -310,7 +310,7 @@ const JSONArray& JSONSubscriptWrapper<JSONValue>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
-        return g_emptyArray.AsArray();
+        return s_emptyArray.AsArray();
     }
 
     return value->AsArray();
@@ -327,7 +327,7 @@ const JSONObject& JSONSubscriptWrapper<JSONValue>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
-        return g_emptyObject.AsObject();
+        return s_emptyObject.AsObject();
     }
 
     return value->AsObject();
@@ -563,7 +563,7 @@ const JSONArray& JSONSubscriptWrapper<const JSONValue>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
-        return g_emptyArray.AsArray();
+        return s_emptyArray.AsArray();
     }
 
     return value->AsArray();
@@ -580,7 +580,7 @@ const JSONObject& JSONSubscriptWrapper<const JSONValue>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
-        return g_emptyObject.AsObject();
+        return s_emptyObject.AsObject();
     }
 
     return value->AsObject();
@@ -979,7 +979,7 @@ const JSONObject& JSONValue::ToObject() const
         return AsObject();
     }
 
-    return g_emptyObject.AsObject();
+    return s_emptyObject.AsObject();
 }
 
 JSONString JSONValue::ToString(bool representation, uint32 depth) const
@@ -1169,37 +1169,37 @@ HashCode JSONValue::GetHashCode() const
 
 const JSONValue& JSON::Undefined()
 {
-    return g_undefined;
+    return s_undefined;
 }
 
 const JSONValue& JSON::Null()
 {
-    return g_null;
+    return s_null;
 }
 
 const JSONValue& JSON::EmptyObject()
 {
-    return g_emptyObject;
+    return s_emptyObject;
 }
 
 const JSONValue& JSON::EmptyArray()
 {
-    return g_emptyArray;
+    return s_emptyArray;
 }
 
 const JSONValue& JSON::EmptyString()
 {
-    return g_emptyString;
+    return s_emptyString;
 }
 
 const JSONValue& JSON::True()
 {
-    return g_true;
+    return s_true;
 }
 
 const JSONValue& JSON::False()
 {
-    return g_false;
+    return s_false;
 }
 
 ParseResult JSON::Parse(BufferedReader& reader)

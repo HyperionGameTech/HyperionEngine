@@ -21,7 +21,7 @@ extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 #pragma region StagingBufferPool
 
-thread_local StagingBufferPool* g_stagingBufferPool = nullptr;
+static thread_local StagingBufferPool* s_stagingBufferPool = nullptr;
 
 struct StagingBufferPoolImpl
 {
@@ -108,17 +108,17 @@ StagingBufferPool::StagingBufferPool()
 
 StagingBufferPool& StagingBufferPool::GetInstance()
 {
-    if (!g_stagingBufferPool)
+    if (!s_stagingBufferPool)
     {
-        g_stagingBufferPool = new StagingBufferPool();
+        s_stagingBufferPool = new StagingBufferPool();
 
         Threads::CurrentThreadObject()->AtExit([]()
             {
-                delete g_stagingBufferPool;
+                delete s_stagingBufferPool;
             });
     }
 
-    return *g_stagingBufferPool;
+    return *s_stagingBufferPool;
 }
 
 void StagingBufferPool::Cleanup(uint32 frameIndex)

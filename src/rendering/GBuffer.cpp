@@ -29,7 +29,7 @@ struct GBufferTargetDesc
     GBufferFormat format;
 };
 
-static const FixedArray<GBufferTargetDesc, GTN_MAX> g_targetDescs = {
+static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
     GBufferTargetDesc { GBufferFormat(Array<TextureFormat> { TF_R11G11B10F }) }, // color
     GBufferTargetDesc { GBufferFormat(DIF_NORMALS) },                            // normal
     GBufferTargetDesc { GBufferFormat(TF_RG32) },                                // material data
@@ -45,15 +45,15 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
 
     TextureFormat colorFormat = TF_NONE;
 
-    if (const TextureFormat* format = g_targetDescs[targetName].format.TryGet<TextureFormat>())
+    if (const TextureFormat* format = s_targetDescs[targetName].format.TryGet<TextureFormat>())
     {
         colorFormat = *format;
     }
-    else if (const DefaultImageFormat* defaultFormat = g_targetDescs[targetName].format.TryGet<DefaultImageFormat>())
+    else if (const DefaultImageFormat* defaultFormat = s_targetDescs[targetName].format.TryGet<DefaultImageFormat>())
     {
         colorFormat = g_renderBackend->GetDefaultFormat(*defaultFormat);
     }
-    else if (const Array<TextureFormat>* defaultFormats = g_targetDescs[targetName].format.TryGet<Array<TextureFormat>>())
+    else if (const Array<TextureFormat>* defaultFormats = s_targetDescs[targetName].format.TryGet<Array<TextureFormat>>())
     {
         for (const TextureFormat format : *defaultFormats)
         {

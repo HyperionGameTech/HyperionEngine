@@ -30,6 +30,12 @@
 
 namespace hyperion {
 
+#ifdef HYP_BUILDTOOL
+const HypClass* g_clsHypObjectBase = nullptr;
+#else
+HYP_API extern const HypClass* g_clsHypObjectBase;
+#endif
+
 #pragma region HypObjectInitializerGuardBase
 
 HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
@@ -205,6 +211,11 @@ HypObjectBase::~HypObjectBase()
         m_scriptObjectResource = nullptr;
     }
 #endif
+}
+
+const HypClass* HypObjectBase::Class()
+{
+    return g_clsHypObjectBase;
 }
 
 #ifdef HYP_DOTNET

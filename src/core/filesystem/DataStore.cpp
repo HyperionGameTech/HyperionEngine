@@ -25,18 +25,18 @@ namespace filesystem {
 
 HYP_DEFINE_LOG_SUBCHANNEL(DataStore, IO);
 
-static TypeMap<HashMap<String, DataStoreBase*>> g_globalDataStoreMap {};
-static Mutex g_globalDataStoreMutex;
+static TypeMap<HashMap<String, DataStoreBase*>> s_globalDataStoreMap {};
+static Mutex s_globalDataStoreMutex;
 
 DataStoreBase* DataStoreBase::GetOrCreate(TypeId dataStoreTypeId, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& createFn)
 {
-    Mutex::Guard guard(g_globalDataStoreMutex);
+    Mutex::Guard guard(s_globalDataStoreMutex);
 
-    auto it = g_globalDataStoreMap.Find(dataStoreTypeId);
+    auto it = s_globalDataStoreMap.Find(dataStoreTypeId);
 
-    if (it == g_globalDataStoreMap.End())
+    if (it == s_globalDataStoreMap.End())
     {
-        it = g_globalDataStoreMap.Set(dataStoreTypeId, {}).first;
+        it = s_globalDataStoreMap.Set(dataStoreTypeId, {}).first;
     }
 
     auto dataStoreIt = it->second.FindAs(prefix);

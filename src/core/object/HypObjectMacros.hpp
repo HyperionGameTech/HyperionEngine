@@ -7,7 +7,7 @@ namespace hyperion {
 class HypClass;
 
 template <class T>
-static const HypClass* GetClass();
+const HypClass* GetClass();
 
 /// Macros for class / struct body ///
 

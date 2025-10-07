@@ -396,7 +396,7 @@ void LightmapVolume::UpdateAtlasTextures(
 
         radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", m_uuid));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()).Await(); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", radianceTexture->GetName(), result.GetError().GetMessage());
         }
@@ -417,7 +417,7 @@ void LightmapVolume::UpdateAtlasTextures(
 
         irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", m_uuid));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()).Await(); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
         }

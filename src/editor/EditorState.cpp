@@ -42,7 +42,7 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
     Handle<AssetObject> assetObjectCopy = assetObject;
 
     // remove the asset from its current package
-    if (Result removeResult = previousPackage->RemoveAssetObject(assetObject); removeResult.HasError())
+    if (Result removeResult = previousPackage->RemoveAssetObject(assetObject).Await(); removeResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to remove asset object '{}' from package '{}': {}", assetObject->GetName(), previousPackage->GetName(), removeResult.GetError().GetMessage());
     }
@@ -60,7 +60,7 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
     String newPath = projectPackage->BuildPackagePath() + '/' + String::Join(subpackageNames, '/', &Name::LookupString);
     HYP_LOG(Editor, Info, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
 
-    if (Result registerAssetResult = registry->RegisterAsset(newPath, assetObject); registerAssetResult.HasError())
+    if (Result registerAssetResult = registry->RegisterAsset(newPath, assetObject).Await(); registerAssetResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to register imported asset '{}' at path '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
     }

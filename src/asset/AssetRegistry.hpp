@@ -19,6 +19,7 @@
 #include <core/functional/Delegate.hpp>
 
 #include <core/threading/Semaphore.hpp>
+#include <core/threading/SchedulerFwd.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 
@@ -229,22 +230,8 @@ public:
         ForEach(set, std::forward<Callback>(callback));
     }
 
-    template <class T>
-    TResult<Handle<AssetObject>> NewAssetObject(Name name, T&& data)
-    {
-        Handle<AssetObject> assetObject = CreateObject<AssetObject>(name, std::forward<T>(data));
-        Result result = AddAssetObject(assetObject);
-
-        if (result.HasError())
-        {
-            return result.GetError();
-        }
-
-        return assetObject;
-    }
-
-    Result AddAssetObject(const Handle<AssetObject>& assetObject);
-    Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
+    Task<Result> AddAssetObject(const Handle<AssetObject>& assetObject);
+    Task<Result> RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
     Handle<AssetObject> GetAssetObject(WeakName assetName) const;
 
@@ -254,7 +241,7 @@ public:
      *  After successful merge, the source package will be empty.
      *  \param package The package to merge into this one.
      *  \return Result indicating success or failure of the merge operation. */
-    Result MergePackage(const Handle<AssetPackage>& package);
+    Task<Result> MergePackage(const Handle<AssetPackage>& package);
 
     HYP_METHOD()
     String BuildPackagePath() const;
@@ -340,13 +327,18 @@ class HYP_API AssetRegistry final : public HypObjectBase
 {
     HYP_OBJECT_BODY(AssetRegistry);
 
+    friend class AssetPackage;
+
 public:
     AssetRegistry();
-    AssetRegistry(const String& rootPath);
+    explicit AssetRegistry(const String& rootPath);
+
     AssetRegistry(const AssetRegistry& other) = delete;
     AssetRegistry& operator=(const AssetRegistry& other) = delete;
+
     AssetRegistry(AssetRegistry&& other) noexcept = delete;
     AssetRegistry& operator=(AssetRegistry&& other) noexcept = delete;
+
     ~AssetRegistry();
 
     HYP_METHOD()
@@ -370,10 +362,13 @@ public:
     /*! \brief Adds a package to the registry. If a package with the same name already exists and `mergeIfExists` is false,
      *  this will fail and return error.
      *  If `mergeIfExists` is true, the contents of the given package will be merged into the existing package.
-     *  \param package The package to add. This reference will be updated to point to the package in the registry.
+     *  \param package The package to add
      *  \param mergeIfExists If true, and a package with the same name already exists, the contents of the given package will be merged into the existing package.
      *  \return Result indicating success or failure of the operation. */
-    Result AddPackage(Handle<AssetPackage>& package, bool mergeIfExists = false);
+    Task<Result> AddPackage(const Handle<AssetPackage>& package, bool mergeIfExists = false);
+
+    HYP_METHOD()
+    void RemovePackage(AssetPackage* package);
 
     template <class Callback>
     void ForEachPackage(Callback&& callback) const
@@ -393,38 +388,14 @@ public:
     HYP_METHOD()
     void LoadSubpackages(const Handle<AssetPackage>& parentPackage, bool recursive);
 
-    HYP_METHOD()
-    bool RemovePackage(AssetPackage* package);
-
-    Result LoadPackageFromManifest(
+    Task<TResult<Handle<AssetPackage>>> LoadPackageFromManifest(
         const FilePath& manifestPath,
-        Handle<AssetPackage>& outPackage,
         bool loadSubpackages);
 
     HYP_METHOD()
     Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;
 
-    Result RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
-
-    template <class T>
-    Handle<AssetObject> NewAssetObject(const UTF8StringView& path, T&& data)
-    {
-        String pathString = path;
-        Array<String> pathStringSplit = pathString.Split('/', '\\');
-
-        String assetName;
-
-        pathString = String::Join(pathStringSplit, '/');
-
-        Mutex::Guard guard1(m_mutex);
-        Handle<AssetPackage> assetPackage = GetPackageFromPath_Internal(pathString, AssetRegistryPathType::PACKAGE, /* createIfNotExist */ true, assetName);
-
-        Handle<AssetObject> assetObject = CreateObject<AssetObject>(CreateNameFromDynamicString(assetName), std::forward<T>(data));
-
-        assetPackage->AddAssetObject(assetObject);
-
-        return assetObject;
-    }
+    Task<Result> RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
 
     /*! \brief Registers `target` if it is a subclass of AssetObject and registers all
      *  of its members that are subclasses of AssetObject as well, recursively.
@@ -440,21 +411,32 @@ public:
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
 
+    /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
+    void Update(float delta);
+
     Delegate<void, Handle<AssetPackage>> OnPackageAdded;
     Delegate<void, Handle<AssetPackage>> OnPackageRemoved;
 
 private:
     void Init() override;
-
     void LoadPackagesAsync(bool loadSubpackages = false);
 
-    Handle<AssetPackage> GetPackageFromPath_Internal(const UTF8StringView& path, AssetRegistryPathType pathType, bool createIfNotExist, String& outAssetName);
+    template <class Func, class FutureType = void>
+    void PostTask(Func&& fn, Task<FutureType>* pOutFuture = nullptr);
+
+    Handle<AssetPackage> GetPackageFromPath_Internal(
+        const UTF8StringView& path,
+        AssetRegistryPathType pathType,
+        bool createIfNotExist,
+        String& outAssetName);
 
     HYP_FIELD(Serialize = true)
     String m_rootPath;
 
     AssetPackageSet m_packages;
     mutable Mutex m_mutex;
+
+    Scheduler* m_scheduler;
 };
 
 } // namespace hyperion

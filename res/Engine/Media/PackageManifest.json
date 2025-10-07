@@ -1,6 +1,8 @@
 {
-  "Uuid": "fd70cf9d-8481-404a-97e1-622b03009eaa",
+  "Dependencies": [],
+  "Uuid": "2e562fd1-5db4-49e8-888e-1dcb88d0a71f",
   "Name": "Media",
-  "Path": "Engine/Media",
-  "FriendlyName": "Media"
+  "FriendlyName": "Media",
+  "Flags": 0,
+  "Path": "Engine/Media"
 }

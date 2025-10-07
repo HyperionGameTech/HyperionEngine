@@ -27,7 +27,7 @@
 
 namespace hyperion {
 
-static const Name g_nameMeshDefault = NAME("<unnamed mesh>");
+static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
 #pragma region Mesh
 
@@ -120,7 +120,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 
     m_aabb = meshData.CalculateAABB();
 
-    m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(g_nameMeshDefault, meshDesc, meshData));
+    m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
 }
 
 Mesh::~Mesh()

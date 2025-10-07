@@ -1,6 +1,8 @@
 {
-  "Uuid": "442684c8-557b-4f5a-8089-95eda7800611",
+  "Dependencies": [],
+  "Uuid": "3242cbba-e4de-4326-96df-a66e4462ef77",
   "Name": "Roboto",
-  "Path": "Engine/Media/Fonts/Roboto",
-  "FriendlyName": "Roboto"
+  "FriendlyName": "Roboto",
+  "Flags": 0,
+  "Path": "Engine/Media/Fonts/Roboto"
 }

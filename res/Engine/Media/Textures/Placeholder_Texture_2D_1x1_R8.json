@@ -1,4 +1,21 @@
 {
-  "$Class": "TextureAsset",
-  "FriendlyName": "PlaceholderTexture2D1x1R8"
+  "TextureDesc": {
+    "Type": 0,
+    "Format": 4,
+    "Extent": [1, 1, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 3,
+    "FilterModeMin": 0,
+    "FilterModeMag": 0,
+    "WrapMode": 0
+  },
+  "FriendlyName": "PlaceholderTexture2D1x1R8",
+  "Uuid": "e1e6e8be-b74a-43c9-ba91-640ac3bba02a",
+  "Name": "Placeholder_Texture_2D_1x1_R8",
+  "Flags": 0,
+  "OriginalFilepath": "",
+  "$Class": "TextureAsset"
 }

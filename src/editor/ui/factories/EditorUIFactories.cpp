@@ -971,7 +971,7 @@ public:
                     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
                     // @TODO: better name for script asset
-                    Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset);
+                    Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset).Await();
 
                     if (assetObjectResult.HasError())
                     {

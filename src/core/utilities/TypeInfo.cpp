@@ -18,8 +18,8 @@ namespace utilities {
 struct TypeAttributeCacheKey
 {
     TypeId typeId;
-    SizeType size;
-    SizeType alignment;
+    uint16 size;
+    uint16 alignment;
 
     HYP_FORCE_INLINE bool operator==(const TypeAttributeCacheKey& other) const
     {
@@ -41,9 +41,9 @@ struct TypeAttributeCacheKey
 
 using TypeAttributeCache = HashMap<TypeAttributeCacheKey, TypeInfo*>;
 
-static bool g_typeInfoSystemInitialized = false;
-static TypeAttributeCache* g_typeAttributeCache = nullptr;
-static Pool* g_typeAttributePool = nullptr;
+static bool s_typeInfoSystemInitialized = false;
+static TypeAttributeCache* s_typeAttributeCache = nullptr;
+static Pool* s_typeAttributePool = nullptr;
 
 static Mutex& GetTypeAttributeCacheMutex()
 {
@@ -57,11 +57,11 @@ static HashMap<TypeAttributeCacheKey, TypeInfo*>& GetTypeAttributeCache()
     {
         Initializer()
         {
-            g_typeAttributeCache = new TypeAttributeCache();
+            s_typeAttributeCache = new TypeAttributeCache();
         }
     } s_initializer;
 
-    return *g_typeAttributeCache;
+    return *s_typeAttributeCache;
 }
 
 static Pool& GetTypeAttributePool()
@@ -70,15 +70,15 @@ static Pool& GetTypeAttributePool()
     {
         Initializer()
         {
-            g_typeAttributePool = new Pool(1024 * 1024); // 1 MB blocks
+            s_typeAttributePool = new Pool(16 * 1024); // 16 kib blocks (~292 TypeInfo per block)
         }
     } s_initializer;
 
-    return *g_typeAttributePool;
+    return *s_typeAttributePool;
 }
 
 HYP_API TypeInfo* TypeInfo_Alloc(
-    TypeId typeId, SizeType typeSize, SizeType typeAlignment,
+    TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* outPGuard)
 {
     const TypeAttributeCacheKey cacheKey { typeId, typeSize, typeAlignment };
@@ -88,7 +88,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
         new (outPGuard) Mutex::Guard(GetTypeAttributeCacheMutex());
     }
 
-    TypeAttributeCache& typeAttributeCache = g_typeInfoSystemInitialized ? *g_typeAttributeCache : GetTypeAttributeCache();
+    TypeAttributeCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeAttributeCache : GetTypeAttributeCache();
 
     const auto it = typeAttributeCache.Find(cacheKey);
     if (it != typeAttributeCache.End())
@@ -104,13 +104,13 @@ HYP_API TypeInfo* TypeInfo_Alloc(
     return pTypeInfo;
 }
 
-HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, SizeType size, SizeType alignment)
+HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 alignment)
 {
     const TypeAttributeCacheKey key { typeId, size, alignment };
 
     Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
-    TypeAttributeCache& typeAttributeCache = g_typeInfoSystemInitialized ? *g_typeAttributeCache : GetTypeAttributeCache();
+    TypeAttributeCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeAttributeCache : GetTypeAttributeCache();
 
     const auto it = typeAttributeCache.Find(key);
     if (it != typeAttributeCache.End())
@@ -125,7 +125,7 @@ HYP_API void TypeInfo_Initialize()
 {
     Threads::AssertOnThread(g_mainThread, "TypeInfo system must be initialized on the main thread");
 
-    HYP_CORE_ASSERT(!g_typeInfoSystemInitialized, "TypeInfo system is already initialized");
+    HYP_CORE_ASSERT(!s_typeInfoSystemInitialized, "TypeInfo system is already initialized");
 
     Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
@@ -133,7 +133,7 @@ HYP_API void TypeInfo_Initialize()
     (void)GetTypeAttributeCache();
     (void)GetTypeAttributePool();
 
-    g_typeInfoSystemInitialized = true;
+    s_typeInfoSystemInitialized = true;
 }
 
 HYP_API void TypeInfo_Shutdown()
@@ -142,19 +142,19 @@ HYP_API void TypeInfo_Shutdown()
 
     Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
-    HYP_CORE_ASSERT(g_typeInfoSystemInitialized, "TypeInfo system is not initialized");
-    g_typeInfoSystemInitialized = false;
+    HYP_CORE_ASSERT(s_typeInfoSystemInitialized, "TypeInfo system is not initialized");
+    s_typeInfoSystemInitialized = false;
 
-    for (auto& pair : *g_typeAttributeCache)
+    for (auto& pair : *s_typeAttributeCache)
     {
         pair.second->~TypeInfo();
     }
 
-    delete g_typeAttributeCache;
-    g_typeAttributeCache = nullptr;
+    delete s_typeAttributeCache;
+    s_typeAttributeCache = nullptr;
 
-    delete g_typeAttributePool;
-    g_typeAttributePool = nullptr;
+    delete s_typeAttributePool;
+    s_typeAttributePool = nullptr;
 }
 
 #pragma endregion Cache
@@ -297,7 +297,7 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
         return Void();
     }
 
-    const TypeAttributeCacheKey key { hypClass->GetTypeId(), hypClass->GetSize(), hypClass->GetAlignment() };
+    const TypeAttributeCacheKey key { hypClass->GetTypeId(), uint16(hypClass->GetSize()), uint16(hypClass->GetAlignment()) };
 
     Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
@@ -320,8 +320,8 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
     new (pTypeInfo) TypeInfo();
     pTypeInfo->id = hypClass->GetTypeId();
     pTypeInfo->name = hypClass->GetName();
-    pTypeInfo->size = hypClass->GetSize();
-    pTypeInfo->alignment = hypClass->GetAlignment();
+    pTypeInfo->size = uint16(hypClass->GetSize());
+    pTypeInfo->alignment = uint16(hypClass->GetAlignment());
     pTypeInfo->flags = TypeAttributeFlags::NONE;
 
     if (hypClass->IsClassType())

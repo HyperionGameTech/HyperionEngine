@@ -44,7 +44,7 @@ const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::s_cubemapDirections = {
     Pair<Vec3f, Vec3f> { Vec3f { 0, 0, -1 }, Vec3f { 0, 1, 0 } }
 };
 
-static const Name g_nameTextureDefault = NAME("<unnamed texture>");
+static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
 #pragma region Render commands
 
@@ -204,19 +204,19 @@ Texture::Texture()
 }
 
 Texture::Texture(const TextureDesc& textureDesc)
-    : AssetObject(g_nameTextureDefault),
-      m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, TextureData {}))
+    : AssetObject(s_nameTextureDefault),
+      m_assetReference(CreateObject<TextureAsset>(s_nameTextureDefault, textureDesc, TextureData {}))
 {
 }
 
 Texture::Texture(const TextureDesc& textureDesc, const TextureData& textureData)
-    : AssetObject(g_nameTextureDefault),
-      m_assetReference(CreateObject<TextureAsset>(g_nameTextureDefault, textureDesc, textureData))
+    : AssetObject(s_nameTextureDefault),
+      m_assetReference(CreateObject<TextureAsset>(s_nameTextureDefault, textureDesc, textureData))
 {
 }
 
 Texture::Texture(const Handle<TextureAsset>& asset)
-    : AssetObject(g_nameTextureDefault),
+    : AssetObject(s_nameTextureDefault),
       m_assetReference(asset)
 {
 }

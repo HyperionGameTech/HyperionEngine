@@ -7,26 +7,32 @@
 
 namespace hyperion {
 
-static Mutex g_globalsMutex;
-static FilePath g_executablePath;
-static Array<void (*)()> g_onShutdownFuncs;
+namespace threading {
+HYP_API extern void Task_DeleteAllDeferredTasks();
+} // namespace threading
+
+using threading::Task_DeleteAllDeferredTasks;
+
+static Mutex s_globalsMutex;
+static FilePath s_executablePath;
+static Array<void (*)()> s_onShutdownFuncs;
 
 FilePath CoreApi_GetExecutablePath()
 {
-    Mutex::Guard guard(g_globalsMutex);
-    return g_executablePath;
+    Mutex::Guard guard(s_globalsMutex);
+    return s_executablePath;
 }
 
 void CoreApi_SetExecutablePath(const FilePath& path)
 {
-    Mutex::Guard guard(g_globalsMutex);
-    g_executablePath = path;
+    Mutex::Guard guard(s_globalsMutex);
+    s_executablePath = path;
 }
 
-static LinkedList<GlobalConfig> g_globalConfigChain;
-static Mutex g_globalConfigMutex;
+static LinkedList<GlobalConfig> s_globalConfigChain;
+static Mutex s_globalConfigMutex;
 
-static CommandLineArguments g_commandLineArguments;
+static CommandLineArguments s_commandLineArguments;
 
 const CommandLineArgumentDefinitions& CoreApi_DefaultCommandLineArgumentDefinitions()
 {
@@ -52,7 +58,7 @@ bool CoreApi_Initialize(int argc, char** argv)
 {
     TypeInfo_Initialize();
 
-    g_commandLineArguments = CommandLineArguments(argv[0]);
+    s_commandLineArguments = CommandLineArguments(argv[0]);
 
     CommandLineParser argParse { &CoreApi_DefaultCommandLineArgumentDefinitions() };
 
@@ -72,14 +78,14 @@ bool CoreApi_Initialize(int argc, char** argv)
         json::JSONString configArgsString = configArgs.ToString();
         Array<String> configArgsStringSplit = configArgsString.Split(' ');
 
-        parseResult = argParse.Parse(g_commandLineArguments.GetCommand(), configArgsStringSplit);
+        parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), configArgsStringSplit);
 
         if (parseResult.HasError())
         {
             return false;
         }
 
-        g_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), *parseResult, g_commandLineArguments);
+        s_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), *parseResult, s_commandLineArguments);
     }
 
     return true;
@@ -87,21 +93,21 @@ bool CoreApi_Initialize(int argc, char** argv)
 
 const CommandLineArguments& CoreApi_GetCommandLineArguments()
 {
-    return g_commandLineArguments;
+    return s_commandLineArguments;
 }
 
 void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues)
 {
-    Mutex::Guard guard(g_globalConfigMutex);
+    Mutex::Guard guard(s_globalConfigMutex);
 
     GlobalConfig* prevGlobalConfig = nullptr;
 
-    if (g_globalConfigChain.Any())
+    if (s_globalConfigChain.Any())
     {
-        prevGlobalConfig = &g_globalConfigChain.Back();
+        prevGlobalConfig = &s_globalConfigChain.Back();
     }
 
-    GlobalConfig& newGlobalConfig = g_globalConfigChain.EmplaceBack("GlobalConfig");
+    GlobalConfig& newGlobalConfig = s_globalConfigChain.EmplaceBack("GlobalConfig");
 
     if (prevGlobalConfig != nullptr)
     {
@@ -114,35 +120,36 @@ void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues)
 
 const GlobalConfig& CoreApi_GetGlobalConfig()
 {
-    Mutex::Guard guard(g_globalConfigMutex);
+    Mutex::Guard guard(s_globalConfigMutex);
 
-    if (g_globalConfigChain.Empty())
+    if (s_globalConfigChain.Empty())
     {
-        g_globalConfigChain.EmplaceBack("GlobalConfig");
+        s_globalConfigChain.EmplaceBack("GlobalConfig");
     }
 
-    return g_globalConfigChain.Back();
+    return s_globalConfigChain.Back();
 }
 
 void CoreApi_OnShutdown(void (*func)())
 {
-    Mutex::Guard guard(g_globalsMutex);
-    g_onShutdownFuncs.PushBack(func);
+    Mutex::Guard guard(s_globalsMutex);
+    s_onShutdownFuncs.PushBack(func);
 }
 
 void CoreApi_Shutdown()
 {
     TypeInfo_Shutdown();
+    Task_DeleteAllDeferredTasks();
 
     {
-        Mutex::Guard guard(g_globalsMutex);
+        Mutex::Guard guard(s_globalsMutex);
 
-        for (SizeType i = g_onShutdownFuncs.Size(); i > 0; --i)
+        for (SizeType i = s_onShutdownFuncs.Size(); i > 0; --i)
         {
-            g_onShutdownFuncs[i - 1]();
+            s_onShutdownFuncs[i - 1]();
         }
 
-        g_onShutdownFuncs.Clear();
+        s_onShutdownFuncs.Clear();
     }
 }
 

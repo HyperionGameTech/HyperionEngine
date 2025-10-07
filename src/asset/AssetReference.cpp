@@ -14,7 +14,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 HYP_API extern Handle<AssetManager> g_assetManager;
 
-static const AssetPath g_invalidAssetPath;
+static const AssetPath s_invalidAssetPath;
 
 const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
 {
@@ -48,7 +48,7 @@ const AssetPath& AssetReference::GetAssetPath() const
 
     if (!m_data.Is<AssetPath>())
     {
-        return g_invalidAssetPath;
+        return s_invalidAssetPath;
     }
 #endif
 

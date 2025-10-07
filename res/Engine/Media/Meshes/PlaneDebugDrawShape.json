@@ -1,19 +1,19 @@
 {
-  "Uuid": "b3e96e75-84e8-416d-b15d-f960461c737d",
-  "OriginalFilepath": "",
-  "$Class": "MeshAsset",
-  "Name": "PlaneDebugDrawShape",
-  "Flags": 0,
   "MeshDesc": {
-    "NumIndices": 6,
-    "NumVertices": 4,
     "MeshAttributes": {
-      "Topology": 0,
-      "IndexBufferElemType": 4,
       "VertexAttributes": {
         "FlagMask": 63
-      }
-    }
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 4,
+    "NumIndices": 6
   },
-  "FriendlyName": "PlaneDebugDrawShape"
+  "FriendlyName": "PlaneDebugDrawShape",
+  "Uuid": "6ea122ae-6c86-4e20-af19-b3e67d133aa8",
+  "Name": "PlaneDebugDrawShape",
+  "Flags": 0,
+  "OriginalFilepath": "",
+  "$Class": "MeshAsset"
 }

@@ -370,7 +370,7 @@ void HyperionEditor::Init()
                     Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
 
                     // register the package
-                    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
+                    Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
                     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
                     ResourceHandle resourceHandle(*scriptAsset->GetResource());

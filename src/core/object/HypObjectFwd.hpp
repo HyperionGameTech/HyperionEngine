@@ -265,7 +265,7 @@ struct HypClassRef
 extern HYP_API const HypClass* GetClass(TypeId typeId);
 
 template <class T>
-static inline const HypClass* GetClass()
+const HypClass* GetClass()
 {
     return GetClass(TypeId::ForType<T>());
 }

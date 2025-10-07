@@ -1,6 +1,8 @@
 {
-  "Uuid": "2199cbe3-f325-43e9-a5b2-a479199ae545",
+  "Dependencies": [],
+  "Uuid": "96020108-aab7-4de2-b2f6-2a2d312df334",
   "Name": "Textures",
-  "Path": "Engine/Media/Textures",
-  "FriendlyName": "Textures"
+  "FriendlyName": "Textures",
+  "Flags": 0,
+  "Path": "Engine/Media/Textures"
 }

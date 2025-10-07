@@ -9,6 +9,7 @@
 #include <core/utilities/Span.hpp>
 
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Spinlock.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/Semaphore.hpp>
 
@@ -181,11 +182,15 @@ public:
 
 class HYP_API TaskExecutorBase : public ITaskExecutor
 {
+    template <class T>
+    friend class Task;
+
 public:
     TaskExecutorBase()
         : m_id(TaskID::Invalid()),
           m_initiatorThreadId(ThreadId::Invalid()),
-          m_assignedScheduler(nullptr)
+          m_assignedScheduler(nullptr),
+          m_promiseFulfillLockState(0)
     {
         // set notifier to initial value of 1 (one task)
         m_notifier.Produce(1);
@@ -197,7 +202,8 @@ public:
     TaskExecutorBase(TaskExecutorBase&& other) noexcept
         : m_id(other.m_id),
           m_initiatorThreadId(other.m_initiatorThreadId),
-          m_assignedScheduler(other.m_assignedScheduler)
+          m_assignedScheduler(other.m_assignedScheduler),
+          m_promiseFulfillLockState(0)
     {
         m_callbackChain = std::move(other.m_callbackChain);
 
@@ -271,8 +277,12 @@ protected:
     SchedulerBase* m_assignedScheduler;
     TaskCompleteNotifier m_notifier;
 
+    volatile int64 m_promiseFulfillLockState;
     TaskCallbackChain m_callbackChain;
 };
+
+HYP_API extern void Task_DeleteAllDeferredTasks();
+HYP_API extern void Task_DeferTaskDeletion(TaskExecutorBase* taskExecutor);
 
 template <class ReturnType>
 class TaskExecutorInstance : public TaskExecutorBase
@@ -410,6 +420,9 @@ public:
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
+        Spinlock spinlock(&this->m_promiseFulfillLockState);
+        spinlock.LockWriter();
+
         Base::m_resultValue.Set(std::move(value));
 
         TaskCallbackChain& callbackChain = Base::GetCallbackChain();
@@ -420,11 +433,16 @@ public:
         {
             callbackChain();
         }
+
+        spinlock.UnlockWriter();
     }
 
     void Fulfill(const ReturnType& value)
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
+        
+        Spinlock spinlock(&this->m_promiseFulfillLockState);
+        spinlock.LockWriter();
 
         Base::m_resultValue.Set(value);
 
@@ -436,6 +454,8 @@ public:
         {
             callbackChain();
         }
+
+        spinlock.UnlockWriter();
     }
 
 protected:
@@ -480,6 +500,9 @@ public:
     void Fulfill()
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
+        
+        Spinlock spinlock(&this->m_promiseFulfillLockState);
+        spinlock.LockWriter();
 
         TaskCallbackChain& callbackChain = Base::GetCallbackChain();
 
@@ -489,6 +512,8 @@ public:
         {
             callbackChain();
         }
+
+        spinlock.UnlockWriter();
     }
 
 protected:
@@ -646,14 +671,16 @@ public:
     Task()
         : TaskBase({}, nullptr),
           m_executor(nullptr),
-          m_ownsExecutor(false)
+          m_ownsExecutor(false),
+          m_allowDeferredDeletion(false)
     {
     }
 
     Task(TaskID id, SchedulerBase* assignedScheduler, TaskExecutorType* executor, bool ownsExecutor)
         : TaskBase(id, assignedScheduler),
           m_executor(executor),
-          m_ownsExecutor(ownsExecutor)
+          m_ownsExecutor(ownsExecutor),
+          m_allowDeferredDeletion(false)
     {
     }
 
@@ -663,10 +690,12 @@ public:
     Task(Task&& other) noexcept
         : TaskBase(static_cast<TaskBase&&>(other)),
           m_executor(other.m_executor),
-          m_ownsExecutor(other.m_ownsExecutor)
+          m_ownsExecutor(other.m_ownsExecutor),
+          m_allowDeferredDeletion(other.m_allowDeferredDeletion)
     {
         other.m_executor = nullptr;
         other.m_ownsExecutor = false;
+        other.m_allowDeferredDeletion = false;
     }
 
     Task& operator=(Task&& other) noexcept
@@ -677,9 +706,11 @@ public:
 
         m_executor = other.m_executor;
         m_ownsExecutor = other.m_ownsExecutor;
+        m_allowDeferredDeletion = other.m_allowDeferredDeletion;
 
         other.m_executor = nullptr;
         other.m_ownsExecutor = false;
+        other.m_allowDeferredDeletion = false;
 
         return *this;
     }
@@ -706,6 +737,7 @@ public:
 
         m_executor = new TaskPromise<ReturnType>(this);
         m_ownsExecutor = true;
+        m_allowDeferredDeletion = true;
 
         return static_cast<TaskPromise<ReturnType>*>(m_executor);
     }
@@ -770,21 +802,46 @@ protected:
             // Wait for the task to complete when not in debug mode
             if (IsValid() && !IsCompleted())
             {
-                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-            }
+                if (m_allowDeferredDeletion)
+                {
+                    Spinlock spinlock(&m_executor->m_promiseFulfillLockState);
+                    spinlock.LockReader();
 
-            delete m_executor;
+                    // check again in case it completed while we were waiting for the lock
+                    if (!m_executor->IsCompleted())
+                    {
+                        m_executor->GetCallbackChain().Add([executor = m_executor]()
+                            {
+                                delete executor;
+                            });
+                    }
+
+                    spinlock.UnlockReader();
+
+                    //Task_DeferTaskDeletion(m_executor);
+                }
+                else
+                {
+                    HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
+                }
+            }
+            else
+            {
+                delete m_executor;
+            }
         }
 
         m_executor = nullptr;
         m_ownsExecutor = false;
+        m_allowDeferredDeletion = false;
 
         TaskBase::Reset();
     }
 
 private:
     TaskExecutorType* m_executor;
-    bool m_ownsExecutor;
+    bool m_ownsExecutor : 1;
+    bool m_allowDeferredDeletion : 1;
 };
 
 template <>
@@ -798,14 +855,16 @@ public:
     Task()
         : TaskBase({}, nullptr),
           m_executor(nullptr),
-          m_ownsExecutor(false)
+          m_ownsExecutor(false),
+          m_allowDeferredDeletion(false)
     {
     }
 
     Task(TaskID id, SchedulerBase* assignedScheduler, TaskExecutorType* executor, bool ownsExecutor)
         : TaskBase(id, assignedScheduler),
           m_executor(executor),
-          m_ownsExecutor(ownsExecutor)
+          m_ownsExecutor(ownsExecutor),
+          m_allowDeferredDeletion(false)
     {
     }
 
@@ -815,10 +874,12 @@ public:
     Task(Task&& other) noexcept
         : TaskBase(static_cast<TaskBase&&>(other)),
           m_executor(other.m_executor),
-          m_ownsExecutor(other.m_ownsExecutor)
+          m_ownsExecutor(other.m_ownsExecutor),
+          m_allowDeferredDeletion(other.m_allowDeferredDeletion)
     {
         other.m_executor = nullptr;
         other.m_ownsExecutor = false;
+        other.m_allowDeferredDeletion = false;
     }
 
     Task& operator=(Task&& other) noexcept
@@ -827,30 +888,18 @@ public:
 
         m_executor = other.m_executor;
         m_ownsExecutor = other.m_ownsExecutor;
+        m_allowDeferredDeletion = other.m_allowDeferredDeletion;
 
         other.m_executor = nullptr;
         other.m_ownsExecutor = false;
+        other.m_allowDeferredDeletion = false;
 
         return *this;
     }
 
     virtual ~Task() override
     {
-        if (m_ownsExecutor)
-        {
-            // Wait for the task to complete when not in debug mode
-            if (IsValid() && !IsCompleted())
-            {
-#ifdef HYP_DEBUG_MODE
-                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-#else
-                Base::Await_Internal();
-#endif
-            }
-
-            delete m_executor;
-        }
-
+        Reset();
         // otherwise, the executor will be freed when the task is completed
     }
 
@@ -869,6 +918,7 @@ public:
 
         m_executor = new TaskPromise<void>(this);
         m_ownsExecutor = true;
+        m_allowDeferredDeletion = true;
 
         return static_cast<TaskPromise<void>*>(m_executor);
     }
@@ -897,35 +947,54 @@ protected:
         HYP_CORE_ASSERT(IsCompleted());
 #endif
     }
-
+    
     virtual void Reset() override
     {
         if (m_ownsExecutor)
         {
-            delete m_executor;
-        }
-        else
-        {
             // Wait for the task to complete when not in debug mode
             if (IsValid() && !IsCompleted())
             {
-#ifdef HYP_DEBUG_MODE
-                HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-#else
-                Base::Await_Internal();
-#endif
+                if (m_allowDeferredDeletion)
+                {
+                    Spinlock spinlock(&m_executor->m_promiseFulfillLockState);
+                    spinlock.LockReader();
+
+                    // check again in case it completed while we were waiting for the lock
+                    if (!m_executor->IsCompleted())
+                    {
+                        m_executor->GetCallbackChain().Add([executor = m_executor]()
+                            {
+                                delete executor;
+                            });
+                    }
+
+                    spinlock.UnlockReader();
+
+                    // Task_DeferTaskDeletion(m_executor);
+                }
+                else
+                {
+                    HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
+                }
+            }
+            else
+            {
+                delete m_executor;
             }
         }
 
         m_executor = nullptr;
         m_ownsExecutor = false;
+        m_allowDeferredDeletion = false;
 
         TaskBase::Reset();
     }
 
 private:
     TaskExecutorType* m_executor;
-    bool m_ownsExecutor;
+    bool m_ownsExecutor : 1;
+    bool m_allowDeferredDeletion : 1;
 };
 
 #pragma region AwaitAll

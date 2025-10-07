@@ -5,29 +5,29 @@ namespace utilities {
 
 #pragma region GlobalContextRegistry
 
-static constexpr SizeType g_poolBlockSize = 4096;
+static constexpr SizeType PoolBlockSize = 4096;
 
-thread_local GlobalContextRegistry* g_globalContextRegistry = nullptr;
-thread_local Pool* g_globalContextPool = nullptr;
+static thread_local GlobalContextRegistry* s_globalContextRegistry = nullptr;
+static thread_local Pool* s_globalContextPool = nullptr;
 
 HYP_API Pool* GetGlobalContextPoolForCurrentThread()
 {
-    if (!g_globalContextPool)
+    if (!s_globalContextPool)
     {
-        g_globalContextPool = new Pool(/* blockSize */ g_poolBlockSize);
+        s_globalContextPool = new Pool(/* blockSize */ PoolBlockSize);
     }
 
-    return g_globalContextPool;
+    return s_globalContextPool;
 }
 
 HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
 {
-    if (!g_globalContextRegistry)
+    if (!s_globalContextRegistry)
     {
-        g_globalContextRegistry = new GlobalContextRegistry();
+        s_globalContextRegistry = new GlobalContextRegistry();
     }
 
-    return g_globalContextRegistry;
+    return s_globalContextRegistry;
 }
 
 GlobalContextRegistry::GlobalContextRegistry()
@@ -42,15 +42,15 @@ GlobalContextRegistry::~GlobalContextRegistry()
         delete it.second;
     }
 
-    if (g_globalContextRegistry == this)
+    if (s_globalContextRegistry == this)
     {
-        g_globalContextRegistry = nullptr;
+        s_globalContextRegistry = nullptr;
     }
 
-    if (g_globalContextPool)
+    if (s_globalContextPool)
     {
-        delete g_globalContextPool;
-        g_globalContextPool = nullptr;
+        delete s_globalContextPool;
+        s_globalContextPool = nullptr;
     }
 }
 

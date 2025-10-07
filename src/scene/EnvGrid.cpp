@@ -30,26 +30,26 @@ namespace hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
-static const Vec2u shProbeDimensions { 256, 256 };
+static constexpr Vec2u ShProbeDimensions { 256, 256 };
 
-static const Vec2u lightFieldProbeDimensions { 32, 32 };
-const TextureFormat lightFieldColorFormat = TF_RGBA8;
-const TextureFormat lightFieldDepthFormat = TF_R16F;
-static const uint32 irradianceOctahedronSize = 8;
+static constexpr Vec2u LightFieldProbeDimensions { 32, 32 };
+static constexpr TextureFormat LightFieldColorFormat = TF_RGBA8;
+static constexpr TextureFormat LightFieldDepthFormat = TF_R16F;
+static constexpr uint32 IrradianceOctahedronSize = 8;
 
-static const Vec3u voxelGridDimensions { 256, 256, 256 };
-static const TextureFormat voxelGridFormat = TF_RGBA8;
+static constexpr Vec3u VoxelGridDimensions { 256, 256, 256 };
+static constexpr TextureFormat VoxelGridFormat = TF_RGBA8;
 
-static const Vec2u framebufferDimensions { 256, 256 };
+static constexpr Vec2u FramebufferDimensions { 256, 256 };
 
 static Vec2u GetProbeDimensions(EnvGridType envGridType)
 {
     switch (envGridType)
     {
     case EnvGridType::ENV_GRID_TYPE_SH:
-        return shProbeDimensions;
+        return ShProbeDimensions;
     case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
-        return lightFieldProbeDimensions;
+        return LightFieldProbeDimensions;
     default:
         HYP_UNREACHABLE();
     }
@@ -142,18 +142,18 @@ void LegacyEnvGrid::Init()
     {
 
         const Vec3u irradianceTextureDimensions = {
-            (irradianceOctahedronSize + 2) * m_options.density.x * m_options.density.y + 2,
-            (irradianceOctahedronSize + 2) * m_options.density.z + 2,
+            (IrradianceOctahedronSize + 2) * m_options.density.x * m_options.density.y + 2,
+            (IrradianceOctahedronSize + 2) * m_options.density.z + 2,
             1
         };
 
         ByteBuffer placeholderData;
-        FillPlaceholderBuffer_Tex2D<lightFieldColorFormat>(irradianceTextureDimensions.GetXY(), placeholderData);
+        FillPlaceholderBuffer_Tex2D<LightFieldColorFormat>(irradianceTextureDimensions.GetXY(), placeholderData);
 
         m_irradianceTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
-                lightFieldColorFormat,
+                LightFieldColorFormat,
                 irradianceTextureDimensions,
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -166,10 +166,10 @@ void LegacyEnvGrid::Init()
         m_depthTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
-                lightFieldDepthFormat,
+                LightFieldDepthFormat,
                 Vec3u {
-                    (irradianceOctahedronSize + 2) * m_options.density.x * m_options.density.y + 2,
-                    (irradianceOctahedronSize + 2) * m_options.density.z + 2,
+                    (IrradianceOctahedronSize + 2) * m_options.density.x * m_options.density.y + 2,
+                    (IrradianceOctahedronSize + 2) * m_options.density.z + 2,
                     1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -193,8 +193,8 @@ void LegacyEnvGrid::Init()
         m_voxelGridTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX3D,
-                voxelGridFormat,
-                voxelGridDimensions,
+                VoxelGridFormat,
+                VoxelGridDimensions,
                 TFM_LINEAR_MIPMAP,
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE,
@@ -206,7 +206,7 @@ void LegacyEnvGrid::Init()
     }
 
     ViewOutputTargetDesc outputTargetDesc {
-        .extent = Vec2u(framebufferDimensions),
+        .extent = Vec2u(FramebufferDimensions),
         .attachments = {
             ViewOutputTargetAttachmentDesc {
                 TF_RGBA8, // color
@@ -303,10 +303,10 @@ void LegacyEnvGrid::Update(float delta)
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    static const ConfigurationValue& configDebugDrawProbes = CoreApi_GetGlobalConfig().Get("rendering.debug.debugDrawer.envGridProbes");
+    static const ConfigurationValue& s_configDebugDrawProbes = CoreApi_GetGlobalConfig().Get("rendering.debug.debugDrawer.envGridProbes");
 
     // Debug draw
-    if (configDebugDrawProbes.ToBool(false))
+    if (s_configDebugDrawProbes.ToBool(false))
     {
         DebugDrawCommandList& debugDrawer = g_engineDriver->GetDebugDrawer()->CreateCommandList();
 
@@ -570,7 +570,7 @@ void LegacyEnvGrid::UpdateRenderProxy(RenderProxyEnvGrid* proxy)
         ? Vec2i(m_irradianceTexture->GetExtent().GetXY())
         : Vec2i::Zero();
 
-    bufferData.irradianceOctahedronSize = Vec2i(irradianceOctahedronSize);
+    bufferData.irradianceOctahedronSize = Vec2i(IrradianceOctahedronSize);
 
     Memory::MemSet(&proxy->envProbes[0], 0, sizeof(proxy->envProbes));
 

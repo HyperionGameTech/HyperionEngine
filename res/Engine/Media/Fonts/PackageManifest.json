@@ -1,6 +1,8 @@
 {
-  "Uuid": "be4d5c39-afcc-4e98-91ce-74e3fdc26972",
+  "Dependencies": [],
+  "Uuid": "34465b9a-dbd0-4e54-9a77-1046d2dd8dca",
   "Name": "Fonts",
-  "Path": "Engine/Media/Fonts",
-  "FriendlyName": "Fonts"
+  "FriendlyName": "Fonts",
+  "Flags": 0,
+  "Path": "Engine/Media/Fonts"
 }

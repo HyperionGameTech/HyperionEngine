@@ -38,7 +38,7 @@ struct EditorProjectSaveContext
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static const String g_defaultProjectName = "UntitledProject";
+static const String s_defaultProjectName = "UntitledProject";
 
 EditorProject::EditorProject()
     : EditorProject(Name::Invalid())
@@ -207,7 +207,7 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     if (!m_name.IsValid())
     {
-        m_name = GetNextDefaultProjectName(g_defaultProjectName);
+        m_name = GetNextDefaultProjectName(s_defaultProjectName);
 
         if (!m_name.IsValid())
         {
@@ -341,17 +341,14 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
     const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
-    Handle<AssetPackage> rootPackage;
-
-    Result loadPackageResult = registry->LoadPackageFromManifest(
-        packageManifestPath,
-        rootPackage,
-        /* loadSubpackages */ true);
+    TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true).Await();
 
     if (loadPackageResult.HasError())
     {
         return loadPackageResult.GetError();
     }
+    
+    Handle<AssetPackage> rootPackage = std::move(*loadPackageResult);
 
     Handle<EditorProject> project;
 

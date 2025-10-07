@@ -110,11 +110,21 @@ bool IsCXXEnumClassDecl(const String& line)
 
 String GetDateTimeString()
 {
+    char buf[80];
+#ifdef HYP_UNIX
     time_t now = time(nullptr);
     struct tm tstruct;
-    char buf[80];
     localtime_r(&now, &tstruct);
     strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+#elif defined(HYP_WINDOWS)
+    std::time_t now = std::time(nullptr);
+    std::tm tstruct;
+    localtime_s(&tstruct, &now);
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+#else
+#error Platform not supported
+#endif
 
     return String(buf);
 }

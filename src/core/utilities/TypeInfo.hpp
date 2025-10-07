@@ -149,17 +149,17 @@ FixedArray<const TypeInfo*, sizeof...(Indices)> BuildVariantTypeArray(std::index
  *  \param typeSize The size of the type
  *  \param typeAlignment The alignment of the type
  *  \return Pointer to TypeInfo if found, nullptr otherwise */
-HYP_API extern TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, SizeType typeSize, SizeType typeAlignment);
+HYP_API extern TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 typeSize, uint16 typeAlignment);
 
 /*! \brief Allocate a TypeInfo instance from the pool
  *  \param typeId The TypeId of the type
  *  \param typeSize The size of the type
  *  \param typeAlignment The alignment of the type
- *  \param outPGuard Optional pointer to construct a Mutex::Guard into, to lock the type attribute cache mutex
+ *  \param pGuard Optional pointer to construct a Mutex::Guard into, to lock the type attribute cache mutex
  *   If nullptr, it is assumed the caller already holds exclusive access to the cache mutex
  *  \return Pointer to newly allocated TypeInfo instance */
 HYP_API extern TypeInfo* TypeInfo_Alloc(
-    TypeId typeId, SizeType typeSize, SizeType typeAlignment,
+    TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* pGuard);
 
 /*! \brief Initialize the TypeInfo system, must be called before any other TypeInfo functions */
@@ -351,8 +351,8 @@ struct TypeInfo
 
     TypeId id = TypeId::Void();
     Name name = Name::Invalid();
-    SizeType size = 0;
-    SizeType alignment = 0;
+    uint16 size = 0;
+    uint16 alignment = 0;
     EnumFlags<TypeAttributeFlags> flags = TypeAttributeFlags::NONE;
     TypeInfoEx extendedInfo;
 
@@ -411,16 +411,19 @@ struct TypeInfo
         }
         else
         {
-            if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, sizeof(NormalizedT), alignof(NormalizedT)))
+            static_assert(sizeof(NormalizedT) <= UINT16_MAX, "Cannot use TypeInfo::ForType<T>() with types larger than 65535 bytes");
+            static_assert(alignof(NormalizedT) <= UINT16_MAX, "Cannot use TypeInfo::ForType<T>() with types with alignment larger than 65535 bytes");
+
+            if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, uint16(sizeof(NormalizedT)), uint16(alignof(NormalizedT))))
             {
                 return *cached;
             }
 
             TypeInfo result;
             result.id = typeId;
-            result.name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedT>().Data());
-            result.size = sizeof(NormalizedT);
-            result.alignment = alignof(NormalizedT);
+            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<T, false>::value>());
+            result.size = uint16(sizeof(NormalizedT));
+            result.alignment = uint16(alignof(NormalizedT));
             result.flags = TypeAttributeFlags::NONE;
 
             if constexpr (std::is_class_v<NormalizedT>)
@@ -1278,8 +1281,8 @@ struct TypeInfo
 
             TypeInfo* pTypeInfo = TypeInfo_Alloc(
                 typeId,
-                sizeof(NormalizedT),
-                alignof(NormalizedT),
+                uint16(sizeof(NormalizedT)),
+                uint16(alignof(NormalizedT)),
                 guardStorage.GetPointer());
 
             HYP_CORE_ASSERT(pTypeInfo != nullptr);
@@ -1457,8 +1460,6 @@ struct TypeInfo
         return hc;
     }
 };
-
-extern HYP_API const TypeInfo& TypeInfo_Void();
 
 template <class T>
 inline const TypeInfo& TypeInfo_ForType()

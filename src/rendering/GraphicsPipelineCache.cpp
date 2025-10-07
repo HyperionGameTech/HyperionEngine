@@ -32,7 +32,7 @@
 namespace hyperion {
 
 // discard a graphics pipeline that hasn't been used after this number of frames
-static constexpr uint32 g_graphicsPipelineDiscardFrames = 32;
+static constexpr uint32 GraphicsPipelineDiscardFrames = 32;
 
 #pragma region CachedPipelinesMap
 
@@ -520,7 +520,7 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
         // signed as graphics pipelines that haven't been used yet have -1 as their lastFrame value
         const int64 frameDiff = int64(currFrame) - int64(graphicsPipeline->lastFrame);
 
-        if (frameDiff >= g_graphicsPipelineDiscardFrames)
+        if (frameDiff >= GraphicsPipelineDiscardFrames)
         {
 #ifdef HYP_DEBUG_MODE
             HYP_LOG(Rendering, Debug, "Removing graphics pipeline {} (debug name: {}) from cache as it has not been used in {} frames",

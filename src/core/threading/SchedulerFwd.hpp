@@ -9,6 +9,12 @@
 namespace hyperion {
 namespace threading {
 
+class Scheduler;
+class SchedulerBase;
+
 } // namespace threading
+
+using threading::Scheduler;
+using threading::SchedulerBase;
 
 } // namespace hyperion

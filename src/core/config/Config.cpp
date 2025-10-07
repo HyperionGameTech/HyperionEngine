@@ -24,7 +24,7 @@ extern FilePath CoreApi_GetExecutablePath();
 
 namespace config {
 
-static const ConfigurationValue g_invalidConfigurationValue {};
+static const ConfigurationValue s_invalidConfigValue {};
 
 #pragma region ConfigurationTable
 
@@ -199,7 +199,7 @@ const ConfigurationValue& ConfigurationTable::Get(UTF8StringView key) const
         return *selectResult.value;
     }
 
-    return g_invalidConfigurationValue;
+    return s_invalidConfigValue;
 }
 
 void ConfigurationTable::Set(UTF8StringView key, const ConfigurationValue& value)

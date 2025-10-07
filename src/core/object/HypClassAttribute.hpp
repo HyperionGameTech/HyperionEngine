@@ -8,6 +8,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Variant.hpp>
+#include <core/Name.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Util.hpp>

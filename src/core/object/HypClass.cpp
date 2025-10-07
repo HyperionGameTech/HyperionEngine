@@ -279,7 +279,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (typeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*typeInfo == fieldTypeInfo, "Getter TypeId (%u) does not match field TypeId (%u)", typeInfo->id.Value(), fieldTypeInfo.id.Value());
+            HYP_CORE_ASSERT(*typeInfo == fieldTypeInfo, "Getter type (%s) does not match field type (%s)", *typeInfo->name, *fieldTypeInfo.name);
         }
         else
         {
@@ -288,7 +288,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (targetTypeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target TypeId (%u) does not match field target TypeId (%u)", targetTypeInfo->id.Value(), field->GetTargetTypeInfo().id.Value());
+            HYP_CORE_ASSERT(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target type (%s) does not match field target type (%s)", *targetTypeInfo->name, *field->GetTargetTypeInfo().name);
         }
         else
         {
@@ -312,7 +312,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (typeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*typeInfo == setterTypeInfo, "Getter/field TypeId (%u) does not match setter TypeId (%u)", typeInfo->id.Value(), setterTypeInfo.id.Value());
+            HYP_CORE_ASSERT(*typeInfo == setterTypeInfo, "Getter/field type (%s) does not match setter type (%s)", *typeInfo->name, *setterTypeInfo.name);
         }
         else
         {
@@ -321,7 +321,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (targetTypeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target TypeId (%u) does not match setter target TypeId (%u)", targetTypeInfo->id.Value(), setter->GetTargetTypeInfo().id.Value());
+            HYP_CORE_ASSERT(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target type (%s) does not match setter target type (%s)", *targetTypeInfo->name, *setter->GetTargetTypeInfo().name);
         }
         else
         {

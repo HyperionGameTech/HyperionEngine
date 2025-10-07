@@ -52,6 +52,5 @@ CheckOptions:
   - { key: readability-identifier-naming.TemplateParameterCase,           value: CamelCase }
   - { key: readability-identifier-naming.TemplateParameterIgnoredRegexp,  value: "^(string_type)|(.*_.*)$" }
   - { key: readability-identifier-naming.TemplateTypeCase,                value: CamelCase }
-  - { key: readability-identifier-naming.ConstexprVariableCase,           value: camelBack }
-  - { key: readability-identifier-naming.ConstexprVariableIgnoredRegexp,  value: "^g_(.*)$" }
+  - { key: readability-identifier-naming.ConstexprVariableCase,           value: CamelCase }
 

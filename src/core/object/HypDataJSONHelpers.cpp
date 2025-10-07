@@ -36,11 +36,11 @@ struct SaveAssetsAsReferencesContext
 };
 
 // used to prevent infinite recursion when serializing nested objects
-static thread_local HashSet<const void*> g_serialized;
+static thread_local HashSet<const void*> s_serializedObjects;
 
 bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties, bool saveAssetObjectsAsReferences)
 {
-    if (!g_serialized.Insert(value.ToRef().GetPointer()).second)
+    if (!s_serializedObjects.Insert(value.ToRef().GetPointer()).second)
     {
         HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
 
@@ -50,7 +50,7 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
     }
 
     HYP_DEFER({
-        g_serialized.Erase(value.ToRef().GetPointer());
+        s_serializedObjects.Erase(value.ToRef().GetPointer());
     });
 
     if (value.IsNull())
@@ -688,7 +688,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         {
             if (typeInfo.id == TypeId::ForType<SizeType>())
             {
-                if (number < 0 || number > SIZE_T_MAX)
+                if (number < 0 || number > SIZE_MAX)
                 {
                     return false;
                 }
