@@ -84,6 +84,11 @@ Result CXXModuleGenerator::GenerateHypClassDeclHeader(const Analyzer& analyzer, 
         }
     }
 
+    std::sort(allClasses.Begin(), allClasses.End(), [](const ClassInfo& a, const ClassInfo& b)
+        {
+            return a.definition->name < b.definition->name;
+        });
+
     /*for (const ClassInfo& classInfo : allClasses)
     {
         const HypClassDefinition& hypClass = *classInfo.definition;
