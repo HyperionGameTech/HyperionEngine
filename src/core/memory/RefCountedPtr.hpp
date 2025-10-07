@@ -5,6 +5,7 @@
 #include <core/Defines.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/TypeInfo.hpp>
 
 #include <core/memory/Memory.hpp>
@@ -53,7 +54,7 @@ template <class CountType>
 struct ControlBlock
 {
     void* pObj;
-    TypeId typeId;
+    const TypeInfo* typeInfo;
     CountType strong;
     CountType weak;
 
@@ -63,40 +64,35 @@ struct ControlBlock
 
 namespace detail {
 
-// increment/decrement helpers for CountType (integral or AtomicVar)
-template <class CountType>
-static inline uint32 Inc(CountType& count)
-{
-    if constexpr (std::is_integral_v<CountType>)
-        return ++count;
-    else
-        return count.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
-}
+HYP_API extern void DefaultFreeBlock(void* blk);
+
+HYP_API extern void ExternalBlockDeleter(void* blk);
 
 template <class CountType>
-static inline uint32 Dec(CountType& count)
+HYP_API extern uint32 IncStrong(ControlBlock<CountType>* block);
+
+template <class CountType>
+HYP_API extern uint32 ReleaseStrong(ControlBlock<CountType>* block);
+
+template <class CountType>
+HYP_API extern uint32 IncWeak(ControlBlock<CountType>* block);
+
+template <class CountType>
+HYP_API extern uint32 ReleaseWeak(ControlBlock<CountType>* block);
+
+template <class CountType, class T>
+HYP_API ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 {
-    if constexpr (std::is_integral_v<CountType>)
-        return --count;
-    else
-        return count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) - 1;
-}
+    void* pBlock = HYP_ALLOC_ALIGNED(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
 
-static inline void DefaultFreeBlock(void* blk)
-{
-    HYP_FREE_ALIGNED(blk);
-}
-
-static inline void ExternalBlockDeleter(void* blk)
-{
-    ControlBlock<AtomicVar<uint32>>* block = reinterpret_cast<ControlBlock<AtomicVar<uint32>>*>(blk); // CountType not used here
-
-    if (block->pObj && block->pFnDestructObj)
-    {
-        block->pFnDestructObj(block->pObj);
-    }
-
-    HYP_FREE_ALIGNED(block);
+    return new (pBlock) ControlBlock<CountType> {
+        ptr,
+        &TypeInfo_ForType<T>(),
+        CountType(1),
+        CountType(1),
+        &Memory::Delete<T>,
+        &DefaultFreeBlock
+    };
 }
 
 template <class CountType, class T, class... Args>
@@ -115,7 +111,7 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
 
     new (pBlock) ControlBlock<CountType> {
         static_cast<T*>(pObj),
-        TypeId::ForType<T>(),
+        &TypeInfo_ForType<T>(),
         CountType(1),
         CountType(1),
         &Memory::Destruct<T>,
@@ -125,92 +121,6 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
     new (pObj) T(std::forward<Args>(args)...);
 
     return static_cast<ControlBlock<CountType>*>(pBlock);
-}
-
-template <class CountType, class T>
-HYP_NODISCARD static inline ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
-{
-    void* pBlock = HYP_ALLOC_ALIGNED(sizeof(ControlBlock<CountType>), alignof(ControlBlock<CountType>));
-
-    return new (pBlock) ControlBlock<CountType> {
-        ptr,
-        TypeId::ForType<T>(),
-        CountType(1),
-        CountType(1),
-        &Memory::Delete<T>,
-        &DefaultFreeBlock
-    };
-}
-
-template <class CountType>
-static inline uint32 DecWeakAndMaybeFree(ControlBlock<CountType>* block)
-{
-    uint32 count;
-
-    if ((count = Dec(block->weak)) == 0 && block->pFnFreeBlock)
-    {
-        block->pFnFreeBlock(block);
-    }
-
-    return count;
-}
-
-template <class CountType>
-static inline uint32 ReleaseStrong(ControlBlock<CountType>* block)
-{
-    if (!block)
-    {
-        return 0;
-    }
-
-    uint32 count;
-
-    if ((count = Dec(block->strong)) == 0)
-    {
-        if (block->pFnDestructObj && block->pObj)
-        {
-            block->pFnDestructObj(block->pObj);
-        }
-
-        block->pObj = nullptr;
-
-        DecWeakAndMaybeFree(block);
-    }
-
-    return count;
-}
-
-template <class CountType>
-static inline uint32 IncStrong(ControlBlock<CountType>* block)
-{
-    if (block)
-    {
-        return Inc(block->strong);
-    }
-
-    return 0;
-}
-
-template <class CountType>
-static inline uint32 IncWeak(ControlBlock<CountType>* block)
-{
-    if (block)
-    {
-        return Inc(block->weak);
-    }
-
-    return 0;
-}
-
-template <class CountType>
-static inline uint32 ReleaseWeak(ControlBlock<CountType>* block)
-{
-    if (block)
-    {
-        return DecWeakAndMaybeFree(block);
-    }
-
-    return 0;
 }
 
 } // namespace detail
@@ -229,130 +139,29 @@ class RefCountedPtrBase
 public:
     using Block = ControlBlock<CountType>;
 
-    RefCountedPtrBase()
-        : m_block(nullptr)
-    {
-    }
+    RefCountedPtrBase();
 
 protected:
-    RefCountedPtrBase(const RefCountedPtrBase& other)
-        : m_block(other.m_block)
-    {
-        detail::IncStrong(m_block);
-    }
-
-    RefCountedPtrBase& operator=(const RefCountedPtrBase& other)
-    {
-        if (this == &other || m_block == other.m_block)
-            return *this;
-
-        detail::ReleaseStrong(m_block);
-
-        m_block = other.m_block;
-
-        detail::IncStrong(m_block);
-
-        return *this;
-    }
-
-    RefCountedPtrBase(RefCountedPtrBase&& other) noexcept
-        : m_block(other.m_block)
-    {
-        other.m_block = nullptr;
-    }
-
-    RefCountedPtrBase& operator=(RefCountedPtrBase&& other) noexcept
-    {
-        if (this == &other || m_block == other.m_block)
-            return *this;
-
-        detail::ReleaseStrong(m_block);
-
-        m_block = other.m_block;
-        other.m_block = nullptr;
-
-        return *this;
-    }
+    RefCountedPtrBase(const RefCountedPtrBase& other);
+    RefCountedPtrBase& operator=(const RefCountedPtrBase& other);
+    RefCountedPtrBase(RefCountedPtrBase&& other) noexcept;
+    RefCountedPtrBase& operator=(RefCountedPtrBase&& other) noexcept;
 
 public:
-    ~RefCountedPtrBase()
-    {
-        detail::ReleaseStrong(m_block);
-    }
+    ~RefCountedPtrBase();
 
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return m_block != nullptr;
-    }
-
-    HYP_FORCE_INLINE void* GetVoid() const
-    {
-        return m_block ? m_block->pObj : nullptr;
-    }
-
-    HYP_FORCE_INLINE TypeId GetTypeId() const
-    {
-        return m_block ? m_block->typeId : TypeId::Void();
-    }
-
-    HYP_FORCE_INLINE void Reset()
-    {
-        detail::ReleaseStrong(m_block);
-
-        m_block = nullptr;
-    }
+    HYP_API bool IsValid() const;
+    HYP_API void* GetVoid() const;
+    HYP_API const TypeInfo& GetTypeInfo() const;
+    HYP_API const TypeId& GetTypeId() const;
+    HYP_API void Reset();
 
     template <class T>
-    HYP_FORCE_INLINE void Reset(T* ptr)
-    {
-        detail::ReleaseStrong(m_block);
+    void Reset(T* ptr);
 
-        m_block = nullptr;
-
-        if (!ptr)
-        {
-            return;
-        }
-
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
-        {
-            // share object's block
-            m_block = ptr->template EnableRefCountedPtrFromThisBase<CountType>::m_block;
-
-            detail::IncStrong(m_block);
-        }
-        else
-        {
-            m_block = detail::NewExternalOwnedBlock<CountType>(ptr);
-        }
-    }
-
-    HYP_FORCE_INLINE AnyRef ToRef() const
-    {
-        return AnyRef(GetTypeId(), GetVoid());
-    }
-
-    HYP_FORCE_INLINE Block* GetBlock_Internal() const
-    {
-        return m_block;
-    }
-
-    HYP_FORCE_INLINE void SetBlock_Internal(Block* block, bool incStrong)
-    {
-        if (m_block == block)
-        {
-            return;
-        }
-
-        detail::ReleaseStrong(m_block);
-
-        m_block = block;
-
-        if (incStrong)
-        {
-            detail::IncStrong(m_block);
-        }
-    }
+    HYP_API AnyRef ToRef() const;
+    HYP_API Block* GetBlock_Internal() const;
+    HYP_API void SetBlock_Internal(Block* block, bool incStrong);
 
 private:
     Block* m_block;
@@ -366,91 +175,48 @@ class WeakRefCountedPtrBase
 public:
     using Block = ControlBlock<CountType>;
 
-    WeakRefCountedPtrBase()
-        : m_block(nullptr)
-    {
-    }
+    WeakRefCountedPtrBase();
+    WeakRefCountedPtrBase(const RefCountedPtrBase<CountType>& other);
+    WeakRefCountedPtrBase(const WeakRefCountedPtrBase& other);
+    WeakRefCountedPtrBase& operator=(const WeakRefCountedPtrBase& other);
+    WeakRefCountedPtrBase(WeakRefCountedPtrBase&& other) noexcept;
+    WeakRefCountedPtrBase& operator=(WeakRefCountedPtrBase&& other) noexcept;
+    ~WeakRefCountedPtrBase();
 
-    WeakRefCountedPtrBase(const RefCountedPtrBase<CountType>& other)
-        : m_block(other.m_block)
-    {
-        detail::IncWeak(m_block);
-    }
-
-    WeakRefCountedPtrBase(const WeakRefCountedPtrBase& other)
-        : m_block(other.m_block)
-    {
-        detail::IncWeak(m_block);
-    }
-
-    WeakRefCountedPtrBase& operator=(const WeakRefCountedPtrBase& other)
-    {
-        if (this == &other || m_block == other.m_block)
-            return *this;
-
-        detail::ReleaseWeak(m_block);
-
-        m_block = other.m_block;
-
-        detail::IncWeak(m_block);
-
-        return *this;
-    }
-
-    WeakRefCountedPtrBase(WeakRefCountedPtrBase&& other) noexcept
-        : m_block(other.m_block)
-    {
-        other.m_block = nullptr;
-    }
-
-    WeakRefCountedPtrBase& operator=(WeakRefCountedPtrBase&& other) noexcept
-    {
-        if (this == &other || m_block == other.m_block)
-            return *this;
-
-        detail::ReleaseWeak(m_block);
-
-        m_block = other.m_block;
-        other.m_block = nullptr;
-
-        return *this;
-    }
-
-    ~WeakRefCountedPtrBase()
-    {
-        detail::ReleaseWeak(m_block);
-    }
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return m_block != nullptr;
-    }
-
-    HYP_FORCE_INLINE void SetBlock_Internal(Block* block, bool incWeak)
-    {
-        if (m_block == block)
-        {
-            return;
-        }
-
-        detail::ReleaseWeak(m_block);
-
-        m_block = block;
-
-        if (incWeak)
-        {
-            detail::IncWeak(m_block);
-        }
-    }
-
-    HYP_FORCE_INLINE Block* GetBlock_Internal() const
-    {
-        return m_block;
-    }
+    HYP_API bool IsValid() const;
+    HYP_API void SetBlock_Internal(Block* block, bool incWeak);
+    HYP_API Block* GetBlock_Internal() const;
 
 private:
     Block* m_block;
 };
+
+// Template member function implementations that can't be explicitly instantiated
+template <class CountType>
+template <class T>
+void RefCountedPtrBase<CountType>::Reset(T* ptr)
+{
+    detail::ReleaseStrong(m_block);
+
+    m_block = nullptr;
+
+    if (!ptr)
+    {
+        return;
+    }
+
+    if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, NormalizedType<T>>)
+    {
+        // share object's block
+        m_block = ptr->template EnableRefCountedPtrFromThisBase<CountType>::m_block;
+
+        detail::IncStrong(m_block);
+    }
+    else
+    {
+        m_block = detail::NewExternalOwnedBlock<CountType>(ptr);
+    }
+}
 
 // === Strong typed wrappers ===
 
@@ -1183,16 +949,16 @@ class EnableRefCountedPtrFromThisBase
 {
     template <class OtherCountType>
     friend class RefCountedPtrBase;
-    
+
     template <class OtherT, class OtherCountType>
     friend class RefCountedPtr;
-    
+
 protected:
     using BlockType = ControlBlock<CountType>;
 
     EnableRefCountedPtrFromThisBase() = default;
     virtual ~EnableRefCountedPtrFromThisBase() = default;
-    
+
     BlockType* m_block;
 };
 
@@ -1205,12 +971,12 @@ public:
     EnableRefCountedPtrFromThis()
     {
         using BlockType = typename Base::BlockType;
-        
+
         Base::m_block = (BlockType*)HYP_ALLOC_ALIGNED(sizeof(BlockType), alignof(BlockType));
 
         new (Base::m_block) BlockType {
             static_cast<T*>(this),
-            TypeId::ForType<T>(),
+            &TypeInfo_ForType<T>(),
             CountType(1),
             CountType(1),
             &Memory::Destruct<T>,
@@ -1222,7 +988,7 @@ public:
     {
         RefCountedPtr<T, CountType> result;
         result.RefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incStrong */ true);
-        
+
         return result;
     }
 
@@ -1230,7 +996,7 @@ public:
     {
         WeakRefCountedPtr<T, CountType> result;
         result.WeakRefCountedPtrBase<CountType>::SetBlock_Internal(Base::m_block, /* incWeak */ true);
-        
+
         return result;
     }
 };

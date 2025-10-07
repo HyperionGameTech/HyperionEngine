@@ -16,7 +16,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 HYP_DECLARE_LOG_CHANNEL(Console);
 
-HYP_API extern Logger* g_logger;
+HYP_API extern Handle<Logger> g_logger;
 
 #pragma region ConsoleHistory
 

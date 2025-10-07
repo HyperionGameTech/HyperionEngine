@@ -7,6 +7,8 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
+#include <core/containers/HashMap.hpp>
+
 #include <dotnet/Types.hpp>
 
 namespace hyperion {

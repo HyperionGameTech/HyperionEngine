@@ -278,11 +278,6 @@ HashCode TypeInfoEx::GetHashCode() const
 
 #pragma region TypeInfo
 
-HYP_API const TypeInfo& TypeInfo_Void()
-{
-    return TypeInfo::Void();
-}
-
 const TypeInfo& TypeInfo::Void()
 {
     static TypeInfo s_voidTypeInfo;

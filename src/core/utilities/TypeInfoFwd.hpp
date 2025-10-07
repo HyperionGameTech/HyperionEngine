@@ -7,9 +7,10 @@ namespace hyperion {
 namespace utilities {
 
 struct TypeInfo;
+struct TypeId;
 
-// Non-template accessor used by headers that can't/shouldn't include the full TypeInfo.hpp
-HYP_API extern const TypeInfo& TypeInfo_Void();
+const TypeInfo& TypeInfo_Void();
+const TypeId& TypeInfo_GetId(const TypeInfo& type_info);
 
 template <class T>
 const TypeInfo& TypeInfo_ForType();
@@ -18,6 +19,7 @@ const TypeInfo& TypeInfo_ForType();
 
 using utilities::TypeInfo;
 using utilities::TypeInfo_ForType;
+using utilities::TypeInfo_GetId;
 using utilities::TypeInfo_Void;
 
 } // namespace hyperion

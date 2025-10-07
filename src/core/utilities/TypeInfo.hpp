@@ -1461,8 +1461,18 @@ struct TypeInfo
     }
 };
 
+inline const TypeInfo& TypeInfo_Void()
+{
+    return TypeInfo::Void();
+}
+
+inline const TypeId& TypeInfo_GetId(const TypeInfo& type_info)
+{
+    return type_info.id;
+}
+
 template <class T>
-inline const TypeInfo& TypeInfo_ForType()
+const TypeInfo& TypeInfo_ForType()
 {
     return TypeInfo::ForType<T>();
 }

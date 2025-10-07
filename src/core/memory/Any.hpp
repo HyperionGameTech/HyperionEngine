@@ -60,8 +60,8 @@ class Any final : public AnyBase
         constexpr SizeType align = (alignof(Block) > alignof(T) ? alignof(Block) : alignof(T));
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(T);
-        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(T), alignment);
+        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        const SizeType totalSize = objOffset + sizeof(T);
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
@@ -355,8 +355,8 @@ public:
         constexpr SizeType align = (alignof(Block) > alignof(U) ? alignof(Block) : alignof(U));
         constexpr SizeType headerSize = sizeof(Block);
         constexpr SizeType objAlign = alignof(U);
-        constexpr SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
-        constexpr SizeType totalSize = ByteUtil::AlignAs(objOffset + sizeof(U), alignment);
+        const SizeType objOffset = ByteUtil::AlignAs(headerSize, objAlign);
+        const SizeType totalSize = objOffset + sizeof(U);
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
