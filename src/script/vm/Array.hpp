@@ -7,6 +7,6 @@ namespace hyperion {
 struct HypDataArray;
 struct HypData;
 
-using Script_Array = Array<HypData, DynamicAllocator>;
+using Script_Array = Array<HypData>;
 
 } // namespace hyperion

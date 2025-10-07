@@ -406,7 +406,6 @@ void HyperionEditor::Init()
         .Detach();
 
     batch->LoadAsync();
-    HYP_BREAKPOINT;
 #endif
 #endif
 #endif
