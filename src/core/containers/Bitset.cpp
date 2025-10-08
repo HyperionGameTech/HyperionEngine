@@ -25,9 +25,12 @@ static Array<Bitset::BlockType, InlineAllocator<16>> CreateBlocks_Internal(uint6
 template <uint64 InitialValue>
 static Span<const Bitset::BlockType> CreateBlocks_Static_Internal()
 {
-    static const Bitset::BlockType blocks[2] = { Bitset::BlockType(InitialValue & 0xFFFFFFFFu), Bitset::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull) };
+    static const Bitset::BlockType s_blocks[] = {
+        Bitset::BlockType(InitialValue & 0xFFFFFFFFu),
+        Bitset::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull)
+    };
 
-    return Span<const Bitset::BlockType>(&blocks[0], &blocks[0] + ArraySize(blocks));
+    return Span<const Bitset::BlockType>(&s_blocks[0], &s_blocks[0] + HYP_ARRAY_SIZE(s_blocks));
 }
 
 Bitset::Bitset()

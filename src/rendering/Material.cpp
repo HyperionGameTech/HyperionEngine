@@ -21,7 +21,7 @@
 
 namespace hyperion {
 
-static const ShaderDefinition g_defaultShaderDefinition {
+static const ShaderDefinition s_defaultShaderDefinition {
     NAME("Forward"),
     ShaderProperties(staticMeshVertexAttributes)
 };
@@ -55,7 +55,7 @@ const MaterialParameters& Material::DefaultParameters()
 
 Material::Material()
     : m_attributes {
-          .shaderDefinition = g_defaultShaderDefinition,
+          .shaderDefinition = s_defaultShaderDefinition,
           .bucket = RB_OPAQUE,
           .fillMode = FM_FILL,
           .blendFunction = BlendFunction::None(),
@@ -72,7 +72,7 @@ Material::Material()
 Material::Material(Name name, RenderBucket rb)
     : AssetObject(name),
       m_attributes {
-          .shaderDefinition = g_defaultShaderDefinition,
+          .shaderDefinition = s_defaultShaderDefinition,
           .bucket = rb
       },
       m_isDynamic(false),
@@ -334,7 +334,10 @@ Handle<Material> Material::Clone() const
 
 void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {
-    proxy->material = WeakHandleFromThis();
+    if (proxy->material.GetUnsafe() != this)
+    {
+        proxy->material = MakeWeakRef(this);
+    }
 
     const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
@@ -358,7 +361,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(&bufferData.textureIndices);
     Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
-    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::s_maxTextures, useBindlessTextures ? g_maxBindlessResources : g_maxBoundTextures);
+    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, useBindlessTextures ? g_maxBindlessResources : g_maxBoundTextures);
     uint32 remainingTextureSlots = numTextureSlots;
 
     proxy->boundTextures.Clear();
@@ -498,7 +501,7 @@ Handle<Material> MaterialCache::CreateMaterial(
 {
     if (!attributes.shaderDefinition)
     {
-        attributes.shaderDefinition = g_defaultShaderDefinition;
+        attributes.shaderDefinition = s_defaultShaderDefinition;
     }
 
     Handle<Material> handle = CreateObject<Material>(
@@ -520,7 +523,7 @@ Handle<Material> MaterialCache::GetOrCreate(
 {
     if (!attributes.shaderDefinition)
     {
-        attributes.shaderDefinition = g_defaultShaderDefinition;
+        attributes.shaderDefinition = s_defaultShaderDefinition;
     }
 
     // @TODO: For textures hashcode, asset path should be used rather than texture Id

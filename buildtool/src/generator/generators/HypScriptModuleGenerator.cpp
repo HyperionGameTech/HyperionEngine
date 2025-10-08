@@ -27,7 +27,10 @@ FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, c
     return analyzer.GetHypScriptOutputDirectory() / relativePath.BasePath() / StringUtil::StripExtension(relativePath.Basename()) + ".hyp";
 }
 
-Array<const HypClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(const Analyzer& analyzer, const Array<const HypClassDefinition*>& classes, const HashMap<String, SizeType>& classNameToIndex) const
+Array<const HypClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(
+    const Analyzer& analyzer,
+    const Array<const HypClassDefinition*>& classes,
+    const HashMap<String, SizeType>& classNameToIndex) const
 {
     const SizeType numClasses = classes.Size();
     if (numClasses <= 1)

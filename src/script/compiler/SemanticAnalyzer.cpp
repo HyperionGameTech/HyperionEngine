@@ -165,7 +165,6 @@ const SymbolType* SemanticAnalyzer::Helpers::ResolvePlaceholderType(
             if (wasMutated)
             {
                 SymbolType* newType = inputType->Clone();
-                HYP_LOG_TEMP("Clone type {} , address: {}", inputType->ToString(), (void*)inputType);
                 newType->SetMembers(std::move(newMembers));
                 newType->SetStaticMembers(std::move(newStaticMembers));
 

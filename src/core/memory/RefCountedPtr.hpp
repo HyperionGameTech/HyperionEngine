@@ -150,18 +150,18 @@ protected:
 public:
     ~RefCountedPtrBase();
 
-    HYP_API bool IsValid() const;
-    HYP_API void* GetVoid() const;
-    HYP_API const TypeInfo& GetTypeInfo() const;
-    HYP_API const TypeId& GetTypeId() const;
-    HYP_API void Reset();
+    bool IsValid() const;
+    void* GetVoid() const;
+    const TypeInfo& GetTypeInfo() const;
+    const TypeId& GetTypeId() const;
+    void Reset();
 
     template <class T>
     void Reset(T* ptr);
 
-    HYP_API AnyRef ToRef() const;
-    HYP_API Block* GetBlock_Internal() const;
-    HYP_API void SetBlock_Internal(Block* block, bool incStrong);
+    AnyRef ToRef() const;
+    Block* GetBlock_Internal() const;
+    void SetBlock_Internal(Block* block, bool incStrong);
 
 private:
     Block* m_block;
@@ -183,9 +183,9 @@ public:
     WeakRefCountedPtrBase& operator=(WeakRefCountedPtrBase&& other) noexcept;
     ~WeakRefCountedPtrBase();
 
-    HYP_API bool IsValid() const;
-    HYP_API void SetBlock_Internal(Block* block, bool incWeak);
-    HYP_API Block* GetBlock_Internal() const;
+    bool IsValid() const;
+    void SetBlock_Internal(Block* block, bool incWeak);
+    Block* GetBlock_Internal() const;
 
 private:
     Block* m_block;

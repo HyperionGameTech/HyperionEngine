@@ -142,8 +142,6 @@ void RaytracingReflections::UpdateUniforms(FrameBase* frame, const RenderSetup& 
     HYP_DEFER({ rpl.EndRead(); });
 
     RTRadianceUniforms uniforms {};
-    Memory::MemSet(&uniforms, 0, sizeof(uniforms));
-
     uniforms.minRoughness = 0.4f;
     uniforms.outputImageResolution = Vec2i(m_config.extent);
 
@@ -262,8 +260,7 @@ void RaytracingReflections::CreateImages()
 
 void RaytracingReflections::CreateUniformBuffer()
 {
-    RTRadianceUniforms uniforms;
-    Memory::MemSet(&uniforms, 0, sizeof(uniforms));
+    RTRadianceUniforms uniforms {};
 
     m_uniformBuffers = {
         g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms)),

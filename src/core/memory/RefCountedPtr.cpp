@@ -349,7 +349,5 @@ template class HYP_API RefCountedPtrBase<AtomicVar<uint32>>;
 template class HYP_API WeakRefCountedPtrBase<uint32>;
 template class HYP_API WeakRefCountedPtrBase<AtomicVar<uint32>>;
 
-// Explicit instantiations for Reset<T> - we can't instantiate for all T, so this stays in header
-
 } // namespace memory
 } // namespace hyperion

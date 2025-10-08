@@ -65,7 +65,7 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
-static const bool g_shouldCompileMissingVariants = true;
+static constexpr bool ShouldCompileMissingVariants = true;
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
@@ -1341,7 +1341,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     // clear the batch if properties requested are missing.
     batch = CompiledShaderBatch{};
 
-    if (g_shouldCompileMissingVariants && CanCompileShaders()) {
+    if (ShouldCompileMissingVariants && CanCompileShaders()) {
       HYP_LOG(
           ShaderCompiler, Info,
           "Compiled shader is missing properties. Attempting to compile with "

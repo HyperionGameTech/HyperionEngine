@@ -5,6 +5,10 @@
 
 #include <generator/Generator.hpp>
 
+#include <core/containers/Array.hpp>
+#include <core/containers/HashMap.hpp>
+#include <core/containers/String.hpp>
+
 namespace hyperion {
 namespace buildtool {
 

@@ -341,10 +341,10 @@ class MaterialParameters
 public:
     HYP_STRUCT_BODY(MaterialParameters);
 
-    static constexpr uint32 s_maxParameters = 32u;
+    static constexpr uint32 MaxParameters = 32u;
 
-    using Iterator = FixedArray<MaterialParameter, s_maxParameters>::Iterator;
-    using ConstIterator = FixedArray<MaterialParameter, s_maxParameters>::ConstIterator;
+    using Iterator = FixedArray<MaterialParameter, MaxParameters>::Iterator;
+    using ConstIterator = FixedArray<MaterialParameter, MaxParameters>::ConstIterator;
 
     MaterialParameters() = default;
 
@@ -352,7 +352,7 @@ public:
     {
         for (const auto& it : initializerList)
         {
-            m_values[EnumOptions<MaterialParameterKey, MaterialParameter, s_maxParameters>::EnumToOrdinal(it.first)] = it.second;
+            m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(it.first)] = it.second;
         }
     }
 
@@ -376,12 +376,12 @@ public:
 
     HYP_FORCE_INLINE MaterialParameter& operator[](MaterialParameterKey key)
     {
-        return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, s_maxParameters>::EnumToOrdinal(key)];
+        return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(key)];
     }
 
     HYP_FORCE_INLINE const MaterialParameter& operator[](MaterialParameterKey key) const
     {
-        return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, s_maxParameters>::EnumToOrdinal(key)];
+        return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(key)];
     }
 
     HYP_FORCE_INLINE MaterialParameter& AtIndex(SizeType index)
@@ -397,14 +397,14 @@ public:
     HYP_FORCE_INLINE Pair<MaterialParameterKey, MaterialParameter&> KeyValueAt(SizeType index)
     {
         return Pair<MaterialParameterKey, MaterialParameter&>(
-            EnumOptions<MaterialParameterKey, MaterialParameter, s_maxParameters>::OrdinalToEnum(index),
+            EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::OrdinalToEnum(index),
             m_values[index]);
     }
 
     HYP_FORCE_INLINE Pair<MaterialParameterKey, const MaterialParameter&> KeyValueAt(SizeType index) const
     {
         return Pair<MaterialParameterKey, const MaterialParameter&>(
-            EnumOptions<MaterialParameterKey, MaterialParameter, s_maxParameters>::OrdinalToEnum(index),
+            EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::OrdinalToEnum(index),
             m_values[index]);
     }
 
@@ -422,7 +422,7 @@ public:
 
 private:
     HYP_FIELD(Serialize)
-    FixedArray<MaterialParameter, s_maxParameters> m_values;
+    FixedArray<MaterialParameter, MaxParameters> m_values;
 };
 
 HYP_STRUCT()
@@ -431,10 +431,10 @@ class MaterialTextures
 public:
     HYP_STRUCT_BODY(MaterialTextures);
 
-    static constexpr uint32 s_maxTextures = 32u;
+    static constexpr uint32 MaxTextures = 32u;
 
-    using Iterator = FixedArray<Handle<Texture>, s_maxTextures>::Iterator;
-    using ConstIterator = FixedArray<Handle<Texture>, s_maxTextures>::ConstIterator;
+    using Iterator = FixedArray<Handle<Texture>, MaxTextures>::Iterator;
+    using ConstIterator = FixedArray<Handle<Texture>, MaxTextures>::ConstIterator;
 
     MaterialTextures() = default;
 
@@ -442,7 +442,7 @@ public:
     {
         for (const auto& it : initializerList)
         {
-            m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, s_maxTextures>::EnumToOrdinal(it.first)] = it.second;
+            m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(it.first)] = it.second;
         }
     }
 
@@ -466,12 +466,12 @@ public:
 
     HYP_FORCE_INLINE Handle<Texture>& operator[](MaterialTextureKey key)
     {
-        return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, s_maxTextures>::EnumToOrdinal(key)];
+        return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)];
     }
 
     HYP_FORCE_INLINE const Handle<Texture>& operator[](MaterialTextureKey key) const
     {
-        return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, s_maxTextures>::EnumToOrdinal(key)];
+        return m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)];
     }
 
     HYP_FORCE_INLINE Handle<Texture>& AtIndex(SizeType index)
@@ -487,14 +487,14 @@ public:
     HYP_FORCE_INLINE Pair<MaterialTextureKey, Handle<Texture>&> KeyValueAt(SizeType index)
     {
         return Pair<MaterialTextureKey, Handle<Texture>&>(
-            EnumOptions<MaterialTextureKey, Handle<Texture>, s_maxTextures>::OrdinalToEnum(index),
+            EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::OrdinalToEnum(index),
             m_values[index]);
     }
 
     HYP_FORCE_INLINE Pair<MaterialTextureKey, const Handle<Texture>&> KeyValueAt(SizeType index) const
     {
         return Pair<MaterialTextureKey, const Handle<Texture>&>(
-            EnumOptions<MaterialTextureKey, Handle<Texture>, s_maxTextures>::OrdinalToEnum(index),
+            EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::OrdinalToEnum(index),
             m_values[index]);
     }
 
@@ -512,7 +512,7 @@ public:
 
 private:
     HYP_FIELD(Serialize)
-    FixedArray<Handle<Texture>, s_maxTextures> m_values;
+    FixedArray<Handle<Texture>, MaxTextures> m_values;
 };
 
 HYP_CLASS()

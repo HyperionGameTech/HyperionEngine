@@ -8,6 +8,7 @@
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
 #include <core/object/HypConstant.hpp>
+#include <core/object/HypMethod.hpp>
 #include <core/object/HypData.hpp>
 
 #include <core/containers/Array.hpp>
@@ -38,8 +39,21 @@ struct SaveAssetsAsReferencesContext
 // used to prevent infinite recursion when serializing nested objects
 static thread_local HashSet<const void*> s_serializedObjects;
 
-bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTransientProperties, bool saveAssetObjectsAsReferences)
+// If true, class names will always be written when serializing objects IF the type != the declared type.
+// For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
+// otherwise we won't know to deserialize it as a Dog.
+static constexpr bool ForceWriteClassNamesWhenTypesDiffer = true;
+
+bool HypDataToJSON(
+    const HypData& value,
+    json::JSONValue& outJson,
+    ToJSONOptions opts)
 {
+    if (opts.writeClassNamesRecursively)
+    {
+        opts.writeClassNames = true;
+    }
+
     if (!s_serializedObjects.Insert(value.ToRef().GetPointer()).second)
     {
         HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
@@ -84,9 +98,9 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
         isAssetObject = true;
     }
 
-    if (isAssetObject && assetReference.IsValid() && saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
+    if (isAssetObject && assetReference.IsValid() && opts.saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
     {
-        return HypDataToJSON(HypData(assetReference), outJson, skipTransientProperties, true);
+        return HypDataToJSON(HypData(assetReference), outJson, opts);
     }
 
     assetReference = AssetReference(); // reset
@@ -280,8 +294,16 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
             {
                 return false;
             }
+            
+            ToJSONOptions newOpts = opts;
+            newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-            if (!HypDataToJSON(element, jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && array.elementTypeId != element.GetTypeId())
+            {
+                newOpts.writeClassNames = true;
+            }
+
+            if (!HypDataToJSON(element, jsonValue, newOpts))
             {
                 return false;
             }
@@ -300,11 +322,16 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
     {
         json::JSONObject jsonObject;
 
-        GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };
+        GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };;
 
-        if (!ObjectToJSON(hypClass, value, jsonObject, skipTransientProperties, saveAssetObjectsAsReferences))
+        if (!ObjectToJSON(hypClass, value, jsonObject, opts))
         {
             return false;
+        }
+
+        if (opts.writeClassNames)
+        {
+            jsonObject["$Class"] = *hypClass->GetName();
         }
 
         outJson = std::move(jsonObject);
@@ -315,15 +342,65 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& outJson, bool skipTran
     return false;
 }
 
-bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObject& outJson, bool skipTransientProperties, bool saveAssetObjectsAsReferences)
+bool ObjectToJSON(
+    const HypClass* hypClass,
+    const HypData& target,
+    json::JSONObject& outJson,
+    ToJSONOptions opts)
 {
+    if (opts.writeClassNamesRecursively)
+    {
+        opts.writeClassNames = true;
+    }
+
     HashSet<Name> usedMembers;
 
     while (hypClass != nullptr)
     {
+        // look for signature void ToJSON(JSONValue& out)
+        if (const HypMethod* toJsonMethod = hypClass->GetMethod("ToJSON", /* deep */ false))
+        {
+            if (toJsonMethod->GetParameters().Size() != 2
+                || toJsonMethod->GetTypeId() != TypeId::Void()
+                || toJsonMethod->GetParameters()[0].typeInfo->id != hypClass->GetTypeId()
+                || toJsonMethod->GetParameters()[1].typeInfo->id != TypeId::ForType<json::JSONValue>())
+            {
+                HYP_LOG(Core, Warning, "HypClass \"{}\" has a ToJSON method but it has an invalid signature", hypClass->GetName());
+            }
+            else
+            {
+                HypData returnValue;
+                toJsonMethod->Invoke(Array<HypData*> { const_cast<HypData*>(&target), &returnValue });
+
+                if (returnValue.Is<json::JSONValue>())
+                {
+                    json::JSONValue& jsonValue = returnValue.Get<json::JSONValue>();
+
+                    if (jsonValue.IsObject())
+                    {
+                        json::JSONObject& jsonObject = jsonValue.AsObject();
+                        std::swap(outJson, jsonObject);
+                        outJson.MergeDeep(jsonObject);
+
+                        // skip normal serialization since we got the full object from ToJSON
+                        continue;
+                    }
+                    else
+                    {
+                        HYP_LOG(Core, Warning, "ToJSON method of HypClass \"{}\" did not return a valid JSON object, got JSON value: {}", hypClass->GetName(), jsonValue.ToString());
+                    }
+                }
+                else
+                {
+                    HYP_LOG(Core, Warning, "Failed to invoke ToJSON method of HypClass \"{}\", got type {} but expected JSONValue!",
+                        hypClass->GetName(), returnValue.GetTypeInfo()->name);
+                }
+            }
+        }
+
         for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY, /* deep */ false))
         {
-            if (skipTransientProperties)
+            if (opts.skipTransientProperties)
             {
                 if (const HypClassAttributeValue& attribute = member.GetAttribute("transient"); attribute.IsValid() && attribute.GetBool())
                 {
@@ -349,9 +426,19 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
             {
                 const HypProperty* property = static_cast<const HypProperty*>(&member);
 
+                HypData value = property->Get(target);
+
+                ToJSONOptions newOpts = opts;
+                newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && property->GetTypeId() != value.GetTypeId())
+                {
+                    newOpts.writeClassNames = true;
+                }
+
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(property->Get(target), jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
+                if (!HypDataToJSON(value, jsonValue, newOpts))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -381,9 +468,19 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
             {
                 const HypField* field = static_cast<const HypField*>(&member);
 
+                HypData value = field->Get(target);
+
+                ToJSONOptions newOpts = opts;
+                newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && field->GetTypeId() != value.GetTypeId())
+                {
+                    newOpts.writeClassNames = true;
+                }
+
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(field->Get(target), jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
+                if (!HypDataToJSON(value, jsonValue, newOpts))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -415,9 +512,19 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
             {
                 const HypConstant* constant = static_cast<const HypConstant*>(&member);
 
+                HypData value = constant->Get();
+
+                ToJSONOptions newOpts = opts;
+                newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && constant->GetTypeId() != value.GetTypeId())
+                {
+                    newOpts.writeClassNames = true;
+                }
+
                 json::JSONValue jsonValue;
 
-                if (!HypDataToJSON(constant->Get(), jsonValue, skipTransientProperties, saveAssetObjectsAsReferences))
+                if (!HypDataToJSON(constant->Get(), jsonValue, newOpts))
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of HypClass \"{}\" to json",
                         member.GetName(), hypClass->GetName());
@@ -577,6 +684,18 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
 bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData)
 {
+    if (typeInfo.IsBoolType())
+    {
+        if (!jsonValue.IsBool())
+        {
+            HYP_LOG(Core, Warning, "Expected JSON bool for bool but got: {}", jsonValue.ToString(true));
+            return false;
+        }
+
+        outHypData = HypData(jsonValue.AsBool());
+        return true;
+    }
+
     if (typeInfo.IsIntegralType())
     {
         if (!jsonValue.IsNumber())
@@ -733,18 +852,6 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         }
 
         return false;
-    }
-
-    if (typeInfo.IsBoolType())
-    {
-        if (!jsonValue.IsBool())
-        {
-            HYP_LOG(Core, Warning, "Expected JSON bool for bool but got: {}", jsonValue.ToString(true));
-            return false;
-        }
-
-        outHypData = HypData(jsonValue.AsBool());
-        return true;
     }
 
     if (typeInfo.IsStringType())
@@ -921,6 +1028,26 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     if (jsonValue.IsObject())
     {
         const HypClass* hypClass = GetClass(typeInfo.id);
+
+        // first check for $Class property to override type
+        if (auto classValue = jsonValue.Get("$Class"); classValue && classValue.IsString())
+        {
+            const HypClass* derivedClass = GetClass(*classValue.AsString());
+
+            if (derivedClass)
+            {
+                if (hypClass && !derivedClass->IsDerivedFrom(hypClass))
+                {
+                    HYP_LOG(Core, Warning, "Class '{}' is not derived from expected class '{}'", derivedClass->GetName(), hypClass->GetName());
+                }
+            }
+            else
+            {
+                HYP_LOG(Core, Warning, "Class '{}' not found!", *classValue.AsString());
+            }
+
+            hypClass = derivedClass;
+        }
 
         if (hypClass)
         {

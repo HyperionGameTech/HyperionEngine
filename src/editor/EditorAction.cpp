@@ -13,9 +13,9 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorActionFactoryRegistry& EditorActionFactoryRegistry::GetInstance()
 {
-    static EditorActionFactoryRegistry instance {};
+    static EditorActionFactoryRegistry s_instance {};
 
-    return instance;
+    return s_instance;
 }
 
 IEditorActionFactory* EditorActionFactoryRegistry::GetFactoryByName(Name actionName) const

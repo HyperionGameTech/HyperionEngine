@@ -80,6 +80,8 @@ template HYP_API void FillPlaceholderBuffer_Tex2D<TF_RGBA32F>(Vec2u dimensions, 
 template HYP_API void FillPlaceholderBuffer_Cubemap<TF_R8>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
 template HYP_API void FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
 
+#pragma region PlaceholderData
+
 PlaceholderData::PlaceholderData()
     : m_image2d1x1R8(g_renderBackend->MakeImage(TextureDesc {
           TT_TEX2D,
@@ -220,13 +222,45 @@ void PlaceholderData::Create()
 #pragma endregion Image and ImageView
 
 #pragma region Textures
-    ByteBuffer placeholderBufferTex2dRgba8;
-    FillPlaceholderBuffer_Tex2D<TF_RGBA8>(Vec2u::One(), placeholderBufferTex2dRgba8);
+    using PlaceholderBufferData = Pair<ByteBuffer, bool>;
+    auto initBufferData = []<class... Args>(PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    {
+        if (!bufferData.second)
+        {
+            fillFn(std::forward<Args>(args)..., bufferData.first);
+            bufferData.second = true;
+        }
+    };
 
-    ByteBuffer placeholderBufferCubemapRgba8;
-    FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u::One(), placeholderBufferCubemapRgba8);
+    auto loadOrInitTexture = [&initBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    {
+        if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
+        {
+            texture = ObjCast<Texture>(asset);
+            Assert(texture != nullptr);
+        }
+        else
+        {
+            initBufferData(bufferData, fillFn, std::forward<Args>(args)...);
 
-    defaultTexture2d = CreateObject<Texture>(
+            texture = CreateObject<Texture>(textureDesc, TextureData { bufferData.first });
+            texture->SetName(CreateNameFromDynamicString(*name));
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());
+
+            InitObject(texture);
+
+            texture->GetAsset()->SetIsPersistentlyLoaded(true);
+        }
+    };
+
+    PlaceholderBufferData placeholderBufferTex2dRgba8 {};
+    PlaceholderBufferData placeholderBufferCubemapRgba8 {};
+
+    loadOrInitTexture(
+        defaultTexture2d,
+        "Engine/Media/Textures",
+        "Placeholder_Texture_2D_1x1_R8",
         TextureDesc {
             TT_TEX2D,
             TF_RGBA8,
@@ -236,16 +270,14 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        TextureData { placeholderBufferTex2dRgba8 });
+        placeholderBufferTex2dRgba8,
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
+        Vec2u::One());
 
-    defaultTexture2d->SetName(NAME("Placeholder_Texture_2D_1x1_R8"));
-
-    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultTexture2d->GetAsset());
-    InitObject(defaultTexture2d);
-
-    defaultTexture2d->GetAsset()->SetIsPersistentlyLoaded(true);
-
-    defaultTexture3d = CreateObject<Texture>(
+    loadOrInitTexture(
+        defaultTexture3d,
+        "Engine/Media/Textures",
+        "Placeholder_Texture_3D_1x1x1_R8",
         TextureDesc {
             TT_TEX3D,
             TF_R8,
@@ -254,16 +286,15 @@ void PlaceholderData::Create()
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED | IU_STORAGE });
+            IU_SAMPLED | IU_STORAGE },
+        placeholderBufferTex2dRgba8,
+        &FillPlaceholderBuffer_Tex2D<TF_R8>,
+        Vec2u::One());
 
-    defaultTexture3d->SetName(NAME("Placeholder_Texture_3D_1x1x1_R8"));
-
-    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultTexture3d->GetAsset());
-    InitObject(defaultTexture3d);
-
-    defaultTexture3d->GetAsset()->SetIsPersistentlyLoaded(true);
-
-    defaultCubemap = CreateObject<Texture>(
+    loadOrInitTexture(
+        defaultCubemap,
+        "Engine/Media/Textures",
+        "Placeholder_Texture_Cube_1x1_R8",
         TextureDesc {
             TT_CUBEMAP,
             TF_RGBA8,
@@ -273,16 +304,14 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        TextureData { placeholderBufferCubemapRgba8 });
+        placeholderBufferCubemapRgba8,
+        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>,
+        Vec2u::One());
 
-    defaultCubemap->SetName(NAME("Placeholder_Texture_Cube_1x1_R8"));
-
-    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultCubemap->GetAsset());
-    InitObject(defaultCubemap);
-
-    defaultCubemap->GetAsset()->SetIsPersistentlyLoaded(true);
-
-    defaultTexture2dArray = CreateObject<Texture>(
+    loadOrInitTexture(
+        defaultTexture2dArray,
+        "Engine/Media/Textures",
+        "Placeholder_Texture_2D_1x1_R8_Array",
         TextureDesc {
             TT_TEX2D_ARRAY,
             TF_RGBA8,
@@ -292,16 +321,14 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        TextureData { placeholderBufferTex2dRgba8 });
+        placeholderBufferTex2dRgba8,
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
+        Vec2u::One());
 
-    defaultTexture2dArray->SetName(NAME("Placeholder_Texture_2D_1x1_R8_Array"));
-
-    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultTexture2dArray->GetAsset());
-    InitObject(defaultTexture2dArray);
-
-    defaultTexture2dArray->GetAsset()->SetIsPersistentlyLoaded(true);
-
-    defaultCubemapArray = CreateObject<Texture>(
+    loadOrInitTexture(
+        defaultCubemapArray,
+        "Engine/Media/Textures",
+        "Placeholder_Texture_Cube_1x1_R8_Array",
         TextureDesc {
             TT_CUBEMAP_ARRAY,
             TF_RGBA8,
@@ -311,14 +338,9 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        TextureData { placeholderBufferCubemapRgba8 });
-
-    defaultCubemapArray->SetName(NAME("Placeholder_Texture_Cube_1x1_R8_Array"));
-
-    g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Textures", defaultCubemapArray->GetAsset());
-    InitObject(defaultCubemapArray);
-
-    defaultCubemapArray->GetAsset()->SetIsPersistentlyLoaded(true);
+        placeholderBufferCubemapRgba8,
+        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>,
+        Vec2u::One());
 
 #pragma endregion Textures
 
@@ -374,5 +396,7 @@ GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType
 
     return gpuBuffer;
 }
+
+#pragma endregion PlaceholderData
 
 } // namespace hyperion

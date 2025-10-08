@@ -24,9 +24,9 @@ public:
 
 HYP_API const IError& GetNullError()
 {
-    static NullError nullError;
+    static NullError s_nullError;
 
-    return nullError;
+    return s_nullError;
 }
 
 } // namespace utilities

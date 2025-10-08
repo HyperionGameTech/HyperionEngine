@@ -29,6 +29,15 @@ class ByteWriter;
 class BufferedReader;
 using BufferedByteReader = BufferedReader;
 
+namespace functional {
+
+template <class FunctionSignature>
+class ProcRef;
+
+} // namespace functional
+
+using functional::ProcRef;
+
 class AssetDataResourceBase : public ResourceBase
 {
 public:

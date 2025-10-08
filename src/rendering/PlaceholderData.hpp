@@ -17,11 +17,16 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/threading/Semaphore.hpp>
+
+#include <asset/AssetPath.hpp>
+
 // #include <core/threading/Threads.hpp>
 
 namespace hyperion {
 
 class Texture;
+class AssetObject;
 
 template <TextureFormat Format>
 HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer);

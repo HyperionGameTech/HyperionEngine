@@ -2174,8 +2174,6 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             for (SizeType i = 0; i < size; ++i)
             {
-                HYP_LOG_TEMP("Iterating element {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
-
                 HypData element;
                 if (!array.ElementAt(i, element))
                 {
@@ -2208,8 +2206,6 @@ void AssetRegistry::RegisterAssetsRecursively(
                         {
                             continue;
                         }
-
-                        HYP_LOG_TEMP("Iterating component of type {} for Entity {}", LookupTypeName(typeId), entity.Id());
 
                         iterate(parentPackage, HypData(componentRef));
                     }

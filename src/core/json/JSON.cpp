@@ -56,7 +56,7 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
 static String GetIndentationString(uint32 depth)
 {
     // Preallocate indentation strings
-    static const FixedArray<String, 10> preallocatedStrings {
+    static const FixedArray<String, 10> PreallocatedIndentationStrings {
         "",
         "  ",
         "    ",
@@ -69,14 +69,14 @@ static String GetIndentationString(uint32 depth)
         "                  "
     };
 
-    if (depth < preallocatedStrings.Size())
+    if (depth < PreallocatedIndentationStrings.Size())
     {
-        return preallocatedStrings[depth];
+        return PreallocatedIndentationStrings[depth];
     }
 
-    String indentation = preallocatedStrings[preallocatedStrings.Size() - 1];
+    String indentation = PreallocatedIndentationStrings[PreallocatedIndentationStrings.Size() - 1];
 
-    for (uint32 i = preallocatedStrings.Size(); i <= depth; i++)
+    for (uint32 i = PreallocatedIndentationStrings.Size(); i <= depth; i++)
     {
         indentation += "  ";
     }
@@ -92,7 +92,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
         return subscriptWrapper;
     }
 
-    static constexpr utf::u32char separator = utf::u32char('.');
+    static constexpr utf::u32char PathSeparator = utf::u32char('.');
     
     JSONSubscriptWrapper<T> elementSubscriptWrapper = subscriptWrapper;
 
@@ -103,7 +103,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
 
         for (utf::u32char ch : path)
         {
-            if (ch == separator)
+            if (ch == PathSeparator)
             {
                 curr = path.Substr(0, characterIndex);
                 path = path.Substr(characterIndex + 1, SizeType(-1));
@@ -1006,12 +1006,12 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
         return (AsBool() ? "true" : "false");
     }
 
-    if (IsNull())
+    if (IsNull() || (IsUndefined() && representation))
     {
+        // JSON does not have undefined, so we represent it as null
         return "null";
     }
-
-    if (IsUndefined())
+    else if (IsUndefined())
     {
         return "undefined";
     }
@@ -1041,14 +1041,21 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
         }
         else
         {
-            int n = std::snprintf(chars.Data(), chars.Size(), "%f", number);
-            if (n > int(chars.Size()))
+            if (representation && (isnan(number) || !isfinite(number)))
             {
-                chars.Resize(SizeType(n) + 1);
-                std::snprintf(chars.Data(), chars.Size(), "%f", number);
+                std::snprintf(chars.Data(), chars.Size(), "null");
             }
+            else
+            {
+                int n = std::snprintf(chars.Data(), chars.Size(), "%f", number);
+                if (n > int(chars.Size()))
+                {
+                    chars.Resize(SizeType(n) + 1);
+                    std::snprintf(chars.Data(), chars.Size(), "%f", number);
+                }
 
-            chars.Resize(SizeType(n) + 1);
+                chars.Resize(SizeType(n) + 1);
+            }
         }
 
         return String(chars.ToByteView());

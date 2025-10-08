@@ -34,8 +34,8 @@ enum ProbeSystemUpdates : uint32
     PROBE_SYSTEM_UPDATES_TLAS = 0x1
 };
 
-static constexpr TextureFormat ddgiIrradianceFormat = TF_RGBA16F;
-static constexpr TextureFormat ddgiDepthFormat = TF_RG16F;
+static constexpr TextureFormat DdgiIrradianceFormat = TF_RGBA16F;
+static constexpr TextureFormat DdgiDepthFormat = TF_RG16F;
 
 #pragma region Render commands
 
@@ -212,7 +212,7 @@ void DDGI::CreateStorageBuffers()
 
         m_irradianceImage = g_renderBackend->MakeImage(TextureDesc {
             TT_TEX2D,
-            ddgiIrradianceFormat,
+            DdgiIrradianceFormat,
             extent,
             TFM_NEAREST,
             TFM_NEAREST,
@@ -238,7 +238,7 @@ void DDGI::CreateStorageBuffers()
 
         m_depthImage = g_renderBackend->MakeImage(TextureDesc {
             TT_TEX2D,
-            ddgiDepthFormat,
+            DdgiDepthFormat,
             extent,
             TFM_NEAREST,
             TFM_NEAREST,

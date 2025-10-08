@@ -25,7 +25,8 @@ AstModuleDeclaration::AstModuleDeclaration(
 }
 
 AstModuleDeclaration::AstModuleDeclaration(const String& name, const SourceLocation& location)
-    : AstDeclaration(name, IdentifierFlags::MODULE, location)
+    : AstDeclaration(name, IdentifierFlags::MODULE, location),
+      m_module(nullptr)
 {
 }
 

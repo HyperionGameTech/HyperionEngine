@@ -26,8 +26,9 @@ namespace hyperion {
 
 const RenderSetup& NullRenderSetup()
 {
-    static const RenderSetup nullRenderSetup;
-    return nullRenderSetup;
+    static const RenderSetup s_nullRenderSetup;
+
+    return s_nullRenderSetup;
 }
 
 #pragma region PassData

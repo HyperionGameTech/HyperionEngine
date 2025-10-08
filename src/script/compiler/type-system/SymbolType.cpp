@@ -152,8 +152,6 @@ SymbolType::SymbolType()
     allocationTrace = StackDump(2, 5).ToString();
 #endif
 #endif
-
-    DebugLog(LogType::Debug, "Created SymbolType %s , address: %p\n", *m_name, (void*)this);
 }
 
 SymbolType::SymbolType(
@@ -178,8 +176,6 @@ SymbolType::SymbolType(
     allocationTrace = StackDump(2, 5).ToString();
 #endif
 #endif
-
-    DebugLog(LogType::Debug, "Created SymbolType %s , address: %p\n", *m_name, (void*)this);
 }
 
 SymbolType::SymbolType(
@@ -209,8 +205,6 @@ SymbolType::SymbolType(
     allocationTrace = StackDump(2, 5).ToString();
 #endif
 #endif
-
-    DebugLog(LogType::Debug, "Created SymbolType %s , address: %p\n", *m_name, (void*)this);
 }
 
 SymbolType::~SymbolType()

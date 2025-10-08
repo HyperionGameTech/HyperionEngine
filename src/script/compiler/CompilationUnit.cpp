@@ -153,10 +153,12 @@ void CompilationUnit::RegisterType(SymbolType* symbolType)
         Assert(baseType->IsRegistered());
     }
 
-    if (!symbolType->IsRegistered())
+    if (symbolType->IsRegistered())
     {
-        m_symbolTypeCache->Register(symbolType);
+        return;
     }
+
+    m_symbolTypeCache->Register(symbolType);
 
     for (SymbolTypeMember& member : symbolType->GetMembers())
     {

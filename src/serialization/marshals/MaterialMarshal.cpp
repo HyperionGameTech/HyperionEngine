@@ -69,7 +69,7 @@ public:
 
         out.SetProperty("Parameters", FBOMData::FromArray(std::move(paramsArray)));
 
-        FixedArray<uint32, MaterialTextures::s_maxTextures> textureKeys = { 0 };
+        FixedArray<uint32, MaterialTextures::MaxTextures> textureKeys = { 0 };
 
         // for (SizeType i = 0, textureIndex = 0; i < inObject.GetTextures().Size(); i++) {
         //     if (textureIndex >= textureKeys.Size()) {
@@ -175,7 +175,7 @@ public:
             }
         }
 
-        FixedArray<uint32, MaterialTextures::s_maxTextures> textureKeys { 0 };
+        FixedArray<uint32, MaterialTextures::MaxTextures> textureKeys { 0 };
 
         if (FBOMResult err = in.GetProperty("TextureKeys").ReadElements(FBOMUInt32(), textureKeys.Size(), &textureKeys[0]))
         {
