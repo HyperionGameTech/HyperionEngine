@@ -73,6 +73,8 @@ bool HypDataToJSON(
 
         return true;
     }
+    
+    const TypeInfo& typeInfo = *value.GetTypeInfo();
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     AssetReference assetReference;
@@ -271,39 +273,36 @@ bool HypDataToJSON(
         return true;
     }
 
-    if (value.IsArray())
+    if (typeInfo.IsArrayType())
     {
-        HypDataArray& array = value.Get<HypDataArray>();
-
-        if (!array.CanGetElementByIndex())
+        if (!typeInfo.extendedInfo.handler || typeInfo.extendedInfo.handler->GetHandlerType() != ITypeInfoHandler::TYPE_ARRAY)
         {
+            HYP_LOG(Core, Warning, "TypeInfo for array type {} has invalid handler!", typeInfo.name);
+
             return false;
         }
 
-        const SizeType size = array.Size();
+        ITypeInfoArrayHandler* handler = static_cast<ITypeInfoArrayHandler*>(typeInfo.extendedInfo.handler);
+
+        const SizeType size = handler->GetSize(value.ToRef());
 
         json::JSONArray jsonArray;
         jsonArray.Reserve(size);
 
         for (SizeType i = 0; i < size; i++)
         {
-            json::JSONValue jsonValue;
-
-            HypData element;
-            if (!array.ElementAt(i, element))
-            {
-                return false;
-            }
+            AnyRef elementRef = handler->GetElementAt(value.ToRef(), i);
             
             ToJSONOptions newOpts = opts;
             newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && array.elementTypeId != element.GetTypeId())
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->id != elementRef.GetTypeId())
             {
                 newOpts.writeClassNames = true;
             }
-
-            if (!HypDataToJSON(element, jsonValue, newOpts))
+            
+            json::JSONValue jsonValue;
+            if (!HypDataToJSON(HypData(elementRef), jsonValue, newOpts))
             {
                 return false;
             }
@@ -338,6 +337,8 @@ bool HypDataToJSON(
 
         return true;
     }
+
+    HYP_LOG(Core, Warning, "Don't know how to serialize HypData with type \"{}\" to JSON", typeInfo.name);
 
     return false;
 }
@@ -570,7 +571,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
         case HypMemberType::TYPE_PROPERTY:
         {
             const HypProperty& property = static_cast<const HypProperty&>(member);
-            const TypeInfo& typeInfo = *property.Get(target).ToRef().GetTypeInfo();
+            const TypeInfo& typeInfo = property.GetTypeInfo();
 
             HypData hypData;
 
@@ -589,7 +590,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
         case HypMemberType::TYPE_FIELD:
         {
             const HypField& field = static_cast<const HypField&>(member);
-            const TypeInfo& typeInfo = *field.Get(target).ToRef().GetTypeInfo();
+            const TypeInfo& typeInfo = field.GetTypeInfo();
 
             HypData hypData;
 
@@ -688,7 +689,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsBool())
         {
-            HYP_LOG(Core, Warning, "Expected JSON bool for bool but got: {}", jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON bool for bool but got: {}", jsonValue.ToString());
             return false;
         }
 
@@ -700,7 +701,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsNumber())
         {
-            HYP_LOG(Core, Warning, "Expected JSON number for integral type {}, but got value: {}", typeInfo.name, jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON number for integral type {}, but got value: {}", typeInfo.name, jsonValue.ToString());
             return false;
         }
 
@@ -825,7 +826,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsNumber())
         {
-            HYP_LOG(Core, Warning, "Expected JSON number for float type {}, but got value: {}", typeInfo.name, jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON number for float type {}, but got value: {}", typeInfo.name, jsonValue.ToString());
             return false;
         }
 
@@ -858,7 +859,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsString())
         {
-            HYP_LOG(Core, Warning, "Expected JSON string for string type {}, but got: {}", typeInfo.name, jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON string for string type {}, but got: {}", typeInfo.name, jsonValue.ToString());
             return false;
         }
 
@@ -888,7 +889,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsString())
         {
-            HYP_LOG(Core, Warning, "Expected JSON string for UUID, but got value: {}", jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON string for UUID, but got value: {}", jsonValue.ToString());
             return false;
         }
 
@@ -914,7 +915,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsArray())
         {
-            HYP_LOG(Core, Warning, "Expected JSON array for vector type {}, but got value: {}", typeInfo.name, jsonValue.ToString(true));
+            HYP_LOG(Core, Warning, "Expected JSON array for vector type {}, but got value: {}", typeInfo.name, jsonValue.ToString());
             return false;
         }
 
@@ -973,7 +974,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     {
         if (!jsonValue.IsArray())
         {
-            HYP_LOG(Core, Warning, "Expected JSON array for array type {}, but got something else", typeInfo.name);
+            HYP_LOG(Core, Warning, "Expected JSON array for array type {}, but got JSON value: {}", typeInfo.name, jsonValue.ToString());
             return false;
         }
 
@@ -1074,8 +1075,5 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
     return false;
 }
-
-#undef HYP_JSON_TO_HYPDATA_SCALAR
-#undef HYP_JSON_TO_HYPDATA_VECTOR
 
 } // namespace hyperion
