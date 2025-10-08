@@ -782,16 +782,16 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
 
     if (location == FBOMDataLocation::LOC_INPLACE)
     {
-        /// @TODO: Write out type and number of elements, don't repeat type for each element.
+        /// We write out type and number of elements in groups of the same type.
         // if there are derived types, then we'll write the type and number of consecutive elements of that type.
         // for ex: [TypeA, 3][TypeB, 1][TypeA, 2] means 3 elements of TypeA, then 1 of TypeB, then 2 of TypeA.
         // if all elements are the same type, then we just write [TypeA, 6] for 6 elements of TypeA.
         // this'll allow us to mix and match types in arrays while still being efficient with storage.
 
-        // Read array size
-        uint32 sz;
-        reader->Read(&sz);
-        CheckEndianness(sz);
+        // Read total array size
+        uint32 totalArraySize;
+        reader->Read(&totalArraySize);
+        CheckEndianness(totalArraySize);
 
         ByteBuffer byteBuffer;
 
@@ -828,17 +828,53 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
 
         outArray = FBOMArray();
 
-        // read each element
-        for (uint32 index = 0; index < sz; index++)
-        {
-            FBOMData element;
+        // Read until we've read totalArraySize elements
+        SizeType elementsRead = 0;
 
-            if (FBOMResult err = ReadData(context, readerPtr, element))
+        while (elementsRead < totalArraySize)
+        {
+            // Read the type for this group of elements
+            FBOMType elementType;
+
+            if (FBOMResult err = ReadObjectType(context, readerPtr, elementType))
             {
                 return err;
             }
 
-            outArray.AddElement(std::move(element));
+            // Read the number of consecutive elements of this type
+            uint32 numElementsOfType;
+            readerPtr->Read(&numElementsOfType);
+            CheckEndianness(numElementsOfType);
+
+            if (elementsRead + numElementsOfType > totalArraySize)
+            {
+                return { FBOMResult::FBOM_ERR, "Array element count mismatch - would exceed total array size" };
+            }
+
+            // Read each element of this type
+            for (uint32 i = 0; i < numElementsOfType; i++)
+            {
+                // Read bytebuffer of raw data
+                uint32 sz;
+                reader->Read(&sz);
+                CheckEndianness(sz);
+
+                byteBuffer = reader->ReadBytes(sz);
+
+                if (byteBuffer.Size() != sz)
+                {
+                    return { FBOMResult::FBOM_ERR, "Buffer is corrupted - size mismatch" };
+                }
+
+                outArray.AddElement(FBOMData(elementType, std::move(byteBuffer)));
+            }
+
+            elementsRead += numElementsOfType;
+        }
+
+        if (elementsRead != totalArraySize)
+        {
+            return { FBOMResult::FBOM_ERR, "Array element count mismatch - did not read expected number of elements" };
         }
     }
     else if (location == FBOMDataLocation::LOC_STATIC)

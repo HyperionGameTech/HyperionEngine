@@ -780,7 +780,7 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMArray& array, UniqueId i
 
     if (dataLocation == FBOMDataLocation::LOC_INPLACE)
     {
-        // Write array size
+        // Write total array size
         out->Write<uint32>(uint32(array.Size()));
 
         ByteWriter* writerPtr = out;
@@ -796,15 +796,84 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMArray& array, UniqueId i
             writerPtr = &archiveWriter;
         }
 
-        // Write each element
+        // Write each element out - we write the type and the number of elements of that type
+        // If type differs, we write the new type and the following elements are of that type
+        Optional<FBOMType> currentType;
+        Array<const FBOMData*> currentElements; // leftover elements of the current type to write when type changes
+
+        ByteBuffer tempBuffer;
+
+        auto writeElementData = [this, &tempBuffer, attributes, writerPtr](const FBOMData& element) -> FBOMResult
+        {
+            SizeType size = element.TotalSize();
+
+            HYP_DEFER({
+                tempBuffer.SetSize(0); // keep capacity to avoid reallocations
+            });
+
+            if (FBOMResult err = element.ReadBytes(size, tempBuffer))
+            {
+                return err;
+            }
+
+            writerPtr->Write<uint32>(uint32(size));
+            writerPtr->Write(tempBuffer.Data(), tempBuffer.Size());
+
+            return {};
+        };
+
         for (SizeType index = 0; index < array.Size(); index++)
         {
             const FBOMData& element = array.GetElement(index);
 
-            if (FBOMResult err = element.Visit(element.GetUniqueID(), this, writerPtr))
+            if (!currentType.HasValue() || element.GetType() != *currentType)
+            {
+                if (currentElements.Size() != 0)
+                {
+                    Assert(currentType.HasValue());
+
+                    // Write out previous type and elements
+                    if (FBOMResult err = currentType->Visit(this, writerPtr))
+                    {
+                        return err;
+                    }
+
+                    // Write number of elements of this type
+                    writerPtr->Write<uint32>(uint32(currentElements.Size()));
+
+                    for (const FBOMData* currentElement : currentElements)
+                    {
+                        writeElementData(*currentElement);
+                    }
+
+                    currentElements.Clear();
+                }
+
+                currentType = element.GetType();
+            }
+
+            currentElements.PushBack(&element);
+        }
+
+        if (currentElements.Any())
+        {
+            Assert(currentType.HasValue());
+
+            // Write out previous type and elements
+            if (FBOMResult err = currentType->Visit(this, writerPtr))
             {
                 return err;
             }
+
+            // Write number of elements of this type
+            writerPtr->Write<uint32>(uint32(currentElements.Size()));
+
+            for (const FBOMData* currentElement : currentElements)
+            {
+                writeElementData(*currentElement);
+            }
+
+            currentElements.Clear();
         }
 
         if (attributes & FBOMDataAttributes::COMPRESSED)
