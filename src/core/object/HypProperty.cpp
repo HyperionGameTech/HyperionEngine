@@ -5,6 +5,8 @@
 #include <core/object/HypMethod.hpp>
 #include <core/object/HypClassRegistry.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 namespace hyperion {
 
 const HypClass* HypProperty::GetHypClass() const

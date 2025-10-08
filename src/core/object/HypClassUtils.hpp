@@ -9,6 +9,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/FormatFwd.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/Constants.hpp>
 

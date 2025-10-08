@@ -11,6 +11,7 @@
 #include <core/object/HypDataJSONHelpers.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>

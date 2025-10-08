@@ -422,10 +422,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
     json::JSONObject manifestJson;
 
-    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson, {
-        .skipTransientProperties = true,
-        .writeClassNames = true
-    });
+    ObjectToJSON(InstanceClass(), HypData(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
 
     stream.WriteString(json::JSONValue(std::move(manifestJson)).ToString(true));
 

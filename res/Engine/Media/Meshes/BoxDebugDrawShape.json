@@ -11,9 +11,8 @@
     "NumIndices": 36
   },
   "FriendlyName": "BoxDebugDrawShape",
-  "Uuid": "ab1883ce-9426-4d61-a75f-f7d6b6b328b1",
+  "Uuid": "f5db0f58-1bc8-4596-86b3-8fb1ed57b696",
   "Name": "BoxDebugDrawShape",
   "Flags": 0,
-  "OriginalFilepath": "",
-  "$Class": "MeshAsset"
+  "OriginalFilepath": ""
 }

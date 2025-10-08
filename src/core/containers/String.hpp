@@ -1539,126 +1539,52 @@ template <int TStringType>
 String<TStringType> String<TStringType>::Escape() const
 {
     const SizeType size = Size();
-    const auto* data = Base::Data();
 
     String result;
     result.Reserve(size);
 
-    if (!isUtf8 || m_length == size)
+    for (WidestCharType ch : *this)
     {
-        for (SizeType i = 0; i < size; i++)
+        if (ch == 0)
         {
-            auto ch = data[i];
-
-            switch (ch)
-            {
-            case '\n':
-                result.Append("\\n");
-                break;
-            case '\r':
-                result.Append("\\r");
-                break;
-            case '\t':
-                result.Append("\\t");
-                break;
-            case '\v':
-                result.Append("\\v");
-                break;
-            case '\b':
-                result.Append("\\b");
-                break;
-            case '\f':
-                result.Append("\\f");
-                break;
-            case '\a':
-                result.Append("\\a");
-                break;
-            case '\\':
-                result.Append("\\\\");
-                break;
-            case '\"':
-                result.Append("\\\"");
-                break;
-            case '\'':
-                result.Append("\\\'");
-                break;
-            default:
-                result.Append(ch);
-                break;
-            }
+            break;
         }
-    }
-    else
-    {
-        for (SizeType i = 0; i < size;)
+
+        switch (ch)
         {
-            SizeType codepoints = 0;
-
-            union
-            {
-                uint32 charU32;
-                uint8 charU8[sizeof(utf::u32char)];
-            };
-
-            charU32 = utf::Char8to32(
-                Data() + i,
-                MathUtil::Min(sizeof(utf::u32char), size - i),
-                codepoints);
-
-            i += codepoints;
-
-            switch (charU32)
-            {
-            case uint32('\n'):
-                result.Append("\\n");
-                break;
-            case uint32('\r'):
-                result.Append("\\r");
-                break;
-            case uint32('\t'):
-                result.Append("\\t");
-                break;
-            case uint32('\v'):
-                result.Append("\\v");
-                break;
-            case uint32('\b'):
-                result.Append("\\b");
-                break;
-            case uint32('\f'):
-                result.Append("\\f");
-                break;
-            case uint32('\a'):
-                result.Append("\\a");
-                break;
-            case uint32('\\'):
-                result.Append("\\\\");
-                break;
-            case uint32('\"'):
-                result.Append("\\\"");
-                break;
-            case uint32('\''):
-                result.Append("\\\'");
-                break;
-            default:
-                result.Append(charU8[0]);
-
-                if (codepoints >= 2)
-                {
-                    result.Append(charU8[1]);
-                }
-
-                if (codepoints >= 3)
-                {
-                    result.Append(charU8[2]);
-                }
-
-                if (codepoints == 4)
-                {
-                    result.Append(charU8[3]);
-                }
-
-                break;
-            }
+        case '\n':
+            result.Append("\\n");
+            break;
+        case '\r':
+            result.Append("\\r");
+            break;
+        case '\t':
+            result.Append("\\t");
+            break;
+        case '\v':
+            result.Append("\\v");
+            break;
+        case '\b':
+            result.Append("\\b");
+            break;
+        case '\f':
+            result.Append("\\f");
+            break;
+        case '\a':
+            result.Append("\\a");
+            break;
+        case '\\':
+            result.Append("\\\\");
+            break;
+        case '\"':
+            result.Append("\\\"");
+            break;
+        case '\'':
+            result.Append("\\\'");
+            break;
+        default:
+            result.Append(ch);
+            break;
         }
     }
 

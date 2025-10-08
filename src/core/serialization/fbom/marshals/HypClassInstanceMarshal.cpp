@@ -11,6 +11,7 @@
 #include <core/object/HypObjectBase.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

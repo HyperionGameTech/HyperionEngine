@@ -40,7 +40,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
             return false;
         }
 
-        out = HypData(arr[index]);
+        if constexpr (IsHypDataV<T>)
+        {
+            out = arr[index];
+        }
+        else
+        {
+            out = HypData(arr[index]);
+        }
 
         return true;
     };
@@ -124,7 +131,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
             return false;
         }
 
-        out = HypData(arr[index]);
+        if constexpr (IsHypDataV<T>)
+        {
+            out = arr[index];
+        }
+        else
+        {
+            out = HypData(arr[index]);
+        }
 
         return true;
     };
@@ -208,7 +222,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
             return false;
         }
 
-        out = HypData(arr[index]);
+        if constexpr (IsHypDataV<T>)
+        {
+            out = arr[index];
+        }
+        else
+        {
+            out = HypData(arr[index]);
+        }
 
         return true;
     };

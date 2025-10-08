@@ -3,6 +3,8 @@
 #include <core/object/HypStruct.hpp>
 #include <core/object/HypClassRegistry.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 #ifdef HYP_DOTNET
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>

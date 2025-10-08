@@ -37,7 +37,7 @@ struct SaveAssetsAsReferencesContext
 };
 
 // used to prevent infinite recursion when serializing nested objects
-static thread_local HashSet<const void*> s_serializedObjects;
+static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;
 
 // If true, class names will always be written when serializing objects IF the type != the declared type.
 // For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
@@ -54,26 +54,13 @@ bool HypDataToJSON(
         opts.writeClassNames = true;
     }
 
-    if (!s_serializedObjects.Insert(value.ToRef().GetPointer()).second)
-    {
-        HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
-
-        HYP_BREAKPOINT_DEBUG_MODE;
-
-        return false;
-    }
-
-    HYP_DEFER({
-        s_serializedObjects.Erase(value.ToRef().GetPointer());
-    });
-
     if (value.IsNull())
     {
         outJson = json::JSONNull();
 
         return true;
     }
-    
+
     const TypeInfo& typeInfo = *value.GetTypeInfo();
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -292,7 +279,7 @@ bool HypDataToJSON(
         for (SizeType i = 0; i < size; i++)
         {
             AnyRef elementRef = handler->GetElementAt(value.ToRef(), i);
-            
+
             ToJSONOptions newOpts = opts;
             newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
@@ -300,7 +287,7 @@ bool HypDataToJSON(
             {
                 newOpts.writeClassNames = true;
             }
-            
+
             json::JSONValue jsonValue;
             if (!HypDataToJSON(HypData(elementRef), jsonValue, newOpts))
             {
@@ -315,7 +302,7 @@ bool HypDataToJSON(
         return true;
     }
 
-    #if 0
+#if 0
     if (typeInfo.id == TypeId::ForType<GenericArrayWrapper>())
     {
         GenericArrayWrapper& array = value.Get<GenericArrayWrapper>();
@@ -362,15 +349,30 @@ bool HypDataToJSON(
 
         return true;
     }
-    #endif
+#endif
 
     const HypClass* hypClass = GetClass(value.GetTypeId());
 
     if (hypClass)
     {
+        Pair<TypeId, const void*> pair = { value.GetTypeId(), value.ToRef().GetPointer() };
+
+        if (!s_serializedObjects.Insert(pair).second)
+        {
+            HYP_LOG(Core, Warning, "Detected circular reference when serializing HypData to JSON!");
+
+            HYP_BREAKPOINT_DEBUG_MODE;
+
+            return false;
+        }
+
+        HYP_DEFER({
+            s_serializedObjects.Erase(pair);
+        });
+
         json::JSONObject jsonObject;
 
-        GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };;
+        GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };
 
         if (!ObjectToJSON(hypClass, value, jsonObject, opts))
         {

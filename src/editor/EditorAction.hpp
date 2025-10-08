@@ -5,8 +5,6 @@
 #include <core/Name.hpp>
 
 #include <core/memory/UniquePtr.hpp>
-#include <core/memory/AnyRef.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -156,8 +154,7 @@ struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationB
 
 } // namespace hyperion
 
-#define HYP_DEFINE_EDITOR_ACTION(actionName)                                                                                    \
-    class EditorAction_##actionName;                                                                                            \
+#define HYP_DEFINE_EDITOR_ACTION(actionName)                                                                           \
+    class EditorAction_##actionName;                                                                                   \
     static ::hyperion::EditorActionFactoryRegistration<EditorAction_##actionName> EditorActionFactory_##actionName {}; \
     class EditorAction_##actionName : public ::hyperion::EditorAction
-

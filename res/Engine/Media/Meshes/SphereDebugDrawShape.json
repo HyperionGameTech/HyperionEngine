@@ -11,9 +11,8 @@
     "NumIndices": 576
   },
   "FriendlyName": "SphereDebugDrawShape",
-  "Uuid": "6a6d133c-244f-4098-9a26-b232fcaa5db5",
+  "Uuid": "ffe68fae-4aa2-445a-a3ca-9a1b5b23b43c",
   "Name": "SphereDebugDrawShape",
   "Flags": 0,
-  "OriginalFilepath": "",
-  "$Class": "MeshAsset"
+  "OriginalFilepath": ""
 }

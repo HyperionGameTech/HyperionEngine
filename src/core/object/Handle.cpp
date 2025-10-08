@@ -153,7 +153,7 @@ TypeId AnyHandle::GetTypeId() const
 AnyRef AnyHandle::ToRef() const
 {
     const HypClass* hypClass = ptr ? ptr->m_header->hypClass : nullptr;
-    const TypeInfo* typeInfo = hypClass ? &TypeInfo::ForHypClass(hypClass) : &TypeInfo::Void();
+    const TypeInfo* typeInfo = hypClass ? &TypeInfo_ForHypClass(hypClass) : &TypeInfo_Void();
 
     if (!IsValid())
     {

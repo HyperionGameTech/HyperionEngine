@@ -223,7 +223,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
     if (meshInstanceData.buffers.Any())
     {
-        while (drawCall.batch->numEntities < maxEntitiesPerInstanceBatch && numInstances != 0)
+        while (drawCall.batch->numEntities < MaxEntitiesPerBatch && numInstances != 0)
         {
             const uint32 entityIndex = drawCall.batch->numEntities++;
 
@@ -257,7 +257,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
 
                 Memory::MemCpy(dstPtr, srcPtr, bufferStructSize);
 
-                fieldOffset += maxEntitiesPerInstanceBatch * bufferStructSize;
+                fieldOffset += MaxEntitiesPerBatch * bufferStructSize;
             }
 
             instanceOffset++;
@@ -271,7 +271,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<
     }
     else
     {
-        while (drawCall.batch->numEntities < maxEntitiesPerInstanceBatch && numInstances != 0)
+        while (drawCall.batch->numEntities < MaxEntitiesPerBatch && numInstances != 0)
         {
             const uint32 entityIndex = drawCall.batch->numEntities++;
 

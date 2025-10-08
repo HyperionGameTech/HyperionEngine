@@ -294,7 +294,6 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
         {
             targetTypeInfo = &field->GetTargetTypeInfo();
         }
-
         result.m_attributes.Merge(field->GetAttributes());
     }
 

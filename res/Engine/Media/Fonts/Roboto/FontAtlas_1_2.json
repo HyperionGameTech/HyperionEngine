@@ -13,9 +13,8 @@
     "WrapMode": 0
   },
   "FriendlyName": "FontAtlas12",
-  "Uuid": "39eb5217-9c5f-4c76-9dbd-edceb4d558db",
+  "Uuid": "5ea85f8a-a378-4129-9d17-0ce22468a654",
   "Name": "FontAtlas_1_2",
   "Flags": 1,
-  "OriginalFilepath": "",
-  "$Class": "TextureAsset"
+  "OriginalFilepath": ""
 }

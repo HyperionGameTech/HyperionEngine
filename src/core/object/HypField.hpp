@@ -55,7 +55,7 @@ public:
         HYP_CORE_ASSERT(m_typeInfo != nullptr, "TypeInfo cannot be null");
         HYP_CORE_ASSERT(m_targetTypeInfo != nullptr, "Target TypeInfo cannot be null");
 
-        HYP_CORE_ASSERT(typeInfo->id == TypeId::ForType<HypData>(), "HypField must be HypData for script objects");
+        HYP_CORE_ASSERT(TypeInfo_GetId(*typeInfo) == TypeId::ForType<HypData>(), "HypField must be HypData for script objects");
 
         m_getProc = [offset](const HypData& targetData) -> HypData
         {

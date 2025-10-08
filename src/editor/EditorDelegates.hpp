@@ -16,9 +16,6 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Scheduler.hpp>
 
-#include <core/memory/AnyRef.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-
 #include <core/object/HypProperty.hpp>
 
 #include <scene/Node.hpp>

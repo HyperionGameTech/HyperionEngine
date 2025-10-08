@@ -10,6 +10,8 @@
 
 #include <core/object/HypClassRegistry.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
 

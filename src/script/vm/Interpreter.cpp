@@ -20,6 +20,8 @@
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>

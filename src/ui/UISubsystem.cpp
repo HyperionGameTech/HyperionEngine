@@ -43,10 +43,10 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
 {
-    Vec4f texcoords[maxEntitiesPerInstanceBatch];
-    Vec4f offsets[maxEntitiesPerInstanceBatch];
-    Vec4f sizes[maxEntitiesPerInstanceBatch];
-    Vec4u properties[maxEntitiesPerInstanceBatch];
+    Vec4f texcoords[MaxEntitiesPerBatch];
+    Vec4f offsets[MaxEntitiesPerBatch];
+    Vec4f sizes[MaxEntitiesPerBatch];
+    Vec4u properties[MaxEntitiesPerBatch];
 };
 
 #pragma region Render commands

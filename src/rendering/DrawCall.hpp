@@ -30,7 +30,7 @@ struct MeshInstanceData;
 
 extern HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap();
 
-static constexpr uint32 maxEntitiesPerInstanceBatch = 60;
+static constexpr uint32 MaxEntitiesPerBatch = 60;
 
 struct alignas(16) EntityInstanceBatch
 {
@@ -39,8 +39,8 @@ struct alignas(16) EntityInstanceBatch
     uint32 _pad0;
     uint32 _pad1;
 
-    uint32 indices[maxEntitiesPerInstanceBatch];
-    Matrix4 transforms[maxEntitiesPerInstanceBatch];
+    uint32 indices[MaxEntitiesPerBatch];
+    Matrix4 transforms[MaxEntitiesPerBatch];
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 4096);
@@ -121,7 +121,7 @@ struct InstancedDrawCall : DrawCallBase
     EntityInstanceBatch* batch = nullptr;
 
     uint32 count = 0;
-    ObjId<Entity> entityIds[maxEntitiesPerInstanceBatch];
+    ObjId<Entity> entityIds[MaxEntitiesPerBatch];
 };
 
 /// TODO: Refactor to a basic desc struct for Batch size info,

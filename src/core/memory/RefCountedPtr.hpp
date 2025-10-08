@@ -6,7 +6,7 @@
 
 #include <core/utilities/ValueStorage.hpp>
 #include <core/utilities/TypeId.hpp>
-#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>

@@ -64,7 +64,7 @@ SizeType PLYModelLoader::PLYTypeSize(PLYType type)
         return 0;
     }
 
-    static constexpr SizeType typeSizeMap[PLYType::PLY_TYPE_MAX] = {
+    static constexpr SizeType TypeSizeMap[PLYType::PLY_TYPE_MAX] = {
         8, // PLY_TYPE_DOUBLE
         4, // PLY_TYPE_FLOAT
         4, // PLY_TYPE_INT
@@ -75,7 +75,7 @@ SizeType PLYModelLoader::PLYTypeSize(PLYType type)
         1  // PLY_TYPE_UCHAR
     };
 
-    return typeSizeMap[type];
+    return TypeSizeMap[type];
 }
 
 static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, SizeType rowOffset, const String& propertyName, SizeType count, void* outPtr);

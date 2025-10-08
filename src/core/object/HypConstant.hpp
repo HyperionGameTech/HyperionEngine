@@ -14,6 +14,7 @@
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/containers/String.hpp>
 
@@ -43,7 +44,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo::ForType<NormalizedType<ConstantType>>()),
+          m_typeInfo(&TypeInfo_ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -66,7 +67,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, const ConstantType* pValue, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo::ForType<NormalizedType<ConstantType>>()),
+          m_typeInfo(&TypeInfo_ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -113,7 +114,7 @@ public:
 
     virtual const TypeInfo& GetTargetTypeInfo() const override
     {
-        return TypeInfo::Void();
+        return TypeInfo_Void();
     }
 
     HYP_FORCE_INLINE uint32 GetSize() const
@@ -179,7 +180,7 @@ public:
     HYP_FORCE_INLINE bool IsValid() const
     {
         return m_name.IsValid()
-            && m_typeInfo && m_typeInfo->id != TypeId::Void()
+            && m_typeInfo && TypeInfo_GetId(*m_typeInfo) != TypeId::Void()
             && m_size != 0;
     }
 

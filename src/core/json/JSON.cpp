@@ -7,6 +7,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/io/BufferedByteReader.hpp>
 
 namespace hyperion {
@@ -93,7 +95,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
     }
 
     static constexpr utf::u32char PathSeparator = utf::u32char('.');
-    
+
     JSONSubscriptWrapper<T> elementSubscriptWrapper = subscriptWrapper;
 
     while (elementSubscriptWrapper.value && elementSubscriptWrapper.value->IsObject())
@@ -107,12 +109,12 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
             {
                 curr = path.Substr(0, characterIndex);
                 path = path.Substr(characterIndex + 1, SizeType(-1));
-                
+
                 ++characterIndex;
 
                 break;
             }
-            
+
             ++characterIndex;
         }
 
@@ -138,7 +140,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
         }
 
         elementSubscriptWrapper = JSONSubscriptWrapper<T> { &value };
-        
+
         if (curr.Data() == path.Data()) // no separator found if pointers are the same
         {
             return elementSubscriptWrapper;
@@ -989,6 +991,20 @@ JSONString JSONValue::ToString(bool representation, uint32 depth) const
 
 JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 {
+    static thread_local HashSet<const JSONValue*> s_serializedObjects;
+
+    if (!s_serializedObjects.Insert(this).second)
+    {
+        HYP_BREAKPOINT_DEBUG_MODE;
+
+        // already serializing this object, circular reference detected
+        return "<circular reference>";
+    }
+
+    HYP_DEFER({
+        s_serializedObjects.Erase(this);
+    });
+
     if (IsString())
     {
         if (representation)

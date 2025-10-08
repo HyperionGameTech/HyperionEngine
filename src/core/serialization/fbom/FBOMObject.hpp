@@ -13,6 +13,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Uuid.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 
@@ -367,7 +368,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
             HYP_CORE_ASSERT(instanceClass != nullptr);
 
             marshal = FBOMObject::GetMarshal(GetTypeIdForClass(instanceClass));
-            ref = ConstAnyRef(&TypeInfo::ForHypClass(instanceClass), &in);
+            ref = ConstAnyRef(&TypeInfo_ForHypClass(instanceClass), &in);
         }
         else
         {

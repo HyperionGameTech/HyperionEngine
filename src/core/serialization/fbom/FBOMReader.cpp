@@ -782,6 +782,12 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
 
     if (location == FBOMDataLocation::LOC_INPLACE)
     {
+        /// @TODO: Write out type and number of elements, don't repeat type for each element.
+        // if there are derived types, then we'll write the type and number of consecutive elements of that type.
+        // for ex: [TypeA, 3][TypeB, 1][TypeA, 2] means 3 elements of TypeA, then 1 of TypeB, then 2 of TypeA.
+        // if all elements are the same type, then we just write [TypeA, 6] for 6 elements of TypeA.
+        // this'll allow us to mix and match types in arrays while still being efficient with storage.
+
         // Read array size
         uint32 sz;
         reader->Read(&sz);

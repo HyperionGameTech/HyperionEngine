@@ -126,7 +126,7 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
         state.filepath = filepath;
         state.batchIdentifier = batchIdentifier;
         state.stream = std::move(reader);
-        
+
         if (state.batchIdentifier.Empty())
         {
             state.batchIdentifier = filepath.Basename();

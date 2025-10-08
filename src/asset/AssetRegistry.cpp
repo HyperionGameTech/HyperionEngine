@@ -12,6 +12,7 @@
 #include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/threading/Scheduler.hpp>
 
