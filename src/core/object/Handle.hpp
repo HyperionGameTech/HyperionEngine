@@ -6,7 +6,7 @@
 #include <core/object/HypObjectPool.hpp>
 #include <core/object/HypObjectBase.hpp>
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/Util.hpp>
 
@@ -200,9 +200,9 @@ struct Handle final : HandleBase
      *  \return The TypeInfo of the object. */
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
-        static const TypeInfo* s_typeInfo = &TypeInfo::ForType<T>();
+        static const TypeInfo* s_typeInfo = &TypeInfo_ForType<T>();
 
-        return ptr ? &TypeInfo::ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
+        return ptr ? &TypeInfo_ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -557,9 +557,9 @@ struct WeakHandle final
      *  \return The TypeInfo of the object. */
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
-        static const TypeInfo* s_typeInfo = &TypeInfo::ForType<T>();
+        static const TypeInfo* s_typeInfo = &TypeInfo_ForType<T>();
 
-        return ptr ? &TypeInfo::ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
+        return ptr ? &TypeInfo_ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const

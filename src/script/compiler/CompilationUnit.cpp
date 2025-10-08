@@ -10,6 +10,8 @@
 
 #include <core/containers/Array.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {

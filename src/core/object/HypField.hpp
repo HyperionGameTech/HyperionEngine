@@ -12,6 +12,7 @@
 #include <core/functional/Proc.hpp>
 
 #include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Result.hpp>
@@ -34,8 +35,8 @@ class HypField final : public IHypMember
 public:
     HypField(const Span<const HypClassAttribute>& attributes = {})
         : m_name(Name::Invalid()),
-          m_typeInfo(&TypeInfo::Void()),
-          m_targetTypeInfo(&TypeInfo::Void()),
+          m_typeInfo(&TypeInfo_Void()),
+          m_targetTypeInfo(&TypeInfo_Void()),
           m_offset(~0u),
           m_size(0),
           m_attributes(attributes)
@@ -94,8 +95,8 @@ public:
     template <class ThisType, class FieldType>
     HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo::ForType<FieldType>()),
-          m_targetTypeInfo(&TypeInfo::ForType<ThisType>()),
+          m_typeInfo(&TypeInfo_ForType<FieldType>()),
+          m_targetTypeInfo(&TypeInfo_ForType<ThisType>()),
           m_offset(offset),
           m_size(sizeof(FieldType)),
           m_attributes(attributes)
@@ -115,7 +116,7 @@ public:
             if constexpr (std::is_base_of_v<IContainer, NormalizedType<FieldType>> && !IsStringV<NormalizedType<FieldType>>)
             {
                 // Containers are always returned as a reference to avoid copies
-                return HypData(HypDataArray(HypDataArray::AS_REFERENCE, (target.*member)));
+                return HypData(GenericArrayWrapper(GenericArrayWrapper::AS_REFERENCE, (target.*member)));
             }
             else
             {
@@ -341,7 +342,7 @@ public:
     HYP_FORCE_INLINE bool IsValid() const
     {
         return m_name.IsValid()
-            && m_typeInfo != nullptr && m_typeInfo->id != TypeId::Void()
+            && m_typeInfo != nullptr && TypeInfo_GetId(*m_typeInfo) != TypeId::Void()
             && m_size != 0;
     }
 

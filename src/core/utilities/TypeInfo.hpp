@@ -53,6 +53,8 @@ enum class TypeAttributeFlags : uint32
 HYP_MAKE_ENUM_FLAGS(TypeAttributeFlags)
 
 class HypClass;
+struct HypData;
+struct GenericArrayWrapper;
 
 struct Float16;
 
@@ -205,6 +207,11 @@ public:
 
     virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const = 0;
     virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const = 0;
+    
+#if 0//def HYP_SCRIPT
+    virtual void ScriptGetElementAt(AnyRef arrayRef, SizeType index, HypData& outValue) const = 0;
+    virtual void ScriptSetElementAt(AnyRef arrayRef, SizeType index, HypData&& value) const = 0;
+#endif
 
     virtual SizeType GetSize(AnyRef arrayRef) const = 0;
 
@@ -520,6 +527,75 @@ struct TypeInfo
                 result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
                 result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
                 result.extendedInfo.handler = new ArrayHandler();
+            }
+            else if constexpr (std::is_same_v<GenericArrayWrapper, T>)
+            {
+                // GenericArrayWrapper is a special case since it can hold any array type
+                class GenericArrayHandler final : public ITypeInfoArrayHandler
+                {
+                public:
+                    virtual ITypeInfoHandler* Clone() const override
+                    {
+                        return new GenericArrayHandler();
+                    }
+
+                    virtual bool CreateInstance(Any& outInstance) const override
+                    {
+                        outInstance = Any(GenericArrayWrapper {});
+
+                        return true;
+                    }
+
+                    virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
+                    {
+                        GenericArrayWrapper& array = arrayRef.Get<GenericArrayWrapper>();
+                        HYP_CORE_ASSERT(index < array.Size());
+
+                        HypData element;
+                        if (!array.GetElementAt(index, element))
+                        {
+                            HYP_CORE_ASSERT(false, "Failed to get element at index of GenericArrayWrapper");
+                        }
+
+                        return element.ToRef();
+                    }
+
+                    virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
+                    {
+                        GenericArrayWrapper& array = arrayRef.Get<GenericArrayWrapper>();
+                        HYP_CORE_ASSERT(index < array.Size());
+
+                        HypData element;
+
+                        if (!array.SetElementAt(index, element, HypData(value)))
+                        {
+                            HYP_CORE_ASSERT(false, "Failed to set element at index of GenericArrayWrapper");
+                        }
+                    }
+
+                    virtual SizeType GetSize(AnyRef arrayRef) const override
+                    {
+                        GenericArrayWrapper& array = arrayRef.Get<GenericArrayWrapper>();
+                        return array.Size();
+                    }
+
+                    virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
+                    {
+                        GenericArrayWrapper& array = arrayRef.Get<GenericArrayWrapper>();
+                        
+                        if (!array.Resize(newSize))
+                        {
+                            HYP_CORE_ASSERT(false, "Failed to resize GenericArrayWrapper");
+                        }
+                    }
+                };
+
+                result.flags |= TypeAttributeFlags::ARRAY_TYPE;
+
+                result.extendedInfo.data.typeInfo = &ForType<HypData>();
+                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+                result.extendedInfo.handler = new GenericArrayHandler();
             }
             else if constexpr (IsFixedArray<NormalizedT>::value)
             {
@@ -1466,6 +1542,11 @@ inline const TypeInfo& TypeInfo_Void()
     return TypeInfo::Void();
 }
 
+inline const TypeInfo& TypeInfo_ForHypClass(const HypClass* hypClass)
+{
+    return TypeInfo::ForHypClass(hypClass);
+}
+
 inline const TypeId& TypeInfo_GetId(const TypeInfo& type_info)
 {
     return type_info.id;
@@ -1497,6 +1578,7 @@ using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVectorHandler;
 
 using utilities::TypeInfo_ForType;
+using utilities::TypeInfo_ForHypClass;
 using utilities::TypeInfo_Void;
 
 using utilities::TypeInfo;

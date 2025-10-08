@@ -2160,9 +2160,9 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
-        if (current.Is<HypDataArray>()) // array needs special handling: iterate over elements (if possible)
+        if (current.Is<GenericArrayWrapper>()) // array needs special handling: iterate over elements (if possible)
         {
-            HypDataArray& array = current.Get<HypDataArray>();
+            GenericArrayWrapper& array = current.Get<GenericArrayWrapper>();
 
             if (!array.CanGetElementByIndex())
             {
@@ -2175,7 +2175,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             for (SizeType i = 0; i < size; ++i)
             {
                 HypData element;
-                if (!array.ElementAt(i, element))
+                if (!array.GetElementAt(i, element))
                 {
                     HYP_LOG(Assets, Warning, "Failed to get element at index {} of array of type {}", i, LookupTypeName(current.GetTypeId()));
                     continue;

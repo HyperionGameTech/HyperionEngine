@@ -827,7 +827,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
 
     constexpr int maxArrayDepth = 2;
 
-    if (HypDataArray* pArray = data.TryGet<HypDataArray>().TryGet())
+    if (GenericArrayWrapper* pArray = data.TryGet<GenericArrayWrapper>().TryGet())
     {
         if (pArray->CanGetElementByIndex())
         {
@@ -841,7 +841,7 @@ bool ScriptApi_StringifyData(const HypData& data, Script_String& outString, int 
                 }
 
                 HypData element;
-                if (pArray->ElementAt(i, element))
+                if (pArray->GetElementAt(i, element))
                 {
                     outString += ScriptApi_ValueToString(element, currDepth + 1);
                 }
@@ -1508,7 +1508,7 @@ public:
             hypClass = *classRef;
         }
         // temp special case for arrays
-        else if (HypDataArray* array = src.TryGet<HypDataArray>().TryGet())
+        else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
             hypClass = GetClass(TypeId::ForType<Script_Array>());
         }

@@ -12,7 +12,7 @@
 #include <core/containers/Array.hpp>
 
 #include <core/utilities/StringView.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Result.hpp>
 
@@ -78,12 +78,12 @@ public:
 
     HYP_FORCE_INLINE const TypeId& GetTypeId() const
     {
-        return GetTypeInfo().id;
+        return TypeInfo_GetId(GetTypeInfo());
     }
 
     HYP_FORCE_INLINE const TypeId& GetTargetTypeId() const
     {
-        return GetTargetTypeInfo().id;
+        return TypeInfo_GetId(GetTargetTypeInfo());
     }
 
     HYP_FORCE_INLINE const HypClass* GetOwnerClass() const

@@ -315,6 +315,55 @@ bool HypDataToJSON(
         return true;
     }
 
+    #if 0
+    if (typeInfo.id == TypeId::ForType<GenericArrayWrapper>())
+    {
+        GenericArrayWrapper& array = value.Get<GenericArrayWrapper>();
+
+        if (!array.CanGetElementByIndex())
+        {
+            HYP_LOG(Core, Warning, "Cannot iterate over {}: not indexable", typeInfo.name);
+            return false;
+        }
+
+        const SizeType size = array.Size();
+
+        json::JSONArray jsonArray;
+        jsonArray.Reserve(size);
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            HypData element;
+
+            if (!array.GetElementAt(i, element))
+            {
+                HYP_LOG(Core, Warning, "Failed to get element at index {} of array of type {}", i, typeInfo.name);
+                continue;
+            }
+
+            ToJSONOptions newOpts = opts;
+            newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && array.elementTypeId != element.GetTypeId())
+            {
+                newOpts.writeClassNames = true;
+            }
+
+            json::JSONValue jsonValue;
+            if (!HypDataToJSON(element, jsonValue, newOpts))
+            {
+                return false;
+            }
+
+            jsonArray.PushBack(std::move(jsonValue));
+        }
+
+        outJson = std::move(jsonArray);
+
+        return true;
+    }
+    #endif
+
     const HypClass* hypClass = GetClass(value.GetTypeId());
 
     if (hypClass)

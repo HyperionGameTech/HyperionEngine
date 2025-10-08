@@ -1,5 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
+#include <core/object/HypData.hpp>
+
 #include <core/utilities/TypeInfo.hpp>
 
 #include <core/threading/Mutex.hpp>

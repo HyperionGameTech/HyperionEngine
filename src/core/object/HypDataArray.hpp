@@ -24,14 +24,14 @@ struct FBOMResult;
 using serialization::FBOMData;
 using serialization::FBOMResult;
 
-#pragma region HypDataArray
+#pragma region GenericArrayWrapper
 
-struct HypDataArray;
+struct GenericArrayWrapper;
 struct HypData;
 
-struct HypDataArray
+struct GenericArrayWrapper
 {
-    using SerializeFunction = FBOMResult (*)(const HypDataArray& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags);
+    using SerializeFunction = FBOMResult (*)(const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags);
 
     enum AsReferenceTag
     {
@@ -56,14 +56,16 @@ struct HypDataArray
 
     struct FunctionTable
     {
-        AnyRef (*pushBack)(HypDataArray& array, HypData&& value);
-        bool (*elementAt)(HypDataArray& array, SizeType index, HypData& out);
-        SizeType (*size)(const HypDataArray& array);
+        AnyRef (*pushBack)(GenericArrayWrapper& array, HypData&& value);
+        bool (*getElementAt)(GenericArrayWrapper& array, SizeType index, HypData& out);
+        bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, HypData&& value);
+        SizeType (*size)(const GenericArrayWrapper& array);
+        bool (*resize)(GenericArrayWrapper& array, SizeType newSize);
     };
 
     FunctionTable functionTable;
 
-    HypDataArray()
+    GenericArrayWrapper()
         : pInternalArray(nullptr),
           dtor(nullptr),
           copyCtor(nullptr),
@@ -74,8 +76,8 @@ struct HypDataArray
         Memory::MemSet(&functionTable, 0, sizeof(FunctionTable));
     }
 
-    HypDataArray(const HypDataArray& other)
-        : HypDataArray()
+    GenericArrayWrapper(const GenericArrayWrapper& other)
+        : GenericArrayWrapper()
     {
         if (other.copyCtor)
         {
@@ -94,7 +96,7 @@ struct HypDataArray
         functionTable = other.functionTable;
     }
 
-    HypDataArray& operator=(const HypDataArray& other)
+    GenericArrayWrapper& operator=(const GenericArrayWrapper& other)
     {
         if (&other == this)
         {
@@ -125,7 +127,7 @@ struct HypDataArray
         return *this;
     }
 
-    HypDataArray(HypDataArray&& other) noexcept
+    GenericArrayWrapper(GenericArrayWrapper&& other) noexcept
         : pInternalArray(other.pInternalArray),
           dtor(other.dtor),
           copyCtor(other.copyCtor),
@@ -144,7 +146,7 @@ struct HypDataArray
         Memory::MemSet(&other.functionTable, 0, sizeof(FunctionTable));
     }
 
-    HypDataArray& operator=(HypDataArray&& other) noexcept
+    GenericArrayWrapper& operator=(GenericArrayWrapper&& other) noexcept
     {
         if (&other == this)
         {
@@ -179,59 +181,59 @@ struct HypDataArray
     // Array<T, AllocatorType>
 
     template <class T, class AllocatorType>
-    HypDataArray(AsReferenceTag, Array<T, AllocatorType>& arr);
+    GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>& arr);
 
     template <class T, class AllocatorType>
-    HypDataArray(AsCopyTag, const Array<T, AllocatorType>& arr);
+    GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType>& arr);
 
     template <class T, class AllocatorType>
-    HypDataArray(AsCopyTag, Array<T, AllocatorType>&& arr);
+    GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& arr);
 
     // FixedArray<T, Size>
 
     template <class T, SizeType Sz>
-    HypDataArray(AsReferenceTag, FixedArray<T, Sz>& arr);
+    GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr);
 
     template <class T, SizeType Sz>
-    HypDataArray(AsCopyTag, const FixedArray<T, Sz>& arr);
+    GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr);
 
     template <class T, SizeType Sz>
-    HypDataArray(AsCopyTag, FixedArray<T, Sz>&& arr);
+    GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr);
 
     // HashSet<T, KeyByFunction, AllocatorType>
 
     template <class T, auto KeyByFunction, class AllocatorType>
-    HypDataArray(AsReferenceTag, HashSet<T, KeyByFunction, AllocatorType>& set);
+    GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunction, AllocatorType>& set);
 
     template <class T, auto KeyByFunction, class AllocatorType>
-    HypDataArray(AsCopyTag, const HashSet<T, KeyByFunction, AllocatorType>& set);
+    GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFunction, AllocatorType>& set);
 
     template <class T, auto KeyByFunction, class AllocatorType>
-    HypDataArray(AsCopyTag, HashSet<T, KeyByFunction, AllocatorType>&& set);
+    GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, AllocatorType>&& set);
 
     // HashMap<K, V, AllocatorType>
 
     template <class K, class V, class AllocatorType>
-    HypDataArray(AsReferenceTag, HashMap<K, V, AllocatorType>& map);
+    GenericArrayWrapper(AsReferenceTag, HashMap<K, V, AllocatorType>& map);
 
     template <class K, class V, class AllocatorType>
-    HypDataArray(AsCopyTag, const HashMap<K, V, AllocatorType>& map);
+    GenericArrayWrapper(AsCopyTag, const HashMap<K, V, AllocatorType>& map);
 
     template <class K, class V, class AllocatorType>
-    HypDataArray(AsCopyTag, HashMap<K, V, AllocatorType>&& map);
+    GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>&& map);
 
     // LinkedList<T>
 
     template <class T>
-    HypDataArray(AsReferenceTag, LinkedList<T>& list);
+    GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list);
 
     template <class T>
-    HypDataArray(AsCopyTag, const LinkedList<T>& list);
+    GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list);
 
     template <class T>
-    HypDataArray(AsCopyTag, LinkedList<T>&& list);
+    GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list);
 
-    ~HypDataArray()
+    ~GenericArrayWrapper()
     {
         if (dtor)
         {
@@ -256,7 +258,7 @@ struct HypDataArray
             return 0;
         }
 
-        HYP_CORE_ASSERT(functionTable.size != nullptr, "HypDataArray size function pointer is null");
+        HYP_CORE_ASSERT(functionTable.size != nullptr, "GenericArrayWrapper size function pointer is null");
 
         return functionTable.size(*this);
     }
@@ -276,20 +278,45 @@ struct HypDataArray
 
     HYP_FORCE_INLINE bool CanGetElementByIndex() const
     {
-        return functionTable.elementAt != nullptr;
+        return functionTable.getElementAt != nullptr;
     }
 
-    HYP_FORCE_INLINE bool ElementAt(SizeType index, HypData& out)
+    HYP_FORCE_INLINE bool GetElementAt(SizeType index, HypData& out)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {
             return false;
         }
 
-        return functionTable.elementAt(*this, index, out);
+        return functionTable.getElementAt(*this, index, out);
+    }
+
+    HYP_FORCE_INLINE bool SetElementAt(SizeType index, HypData&& value)
+    {
+        if (!IsValid() || !CanGetElementByIndex() || index >= Size())
+        {
+            return false;
+        }
+
+        return functionTable.setElementAt(*this, index, std::move(value));
+    }
+
+    HYP_FORCE_INLINE bool CanResize() const
+    {
+        return functionTable.resize != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool Resize(SizeType newSize)
+    {
+        if (!IsValid() || !CanResize())
+        {
+            return false;
+        }
+
+        return functionTable.resize(*this, newSize);
     }
 };
 
-#pragma endregion HypDataArray
+#pragma endregion GenericArrayWrapper
 
 } // namespace hyperion

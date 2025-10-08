@@ -14,6 +14,7 @@
 #include <core/containers/HashMap.hpp>
 
 #include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
 
@@ -34,8 +35,8 @@ class HypField;
 
 struct HypPropertyTypeInfo
 {
-    const TypeInfo* targetTypeInfo = &TypeInfo::Void();
-    const TypeInfo* valueTypeInfo = &TypeInfo::Void(); // for getter or setter: getter is param type, setter is return type
+    const TypeInfo* targetTypeInfo = &TypeInfo_Void();
+    const TypeInfo* valueTypeInfo = &TypeInfo_Void(); // for getter or setter: getter is param type, setter is return type
 };
 
 template <class T>
@@ -72,7 +73,7 @@ struct HypPropertyGetter
               })
 
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -91,7 +92,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -110,7 +111,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
     }
 
     // Special getter that takes no target. Used for Enums
@@ -130,7 +131,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -149,7 +150,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -168,9 +169,9 @@ struct HypPropertyGetter
         HYP_CORE_ASSERT(!target.IsNull());
 
         HYP_CORE_ASSERT(
-            target.ToRef().Is(typeInfo.targetTypeInfo->id),
+            target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
             "Target type mismatch, expected TypeId %u, got %u",
-            typeInfo.targetTypeInfo->id.Value(),
+            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
             target.GetTypeId().Value());
 
         return getProc(target);
@@ -182,9 +183,9 @@ struct HypPropertyGetter
         HYP_CORE_ASSERT(!target.IsNull());
 
         HYP_CORE_ASSERT(
-            target.ToRef().Is(typeInfo.targetTypeInfo->id),
+            target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
             "Target type mismatch, expected TypeId %u, got %u",
-            typeInfo.targetTypeInfo->id.Value(),
+            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
             target.GetTypeId().Value());
 
         return serializeProc(target, out, flags);
@@ -233,7 +234,7 @@ struct HypPropertySetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
     }
 
     template <class ReturnType, class TargetType, class ValueType>
@@ -270,7 +271,7 @@ struct HypPropertySetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -307,7 +308,7 @@ struct HypPropertySetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo::ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -326,9 +327,9 @@ struct HypPropertySetter
         HYP_CORE_ASSERT(!target.IsNull());
 
         HYP_CORE_ASSERT(
-            target.ToRef().Is(typeInfo.targetTypeInfo->id),
+            target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
             "Target type mismatch, expected TypeId %u, got %u",
-            typeInfo.targetTypeInfo->id.Value(),
+            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
             target.GetTypeId().Value());
 
         setProc(target, value);
@@ -340,9 +341,9 @@ struct HypPropertySetter
         HYP_CORE_ASSERT(!target.IsNull());
 
         HYP_CORE_ASSERT(
-            target.ToRef().Is(typeInfo.targetTypeInfo->id),
+            target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
             "Target type mismatch, expected TypeId %u, got %u",
-            typeInfo.targetTypeInfo->id.Value(),
+            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
             target.GetTypeId().Value());
 
         return deserializeProc(context, target, value);
@@ -356,14 +357,14 @@ public:
     friend HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, const HypMethod* setter);
 
     HypProperty()
-        : m_typeInfo(&TypeInfo::Void()),
+        : m_typeInfo(&TypeInfo_Void()),
           m_originalMember(nullptr)
     {
     }
 
     HypProperty(Name name, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo::Void()),
+          m_typeInfo(&TypeInfo_Void()),
           m_attributes(attributes),
           m_originalMember(nullptr)
     {
@@ -397,7 +398,7 @@ public:
           m_originalMember(nullptr)
     {
         HYP_CORE_ASSERT(m_typeInfo != nullptr);
-        HYP_CORE_ASSERT(m_setter.typeInfo.valueTypeInfo->id == m_typeInfo->id, "Setter value type id should match property type id");
+        HYP_CORE_ASSERT(TypeInfo_GetId(*m_setter.typeInfo.valueTypeInfo) == TypeInfo_GetId(*m_typeInfo), "Setter value type id should match property type id");
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -441,7 +442,7 @@ public:
             ? *m_getter.typeInfo.targetTypeInfo
             : (m_setter.IsValid()
                       ? *m_setter.typeInfo.targetTypeInfo
-                      : TypeInfo::Void());
+                      : TypeInfo_Void());
     }
 
     virtual bool CanSerialize() const override
@@ -496,7 +497,7 @@ public:
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return m_typeInfo && m_typeInfo->id != TypeId::Void() && CanGet();
+        return m_typeInfo && TypeInfo_GetId(*m_typeInfo) != TypeId::Void() && CanGet();
     }
 
     // getter

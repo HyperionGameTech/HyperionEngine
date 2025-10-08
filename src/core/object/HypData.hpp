@@ -18,6 +18,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Float16.hpp>
 #include <core/utilities/Result.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/memory/Any.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -94,7 +95,7 @@ struct alignas(std::max_align_t) HypData_UserData128
     uint64 data[2];
 };
 
-struct HypDataArray;
+struct GenericArrayWrapper;
 
 #ifdef HYP_SCRIPT
 enum class GCIndex : uint32;
@@ -265,7 +266,7 @@ struct HypData
 
     HYP_FORCE_INLINE bool IsArray() const
     {
-        return Is<HypDataArray>();
+        return Is<GenericArrayWrapper>();
     }
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
@@ -1500,7 +1501,7 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T* value) const
     {
-        HypDataHelper<AnyRef>::Set(hypData, AnyRef(&TypeInfo::ForType<T>(), value));
+        HypDataHelper<AnyRef>::Set(hypData, AnyRef(&TypeInfo_ForType<T>(), value));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
@@ -1639,47 +1640,47 @@ struct HypDataHelper<Any>
     }
 };
 
-/// HypDataArray - generic array / container type wrapper - @TODO Add HypDataMap for associative containers
+/// GenericArrayWrapper - generic array / container type wrapper - @TODO Add HypDataMap for associative containers
 
 template <>
-struct HypDataHelperDecl<HypDataArray>
+struct HypDataHelperDecl<GenericArrayWrapper>
 {
 };
 
 template <>
-struct HypDataHelper<HypDataArray> : HypDataHelper<Any>
+struct HypDataHelper<GenericArrayWrapper> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return value.Is<HypDataArray>();
+        return value.Is<GenericArrayWrapper>();
     }
 
-    HYP_FORCE_INLINE HypDataArray& Get(const Any& value) const
+    HYP_FORCE_INLINE GenericArrayWrapper& Get(const Any& value) const
     {
-        return value.Get<HypDataArray>();
+        return value.Get<GenericArrayWrapper>();
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, const HypDataArray& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const GenericArrayWrapper& value) const
     {
-        HypDataHelper<Any>::Set(hypData, Any::Construct<HypDataArray>(value));
+        HypDataHelper<Any>::Set(hypData, Any::Construct<GenericArrayWrapper>(value));
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, HypDataArray&& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, GenericArrayWrapper&& value) const
     {
-        HypDataHelper<Any>::Set(hypData, Any::Construct<HypDataArray>(std::move(value)));
+        HypDataHelper<Any>::Set(hypData, Any::Construct<GenericArrayWrapper>(std::move(value)));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const HypDataArray& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const GenericArrayWrapper& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
-        HypDataArray::SerializeFunction serializeFunction = value.serializeFunction;
+        GenericArrayWrapper::SerializeFunction serializeFunction = value.serializeFunction;
 
         if (!serializeFunction)
         {
-            return { FBOMResult::FBOM_ERR, "Cannot serialize HypDataArray without a serialize function!" };
+            return { FBOMResult::FBOM_ERR, "Cannot serialize GenericArrayWrapper without a serialize function!" };
         }
 
         if (FBOMResult err = serializeFunction(value, outData, flags))
@@ -2011,13 +2012,13 @@ struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_cons
 };
 
 template <class T, class AllocatorType>
-struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<HypDataArray>
+struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             return arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
         }
@@ -2027,7 +2028,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
     HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             if (arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>())
             {
@@ -2038,24 +2039,24 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         HYP_UNREACHABLE();
     }
 
-    HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
         return value.arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
     }
 
-    HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const HypDataArray& value) const
+    HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const GenericArrayWrapper& value) const
     {
         return *static_cast<Array<T, AllocatorType>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const Array<T, AllocatorType>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, Array<T, AllocatorType>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const Array<T, AllocatorType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2140,13 +2141,13 @@ struct HypDataHelperDecl<FixedArray<T, Size>>
 };
 
 template <class T, SizeType Size>
-struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<HypDataArray>
+struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             return arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
         }
@@ -2156,7 +2157,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
     HYP_FORCE_INLINE FixedArray<T, Size>& Get(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             if (arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>())
             {
@@ -2167,24 +2168,24 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
         HYP_UNREACHABLE();
     }
 
-    HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
         return value.arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
     }
 
-    HYP_FORCE_INLINE FixedArray<T, Size>& Get(const HypDataArray& value) const
+    HYP_FORCE_INLINE FixedArray<T, Size>& Get(const GenericArrayWrapper& value) const
     {
         return *static_cast<FixedArray<T, Size>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const FixedArray<T, Size>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, FixedArray<T, Size>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const FixedArray<T, Size>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2282,12 +2283,12 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         return HypDataHelper<FixedArray<T, Size>>::Get(value);
     }
 
-    HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
         return value.internalArray.Is<FixedArray<T, Size>>();
     }
 
-    HYP_FORCE_INLINE FixedArray<T, Size>& Get(const HypDataArray& value) const
+    HYP_FORCE_INLINE FixedArray<T, Size>& Get(const GenericArrayWrapper& value) const
     {
         return value.internalArray.Get<FixedArray<T, Size>>();
     }
@@ -2468,13 +2469,13 @@ struct HypDataHelperDecl<HashMap<K, V>>
 };
 
 template <class K, class V>
-struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
+struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        if (const HypDataArray* array = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
             return array->arrayTypeId == TypeId::ForType<HashMap<K, V>>();
         }
@@ -2484,7 +2485,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
 
     HYP_FORCE_INLINE HashMap<K, V>& Get(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             if (arr->arrayTypeId == TypeId::ForType<HashMap<K, V>>())
             {
@@ -2495,24 +2496,24 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<HypDataArray>
         HYP_UNREACHABLE();
     }
 
-    HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
         return value.arrayTypeId == TypeId::ForType<HashMap<K, V>>();
     }
 
-    HYP_FORCE_INLINE HashMap<K, V>& Get(const HypDataArray& value) const
+    HYP_FORCE_INLINE HashMap<K, V>& Get(const GenericArrayWrapper& value) const
     {
         return *static_cast<HashMap<K, V>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const HashMap<K, V>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, HashMap<K, V>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const HashMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2590,13 +2591,13 @@ struct HypDataHelperDecl<HashSet<ValueType, KeyByFunction>>
 };
 
 template <class ValueType, auto KeyByFunction>
-struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataArray>
+struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        if (const HypDataArray* array = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
             return array->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
         }
@@ -2606,7 +2607,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
 
     HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             if (arr->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
             {
@@ -2617,24 +2618,24 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<HypDataA
         HYP_UNREACHABLE();
     }
 
-    HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
         return value.arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
     }
 
-    HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const HypDataArray& value) const
+    HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const GenericArrayWrapper& value) const
     {
         return *static_cast<HashSet<ValueType, KeyByFunction>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const HashSet<ValueType, KeyByFunction>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, HashSet<ValueType, KeyByFunction>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const HashSet<ValueType, KeyByFunction>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2712,13 +2713,13 @@ struct HypDataHelperDecl<LinkedList<T>>
 };
 
 template <class T>
-struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
+struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        if (const HypDataArray* array = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
             return array->arrayTypeId == TypeId::ForType<LinkedList<T>>();
         }
@@ -2728,7 +2729,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
 
     HYP_FORCE_INLINE LinkedList<T>& Get(const Any& value) const
     {
-        if (const HypDataArray* arr = value.TryGet<HypDataArray>())
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
             if (arr->arrayTypeId == TypeId::ForType<LinkedList<T>>())
             {
@@ -2739,24 +2740,24 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<HypDataArray>
         HYP_UNREACHABLE();
     }
 
-    HYP_FORCE_INLINE bool Is(const HypDataArray& value) const
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
         return value.arrayTypeId == TypeId::ForType<LinkedList<T>>();
     }
 
-    HYP_FORCE_INLINE LinkedList<T>& Get(const HypDataArray& value) const
+    HYP_FORCE_INLINE LinkedList<T>& Get(const GenericArrayWrapper& value) const
     {
         return *static_cast<LinkedList<T>*>(value.pInternalArray);
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const LinkedList<T>& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, value));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, LinkedList<T>&& value) const
     {
-        HypDataHelper<HypDataArray>::Set(hypData, HypDataArray(HypDataArray::AS_COPY, std::move(value)));
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const LinkedList<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)

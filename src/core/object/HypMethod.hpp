@@ -9,6 +9,7 @@
 #include <core/functional/Proc.hpp>
 
 #include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/Defines.hpp>
@@ -35,7 +36,7 @@ enum class Script_FunctionAddress : uint32;
 
 struct HypMethodParameter
 {
-    const TypeInfo* typeInfo = &TypeInfo::Void();
+    const TypeInfo* typeInfo = &TypeInfo_Void();
 };
 
 #pragma region CallHypMethod
@@ -78,7 +79,7 @@ void InitHypMethodParams_Impl(Array<HypMethodParameter>& outParams, std::index_s
 {
     auto addParameter = [&outParams]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
-        outParams.PushBack(HypMethodParameter { &TypeInfo::ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
+        outParams.PushBack(HypMethodParameter { &TypeInfo_ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
 
         return true;
     };
@@ -87,7 +88,7 @@ void InitHypMethodParams_Impl(Array<HypMethodParameter>& outParams, std::index_s
 
     if constexpr (!std::is_void_v<ThisType>)
     {
-        outParams.PushBack(HypMethodParameter { &TypeInfo::ForType<NormalizedType<ThisType>>() });
+        outParams.PushBack(HypMethodParameter { &TypeInfo_ForType<NormalizedType<ThisType>>() });
     }
 }
 
@@ -157,8 +158,8 @@ class HypMethod final : public IHypMember
 public:
     HypMethod(Span<const HypClassAttribute> attributes = {})
         : m_name(Name::Invalid()),
-          m_returnTypeInfo(&TypeInfo::Void()),
-          m_targetTypeInfo(&TypeInfo::Void()),
+          m_returnTypeInfo(&TypeInfo_Void()),
+          m_targetTypeInfo(&TypeInfo_Void()),
           m_flags(HypMethodFlags::NONE),
           m_attributes(attributes)
     {
@@ -208,8 +209,8 @@ public:
         m_scriptAddress = INVALID_FUNCTION_ADDRESS;
 #endif
 
-        m_returnTypeInfo = &TypeInfo::ForType<NormalizedType<ReturnType>>();
-        m_targetTypeInfo = &TypeInfo::ForType<NormalizedType<TargetType>>();
+        m_returnTypeInfo = &TypeInfo_ForType<NormalizedType<ReturnType>>();
+        m_targetTypeInfo = &TypeInfo_ForType<NormalizedType<TargetType>>();
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
@@ -309,8 +310,8 @@ public:
         m_scriptAddress = INVALID_FUNCTION_ADDRESS;
 #endif
 
-        m_returnTypeInfo = &TypeInfo::ForType<NormalizedType<ReturnType>>();
-        m_targetTypeInfo = &TypeInfo::ForType<NormalizedType<TargetType>>();
+        m_returnTypeInfo = &TypeInfo_ForType<NormalizedType<ReturnType>>();
+        m_targetTypeInfo = &TypeInfo_ForType<NormalizedType<TargetType>>();
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
@@ -408,8 +409,8 @@ public:
         m_scriptAddress = INVALID_FUNCTION_ADDRESS;
 #endif
 
-        m_returnTypeInfo = &TypeInfo::ForType<NormalizedType<ReturnType>>();
-        m_targetTypeInfo = &TypeInfo::Void();
+        m_returnTypeInfo = &TypeInfo_ForType<NormalizedType<ReturnType>>();
+        m_targetTypeInfo = &TypeInfo_Void();
 
         m_params.Reserve(sizeof...(ArgTypes));
         InitHypMethodParams_Tuple<ReturnType, void, Tuple<ArgTypes...>> {}(m_params);

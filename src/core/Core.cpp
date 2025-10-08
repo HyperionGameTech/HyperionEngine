@@ -1,8 +1,13 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <core/Core.hpp>
+
 #include <core/threading/Mutex.hpp>
+
 #include <core/containers/LinkedList.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <core/utilities/TypeInfo.hpp>
 
 namespace hyperion {

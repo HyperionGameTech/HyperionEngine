@@ -10,7 +10,6 @@
 #include <core/object/ObjId.hpp>
 #include <core/object/HypObjectPool.hpp>
 
-#include <core/utilities/TypeInfo.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/threading/AtomicVar.hpp>

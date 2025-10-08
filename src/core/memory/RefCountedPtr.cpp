@@ -2,6 +2,8 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <core/utilities/TypeInfo.hpp>
 
 namespace hyperion {

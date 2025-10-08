@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-struct HypDataArray;
+struct GenericArrayWrapper;
 struct HypData;
 
 using Script_Array = Array<HypData>;
