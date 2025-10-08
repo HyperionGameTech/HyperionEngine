@@ -358,7 +358,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>());
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", LookupTypeName(TypeId::ForType<T>()), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, false>::Type;
@@ -391,7 +391,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>());
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", LookupTypeName(TypeId::ForType<T>()), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, true>::Type;
@@ -2023,7 +2023,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
             return arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
         }
 
-        return false;
+        return value.GetTypeId() == TypeId::ForType<Array<T, AllocatorType>>();
     }
 
     HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const Any& value) const
@@ -2034,6 +2034,10 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
             {
                 return *static_cast<Array<T, AllocatorType>*>(arr->pInternalArray);
             }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<Array<T, AllocatorType>>())
+        {
+            return value.Get<Array<T, AllocatorType>>();
         }
 
         HYP_UNREACHABLE();
@@ -2152,7 +2156,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
             return arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
         }
 
-        return false;
+        return value.GetTypeId() == TypeId::ForType<FixedArray<T, Size>>();
     }
 
     HYP_FORCE_INLINE FixedArray<T, Size>& Get(const Any& value) const
@@ -2163,6 +2167,10 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
             {
                 return *static_cast<FixedArray<T, Size>*>(arr->pInternalArray);
             }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<FixedArray<T, Size>>())
+        {
+            return value.Get<FixedArray<T, Size>>();
         }
 
         HYP_UNREACHABLE();
@@ -2480,7 +2488,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
             return array->arrayTypeId == TypeId::ForType<HashMap<K, V>>();
         }
 
-        return false;
+        return value.GetTypeId() == TypeId::ForType<HashMap<K, V>>();
     }
 
     HYP_FORCE_INLINE HashMap<K, V>& Get(const Any& value) const
@@ -2491,6 +2499,10 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
             {
                 return *static_cast<HashMap<K, V>*>(arr->pInternalArray);
             }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<HashMap<K, V>>())
+        {
+            return value.Get<HashMap<K, V>>();
         }
 
         HYP_UNREACHABLE();
@@ -2602,7 +2614,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
             return array->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
         }
 
-        return false;
+        return value.GetTypeId() == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
     }
 
     HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const Any& value) const
@@ -2613,6 +2625,10 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
             {
                 return *static_cast<HashSet<ValueType, KeyByFunction>*>(arr->pInternalArray);
             }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
+        {
+            return value.Get<HashSet<ValueType, KeyByFunction>>();
         }
 
         HYP_UNREACHABLE();
@@ -2724,7 +2740,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
             return array->arrayTypeId == TypeId::ForType<LinkedList<T>>();
         }
 
-        return false;
+        return value.GetTypeId() == TypeId::ForType<LinkedList<T>>();
     }
 
     HYP_FORCE_INLINE LinkedList<T>& Get(const Any& value) const
@@ -2735,6 +2751,10 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
             {
                 return *static_cast<LinkedList<T>*>(arr->pInternalArray);
             }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<LinkedList<T>>())
+        {
+            return value.Get<LinkedList<T>>();
         }
 
         HYP_UNREACHABLE();

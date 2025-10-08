@@ -7,7 +7,7 @@
 
 namespace hyperion {
 
-void MeshInstanceData_PostLoad(MeshInstanceData& meshInstanceData)
+void MeshInstanceData_OnPostLoad(MeshInstanceData& meshInstanceData)
 {
     // Ensure at least one instance
     meshInstanceData.numInstances = MathUtil::Max(meshInstanceData.numInstances, 1u);

@@ -10,9 +10,6 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/BoundingBox.hpp>
 
-#include <scene/Entity.hpp>
-#include <scene/Node.hpp>
-
 #include <streaming/Streamable.hpp>
 
 #include <core/HashCode.hpp>

@@ -78,7 +78,9 @@ public:
     static SceneValidationResult ValidateScene(const Scene* scene);
 };
 
-HYP_CLASS()
+extern void Scene_OnPostLoad(Scene& scene);
+
+HYP_CLASS(PostLoad = "Scene_OnPostLoad")
 class HYP_API Scene final : public AssetObject
 {
     friend class World;
@@ -163,7 +165,7 @@ public:
     {
         return m_world;
     }
-    
+
     HYP_METHOD()
     void SetWorld(World* world);
 
@@ -172,7 +174,7 @@ public:
     {
         return m_sceneFlags & SceneFlags::FOREGROUND;
     }
-    
+
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsBackgroundScene() const
     {
@@ -241,4 +243,3 @@ private:
 };
 
 } // namespace hyperion
-

@@ -220,11 +220,11 @@ void AssetPackage::Init()
             }
             else if (isPackageSavedInFilesystem)
             {
-                const FilePath newAssetFilepath = m_packageDir / *assetObject->GetName();
+                const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
-                if (assetObject->m_filepath != newAssetFilepath)
+                if (assetObject->m_manifestPath != newManifestFilepath)
                 {
-                    assetObject->m_filepath = newAssetFilepath;
+                    assetObject->m_manifestPath = newManifestFilepath;
 
                     assetObjectsToSave.Insert(assetObject.Get());
                 }
@@ -349,11 +349,11 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
             }
             else if (isPackageSavedInFilesystem)
             {
-                const FilePath newAssetFilepath = m_packageDir / *assetObject->GetName();
+                const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
-                if (assetObject->m_filepath != newAssetFilepath)
+                if (assetObject->m_manifestPath != newManifestFilepath)
                 {
-                    assetObject->m_filepath = newAssetFilepath;
+                    assetObject->m_manifestPath = newManifestFilepath;
 
                     assetObjectsToSave.Insert(assetObject.Get());
                 }
@@ -456,11 +456,11 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             else if (isPackageSavedInFilesystem)
             {
                 // set a filepath for the asset object to be saved at, based on our package's filepath.
-                const FilePath newAssetFilepath = m_packageDir / *assetObject->GetName();
+                const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
-                if (assetObject->m_filepath != newAssetFilepath)
+                if (assetObject->m_manifestPath != newManifestFilepath)
                 {
-                    assetObject->m_filepath = newAssetFilepath;
+                    assetObject->m_manifestPath = newManifestFilepath;
 
                     doSaveAsset = true; // asset path changed, we need to save
                 }
@@ -978,7 +978,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
                 continue;
             }
 
-            assetObject->m_filepath = packageDir / *assetObject->GetName();
+            assetObject->m_manifestPath = packageDir / *assetObject->GetName() + ".json";
 
             if (Result saveAssetResult = assetObject->Save(); saveAssetResult.HasError())
             {
@@ -1852,7 +1852,24 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 }
             }
 
-            Array<FilePath> assetFiles = dir.GetAllFilesInDirectory();
+            // get asset manifest ifles
+            Array<FilePath> assetFiles;
+
+            for (const FilePath& path : dir.GetAllFilesInDirectory())
+            {
+                if (path.GetExtension() != "json")
+                {
+                    continue;
+                }
+
+                if (path.Basename() == "PackageManifest.json")
+                {
+                    // Skip the package manifest itself
+                    continue;
+                }
+
+                assetFiles.PushBack(path);
+            }
 
             if (assetFiles.Any())
             {
@@ -1862,37 +1879,36 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 // load assets in parallel
                 TaskSystem::GetInstance().ParallelForEach(assetFiles, [&assetObjects](const FilePath& entry, uint32 index, uint32 batchIndex) -> void
                     {
-                        // only iterate over files (manifests)
-                        // TODO: Add param to `GetAllFilesInDirectory` to filter by extension instead of checking each entry
-                        if (entry.GetExtension() != "json")
-                        {
-                            return;
-                        }
-
-                        if (entry.Basename() == "PackageManifest.json")
-                        {
-                            // Skip the package manifest itself
-                            return;
-                        }
-
-                        const FilePath dataPath = entry.StripExtension();
-
-                        if (!dataPath.Exists() || dataPath.IsDirectory())
-                        {
-                            HYP_LOG(Assets, Warning, "Asset data file '{}' for asset manifest '{}' does not exist or is not a file!", dataPath, entry);
-
-                            return;
-                        }
-
                         FileBufferedReaderSource manifestSource { entry };
                         BufferedReader manifestStream { &manifestSource };
 
-                        FileBufferedReaderSource dataSource { dataPath };
-                        BufferedReader dataStream { &dataSource };
+                        const FilePath binPath = entry.StripExtension();
+
+                        BufferedReader* pDataStream = nullptr;
+                        FileBufferedReaderSource* pDataSource = nullptr;
+
+                        if (binPath.Exists() && !binPath.IsDirectory())
+                        {
+                            pDataSource = new FileBufferedReaderSource { binPath };
+                            pDataStream = new BufferedReader { pDataSource };
+                        }
+
+                        HYP_DEFER({
+                            if (pDataStream)
+                            {
+                                pDataStream->Close();
+                                delete pDataStream;
+                            }
+
+                            if (pDataSource)
+                            {
+                                delete pDataSource;
+                            }
+                        });
 
                         Handle<AssetObject> assetObject;
 
-                        if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
+                        if (Result loadAssetResult = AssetObject::Load(manifestStream, pDataStream, assetObject); loadAssetResult.HasError())
                         {
                             HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 
@@ -1901,8 +1917,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
                         AssertDebug(assetObject != nullptr);
 
-                        // set filepath so it doesn't get double saved on adding to package
-                        assetObject->m_filepath = dataPath;
+                        assetObject->m_manifestPath = entry;
 
                         assetObjects[index] = std::move(assetObject);
                     });
@@ -1914,9 +1929,14 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                         continue;
                     }
 
+                    // ensure we call PostLoad on the original thread we called this from (or the game thread if UseSingleThread is true)
+                    assetObject->InstanceClass()->PostLoad(assetObject.Get());
+
                     if (Result addAssetResult = outPackage->AddAssetObject(assetObject).Await(); addAssetResult.HasError())
                     {
                         HYP_LOG(Assets, Error, "Failed to add asset to package '{}': {}", outPackage->GetName(), addAssetResult.GetError().GetMessage());
+
+                        continue;
                     }
                 }
             }

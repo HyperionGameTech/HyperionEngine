@@ -11,6 +11,9 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
+// needed for TypeInfo
+#include <core/object/HypData.hpp>
+
 namespace hyperion {
 namespace json {
 

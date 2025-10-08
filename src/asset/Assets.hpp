@@ -14,8 +14,6 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
-#include <scene/Node.hpp>
-
 #include <core/Constants.hpp>
 #include <core/Defines.hpp>
 

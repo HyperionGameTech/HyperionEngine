@@ -1464,7 +1464,7 @@ HYP_BEGIN_CLASS(AssetObject, 45, 7, NAME("HypObjectBase"), HypClassAttribute("ab
     HypField(NAME(HYP_STR(Package)), &AssetObject::m_package, offsetof(AssetObject, m_package), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(Resource)), &AssetObject::m_resource, offsetof(AssetObject, m_resource), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(AssetPath)), &AssetObject::m_assetPath, offsetof(AssetObject, m_assetPath), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Filepath)), &AssetObject::m_filepath, offsetof(AssetObject, m_filepath), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
+    HypField(NAME(HYP_STR(ManifestPath)), &AssetObject::m_manifestPath, offsetof(AssetObject, m_manifestPath), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(Pool)), &AssetObject::m_pool, offsetof(AssetObject, m_pool), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(PersistentResource)), &AssetObject::m_persistentResource, offsetof(AssetObject, m_persistentResource), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } })
 HYP_END_CLASS

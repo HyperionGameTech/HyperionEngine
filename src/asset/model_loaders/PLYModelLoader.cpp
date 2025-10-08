@@ -5,6 +5,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
+#include <scene/Node.hpp>
+
 #include <core/filesystem/FsUtil.hpp>
 
 #include <algorithm>

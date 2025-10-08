@@ -15,9 +15,9 @@ namespace hyperion {
 
 struct MeshInstanceData;
 
-HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData&);
+extern void MeshInstanceData_OnPostLoad(MeshInstanceData&);
 
-HYP_STRUCT(PostLoad = "MeshInstanceData_PostLoad", Size = 104)
+HYP_STRUCT(PostLoad = "MeshInstanceData_OnPostLoad", Size = 104)
 struct MeshInstanceData
 {
     HYP_STRUCT_BODY(MeshInstanceData);

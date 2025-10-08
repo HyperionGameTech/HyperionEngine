@@ -4,6 +4,7 @@
 #include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Node.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>

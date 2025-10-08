@@ -131,7 +131,7 @@ enum AssetObjectFlags : uint32
 {
     AOF_NONE = 0x0,
     AOF_PERSISTENT = 0x1, //!< Asset is persistently loaded in memory
-    AOF_TRANSIENT = 0x2  //!< Asset is not saved to disk
+    AOF_TRANSIENT = 0x2   //!< Asset is not saved to disk
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
@@ -296,11 +296,14 @@ public:
     HYP_METHOD()
     Result Save();
 
-    Result OpenReadStream(BufferedReader& stream) const;
+    /*! \brief Opens a read stream for the binary data of this asset.
+     *  \param stream The stream to open.
+     *  \return Result indicating success or failure of the operation. */
+    Result OpenBinaryReadStream(BufferedReader& stream) const;
 
     static Result Load(
         BufferedReader& manifestStream,
-        BufferedReader& dataStream,
+        BufferedReader* pBinStream, // optional
         Handle<AssetObject>& outAssetObject);
 
 protected:
@@ -347,7 +350,7 @@ protected:
     AssetPath m_assetPath;
 
     HYP_FIELD(Transient)
-    FilePath m_filepath;
+    FilePath m_manifestPath;
 
     HYP_FIELD(NoScriptBindings, Transient)
     IResourceMemoryPool* m_pool;

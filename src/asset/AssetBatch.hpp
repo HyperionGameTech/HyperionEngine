@@ -10,8 +10,6 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <scene/Node.hpp>
-
 #include <core/math/MathUtil.hpp>
 
 #include <type_traits>
@@ -229,9 +227,9 @@ public:
 
 private:
     String m_identifier;
-    
+
     Handle<AssetManager> m_assetManager;
-    
+
     Array<UniquePtr<ProcessAssetFunctorBase>> m_procs;
     AssetBatchCallbacks m_callbacks;
 

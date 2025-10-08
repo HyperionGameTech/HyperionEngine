@@ -4,8 +4,6 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <scene/Node.hpp>
-
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 #include <core/utilities/Tuple.hpp>
@@ -100,4 +98,3 @@ struct hash<hyperion::OBJIndex>
     }
 };
 } // namespace std
-

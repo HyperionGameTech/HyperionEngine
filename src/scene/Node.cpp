@@ -39,7 +39,7 @@
 
 namespace hyperion {
 
-HYP_API void Node_OnPostLoad(Node& node)
+void Node_OnPostLoad(Node& node)
 {
     node.SetScene(g_engineDriver->GetDefaultWorld()->GetDetachedScene(g_gameThread));
 }

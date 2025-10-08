@@ -205,13 +205,8 @@ public:
 
     virtual bool CreateInstance(Any& outInstance) const override = 0;
 
-    virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const = 0;
-    virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const = 0;
-
-#if 0 // def HYP_SCRIPT
-    virtual void ScriptGetElementAt(AnyRef arrayRef, SizeType index, HypData& outValue) const = 0;
-    virtual void ScriptSetElementAt(AnyRef arrayRef, SizeType index, HypData&& value) const = 0;
-#endif
+    virtual bool GetElementAt(AnyRef arrayRef, SizeType index, HypData& outValue) const = 0;
+    virtual bool SetElementAt(AnyRef arrayRef, SizeType index, HypData&& value) const = 0;
 
     virtual SizeType GetSize(AnyRef arrayRef) const = 0;
 
@@ -360,6 +355,18 @@ struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericAr
     void operator()(TypeInfo& result) const;
 };
 
+template <class T, class AllocatorType, class HypDataType>
+struct TypeInfoImpl<Array<T, AllocatorType>, HypDataType>
+{
+    void operator()(TypeInfo& result) const;
+};
+
+template <class T, SizeType Size, class HypDataType>
+struct TypeInfoImpl<FixedArray<T, Size>, HypDataType>
+{
+    void operator()(TypeInfo& result) const;
+};
+
 struct TypeInfo
 {
     /*! \brief Get a default TypeInfo instance representing void type */
@@ -475,134 +482,6 @@ struct TypeInfo
             if constexpr (ImplementationExistsV<TypeInfoImpl<NormalizedT, HypData>>)
             {
                 TypeInfoImpl<NormalizedT, HypData>()(result);
-            }
-            else if constexpr (IsArray<NormalizedT>::value)
-            {
-                class ArrayHandler final : public ITypeInfoArrayHandler
-                {
-                public:
-                    virtual ITypeInfoHandler* Clone() const override
-                    {
-                        return new ArrayHandler();
-                    }
-
-                    virtual bool CreateInstance(Any& outInstance) const override
-                    {
-                        using ArrayType = NormalizedT;
-
-                        outInstance = Any(ArrayType {});
-                        return true;
-                    }
-
-                    virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
-                    {
-                        using ArrayType = NormalizedT;
-                        using ValueType = typename ArrayType::ValueType;
-
-                        ArrayType& array = arrayRef.Get<ArrayType>();
-                        HYP_CORE_ASSERT(index < array.Size());
-
-                        return AnyRef(&array[index]);
-                    }
-
-                    virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
-                    {
-                        using ArrayType = NormalizedT;
-                        using ValueType = typename ArrayType::ValueType;
-
-                        ArrayType& array = arrayRef.Get<ArrayType>();
-                        HYP_CORE_ASSERT(index < array.Size());
-
-                        ValueType& v = value.Get<ValueType>();
-
-                        array[index] = v;
-                    }
-
-                    virtual SizeType GetSize(AnyRef arrayRef) const override
-                    {
-                        using ArrayType = NormalizedT;
-
-                        ArrayType& array = arrayRef.Get<ArrayType>();
-                        return array.Size();
-                    }
-
-                    virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
-                    {
-                        using ArrayType = NormalizedT;
-
-                        ArrayType& array = arrayRef.Get<ArrayType>();
-                        array.Resize(newSize);
-                    }
-                };
-
-                result.flags |= TypeAttributeFlags::ARRAY_TYPE;
-
-                result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
-                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-                result.extendedInfo.handler = new ArrayHandler();
-            }
-            else if constexpr (IsFixedArray<NormalizedT>::value)
-            {
-                class FixedArrayHandler final : public ITypeInfoArrayHandler
-                {
-                public:
-                    virtual ITypeInfoHandler* Clone() const override
-                    {
-                        return new FixedArrayHandler();
-                    }
-
-                    virtual bool CreateInstance(Any& outInstance) const override
-                    {
-                        using FixedArrayType = NormalizedT;
-
-                        outInstance = Any(FixedArrayType {});
-                        return true;
-                    }
-
-                    virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
-                    {
-                        using FixedArrayType = NormalizedT;
-                        using ValueType = typename FixedArrayType::ValueType;
-
-                        FixedArrayType& array = arrayRef.Get<FixedArrayType>();
-                        HYP_CORE_ASSERT(index < array.Size());
-
-                        return AnyRef(&array[index]);
-                    }
-
-                    virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
-                    {
-                        using FixedArrayType = NormalizedT;
-                        using ValueType = typename FixedArrayType::ValueType;
-
-                        FixedArrayType& array = arrayRef.Get<FixedArrayType>();
-                        HYP_CORE_ASSERT(index < array.Size());
-
-                        ValueType& v = value.Get<ValueType>();
-
-                        array[index] = v;
-                    }
-
-                    virtual SizeType GetSize(AnyRef arrayRef) const override
-                    {
-                        using FixedArrayType = NormalizedT;
-
-                        FixedArrayType& array = arrayRef.Get<FixedArrayType>();
-                        return array.Size();
-                    }
-
-                    virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
-                    {
-                        // FixedArray has a fixed size, so resizing is not supported
-                        // This operation is a no-op
-                    }
-                };
-
-                result.flags |= TypeAttributeFlags::ARRAY_TYPE;
-
-                result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::ValueType>();
-                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
-                result.extendedInfo.handler = new FixedArrayHandler();
             }
             else if constexpr (IsLinkedList<NormalizedT>::value)
             {
@@ -1412,12 +1291,13 @@ struct TypeInfo
 
     HYP_FORCE_INLINE bool IsContainerType() const
     {
-        constexpr EnumFlags<TypeAttributeFlags> mask = TypeAttributeFlags::ARRAY_TYPE
+        constexpr EnumFlags<TypeAttributeFlags> Mask = TypeAttributeFlags::ARRAY_TYPE
             | TypeAttributeFlags::STRING_TYPE
+            | TypeAttributeFlags::LINKEDLIST_TYPE
             | TypeAttributeFlags::MAP_TYPE
             | TypeAttributeFlags::SET_TYPE;
 
-        return flags & mask;
+        return flags & Mask;
     }
 
     /*! \brief Get alternative type at index for Variant<Types...>
@@ -1502,29 +1382,27 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
             return true;
         }
 
-        virtual AnyRef GetElementAt(AnyRef arrayRef, SizeType index) const override
+        virtual bool GetElementAt(AnyRef arrayRef, SizeType index, HypDataType& outValue) const override
         {
             T& array = arrayRef.Get<T>();
-            HYP_CORE_ASSERT(index < array.Size());
 
-            HypDataType element;
-            if (!array.GetElementAt(index, element))
+            if (index >= array.Size())
             {
-                HYP_CORE_ASSERT(false, "Failed to get element at index of GenericArrayWrapper");
+                return false;
             }
 
-            return element.ToRef();
+            return array.GetElementAt(index, outValue);
         }
 
-        virtual void SetElementAt(AnyRef arrayRef, SizeType index, AnyRef value) const override
+        virtual bool SetElementAt(AnyRef arrayRef, SizeType index, HypDataType&& value) const override
         {
             T& array = arrayRef.Get<T>();
-            HYP_CORE_ASSERT(index < array.Size());
-
-            if (!array.SetElementAt(index, HypDataType(value)))
+            if (index >= array.Size())
             {
-                HYP_CORE_ASSERT(false, "Failed to set element at index of GenericArrayWrapper");
+                return false;
             }
+
+            return array.SetElementAt(index, std::move(value));
         }
 
         virtual SizeType GetSize(AnyRef arrayRef) const override
@@ -1550,6 +1428,154 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
 
     result.extendedInfo.handler = new GenericArrayHandler();
+}
+
+template <class T, class AllocatorType, class HypDataType>
+void TypeInfoImpl<Array<T, AllocatorType>, HypDataType>::operator()(TypeInfo& result) const
+{
+    using ArrayType = Array<T, AllocatorType>;
+
+    class ArrayHandler final : public ITypeInfoArrayHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new ArrayHandler();
+        }
+
+        virtual bool CreateInstance(Any& outInstance) const override
+        {
+            outInstance = Any(ArrayType {});
+            return true;
+        }
+
+        virtual bool GetElementAt(AnyRef arrayRef, SizeType index, HypDataType& outValue) const override
+        {
+            ArrayType& array = arrayRef.Get<ArrayType>();
+
+            if (index >= array.Size())
+            {
+                return false;
+            }
+
+            outValue = HypDataType(AnyRef(&array[index]));
+
+            return true;
+        }
+
+        virtual bool SetElementAt(AnyRef arrayRef, SizeType index, HypDataType&& value) const override
+        {
+            ArrayType& array = arrayRef.Get<ArrayType>();
+
+            if (index >= array.Size())
+            {
+                return false;
+            }
+
+            if constexpr (std::is_same_v<T, HypDataType>)
+            {
+                array[index] = std::move(value);
+            }
+            else
+            {
+                array[index] = value.template Get<T>();
+            }
+
+            return true;
+        }
+
+        virtual SizeType GetSize(AnyRef arrayRef) const override
+        {
+            ArrayType& array = arrayRef.Get<ArrayType>();
+            return array.Size();
+        }
+
+        virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
+        {
+            ArrayType& array = arrayRef.Get<ArrayType>();
+            array.Resize(newSize);
+        }
+    };
+
+    result.flags |= TypeAttributeFlags::ARRAY_TYPE;
+
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<T>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+    result.extendedInfo.handler = new ArrayHandler();
+}
+
+template <class T, SizeType Size, class HypDataType>
+void TypeInfoImpl<FixedArray<T, Size>, HypDataType>::operator()(TypeInfo& result) const
+{
+    using FixedArrayType = FixedArray<T, Size>;
+
+    class FixedArrayHandler final : public ITypeInfoArrayHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new FixedArrayHandler();
+        }
+
+        virtual bool CreateInstance(Any& outInstance) const override
+        {
+            outInstance = Any(FixedArrayType {});
+            return true;
+        }
+
+        virtual bool GetElementAt(AnyRef arrayRef, SizeType index, HypDataType& outValue) const override
+        {
+            FixedArrayType& array = arrayRef.Get<FixedArrayType>();
+
+            if (index >= array.Size())
+            {
+                return false;
+            }
+
+            outValue = HypData(AnyRef(&array[index]));
+
+            return true;
+        }
+
+        virtual bool SetElementAt(AnyRef arrayRef, SizeType index, HypDataType&& value) const override
+        {
+            FixedArrayType& array = arrayRef.Get<FixedArrayType>();
+
+            if (index >= array.Size())
+            {
+                return false;
+            }
+
+            if constexpr (std::is_same_v<T, HypDataType>)
+            {
+                array[index] = std::move(value);
+            }
+            else
+            {
+                array[index] = value.template Get<T>();
+            }
+
+            return true;
+        }
+
+        virtual SizeType GetSize(AnyRef arrayRef) const override
+        {
+            FixedArrayType& array = arrayRef.Get<FixedArrayType>();
+            return array.Size();
+        }
+
+        virtual void Resize(AnyRef arrayRef, SizeType newSize) const override
+        {
+            // FixedArray has a fixed size, so resizing is not supported
+            // This operation is a no-op
+        }
+    };
+
+    result.flags |= TypeAttributeFlags::ARRAY_TYPE;
+
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<T>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+    result.extendedInfo.handler = new FixedArrayHandler();
 }
 
 /// Wrapper functions for forward decls

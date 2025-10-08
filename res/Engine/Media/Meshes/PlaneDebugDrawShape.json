@@ -11,8 +11,9 @@
     "NumIndices": 6
   },
   "FriendlyName": "PlaneDebugDrawShape",
-  "Uuid": "35dd5bc6-8f15-445d-bd75-7ffdec32f9bd",
+  "Uuid": "4d058348-9a82-4a3a-a776-92461b9e37ed",
   "Name": "PlaneDebugDrawShape",
   "Flags": 0,
-  "OriginalFilepath": ""
+  "OriginalFilepath": "",
+  "$Class": "MeshAsset"
 }

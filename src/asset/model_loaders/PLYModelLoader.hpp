@@ -4,7 +4,13 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <scene/Node.hpp>
+#include <core/math/Vertex.hpp>
+
+#include <core/containers/HashMap.hpp>
+#include <core/containers/Array.hpp>
+#include <core/containers/String.hpp>
+
+#include <core/memory/ByteBuffer.hpp>
 
 #include <core/Types.hpp>
 
@@ -62,4 +68,3 @@ public:
 };
 
 } // namespace hyperion
-

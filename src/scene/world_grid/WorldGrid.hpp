@@ -5,7 +5,6 @@
 #include <scene/world_grid/WorldGridState.hpp>
 
 #include <scene/Entity.hpp>
-#include <scene/Node.hpp>
 
 #include <core/object/Handle.hpp>
 
@@ -86,9 +85,8 @@ private:
 
     WorldGridState m_state;
 
-    HYP_FIELD(Property="Layers", Serialize=true)
+    HYP_FIELD(Property = "Layers", Serialize = true)
     Array<Handle<WorldGridLayer>> m_layers;
 };
 
 } // namespace hyperion
-

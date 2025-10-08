@@ -67,7 +67,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         }
         else
         {
-            arr[index] = std::move(value.Get<T>());
+            arr[index] = value.Get<T>();
         }
 
         return true;
@@ -158,7 +158,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         }
         else
         {
-            arr[index] = std::move(value.Get<T>());
+            arr[index] = value.Get<T>();
         }
 
         return true;
@@ -249,7 +249,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         }
         else
         {
-            arr[index] = std::move(value.Get<T>());
+            arr[index] = value.Get<T>();
         }
 
         return true;
@@ -317,7 +317,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
         }
         else
         {
-            arr[index] = std::move(value.Get<T>());
+            arr[index] = value.Get<T>();
         }
 
         return true;
@@ -379,7 +379,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
         }
         else
         {
-            arr[index] = std::move(value.Get<T>());
+            arr[index] = value.Get<T>();
         }
 
         return true;
@@ -441,7 +441,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
         }
         else
         {
-            arr[index] = std::move(value.Get<T>());
+            arr[index] = value.Get<T>();
         }
 
         return true;

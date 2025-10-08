@@ -4,8 +4,6 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <scene/Node.hpp>
-
 #include <rendering/font/FontFace.hpp>
 #include <rendering/font/FontAtlas.hpp>
 
@@ -25,4 +23,3 @@ public:
 };
 
 } // namespace hyperion
-

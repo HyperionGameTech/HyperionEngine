@@ -4,8 +4,6 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <scene/Node.hpp>
-
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -22,4 +20,3 @@ public:
 };
 
 } // namespace hyperion
-

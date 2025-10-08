@@ -1260,7 +1260,7 @@ namespace hyperion {
 
 #pragma region Scene Reflection Data
 
-HYP_BEGIN_CLASS(Scene, 52, 0, NAME("AssetObject"))
+HYP_BEGIN_CLASS(Scene, 52, 0, NAME("AssetObject"), HypClassAttribute("postload", "Scene_OnPostLoad"))
     HypMethod(NAME(HYP_STR(GetPrimaryCamera)), &Scene::GetPrimaryCamera),
     HypMethod(NAME(HYP_STR(GetSceneFlags)), &Scene::GetSceneFlags),
     HypMethod(NAME(HYP_STR(SetSceneFlags)), &Scene::SetSceneFlags),
@@ -1289,6 +1289,7 @@ HYP_END_CLASS
 
 #pragma endregion Scene Reflection Data
 
+static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_Scene(TypeId::ForType<Scene>(), ValueWrapper<Scene_OnPostLoad>());
 } // namespace hyperion
 
 

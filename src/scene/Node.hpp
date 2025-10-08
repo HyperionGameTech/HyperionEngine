@@ -169,7 +169,7 @@ struct NodeTag
 
 struct NodeUnlockTransformScope;
 
-HYP_API extern void Node_OnPostLoad(Node& node);
+extern void Node_OnPostLoad(Node& node);
 
 HYP_STRUCT()
 class NodeTagSet : public HashSet<NodeTag, &NodeTag::name>

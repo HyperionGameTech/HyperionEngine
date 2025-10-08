@@ -13,8 +13,9 @@
     "WrapMode": 0
   },
   "FriendlyName": "PlaceholderTextureCube1x1R8Array",
-  "Uuid": "9df2334d-ae16-427b-945c-532a2ebb8322",
+  "Uuid": "77a82f44-0527-4fbe-85e9-e39c237dac03",
   "Name": "Placeholder_Texture_Cube_1x1_R8_Array",
   "Flags": 0,
-  "OriginalFilepath": ""
+  "OriginalFilepath": "",
+  "$Class": "TextureAsset"
 }

@@ -38,6 +38,11 @@
 
 namespace hyperion {
 
+void Scene_OnPostLoad(Scene& scene)
+{
+    scene.SetOwnerThreadId(g_gameThread);
+}
+
 #pragma region SceneValidation
 
 static SceneValidationResult MergeSceneValidationResults(
@@ -184,6 +189,9 @@ Scene::~Scene()
 
 void Scene::Init()
 {
+    HYP_SCOPE;
+    AssetObject::Init();
+
     m_entityManager->SetWorld(m_world);
 
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();

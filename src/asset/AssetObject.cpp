@@ -133,7 +133,7 @@ Result AssetDataResourceBase::Load_Internal()
         stream.Close();
     });
 
-    if (Result openStreamResult = assetObject->OpenReadStream(stream); openStreamResult.HasError())
+    if (Result openStreamResult = assetObject->OpenBinaryReadStream(stream); openStreamResult.HasError())
     {
         return openStreamResult;
     }
@@ -280,8 +280,8 @@ void AssetObject::SetIsTransient(bool isTransient)
         // needs to be kept in memory if transient
         SetIsPersistentlyLoaded(true);
 
-        // transient assets don't have a filepath as they are not saved to disk.
-        m_filepath = FilePath();
+        // transient assets don't have a manifest filepath as they are not saved to disk.
+        m_manifestPath = FilePath();
     }
 }
 
@@ -350,19 +350,21 @@ Result AssetObject::Save()
     HYP_SCOPE;
 
     // save our manifest first
-    if (m_filepath.Empty())
+    if (m_manifestPath.Empty())
     {
-        return HYP_MAKE_ERROR(Error, "Asset path is empty, cannot save");
+        return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot save");
     }
 
-    const FilePath dir = m_filepath.BasePath();
+    AssertDebug(m_manifestPath.GetExtension() == "json", "Asset manifest path must have .json extension");
+
+    const FilePath dir = m_manifestPath.BasePath();
 
     if (!dir.Exists() || !dir.IsDirectory())
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 
-    FileByteWriter manifestWriter { m_filepath + ".json" };
+    FileByteWriter manifestWriter { m_manifestPath };
 
     if (!manifestWriter.IsOpen())
     {
@@ -387,7 +389,11 @@ Result AssetObject::Save()
 
         Mutex::Guard guard(resource->m_mutex);
 
-        return resource->Save_Internal(m_filepath);
+        // get bin path from manifest path by removing .json extension
+        const FilePath binPath = m_manifestPath.StripExtension();
+        Assert(!binPath.Empty() && binPath != m_manifestPath);
+
+        return resource->Save_Internal(binPath);
     }
 
 #if 0 // just use manifest if no resource
@@ -411,7 +417,7 @@ Result AssetObject::Save()
     }
 #endif
 
-    HYP_LOG(Assets, Debug, "Saved asset to '{}'", m_filepath);
+    HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", m_manifestPath);
 
     return {};
 }
@@ -431,14 +437,19 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
 Result AssetObject::Load(
     BufferedReader& manifestStream,
-    BufferedReader& dataStream,
+    BufferedReader* pBinStream,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
 
-    if (!manifestStream.IsOpen() || !dataStream.IsOpen())
+    if (!manifestStream.IsOpen())
     {
-        return HYP_MAKE_ERROR(Error, "Manifest or data stream not open");
+        return HYP_MAKE_ERROR(Error, "Manifest stream is not open");
+    }
+
+    if (pBinStream && !pBinStream->IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
 
     json::ParseResult parseResult = json::JSON::Parse(manifestStream);
@@ -460,7 +471,7 @@ Result AssetObject::Load(
 
     if (!classNameValue.IsString())
     {
-        return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a 'class' string");
+        return HYP_MAKE_ERROR(Error, "Manifest JSON must contain a '$Class' string");
     }
 
     const HypClass* hypClass = GetClass(classNameValue.AsString());
@@ -475,14 +486,18 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
 
-    FBOMLoadContext context;
-    FBOMReader reader { FBOMReaderConfig {} };
-    FBOMResult err;
+    HypData binData;
 
-    HypData data;
-    if ((err = reader.Deserialize(context, dataStream, data)))
+    if (pBinStream)
     {
-        return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
+        FBOMLoadContext context;
+        FBOMReader reader { FBOMReaderConfig {} };
+        FBOMResult err;
+
+        if ((err = reader.Deserialize(context, *pBinStream, binData)))
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
+        }
     }
 
     HypData targetData;
@@ -491,7 +506,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Failed to create instance of class '{}'", classNameValue.AsString());
     }
 
-    const AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
+    AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
     const bool useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
 
     // remove class property
@@ -507,11 +522,15 @@ Result AssetObject::Load(
     if (useResource)
     {
         Assert(resource != nullptr && !resource->IsNull());
+        Assert(pBinStream != nullptr);
 
-        resource->Extract_Internal(data.ToRef());
+        resource->Extract_Internal(binData.ToRef());
     }
 
-    outAssetObject = targetAssetObject->HandleFromThis();
+    // invoke PostLoad callback
+    targetAssetObject->InstanceClass()->PostLoad(targetAssetObject);
+
+    outAssetObject = MakeStrongRef(targetAssetObject);
 
 #if 0
     FBOMLoadContext loadContext {};
@@ -534,16 +553,26 @@ Result AssetObject::Load(
     return {};
 }
 
-Result AssetObject::OpenReadStream(BufferedReader& stream) const
+Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
 {
     HYP_SCOPE;
 
-    if (m_filepath.Empty())
+    if (m_manifestPath.Empty())
     {
-        return HYP_MAKE_ERROR(Error, "Asset path is empty, cannot open read stream");
+        return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot open read stream");
     }
 
-    FileBufferedReaderSource* source = new FileBufferedReaderSource(m_filepath);
+    // get bin path from manifest path by removing .json extension
+    AssertDebug(m_manifestPath.GetExtension() == "json", "Asset manifest path must have .json extension");
+
+    const FilePath binPath = m_manifestPath.StripExtension();
+
+    if (!binPath.Exists() || binPath.IsDirectory())
+    {
+        return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid file, cannot open read stream", binPath);
+    }
+
+    FileBufferedReaderSource* source = new FileBufferedReaderSource(binPath);
 
     stream = BufferedReader { source };
 
@@ -553,7 +582,7 @@ Result AssetObject::OpenReadStream(BufferedReader& stream) const
 
         delete source;
 
-        return HYP_MAKE_ERROR(Error, "Failed to open stream for asset '{}'", m_name);
+        return HYP_MAKE_ERROR(Error, "Failed to open binary read stream for asset '{}'", m_name);
     }
 
     return {};

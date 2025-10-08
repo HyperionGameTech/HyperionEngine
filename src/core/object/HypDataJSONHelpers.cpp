@@ -278,18 +278,23 @@ bool HypDataToJSON(
 
         for (SizeType i = 0; i < size; i++)
         {
-            AnyRef elementRef = handler->GetElementAt(value.ToRef(), i);
+            HypData element;
+            if (!handler->GetElementAt(value.ToRef(), i, element))
+            {
+                HYP_LOG(Core, Warning, "Failed to get element at index {} of array of type {}", i, typeInfo.name);
+                continue;
+            }
 
             ToJSONOptions newOpts = opts;
             newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->id != elementRef.GetTypeId())
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetHypClass() != element.GetTypeInfo()->GetHypClass())
             {
                 newOpts.writeClassNames = true;
             }
 
             json::JSONValue jsonValue;
-            if (!HypDataToJSON(HypData(elementRef), jsonValue, newOpts))
+            if (!HypDataToJSON(element, jsonValue, newOpts))
             {
                 return false;
             }
@@ -379,11 +384,6 @@ bool HypDataToJSON(
             return false;
         }
 
-        if (opts.writeClassNames)
-        {
-            jsonObject["$Class"] = *hypClass->GetName();
-        }
-
         outJson = std::move(jsonObject);
 
         return true;
@@ -406,6 +406,8 @@ bool ObjectToJSON(
     }
 
     HashSet<Name> usedMembers;
+
+    const HypClass* originalClass = hypClass;
 
     while (hypClass != nullptr)
     {
@@ -483,7 +485,7 @@ bool ObjectToJSON(
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && property->GetTypeId() != value.GetTypeId())
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && property->GetTypeInfo().GetHypClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
@@ -525,7 +527,7 @@ bool ObjectToJSON(
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && field->GetTypeId() != value.GetTypeId())
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && field->GetTypeInfo().GetHypClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
@@ -569,7 +571,7 @@ bool ObjectToJSON(
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && constant->GetTypeId() != value.GetTypeId())
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && constant->GetTypeInfo().GetHypClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
@@ -610,11 +612,23 @@ bool ObjectToJSON(
         hypClass = hypClass->GetParent();
     }
 
+    if (originalClass && opts.writeClassNames)
+    {
+        outJson["$Class"] = *originalClass->GetName();
+    }
+
     return true;
 }
 
 bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, HypData& target)
 {
+    if (!hypClass)
+    {
+        HYP_LOG(Core, Warning, "Cannot deserialize JSON to null HypClass");
+
+        return false;
+    }
+
     auto resolveMember = [hypClass, &target](const IHypMember& member, const json::JSONValue& value) -> bool
     {
         switch (member.GetMemberType())
@@ -1039,11 +1053,12 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             return false;
         }
 
-        ITypeInfoHandler* handler = elementTypeInfo->extendedInfo.handler;
+        ITypeInfoHandler* handler = typeInfo.extendedInfo.handler;
 
         if (!handler || handler->GetHandlerType() != ITypeInfoHandler::TYPE_ARRAY)
         {
             HYP_LOG(Core, Warning, "Element type for array type {} does not have a valid array handler", typeInfo.name);
+            HYP_BREAKPOINT;
             return false;
         }
 
@@ -1068,7 +1083,18 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            arrayHandler->SetElementAt(arrayInstance.ToRef(), i, elementData.ToRef());
+            if (elementData.GetTypeId() != elementTypeInfo->id && !IsA(elementTypeInfo->GetHypClass(), elementData.GetTypeInfo()->GetHypClass()))
+            {
+                HYP_LOG(Core, Warning, "Array element at index {} has type {} but expected type {}", i, elementData.GetTypeInfo()->name, elementTypeInfo->name);
+
+                return false;
+            }
+
+            if (!arrayHandler->SetElementAt(arrayInstance.ToRef(), i, std::move(elementData)))
+            {
+                HYP_LOG(Core, Warning, "Failed to set array element at index {} for type: {}", i, typeInfo.name);
+                return false;
+            }
         }
 
         outHypData = HypData(std::move(arrayInstance));
@@ -1079,7 +1105,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     // Object types
     if (jsonValue.IsObject())
     {
-        const HypClass* hypClass = GetClass(typeInfo.id);
+        const HypClass* hypClass = typeInfo.GetHypClass();
 
         // first check for $Class property to override type
         if (auto classValue = jsonValue.Get("$Class"); classValue && classValue.IsString())
@@ -1103,21 +1129,22 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         if (hypClass)
         {
-            HypData propertyValueHypData;
+            HypData instance;
 
-            if (!hypClass->CreateInstance(propertyValueHypData))
+            if (!hypClass->CreateInstance(instance))
             {
                 HYP_LOG(Core, Warning, "Failed to create instance of HypClass \"{}\"", hypClass->GetName());
                 return false;
             }
 
-            if (!JSONToObject(jsonValue.AsObject(), hypClass, propertyValueHypData))
+            if (!JSONToObject(jsonValue.AsObject(), hypClass, instance))
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize HypClass \"{}\" from JSON", hypClass->GetName());
                 return false;
             }
 
-            outHypData = std::move(propertyValueHypData);
+            outHypData = std::move(instance);
+
             return true;
         }
     }

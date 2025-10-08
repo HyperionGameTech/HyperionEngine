@@ -8,6 +8,7 @@
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/Node.hpp>
 
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Skeleton.hpp>

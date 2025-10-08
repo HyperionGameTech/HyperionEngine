@@ -18,8 +18,6 @@
 
 #include <core/object/HypProperty.hpp>
 
-#include <scene/Node.hpp>
-
 #include <core/math/Transform.hpp>
 
 #include <core/Types.hpp>
