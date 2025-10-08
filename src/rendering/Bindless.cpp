@@ -21,7 +21,7 @@ void BindlessStorage::UnsetAllResources()
 {
     Threads::AssertOnThread(g_renderThread);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Material", frameIndex);
         AssertDebug(descriptorSet.IsValid());
@@ -54,7 +54,7 @@ void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imag
 
     m_resources.Insert({ id, imageView });
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Material", frameIndex);
         AssertDebug(descriptorSet.IsValid());
@@ -81,7 +81,7 @@ void BindlessStorage::RemoveResource(ObjId<Texture> id)
 
     m_resources.Erase(it);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Material", frameIndex);
         AssertDebug(descriptorSet.IsValid());

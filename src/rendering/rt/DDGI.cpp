@@ -42,12 +42,12 @@ static constexpr TextureFormat DdgiDepthFormat = TF_RG16F;
 struct RENDER_COMMAND(SetDDGIDescriptors)
     : RenderCommand
 {
-    FixedArray<GpuBufferRef, g_framesInFlight> uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> uniformBuffers;
     GpuImageViewRef irradianceImageView;
     GpuImageViewRef depthImageView;
 
     RENDER_COMMAND(SetDDGIDescriptors)(
-        const FixedArray<GpuBufferRef, g_framesInFlight>& uniformBuffers,
+        const FixedArray<GpuBufferRef, NumFramesInFlight>& uniformBuffers,
         const GpuImageViewRef& irradianceImageView,
         const GpuImageViewRef& depthImageView)
         : uniformBuffers(uniformBuffers),
@@ -60,7 +60,7 @@ struct RENDER_COMMAND(SetDDGIDescriptors)
 
     virtual RendererResult operator()() override
     {
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("DDGIUniforms", uniformBuffers[frameIndex]);
@@ -88,7 +88,7 @@ struct RENDER_COMMAND(UnsetDDGIDescriptors)
     virtual RendererResult operator()() override
     {
         // remove result image from global descriptor set
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("DDGIUniforms", g_renderGlobalState->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms), false));
@@ -187,7 +187,7 @@ void DDGI::CreateUniformBuffer()
 {
     m_uniforms.flags = PROBE_SYSTEM_FLAGS_FIRST_RUN;
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms));
         DeferCreate(m_uniformBuffers[frameIndex]);
@@ -298,7 +298,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DescriptorSetBase* descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -311,7 +311,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
     m_pipeline = g_renderBackend->MakeRaytracingPipeline(raytracingShader, descriptorTable);
     HYP_GFX_ASSERT(m_pipeline->Create());
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         descriptorTable->Update(frameIndex, /* force */ true);
     }
@@ -335,7 +335,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 
         DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet", frameIndex);
             Assert(descriptorSet != nullptr);

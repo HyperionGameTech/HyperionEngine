@@ -150,7 +150,7 @@ void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& render
 
         DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             // create descriptor sets for depth pyramid generation.
             const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("TemporalAADescriptorSet", frameIndex);

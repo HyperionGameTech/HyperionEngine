@@ -122,7 +122,7 @@ private:
 
     void PreFrameUpdate(FrameBase* frame);
 
-    FixedArray<Handle<EngineStats>, g_numMultiBuffers> m_engineStatsBuffered;
+    FixedArray<Handle<EngineStats>, NumMultiBuffers> m_engineStatsBuffered;
 
     UniquePtr<RenderThread> m_renderThread;
 
@@ -134,7 +134,7 @@ private:
 
     UniquePtr<ScriptingService> m_scriptingService;
     
-    FixedArray<Handle<World>, g_numMultiBuffers> m_currentWorldBuffered;
+    FixedArray<Handle<World>, NumMultiBuffers> m_currentWorldBuffered;
     Handle<World> m_defaultWorld;
 
     EngineDelegates m_delegates;

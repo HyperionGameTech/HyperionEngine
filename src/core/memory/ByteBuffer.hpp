@@ -431,7 +431,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Read(SizeType offset, T* out) const
     {
-        static_assert(isPodType<T>, "Must be POD type");
+        static_assert(IsPodTypeV<T>, "Must be POD type");
 
         HYP_CORE_ASSERT(out != nullptr);
 

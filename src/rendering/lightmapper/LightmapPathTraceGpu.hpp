@@ -67,8 +67,8 @@ private:
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
-    FixedArray<GpuBufferRef, g_framesInFlight> m_raysBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_raysBuffers;
 
     GpuBufferRef m_hitsBufferGpu;
 

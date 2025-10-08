@@ -39,8 +39,8 @@ public:
      *  \detail Only call from the render thread or a render task */
     const DescriptorSetRef& ForBoundMaterial(const Material* material, uint32 frameIndex);
 
-    FixedArray<DescriptorSetRef, g_framesInFlight> Allocate(uint32 boundIndex);
-    FixedArray<DescriptorSetRef, g_framesInFlight> Allocate(
+    FixedArray<DescriptorSetRef, NumFramesInFlight> Allocate(uint32 boundIndex);
+    FixedArray<DescriptorSetRef, NumFramesInFlight> Allocate(
         uint32 boundIndex,
         Span<const uint32> textureIndirectIndices,
         Span<const Handle<Texture>> textures);
@@ -49,10 +49,10 @@ public:
     void CreateFallbackMaterialDescriptorSet();
 
 private:
-    FixedArray<DescriptorSetRef, g_framesInFlight> m_fallbackMaterialDescriptorSets;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> m_fallbackMaterialDescriptorSets;
 
     // bound index => descriptor sets
-    HashMap<uint32, FixedArray<DescriptorSetRef, g_framesInFlight>> m_materialDescriptorSets;
+    HashMap<uint32, FixedArray<DescriptorSetRef, NumFramesInFlight>> m_materialDescriptorSets;
 };
 
 } // namespace hyperion

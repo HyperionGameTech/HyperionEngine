@@ -72,7 +72,7 @@ extern "C"
             | (minor ? minorMask : 0u)
             | (patch ? patchMask : 0u);
 
-        const uint32 engineVersionMajorMinor = g_engineVersion & mask;
+        const uint32 engineVersionMajorMinor = EngineVersion & mask;
 
         if ((assemblyEngineVersion & mask) != engineVersionMajorMinor)
         {
@@ -80,9 +80,9 @@ extern "C"
                 (assemblyEngineVersion >> 16u) & 0xffu,
                 (assemblyEngineVersion >> 8u) & 0xffu,
                 assemblyEngineVersion & 0xffu,
-                (g_engineVersion >> 16u) & 0xffu,
-                (g_engineVersion >> 8u) & 0xffu,
-                g_engineVersion & 0xffu);
+                (EngineVersion >> 16u) & 0xffu,
+                (EngineVersion >> 8u) & 0xffu,
+                EngineVersion & 0xffu);
 
             return false;
         }

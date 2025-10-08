@@ -148,7 +148,7 @@ private:
     DDGIInfo m_gridInfo;
     Array<Probe> m_probes;
 
-    FixedArray<uint32, g_framesInFlight> m_updates;
+    FixedArray<uint32, NumFramesInFlight> m_updates;
 
     ComputePipelineRef m_updateIrradiance;
     ComputePipelineRef m_updateDepth;
@@ -157,7 +157,7 @@ private:
 
     RaytracingPipelineRef m_pipeline;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
     GpuBufferRef m_radianceBuffer;
 
     GpuImageRef m_irradianceImage;

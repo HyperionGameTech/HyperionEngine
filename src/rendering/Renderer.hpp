@@ -241,7 +241,7 @@ public:
     Viewport viewport;
 
     // per-View descriptor sets
-    FixedArray<DescriptorSetRef, g_framesInFlight> descriptorSets;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
     CullData cullData;
 

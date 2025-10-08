@@ -88,7 +88,7 @@ bool VulkanSwapchain::IsCreated() const
 
 void VulkanSwapchain::NextFrame()
 {
-    m_currentFrameIndex = (m_currentFrameIndex + 1) % g_framesInFlight;
+    m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
 }
 
 RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)

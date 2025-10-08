@@ -794,7 +794,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
         return;
     }
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_sets[frameIndex].Reserve(m_decl->elements.Size());
     }
@@ -806,7 +806,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
             const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
             HYP_GFX_ASSERT(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: %s", descriptorSetDeclaration.name.LookupString());
 
-            for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
                 DescriptorSetRef descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
                 HYP_GFX_ASSERT(descriptorSet.IsValid(), "Invalid global descriptor set reference: %s", referencedDescriptorSetDeclaration->name.LookupString());
@@ -819,7 +819,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
 
         DescriptorSetLayout layout { &descriptorSetDeclaration };
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             DescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(layout);
             descriptorSet->SetDebugName(layout.GetName());

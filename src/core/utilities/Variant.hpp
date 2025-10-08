@@ -278,7 +278,7 @@ public:
     constexpr explicit VariantBase(const T& value)
         : m_currentIndex(invalidTypeIndex)
     {
-        static_assert(Helper::template holdsType<T> || resolutionFailure<T>, "Type is not valid for the variant");
+        static_assert(Helper::template holdsType<T> || ResolutionFailureV<T>, "Type is not valid for the variant");
 
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
@@ -295,7 +295,7 @@ public:
     constexpr explicit VariantBase(T&& value)
         : m_currentIndex(invalidTypeIndex)
     {
-        static_assert(Helper::template holdsType<T> || resolutionFailure<T>, "Type is not valid for the variant");
+        static_assert(Helper::template holdsType<T> || ResolutionFailureV<T>, "Type is not valid for the variant");
 
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 

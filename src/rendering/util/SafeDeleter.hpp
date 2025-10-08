@@ -21,7 +21,7 @@
 
 namespace hyperion {
 
-static constexpr uint32 g_minSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
+static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
 
 HYP_API extern uint32 RenderApi_GetFrameCounter();
 
@@ -193,7 +193,7 @@ public:
     template <class T>
     T* AllocCustom(void (*destructFn)(void*))
     {
-        static_assert(isPodType<T>, "T must be a POD type");
+        static_assert(IsPodTypeV<T>, "T must be a POD type");
 
         EntryHeader header;
 
@@ -226,8 +226,8 @@ private:
     LinkedList<EntryList> m_tempEntryLists;
     volatile int32 m_tempEntryListCount = 0;
 
-    EntryList m_entryLists[g_numMultiBuffers];
-    Counter m_counters[g_numMultiBuffers];
+    EntryList m_entryLists[NumMultiBuffers];
+    Counter m_counters[NumMultiBuffers];
 };
 
 extern HYP_API SafeDeleter* GetSafeDeleterInstance();

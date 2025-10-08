@@ -98,7 +98,7 @@ class HypClassRegistration final : public HypClassRegistrationBase
 {
 public:
     static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::CLASS_TYPE
-        | (isPodType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
+        | (IsPodTypeV<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
         | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
 
     HypClassRegistration(const HypClass** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, Span<HypMember> members)
@@ -115,7 +115,7 @@ class HypStructRegistration final : public HypClassRegistrationBase
 {
 public:
     static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::STRUCT_TYPE
-        | (isPodType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
+        | (IsPodTypeV<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
         | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
 
     HypStructRegistration(const HypClass** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, Span<HypMember> members)

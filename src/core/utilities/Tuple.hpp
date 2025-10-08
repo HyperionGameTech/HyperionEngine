@@ -572,7 +572,7 @@ public:
 
         if constexpr (index == SizeType(-1))
         {
-            static_assert(resolutionFailure<T>, "Tuple does not contain element of given type");
+            static_assert(ResolutionFailureV<T>, "Tuple does not contain element of given type");
 
             // to silence errors for wrong type being returned
             return *((T*)(nullptr));
@@ -590,7 +590,7 @@ public:
 
         if constexpr (index == SizeType(-1))
         {
-            static_assert(resolutionFailure<T>, "Tuple does not contain element of given type");
+            static_assert(ResolutionFailureV<T>, "Tuple does not contain element of given type");
 
             // to silence errors for wrong type being returned
             return *((const T*)(nullptr));

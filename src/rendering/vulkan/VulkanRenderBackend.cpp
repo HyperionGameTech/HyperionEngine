@@ -134,7 +134,7 @@ public:
 
             if (element.IsBindless())
             {
-                descriptorCount = g_maxBindlessResources;
+                descriptorCount = MaxBindlessResources;
             }
 
             // if (descriptorCount > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {

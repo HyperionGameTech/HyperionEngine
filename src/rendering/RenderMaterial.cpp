@@ -55,12 +55,12 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
 
     const DescriptorSetLayout layout { decl };
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_fallbackMaterialDescriptorSets[frameIndex] = g_renderBackend->MakeDescriptorSet(layout);
         m_fallbackMaterialDescriptorSets[frameIndex]->SetDebugName(NAME_FMT("MaterialDescriptorSet_INVALID_{}", frameIndex));
 
-        for (uint32 textureIndex = 0; textureIndex < g_maxBoundTextures; textureIndex++)
+        for (uint32 textureIndex = 0; textureIndex < MaxBoundTextures; textureIndex++)
         {
             m_fallbackMaterialDescriptorSets[frameIndex]->SetElement("Textures", textureIndex, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
@@ -102,7 +102,7 @@ const DescriptorSetRef& MaterialDescriptorSetManager::ForBoundMaterial(const Mat
     return m_fallbackMaterialDescriptorSets[frameIndex];
 }
 
-FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::Allocate(uint32 boundIndex)
+FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Allocate(uint32 boundIndex)
 {
     if (boundIndex == ~0u)
     {
@@ -116,9 +116,9 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
 
     DescriptorSetLayout layout { decl };
 
-    FixedArray<DescriptorSetRef, g_framesInFlight> descriptorSets;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
 
@@ -126,7 +126,7 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
         descriptorSet->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_{}", boundIndex, frameIndex));
 #endif
 
-        for (uint32 textureIndex = 0; textureIndex < g_maxBoundTextures; textureIndex++)
+        for (uint32 textureIndex = 0; textureIndex < MaxBoundTextures; textureIndex++)
         {
             descriptorSet->SetElement("Textures", textureIndex, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
@@ -134,7 +134,7 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
         descriptorSets[frameIndex] = std::move(descriptorSet);
     }
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         if (RendererResult res = descriptorSets[frameIndex]->Create(); res.HasError())
         {
@@ -153,7 +153,7 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
     return descriptorSets;
 }
 
-FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::Allocate(
+FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Allocate(
     uint32 boundIndex,
     Span<const uint32> textureIndirectIndices,
     Span<const Handle<Texture>> textures)
@@ -170,9 +170,9 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
 
     const DescriptorSetLayout layout { decl };
 
-    FixedArray<DescriptorSetRef, g_framesInFlight> descriptorSets;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
 
@@ -181,7 +181,7 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
 #endif
 
         // set initial placeholder elements that will get overridden
-        for (uint32 i = 0; i < g_maxBoundTextures; i++)
+        for (uint32 i = 0; i < MaxBoundTextures; i++)
         {
             descriptorSet->SetElement("Textures", i, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
@@ -210,7 +210,7 @@ FixedArray<DescriptorSetRef, g_framesInFlight> MaterialDescriptorSetManager::All
         descriptorSets[frameIndex] = std::move(descriptorSet);
     }
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         if (RendererResult res = descriptorSets[frameIndex]->Create(); res.HasError())
         {
@@ -242,7 +242,7 @@ void MaterialDescriptorSetManager::Remove(uint32 boundIndex)
 
     if (it != m_materialDescriptorSets.End())
     {
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             SafeDelete(std::move(it->second[frameIndex]));
         }

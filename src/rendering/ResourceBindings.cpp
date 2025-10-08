@@ -85,7 +85,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
     if (prev != ~0u)
     {
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("EnvProbeTextures", prev, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
@@ -99,7 +99,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         AssertDebug(envProbe->GetPrefilteredEnvMap().IsValid());
         AssertDebug(envProbe->GetPrefilteredEnvMap()->IsReady());
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(envProbe->GetPrefilteredEnvMap()));
@@ -158,7 +158,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         AssertDebug(legacyEnvGrid->GetLightFieldDepthTexture().IsValid());
 
         // @TODO: Set based on binding index
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("LightFieldColorTexture", g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldIrradianceTexture()));
@@ -178,7 +178,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         AssertDebug(legacyEnvGrid->GetVoxelGridTexture().IsValid());
 
         // Set our voxel grid texture in the global descriptor set so we can use it in shaders
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
                 ->SetElement("VoxelGridTexture", g_renderBackend->GetTextureImageView(legacyEnvGrid->GetVoxelGridTexture()));

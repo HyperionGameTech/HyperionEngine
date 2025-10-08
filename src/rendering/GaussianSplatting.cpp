@@ -435,7 +435,7 @@ void GaussianSplattingInstance::CreateGraphicsPipeline()
 {
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("GaussianSplattingDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -477,7 +477,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     DescriptorTableRef updateSplatsDescriptorTable = g_renderBackend->MakeDescriptorTable(&updateSplatsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = updateSplatsDescriptorTable->GetDescriptorSet("UpdateSplatsDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -504,7 +504,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     DescriptorTableRef updateSplatDistancesDescriptorTable = g_renderBackend->MakeDescriptorTable(&updateSplatDistancesShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = updateSplatDistancesDescriptorTable->GetDescriptorSet("UpdateDistancesDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -534,7 +534,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
     {
         DescriptorTableRef sortSplatsDescriptorTable = g_renderBackend->MakeDescriptorTable(&sortSplatsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             const DescriptorSetRef& descriptorSet = sortSplatsDescriptorTable->GetDescriptorSet("SortSplatsDescriptorSet", frameIndex);
             Assert(descriptorSet != nullptr);

@@ -220,7 +220,7 @@ void ParticleSpawner::CreateGraphicsPipeline()
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ParticleDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -262,7 +262,7 @@ void ParticleSpawner::CreateComputePipelines()
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("UpdateParticlesDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);

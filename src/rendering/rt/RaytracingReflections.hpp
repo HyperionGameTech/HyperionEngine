@@ -78,7 +78,7 @@ private:
     UniquePtr<TemporalBlending> m_temporalBlending;
 
     RaytracingPipelineRef m_raytracingPipeline;
-    FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
 
     Matrix4 m_previousViewMatrix;
 };

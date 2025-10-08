@@ -65,7 +65,7 @@ struct MeshInstanceData
     template <class StructType>
     void SetBufferData(int bufferIndex, StructType* ptr, SizeType count)
     {
-        static_assert(isPodType<StructType>, "Struct type must a POD type");
+        static_assert(IsPodTypeV<StructType>, "Struct type must a POD type");
 
         AssertDebug(bufferIndex < maxBuffers, "Buffer index {} must be less than maximum number of buffers ({})", bufferIndex, maxBuffers);
 

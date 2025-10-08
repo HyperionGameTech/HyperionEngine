@@ -62,13 +62,13 @@ uint32 EnvProbeCollection::AddProbe(const Handle<EnvProbe>& envProbe)
     Assert(envProbe.IsValid());
     Assert(envProbe->IsReady());
 
-    Assert(numProbes < g_maxBoundAmbientProbes);
+    Assert(numProbes < MaxBoundAmbientProbes);
 
     const uint32 index = numProbes++;
 
     envProbes[index] = envProbe;
     indirectIndices[index] = index;
-    indirectIndices[g_maxBoundAmbientProbes + index] = index;
+    indirectIndices[MaxBoundAmbientProbes + index] = index;
 
     return index;
 }
@@ -79,13 +79,13 @@ void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe>& envProbe
     Assert(envProbe.IsValid());
     Assert(envProbe->IsReady());
 
-    Assert(index < g_maxBoundAmbientProbes);
+    Assert(index < MaxBoundAmbientProbes);
 
     numProbes = MathUtil::Max(numProbes, index + 1);
 
     envProbes[index] = envProbe;
     indirectIndices[index] = index;
-    indirectIndices[g_maxBoundAmbientProbes + index] = index;
+    indirectIndices[MaxBoundAmbientProbes + index] = index;
 }
 
 #pragma region EnvProbeCollection

@@ -193,7 +193,7 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 
 void LightmapRenderer_GpuPathTracing::CreateUniformBuffer()
 {
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
 
@@ -299,7 +299,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
 
     DeferCreate(m_hitsBufferGpu);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DeferCreate(m_raysBuffers[frameIndex]);
     }
@@ -329,7 +329,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -451,7 +451,7 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
     AssertDebug(renderSetup.IsValid());
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    const uint32 previousFrameIndex = (frame->GetFrameIndex() + g_framesInFlight - 1) % g_framesInFlight;
+    const uint32 previousFrameIndex = (frame->GetFrameIndex() + NumFramesInFlight - 1) % NumFramesInFlight;
 
     UpdatePipelineState(frame);
 

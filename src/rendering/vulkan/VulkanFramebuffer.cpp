@@ -264,7 +264,7 @@ RendererResult VulkanFramebuffer::Create()
     framebufferCreateInfo.height = m_extent.y;
     framebufferCreateInfo.layers = numLayers;
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         VULKAN_CHECK(vkCreateFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
     }

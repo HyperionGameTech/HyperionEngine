@@ -56,7 +56,7 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("CombineShadowMapsDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -93,7 +93,7 @@ static ComputePipelineRef CreateBlurShadowMapPipeline(const GpuImageViewRef& inp
 
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("BlurShadowMapDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);

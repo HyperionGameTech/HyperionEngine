@@ -49,7 +49,7 @@ World::World()
 {
     // set m_viewsPerFrame to initial size. It uses fixed allocator so it won't dynamically allocate any memory anyway
     m_viewsPerFrame.Resize(m_viewsPerFrame.Capacity());
-    AssertDebug(m_viewsPerFrame.Size() == g_numMultiBuffers);
+    AssertDebug(m_viewsPerFrame.Size() == NumMultiBuffers);
 }
 
 World::~World()

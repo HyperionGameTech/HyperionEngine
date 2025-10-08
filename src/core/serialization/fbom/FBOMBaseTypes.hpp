@@ -133,7 +133,7 @@ struct FBOMStruct : FBOMType
         && !std::is_reference_v<T>
         && !std::is_const_v<T>
         && !std::is_volatile_v<T>
-        && isPodType<T>;
+        && IsPodTypeV<T>;
 
     FBOMStruct()
         : FBOMType("struct", -1, /* no valid native TypeId */ TypeId::Void())

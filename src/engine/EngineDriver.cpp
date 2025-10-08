@@ -410,11 +410,11 @@ void EngineDriver::FinalizeStop()
     // loop until all deletions are done
 
     // clang-format off
-    FixedArray<int, g_numMultiBuffers> counts {};
+    FixedArray<int, NumMultiBuffers> counts {};
     
     do
     {
-        for (uint32 i = 0; i < g_numMultiBuffers; i++)
+        for (uint32 i = 0; i < NumMultiBuffers; i++)
         {
             counts[i] = g_safeDeleter->ForceDeleteAll(i);
         }

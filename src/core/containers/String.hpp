@@ -437,7 +437,7 @@ public:
         }
         else
         {
-            static_assert(resolutionFailure<OtherCharType>, "Invalid character type");
+            static_assert(ResolutionFailureV<OtherCharType>, "Invalid character type");
         }
     }
 

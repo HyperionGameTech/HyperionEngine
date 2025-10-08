@@ -82,9 +82,9 @@ private:
     Array<ObjectInstance> m_objectInstances;
     ByteBuffer m_drawCommandsBuffer;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_indirectBuffers;
-    FixedArray<GpuBufferRef, g_framesInFlight> m_instanceBuffers;
-    FixedArray<GpuBufferRef, g_framesInFlight> m_stagingBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_stagingBuffers;
     uint32 m_numDrawCommands;
     uint8 m_dirtyBits;
 };

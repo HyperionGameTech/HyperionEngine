@@ -23,35 +23,35 @@ namespace hyperion {
 
 #endif
 
-static constexpr bool g_tripleBuffer = true;
-static constexpr uint32 g_numMultiBuffers = g_tripleBuffer ? 3 : 2;
+static constexpr bool UseTripleBuffering = true;
+static constexpr uint32 NumMultiBuffers = UseTripleBuffering ? 3 : 2;
 
-constexpr uint8 g_engineMajorVersion = HYP_VERSION_MAJOR;
-constexpr uint8 g_engineMinorVersion = HYP_VERSION_MINOR;
-constexpr uint8 g_enginePatchVersion = HYP_VERSION_PATCH;
-constexpr uint32 g_engineVersion = (g_engineMajorVersion << 16) | (g_engineMinorVersion << 8) | g_enginePatchVersion;
-constexpr uint64 g_engineBinaryMagicNumber = (uint64(0x505948) << 32) | g_engineVersion;
+constexpr uint8 EngineVersionMajor = HYP_VERSION_MAJOR;
+constexpr uint8 EngineVersionMinor = HYP_VERSION_MINOR;
+constexpr uint8 EngineVersionPatch = HYP_VERSION_PATCH;
+constexpr uint32 EngineVersion = (EngineVersionMajor << 16) | (EngineVersionMinor << 8) | EngineVersionPatch;
+constexpr uint64 EngineBinaryMagicNumber = (uint64(0x505948) << 32) | EngineVersion;
 
-constexpr uint32 g_framesInFlight = 2;
-constexpr uint32 g_numAsyncRenderingCommandBuffers = 4;
+constexpr uint32 NumFramesInFlight = 2;
+constexpr uint32 NumAsyncCommandBuffers = 4;
 
-constexpr uint32 g_maxBoundReflectionProbes = 16;
-constexpr uint32 g_maxBoundAmbientProbes = 4096;
-constexpr uint32 g_maxBoundPointShadowMaps = 8;
-constexpr uint32 g_maxBoundTextures = 16;
+constexpr uint32 MaxBoundReflectionProbes = 16;
+constexpr uint32 MaxBoundAmbientProbes = 4096;
+constexpr uint32 MaxBoundOmniShadowMaps = 8;
+constexpr uint32 MaxBoundTextures = 16;
 
-constexpr uint32 g_maxBindlessResources = 4096;
+constexpr uint32 MaxBindlessResources = 4096;
 
-constexpr uint32 g_numGbufferTargets = 7;
+constexpr uint32 NumGbufferTargets = 7;
 
 template <class... T>
-constexpr bool resolutionFailure = false;
+constexpr bool ResolutionFailureV = false;
 
 template <class T>
 using NormalizedType = std::conditional_t<std::is_function_v<T>, std::add_pointer_t<T>, std::remove_cvref_t<T>>;
 
 template <class T>
-constexpr bool isPodType = std::is_standard_layout_v<T>
+constexpr bool IsPodTypeV = std::is_standard_layout_v<T>
     && std::is_trivially_copyable_v<T>
     && std::is_trivially_copy_assignable_v<T>
     && std::is_trivially_move_constructible_v<T>

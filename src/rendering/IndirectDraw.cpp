@@ -109,9 +109,9 @@ static bool ResizeInstancesBuffer(
 
 static bool ResizeIfNeeded(
     FrameBase* frame,
-    const FixedArray<GpuBufferRef, g_framesInFlight>& indirectBuffers,
-    const FixedArray<GpuBufferRef, g_framesInFlight>& instanceBuffers,
-    const FixedArray<GpuBufferRef, g_framesInFlight>& stagingBuffers,
+    const FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
+    const FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
+    const FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
     uint32 numObjectInstances,
     const ByteBuffer& drawCommandsBuffer,
     uint8 dirtyBits)
@@ -160,7 +160,7 @@ void IndirectDrawState::Create()
     ByteBuffer drawCommandsBuffer;
     g_renderBackend->PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_instanceBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ObjectInstance));
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
@@ -315,7 +315,7 @@ void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
     GpuBufferHolderBase* entityInstanceBatches = impl->GetGpuBufferHolder();
     const SizeType batchSizeof = impl->GetStructSize();
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ObjectVisibilityDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);

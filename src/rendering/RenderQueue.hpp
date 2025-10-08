@@ -881,7 +881,7 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
-        static_assert(isPodType<CmdType>, "CmdType must be POD");
+        static_assert(IsPodTypeV<CmdType>, "CmdType must be POD");
 
         constexpr SizeType cmdSize = sizeof(TCmd);
 

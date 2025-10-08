@@ -148,7 +148,7 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(PassData* pd, ID
 
         if (instancingDescriptorSetIndex != ~0u)
         {
-            for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
                 const GpuBufferRef& gpuBuffer = drawCallCollectionImpl->GetGpuBufferHolder()->GetBuffer(frameIndex);
                 Assert(gpuBuffer.IsValid());

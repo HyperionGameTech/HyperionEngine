@@ -122,7 +122,7 @@ private:
     template <class T>
     void CheckEndianness(T& value)
     {
-        static_assert(isPodType<T>, "T must be POD to use CheckEndianness()");
+        static_assert(IsPodTypeV<T>, "T must be POD to use CheckEndianness()");
 
         if constexpr (sizeof(T) == 1)
         {
@@ -155,7 +155,7 @@ private:
     template <class T>
     FBOMResult ReadRawData(BufferedReader* reader, T* outPtr)
     {
-        static_assert(isPodType<NormalizedType<T>>, "T must be POD to read as raw data");
+        static_assert(IsPodTypeV<NormalizedType<T>>, "T must be POD to read as raw data");
 
         HYP_CORE_ASSERT(outPtr != nullptr);
 

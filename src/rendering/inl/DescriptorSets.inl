@@ -25,7 +25,7 @@ HYP_DESCRIPTOR_SSBO(Object, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
 
-HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, g_numGbufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGbufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferNormalsTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferMaterialTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
@@ -43,12 +43,12 @@ HYP_DESCRIPTOR_SRV(View, SSGIResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, SSAOResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, TAAResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture, 1);
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, g_maxBoundReflectionProbes);
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, MaxBoundReflectionProbes);
 HYP_DESCRIPTOR_SRV(View, EnvGridIrradianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, EnvGridRadianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DeferredIndirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DepthPyramidResult, 1);
 
-HYP_DESCRIPTOR_SRV_COND(Material, Textures, g_maxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, Textures, g_maxBoundTextures, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, Textures, MaxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(Material, Textures, MaxBoundTextures, !g_renderBackend->GetRenderConfig().bindlessTextures);

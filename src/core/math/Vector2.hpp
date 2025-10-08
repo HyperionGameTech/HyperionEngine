@@ -733,7 +733,7 @@ struct Formatter<StringType, math::Vec2<T>>
         }
         else
         {
-            static_assert(resolutionFailure<T>, "Cannot format Vec2 type: unknown inner type");
+            static_assert(ResolutionFailureV<T>, "Cannot format Vec2 type: unknown inner type");
         }
     }
 

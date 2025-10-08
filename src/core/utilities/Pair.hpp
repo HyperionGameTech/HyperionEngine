@@ -53,7 +53,7 @@ struct PairHelper
 template <class First, class Second, typename T1 = void, typename T2 = void>
 struct Pair
 {
-    static_assert(resolutionFailure<Pair>, "Invalid Pair traits");
+    static_assert(ResolutionFailureV<Pair>, "Invalid Pair traits");
 };
 
 template <class First, class Second>

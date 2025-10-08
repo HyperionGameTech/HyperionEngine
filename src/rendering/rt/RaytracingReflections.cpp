@@ -36,7 +36,7 @@ struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)
         RendererResult result;
 
         // remove result image from global descriptor set
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)->SetElement("RTRadianceResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
         }
@@ -112,7 +112,7 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DescriptorSetBase* descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -125,7 +125,7 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
     m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, descriptorTable);
     HYP_GFX_ASSERT(m_raytracingPipeline->Create());
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         descriptorTable->Update(frameIndex, /* force */ true);
 
@@ -267,7 +267,7 @@ void RaytracingReflections::CreateUniformBuffer()
         g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms))
     };
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("RaytracingReflectionsUniformBuffer_{}", frameIndex));
 

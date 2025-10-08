@@ -1198,7 +1198,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(
 
   properties.Set(
       ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false,
-                     ShaderProperty::Value(int(g_numGbufferTargets))));
+                     ShaderProperty::Value(int(NumGbufferTargets))));
 
   if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing) {
     properties.Set(ShaderProperty(

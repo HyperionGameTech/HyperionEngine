@@ -213,7 +213,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
 
         DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DeferredDirectDescriptorSet", frameIndex);
             Assert(descriptorSet.IsValid());
@@ -781,7 +781,7 @@ void ReflectionsPass::CreateSSRRenderer()
     const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -915,7 +915,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
         for (EnvProbe* envProbe : probes)
         {
-            if (numRenderedEnvProbes >= g_maxBoundReflectionProbes)
+            if (numRenderedEnvProbes >= MaxBoundReflectionProbes)
             {
                 HYP_LOG(Rendering, Warning, "Attempting to render too many reflection probes.");
 
@@ -1202,7 +1202,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
 
     const DescriptorSetLayout layout { decl };
 
-    FixedArray<DescriptorSetRef, g_framesInFlight> descriptorSets;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
     static const FixedArray<Name, GTN_MAX> gbufferTextureNames {
         NAME("GBufferAlbedoTexture"),
@@ -1222,7 +1222,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
     AttachmentBase* depthAttachment = opaqueFbo->GetAttachment(GTN_MAX - 1);
     Assert(depthAttachment != nullptr);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
         descriptorSet->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frameIndex));
@@ -1320,7 +1320,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& passD
     const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
@@ -1387,7 +1387,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
     BLASRef blas = MeshBlasBuilder::Build(defaultMesh);
     HYP_GFX_ASSERT(blas->Create());
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         TLASRef& tlas = passData.raytracingTlases[frameIndex];
 
@@ -2118,7 +2118,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
         {
             if (blas != nullptr)
             {
-                for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+                for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
                 {
                     pd->raytracingTlases[frameIndex]->RemoveBLAS(blas);
                 }
@@ -2146,7 +2146,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
 
         if (!pd->raytracingTlases[currentFrameIndex]->HasBLAS(blas))
         {
-            for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
                 pd->raytracingTlases[frameIndex]->AddBLAS(meshProxy->raytracingData.blas);
             }

@@ -51,7 +51,7 @@ HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
 
 struct ParallelRenderingState
 {
-    static constexpr uint32 maxBatches = g_numAsyncRenderingCommandBuffers;
+    static constexpr uint32 maxBatches = NumAsyncCommandBuffers;
 
     TaskBatch* taskBatch = nullptr;
 

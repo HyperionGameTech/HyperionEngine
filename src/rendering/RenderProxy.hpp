@@ -171,7 +171,7 @@ public:
 
 struct EnvGridShaderData
 {
-    uint32 probeIndices[g_maxBoundAmbientProbes];
+    uint32 probeIndices[MaxBoundAmbientProbes];
 
     Vec4f center;
     Vec4f extent;
@@ -192,7 +192,7 @@ class RenderProxyEnvGrid final : public IRenderProxy
 public:
     WeakHandle<EnvGrid> envGrid;
     EnvGridShaderData bufferData {};
-    EnvProbe* envProbes[g_maxBoundAmbientProbes];
+    EnvProbe* envProbes[MaxBoundAmbientProbes];
 };
 
 struct alignas(16) LightShaderData
@@ -268,7 +268,7 @@ class RenderProxyMaterial final : public IRenderProxy
 public:
     RenderProxyMaterial()
     {
-        for (uint32 i = 0; i < g_maxBoundTextures; ++i)
+        for (uint32 i = 0; i < MaxBoundTextures; ++i)
         {
             boundTextureIndices[i] = ~0u;
         }
@@ -276,7 +276,7 @@ public:
 
     WeakHandle<Material> material;
     MaterialShaderData bufferData {};
-    FixedArray<uint32, g_maxBoundTextures> boundTextureIndices;
+    FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
     Array<Handle<Texture>> boundTextures;
 };
 

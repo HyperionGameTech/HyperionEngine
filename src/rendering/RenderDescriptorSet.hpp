@@ -55,7 +55,7 @@ uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource);
 template <class T>
 struct ShaderDataOffset
 {
-    static_assert(isPodType<T>, "T must be POD to use with ShaderDataOffset");
+    static_assert(IsPodTypeV<T>, "T must be POD to use with ShaderDataOffset");
 
     static constexpr uint32 invalidIndex = ~0u;
 
@@ -849,7 +849,7 @@ protected:
         }
         else
         {
-            static_assert(resolutionFailure<T>, "Unsupported type for descriptor set element");
+            static_assert(ResolutionFailureV<T>, "Unsupported type for descriptor set element");
         }
 
         auto it = m_elements.FindAs(name);
@@ -893,7 +893,7 @@ protected:
 
         if (count == ~0u)
         {
-            count = g_maxBindlessResources;
+            count = MaxBindlessResources;
             isBindless = true;
         }
 
@@ -979,7 +979,7 @@ public:
         return m_decl;
     }
 
-    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef>, g_framesInFlight>& GetSets() const
+    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef>, NumFramesInFlight>& GetSets() const
     {
         return m_sets;
     }
@@ -1039,7 +1039,7 @@ public:
 
         RendererResult result;
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             for (const DescriptorSetRef& set : m_sets[frameIndex])
             {
@@ -1158,7 +1158,7 @@ protected:
     }
 
     const DescriptorTableDeclaration* m_decl;
-    FixedArray<Array<DescriptorSetRef>, g_framesInFlight> m_sets;
+    FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
     Name m_debugName;
 };

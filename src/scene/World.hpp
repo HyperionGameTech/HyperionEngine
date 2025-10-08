@@ -229,7 +229,7 @@ private:
     Array<Handle<View>> m_views;
 
     // Views, buffered so the render thread can safely read from it
-    Array<Array<View*>, FixedAllocator<g_numMultiBuffers>> m_viewsPerFrame;
+    Array<Array<View*>, FixedAllocator<NumMultiBuffers>> m_viewsPerFrame;
 
     View* m_raytracingView;
 

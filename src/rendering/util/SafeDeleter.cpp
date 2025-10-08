@@ -142,7 +142,7 @@ int SafeDeleter::Iterate(int maxIter)
     {
         EntryHeader header = *it;
 
-        if ((frameCounter - header.fc) < g_minSafeDeleteCycles)
+        if ((frameCounter - header.fc) < MinSafeDeleteCycles)
         {
             ++it;
             continue; // skip this entry, it will be processed again next frame

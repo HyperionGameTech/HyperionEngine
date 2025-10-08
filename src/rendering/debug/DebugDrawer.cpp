@@ -446,7 +446,7 @@ void DebugDrawer::Initialize()
 
     Assert(!m_isInitialized.Get(MemoryOrder::ACQUIRE));
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_instanceBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData));
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
@@ -469,7 +469,7 @@ void DebugDrawer::Initialize()
     const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex("DebugDrawerDescriptorSet");
     Assert(debugDrawerDescriptorSetIndex != ~0u);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& debugDrawerDescriptorSet = m_descriptorTable->GetDescriptorSet(debugDrawerDescriptorSetIndex, frameIndex);
         Assert(debugDrawerDescriptorSet != nullptr);

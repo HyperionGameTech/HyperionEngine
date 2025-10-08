@@ -67,33 +67,32 @@
 
 namespace hyperion {
 
-static constexpr uint32 g_numFrames = g_numMultiBuffers;
-static_assert(g_numFrames <= g_minSafeDeleteCycles,
-    "g_numFrames must be less than or equal to g_minSafeDeleteCycles to ensure safe deletion of resources.");
+static_assert(NumMultiBuffers <= MinSafeDeleteCycles,
+    "NumMultiBuffers must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
-static constexpr uint32 g_maxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
 
-// must be greater than or equal to g_minSafeDeleteCycles so that
+// must be greater than or equal to MinSafeDeleteCycles so that
 // we can ensure no active views hold pointers to deleted objects.
-static_assert(g_maxFramesBeforeDiscard >= g_minSafeDeleteCycles,
-    "g_maxFramesBeforeDiscard must be greater than or equal to g_minSafeDeleteCycles");
+static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
+    "MaxFramesBeforeDiscard must be greater than or equal to MinSafeDeleteCycles");
 
 // iterations per frame for cleaning up unused resources for passes
-static constexpr int g_frameCleanupBudget = 16;
+static constexpr int FrameCleanupBudget = 16;
 
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
-thread_local uint32* g_threadFrameIndex;
+static thread_local uint32* s_threadFrameIndex;
 
-static volatile int64 g_frameCounter; // atomic
-static uint32 g_frameIndex[2] = { 0 };
+static volatile int64 s_frameCounter; // atomic
+static uint32 s_frameIndex[2] = { 0 };
 
 // Render thread only
-static RenderStats g_renderStats {};
-static RenderStatsCalculator g_renderStatsCalculator {};
+static RenderStats s_renderStats {};
+static RenderStatsCalculator s_renderStatsCalculator {};
 
-static std::counting_semaphore<g_numFrames> g_fullSemaphore { 0 };
-static std::counting_semaphore<g_numFrames> g_freeSemaphore { g_numFrames };
+static std::counting_semaphore<NumMultiBuffers> s_fullSemaphore { 0 };
+static std::counting_semaphore<NumMultiBuffers> s_freeSemaphore { NumMultiBuffers };
 
 enum
 {
@@ -181,13 +180,13 @@ struct ResourceBindings
     ResourceBinder<Camera, &OnBindingChanged_Default<Camera>> cameraBinder { &cameraBindingsAllocator };
 
     // Shared index allocator for reflection probes and sky probes.
-    ResourceBindingAllocator<g_maxBoundReflectionProbes> reflectionProbeBindingsAllocator;
+    ResourceBindingAllocator<MaxBoundReflectionProbes> reflectionProbeBindingsAllocator;
     ResourceBinder<EnvProbe, &OnBindingChanged_ReflectionProbe> reflectionProbeBinder {
         &reflectionProbeBindingsAllocator
     };
 
     // ambient probes bind to their own slot since they don't set image data
-    ResourceBindingAllocator<g_maxBoundAmbientProbes> ambientProbeBindingsAllocator;
+    ResourceBindingAllocator<MaxBoundAmbientProbes> ambientProbeBindingsAllocator;
     ResourceBinder<EnvProbe, &OnBindingChanged_AmbientProbe> ambientProbeBinder { &ambientProbeBindingsAllocator };
 
     ResourceBindingAllocator<16> envGridBindingsAllocator;
@@ -486,7 +485,7 @@ struct FrameData
     RenderStats renderStats {}; // for game thread to write to and render thread to read from
 };
 
-static FrameData g_frameData[g_numFrames];
+static FrameData g_frameData[NumMultiBuffers];
 static HashMap<View*, ViewData*> g_viewData;
 static ResourceContainer g_resources;
 
@@ -531,7 +530,7 @@ void RenderApi_Init()
 {
     Threads::AssertOnThread(g_mainThread);
 
-    g_threadFrameIndex = &g_frameIndex[CONSUMER];
+    s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
 
@@ -568,7 +567,7 @@ void RenderApi_Shutdown()
 {
     Threads::AssertOnThread(g_mainThread);
 
-    for (uint32 i = 0; i < g_numFrames; i++)
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
         for (auto& it : g_frameData[i].viewFrameData)
         {
@@ -611,20 +610,20 @@ static inline int RenderApi_CurrentThreadType()
 
 uint32 RenderApi_GetFrameIndex()
 {
-    if (!g_threadFrameIndex)
+    if (!s_threadFrameIndex)
     {
         const int threadType = RenderApi_CurrentThreadType();
         Assert(threadType >= 0, "RenderApi_GetFrameIndex called from an invalid thread!");
 
-        g_threadFrameIndex = &g_frameIndex[threadType];
+        s_threadFrameIndex = &s_frameIndex[threadType];
     }
 
-    return *g_threadFrameIndex;
+    return *s_threadFrameIndex;
 }
 
 uint32 RenderApi_GetFrameCounter()
 {
-    return (uint32)AtomicAdd(&g_frameCounter, 0);
+    return (uint32)AtomicAdd(&s_frameCounter, 0);
 }
 
 static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
@@ -845,7 +844,7 @@ RenderProxyList& RenderApi_GetProducerProxyList(View* view)
     Threads::AssertOnThread(g_gameThread);
 #endif
 
-    ViewFrameData* vd = GetViewFrameData(view, g_frameIndex[PRODUCER]);
+    ViewFrameData* vd = GetViewFrameData(view, s_frameIndex[PRODUCER]);
 
     return *vd->rplShared;
 }
@@ -971,7 +970,7 @@ WorldShaderData* RenderApi_GetWorldBufferData()
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 #endif
 
-    return &g_frameData[*g_threadFrameIndex].worldBufferData;
+    return &g_frameData[*s_threadFrameIndex].worldBufferData;
 }
 
 Viewport& RenderApi_GetViewport(View* view)
@@ -980,21 +979,21 @@ Viewport& RenderApi_GetViewport(View* view)
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 #endif
 
-    return GetViewFrameData(view, *g_threadFrameIndex)->viewport;
+    return GetViewFrameData(view, *s_threadFrameIndex)->viewport;
 }
 
 RenderStats* RenderApi_GetRenderStats()
 {
     if (Threads::IsOnThread(g_renderThread))
     {
-        return &g_renderStats;
+        return &s_renderStats;
     }
 
 #ifdef HYP_DEBUG_MODE
     Threads::AssertOnThread(g_gameThread);
 #endif
 
-    return &g_frameData[*g_threadFrameIndex].renderStats;
+    return &g_frameData[*s_threadFrameIndex].renderStats;
 }
 
 void RenderApi_AddRenderStats(const RenderStatsCounts& counts)
@@ -1003,7 +1002,7 @@ void RenderApi_AddRenderStats(const RenderStatsCounts& counts)
     Threads::AssertOnThread(g_renderThread);
 #endif
 
-    g_renderStatsCalculator.AddCounts(counts);
+    s_renderStatsCalculator.AddCounts(counts);
 }
 
 void RenderApi_SuppressRenderStats()
@@ -1012,7 +1011,7 @@ void RenderApi_SuppressRenderStats()
     Threads::AssertOnThread(g_renderThread);
 #endif
 
-    g_renderStatsCalculator.Suppress();
+    s_renderStatsCalculator.Suppress();
 }
 
 void RenderApi_UnsuppressRenderStats()
@@ -1021,16 +1020,16 @@ void RenderApi_UnsuppressRenderStats()
     Threads::AssertOnThread(g_renderThread);
 #endif
 
-    g_renderStatsCalculator.Unsuppress();
+    s_renderStatsCalculator.Unsuppress();
 }
 
 void RenderApi_BeginFrame_GameThread()
 {
     HYP_SCOPE;
 
-    g_threadFrameIndex = &g_frameIndex[PRODUCER];
+    s_threadFrameIndex = &s_frameIndex[PRODUCER];
 
-    g_freeSemaphore.acquire();
+    s_freeSemaphore.acquire();
 }
 
 void RenderApi_EndFrame_GameThread()
@@ -1040,11 +1039,11 @@ void RenderApi_EndFrame_GameThread()
     Threads::AssertOnThread(g_gameThread);
 #endif
 
-    FrameData& frameData = g_frameData[g_frameIndex[PRODUCER]];
+    FrameData& frameData = g_frameData[s_frameIndex[PRODUCER]];
 
-    g_frameIndex[PRODUCER] = (g_frameIndex[PRODUCER] + 1) % g_numFrames;
+    s_frameIndex[PRODUCER] = (s_frameIndex[PRODUCER] + 1) % NumMultiBuffers;
 
-    g_fullSemaphore.release();
+    s_fullSemaphore.release();
 }
 
 void RenderApi_BeginFrame_RenderThread()
@@ -1054,9 +1053,9 @@ void RenderApi_BeginFrame_RenderThread()
     Threads::AssertOnThread(g_renderThread);
 #endif
 
-    g_fullSemaphore.acquire();
+    s_fullSemaphore.acquire();
 
-    const uint32 slot = g_frameIndex[CONSUMER];
+    const uint32 slot = s_frameIndex[CONSUMER];
 
     FrameData& fd = g_frameData[slot];
 
@@ -1208,7 +1207,7 @@ void RenderApi_EndFrame_RenderThread()
     Threads::AssertOnThread(g_renderThread);
 #endif
 
-    const uint32 slot = g_frameIndex[CONSUMER];
+    const uint32 slot = s_frameIndex[CONSUMER];
 
     FrameData& frameData = g_frameData[slot];
 
@@ -1226,10 +1225,10 @@ void RenderApi_EndFrame_RenderThread()
         vd.renderCollector.RemoveEmptyRenderGroups();
 
         // Clear out data for views that haven't been written to for a while
-        if (++vd.framesSinceUsed == g_maxFramesBeforeDiscard)
+        if (++vd.framesSinceUsed == MaxFramesBeforeDiscard)
         {
             HYP_LOG(Rendering, Debug, "Discarding ViewData for view {} after {} frames",
-                view->Id(), g_maxFramesBeforeDiscard);
+                view->Id(), MaxFramesBeforeDiscard);
 
             // Decrement ref count on the ViewData,
             // if we hit zero there are no more ViewFrameData holding refs to the ViewData so we delete it
@@ -1259,7 +1258,7 @@ void RenderApi_EndFrame_RenderThread()
         ++it;
     }
 
-    int numCleanupCycles = g_frameCleanupBudget;
+    int numCleanupCycles = FrameCleanupBudget;
     numCleanupCycles -= g_renderGlobalState->mainRenderer->RunCleanupCycle(numCleanupCycles);
 
     for (uint32 i = 0; i < GRT_MAX && numCleanupCycles > 0; i++)
@@ -1322,16 +1321,16 @@ void RenderApi_EndFrame_RenderThread()
     // update render stats and copy to frame data so the game thread can read it
     // do this after calling UpdateEntryListQueue() on SafeDeleter so we can get the total
     // number of deletion queue items for our stats
-    g_renderStatsCalculator.Advance(g_renderStats);
-    frameData.renderStats = g_renderStats;
+    s_renderStatsCalculator.Advance(s_renderStats);
+    frameData.renderStats = s_renderStats;
 
     g_safeDeleter->Iterate();
 
-    g_frameIndex[CONSUMER] = (g_frameIndex[CONSUMER] + 1) % g_numFrames;
+    s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
 
-    AtomicIncrement(&g_frameCounter);
+    AtomicIncrement(&s_frameCounter);
 
-    g_freeSemaphore.release();
+    s_freeSemaphore.release();
 }
 
 #pragma region RenderGlobalState
@@ -1363,7 +1362,7 @@ RenderGlobalState::RenderGlobalState()
             continue;
         }
 
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             const GpuBufferRef& buffer = gpuBuffers.buffers[i]->GetBuffer(frameIndex);
             AssertDebug(buffer.IsValid());
@@ -1378,7 +1377,7 @@ RenderGlobalState::RenderGlobalState()
     placeholderData->Create();
     shadowMapAllocator->Initialize();
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         SetDefaultDescriptorSetElements(frameIndex);
     }
@@ -1516,7 +1515,7 @@ void RenderGlobalState::CreateBlueNoiseBuffer()
     blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
     blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
             ->SetElement("BlueNoiseBuffer", blueNoiseBuffer);
@@ -1546,7 +1545,7 @@ void RenderGlobalState::CreateSphereSamplesBuffer()
 
     delete[] sphereSamples;
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
             ->SetElement("SphereSamplesBuffer", sphereSamplesBuffer);
@@ -1592,7 +1591,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
         ->SetElement("LightmapVolumesBuffer", gpuBuffers[GRB_LIGHTMAP_VOLUMES]->GetBuffer(frameIndex));
 
-    for (uint32 i = 0; i < g_maxBoundReflectionProbes; i++)
+    for (uint32 i = 0; i < MaxBoundReflectionProbes; i++)
     {
         globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
             ->SetElement(
@@ -1641,7 +1640,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
     // Material
     if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
-        for (uint32 textureIndex = 0; textureIndex < g_maxBindlessResources; textureIndex++)
+        for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
             globalDescriptorTable->GetDescriptorSet("Material", frameIndex)
                 ->SetElement("Textures", textureIndex,
@@ -1650,7 +1649,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
     }
     else
     {
-        for (uint32 textureIndex = 0; textureIndex < g_maxBoundTextures; textureIndex++)
+        for (uint32 textureIndex = 0; textureIndex < MaxBoundTextures; textureIndex++)
         {
             globalDescriptorTable->GetDescriptorSet("Material", frameIndex)
                 ->SetElement("Textures", textureIndex,

@@ -33,11 +33,11 @@ struct StagingBufferPoolImpl
         GpuBufferRef buffer;
     };
 
-    Array<CachedStagingBuffer> cachedBuffers[g_framesInFlight];
+    Array<CachedStagingBuffer> cachedBuffers[NumFramesInFlight];
     
     ~StagingBufferPoolImpl()
     {
-        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
             {
@@ -54,7 +54,7 @@ struct StagingBufferPoolImpl
         {
             const int64 frameDiff = int64(currFrame) - int64(it->lastUsedFrame);
 
-            if (frameDiff >= 10 / g_framesInFlight)
+            if (frameDiff >= 10 / NumFramesInFlight)
             {
                 GpuBufferRef& gpuBuffer = it->buffer;
                 SafeDelete(std::move(gpuBuffer));

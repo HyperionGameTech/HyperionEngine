@@ -112,7 +112,7 @@ private:
 
     ComputePipelineRef m_csPerformBlending;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
 
     GpuImageViewRef m_inputImageView;
     FramebufferRef m_inputFramebuffer;

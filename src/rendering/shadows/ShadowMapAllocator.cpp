@@ -97,7 +97,7 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
-        g_maxBoundPointShadowMaps * 6,
+        MaxBoundOmniShadowMaps * 6,
         IU_SAMPLED | IU_STORAGE });
 
     HYP_GFX_ASSERT(m_pointLightShadowMapImage->Create());
@@ -131,7 +131,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         const uint32 pointLightIndex = m_pointLightShadowMapIdGenerator.Next() - 1;
 
         // Cannot allocate if we ran out of IDs
-        if (pointLightIndex >= g_maxBoundPointShadowMaps)
+        if (pointLightIndex >= MaxBoundOmniShadowMaps)
         {
             m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
 

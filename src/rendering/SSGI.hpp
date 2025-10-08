@@ -84,7 +84,7 @@ private:
 
     Handle<Texture> m_resultTexture;
 
-    FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
 
     ComputePipelineRef m_computePipeline;
 

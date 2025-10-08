@@ -170,7 +170,7 @@ static inline DataStore& GetDataStore()
     }
     else
     {
-        static_assert(resolutionFailure<std::integral_constant<int, int(Flags)>>, "Cannot create DataStore with the given flags!");
+        static_assert(ResolutionFailureV<std::integral_constant<int, int(Flags)>>, "Cannot create DataStore with the given flags!");
     }
 }
 

@@ -54,8 +54,8 @@ struct EnvProbeCollection
 
     EnvProbeCollection()
     {
-        indirectIndices.Resize(g_maxBoundAmbientProbes * 2);
-        envProbes.Resize(g_maxBoundAmbientProbes);
+        indirectIndices.Resize(MaxBoundAmbientProbes * 2);
+        envProbes.Resize(MaxBoundAmbientProbes);
     }
 
     // Must be called in EnvGrid::Init(), before probes are used from the render thread.
@@ -67,8 +67,8 @@ struct EnvProbeCollection
 
     HYP_FORCE_INLINE void SetIndexOnGameThread(uint32 index, uint32 newIndex)
     {
-        Assert(index < g_maxBoundAmbientProbes);
-        Assert(newIndex < g_maxBoundAmbientProbes);
+        Assert(index < MaxBoundAmbientProbes);
+        Assert(newIndex < MaxBoundAmbientProbes);
 
         indirectIndices[index] = newIndex;
     }
@@ -90,20 +90,20 @@ struct EnvProbeCollection
 
     HYP_FORCE_INLINE void SetIndexOnRenderThread(uint32 index, uint32 newIndex)
     {
-        Assert(index < g_maxBoundAmbientProbes);
-        Assert(newIndex < g_maxBoundAmbientProbes);
+        Assert(index < MaxBoundAmbientProbes);
+        Assert(newIndex < MaxBoundAmbientProbes);
 
-        indirectIndices[g_maxBoundAmbientProbes + index] = newIndex;
+        indirectIndices[MaxBoundAmbientProbes + index] = newIndex;
     }
 
     HYP_FORCE_INLINE uint32 GetIndexOnRenderThread(uint32 index) const
     {
-        return indirectIndices[g_maxBoundAmbientProbes + index];
+        return indirectIndices[MaxBoundAmbientProbes + index];
     }
 
     HYP_FORCE_INLINE EnvProbe* GetEnvProbeOnRenderThread(uint32 index) const
     {
-        return envProbes[indirectIndices[g_maxBoundAmbientProbes + index]];
+        return envProbes[indirectIndices[MaxBoundAmbientProbes + index]];
     }
 };
 

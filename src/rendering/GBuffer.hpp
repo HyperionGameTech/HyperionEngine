@@ -37,7 +37,7 @@ enum GBufferTargetName : uint32
     GTN_MAX
 };
 
-static_assert(GTN_MAX == g_numGbufferTargets, "GTN_MAX does not match g_numGbufferTargets");
+static_assert(GTN_MAX == NumGbufferTargets, "GTN_MAX does not match NumGbufferTargets");
 
 HYP_CLASS(NoScriptBindings)
 class GBuffer : public HypObjectBase

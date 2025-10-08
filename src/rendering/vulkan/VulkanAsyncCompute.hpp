@@ -28,8 +28,8 @@ public:
     RendererResult WaitForFence(VulkanFrame* frame);
 
 private:
-    FixedArray<VulkanCommandBufferRef, g_framesInFlight> m_commandBuffers;
-    FixedArray<VulkanFenceRef, g_framesInFlight> m_fences;
+    FixedArray<VulkanCommandBufferRef, NumFramesInFlight> m_commandBuffers;
+    FixedArray<VulkanFenceRef, NumFramesInFlight> m_fences;
     bool m_isSupported;
     bool m_isFallback;
 };

@@ -239,7 +239,7 @@ void TemporalBlending::CreatePipeline()
         &m_historyTexture
     };
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         if (!m_uniformBuffers[frameIndex])
         {

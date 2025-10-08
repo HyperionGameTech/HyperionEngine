@@ -431,7 +431,7 @@ struct TypeInfo
                 result.flags |= TypeAttributeFlags::CLASS_TYPE;
             }
 
-            if constexpr (isPodType<NormalizedT>)
+            if constexpr (IsPodTypeV<NormalizedT>)
             {
                 result.flags |= TypeAttributeFlags::POD_TYPE;
             }
