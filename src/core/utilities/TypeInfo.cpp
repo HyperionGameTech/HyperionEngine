@@ -319,26 +319,26 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
     pTypeInfo->name = hypClass->GetName();
     pTypeInfo->size = uint16(hypClass->GetSize());
     pTypeInfo->alignment = uint16(hypClass->GetAlignment());
-    pTypeInfo->flags = TypeAttributeFlags::NONE;
+    pTypeInfo->flags = TypeInfoFlags::NONE;
 
     if (hypClass->IsClassType())
     {
-        pTypeInfo->flags |= TypeAttributeFlags::CLASS_TYPE;
+        pTypeInfo->flags |= TypeInfoFlags::CLASS_TYPE;
     }
 
     if (hypClass->IsStructType())
     {
-        pTypeInfo->flags |= TypeAttributeFlags::STRUCT_TYPE;
+        pTypeInfo->flags |= TypeInfoFlags::STRUCT_TYPE;
     }
 
     if (hypClass->IsEnumType())
     {
-        pTypeInfo->flags |= TypeAttributeFlags::ENUM_TYPE;
+        pTypeInfo->flags |= TypeInfoFlags::ENUM_TYPE;
     }
 
     if (hypClass->IsPodType())
     {
-        pTypeInfo->flags |= TypeAttributeFlags::POD_TYPE;
+        pTypeInfo->flags |= TypeInfoFlags::POD_TYPE;
     }
 
     return *pTypeInfo;

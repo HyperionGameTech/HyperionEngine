@@ -34,6 +34,10 @@ struct SaveAssetsAsReferencesContext
 {
 };
 
+struct LoadAssetsAsReferencesContext
+{
+};
+
 static void CollectAssetReferenceMembers(
     const HypClass* hypClass,
     Array<Pair<const IHypMember*, const IHypMember*>>& outMembers)
@@ -311,28 +315,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     Assert(hypClass != nullptr);
     Assert(target.IsValid());
 
-#if 0
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (target.GetTypeInfo()->GetHypClass() == AssetReference::Class() && hypClass->IsDerivedFrom(AssetObject::Class()))
-    {
-        // resolve asset reference to asset object
-        AssetReference& assetReference = target.Get<AssetReference>();
-        const Handle<AssetObject>& assetObject = ResolveAssetImpl(assetReference);
-
-        if (!assetObject)
-        {
-            HYP_LOG(Serialization, Warning, "Failed to resolve AssetReference for asset '{}'", assetReference.GetAssetPath().ToString());
-
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to resolve AssetReference for asset '{}'", assetReference.GetAssetPath().ToString()) };
-        }
-
-        target = HypData(assetObject);
-
-        return {};
-    }
-#endif
-#endif
-
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
 
@@ -353,6 +335,8 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
 
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hypClass->GetName());
+
+        GlobalContextScope contextScope { LoadAssetsAsReferencesContext {} };
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
@@ -382,67 +366,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     continue;
                 }
 
-                const auto assetReferenceMembersIt = assetReferenceMembersMap.Find(pMember);
-
-                if (assetReferenceMembersIt != assetReferenceMembersMap.End())
-                {
-                    const IHypMember* pTargetMember = assetReferenceMembersIt->second;
-
-                    if (pTargetMember)
-                    {
-                        AssertDebug(pMember->GetTypeId() == g_typeIdAssetReference);
-
-                        AssetReference* pAssetReference = nullptr;
-                        HypData tmpData;
-
-                        switch (pMember->GetMemberType())
-                        {
-                        case HypMemberType::TYPE_FIELD:
-                            tmpData = static_cast<const HypField*>(pMember)->Get(target);
-                            break;
-                        case HypMemberType::TYPE_PROPERTY:
-                            tmpData = static_cast<const HypProperty*>(pMember)->Get(target);
-                            break;
-                        default:
-                            HYP_UNREACHABLE();
-                            break;
-                        }
-
-                        pAssetReference = reinterpret_cast<AssetReference*>(tmpData.ToRef().GetPointer());
-
-                        if (!pAssetReference)
-                        {
-                            HYP_LOG(Serialization, Warning, "Failed to get AssetReference for member '{}' on object of HypClass '{}'", pMember->GetName(), hypClass->GetName());
-
-                            continue;
-                        }
-
-                        Handle<AssetObject> assetObject = ResolveAssetImpl(*pAssetReference);
-
-                        if (!assetObject)
-                        {
-                            HYP_LOG(Serialization, Warning, "Failed to resolve AssetReference for member '{}' on object of HypClass '{}'", pMember->GetName(), hypClass->GetName());
-
-                            continue;
-                        }
-
-                        switch (pTargetMember->GetMemberType())
-                        {
-                        case HypMemberType::TYPE_FIELD:
-                            static_cast<const HypField*>(pTargetMember)->Set(target, HypData(std::move(assetObject)));
-                            break;
-                        case HypMemberType::TYPE_PROPERTY:
-                            static_cast<const HypProperty*>(pTargetMember)->Set(target, HypData(std::move(assetObject)));
-                            break;
-                        default:
-                            HYP_UNREACHABLE();
-                            break;
-                        }
-
-                        continue;
-                    }
-                }
-
                 if (Result deserializeResult = pMember->Deserialize(context, target, it.second); deserializeResult.HasError())
                 {
                     return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}': {}", pMember->GetName(), hypClass->GetName(), deserializeResult.GetError().GetMessage()) };
@@ -454,6 +377,26 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
             }
         }
     }
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    if (IsGlobalContextActive<LoadAssetsAsReferencesContext>() && target.GetTypeInfo()->GetHypClass() == AssetReference::Class())
+    {
+        // resolve asset reference to asset object
+        AssetReference& assetReference = target.Get<AssetReference>();
+        const Handle<AssetObject>& assetObject = ResolveAssetImpl(assetReference);
+
+        if (assetObject)
+        {
+            target = HypData(assetObject);
+
+            return {};
+        }
+
+        HYP_LOG(Serialization, Warning, "Failed to resolve AssetReference for asset '{}'", assetReference.GetAssetPath().ToString());
+
+        return {};
+    }
+#endif
 
     hypClass->PostLoad(target.ToRef().GetPointer());
 

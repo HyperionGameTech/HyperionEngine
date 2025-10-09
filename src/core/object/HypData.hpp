@@ -358,7 +358,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", LookupTypeName(TypeId::ForType<T>()), *TypeInfo_GetName(*GetTypeInfo()));
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, false>::Type;
@@ -391,7 +391,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", LookupTypeName(TypeId::ForType<T>()), *TypeInfo_GetName(*GetTypeInfo()));
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, true>::Type;
@@ -1752,12 +1752,7 @@ struct HypDataHelper<containers::String<StringType>> : HypDataHelper<Any>
         return value.Is<containers::String<StringType>>();
     }
 
-    HYP_FORCE_INLINE containers::String<StringType>& Get(Any& value) const
-    {
-        return value.Get<containers::String<StringType>>();
-    }
-
-    HYP_FORCE_INLINE const containers::String<StringType>& Get(const Any& value) const
+    HYP_FORCE_INLINE containers::String<StringType>& Get(const Any& value) const
     {
         return value.Get<containers::String<StringType>>();
     }

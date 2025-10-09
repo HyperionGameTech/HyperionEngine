@@ -271,7 +271,7 @@ bool HypDataToJSON(
 
         ITypeInfoArrayHandler* handler = static_cast<ITypeInfoArrayHandler*>(typeInfo.extendedInfo.handler);
 
-        const SizeType size = handler->GetSize(value.ToRef());
+        const SizeType size = handler->GetSize(value);
 
         json::JSONArray jsonArray;
         jsonArray.Reserve(size);
@@ -279,7 +279,7 @@ bool HypDataToJSON(
         for (SizeType i = 0; i < size; i++)
         {
             HypData element;
-            if (!handler->GetElementAt(value.ToRef(), i, element))
+            if (!handler->GetElementAt(value, i, element))
             {
                 HYP_LOG(Core, Warning, "Failed to get element at index {} of array of type {}", i, typeInfo.name);
                 continue;
@@ -307,54 +307,48 @@ bool HypDataToJSON(
         return true;
     }
 
-#if 0
-    if (typeInfo.id == TypeId::ForType<GenericArrayWrapper>())
+    if (typeInfo.IsEnum() || typeInfo.IsEnumFlags())
     {
-        GenericArrayWrapper& array = value.Get<GenericArrayWrapper>();
+        const TypeInfo* underlyingTypeInfo = typeInfo.GetElementType();
+        AssertDebug(underlyingTypeInfo != nullptr, "Enum type must have an underlying type");
 
-        if (!array.CanGetElementByIndex())
+        constexpr int64 MaxDblValue = (1LL << 53) - 1;
+        constexpr uint64 MaxDblValueUnsigned = (1ULL << 53) - 1;
+
+        if (underlyingTypeInfo->id == TypeId::ForType<uint8>()
+            || underlyingTypeInfo->id == TypeId::ForType<uint16>()
+            || underlyingTypeInfo->id == TypeId::ForType<uint32>()
+            || underlyingTypeInfo->id == TypeId::ForType<uint64>())
         {
-            HYP_LOG(Core, Warning, "Cannot iterate over {}: not indexable", typeInfo.name);
-            return false;
+
+            if (value.Get<uint64>() > MaxDblValueUnsigned)
+            {
+                HYP_LOG(Core, Warning, "Enum value {} of type {} is too large to be represented as a JSON number without loss of precision", value.Get<uint64>(), typeInfo.name);
+            }
+
+            outJson = json::JSONNumber(value.Get<uint64>());
+
+            return true;
+        }
+        else if (underlyingTypeInfo->id == TypeId::ForType<int8>()
+            || underlyingTypeInfo->id == TypeId::ForType<int16>()
+            || underlyingTypeInfo->id == TypeId::ForType<int32>()
+            || underlyingTypeInfo->id == TypeId::ForType<int64>())
+        {
+            if (value.Get<int64>() > MaxDblValue || value.Get<int64>() < -MaxDblValue)
+            {
+                HYP_LOG(Core, Warning, "Enum value {} of type {} is too large to be represented as a JSON number without loss of precision", value.Get<int64>(), typeInfo.name);
+            }
+
+            outJson = json::JSONNumber(value.Get<int64>());
+
+            return true;
         }
 
-        const SizeType size = array.Size();
+        HYP_LOG(Core, Warning, "Enum type {} has unsupported underlying type {}", typeInfo.name, underlyingTypeInfo->name);
 
-        json::JSONArray jsonArray;
-        jsonArray.Reserve(size);
-
-        for (SizeType i = 0; i < size; i++)
-        {
-            HypData element;
-
-            if (!array.GetElementAt(i, element))
-            {
-                HYP_LOG(Core, Warning, "Failed to get element at index {} of array of type {}", i, typeInfo.name);
-                continue;
-            }
-
-            ToJSONOptions newOpts = opts;
-            newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
-
-            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && array.elementTypeId != element.GetTypeId())
-            {
-                newOpts.writeClassNames = true;
-            }
-
-            json::JSONValue jsonValue;
-            if (!HypDataToJSON(element, jsonValue, newOpts))
-            {
-                return false;
-            }
-
-            jsonArray.PushBack(std::move(jsonValue));
-        }
-
-        outJson = std::move(jsonArray);
-
-        return true;
+        return false;
     }
-#endif
 
     const HypClass* hypClass = GetClass(value.GetTypeId());
 
@@ -460,6 +454,12 @@ bool ObjectToJSON(
                 {
                     continue;
                 }
+            }
+
+            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
+            {
+                //  skip fields that are marked as properties otherwise they will be serialized twice
+                continue;
             }
 
             if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
@@ -717,11 +717,17 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
     // resolve data from json object to members by name
     for (const auto& [key, value] : jsonObject)
     {
-        const IHypMember* member = hypClass->GetMember(key);
+        const IHypMember* member = hypClass->GetMember(key, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
         if (!member)
         {
             // member not found, skip
+            continue;
+        }
+
+        if (member->GetMemberType() != HypMemberType::TYPE_PROPERTY && member->GetAttribute("property").IsValid())
+        {
+            //  skip fields that are marked as properties
             continue;
         }
 
@@ -938,16 +944,83 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoStringHandler* stringHandler = static_cast<ITypeInfoStringHandler*>(handler);
 
-        Any stringInstance;
+        HypData stringInstance;
         if (!stringHandler->CreateInstance(stringInstance))
         {
             HYP_LOG(Core, Warning, "Failed to create instance of string type");
             return false;
         }
 
-        stringHandler->SetValue(stringInstance.ToRef(), *jsonValue.AsString());
+        stringHandler->SetValue(stringInstance, *jsonValue.AsString());
+
+        outHypData = std::move(stringInstance);
 
         return true;
+    }
+
+    if (typeInfo.IsEnum() || typeInfo.IsEnumFlags())
+    {
+        const TypeInfo* underlyingTypeInfo = typeInfo.GetElementType();
+        AssertDebug(underlyingTypeInfo != nullptr, "Enum type must have an underlying type");
+
+        if (!underlyingTypeInfo)
+        {
+            HYP_LOG(Core, Warning, "Enum type {} does not have a valid underlying type", typeInfo.name);
+            return false;
+        }
+
+        if (jsonValue.IsNumber())
+        {
+            if (underlyingTypeInfo->id == TypeId::ForType<int8>())
+            {
+                outHypData = HypData(jsonValue.ToInt8());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<int16>())
+            {
+                outHypData = HypData(jsonValue.ToInt16());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<int32>())
+            {
+                outHypData = HypData(jsonValue.ToInt32());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<int64>())
+            {
+                outHypData = HypData(jsonValue.ToInt64());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<uint8>())
+            {
+                outHypData = HypData(jsonValue.ToUInt8());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<uint16>())
+            {
+                outHypData = HypData(jsonValue.ToUInt16());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<uint32>())
+            {
+                outHypData = HypData(jsonValue.ToUInt32());
+                return true;
+            }
+            else if (underlyingTypeInfo->id == TypeId::ForType<uint64>())
+            {
+                outHypData = HypData(jsonValue.ToUInt64());
+                return true;
+            }
+            else
+            {
+                HYP_LOG(Core, Warning, "Enum type {} has unsupported underlying type {}", typeInfo.name, underlyingTypeInfo->name);
+                return false;
+            }
+        }
+
+        // @TODO String representation of enum values
+
+        return false;
     }
 
     if (typeInfo.id == TypeId::ForType<Uuid>())
@@ -994,7 +1067,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoVectorHandler* vectorHandler = static_cast<ITypeInfoVectorHandler*>(handler);
 
-        Any vectorInstance;
+        HypData vectorInstance;
         if (!vectorHandler->CreateInstance(vectorInstance))
         {
             return false;
@@ -1027,10 +1100,10 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            vectorHandler->SetComponent(vectorInstance.ToRef(), i, elementData.ToRef());
+            vectorHandler->SetComponent(vectorInstance, i, elementData);
         }
 
-        outHypData = HypData(std::move(vectorInstance));
+        outHypData = std::move(vectorInstance);
 
         return true;
     }
@@ -1064,14 +1137,14 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
         ITypeInfoArrayHandler* arrayHandler = static_cast<ITypeInfoArrayHandler*>(handler);
 
-        Any arrayInstance;
+        HypData arrayInstance;
         if (!arrayHandler->CreateInstance(arrayInstance))
         {
             HYP_LOG(Core, Warning, "Failed to create instance of array type {}", typeInfo.name);
             return false;
         }
 
-        arrayHandler->Resize(arrayInstance.ToRef(), jsonArray.Size());
+        arrayHandler->Resize(arrayInstance, jsonArray.Size());
 
         for (SizeType i = 0; i < jsonArray.Size(); i++)
         {
@@ -1090,14 +1163,14 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 return false;
             }
 
-            if (!arrayHandler->SetElementAt(arrayInstance.ToRef(), i, std::move(elementData)))
+            if (!arrayHandler->SetElementAt(arrayInstance, i, std::move(elementData)))
             {
                 HYP_LOG(Core, Warning, "Failed to set array element at index {} for type: {}", i, typeInfo.name);
                 return false;
             }
         }
 
-        outHypData = HypData(std::move(arrayInstance));
+        outHypData = std::move(arrayInstance);
 
         return true;
     }

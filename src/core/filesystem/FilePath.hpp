@@ -22,10 +22,9 @@ namespace filesystem {
 
 class FilePath : public String
 {
-protected:
+public:
     using Base = String;
 
-public:
     FilePath()
         : String()
     {

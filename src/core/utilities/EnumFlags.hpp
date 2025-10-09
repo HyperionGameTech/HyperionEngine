@@ -10,10 +10,10 @@
 
 namespace hyperion {
 
-template <class Enum>
+template <class T>
 struct EnumFlagsDecl
 {
-    static constexpr bool isEnumFlags = false;
+    static constexpr bool IsEnumFlags = false;
 };
 
 template <class Enum>
@@ -252,9 +252,22 @@ struct EnumFlags
     }
 };
 
+template <class T>
+struct IsEnumFlags : std::false_type
+{
+};
+
+template <class T>
+struct IsEnumFlags<EnumFlags<T>> : std::true_type
+{
+};
+
+template <class T>
+inline constexpr bool IsEnumFlagsV = IsEnumFlags<T>::value;
+
 // Unary ~
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator~(Enum lhs)
 {
     return EnumFlags<Enum>(~static_cast<typename EnumFlags<Enum>::UnderlyingType>(lhs));
@@ -262,55 +275,55 @@ constexpr EnumFlags<Enum> operator~(Enum lhs)
 
 // Binary bitwise operators
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator|(Enum lhs, EnumFlags<Enum> rhs)
 {
     return EnumFlags<Enum>(lhs) | rhs;
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator|(Enum lhs, Enum rhs)
 {
     return EnumFlags<Enum>(lhs) | EnumFlags<Enum>(rhs);
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 EnumFlags<Enum>& operator|=(EnumFlags<Enum> lhs, Enum rhs)
 {
     return lhs |= EnumFlags<Enum>(rhs);
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator&(Enum lhs, EnumFlags<Enum> rhs)
 {
     return EnumFlags<Enum>(lhs) & rhs;
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator&(Enum lhs, Enum rhs)
 {
     return EnumFlags<Enum>(lhs) & EnumFlags<Enum>(rhs);
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 EnumFlags<Enum>& operator&=(EnumFlags<Enum> lhs, Enum rhs)
 {
     return lhs &= EnumFlags<Enum>(rhs);
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator^(Enum lhs, EnumFlags<Enum> rhs)
 {
     return EnumFlags<Enum>(lhs) ^ rhs;
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 constexpr EnumFlags<Enum> operator^(Enum lhs, Enum rhs)
 {
     return EnumFlags<Enum>(lhs) ^ EnumFlags<Enum>(rhs);
 }
 
-template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::isEnumFlags>>
+template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::IsEnumFlags>>
 EnumFlags<Enum>& operator^=(EnumFlags<Enum> lhs, Enum rhs)
 {
     return lhs ^= EnumFlags<Enum>(rhs);
@@ -338,7 +351,7 @@ struct MergeEnumFlags
     template <>                                   \
     struct EnumFlagsDecl<_enum>                   \
     {                                             \
-        static constexpr bool isEnumFlags = true; \
+        static constexpr bool IsEnumFlags = true; \
     };                                            \
     }
 
@@ -346,5 +359,5 @@ struct MergeEnumFlags
     template <>                                   \
     struct ::hyperion::EnumFlagsDecl<_enum>       \
     {                                             \
-        static constexpr bool isEnumFlags = true; \
+        static constexpr bool IsEnumFlags = true; \
     };
