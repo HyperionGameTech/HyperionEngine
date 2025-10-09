@@ -419,7 +419,7 @@ struct TypeInfo
         return id != TypeId::Void();
     }
 
-    static const TypeInfo& ForHypClass(const HypClass* hypClass);
+    HYP_API static const TypeInfo& ForHypClass(const HypClass* hypClass);
 
     template <class T>
     static const TypeInfo& ForType()

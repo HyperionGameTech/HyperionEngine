@@ -9,6 +9,8 @@
 
 #include <core/object/Handle.hpp>
 
+#include <core/utilities/TypeInfoFwd.hpp>
+
 #include <core/Constants.hpp>
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -18,6 +20,7 @@
 namespace hyperion {
 
 class HypObjectBase;
+struct HypData;
 
 template <class T>
 class HypClassInstance;
@@ -79,7 +82,7 @@ protected:
      *  \param ref The instance to deserialize into.
      *  \return The result of the deserialization.
      */
-    virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, AnyRef ref) const;
+    virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, HypData& target) const;
 };
 
 } // namespace hyperion::serialization

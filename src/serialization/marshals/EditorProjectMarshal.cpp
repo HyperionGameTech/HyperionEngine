@@ -38,13 +38,12 @@ public:
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Handle<EditorProject> editorProject = CreateObject<EditorProject>();
+        out = HypData(editorProject);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, EditorProject::Class(), AnyRef(*editorProject)))
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, EditorProject::Class(), out))
         {
             return err;
         }
-
-        out = HypData(std::move(editorProject));
 
         return { FBOMResult::FBOM_OK };
     }

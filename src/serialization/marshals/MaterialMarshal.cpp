@@ -209,9 +209,10 @@ public:
         }
 #endif
 
-        Handle<Material> materialHandle = CreateObject<Material>();
+        Handle<Material> material = CreateObject<Material>();
+        HypData materialData = HypData(material);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Material::Class(), AnyRef(*materialHandle)))
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Material::Class(), materialData))
         {
             HYP_LOG_TEMP("Error deserializing Material instance: {}", err.message);
             HYP_BREAKPOINT;
@@ -219,14 +220,15 @@ public:
         }
         
         Handle<Material> newMaterial = g_materialSystem->GetOrCreate(
-            materialHandle->GetName(),
-            materialHandle->GetRenderAttributes(),
-            materialHandle->GetParameters(),
-            materialHandle->GetTextures()
+            material->GetName(),
+            material->GetRenderAttributes(),
+            material->GetParameters(),
+            material->GetTextures()
         );
-        materialHandle.Reset();
+        material.Reset();
 
-        out = HypData(std::move(newMaterial));
+        materialData = HypData(std::move(newMaterial));
+        out = std::move(materialData);
 
         return { FBOMResult::FBOM_OK };
     }

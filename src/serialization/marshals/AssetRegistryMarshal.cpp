@@ -47,9 +47,10 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        Handle<AssetRegistry> assetRegistryHandle = CreateObject<AssetRegistry>();
+        Handle<AssetRegistry> assetRegistry = CreateObject<AssetRegistry>();
+        out = HypData(assetRegistry);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetRegistry::Class(), AnyRef(*assetRegistryHandle)))
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetRegistry::Class(), out))
         {
             return err;
         }
@@ -71,9 +72,7 @@ public:
             }
         }
 
-        assetRegistryHandle->SetPackages(packages);
-
-        out = HypData(std::move(assetRegistryHandle));
+        assetRegistry->SetPackages(packages);
 
         return { FBOMResult::FBOM_OK };
     }

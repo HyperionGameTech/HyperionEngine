@@ -90,7 +90,7 @@ public:
             return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of HypClass {}", hypClass->GetName()) };
         }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, hypClass, out.ToRef()))
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, hypClass, out))
         {
             return err;
         }

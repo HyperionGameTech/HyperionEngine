@@ -28,7 +28,7 @@ struct alignas(16) HYP_API Transform
     HYP_FIELD()
     Quaternion rotation;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Matrix4 matrix;
 
     Transform();

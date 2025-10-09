@@ -34,8 +34,6 @@
 
 namespace hyperion::serialization {
 
-HYP_DISABLE_OPTIMIZATION;
-
 class EntityMarshal : public HypClassInstanceMarshal
 {
 public:
@@ -182,8 +180,9 @@ public:
         }
 
         const Handle<Entity>& entity = out.Get<Handle<Entity>>();
+        HypData entityData = HypData(entity);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, in.GetHypClass(), entity.ToRef()))
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, in.GetHypClass(), entityData))
         {
             return err;
         }
@@ -307,14 +306,12 @@ public:
             entityManager->AddComponent(entity, *child.m_deserializedObject);
         }
 
-        out = HypData(entity);
+        out = std::move(entityData);
 
         return { FBOMResult::FBOM_OK };
     }
 };
 
 HYP_DEFINE_MARSHAL(Entity, EntityMarshal);
-
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion::serialization

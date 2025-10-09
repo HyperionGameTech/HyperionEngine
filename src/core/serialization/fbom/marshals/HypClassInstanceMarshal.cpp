@@ -286,50 +286,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeId: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
     }
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    // Handle deserialization of AssetObject types that were serialized as AssetReference
-    // Check if we're trying to deserialize an AssetReference but the expected type is an AssetObject
-    if (hypClass->IsDerivedFrom(AssetReference::Class()))
-    {
-        // First, create and deserialize the AssetReference
-        if (!hypClass->CreateInstance(out))
-        {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
-        }
-
-        AnyRef ref = out.ToRef();
-        HYP_CORE_ASSERT(ref.HasValue(), "Failed to create HypClass instance");
-
-        // Deserialize the AssetReference normally
-        if (FBOMResult res = Deserialize_Internal(context, in, hypClass, ref); !res.IsOK())
-        {
-            return res;
-        }
-
-        // Check if the context expects this to be resolved to an AssetObject
-        // (This allows the caller to request the AssetReference or the resolved object)
-        const TypeId expectedTypeId = out.GetTypeId();
-
-        if (expectedTypeId != TypeId::ForType<AssetReference>())
-        {
-            // The caller expects an AssetObject, not an AssetReference
-            // Resolve the AssetReference and replace the output
-            const AssetReference& assetReference = out.Get<AssetReference>();
-            Handle<AssetObject> assetObject = ResolveAssetImpl(assetReference);
-
-            if (!assetObject)
-            {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize AssetObject, failed to resolve AssetReference to asset '{}'", assetReference.GetAssetPath().ToString()) };
-            }
-
-            // Replace the output with the resolved AssetObject
-            out = HypData(assetObject);
-        }
-
-        return { FBOMResult::FBOM_OK };
-    }
-#endif
-
     if (!hypClass->CreateInstance(out))
     {
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
@@ -347,16 +303,35 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
         return hypStruct->DeserializeStruct(context, in, out);
     }
 
-    AnyRef ref = out.ToRef();
-    HYP_CORE_ASSERT(ref.HasValue(), "Failed to create HypClass instance");
-
-    return Deserialize_Internal(context, in, hypClass, ref);
+    return Deserialize_Internal(context, in, hypClass, out);
 }
 
-FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, AnyRef ref) const
+FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hypClass, HypData& target) const
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
-    HYP_CORE_ASSERT(ref.HasValue());
+    Assert(hypClass != nullptr);
+    Assert(target.IsValid());
+
+#if 0
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    if (target.GetTypeInfo()->GetHypClass() == AssetReference::Class() && hypClass->IsDerivedFrom(AssetObject::Class()))
+    {
+        // resolve asset reference to asset object
+        AssetReference& assetReference = target.Get<AssetReference>();
+        const Handle<AssetObject>& assetObject = ResolveAssetImpl(assetReference);
+
+        if (!assetObject)
+        {
+            HYP_LOG(Serialization, Warning, "Failed to resolve AssetReference for asset '{}'", assetReference.GetAssetPath().ToString());
+
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to resolve AssetReference for asset '{}'", assetReference.GetAssetPath().ToString()) };
+        }
+
+        target = HypData(assetObject);
+
+        return {};
+    }
+#endif
+#endif
 
     HashSet<const IHypMember*> assetReferenceTargetMembersMap;
     HashMap<const IHypMember*, const IHypMember*> assetReferenceMembersMap;
@@ -423,10 +398,10 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                         switch (pMember->GetMemberType())
                         {
                         case HypMemberType::TYPE_FIELD:
-                            tmpData = static_cast<const HypField*>(pMember)->Get(HypData(AnyRef(ref)));
+                            tmpData = static_cast<const HypField*>(pMember)->Get(target);
                             break;
                         case HypMemberType::TYPE_PROPERTY:
-                            tmpData = static_cast<const HypProperty*>(pMember)->Get(HypData(AnyRef(ref)));
+                            tmpData = static_cast<const HypProperty*>(pMember)->Get(target);
                             break;
                         default:
                             HYP_UNREACHABLE();
@@ -451,15 +426,13 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                             continue;
                         }
 
-                        HypData targetData { AnyRef(ref) };
-
                         switch (pTargetMember->GetMemberType())
                         {
                         case HypMemberType::TYPE_FIELD:
-                            static_cast<const HypField*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
+                            static_cast<const HypField*>(pTargetMember)->Set(target, HypData(std::move(assetObject)));
                             break;
                         case HypMemberType::TYPE_PROPERTY:
-                            static_cast<const HypProperty*>(pTargetMember)->Set(targetData, HypData(std::move(assetObject)));
+                            static_cast<const HypProperty*>(pTargetMember)->Set(target, HypData(std::move(assetObject)));
                             break;
                         default:
                             HYP_UNREACHABLE();
@@ -470,9 +443,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     }
                 }
 
-                HypData targetData { AnyRef(ref) };
-
-                if (Result deserializeResult = pMember->Deserialize(context, targetData, it.second); deserializeResult.HasError())
+                if (Result deserializeResult = pMember->Deserialize(context, target, it.second); deserializeResult.HasError())
                 {
                     return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}': {}", pMember->GetName(), hypClass->GetName(), deserializeResult.GetError().GetMessage()) };
                 }
@@ -484,7 +455,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
         }
     }
 
-    hypClass->PostLoad(ref.GetPointer());
+    hypClass->PostLoad(target.ToRef().GetPointer());
 
     return { FBOMResult::FBOM_OK };
 }

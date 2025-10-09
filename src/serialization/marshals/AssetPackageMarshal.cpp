@@ -52,10 +52,10 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        Handle<AssetPackage> assetPackageHandle = CreateObject<AssetPackage>();
-        HYP_BREAKPOINT;
+        Handle<AssetPackage> assetPackage = CreateObject<AssetPackage>();
+        out = HypData(assetPackage);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetPackage::Class(), AnyRef(*assetPackageHandle)))
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetPackage::Class(), out))
         {
             return err;
         }
@@ -79,9 +79,7 @@ public:
             }
         }
 
-        assetPackageHandle->SetSubpackages(packages);
-
-        out = HypData(std::move(assetPackageHandle));
+        assetPackage->SetSubpackages(packages);
 
         return { FBOMResult::FBOM_OK };
     }
