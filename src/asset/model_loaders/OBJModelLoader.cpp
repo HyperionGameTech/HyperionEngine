@@ -32,9 +32,9 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-constexpr bool createObjIndices = true;
-constexpr bool meshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
-constexpr bool loadMaterials = true;
+constexpr bool CreateObjIndices = true;
+constexpr bool MeshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
+constexpr bool LoadMaterials = true;
 
 using Tokens = Array<String>;
 
@@ -289,7 +289,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
 
                 activeMaterial = tokens[1];
 
-                if constexpr (meshPerMaterial)
+                if constexpr (MeshPerMaterial)
                 {
                     AddMesh(model, activeMaterial, activeMaterial);
                 }
@@ -311,7 +311,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
     Handle<MaterialGroup> materialLibrary;
 
-    if (loadMaterials && !model.materialLibrary.Empty())
+    if (LoadMaterials && !model.materialLibrary.Empty())
     {
         String materialLibraryPath = String(FileSystem::RelativePath(
             (String(StringUtil::BasePath(model.filepath.Data()).c_str()) + "/" + model.materialLibrary).Data(),
@@ -359,7 +359,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
             {
                 const auto it = indexMap.Find(objIndex);
 
-                if (createObjIndices)
+                if (CreateObjIndices)
                 {
                     if (it != indexMap.End())
                     {

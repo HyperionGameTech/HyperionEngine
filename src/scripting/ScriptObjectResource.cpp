@@ -128,14 +128,14 @@ ScriptLanguage ScriptObjectResource::GetScriptLanguage() const
 #if !defined(HYP_DOTNET) && !defined(HYP_SCRIPT)
     return SL_INVALID;
 #else
-    ScriptLanguage lang = SL_INVALID;
+    ScriptLanguage language = SL_INVALID;
 
-    Visit(m_scriptObjectData, [&lang](auto&& data)
+    Visit(m_scriptObjectData, [&language](auto&& data)
         {
-            lang = data.lang;
+            language = data.Language;
         });
 
-    return lang;
+    return language;
 #endif
 }
 

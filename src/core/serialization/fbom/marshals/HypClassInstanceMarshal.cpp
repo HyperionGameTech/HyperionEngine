@@ -34,7 +34,7 @@ struct SaveAssetsAsReferencesContext
 {
 };
 
-struct LoadAssetsAsReferencesContext
+struct LoadAssetsFromReferencesContext
 {
 };
 
@@ -336,7 +336,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hypClass->GetName());
 
-        GlobalContextScope contextScope { LoadAssetsAsReferencesContext {} };
+        GlobalContextScope contextScope { LoadAssetsFromReferencesContext {} };
 
         for (const KeyValuePair<ANSIString, FBOMData>& it : in.GetProperties())
         {
@@ -379,7 +379,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (IsGlobalContextActive<LoadAssetsAsReferencesContext>() && target.GetTypeInfo()->GetHypClass() == AssetReference::Class())
+    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.GetTypeInfo()->GetHypClass() == AssetReference::Class())
     {
         // resolve asset reference to asset object
         AssetReference& assetReference = target.Get<AssetReference>();

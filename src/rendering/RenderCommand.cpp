@@ -72,7 +72,7 @@ RendererResult RenderCommands::Flush()
 #endif
 
         const RendererResult commandResult = front->Call();
-        HYP_GFX_ASSERT(commandResult, "Render command error! [%d]: %s\n", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage().Data());
+        HYP_GFX_ASSERT(commandResult, "Render command error! [%d]: %s\n", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage());
         front->~RenderCommand();
     }
 
@@ -109,7 +109,7 @@ RendererResult RenderCommands::Flush()
 #endif
 
         const RendererResult commandResult = front->Call();
-        HYP_GFX_ASSERT(commandResult, "Render command error! [%d]: %s\n", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage().Data());
+        HYP_GFX_ASSERT(commandResult, "Render command error! [%d]: %s\n", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage());
 
         front->~RenderCommand();
     }

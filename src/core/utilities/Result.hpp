@@ -21,57 +21,117 @@
 namespace hyperion {
 namespace utilities {
 
-// @TODO: Global, thread-local Stack<T> of IError*.
-// Will be needed to change Result to hold ptr to IError.
-// This is necessary for C# interop with Result.
+class Error;
 
-class IError;
+HYP_API extern const Error& GetNullError();
 
-HYP_API extern const IError& GetNullError();
-
-class IError
-{
-public:
-    virtual ~IError() = default;
-
-    virtual const String& GetMessage() const = 0;
-    virtual ANSIStringView GetFunctionName() const = 0;
-};
-
-HYP_STRUCT(Size = 128)
-class Error : public IError
+HYP_STRUCT(Size = 16)
+class Error
 {
     HYP_STRUCT_BODY(Error);
 
 public:
     Error()
-        : m_message(String::empty),
+        : m_message(nullptr),
           m_currentFunction("<unknown>")
     {
     }
 
     template <auto FormatString, class... Args>
     Error(const StaticMessage& currentFunction, ValueWrapper<FormatString>, Args&&... args)
-        : m_message(Format<FormatString>(std::forward<Args>(args)...)),
-          m_currentFunction(currentFunction.value)
+        : m_currentFunction(currentFunction.value)
     {
+        String message = Format<FormatString>(std::forward<Args>(args)...);
+        m_message = new char[message.Size() + 1];
+        Memory::StrCpy(m_message, message.Data(), message.Size() + 1);
+        m_message[message.Size()] = '\0';
     }
 
-    virtual ~Error() override = default;
-
-    virtual const String& GetMessage() const override
+    Error(const Error& other)
+        : m_message(nullptr),
+          m_currentFunction(other.m_currentFunction)
     {
-        return m_message;
+        if (other.m_message != nullptr)
+        {
+            m_message = new char[Memory::StrLen(other.m_message) + 1];
+            Memory::StrCpy(m_message, other.m_message, Memory::StrLen(other.m_message) + 1);
+        }
     }
 
-    virtual ANSIStringView GetFunctionName() const override
+    Error& operator=(const Error& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if (m_message != nullptr)
+        {
+            delete[] m_message;
+            m_message = nullptr;
+        }
+
+        m_currentFunction = other.m_currentFunction;
+
+        if (other.m_message != nullptr)
+        {
+            m_message = new char[Memory::StrLen(other.m_message) + 1];
+            Memory::StrCpy(m_message, other.m_message, Memory::StrLen(other.m_message) + 1);
+        }
+
+        return *this;
+    }
+
+    Error(Error&& other) noexcept
+        : m_message(other.m_message),
+          m_currentFunction(other.m_currentFunction)
+    {
+        other.m_message = nullptr;
+        other.m_currentFunction = "<unknown>";
+    }
+
+    Error& operator=(Error&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if (m_message != nullptr)
+        {
+            delete[] m_message;
+        }
+
+        m_message = other.m_message;
+        m_currentFunction = other.m_currentFunction;
+
+        other.m_message = nullptr;
+        other.m_currentFunction = "<unknown>";
+
+        return *this;
+    }
+
+    ~Error()
+    {
+        if (m_message != nullptr)
+        {
+            delete[] m_message;
+        }
+    }
+
+    const char* GetMessage() const
+    {
+        return m_message ? m_message : "";
+    }
+
+    const char* GetFunctionName() const
     {
         return m_currentFunction;
     }
 
 protected:
-    String m_message;
-    ANSIStringView m_currentFunction;
+    char* m_message;                // owned
+    const char* m_currentFunction;  // not owned
 };
 
 #define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(HYP_FUNCTION_NAME_LIT), ValueWrapper<HYP_STATIC_STRING(message)>(), ##__VA_ARGS__)
@@ -86,7 +146,7 @@ template <class T, class ErrorType>
 class TResult
 {
 public:
-    static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
+    static_assert(std::is_base_of_v<Error, ErrorType>, "ErrorType must be a subclass of Error");
 
     // friend decl
     template <class OtherT, class OtherErrorType>
@@ -370,7 +430,7 @@ template <class ErrorType>
 class TResult<void, ErrorType>
 {
 public:
-    static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
+    static_assert(std::is_base_of_v<Error, ErrorType>, "ErrorType must be a subclass of Error");
 
     TResult() = default;
 
@@ -533,7 +593,6 @@ public:
 
 using utilities::Error;
 using utilities::GetNullError;
-using utilities::IError;
 using utilities::Result;
 using utilities::TResult;
 

@@ -28,14 +28,14 @@ private:
     ScriptObjectData_Dummy() = default;
 
 public:
-    static constexpr ScriptLanguage lang = SL_INVALID;
+    static constexpr ScriptLanguage Language = SL_INVALID;
 };
 
 #ifdef HYP_DOTNET
 
 struct ScriptObjectData_DotNet final
 {
-    static constexpr ScriptLanguage lang = SL_CSHARP;
+    static constexpr ScriptLanguage Language = SL_CSHARP;
 
     dotnet::Object* objectPtr = nullptr;
     RC<dotnet::Class> managedClass = nullptr;
@@ -46,7 +46,7 @@ struct ScriptObjectData_DotNet final
 #ifdef HYP_SCRIPT
 struct ScriptObjectData_HypScript final
 {
-    static constexpr ScriptLanguage lang = SL_HYPSCRIPT;
+    static constexpr ScriptLanguage Language = SL_HYPSCRIPT;
 
     Script_Instance* instance = nullptr;
     HypData obj;

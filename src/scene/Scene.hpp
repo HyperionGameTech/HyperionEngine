@@ -67,7 +67,7 @@ public:
     {
     }
 
-    virtual ~SceneValidationError() override = default;
+    ~SceneValidationError() = default;
 };
 
 using SceneValidationResult = TResult<void, SceneValidationError>;

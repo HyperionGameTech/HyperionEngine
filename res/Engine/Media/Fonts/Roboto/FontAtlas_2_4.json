@@ -7,13 +7,10 @@
     "MagFilterMode": 0,
     "TextureWrapMode": 0,
     "NumLayers": 1,
-    "ImageUsage": 1,
-    "FilterModeMin": 0,
-    "FilterModeMag": 0,
-    "WrapMode": 0
+    "ImageUsage": 1
   },
   "FriendlyName": "FontAtlas24",
-  "Uuid": "2041bfe9-6061-4b7e-913f-190f9d638350",
+  "Uuid": "84601391-cf49-4a8b-8d0c-5cbd06ff3c76",
   "Name": "FontAtlas_2_4",
   "Flags": 1,
   "OriginalFilepath": "",

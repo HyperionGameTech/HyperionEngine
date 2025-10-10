@@ -7,13 +7,10 @@
     "MagFilterMode": 0,
     "TextureWrapMode": 0,
     "NumLayers": 1,
-    "ImageUsage": 3,
-    "FilterModeMin": 0,
-    "FilterModeMag": 0,
-    "WrapMode": 0
+    "ImageUsage": 3
   },
   "FriendlyName": "PlaceholderTexture2D1x1R8Array",
-  "Uuid": "18686f6c-9bc9-4c7c-a026-3f5fd156cfd7",
+  "Uuid": "440aecbe-5965-496e-afc9-90dbd9620dd4",
   "Name": "Placeholder_Texture_2D_1x1_R8_Array",
   "Flags": 0,
   "OriginalFilepath": "",

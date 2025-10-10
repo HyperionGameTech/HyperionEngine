@@ -273,13 +273,13 @@ enum ScrollAxis : uint8
 
 HYP_MAKE_ENUM_FLAGS(ScrollAxis)
 
-static constexpr int g_scrollAxisIndices[4] = {
+static constexpr int ScrollAxisIndices[4] = {
     -1, 0, 1, -1
 };
 
 static constexpr inline int ScrollAxisToIndex(ScrollAxis axis)
 {
-    return g_scrollAxisIndices[uint8(axis)];
+    return ScrollAxisIndices[uint8(axis)];
 }
 
 HYP_STRUCT()

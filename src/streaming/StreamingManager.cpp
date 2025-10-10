@@ -667,7 +667,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
 void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layerData, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& outCellCoords) const
 {
-    constexpr Vec2i cellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+    constexpr Vec2i CellNeighborDirections[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 
     const WorldGridLayerInfo& layerInfo = layerData.layer->GetLayerInfo();
 
@@ -700,7 +700,7 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layerData,
 
         outCellCoords.Insert(Vec2i(current));
 
-        for (const Vec2i dir : cellNeighborDirections)
+        for (const Vec2i dir : CellNeighborDirections)
         {
             const Vec2f neighbor = current + Vec2f(dir);
 

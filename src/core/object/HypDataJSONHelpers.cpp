@@ -32,9 +32,15 @@
 
 namespace hyperion {
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 struct SaveAssetsAsReferencesContext
 {
 };
+
+struct LoadAssetsFromReferencesContext
+{
+};
+#endif
 
 // used to prevent infinite recursion when serializing nested objects
 static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;
@@ -262,12 +268,7 @@ bool HypDataToJSON(
 
     if (typeInfo.IsArrayType())
     {
-        if (!typeInfo.extendedInfo.handler || typeInfo.extendedInfo.handler->GetHandlerType() != ITypeInfoHandler::TYPE_ARRAY)
-        {
-            HYP_LOG(Core, Warning, "TypeInfo for array type {} has invalid handler!", typeInfo.name);
-
-            return false;
-        }
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_ARRAY);
 
         ITypeInfoArrayHandler* handler = static_cast<ITypeInfoArrayHandler*>(typeInfo.extendedInfo.handler);
 
@@ -279,9 +280,11 @@ bool HypDataToJSON(
         for (SizeType i = 0; i < size; i++)
         {
             HypData element;
+
             if (!handler->GetElementAt(value, i, element))
             {
                 HYP_LOG(Core, Warning, "Failed to get element at index {} of array of type {}", i, typeInfo.name);
+
                 continue;
             }
 
@@ -680,76 +683,102 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
     json::JSONValue jsonObjectValue(jsonObject);
 
-    // reoslve jsonpath members first
-    for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
     {
-        if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+        GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
+#endif
+
+        // reoslve jsonpath members first
+        for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
         {
-            continue;
+            if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+            {
+                continue;
+            }
+
+            const HypClassAttributeValue& pathAttribute = member.GetAttribute("jsonpath");
+
+            if (!pathAttribute.IsValid())
+            {
+                continue;
+            }
+
+            const String& path = pathAttribute.GetString();
+
+            auto value = jsonObjectValue.Get(path);
+
+            if (!value.value)
+            {
+                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+
+                continue;
+            }
+
+            if (!resolveMember(member, value.Get()))
+            {
+                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+
+                continue;
+            }
         }
 
-        const HypClassAttributeValue& pathAttribute = member.GetAttribute("jsonpath");
-
-        if (!pathAttribute.IsValid())
+        // resolve data from json object to members by name
+        for (const auto& [key, value] : jsonObject)
         {
-            continue;
-        }
+            const IHypMember* member = hypClass->GetMember(key, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
-        const String& path = pathAttribute.GetString();
+            if (!member)
+            {
+                // member not found, skip
+                continue;
+            }
 
-        auto value = jsonObjectValue.Get(path);
+            if (member->GetMemberType() != HypMemberType::TYPE_PROPERTY && member->GetAttribute("property").IsValid())
+            {
+                //  skip fields that are marked as properties
+                continue;
+            }
 
-        if (!value.value)
-        {
-            HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+            // skip members with jsonpath attribute - they were already resolved
+            if (member->GetAttribute("jsonpath").IsValid())
+            {
+                continue;
+            }
 
-            continue;
-        }
+            // skip if jsonignore is set
+            if (const HypClassAttributeValue& attribute = member->GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+            {
+                continue;
+            }
 
-        if (!resolveMember(member, value.Get()))
-        {
-            HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+            if (!resolveMember(*member, value))
+            {
+                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, hypClass->GetName());
 
-            continue;
+                continue;
+            }
         }
     }
 
-    // resolve data from json object to members by name
-    for (const auto& [key, value] : jsonObject)
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>())
     {
-        const IHypMember* member = hypClass->GetMember(key, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+        AssetReference& assetReference = target.Get<AssetReference>();
 
-        if (!member)
+        if (assetReference.IsValid())
         {
-            // member not found, skip
-            continue;
-        }
-
-        if (member->GetMemberType() != HypMemberType::TYPE_PROPERTY && member->GetAttribute("property").IsValid())
-        {
-            //  skip fields that are marked as properties
-            continue;
-        }
-
-        // skip members with jsonpath attribute - they were already resolved
-        if (member->GetAttribute("jsonpath").IsValid())
-        {
-            continue;
-        }
-
-        // skip if jsonignore is set
-        if (const HypClassAttributeValue& attribute = member->GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
-        {
-            continue;
-        }
-
-        if (!resolveMember(*member, value))
-        {
-            HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, hypClass->GetName());
-
-            continue;
+            if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())
+            {
+                target = HypData(std::move(assetObject));
+            }
+            else
+            {
+                HYP_LOG(Core, Warning, "Failed to load AssetObject from AssetReference when deserializing JSON");
+            }
         }
     }
+#endif
 
     return true;
 }
@@ -1087,6 +1116,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         if (!elementTypeInfo)
         {
             HYP_LOG(Core, Warning, "Vector type {} does not have a valid element type", typeInfo.name);
+
             return false;
         }
 
@@ -1097,6 +1127,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize vector element at index {} for type {}", i, typeInfo.name);
+
                 return false;
             }
 
@@ -1113,6 +1144,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         if (!jsonValue.IsArray())
         {
             HYP_LOG(Core, Warning, "Expected JSON array for array type {}, but got JSON value: {}", typeInfo.name, jsonValue.ToString());
+
             return false;
         }
 
@@ -1123,17 +1155,12 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         if (!elementTypeInfo)
         {
             HYP_LOG(Core, Warning, "Array type {} does not have a valid element type", typeInfo.name);
+
             return false;
         }
 
         ITypeInfoHandler* handler = typeInfo.extendedInfo.handler;
-
-        if (!handler || handler->GetHandlerType() != ITypeInfoHandler::TYPE_ARRAY)
-        {
-            HYP_LOG(Core, Warning, "Element type for array type {} does not have a valid array handler", typeInfo.name);
-            HYP_BREAKPOINT;
-            return false;
-        }
+        Assert(handler && handler->GetHandlerType() == ITypeInfoHandler::TYPE_ARRAY);
 
         ITypeInfoArrayHandler* arrayHandler = static_cast<ITypeInfoArrayHandler*>(handler);
 
@@ -1141,6 +1168,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         if (!arrayHandler->CreateInstance(arrayInstance))
         {
             HYP_LOG(Core, Warning, "Failed to create instance of array type {}", typeInfo.name);
+
             return false;
         }
 
@@ -1153,12 +1181,6 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
             {
                 HYP_LOG(Core, Warning, "Failed to deserialize array element at index {} for type: {}", i, typeInfo.name);
-                return false;
-            }
-
-            if (elementData.GetTypeId() != elementTypeInfo->id && !IsA(elementTypeInfo->GetHypClass(), elementData.GetTypeInfo()->GetHypClass()))
-            {
-                HYP_LOG(Core, Warning, "Array element at index {} has type {} but expected type {}", i, elementData.GetTypeInfo()->name, elementTypeInfo->name);
 
                 return false;
             }
@@ -1166,6 +1188,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             if (!arrayHandler->SetElementAt(arrayInstance, i, std::move(elementData)))
             {
                 HYP_LOG(Core, Warning, "Failed to set array element at index {} for type: {}", i, typeInfo.name);
+
                 return false;
             }
         }

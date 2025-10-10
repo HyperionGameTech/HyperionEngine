@@ -33,7 +33,7 @@ public:
     {
     }
 
-    virtual ~RendererError() override = default;
+    ~RendererError() = default;
 
     HYP_FORCE_INLINE int GetErrorCode() const
     {

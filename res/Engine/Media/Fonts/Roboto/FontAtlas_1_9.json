@@ -7,13 +7,10 @@
     "MagFilterMode": 0,
     "TextureWrapMode": 0,
     "NumLayers": 1,
-    "ImageUsage": 1,
-    "FilterModeMin": 0,
-    "FilterModeMag": 0,
-    "WrapMode": 0
+    "ImageUsage": 1
   },
   "FriendlyName": "FontAtlas19",
-  "Uuid": "79d3196f-f13b-4d70-880e-75dcf01a1f5a",
+  "Uuid": "a6b2aad1-3e46-4493-a2c3-9fe3c4b56630",
   "Name": "FontAtlas_1_9",
   "Flags": 1,
   "OriginalFilepath": "",

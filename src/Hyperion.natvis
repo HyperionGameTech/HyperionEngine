@@ -269,11 +269,11 @@
 	
 	<Type Name="hyperion::memory::Any">
 		<DisplayString Condition="m_block == nullptr">EMPTY</DisplayString>
-		<DisplayString Condition="m_block != nullptr">{{ TypeId={((Block*)m_block)-&gt;typeId.m_value} Value={((Block*)m_block)-&gt;objectPtr} }}</DisplayString>
+		<DisplayString Condition="m_block != nullptr">{{ TypeInfo={*((Block*)m_block)-&gt;typeInfo} Value={((Block*)m_block)-&gt;objectPtr} }}</DisplayString>
 		
 		<Expand>
 			<Item Name="[HasValue]">(m_block != nullptr)</Item>
-			<Item Name="[TypeId]" Condition="m_block != nullptr">((Block*)m_block)-&gt;typeId</Item>
+			<Item Name="[TypeInfo]" Condition="m_block != nullptr">*((Block*)m_block)-&gt;typeInfo</Item>
 			<Item Name="[ObjectPtr]" Condition="m_block != nullptr">((Block*)m_block)-&gt;objectPtr</Item>
 			<Item Name="[Value]" Condition="m_block != nullptr">((Block*)m_block)-&gt;objectPtr</Item>
 		</Expand>

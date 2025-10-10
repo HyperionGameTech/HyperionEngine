@@ -55,7 +55,7 @@ public:
     {
     }
 
-    virtual ~AssetLoadError() override = default;
+    ~AssetLoadError() = default;
 
     HYP_FORCE_INLINE ErrorCode GetErrorCode() const
     {

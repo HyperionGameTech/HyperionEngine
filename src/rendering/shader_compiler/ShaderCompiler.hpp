@@ -55,12 +55,21 @@ struct ShaderProperty
     HYP_STRUCT_BODY(ShaderProperty);
 
     using Value = Variant<String, int, float>;
-
+    
+    HYP_FIELD()
     Name name;
+    
+    HYP_FIELD()
     bool isPermutation;
+    
+    HYP_FIELD()
     ShaderPropertyFlags flags;
+    
+    HYP_FIELD()
     Value currentValue;
-    Array<String, InlineAllocator<2>> enumValues;
+
+    HYP_FIELD()
+    Array<String> enumValues;
 
     ShaderProperty()
         : isPermutation(false),

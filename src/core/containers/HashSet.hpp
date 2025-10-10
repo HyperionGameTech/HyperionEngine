@@ -425,13 +425,13 @@ class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, d
 public:
     static constexpr bool isContiguous = false;
 
-    static constexpr SizeType initialBucketSize = 16;
-    static constexpr double desiredLoadFactor = 0.75;
+    static constexpr SizeType InitialBucketSize = 16;
+    static constexpr double DesiredLoadFactor = 0.75;
 
     using Node = HashSetElement<Value>;
     using Bucket = HashSetBucket<Value>;
 
-    using BucketArray = Array<Bucket, InlineAllocator<initialBucketSize>>;
+    using BucketArray = Array<Bucket, InlineAllocator<InitialBucketSize>>;
 
 protected:
     static constexpr FunctionWrapper<decltype(KeyBy)> keyByFn { KeyBy };
@@ -678,7 +678,7 @@ public:
 
     HYP_FORCE_INLINE static constexpr double MaxLoadFactor()
     {
-        return desiredLoadFactor;
+        return DesiredLoadFactor;
     }
 
     void Reserve(SizeType capacity);
@@ -924,7 +924,7 @@ template <class Value, auto KeyBy, class NodeAllocatorType>
 HashSet<Value, KeyBy, NodeAllocatorType>::HashSet()
     : m_size(0)
 {
-    m_buckets.ResizeZeroed(initialBucketSize);
+    m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
 template <class Value, auto KeyBy, class NodeAllocatorType>
@@ -1002,7 +1002,7 @@ HashSet<Value, KeyBy, NodeAllocatorType>::HashSet(HashSet&& other) noexcept
     m_nodeAllocator.Swap(other.m_nodeAllocator, m_buckets);
 
     other.m_size = 0;
-    other.m_buckets.ResizeZeroed(initialBucketSize);
+    other.m_buckets.ResizeZeroed(InitialBucketSize);
 }
 
 template <class Value, auto KeyBy, class NodeAllocatorType>
@@ -1027,7 +1027,7 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::operator=(HashSet&& other) noexce
     }
 
     m_buckets = std::move(other.m_buckets);
-    other.m_buckets.ResizeZeroed(initialBucketSize);
+    other.m_buckets.ResizeZeroed(InitialBucketSize);
 
     m_size = other.m_size;
     other.m_size = 0;
@@ -1350,7 +1350,7 @@ void HashSet<Value, KeyBy, NodeAllocatorType>::Clear()
     }
 
     m_buckets.Clear();
-    m_buckets.ResizeZeroed(initialBucketSize);
+    m_buckets.ResizeZeroed(InitialBucketSize);
 
     m_size = 0;
 }

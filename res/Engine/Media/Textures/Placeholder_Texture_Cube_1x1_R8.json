@@ -7,13 +7,10 @@
     "MagFilterMode": 0,
     "TextureWrapMode": 0,
     "NumLayers": 1,
-    "ImageUsage": 3,
-    "FilterModeMin": 0,
-    "FilterModeMag": 0,
-    "WrapMode": 0
+    "ImageUsage": 3
   },
   "FriendlyName": "PlaceholderTextureCube1x1R8",
-  "Uuid": "8c873827-1c96-44c5-ae52-8e558c21a3bb",
+  "Uuid": "e01b2009-6717-4ac6-a93a-bbb2f71e6885",
   "Name": "Placeholder_Texture_Cube_1x1_R8",
   "Flags": 0,
   "OriginalFilepath": "",

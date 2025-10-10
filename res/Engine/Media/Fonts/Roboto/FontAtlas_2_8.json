@@ -7,13 +7,10 @@
     "MagFilterMode": 0,
     "TextureWrapMode": 0,
     "NumLayers": 1,
-    "ImageUsage": 1,
-    "FilterModeMin": 0,
-    "FilterModeMag": 0,
-    "WrapMode": 0
+    "ImageUsage": 1
   },
   "FriendlyName": "FontAtlas28",
-  "Uuid": "14b62f2d-b7b8-438b-995b-2aa2650ff566",
+  "Uuid": "b5c9e34c-2550-4ff8-a929-377f5fd60743",
   "Name": "FontAtlas_2_8",
   "Flags": 1,
   "OriginalFilepath": "",

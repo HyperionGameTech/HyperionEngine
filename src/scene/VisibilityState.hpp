@@ -33,7 +33,7 @@ struct VisibilityState
 
     // static_assert(std::is_final_v<Camera>, "ObjId<Camera> must be final (to prevent ID index issues with derived types)");
 
-    Array<VisibilityStateSnapshot, InlineAllocator<16>> snapshots;
+    Array<VisibilityStateSnapshot, InlineAllocator<8>> snapshots;
     uint16 validityMarker { 0u };
 
     VisibilityState() = default;

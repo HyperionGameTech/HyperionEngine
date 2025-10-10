@@ -30,7 +30,7 @@ namespace hyperion {
     if (::hyperion::Threads::IsOnThread(::hyperion::g_renderThread))                                                                                    \
     {                                                                                                                                                   \
         const ::hyperion::RendererResult commandResult = RENDER_COMMAND(name)(__VA_ARGS__).Call();                                                      \
-        Assert(commandResult, "Render command error! [{}]: {}", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage().Data()); \
+        Assert(commandResult, "Render command error! [{}]: {}", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage());        \
     }                                                                                                                                                   \
     else                                                                                                                                                \
     {                                                                                                                                                   \

@@ -841,8 +841,6 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
                 return err;
             }
 
-            HYP_LOG_TEMP("Read element type: {}", elementType.ToString());
-
             // Read the number of consecutive elements of this type
             uint32 numElementsOfType;
             readerPtr->Read(&numElementsOfType);

@@ -4,10 +4,13 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="Error")]
-    [StructLayout(LayoutKind.Explicit, Size = 128)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct Error
     {
         [FieldOffset(0)]
-        private unsafe fixed byte data[128];
+        private unsafe byte* message;
+
+        [FieldOffset(8)]
+        private unsafe byte* currentFunction;
     }
 }

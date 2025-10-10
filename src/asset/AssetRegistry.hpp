@@ -89,7 +89,7 @@ public:
     {
     }
 
-    virtual ~AssetPackageValidationError() override = default;
+    ~AssetPackageValidationError() = default;
 
     HYP_FORCE_INLINE ErrorCode GetErrorCode() const
     {

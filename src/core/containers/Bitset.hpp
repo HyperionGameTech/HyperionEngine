@@ -506,7 +506,7 @@ private:
         }
     }
 
-    Array<BlockType, InlineAllocator<16>> m_blocks;
+    Array<BlockType, InlineAllocator<2>> m_blocks;
 };
 
 } // namespace containers

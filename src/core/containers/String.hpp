@@ -38,14 +38,14 @@ namespace containers {
 
 /*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
 template <int TStringType>
-class String : Array<typename StringTypeImpl<TStringType>::CharType, InlineAllocator<64>>
+class String : Array<typename StringTypeImpl<TStringType>::CharType, InlineAllocator<16>>
 {
 public:
     using CharType = typename StringTypeImpl<TStringType>::CharType;
     using WidestCharType = typename StringTypeImpl<TStringType>::WidestCharType;
 
 protected:
-    using Base = Array<CharType, InlineAllocator<64>>;
+    using Base = Array<CharType, InlineAllocator<16>>;
 
 public:
     using ValueType = typename Base::ValueType;

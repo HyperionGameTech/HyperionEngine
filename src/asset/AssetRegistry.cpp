@@ -1761,6 +1761,8 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 {
     HYP_SCOPE;
 
+    HYP_LOG(Assets, Debug, "Loading package from manifest path: {}", manifestPath);
+
     Task<TResult<Handle<AssetPackage>>> future;
 
     PostTask([this, manifestPath = manifestPath, loadSubpackages]() -> TResult<Handle<AssetPackage>>
@@ -1827,12 +1829,12 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 if (!dependencyPackage.IsValid())
                 {
                     // Dependency package doesn't exist yet, try to load it from filesystem
-                    const FilePath basePath = g_assetManager->GetBasePath();
-                    const FilePath depFullPath = basePath / depPathStr;
-                    const FilePath depManifestPath = depFullPath / "PackageManifest.json";
+                    const FilePath depManifestPath = dir / depPathStr / "PackageManifest.json"; // <---- FIXME: need to subtract the current package path from the dependency path if it's relative
 
                     if (depManifestPath.Exists() && !depManifestPath.IsDirectory())
                     {
+                        HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", depPathStr, depManifestPath);
+
                         // @NOTE: executes inline
                         TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(depManifestPath, /* loadSubpackages */ false).Await();
 
