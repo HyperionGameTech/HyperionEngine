@@ -463,7 +463,7 @@ Result AssetObject::Load(
 
     if (!parseResult.value.IsObject())
     {
-        return HYP_MAKE_ERROR(Error, "Manifest JSON must be an object");
+        return HYP_MAKE_ERROR(Error, "Asset manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
     }
 
     json::JSONObject jsonObject = std::move(parseResult.value.AsObject());

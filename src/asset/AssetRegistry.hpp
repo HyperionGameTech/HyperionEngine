@@ -279,6 +279,15 @@ public:
     HYP_METHOD()
     void AddDependency(const AssetPath& dependency);
 
+    HYP_METHOD(Property = "IsDirty", Transient)
+    HYP_FORCE_INLINE bool IsDirty() const
+    {
+        return m_isDirty.Get(MemoryOrder::ACQUIRE);
+    }
+
+    HYP_METHOD()
+    void MarkDirty();
+
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
 
@@ -305,7 +314,7 @@ private:
     HYP_FIELD()
     EnumFlags<AssetPackageFlags> m_flags;
 
-    HYP_FIELD(Serialize = false)
+    HYP_FIELD(Transient)
     Array<AssetPath> m_dependencies;
 
     WeakHandle<AssetRegistry> m_registry;
@@ -313,7 +322,9 @@ private:
     AssetPackageSet m_subpackages;
     AssetObjectSet m_assetObjects;
     FilePath m_packageDir;
+
     mutable Mutex m_mutex;
+    mutable AtomicVar<bool> m_isDirty;
 };
 
 enum class AssetRegistryPathType : uint8

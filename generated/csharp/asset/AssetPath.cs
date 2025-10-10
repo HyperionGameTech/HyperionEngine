@@ -13,11 +13,11 @@ namespace Hyperion
                 return resultData.ReadBool();
             }
         }
-        public static string ToString(this AssetPath obj)
+        public static Name GetName(this AssetPath obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(11688614581569845925)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(10797569040963027572)).InvokeNative(obj))
             {
-                return resultData.ReadString();
+                return resultData.ReadName();
             }
         }
         public static Array GetChain(this AssetPath obj)
@@ -30,6 +30,13 @@ namespace Hyperion
         public static void SetChain(this AssetPath obj, Array names)
         {
             HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(3242834119192683496)).InvokeNative(obj, names);
+        }
+        public static string ToString(this AssetPath obj)
+        {
+            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<AssetPath>(), new Name(11688614581569845925)).InvokeNative(obj))
+            {
+                return resultData.ReadString();
+            }
         }
     }
 }

@@ -760,14 +760,15 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
         }
     }
 
-
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>())
+    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>() && hypClass != AssetReference::Class())
     {
         AssetReference& assetReference = target.Get<AssetReference>();
 
         if (assetReference.IsValid())
         {
+            HYP_LOG_TEMP("Resolving AssetReference {}, HypClass = {}", assetReference.GetAssetPath(), hypClass->GetName());
+
             if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())
             {
                 target = HypData(std::move(assetObject));
@@ -1201,7 +1202,8 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     // Object types
     if (jsonValue.IsObject())
     {
-        const HypClass* hypClass = typeInfo.GetHypClass();
+        const HypClass* typeInfoClass = typeInfo.GetHypClass();
+        const HypClass* instanceClass = typeInfoClass;
 
         // first check for $Class property to override type
         if (auto classValue = jsonValue.Get("$Class"); classValue && classValue.IsString())
@@ -1210,9 +1212,9 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
             if (derivedClass)
             {
-                if (hypClass && !derivedClass->IsDerivedFrom(hypClass))
+                if (instanceClass && !derivedClass->IsDerivedFrom(instanceClass))
                 {
-                    HYP_LOG(Core, Warning, "Class '{}' is not derived from expected class '{}'", derivedClass->GetName(), hypClass->GetName());
+                    HYP_LOG(Core, Warning, "Class '{}' is not derived from expected class '{}'", derivedClass->GetName(), instanceClass->GetName());
                 }
             }
             else
@@ -1220,22 +1222,22 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
                 HYP_LOG(Core, Warning, "Class '{}' not found!", *classValue.AsString());
             }
 
-            hypClass = derivedClass;
+            instanceClass = derivedClass;
         }
 
-        if (hypClass)
+        if (instanceClass)
         {
             HypData instance;
 
-            if (!hypClass->CreateInstance(instance))
+            if (!instanceClass->CreateInstance(instance))
             {
-                HYP_LOG(Core, Warning, "Failed to create instance of HypClass \"{}\"", hypClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to create instance of HypClass \"{}\"", instanceClass->GetName());
                 return false;
             }
 
-            if (!JSONToObject(jsonValue.AsObject(), hypClass, instance))
+            if (!JSONToObject(jsonValue.AsObject(), typeInfoClass, instance))
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize HypClass \"{}\" from JSON", hypClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to deserialize instance of \"{}\" from JSON", instanceClass->GetName());
                 return false;
             }
 

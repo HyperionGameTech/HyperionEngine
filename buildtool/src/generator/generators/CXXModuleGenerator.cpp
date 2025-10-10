@@ -226,7 +226,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         }
 
         addedIncludes.Insert(include);
-        writer.WriteString(HYP_FORMAT("#include <{}>\n", include));
+        writer.WriteString(HYP_FORMAT("#include <{}>\n", include).ReplaceAll("\\", "/"));
     };
 
     if (mod.GetPath().Any())
@@ -251,9 +251,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                 continue;
             }
 
-            FilePath relativePath = FilePath(FileSystem::RelativePath(dependencyModule->GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
-
-            addInclude(relativePath);
+            addInclude(FilePath::Relative(dependencyModule->GetPath(), analyzer.GetSourceDirectory()));
         }
 
         writer.WriteString("\n");

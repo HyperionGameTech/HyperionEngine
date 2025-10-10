@@ -124,6 +124,17 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(11780618777366834829)).InvokeNative(obj, dependency);
         }
+        public static bool IsDirty(this AssetPackage obj)
+        {
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(4964427644541462955)).InvokeNative(obj))
+            {
+                return resultData.ReadBool();
+            }
+        }
+        public static void MarkDirty(this AssetPackage obj)
+        {
+            obj.GetMethod(new Name(12087997061620363200)).InvokeNative(obj);
+        }
     }
     public static class AssetRegistryExtensions
     {
