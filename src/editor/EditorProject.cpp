@@ -390,7 +390,15 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         {
             auto log_node = [](const Handle<Node>& node, int indent, const auto& log_node_ref) -> void
             {
-                HYP_LOG_TEMP("{}", (node->GetName().IsValid() ? *node->GetName() : "(unnamed)"));
+                String str;
+                for (int i = 0; i < indent; i++)
+                {
+                    str += " ";
+                }
+
+                str += HYP_FORMAT("{}", (node->GetName().IsValid() ? *node->GetName() : "(unnamed)"));
+
+                HYP_LOG_TEMP("{}", str);
 
                 for (const Handle<Node>& child : node->GetChildren())
                 {

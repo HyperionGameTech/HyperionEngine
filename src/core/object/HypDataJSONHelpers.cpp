@@ -623,16 +623,9 @@ bool ObjectToJSON(
     return true;
 }
 
-bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, HypData& target)
+bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClass, HypData& target)
 {
-    if (!hypClass)
-    {
-        HYP_LOG(Core, Warning, "Cannot deserialize JSON to null HypClass");
-
-        return false;
-    }
-
-    auto resolveMember = [hypClass, &target](const IHypMember& member, const json::JSONValue& value) -> bool
+    auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
     {
         switch (member.GetMemberType())
         {
@@ -645,8 +638,8 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!JSONToHypData(value, typeInfo, hypData))
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
-                    member.GetName(), hypClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to deserialize property \"{}\" from json",
+                    member.GetName());
 
                 return false;
             }
@@ -664,8 +657,8 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!JSONToHypData(value, typeInfo, hypData))
             {
-                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json (type: {})",
-                    member.GetName(), hypClass->GetName(), typeInfo.name);
+                HYP_LOG(Core, Warning, "Failed to deserialize field \"{}\" from json",
+                    member.GetName());
 
                 return false;
             }
@@ -683,13 +676,16 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
     json::JSONValue jsonObjectValue(jsonObject);
 
+    const HypClass* instanceClass = target.GetTypeInfo()->GetHypClass();
+
+    if (instanceClass != nullptr)
     {
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
 #endif
 
         // reoslve jsonpath members first
-        for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
+        for (const IHypMember& member : instanceClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
         {
             if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
             {
@@ -709,14 +705,14 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!value.value)
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, instanceClass->GetName());
 
                 continue;
             }
 
             if (!resolveMember(member, value.Get()))
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hypClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, instanceClass->GetName());
 
                 continue;
             }
@@ -725,7 +721,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
         // resolve data from json object to members by name
         for (const auto& [key, value] : jsonObject)
         {
-            const IHypMember* member = hypClass->GetMember(key, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+            const IHypMember* member = instanceClass->GetMember(key, HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
             if (!member)
             {
@@ -753,7 +749,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
 
             if (!resolveMember(*member, value))
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, hypClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, instanceClass->GetName());
 
                 continue;
             }
@@ -761,14 +757,12 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, 
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>() && hypClass != AssetReference::Class())
+    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>() && targetClass != AssetReference::Class())
     {
         AssetReference& assetReference = target.Get<AssetReference>();
 
         if (assetReference.IsValid())
         {
-            HYP_LOG_TEMP("Resolving AssetReference {}, HypClass = {}", assetReference.GetAssetPath(), hypClass->GetName());
-
             if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())
             {
                 target = HypData(std::move(assetObject));

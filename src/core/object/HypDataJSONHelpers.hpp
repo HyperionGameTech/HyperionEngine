@@ -78,10 +78,10 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
  *  Members marked with the "jsonignore" attribute are skipped.
  *  Members with the "jsonpath" attribute are deserialized using the specified JSON path.
  *  \param jsonObject The JSONObject to deserialize.
- *  \param hypClass The HypClass of the object.
+ *  \param targetClass The desired HypClass of the target object. (can be null if target already has a type)
  *  \param target The output HypData object.
  *  \return True if deserialization was successful, false otherwise.
  */
-bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* hypClass, HypData& target);
+bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetHypClass, HypData& target);
 
 } // namespace hyperion
