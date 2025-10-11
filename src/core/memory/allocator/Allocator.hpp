@@ -15,6 +15,9 @@
 namespace hyperion {
 namespace memory {
 
+class Pool;
+class LinearPool;
+
 // Helper metadata for natvis navigation
 enum AllocationType
 {
@@ -574,12 +577,179 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
     };
 };
 
+template <auto GetPoolFunction>
+struct PoolAllocator : Allocator<PoolAllocator<GetPoolFunction>>
+{
+    template <class T>
+    struct Allocation : AllocationBase<Allocation<T>>
+    {
+        static constexpr AllocationType allocationType = AT_DYNAMIC;
+        static constexpr bool isDynamic = true;
+
+        union
+        {
+            struct
+            {
+                T* buffer;
+                SizeType capacity;
+            };
+
+            // The following nested union fields are unused but make natvis work correctly for arrays.
+            union
+            {
+                UIntPtr buffer;
+                SizeType capacity;
+            } dynamicAllocation;
+
+            union
+            {
+                char dataBuffer[1];
+            } storage;
+        };
+
+        void Allocate(SizeType count)
+        {
+            HYP_CORE_ASSERT(buffer == nullptr);
+
+            if (count == 0)
+            {
+                return;
+            }
+
+            static_assert(sizeof(T) % alignof(T) == 0, "Type T must be aligned to its size");
+
+            buffer = static_cast<T*>(GetPoolFunction()->Alloc(count * sizeof(T), alignof(T)));
+            HYP_CORE_ASSERT(buffer != nullptr, "Pool allocation failed! Size: %zu, Alignment: %zu", count * sizeof(T), alignof(T));
+
+            capacity = count;
+        }
+
+        void Free()
+        {
+            if (buffer != nullptr)
+            {
+                GetPoolFunction()->Free(buffer);
+            }
+
+            SetToInitialState();
+        }
+
+        void TakeOwnership(T* begin, T* end)
+        {
+            HYP_CORE_ASSERT(buffer == nullptr);
+            HYP_CORE_ASSERT(end >= begin);
+
+            buffer = begin;
+            capacity = end - begin;
+        }
+
+        void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+        {
+            HYP_CORE_ASSERT(end >= begin);
+
+            const SizeType count = end - begin;
+
+            HYP_CORE_ASSERT(capacity >= count + offset);
+
+            if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
+            {
+                Memory::MemCpy(buffer + offset, begin, count * sizeof(T));
+            }
+            else
+            {
+                for (SizeType i = 0; i < count; i++)
+                {
+                    new (buffer + offset + i) T(begin[i]);
+                }
+            }
+        }
+
+        void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+        {
+            HYP_CORE_ASSERT(end >= begin);
+
+            const SizeType count = end - begin;
+
+            HYP_CORE_ASSERT(capacity >= count + offset);
+
+            if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
+            {
+                Memory::MemCpy(buffer + offset, begin, count * sizeof(T));
+            }
+            else
+            {
+                for (SizeType i = 0; i < count; i++)
+                {
+                    new (buffer + offset + i) T(std::move(begin[i]));
+                }
+            }
+        }
+
+        void InitZeroed(SizeType count, SizeType offset = 0)
+        {
+            HYP_CORE_ASSERT(capacity >= count + offset);
+
+            Memory::MemSet(buffer + offset, 0, count * sizeof(T));
+        }
+
+        void DestructInRange(SizeType startIndex, SizeType lastIndex)
+        {
+            HYP_CORE_ASSERT(lastIndex <= capacity);
+
+            if constexpr (!std::is_trivially_destructible_v<T>)
+            {
+                for (SizeType i = lastIndex; i > startIndex;)
+                {
+                    buffer[--i].~T();
+                }
+            }
+        }
+
+        void SetToInitialState()
+        {
+            buffer = nullptr;
+            capacity = 0;
+        }
+
+        HYP_FORCE_INLINE T* GetBuffer() const
+        {
+            return buffer;
+        }
+
+        HYP_FORCE_INLINE bool IsDynamic() const
+        {
+            return buffer != nullptr;
+        }
+
+        HYP_FORCE_INLINE SizeType GetCapacity() const
+        {
+            return capacity;
+        }
+    };
+
+    void* Allocate(SizeType size, SizeType alignment)
+    {
+        HYP_CORE_ASSERT(size > 0);
+        HYP_CORE_ASSERT(alignment > 0);
+
+        return GetPoolFunction()->Alloc(size, alignment);
+    }
+
+    void Free(void* ptr)
+    {
+        HYP_CORE_ASSERT(ptr != nullptr);
+
+        GetPoolFunction()->Free(ptr);
+    }
+};
+
 } // namespace memory
 
 using memory::Allocator;
 using memory::DynamicAllocator;
 using memory::FixedAllocator;
 using memory::InlineAllocator;
+using memory::PoolAllocator;
 
 template <class T, class AllocatorType>
 using Allocation = typename AllocatorType::template Allocation<T>;

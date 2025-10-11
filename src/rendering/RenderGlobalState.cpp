@@ -47,7 +47,6 @@
 #include <core/threading/Threads.hpp>
 
 #include <core/memory/pool/Pool.hpp>
-#include <core/memory/pool/LinearPool.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -107,7 +106,7 @@ extern void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues);
 #pragma region Memory Pools
 
 HYP_API Pool* g_renderPool;
-HYP_API LinearPool* g_framePools[NumMultiBuffers];
+HYP_API Pool* g_framePools[NumMultiBuffers];
 
 #pragma endregion MemoryPools
 
@@ -549,7 +548,7 @@ void RenderApi_Init()
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
-        g_framePools[i] = new LinearPool();
+        g_framePools[i] = new Pool();
     }
 
     RendererResult result = g_renderBackend->Initialize();

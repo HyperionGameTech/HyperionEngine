@@ -7,11 +7,11 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderMaterial.hpp>
-
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
@@ -44,7 +44,9 @@
 
 namespace hyperion {
 
-extern HYP_API const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(TypeId typeId);
+
+static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 
 #define HYP_DEBUG_EXTRA_MESH_ASSERTIONS 0
 
@@ -213,7 +215,7 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     {
         AssertDebug(mapping.indirectRenderer == nullptr, "Indirect renderer already exists on mapping");
 
-        mapping.indirectRenderer = new IndirectRenderer();
+        mapping.indirectRenderer = PoolNew<IndirectRenderer>(*g_renderPool);
         mapping.indirectRenderer->Create(renderCollector->drawCallCollectionImpl);
     }
 
@@ -567,12 +569,13 @@ RenderCollector::~RenderCollector()
             if (state->taskBatch != nullptr)
             {
                 state->taskBatch->AwaitCompletion();
-                delete state->taskBatch;
+
+                PoolDelete(*g_renderPool, state->taskBatch);
             }
 
             ParallelRenderingState* nextState = state->next;
 
-            delete state;
+            PoolDelete(*g_renderPool, state);
 
             state = nextState;
         }
@@ -596,7 +599,7 @@ void RenderCollector::Clear(bool freeMemory)
             {
                 if (mapping.indirectRenderer)
                 {
-                    delete mapping.indirectRenderer;
+                    PoolDelete(*g_renderPool, mapping.indirectRenderer);
                     mapping.indirectRenderer = nullptr;
                 }
 
@@ -621,11 +624,11 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     {
         if (!parallelRenderingStateHead)
         {
-            parallelRenderingStateHead = new ParallelRenderingState();
+            parallelRenderingStateHead = PoolNew<ParallelRenderingState>(*g_renderPool);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
-            TaskBatch* taskBatch = new TaskBatch();
+            TaskBatch* taskBatch = PoolNew<TaskBatch>(*g_renderPool);
             taskBatch->pool = &pool;
 
             parallelRenderingStateHead->taskBatch = taskBatch;
@@ -638,11 +641,11 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     {
         if (!curr->next)
         {
-            ParallelRenderingState* newParallelRenderingState = new ParallelRenderingState();
+            ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
-
-            TaskBatch* taskBatch = new TaskBatch();
+            
+            TaskBatch* taskBatch = PoolNew<TaskBatch>(*g_renderPool);
             taskBatch->pool = &pool;
 
             newParallelRenderingState->taskBatch = taskBatch;
@@ -785,8 +788,7 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
 
     if (bucketBits == 0)
     {
-        static constexpr uint32 allBuckets = (1u << RB_MAX) - 1;
-        bucketBits = allBuckets; // All buckets
+        bucketBits = AllBucketsMask;
     }
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
@@ -927,7 +929,7 @@ void RenderCollector::RemoveEmptyRenderGroups()
 
             if (mapping.indirectRenderer)
             {
-                delete mapping.indirectRenderer;
+                PoolDelete(*g_renderPool, mapping.indirectRenderer);
                 mapping.indirectRenderer = nullptr;
             }
 
@@ -1047,8 +1049,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            extern HYP_API const char* LookupTypeName(TypeId typeId);
-
             static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
@@ -1088,8 +1088,6 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            extern HYP_API const char* LookupTypeName(TypeId typeId);
-
             static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
@@ -1131,8 +1129,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
     if (bucketBits == 0)
     {
-        static constexpr uint32 allBuckets = (1u << RB_MAX) - 1;
-        bucketBits = allBuckets; // All buckets
+        bucketBits = AllBucketsMask;
     }
 
     using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
