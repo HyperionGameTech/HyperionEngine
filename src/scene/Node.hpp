@@ -811,7 +811,7 @@ protected:
 
     UniquePtr<Delegates> m_delegates;
 
-    HYP_FIELD(Property = "Tags")
+    HYP_FIELD(Property = "NodeTags")
     NodeTagSet m_tags;
 
     HYP_FIELD(Property = "Uuid")

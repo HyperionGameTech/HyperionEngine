@@ -300,33 +300,30 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
 {
     HYP_SCOPE;
 
-    if (IsInitCalled())
-    {
-        AssetObjectSet previousAssetObjects;
+    AssetObjectSet previousAssetObjects;
 
-        { // store so we can call OnAssetObjectRemoved outside of the lock
-            Mutex::Guard guard(m_mutex);
+    { // store so we can call OnAssetObjectRemoved outside of the lock
+        Mutex::Guard guard(m_mutex);
 
-            previousAssetObjects = std::move(m_assetObjects);
-        }
-
-        for (const Handle<AssetObject>& assetObject : previousAssetObjects)
-        {
-            assetObject->m_package.Reset();
-
-            OnAssetObjectRemoved(assetObject, true);
-
-            Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
-
-            while (parentPackage.IsValid())
-            {
-                parentPackage->OnAssetObjectRemoved(assetObject, false);
-                parentPackage = parentPackage->GetParentPackage().Lock();
-            }
-        }
-
-        previousAssetObjects.Clear();
+        previousAssetObjects = std::move(m_assetObjects);
     }
+
+    for (const Handle<AssetObject>& assetObject : previousAssetObjects)
+    {
+        assetObject->m_package.Reset();
+
+        OnAssetObjectRemoved(assetObject, true);
+
+        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+        while (parentPackage.IsValid())
+        {
+            parentPackage->OnAssetObjectRemoved(assetObject, false);
+            parentPackage = parentPackage->GetParentPackage().Lock();
+        }
+    }
+
+    previousAssetObjects.Clear();
 
     Array<Handle<AssetObject>> newAssetObjects;
     HashSet<AssetObject*> assetObjectsToSave;
@@ -372,36 +369,33 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
 
     MarkDirty();
 
-    if (IsInitCalled())
+    for (const Handle<AssetObject>& assetObject : newAssetObjects)
     {
-        for (const Handle<AssetObject>& assetObject : newAssetObjects)
+        // if (assetObjectsToSave.Contains(assetObject.Get()))
+        // {
+        //     AssertDebug(!assetObject->IsTransient());
+
+        //     // save the file in our package
+        //     Result saveAssetResult = assetObject->Save();
+
+        //     if (saveAssetResult.HasError())
+        //     {
+        //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+
+        //         continue;
+        //     }
+
+        //     assetObject->SetIsPersistentlyLoaded(false);
+        // }
+
+        OnAssetObjectAdded(assetObject, true);
+
+        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+        while (parentPackage.IsValid())
         {
-            // if (assetObjectsToSave.Contains(assetObject.Get()))
-            // {
-            //     AssertDebug(!assetObject->IsTransient());
-
-            //     // save the file in our package
-            //     Result saveAssetResult = assetObject->Save();
-
-            //     if (saveAssetResult.HasError())
-            //     {
-            //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
-
-            //         continue;
-            //     }
-
-            //     assetObject->SetIsPersistentlyLoaded(false);
-            // }
-
-            OnAssetObjectAdded(assetObject, true);
-
-            Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
-
-            while (parentPackage.IsValid())
-            {
-                parentPackage->OnAssetObjectAdded(assetObject, false);
-                parentPackage = parentPackage->GetParentPackage().Lock();
-            }
+            parentPackage->OnAssetObjectAdded(assetObject, false);
+            parentPackage = parentPackage->GetParentPackage().Lock();
         }
     }
 }
@@ -491,36 +485,33 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
         MarkDirty();
 
-        if (IsInitCalled())
+        InitObject(assetObject);
+
+        // if (doSaveAsset)
+        // {
+        //     AssertDebug(!assetObject->IsTransient());
+
+        //     // save the file in our package
+        //     Result saveAssetResult = assetObject->Save();
+
+        //     if (saveAssetResult.HasError())
+        //     {
+        //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+
+        //         return HYP_MAKE_ERROR(Error, "Failed to save asset object '{}': {}", assetObject->GetName(), saveAssetResult.GetError().GetMessage());
+        //     }
+
+        //     assetObject->SetIsPersistentlyLoaded(false);
+        // }
+
+        OnAssetObjectAdded(assetObject, true);
+
+        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+        while (parentPackage.IsValid())
         {
-            InitObject(assetObject);
-
-            // if (doSaveAsset)
-            // {
-            //     AssertDebug(!assetObject->IsTransient());
-
-            //     // save the file in our package
-            //     Result saveAssetResult = assetObject->Save();
-
-            //     if (saveAssetResult.HasError())
-            //     {
-            //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
-
-            //         return HYP_MAKE_ERROR(Error, "Failed to save asset object '{}': {}", assetObject->GetName(), saveAssetResult.GetError().GetMessage());
-            //     }
-
-            //     assetObject->SetIsPersistentlyLoaded(false);
-            // }
-
-            OnAssetObjectAdded(assetObject, true);
-
-            Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
-
-            while (parentPackage.IsValid())
-            {
-                parentPackage->OnAssetObjectAdded(assetObject, false);
-                parentPackage = parentPackage->GetParentPackage().Lock();
-            }
+            parentPackage->OnAssetObjectAdded(assetObject, false);
+            parentPackage = parentPackage->GetParentPackage().Lock();
         }
 
         return {};
@@ -577,20 +568,17 @@ Task<Result> AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObj
 
         MarkDirty();
 
-        if (IsInitCalled())
+        OnAssetObjectRemoved(assetObject, true);
+
+        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+        while (parentPackage.IsValid())
         {
-            OnAssetObjectRemoved(assetObject, true);
-
-            Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
-
-            while (parentPackage.IsValid())
-            {
-                parentPackage->OnAssetObjectRemoved(assetObject, false);
-                parentPackage = parentPackage->GetParentPackage().Lock();
-            }
-
-            /// TODO: remove the file
+            parentPackage->OnAssetObjectRemoved(assetObject, false);
+            parentPackage = parentPackage->GetParentPackage().Lock();
         }
+
+        /// TODO: remove the file
 
         return {};
     };
@@ -1358,14 +1346,11 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
     {
         Assert(package.IsValid());
 
-        package->m_registry = WeakHandleFromThis();
+        package->m_registry = MakeWeakRef(this);
 
-        if (IsInitCalled())
-        {
-            InitObject(package);
+        InitObject(package);
 
-            OnPackageAdded(package);
-        }
+        OnPackageAdded(package);
 
         for (const Handle<AssetPackage>& subpackage : package->m_subpackages)
         {
@@ -1534,12 +1519,9 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
             {
                 Assert(pkg != nullptr);
 
-                pkg->m_registry = WeakHandleFromThis();
+                pkg->m_registry = MakeWeakRef(this);
 
-                if (IsInitCalled())
-                {
-                    addedPackages.PushBack(pkg);
-                }
+                addedPackages.PushBack(pkg);
 
                 for (const Handle<AssetPackage>& sub : pkg->m_subpackages)
                 {
@@ -1560,12 +1542,8 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
                     package->m_parentPackage = newParentPackage;
                     package->m_flags |= newParentPackage->m_flags;
 
-                    if (newParentPackage->IsInitCalled())
-                    {
-                        newParentPackage->OnSubpackageAdded(package);
-                    }
-
                     newParentPackage->m_subpackages.Insert(package);
+                    newParentPackage->OnSubpackageAdded(package);
                 }
 
                 newParentPackage->MarkDirty();
@@ -1577,14 +1555,11 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
                 m_packages.Insert(package);
             }
 
-            if (IsInitCalled())
+            for (const Handle<AssetPackage>& pkg : addedPackages)
             {
-                for (const Handle<AssetPackage>& pkg : addedPackages)
-                {
-                    InitObject(pkg);
+                InitObject(pkg);
 
-                    OnPackageAdded(pkg);
-                }
+                OnPackageAdded(pkg);
             }
 
             return {};
@@ -1633,12 +1608,8 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
                             auto it = parentPackage->m_subpackages.Find(package->GetName());
                             Assert(it != parentPackage->m_subpackages.End());
 
-                            if (parentPackage->IsInitCalled())
-                            {
-                                parentPackage->OnSubpackageRemoved(strongPackage);
-                            }
-
                             parentPackage->m_subpackages.Erase(it);
+                            parentPackage->OnSubpackageRemoved(strongPackage);
 
                             removed = true;
                         }
@@ -1708,7 +1679,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
             }
         }
 
-        if (isNew && subpackage && IsInitCalled())
+        if (isNew && subpackage)
         {
             InitObject(subpackage);
 
@@ -1732,18 +1703,15 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
             subpackage->m_parentPackage = parentPackage;
             subpackage->m_flags |= parentPackage->m_flags;
 
-            if (parentPackage->IsInitCalled())
+            // If parent package exists on disk, save this package:
+            if (!parentPackage->IsTransient() && parentPackage->m_packageDir.Length() != 0)
             {
-                // If parent package exists on disk, save this package:
-                if (!parentPackage->IsTransient() && parentPackage->m_packageDir.Length() != 0)
-                {
-                    saveOutputDir = parentPackage->m_packageDir;
-                }
-
-                parentPackage->OnSubpackageAdded(subpackage);
+                saveOutputDir = parentPackage->m_packageDir;
             }
-
+                
             parentPackage->m_subpackages.Insert(subpackage);
+            parentPackage->OnSubpackageAdded(subpackage);
+
             isNew = true;
         }
         else if (packageIt != m_packages.End())
@@ -1756,12 +1724,9 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
     {
         parentPackage->MarkDirty();
 
-        if (IsInitCalled())
-        {
-            InitObject(subpackage);
+        InitObject(subpackage);
 
-            OnPackageAdded(subpackage);
-        }
+        OnPackageAdded(subpackage);
 
         // if (saveOutputDir.HasValue())
         // {
@@ -1948,13 +1913,15 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             outPackage->m_parentPackage = parentPackage;
             outPackage->m_flags |= (parentPackage ? parentPackage->m_flags : EnumFlags<AssetPackageFlags>(APF_NONE));
 
-            HypData targetHypData = HypData(outPackage.ToRef());
-
-            if (!JSONToObject(parseResult.value.AsObject(), outPackage->InstanceClass(), targetHypData))
             {
-                HYP_LOG(Assets, Error, "Failed to deserialize package manifest JSON for package at '{}'", manifestPath);
+                HypData packageData = HypData(outPackage);
 
-                return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
+                if (!JSONToObject(parseResult.value.AsObject(), outPackage->InstanceClass(), packageData))
+                {
+                    HYP_LOG(Assets, Error, "Failed to deserialize package manifest JSON for package at '{}'", manifestPath);
+
+                    return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
+                }
             }
 
             // Load dependency packages first (always, regardless of loadSubpackages flag)
@@ -2118,12 +2085,8 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                                 subpackage->m_parentPackage = outPackage;
                                 subpackage->m_flags |= outPackage->m_flags;
 
-                                if (outPackage->IsInitCalled())
-                                {
-                                    outPackage->OnSubpackageAdded(subpackage);
-                                }
-
                                 outPackage->m_subpackages.Insert(subpackage);
+                                outPackage->OnSubpackageAdded(subpackage);
                             }
 
                             break;
@@ -2138,22 +2101,26 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
                 {
                     Mutex::Guard guard(parentPackage->m_mutex);
-
-                    if (parentPackage->IsInitCalled())
-                    {
-                        parentPackage->OnSubpackageAdded(outPackage);
-                    }
+                    
+                    InitObject(outPackage);
 
                     parentPackage->m_subpackages.Insert(outPackage);
+                    parentPackage->OnSubpackageAdded(outPackage);
                 }
 
                 parentPackage->MarkDirty();
             }
             else // top-level package
             {
-                Mutex::Guard guard(m_mutex);
+                {
+                    Mutex::Guard guard(m_mutex);
 
-                m_packages.Insert(outPackage);
+                    m_packages.Insert(outPackage);
+                }
+
+                InitObject(outPackage);
+
+                OnPackageAdded(outPackage);
             }
 
             return outPackage;

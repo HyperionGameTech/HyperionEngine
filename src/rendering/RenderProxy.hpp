@@ -109,6 +109,7 @@ public:
     Mesh* mesh = nullptr;
     Material* material = nullptr;
     Skeleton* skeleton = nullptr;
+    uint32 numIndices = 0;
     MeshInstanceData instanceData;
     MeshRaytracingData raytracingData;
     EntityShaderData bufferData {};
@@ -119,6 +120,7 @@ public:
             && mesh == other.mesh
             && material == other.material
             && skeleton == other.skeleton
+            && numIndices == other.numIndices
             && instanceData == other.instanceData
             && Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) == 0;
     }
@@ -128,6 +130,7 @@ public:
         return entity != other.entity
             || mesh != other.mesh
             || material != other.material
+            || numIndices != other.numIndices
             || skeleton != other.skeleton
             || instanceData != other.instanceData
             || Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) != 0;

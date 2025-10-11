@@ -4,9 +4,12 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
+
 #include <scene/util/EntityScripting.hpp>
+
 #include <scene/EntityManager.hpp>
 #include <scene/EntityTag.hpp>
+
 #include <scene/ComponentInterface.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
@@ -16,6 +19,8 @@
 
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderProxy.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -365,6 +370,150 @@ void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
     }
 
     AssertDebug(m_entityManager == entityManager);
+}
+
+
+Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
+{
+    HYP_SCOPE;
+
+    EntityManager* entityManager = GetEntityManager();
+
+    if (!entityManager)
+    {
+        return {};
+    }
+
+    Array<HypData, DynamicAllocator> resultArray;
+
+    auto serializeEntityAndComponents = [this, entityManager, &resultArray]()
+    {
+        Optional<const TypeMap<ComponentId>&> allComponents = entityManager->GetAllComponents(this);
+
+        if (!allComponents.HasValue())
+        {
+            HYP_LOG(Serialization, Error, "No component map found for entity");
+
+            return;
+        }
+
+        HashSet<TypeId> serializedComponents;
+
+        for (const auto& it : *allComponents)
+        {
+            const TypeId componentTypeId = it.first;
+
+            const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+
+            if (!componentInterface)
+            {
+                HYP_LOG(Serialization, Error, "No ComponentInterface registered for component with TypeId {}", componentTypeId.Value());
+
+                return;
+            }
+
+            if (!componentInterface->GetShouldSerialize())
+            {
+                continue;
+            }
+
+            if (serializedComponents.Contains(componentTypeId))
+            {
+                HYP_LOG(Serialization, Warning, "Entity has multiple components of the type {}", componentInterface->GetTypeName());
+
+                continue;
+            }
+
+            HYP_NAMED_SCOPE_FMT("Serializing component '{}'", componentInterface->GetTypeName());
+
+            FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(componentTypeId);
+
+            if (!marshal)
+            {
+                HYP_LOG(Serialization, Warning, "Cannot serialize component with type name {} and TypeId {} - No marshal registered", componentInterface->GetTypeName(), componentTypeId.Value());
+
+                continue;
+            }
+
+            resultArray.PushBack(HypData(entityManager->TryGetComponent(componentTypeId, this)));
+            serializedComponents.Insert(componentTypeId);
+        }
+    };
+
+    if (Threads::IsOnThread(entityManager->GetOwnerThreadId()))
+    {
+        serializeEntityAndComponents();
+    }
+    else
+    {
+        HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
+
+        Task<void> serializeEntityAndComponentsTask = Threads::GetThread(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
+            {
+                serializeEntityAndComponents();
+            });
+
+        serializeEntityAndComponentsTask.Await();
+    }
+
+    return resultArray;
+}
+
+void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& components)
+{
+    HYP_SCOPE;
+
+    EntityManager* entityManager = GetEntityManager();
+    if (!entityManager)
+    {
+        HYP_LOG(Serialization, Error, "EntityManager is null while deserializing components for entity {}:", Id());
+
+        return;
+    }
+
+    for (const HypData& componentData : components)
+    {
+        const TypeInfo& componentTypeInfo = *componentData.GetTypeInfo();
+
+        if (!entityManager->IsValidComponentType(componentTypeInfo.id))
+        {
+            HYP_LOG(Serialization, Warning, "Component with TypeId {} is not a valid component type", componentTypeInfo.name);
+
+            continue;
+        }
+
+        const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeInfo.id);
+
+        if (!componentInterface)
+        {
+            HYP_LOG(Serialization, Warning, "No ComponentInterface registered for component of type: {}", componentTypeInfo.name);
+
+            continue;
+        }
+
+        if (!componentInterface->GetShouldSerialize())
+        {
+            HYP_LOG(Serialization, Warning, "Component of type {} is not marked for serialization", componentTypeInfo.name);
+
+            continue;
+        }
+
+        HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", componentInterface->GetTypeName());
+
+        if (entityManager->HasComponent(componentTypeInfo.id, this))
+        {
+            HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentInterface->GetTypeName());
+
+            continue;
+        }
+
+        HYP_LOG(Serialization, Debug, "Adding component '{}' to entity of type {} with id: {}",
+            componentInterface->GetTypeName(),
+            InstanceClass()->GetName(),
+            Id());
+
+        entityManager->AddComponent(this, componentData);
+    }
 }
 
 } // namespace hyperion

@@ -938,6 +938,8 @@ EditorSubsystem::EditorSubsystem()
 
                         if (!package->IsReady())
                         {
+                            HYP_LOG(Editor, Debug, "Package {} with UUID {} is not ready; skipping adding to content browser", package->GetName(), package->GetUUID());
+
                             continue;
                         }
 
@@ -948,8 +950,6 @@ EditorSubsystem::EditorSubsystem()
                         NAME("OnPackageAdded"),
                         g_assetManager->GetAssetRegistry()->OnPackageAdded.BindThreaded([this](const Handle<AssetPackage>& package)
                             {
-                                Assert(package.IsValid());
-
                                 AddPackageToContentBrowser(package, false);
                             },
                             g_gameThread));

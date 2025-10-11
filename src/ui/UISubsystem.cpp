@@ -56,7 +56,8 @@ struct RENDER_COMMAND(AddUIRenderer)
 {
     UIRenderer* uiRenderer;
 
-    RENDER_COMMAND(AddUIRenderer)(UIRenderer* uiRenderer)
+    RENDER_COMMAND(AddUIRenderer)
+    (UIRenderer* uiRenderer)
         : uiRenderer(uiRenderer)
     {
         AssertDebug(uiRenderer != nullptr);
@@ -75,7 +76,8 @@ struct RENDER_COMMAND(RemoveUIRenderer)
 {
     UIRenderer* uiRenderer;
 
-    RENDER_COMMAND(RemoveUIRenderer)(UIRenderer* uiRenderer)
+    RENDER_COMMAND(RemoveUIRenderer)
+    (UIRenderer* uiRenderer)
         : uiRenderer(uiRenderer)
     {
     }
@@ -93,7 +95,8 @@ struct RENDER_COMMAND(SetFinalPassImageView)
 {
     GpuImageViewRef imageView;
 
-    RENDER_COMMAND(SetFinalPassImageView)(const GpuImageViewRef& imageView)
+    RENDER_COMMAND(SetFinalPassImageView)
+    (const GpuImageViewRef& imageView)
         : imageView(imageView)
     {
     }
@@ -289,6 +292,7 @@ void UISubsystem::Update(float delta)
             meshProxy.mesh = meshComponent->mesh;
             meshProxy.material = meshComponent->material;
             meshProxy.skeleton = meshComponent->skeleton;
+            meshProxy.numIndices = meshComponent->mesh->NumIndices();
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.modelMatrix = transformComponent ? transformComponent->transform.GetMatrix() : Matrix4::Identity();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;

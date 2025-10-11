@@ -833,6 +833,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.mesh = meshComponent->mesh;
             meshProxy.material = meshComponent->material;
             meshProxy.skeleton = meshComponent->skeleton;
+            meshProxy.numIndices = meshComponent->mesh->NumIndices();
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.modelMatrix = transformComponent ? transformComponent->transform.GetMatrix() : Matrix4::Identity();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;

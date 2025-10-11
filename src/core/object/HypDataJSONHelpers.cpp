@@ -617,7 +617,14 @@ bool ObjectToJSON(
 
     if (originalClass && opts.writeClassNames)
     {
-        outJson["$Class"] = *originalClass->GetName();
+        auto classIt = outJson.Find("$Class");
+        if (classIt != outJson.End())
+        {
+            outJson.Erase(classIt);
+        }
+
+        // write class at the beginning of the object
+        outJson.PushFront({ "$Class", *originalClass->GetName() });
     }
 
     return true;

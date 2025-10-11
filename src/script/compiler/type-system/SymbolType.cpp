@@ -55,8 +55,6 @@ void CheckUnfreedSymbolTypes()
     }
 
     HYP_LOG(Script, Warning, "{}", message);
-
-    HYP_BREAKPOINT;
 }
 
 #endif

@@ -361,13 +361,13 @@ static void RenderAll(
         }
         else
         {
-            frame->renderQueue << DrawIndexed(drawCall.mesh->NumIndices(), 1);
+            frame->renderQueue << DrawIndexed(drawCall.numIndices, 1);
         }
 
         prevDrawCall = &drawCall;
 
         counts[ERS_DRAW_CALLS]++;
-        counts[ERS_TRIANGLES] += drawCall.mesh->NumIndices() / 3;
+        counts[ERS_TRIANGLES] += drawCall.numIndices / 3;
     }
 
     for (const InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
@@ -429,14 +429,14 @@ static void RenderAll(
         }
         else
         {
-            frame->renderQueue << DrawIndexed(drawCall.mesh->NumIndices(), entityInstanceBatch->numEntities);
+            frame->renderQueue << DrawIndexed(drawCall.numIndices, entityInstanceBatch->numEntities);
         }
 
         prevDrawCall = &drawCall;
 
         counts[ERS_DRAW_CALLS]++;
         counts[ERS_INSTANCED_DRAW_CALLS]++;
-        counts[ERS_TRIANGLES] += drawCall.mesh->NumIndices() / 3;
+        counts[ERS_TRIANGLES] += drawCall.numIndices / 3;
     }
 
     RenderApi_AddRenderStats(counts);
@@ -578,10 +578,10 @@ static void RenderAll_Parallel(
                     }
                     else
                     {
-                        renderQueue << DrawIndexed(drawCall.mesh->NumIndices(), 1);
+                        renderQueue << DrawIndexed(drawCall.numIndices, 1);
                     }
 
-                    parallelRenderingState->renderStatsCounts[index][ERS_TRIANGLES] += drawCall.mesh->NumIndices() / 3;
+                    parallelRenderingState->renderStatsCounts[index][ERS_TRIANGLES] += drawCall.numIndices / 3;
                     parallelRenderingState->renderStatsCounts[index][ERS_DRAW_CALLS]++;
 
                     prevDrawCall = &drawCall;
@@ -675,12 +675,12 @@ static void RenderAll_Parallel(
                     }
                     else
                     {
-                        renderQueue << DrawIndexed(drawCall.mesh->NumIndices(), entityInstanceBatch->numEntities);
+                        renderQueue << DrawIndexed(drawCall.numIndices, entityInstanceBatch->numEntities);
                     }
 
                     prevDrawCall = &drawCall;
 
-                    parallelRenderingState->renderStatsCounts[index][ERS_TRIANGLES] += drawCall.mesh->NumIndices() / 3;
+                    parallelRenderingState->renderStatsCounts[index][ERS_TRIANGLES] += drawCall.numIndices / 3;
                     parallelRenderingState->renderStatsCounts[index][ERS_DRAW_CALLS]++;
                     parallelRenderingState->renderStatsCounts[index][ERS_INSTANCED_DRAW_CALLS]++;
                 }

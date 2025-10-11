@@ -22,6 +22,7 @@ class Scene;
 class Node;
 class EntityManager;
 struct Transform;
+struct HypData;
 enum class EntityTag : uint64;
 
 struct EntityInitInfo
@@ -135,6 +136,12 @@ protected:
 
 private:
     void SetEntityManager(const Handle<EntityManager>& entityManager);
+
+    HYP_METHOD(Property = "Components", NoScriptBindings)
+    Array<HypData, DynamicAllocator> SerializeComponents() const;
+    
+    HYP_METHOD(Property = "Components", NoScriptBindings)
+    void DeserializeComponents(const Array<HypData, DynamicAllocator>& components);
 
     World* m_world;
     EntityManager* m_entityManager;

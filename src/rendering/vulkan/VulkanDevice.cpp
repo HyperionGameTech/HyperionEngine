@@ -210,7 +210,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
     HYP_GFX_ASSERT(indices.IsComplete(), "Queue indices could not be created! Indices were:\n"
                                          "\tGraphics: %d\n"
                                          "\tTransfer: %d\n"
-                                         "\tPresent: %d\n",
+                                         "\tPresent: %d\n"
         "\tCompute: %d\n",
         indices.graphicsFamily.GetOr(0xBEEF),
         indices.transferFamily.GetOr(0xBEEF),

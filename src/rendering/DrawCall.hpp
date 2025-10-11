@@ -107,6 +107,7 @@ struct DrawCallBase
     Skeleton* skeleton = nullptr;
 
     uint32 drawCommandIndex = 0;
+    uint32 numIndices = 0;
 };
 
 /*! \brief Non-instanced draw call for a single entity  */

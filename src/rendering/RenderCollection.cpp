@@ -48,7 +48,7 @@ static constexpr bool doParallelCollection = true;
 
 extern HYP_API const char* LookupTypeName(TypeId typeId);
 
-#define HYP_DEBUG_EXTRA_MESH_ASSERTIONS 1
+#define HYP_DEBUG_EXTRA_MESH_ASSERTIONS 0
 
 #ifndef HYP_DEBUG_MODE
 #ifdef HYP_DEBUG_EXTRA_MESH_ASSERTIONS
