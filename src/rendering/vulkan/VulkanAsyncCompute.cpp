@@ -26,12 +26,14 @@ static inline VulkanRenderBackend* GetRenderBackend()
 }
 
 VulkanAsyncCompute::VulkanAsyncCompute()
-    : m_commandBuffers({ CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY),
-          CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY) }),
-      m_fences({ CreateObject<VulkanFence>(), CreateObject<VulkanFence>() }),
-      m_isSupported(false),
+    : m_isSupported(false),
       m_isFallback(false)
 {
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
+    {
+        m_commandBuffers[frameIndex] = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        m_fences[frameIndex] = CreateObject<VulkanFence>();
+    }
 }
 
 VulkanAsyncCompute::~VulkanAsyncCompute()

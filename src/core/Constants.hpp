@@ -32,7 +32,7 @@ constexpr uint8 EngineVersionPatch = HYP_VERSION_PATCH;
 constexpr uint32 EngineVersion = (EngineVersionMajor << 16) | (EngineVersionMinor << 8) | EngineVersionPatch;
 constexpr uint64 EngineBinaryMagicNumber = (uint64(0x505948) << 32) | EngineVersion;
 
-constexpr uint32 NumFramesInFlight = 2;
+constexpr uint32 NumFramesInFlight = 3;
 constexpr uint32 NumAsyncCommandBuffers = 4;
 
 constexpr uint32 MaxBoundReflectionProbes = 16;

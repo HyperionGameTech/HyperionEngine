@@ -141,9 +141,11 @@ static bool ResizeIfNeeded(
 
 #pragma region IndirectDrawState
 
+static constexpr uint32 AllBitsDirty = (1u << NumFramesInFlight) - 1;
+
 IndirectDrawState::IndirectDrawState()
     : m_numDrawCommands(0),
-      m_dirtyBits(0x3)
+      m_dirtyBits(AllBitsDirty)
 {
 }
 
@@ -193,7 +195,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall& drawCall, DrawCommandData& 
         drawCommandIndex,
         m_drawCommandsBuffer);
 
-    m_dirtyBits |= 0x3;
+    m_dirtyBits = AllBitsDirty;
 }
 
 void IndirectDrawState::PushInstancedDrawCall(const InstancedDrawCall& drawCall, DrawCommandData& out)
@@ -218,7 +220,7 @@ void IndirectDrawState::PushInstancedDrawCall(const InstancedDrawCall& drawCall,
         drawCommandIndex,
         m_drawCommandsBuffer);
 
-    m_dirtyBits |= 0x3;
+    m_dirtyBits = AllBitsDirty;
 }
 
 void IndirectDrawState::ResetDrawState()
@@ -232,7 +234,7 @@ void IndirectDrawState::ResetDrawState()
     // use SetSize() to keep the memory allocated
     m_drawCommandsBuffer.SetSize(0);
 
-    m_dirtyBits |= 0x3;
+    m_dirtyBits = AllBitsDirty;
 }
 
 void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* outWasResized)

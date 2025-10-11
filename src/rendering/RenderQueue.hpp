@@ -116,6 +116,10 @@ public:
         : m_buffer(buffer),
           m_bufferOffset(bufferOffset)
     {
+        HYP_GFX_ASSERT(buffer != nullptr && buffer->IsCreated());
+#ifdef HYP_VULKAN
+        HYP_GFX_ASSERT(bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= buffer->Size());
+#endif
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)

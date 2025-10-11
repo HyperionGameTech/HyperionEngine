@@ -262,13 +262,9 @@ void RaytracingReflections::CreateUniformBuffer()
 {
     RTRadianceUniforms uniforms {};
 
-    m_uniformBuffers = {
-        g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms)),
-        g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms))
-    };
-
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
+        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("RaytracingReflectionsUniformBuffer_{}", frameIndex));
 
         HYP_GFX_ASSERT(m_uniformBuffers[frameIndex]->Create());
