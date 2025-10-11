@@ -35,7 +35,7 @@ private:
             ComponentDescriptor<BoundingBoxComponent, ComponentRWFlags::READ_WRITE> {},
             ComponentDescriptor<TransformComponent, ComponentRWFlags::READ> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_AABB>, ComponentRWFlags::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UPDATE_AABB>, ComponentRWFlags::READ, false> {}
         };
     }
 

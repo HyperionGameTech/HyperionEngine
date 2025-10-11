@@ -120,7 +120,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                         }
 
                         json::JSONObject componentJson;
-                        componentJson["type"] = componentInterface->GetTypeName();
+                        componentJson["type"] = *componentInterface->GetTypeInfo().name;
                         componentJson["id"] = componentId;
 
                         if (componentTypeId == TypeId::ForType<UIComponent>())

@@ -209,49 +209,51 @@ private:
 
 class ComponentContainerFactoryBase
 {
-public:
-    virtual ~ComponentContainerFactoryBase() = default;
+protected:
+    ComponentContainerFactoryBase()
+        : m_createFn(nullptr)
+    {
+    }
 
-    virtual UniquePtr<ComponentContainerBase> Create() const = 0;
+public:
+    HYP_FORCE_INLINE UniquePtr<ComponentContainerBase> Create() const
+    {
+        return m_createFn();
+    }
+
+protected:
+    UniquePtr<ComponentContainerBase> (*m_createFn)(void);
 };
 
 template <class Component>
 class ComponentContainer final : public ComponentContainerBase
 {
-    static class Factory : public ComponentContainerFactoryBase
+    static class FactoryInstance final : public ComponentContainerFactoryBase
     {
     public:
-        Factory(UniquePtr<ComponentContainerBase> (*create)())
-            : m_create(create)
+        FactoryInstance(UniquePtr<ComponentContainerBase> (*createFn)(void))
         {
+            m_createFn = createFn;
         }
-
-        virtual ~Factory() override = default;
-
-        virtual UniquePtr<ComponentContainerBase> Create() const override
-        {
-            return m_create();
-        }
-
-    private:
-        UniquePtr<ComponentContainerBase> (*m_create)();
-    } s_factory;
+    } s_factoryInstance;
 
 public:
-    static Factory* GetFactory()
+    static ComponentContainerFactoryBase* GetFactory()
     {
-        return &s_factory;
+        return &s_factoryInstance;
     }
 
     ComponentContainer()
-        : ComponentContainerBase(&s_factory)
+        : ComponentContainerBase(&s_factoryInstance)
     {
     }
 
     ComponentContainer(const ComponentContainer&) = delete;
     ComponentContainer& operator=(const ComponentContainer&) = delete;
+
     ComponentContainer(ComponentContainer&&) noexcept = delete;
     ComponentContainer& operator=(ComponentContainer&&) noexcept = delete;
+
     virtual ~ComponentContainer() override = default;
 
     virtual TypeId GetComponentTypeId() const override
@@ -423,7 +425,7 @@ private:
 };
 
 template <class Component>
-typename ComponentContainer<Component>::Factory ComponentContainer<Component>::s_factory {
+typename ComponentContainer<Component>::FactoryInstance ComponentContainer<Component>::s_factoryInstance {
     []() -> UniquePtr<ComponentContainerBase>
     {
         return MakeUnique<ComponentContainer<Component>>();

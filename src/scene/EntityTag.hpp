@@ -13,6 +13,7 @@ namespace hyperion {
 
 class Entity;
 
+HYP_ENUM()
 enum class EntityTag : uint64
 {
     NONE,
@@ -38,8 +39,8 @@ enum class EntityTag : uint64
     UPDATE_RENDER_PROXY,
     UPDATE_VISIBILITY_STATE,
 
-    TYPE_ID = (uint64(1) << 31),            // Flag to indicate that this EntityTag is an EntityType tag
-    TYPE_ID_MASK = uint64(0xFFFFFFFF) << 32 // Mask to get TypeId from the vaue
+    TYPE_ID = 2147483648,             // Flag to indicate that this EntityTag is an EntityType tag
+    TYPE_ID_MASK = 0xFFFFFFFF00000000 // Mask to get TypeId from the vaue
 };
 
 static constexpr inline bool IsEntityTypeTag(EntityTag tag)
@@ -77,14 +78,28 @@ static constexpr inline EntityTag MakeEntityTypeTag(TypeId typeId)
     return EntityTag((static_cast<uint64>(typeId.Value()) << 32) | uint64(EntityTag::TYPE_ID));
 }
 
+HYP_STRUCT(Component)
+struct TagComponentBase
+{
+    HYP_STRUCT_BODY(TagComponentBase);
+
+    HYP_FIELD()
+    EntityTag value = EntityTag::NONE;
+};
+
 /*! \brief An EntityTag is a special component that is used to tag an entity with a specific flag.
  *
  *  \tparam tag The flag value
  */
-template <EntityTag Tag>
-struct EntityTagComponent
+template <EntityTag TEntityTag>
+struct TagComponent : TagComponentBase
 {
-    static constexpr EntityTag value = Tag;
+    static constexpr EntityTag Tag = TEntityTag;
+
+    TagComponent()
+    {
+        TagComponentBase::value = TEntityTag;
+    }
 };
 
 /*! \brief A helper used to query for Entity instances with a specific type.
@@ -92,6 +107,6 @@ struct EntityTagComponent
  *  \tparam T The type of Entity
  */
 template <class T>
-using EntityType = EntityTagComponent<EntityType_Impl<T>::value>;
+using EntityType = TagComponent<EntityType_Impl<T>::value>;
 
 } // namespace hyperion

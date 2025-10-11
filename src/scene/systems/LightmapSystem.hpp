@@ -34,7 +34,7 @@ private:
         return {
             // writes to entities with these components
             ComponentDescriptor<MeshComponent, ComponentRWFlags::READ_WRITE> {},
-            ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, ComponentRWFlags::READ_WRITE, false> {},
+            ComponentDescriptor<TagComponent<EntityTag::LIGHTMAP_ELEMENT>, ComponentRWFlags::READ_WRITE, false> {},
 
             // used to assign entities to LightmapVolumes
             ComponentDescriptor<EntityType<LightmapVolume>, ComponentRWFlags::READ, false> {}

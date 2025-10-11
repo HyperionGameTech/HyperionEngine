@@ -43,7 +43,7 @@ private:
             ComponentDescriptor<MeshComponent, ComponentRWFlags::READ_WRITE> {},
             ComponentDescriptor<TransformComponent, ComponentRWFlags::READ> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, ComponentRWFlags::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UPDATE_RENDER_PROXY>, ComponentRWFlags::READ, false> {}
         };
     }
 };

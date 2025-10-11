@@ -419,18 +419,24 @@ Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
 
             if (serializedComponents.Contains(componentTypeId))
             {
-                HYP_LOG(Serialization, Warning, "Entity has multiple components of the type {}", componentInterface->GetTypeName());
+                HYP_LOG(Serialization, Warning, "Entity has multiple components of the type {}", componentInterface->GetTypeInfo().name);
 
                 continue;
             }
 
-            HYP_NAMED_SCOPE_FMT("Serializing component '{}'", componentInterface->GetTypeName());
+            if (componentInterface->IsEntityTag())
+            {
+                // tags are serialized separately
+                continue;
+            }
+
+            HYP_NAMED_SCOPE_FMT("Serializing component '{}'", componentInterface->GetTypeInfo().name);
 
             FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(componentTypeId);
 
             if (!marshal)
             {
-                HYP_LOG(Serialization, Warning, "Cannot serialize component with type name {} and TypeId {} - No marshal registered", componentInterface->GetTypeName(), componentTypeId.Value());
+                HYP_LOG(Serialization, Warning, "Cannot serialize component {} - No marshal registered", componentInterface->GetTypeInfo().name);
 
                 continue;
             }
@@ -498,17 +504,57 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
             continue;
         }
 
-        HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", componentInterface->GetTypeName());
+        if (componentInterface->IsEntityTag())
+        {
+            continue; // tags are deserialized separately
+
+            HYP_NAMED_SCOPE("Deserializing entity tag");
+
+            Optional<EntityTag> entityTagOpt = componentData.TryGet<EntityTag>();
+
+            if (!entityTagOpt.HasValue())
+            {
+                HYP_LOG(Serialization, Error, "Failed to deserialize entity tag component of type {}", componentTypeInfo.name);
+
+                continue;
+            }
+
+            if (!entityManager->IsEntityTagComponent(componentInterface->GetTypeInfo().id))
+            {
+                HYP_LOG(Serialization, Warning, "Component {} is not an entity tag component", componentInterface->GetTypeInfo().name);
+
+                continue;
+            }
+
+            // Hack: if the entity tag is static, remove the dynamic tag if it exists and vice versa for dynamic
+            switch (*entityTagOpt)
+            {
+            case EntityTag::STATIC:
+                entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+                break;
+            case EntityTag::DYNAMIC:
+                entityManager->RemoveTag<EntityTag::STATIC>(this);
+                break;
+            default:
+                break;
+            }
+
+            entityManager->AddTag(this, *entityTagOpt);
+
+            continue;
+        }
+
+        HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", componentTypeInfo.name);
 
         if (entityManager->HasComponent(componentTypeInfo.id, this))
         {
-            HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentInterface->GetTypeName());
+            HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentTypeInfo.name);
 
             continue;
         }
 
         HYP_LOG(Serialization, Debug, "Adding component '{}' to entity of type {} with id: {}",
-            componentInterface->GetTypeName(),
+            componentTypeInfo.name,
             InstanceClass()->GetName(),
             Id());
 

@@ -34,7 +34,7 @@ void WorldAABBUpdaterSystem::Process(float delta)
 {
     HashMap<WeakHandle<Entity>, bool> updatedEntities;
 
-    for (auto [entity, boundingBoxComponent, transformComponent, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, boundingBoxComponent, transformComponent, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, TagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
     {
         const bool wasWorldAabbChanged = ProcessEntity(entity, boundingBoxComponent, transformComponent);
         

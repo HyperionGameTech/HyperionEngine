@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -23,6 +24,7 @@
 #include <core/math/Quaternion.hpp>
 
 #include <core/object/HypData.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <scene/ComponentFactory.hpp>
 #include <scene/ComponentContainer.hpp>
@@ -35,11 +37,7 @@ class ComponentContainerFactoryBase;
 enum class EntityTag : uint64;
 
 template <EntityTag Tag>
-struct EntityTagComponent;
-
-class HypClass;
-
-extern HYP_API const HypClass* GetClass(TypeId);
+struct TagComponent;
 
 extern HYP_API bool ComponentInterface_CreateInstance(const HypClass* hypClass, HypData& outHypData);
 
@@ -51,14 +49,14 @@ enum class ComponentInterfaceFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
 
-class IComponentInterface
+class HYP_API IComponentInterface
 {
 public:
     virtual ~IComponentInterface() = default;
 
-    virtual TypeId GetTypeId() const = 0;
-    virtual ANSIStringView GetTypeName() const = 0;
-    virtual const HypClass* GetClass() const = 0;
+    const HypClass* GetClass() const;
+
+    virtual const TypeInfo& GetTypeInfo() const = 0;
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const = 0;
 
     virtual bool CreateInstance(HypData& out) const = 0;
@@ -113,19 +111,9 @@ public:
 
     virtual ~ComponentInterface() override = default;
 
-    virtual TypeId GetTypeId() const override
+    virtual const TypeInfo& GetTypeInfo() const override
     {
-        return TypeId::ForType<Component>();
-    }
-
-    virtual ANSIStringView GetTypeName() const override
-    {
-        return TypeNameHelper<Component, true>::value;
-    }
-
-    virtual const HypClass* GetClass() const override
-    {
-        return ::hyperion::GetClass(TypeId::ForType<Component>());
+        return TypeInfo_ForType<Component>();
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
@@ -201,19 +189,9 @@ public:
 
     virtual ~EntityTagComponentInterface() override = default;
 
-    virtual TypeId GetTypeId() const override
+    virtual const TypeInfo& GetTypeInfo() const override
     {
-        return TypeId::ForType<EntityTagComponent<Tag>>();
-    }
-
-    virtual ANSIStringView GetTypeName() const override
-    {
-        return TypeNameHelper<EntityTagComponent<Tag>, true>::value;
-    }
-
-    virtual const HypClass* GetClass() const override
-    {
-        return ::hyperion::GetClass(TypeId::ForType<EntityTagComponent<Tag>>());
+        return TypeInfo_ForType<TagComponent<Tag>>();
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
@@ -223,7 +201,7 @@ public:
 
     virtual bool CreateInstance(HypData& out) const override
     {
-        out = HypData(EntityTagComponent<Tag> {});
+        out = HypData(TagComponent<Tag> {});
 
         return true;
     }
@@ -329,17 +307,17 @@ struct ComponentInterfaceRegistration
 };
 
 template <EntityTag Tag, bool ShouldSerialize>
-struct ComponentInterfaceRegistration<EntityTagComponent<Tag>, ShouldSerialize>
+struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize>
 {
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
-            TypeId::ForType<EntityTagComponent<Tag>>(),
+            TypeId::ForType<TagComponent<Tag>>(),
             []() -> UniquePtr<IComponentInterface>
             {
                 return MakeUnique<EntityTagComponentInterface<Tag, ShouldSerialize>>(
-                    MakeUnique<ComponentFactory<EntityTagComponent<Tag>>>(),
-                    ComponentContainer<EntityTagComponent<Tag>>::GetFactory());
+                    MakeUnique<ComponentFactory<TagComponent<Tag>>>(),
+                    ComponentContainer<TagComponent<Tag>>::GetFactory());
             });
     }
 };
@@ -349,12 +327,12 @@ struct ComponentInterfaceRegistration<EntityTagComponent<Tag>, ShouldSerialize>
     {                                                                                                 \
     }
 #define HYP_REGISTER_ENTITY_TAG(tag, ...)                                                                                                    \
-    static ComponentInterfaceRegistration<EntityTagComponent<EntityTag::tag>, ##__VA_ARGS__> tag##_EntityTag_ComponentInterface_Registration \
+    static ComponentInterfaceRegistration<TagComponent<EntityTag::tag>, ##__VA_ARGS__> tag##_EntityTag_ComponentInterface_Registration \
     {                                                                                                                                        \
     }
 
 #define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                                     \
-    static ComponentInterfaceRegistration<EntityTagComponent<EntityType_Impl<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
+    static ComponentInterfaceRegistration<TagComponent<EntityType_Impl<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
     {                                                                                                                                                        \
     }
 

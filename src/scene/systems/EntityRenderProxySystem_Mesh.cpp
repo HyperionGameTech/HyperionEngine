@@ -67,7 +67,7 @@ void EntityRenderProxySystem_Mesh::Process(float delta)
 {
     HashSet<WeakHandle<Entity>> updatedEntities;
 
-    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos()))
     {
         HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity->Id());
 

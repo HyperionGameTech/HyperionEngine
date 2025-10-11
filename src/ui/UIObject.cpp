@@ -2705,7 +2705,7 @@ void UIObject::CollectObjects(ProcRef<void(UIObject*)> proc, bool onlyVisible) c
 
     if (onlyVisible)
     {
-        for (auto [entity, uiComponent, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, uiComponent, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, TagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!uiComponent.uiObject.IsValid())
             {

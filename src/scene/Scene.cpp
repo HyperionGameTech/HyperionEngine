@@ -236,7 +236,7 @@ Camera* Scene::GetPrimaryCamera() const
         return nullptr;
     }
 
-    for (auto [entity, _0, _1] : m_entityManager->GetEntitySet<EntityType<Camera>, EntityTagComponent<EntityTag::CAMERA_PRIMARY>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    for (auto [entity, _0, _1] : m_entityManager->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::CAMERA_PRIMARY>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         AssertDebug(entity->IsA<Camera>());
 

@@ -41,7 +41,7 @@ private:
             ComponentDescriptor<TransformComponent, ComponentRWFlags::READ, false> {},
             ComponentDescriptor<BoundingBoxComponent, ComponentRWFlags::READ, false> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, ComponentRWFlags::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::STATIC>, ComponentRWFlags::READ, false> {}
         };
     }
 

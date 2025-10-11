@@ -60,7 +60,7 @@ void LightmapSystem::Process(float delta)
         return; // no point in processing if there are no volumes in this Scene
     }
 
-    for (auto [entity, meshComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, meshComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, TagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
     {
         if (meshComponent.lightmapVolumeUuid == Uuid::Invalid())
         {

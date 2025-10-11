@@ -1730,6 +1730,51 @@ HYP_END_CLASS
 
 } // namespace hyperion
 
+/* Generated from: scene\EntityTag.hpp */
+
+#include <scene\EntityTag.hpp>
+
+namespace hyperion {
+
+#pragma region EntityTag Reflection Data
+
+HYP_BEGIN_ENUM(EntityTag, 341, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), EntityTag::NONE),
+    HypConstant(NAME(HYP_STR(STATIC)), EntityTag::STATIC),
+    HypConstant(NAME(HYP_STR(DYNAMIC)), EntityTag::DYNAMIC),
+    HypConstant(NAME(HYP_STR(LIGHT)), EntityTag::LIGHT),
+    HypConstant(NAME(HYP_STR(CAMERA_PRIMARY)), EntityTag::CAMERA_PRIMARY),
+    HypConstant(NAME(HYP_STR(LIGHTMAP_ELEMENT)), EntityTag::LIGHTMAP_ELEMENT),
+    HypConstant(NAME(HYP_STR(RECEIVES_UPDATE)), EntityTag::RECEIVES_UPDATE),
+    HypConstant(NAME(HYP_STR(SAVABLE_MAX)), EntityTag::SAVABLE_MAX),
+    HypConstant(NAME(HYP_STR(UI_OBJECT_VISIBLE)), EntityTag::UI_OBJECT_VISIBLE),
+    HypConstant(NAME(HYP_STR(EDITOR_FOCUSED)), EntityTag::EDITOR_FOCUSED),
+    HypConstant(NAME(HYP_STR(UPDATE_AABB)), EntityTag::UPDATE_AABB),
+    HypConstant(NAME(HYP_STR(UPDATE_RENDER_PROXY)), EntityTag::UPDATE_RENDER_PROXY),
+    HypConstant(NAME(HYP_STR(UPDATE_VISIBILITY_STATE)), EntityTag::UPDATE_VISIBILITY_STATE),
+    HypConstant(NAME(HYP_STR(TYPE_ID)), EntityTag::TYPE_ID),
+    HypConstant(NAME(HYP_STR(TYPE_ID_MASK)), EntityTag::TYPE_ID_MASK)
+HYP_END_ENUM
+
+#pragma endregion EntityTag Reflection Data
+
+} // namespace hyperion
+
+#include <scene/ComponentInterface.hpp>
+
+namespace hyperion {
+
+#pragma region TagComponentBase Reflection Data
+
+HYP_BEGIN_STRUCT(TagComponentBase, 342, 0, {}, HypClassAttribute("component", true))
+    HypField(NAME(HYP_STR(Value)), &TagComponentBase::value, offsetof(TagComponentBase, value))
+HYP_END_STRUCT
+
+#pragma endregion TagComponentBase Reflection Data
+
+HYP_REGISTER_COMPONENT(TagComponentBase);
+} // namespace hyperion
+
 /* Generated from: scene\EnvGrid.hpp */
 
 #include <scene\EnvGrid.hpp>
@@ -1769,88 +1814,5 @@ HYP_END_CLASS
 #pragma endregion LegacyEnvGrid Reflection Data
 
 HYP_REGISTER_ENTITY_TYPE(LegacyEnvGrid);
-} // namespace hyperion
-
-/* Generated from: scene\EnvProbe.hpp */
-
-#include <scene\EnvProbe.hpp>
-#include <core\math\BoundingBox.hpp>
-#include <scene\camera\Camera.hpp>
-#include <rendering\RenderProxy.hpp>
-#include <rendering\Texture.hpp>
-
-
-namespace hyperion {
-
-#pragma region EnvProbeType Reflection Data
-
-HYP_BEGIN_ENUM(EnvProbeType, 341, 0, {})
-    HypConstant(NAME(HYP_STR(EPT_INVALID)), EnvProbeType::EPT_INVALID),
-    HypConstant(NAME(HYP_STR(EPT_SKY)), EnvProbeType::EPT_SKY),
-    HypConstant(NAME(HYP_STR(EPT_REFLECTION)), EnvProbeType::EPT_REFLECTION),
-    HypConstant(NAME(HYP_STR(EPT_SHADOW)), EnvProbeType::EPT_SHADOW),
-    HypConstant(NAME(HYP_STR(EPT_AMBIENT)), EnvProbeType::EPT_AMBIENT),
-    HypConstant(NAME(HYP_STR(EPT_MAX)), EnvProbeType::EPT_MAX)
-HYP_END_ENUM
-
-#pragma endregion EnvProbeType Reflection Data
-
-} // namespace hyperion
-
-#include <scene/ComponentInterface.hpp>
-#include <scene/EntityTag.hpp>
-
-namespace hyperion {
-
-#pragma region EnvProbe Reflection Data
-
-HYP_BEGIN_CLASS(EnvProbe, 134, 2, NAME("Entity"))
-    HypMethod(NAME(HYP_STR(GetEnvProbeType)), &EnvProbe::GetEnvProbeType),
-    HypMethod(NAME(HYP_STR(IsReflectionProbe)), &EnvProbe::IsReflectionProbe),
-    HypMethod(NAME(HYP_STR(IsSkyProbe)), &EnvProbe::IsSkyProbe),
-    HypMethod(NAME(HYP_STR(IsShadowProbe)), &EnvProbe::IsShadowProbe),
-    HypMethod(NAME(HYP_STR(IsAmbientProbe)), &EnvProbe::IsAmbientProbe),
-    HypMethod(NAME(HYP_STR(IsControlledByEnvGrid)), &EnvProbe::IsControlledByEnvGrid),
-    HypMethod(NAME(HYP_STR(GetAABB)), &EnvProbe::GetAABB),
-    HypMethod(NAME(HYP_STR(SetAABB)), &EnvProbe::SetAABB),
-    HypMethod(NAME(HYP_STR(GetOrigin)), &EnvProbe::GetOrigin),
-    HypMethod(NAME(HYP_STR(SetOrigin)), &EnvProbe::SetOrigin),
-    HypMethod(NAME(HYP_STR(GetCamera)), &EnvProbe::GetCamera),
-    HypField(NAME(HYP_STR(Aabb)), &EnvProbe::m_aabb, offsetof(EnvProbe, m_aabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "AABB") } }),
-    HypField(NAME(HYP_STR(Dimensions)), &EnvProbe::m_dimensions, offsetof(EnvProbe, m_dimensions), Span<const HypClassAttribute> { {HypClassAttribute("property", "Dimensions") } }),
-    HypField(NAME(HYP_STR(EnvProbeType)), &EnvProbe::m_envProbeType, offsetof(EnvProbe, m_envProbeType), Span<const HypClassAttribute> { {HypClassAttribute("property", "EnvProbeType") } }),
-    HypField(NAME(HYP_STR(ShData)), &EnvProbe::m_shData, offsetof(EnvProbe, m_shData), Span<const HypClassAttribute> { {HypClassAttribute("property", "SHData") } })
-HYP_END_CLASS
-
-#pragma endregion EnvProbe Reflection Data
-
-HYP_REGISTER_ENTITY_TYPE(EnvProbe);
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region ReflectionProbe Reflection Data
-
-HYP_BEGIN_CLASS(ReflectionProbe, 135, 0, NAME("EnvProbe"))
-HYP_END_CLASS
-
-#pragma endregion ReflectionProbe Reflection Data
-
-HYP_REGISTER_ENTITY_TYPE(ReflectionProbe);
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region SkyProbe Reflection Data
-
-HYP_BEGIN_CLASS(SkyProbe, 136, 0, NAME("EnvProbe"))
-    HypMethod(NAME(HYP_STR(GetSkyboxCubemap)), &SkyProbe::GetSkyboxCubemap)
-HYP_END_CLASS
-
-#pragma endregion SkyProbe Reflection Data
-
-HYP_REGISTER_ENTITY_TYPE(SkyProbe);
 } // namespace hyperion
 

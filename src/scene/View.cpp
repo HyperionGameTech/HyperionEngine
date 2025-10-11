@@ -618,7 +618,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
         case uint32(ViewFlags::COLLECT_STATIC_ENTITIES):
             if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
             {
-                for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+                for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     ++numCollectedEntities;
 
@@ -652,7 +652,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             }
             else
             {
-                for (auto [entity, meshComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+                for (auto [entity, meshComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, TagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     if (!(visibilityStateComponent.flags & VisibilityStateFlags::ALWAYS_VISIBLE))
                     {
@@ -712,7 +712,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
         case uint32(ViewFlags::COLLECT_DYNAMIC_ENTITIES):
             if (m_flags & ViewFlags::NO_FRUSTUM_CULLING)
             {
-                for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+                for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     ++numCollectedEntities;
 
@@ -746,7 +746,7 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
             }
             else
             {
-                for (auto [entity, meshComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+                for (auto [entity, meshComponent, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, TagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     if (!(visibilityStateComponent.flags & VisibilityStateFlags::ALWAYS_VISIBLE))
                     {

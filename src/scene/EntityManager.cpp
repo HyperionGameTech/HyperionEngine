@@ -12,6 +12,7 @@
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypClass.hpp>
@@ -25,8 +26,7 @@
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static constexpr double g_systemExecutionGroupLagSpikeThreshold = 50.0;
-static constexpr uint32 g_entityManagerCommandQueueWarningSize = 8192;
+static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
@@ -95,7 +95,7 @@ ANSIStringView EntityManager::GetComponentTypeName(TypeId componentTypeId)
         return ANSIStringView();
     }
 
-    return componentInterface->GetTypeName();
+    return *componentInterface->GetTypeInfo().name;
 }
 
 EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFlags<EntityManagerFlags> flags)
@@ -118,7 +118,7 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
         UniquePtr<ComponentContainerBase> componentContainer = componentContainerFactory->Create();
         Assert(componentContainer != nullptr);
 
-        m_containers.Set(componentInterface->GetTypeId(), std::move(componentContainer));
+        m_containers.Set(componentInterface->GetTypeInfo().id, std::move(componentContainer));
     }
 }
 
@@ -1185,14 +1185,14 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
 
     if (!componentInterface)
     {
-        HYP_LOG(Entity, Error, "No EntityTagComponent registered for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag);
 
         return false;
     }
 
-    const TypeId componentTypeId = componentInterface->GetTypeId();
+    const TypeInfo& componentTypeInfo = componentInterface->GetTypeInfo();
 
-    return HasComponent(componentTypeId, entity);
+    return HasComponent(componentTypeInfo.id, entity);
 }
 
 void EntityManager::AddTag(Entity* entity, EntityTag tag)
@@ -1213,26 +1213,26 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
 
     if (!componentInterface)
     {
-        HYP_LOG(Entity, Error, "No EntityTagComponent registered for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag);
 
         return;
     }
 
-    const TypeId componentTypeId = componentInterface->GetTypeId();
+    const TypeInfo& componentTypeInfo = componentInterface->GetTypeInfo();
 
-    if (HasComponent(componentTypeId, entity))
+    if (HasComponent(componentTypeInfo.id, entity))
     {
         return;
     }
 
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
-    Assert(container != nullptr, "Component container does not exist for component type {}", componentTypeId.Value());
+    ComponentContainerBase* container = TryGetContainer(componentTypeInfo.id);
+    Assert(container != nullptr, "Component container does not exist for component type {}", componentTypeInfo.name);
 
     HypData componentHypData;
 
     if (!componentInterface->CreateInstance(componentHypData))
     {
-        HYP_LOG(Entity, Error, "Failed to create EntityTagComponent for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "Failed to create TagComponent for EntityTag {}", tag);
 
         return;
     }
@@ -1255,14 +1255,14 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
 
     if (!componentInterface)
     {
-        HYP_LOG(Entity, Error, "No EntityTagComponent registered for EntityTag {}", tag);
+        HYP_LOG(Entity, Error, "No TagComponent registered for EntityTag {}", tag);
 
         return false;
     }
 
-    const TypeId componentTypeId = componentInterface->GetTypeId();
+    const TypeInfo& componentTypeInfo = componentInterface->GetTypeInfo();
 
-    return RemoveComponent(componentTypeId, entity);
+    return RemoveComponent(componentTypeInfo.id, entity);
 }
 
 void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentId>& componentIds)
@@ -1362,7 +1362,7 @@ void EntityManager::BeginAsyncUpdate(float delta)
 
     AssertDebug(GetWorld() != nullptr);
 
-    for (auto [entity, _] : GetEntitySet<EntityTagComponent<EntityTag::RECEIVES_UPDATE>>().GetScopedView(DataAccessFlags::ACCESS_RW))
+    for (auto [entity, _] : GetEntitySet<TagComponent<EntityTag::RECEIVES_UPDATE>>().GetScopedView(DataAccessFlags::ACCESS_RW))
     {
         AssertDebug(entity->GetEntityManager() == this);
         AssertDebug(entity->GetWorld() == GetWorld());
@@ -1466,7 +1466,7 @@ void EntityManager::EndAsyncUpdate()
         const double elapsedTimeMs = performanceClock.Elapsed() / 1000.0;
 
 #ifdef HYP_SYSTEMS_LAG_SPIKE_DETECTION
-        if (elapsedTimeMs >= g_systemExecutionGroupLagSpikeThreshold)
+        if (elapsedTimeMs >= SystemExecutionGroupLagSpikeThreshold)
         {
             HYP_LOG(Entity, Warning, "SystemExecutionGroup spike detected: {} ms", elapsedTimeMs);
         }

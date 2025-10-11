@@ -6,6 +6,8 @@
 
 #include <core/object/HypClass.hpp>
 
+#include <core/utilities/TypeInfo.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -20,6 +22,15 @@ HYP_API bool ComponentInterface_CreateInstance(const HypClass* hypClass, HypData
 
     return hypClass->CreateInstance(outHypData);
 }
+
+#pragma region IComponentInterface
+
+const HypClass* IComponentInterface::GetClass() const
+{
+    return GetTypeInfo().GetHypClass();
+}
+
+#pragma endregion IComponentInterface
 
 #pragma region ComponentInterfaceRegistry
 

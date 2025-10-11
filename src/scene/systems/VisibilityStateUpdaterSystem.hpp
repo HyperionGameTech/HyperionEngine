@@ -38,7 +38,7 @@ private:
             ComponentDescriptor<VisibilityStateComponent, ComponentRWFlags::READ_WRITE> {},
             ComponentDescriptor<BoundingBoxComponent, ComponentRWFlags::READ> {},
 
-            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, ComponentRWFlags::READ, false> {}
+            ComponentDescriptor<TagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, ComponentRWFlags::READ, false> {}
         };
     }
 };

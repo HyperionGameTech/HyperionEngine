@@ -406,7 +406,7 @@ public:
     template <EntityTag Tag>
     HYP_FORCE_INLINE bool HasTag(const Entity* entity) const
     {
-        return HasComponent<EntityTagComponent<Tag>>(entity);
+        return HasComponent<TagComponent<Tag>>(entity);
     }
 
     template <EntityTag Tag>
@@ -447,7 +447,7 @@ public:
             return false;
         }
 
-        return RemoveComponent<EntityTagComponent<Tag>>(entity);
+        return RemoveComponent<TagComponent<Tag>>(entity);
     }
 
     HYP_FORCE_INLINE Array<EntityTag> GetSavableTags(const Entity* entity) const
@@ -731,7 +731,7 @@ public:
         EntityTag tag;
         if (IsEntityTagComponent(componentTypeId, tag))
         {
-            // If the component is an EntityTagComponent, add the tag to the entity
+            // If the component is an TagComponent, add the tag to the entity
             entity->OnTagAdded(tag);
         }
         else
@@ -813,7 +813,7 @@ public:
         EntityTag tag;
         if (IsEntityTagComponent(componentTypeId, tag))
         {
-            // If the component is an EntityTagComponent, remove the tag from the entity
+            // If the component is an TagComponent, remove the tag from the entity
             entity->OnTagRemoved(tag);
         }
         else

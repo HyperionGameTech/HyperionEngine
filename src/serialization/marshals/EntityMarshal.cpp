@@ -88,7 +88,7 @@ public:
 
                 if (serializedComponents.Contains(componentTypeId))
                 {
-                    HYP_LOG(Serialization, Warning, "Entity has multiple components of the type {}", componentInterface->GetTypeName());
+                    HYP_LOG(Serialization, Warning, "Entity has multiple components of the type {}", componentInterface->GetTypeInfo().name);
 
                     continue;
                 }
@@ -97,7 +97,7 @@ public:
                 {
                     EntityTag entityTag = componentInterface->GetEntityTag();
 
-                    FBOMObject entityTagObject { FBOMObjectType(componentInterface->GetTypeName(), componentInterface->GetTypeId(), FBOMTypeFlags::DEFAULT) };
+                    FBOMObject entityTagObject { FBOMObjectType(*componentInterface->GetTypeInfo().name, componentInterface->GetTypeInfo().id, FBOMTypeFlags::DEFAULT) };
                     entityTagObject.SetProperty("EntityTag", uint32(entityTag));
                     out.AddChild(std::move(entityTagObject));
 
@@ -106,13 +106,13 @@ public:
                     continue;
                 }
 
-                HYP_NAMED_SCOPE_FMT("Serializing component '{}'", componentInterface->GetTypeName());
+                HYP_NAMED_SCOPE_FMT("Serializing component '{}'", componentInterface->GetTypeInfo().name);
 
                 FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(componentTypeId);
 
                 if (!marshal)
                 {
-                    HYP_LOG(Serialization, Warning, "Cannot serialize component with type name {} and TypeId {} - No marshal registered", componentInterface->GetTypeName(), componentTypeId.Value());
+                    HYP_LOG(Serialization, Warning, "Cannot serialize component of type {} - No marshal registered", componentInterface->GetTypeInfo().name);
 
                     continue;
                 }
@@ -224,7 +224,7 @@ public:
 
             if (!componentInterface->GetShouldSerialize())
             {
-                HYP_LOG(Serialization, Warning, "Component with TypeId {} is not marked for serialization", componentInterface->GetTypeId().Value());
+                HYP_LOG(Serialization, Warning, "Component with TypeId {} is not marked for serialization", componentInterface->GetTypeInfo().name);
 
                 continue;
             }
@@ -242,9 +242,9 @@ public:
 
                 EntityTag entityTag = EntityTag(entityTagValue);
 
-                if (!entityManager->IsEntityTagComponent(componentInterface->GetTypeId()))
+                if (!entityManager->IsEntityTagComponent(componentInterface->GetTypeInfo().id))
                 {
-                    HYP_LOG(Serialization, Warning, "Component with TypeId {} is not an entity tag component", componentInterface->GetTypeId().Value());
+                    HYP_LOG(Serialization, Warning, "Component with TypeId {} is not an entity tag component", componentInterface->GetTypeInfo().name);
 
                     continue;
                 }
@@ -267,41 +267,26 @@ public:
                 continue;
             }
 
-            HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", componentInterface->GetTypeName());
+            HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", componentInterface->GetTypeInfo().name);
 
             if (!child.m_deserializedObject)
             {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("No deserialized object found for component '{}'", componentInterface->GetTypeName()) };
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("No deserialized object found for component '{}'", componentInterface->GetTypeInfo().name) };
             }
 
             if (entityManager->HasComponent(childTypeId, entity))
             {
-                HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentInterface->GetTypeName());
+                HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentInterface->GetTypeInfo().name);
 
                 continue;
             }
 
             HYP_LOG(Serialization, Debug, "Adding component '{}' (child type id: {}, name: {}) to entity of type {} with Id: {}",
-                componentInterface->GetTypeName(),
+                componentInterface->GetTypeInfo().name,
                 childTypeId.Value(),
                 child.GetType().name,
                 entity->InstanceClass()->GetName(),
                 entity->Id());
-
-            const MeshComponent* tmpMeshComponent = nullptr;
-            // temp
-            if (childTypeId == TypeId::ForType<MeshComponent>())
-            {
-                tmpMeshComponent = &child.m_deserializedObject->Get<MeshComponent>();
-                if (!tmpMeshComponent->mesh || !tmpMeshComponent->material)
-                {
-                    HYP_LOG_TEMP("Missing mesh or material! Mesh: {}",
-                                 tmpMeshComponent->mesh ? tmpMeshComponent->mesh->GetAssetReference().GetAssetPath().ToString() : "<null>");
-                    HYP_LOG_TEMP("material property : {}", child.GetProperty("Material").ToString());
-                    
-                    HYP_BREAKPOINT;
-                }
-            }
 
             entityManager->AddComponent(entity, *child.m_deserializedObject);
         }
