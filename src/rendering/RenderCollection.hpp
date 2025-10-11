@@ -49,6 +49,12 @@ enum EnvProbeType : uint32;
 
 HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
 
+struct DrawCallRange
+{
+    SizeType start;
+    SizeType count;
+};
+
 struct ParallelRenderingState
 {
     static constexpr uint32 maxBatches = NumAsyncCommandBuffers;
@@ -66,10 +72,10 @@ struct ParallelRenderingState
     FixedArray<RenderStatsCounts, maxBatches> renderStatsCounts {};
 
     // Temporary storage for data that will be executed in parallel during the frame
-    Array<Span<const DrawCall>, FixedAllocator<maxBatches>> drawCalls;
-    Array<Span<const InstancedDrawCall>, FixedAllocator<maxBatches>> instancedDrawCalls;
-    Array<Proc<void(Span<const DrawCall>, uint32, uint32)>, FixedAllocator<1>> drawCallProcs;
-    Array<Proc<void(Span<const InstancedDrawCall>, uint32, uint32)>, FixedAllocator<1>> instancedDrawCallProcs;
+    Array<DrawCallRange, FixedAllocator<maxBatches>> drawCalls;
+    Array<DrawCallRange, FixedAllocator<maxBatches>> instancedDrawCalls;
+    Array<Proc<void(DrawCallRange, uint32, uint32)>, FixedAllocator<1>> drawCallProcs;
+    Array<Proc<void(DrawCallRange, uint32, uint32)>, FixedAllocator<1>> instancedDrawCallProcs;
 
     ParallelRenderingState* next = nullptr;
 };

@@ -97,32 +97,116 @@ struct DrawCallID
     }
 };
 
-/*! \brief Base struct for all draw calls */
-struct DrawCallBase
+/*! \brief Struct of Arrays layout for non-instanced draw calls for better cache performance */
+struct DrawCallStorage
 {
-    DrawCallID id;
+    Array<DrawCallID> ids;
+    Array<Mesh*> meshes;
+    Array<Material*> materials;
+    Array<Skeleton*> skeletons;
+    Array<uint32> drawCommandIndices;
+    Array<uint32> numIndices;
+    Array<ObjId<Entity>> entityIds;
 
-    Mesh* mesh = nullptr;
-    Material* material = nullptr;
-    Skeleton* skeleton = nullptr;
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        return ids.Size();
+    }
 
-    uint32 drawCommandIndex = 0;
-    uint32 numIndices = 0;
+    HYP_FORCE_INLINE bool Empty() const
+    {
+        return ids.Empty();
+    }
+
+    HYP_FORCE_INLINE bool Any() const
+    {
+        return ids.Any();
+    }
+
+    void Clear()
+    {
+        ids.Clear();
+        meshes.Clear();
+        materials.Clear();
+        skeletons.Clear();
+        drawCommandIndices.Clear();
+        numIndices.Clear();
+        entityIds.Clear();
+    }
+
+    SizeType Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, ObjId<Entity> entityId, uint32 numIndicesValue)
+    {
+        const SizeType index = ids.Size();
+        
+        ids.PushBack(id);
+        meshes.PushBack(mesh);
+        materials.PushBack(material);
+        skeletons.PushBack(skeleton);
+        drawCommandIndices.PushBack(~0u);
+        numIndices.PushBack(numIndicesValue);
+        entityIds.PushBack(entityId);
+
+        return index;
+    }
 };
 
-/*! \brief Non-instanced draw call for a single entity  */
-struct DrawCall : DrawCallBase
+/*! \brief Struct of Arrays layout for instanced draw calls for better cache performance */
+struct InstancedDrawCallStorage
 {
-    ObjId<Entity> entityId;
-};
+    Array<DrawCallID> ids;
+    Array<Mesh*> meshes;
+    Array<Material*> materials;
+    Array<Skeleton*> skeletons;
+    Array<uint32> drawCommandIndices;
+    Array<uint32> numIndices;
+    Array<EntityInstanceBatch*> batches;
+    Array<uint32> counts;
+    Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>> entityIds;
 
-/*! \brief A draw call for multiple entities sharing the same mesh and material */
-struct InstancedDrawCall : DrawCallBase
-{
-    EntityInstanceBatch* batch = nullptr;
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        return ids.Size();
+    }
 
-    uint32 count = 0;
-    ObjId<Entity> entityIds[MaxEntitiesPerBatch];
+    HYP_FORCE_INLINE bool Empty() const
+    {
+        return ids.Empty();
+    }
+
+    HYP_FORCE_INLINE bool Any() const
+    {
+        return ids.Any();
+    }
+
+    void Clear()
+    {
+        ids.Clear();
+        meshes.Clear();
+        materials.Clear();
+        skeletons.Clear();
+        drawCommandIndices.Clear();
+        numIndices.Clear();
+        batches.Clear();
+        counts.Clear();
+        entityIds.Clear();
+    }
+
+    SizeType Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
+    {
+        const SizeType index = ids.Size();
+        
+        ids.PushBack(id);
+        meshes.PushBack(mesh);
+        materials.PushBack(material);
+        skeletons.PushBack(skeleton);
+        drawCommandIndices.PushBack(~0u);
+        numIndices.PushBack(numIndicesValue);
+        batches.PushBack(batch);
+        counts.PushBack(0);
+        entityIds.EmplaceBack();
+
+        return index;
+    }
 };
 
 /// TODO: Refactor to a basic desc struct for Batch size info,
@@ -200,14 +284,14 @@ struct DrawCallCollection
     /*! \brief Push \ref{numInstances} instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(InstancedDrawCall& drawCall, ObjId<Entity> entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset);
+    uint32 PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset);
 
     IDrawCallCollectionImpl* impl;
 
     RenderGroup* renderGroup;
 
-    Array<DrawCall> drawCalls;
-    Array<InstancedDrawCall> instancedDrawCalls;
+    DrawCallStorage drawCalls;
+    InstancedDrawCallStorage instancedDrawCalls;
 
     // Map from draw call id to the index in instancedDrawCalls
     HashMap<uint64, Array<SizeType>> instancedDrawCallIndexMap;

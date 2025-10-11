@@ -23,8 +23,8 @@ struct RenderSetup;
 struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
 
-struct DrawCall;
-struct InstancedDrawCall;
+struct DrawCallStorage;
+struct InstancedDrawCallStorage;
 
 class DrawCallCollection;
 class IDrawCallCollectionImpl;
@@ -71,8 +71,8 @@ public:
 
     void Create();
 
-    void PushDrawCall(const DrawCall& drawCall, DrawCommandData& out);
-    void PushInstancedDrawCall(const InstancedDrawCall& drawCall, DrawCommandData& out);
+    void PushDrawCall(SizeType drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out);
+    void PushInstancedDrawCall(SizeType drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out);
 
     void ResetDrawState();
 

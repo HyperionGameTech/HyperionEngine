@@ -176,47 +176,51 @@ void IndirectDrawState::Create()
     }
 }
 
-void IndirectDrawState::PushDrawCall(const DrawCall& drawCall, DrawCommandData& out)
+void IndirectDrawState::PushDrawCall(SizeType drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out)
 {
     out = {};
 
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     ObjectInstance& instance = m_objectInstances.EmplaceBack();
-    instance.entityId = drawCall.entityId.Value();
+    instance.entityId = drawCalls.entityIds[drawCallIndex].Value();
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
 
     out.drawCommandIndex = drawCommandIndex;
 
     g_renderBackend->PopulateIndirectDrawCommandsBuffer(
-        drawCall.mesh->GetVertexBuffer(),
-        drawCall.mesh->GetIndexBuffer(),
+        drawCalls.meshes[drawCallIndex]->GetVertexBuffer(),
+        drawCalls.meshes[drawCallIndex]->GetIndexBuffer(),
         drawCommandIndex,
         m_drawCommandsBuffer);
 
     m_dirtyBits = AllBitsDirty;
 }
 
-void IndirectDrawState::PushInstancedDrawCall(const InstancedDrawCall& drawCall, DrawCommandData& out)
+void IndirectDrawState::PushInstancedDrawCall(SizeType drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out)
 {
     out = {};
 
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
-    for (uint32 index = 0; index < drawCall.count; index++)
+    const uint32 count = drawCalls.counts[drawCallIndex];
+    const FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>& entityIds = drawCalls.entityIds[drawCallIndex];
+    EntityInstanceBatch* batch = drawCalls.batches[drawCallIndex];
+
+    for (uint32 index = 0; index < count; index++)
     {
         ObjectInstance& instance = m_objectInstances.EmplaceBack();
-        instance.entityId = drawCall.entityIds[index].Value();
+        instance.entityId = entityIds[index].Value();
         instance.drawCommandIndex = drawCommandIndex;
-        instance.batchIndex = drawCall.batch->batchIndex;
+        instance.batchIndex = batch->batchIndex;
     }
 
     out.drawCommandIndex = drawCommandIndex;
 
     g_renderBackend->PopulateIndirectDrawCommandsBuffer(
-        drawCall.mesh->GetVertexBuffer(),
-        drawCall.mesh->GetIndexBuffer(),
+        drawCalls.meshes[drawCallIndex]->GetVertexBuffer(),
+        drawCalls.meshes[drawCallIndex]->GetIndexBuffer(),
         drawCommandIndex,
         m_drawCommandsBuffer);
 
@@ -362,20 +366,20 @@ void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCall
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    for (DrawCall& drawCall : drawCallCollection.drawCalls)
+    for (SizeType i = 0; i < drawCallCollection.drawCalls.Size(); i++)
     {
         DrawCommandData drawCommandData;
-        m_indirectDrawState.PushDrawCall(drawCall, drawCommandData);
+        m_indirectDrawState.PushDrawCall(i, drawCallCollection.drawCalls, drawCommandData);
 
-        drawCall.drawCommandIndex = drawCommandData.drawCommandIndex;
+        drawCallCollection.drawCalls.drawCommandIndices[i] = drawCommandData.drawCommandIndex;
     }
 
-    for (InstancedDrawCall& drawCall : drawCallCollection.instancedDrawCalls)
+    for (SizeType i = 0; i < drawCallCollection.instancedDrawCalls.Size(); i++)
     {
         DrawCommandData drawCommandData;
-        m_indirectDrawState.PushInstancedDrawCall(drawCall, drawCommandData);
+        m_indirectDrawState.PushInstancedDrawCall(i, drawCallCollection.instancedDrawCalls, drawCommandData);
 
-        drawCall.drawCommandIndex = drawCommandData.drawCommandIndex;
+        drawCallCollection.instancedDrawCalls.drawCommandIndices[i] = drawCommandData.drawCommandIndex;
     }
 }
 

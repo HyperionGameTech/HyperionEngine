@@ -44,8 +44,6 @@
 
 namespace hyperion {
 
-static constexpr bool doParallelCollection = true;
-
 extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 #define HYP_DEBUG_EXTRA_MESH_ASSERTIONS 0
@@ -558,6 +556,8 @@ RenderCollector::RenderCollector()
 
 RenderCollector::~RenderCollector()
 {
+    HYP_SCOPE;
+
     if (parallelRenderingStateHead)
     {
         ParallelRenderingState* state = parallelRenderingStateHead;
@@ -613,6 +613,8 @@ void RenderCollector::Clear(bool freeMemory)
 
 ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 {
+    HYP_SCOPE;
+
     ParallelRenderingState* curr = parallelRenderingStateTail;
 
     if (!curr)
@@ -663,6 +665,8 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 
 void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 {
+    HYP_SCOPE;
+
     ParallelRenderingState* state = parallelRenderingStateHead;
 
     while (state)
@@ -936,6 +940,8 @@ void RenderCollector::RemoveEmptyRenderGroups()
 
 uint32 RenderCollector::NumRenderGroups() const
 {
+    HYP_SCOPE;
+
     uint32 count = 0;
 
     for (const auto& mappings : mappingsByBucket)

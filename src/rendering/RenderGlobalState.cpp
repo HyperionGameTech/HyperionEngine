@@ -16,6 +16,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderShader.hpp>
 #include <rendering/RenderBackend.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -45,7 +46,8 @@
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/Threads.hpp>
 
-#include <core/memory/MemoryPool.hpp>
+#include <core/memory/pool/Pool.hpp>
+#include <core/memory/pool/LinearPool.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -101,6 +103,13 @@ enum
 };
 
 extern void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+
+#pragma region Memory Pools
+
+HYP_API Pool* g_renderPool;
+HYP_API LinearPool* g_framePools[NumMultiBuffers];
+
+#pragma endregion MemoryPools
 
 #pragma region ResourceBindings
 
@@ -528,13 +537,20 @@ static ViewData* GetViewData(View* view)
 
 void RenderApi_Init()
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_mainThread);
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
-
     Assert(g_renderBackend != nullptr);
+
+    g_renderPool = new Pool();
+
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    {
+        g_framePools[i] = new LinearPool();
+    }
 
     RendererResult result = g_renderBackend->Initialize();
     Assert(result, "Failed to initialize rendering backend: {}", result.GetError().GetMessage());
@@ -565,6 +581,7 @@ void RenderApi_Init()
 
 void RenderApi_Shutdown()
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_mainThread);
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
@@ -575,6 +592,9 @@ void RenderApi_Shutdown()
         }
 
         g_frameData[i].viewFrameData.Clear();
+        
+        delete g_framePools[i];
+        g_framePools[i] = nullptr;
     }
 
     for (auto& it : g_viewData)
@@ -586,6 +606,9 @@ void RenderApi_Shutdown()
 
     delete g_renderGlobalState;
     g_renderGlobalState = nullptr;
+
+    delete g_renderPool;
+    g_renderPool = nullptr;
 
     Assert(g_renderBackend->Destroy());
 }
@@ -1325,6 +1348,9 @@ void RenderApi_EndFrame_RenderThread()
     frameData.renderStats = s_renderStats;
 
     g_safeDeleter->Iterate();
+
+    // deallocate all frame allocations for this frame
+    g_framePools[slot]->Reset();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
 
