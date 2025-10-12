@@ -7,6 +7,7 @@
 #include <core/containers/SparsePagedArray.hpp>
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashSet.hpp>
+#include <core/containers/SortedArray.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 
@@ -32,6 +33,16 @@ public:
         {
             SizeType offset;
             SizeType size;
+
+            HYP_FORCE_INLINE bool operator<(const Range& other) const
+            {
+                return offset < other.offset;
+            }
+
+            HYP_FORCE_INLINE bool operator==(const Range& other) const
+            {
+                return offset == other.offset && size == other.size;
+            }
         };
 
         struct AllocHeader

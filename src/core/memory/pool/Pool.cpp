@@ -296,16 +296,7 @@ void Pool::Free(void* ptr)
 
 void Pool::Reset()
 {
-    for (auto& block : m_blocks)
-    {
-        block = Block(m_blockSize);
-    }
-
-    // free all blocks except the first one
-    while (m_blocks.Size() > 1)
-    {
-        m_blocks.PopBack();
-    }
+    m_blocks.Clear();
 }
 
 } // namespace memory
