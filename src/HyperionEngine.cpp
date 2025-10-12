@@ -49,6 +49,8 @@
 #include <script/HypScript.hpp>
 
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineMemory.hpp>
+
 #include <game/Game.hpp>
 
 /// ========== If this include is missing, you need to run HypBuildTool (instructions in doc/CompilingTheEngine.md) ==========
@@ -115,14 +117,16 @@ HYP_API const FilePath& GetResourceDirectory()
 
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
+    Threads::SetCurrentThreadId(g_mainThread);
+
+    EngineMemory_Initialize();
+
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
 
     InitObject(g_logger);
 
     LogChannelRegistrar::GetInstance().RegisterAll();
-
-    Threads::SetCurrentThreadId(g_mainThread);
 
     InitializeNameRegistry();
 
@@ -257,6 +261,8 @@ HYP_API void DestroyEngine()
 
     delete g_renderBackend;
     g_renderBackend = nullptr;
+
+    EngineMemory_Shutdown();
 }
 
 } // namespace hyperion

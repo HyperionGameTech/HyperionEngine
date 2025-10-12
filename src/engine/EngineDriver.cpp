@@ -2,6 +2,7 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/EngineMemory.hpp>
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -79,6 +80,61 @@ extern const GlobalConfig& CoreApi_GetGlobalConfig();
 extern FilePath CoreApi_GetExecutablePath();
 extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
+#pragma region EngineMemory
+
+HYP_API Pool* g_enginePools[EPN_MAX];
+
+static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
+    &ThreadId::Invalid(),
+    &g_mainThread,   // EPN_CORE
+    &g_renderThread, // EPN_RENDER
+    &g_gameThread    // EPN_SCENE
+};
+
+constexpr SizeType EnginePoolSizes[EPN_MAX] = {
+    0,                 // EPN_NONE
+    32 * 1024 * 1024,  // EPN_CORE
+    128 * 1024 * 1024, // EPN_RENDER
+    128 * 1024 * 1024  // EPN_SCENE
+};
+
+HYP_API void EngineMemory_Initialize()
+{
+    // init pools
+
+    for (uint32 i = EPN_NONE + 1; i < EPN_MAX; ++i)
+    {
+        Assert(g_enginePools[i] == nullptr);
+
+        g_enginePools[i] = EnginePoolSizes[i] > 0 ? new Pool(EnginePoolSizes[i]) : nullptr;
+    }
+}
+
+HYP_API void EngineMemory_Shutdown()
+{
+    for (uint32 i = EPN_NONE + 1; i < EPN_MAX; ++i)
+    {
+        delete g_enginePools[i];
+        g_enginePools[i] = nullptr;
+    }
+}
+
+HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName)
+{
+    Assert(poolName < EPN_MAX);
+    return *s_enginePoolThreadIds[poolName];
+}
+
+HYP_API Pool* EngineMemory_GetPool(EnginePoolName poolName)
+{
+    Assert(poolName < EPN_MAX);
+    return g_enginePools[poolName];
+}
+
+#pragma endregion EngineMemory
+
+#pragma region RenderThread
+
 class RenderThread final : public Thread<Scheduler>
 {
 public:
@@ -155,6 +211,8 @@ private:
     AtomicVar<bool> m_isRunning;
 };
 
+#pragma endregion RenderThread
+
 void HandleSignal(int signum)
 {
     if (!g_renderThreadInstance)
@@ -183,7 +241,8 @@ struct RENDER_COMMAND(RecreateSwapchain)
 {
     WeakHandle<EngineDriver> engineWeak;
 
-    RENDER_COMMAND(RecreateSwapchain)(const Handle<EngineDriver>& engine)
+    RENDER_COMMAND(RecreateSwapchain)
+    (const Handle<EngineDriver>& engine)
         : engineWeak(engine)
     {
     }
