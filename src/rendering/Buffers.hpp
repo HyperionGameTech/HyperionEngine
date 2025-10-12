@@ -25,8 +25,6 @@
 
 namespace hyperion {
 
-static constexpr SizeType maxProbesInShGridBuffer = MaxBoundAmbientProbes;
-
 struct alignas(16) ParticleShaderData
 {
     Vec4f position;   //   4 x 4 = 16
@@ -115,7 +113,6 @@ struct RTRadianceUniforms
     float _pad2;
     alignas(Vec4f) uint32 lightIndices[16];
 };
-
 
 class StagingBufferPool
 {
@@ -215,7 +212,6 @@ protected:
     GpuBufferRef m_gpuBuffer;
 };
 
-
 // Specialization for Memory pool init info to allocate larger blocks:
 template <class StructType>
 struct GpuBufferHolderMemoryPoolInitInfo
@@ -277,17 +273,27 @@ public:
             return;
         }
 
-        uint32 rangeStart = m_dirtyRanges[frameIndex].GetStart();
-        uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd();
-
-        uint32 blockIndex = 0;
-
-        typename LinkedList<typename Base::Block>::Iterator beginIt = Base::m_blocks.Begin();
-        typename LinkedList<typename Base::Block>::Iterator endIt = Base::m_blocks.End();
+        const uint32 rangeStart = m_dirtyRanges[frameIndex].GetStart();
+        const uint32 rangeEnd = m_dirtyRanges[frameIndex].GetEnd();
 
         const uint32 numBlocks = Base::m_numBlocks.Get(MemoryOrder::ACQUIRE);
 
-        for (uint32 blockIndex = 0; blockIndex < numBlocks && beginIt != endIt; ++blockIndex, ++beginIt)
+        // Collect all dirty blocks first
+        struct DirtyBlockInfo
+        {
+            uint32 blockIndex;
+            uint32 bufferOffset;
+            uint32 bufferSize;
+            void* dataPtr;
+        };
+
+        Array<DirtyBlockInfo> dirtyBlocks;
+        dirtyBlocks.Reserve((rangeEnd - rangeStart) / Base::numElementsPerBlock + 1);
+
+        typename LinkedList<typename Base::Block>::Iterator blockIt = Base::m_blocks.Begin();
+        typename LinkedList<typename Base::Block>::Iterator endIt = Base::m_blocks.End();
+
+        for (uint32 blockIndex = 0; blockIndex < numBlocks && blockIt != endIt; ++blockIndex, ++blockIt)
         {
             if (blockIndex < rangeStart / Base::numElementsPerBlock)
             {
@@ -300,19 +306,108 @@ public:
             }
 
             const uint32 offset = blockIndex * Base::numElementsPerBlock;
-            const uint32 count = Base::numElementsPerBlock;
-
             const uint32 bufferOffset = offset * uint32(sizeof(StructType));
-            const uint32 bufferSize = count * uint32(sizeof(StructType));
+            const uint32 bufferSize = Base::numElementsPerBlock * uint32(sizeof(StructType));
 
-            GpuBufferBase* buffer = outStagingBuffers.PushBack(StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, bufferOffset, bufferSize));
-            Assert(buffer != nullptr && buffer->IsCreated());
+            dirtyBlocks.PushBack({ blockIndex,
+                bufferOffset,
+                bufferSize,
+                blockIt->buffer.GetPointer() });
+        }
 
-            outChunkStarts.EmplaceBack(bufferOffset);
-            outChunkEnds.EmplaceBack(bufferOffset + bufferSize);
+        if (dirtyBlocks.Empty())
+        {
+            m_dirtyRanges[frameIndex].Reset();
+            return;
+        }
 
-            // copy to staging buffer
-            buffer->Copy(0, bufferSize, beginIt->buffer.GetPointer());
+        // Batch blocks into staging buffers, packing non-contiguous ranges to minimize staging buffer count
+        // Strategy: Fill staging buffers up to a size limit, allowing gaps for non-contiguous blocks
+        static constexpr uint32 maxStagingBufferSize = 1u << 20; // 1MB max per staging buffer
+        static constexpr uint32 maxGapSize = 1u << 16;           // 64KB max gap to tolerate (wastes some bandwidth but reduces buffer count)
+
+        struct StagingBatch
+        {
+            Array<uint32> blockIndices; // indices into dirtyBlocks
+            uint32 minOffset = ~0u;     // minimum buffer offset in this batch
+            uint32 maxOffset = 0;       // maximum buffer offset (exclusive end) in this batch
+
+            uint32 GetTotalSize() const
+            {
+                return maxOffset - minOffset;
+            }
+
+            uint32 GetDataSize() const
+            {
+                uint32 size = 0;
+                for (uint32 idx : blockIndices)
+                {
+                    size += dirtyBlocks[idx].bufferSize;
+                }
+                return size;
+            }
+        };
+
+        Array<StagingBatch> batches;
+        batches.Reserve(dirtyBlocks.Size()); // worst case: one batch per block
+
+        for (uint32 i = 0; i < dirtyBlocks.Size(); ++i)
+        {
+            const DirtyBlockInfo& block = dirtyBlocks[i];
+            bool addedToBatch = false;
+
+            // Try to add to existing batch
+            for (StagingBatch& batch : batches)
+            {
+                const uint32 newMinOffset = MathUtil::Min(batch.minOffset, block.bufferOffset);
+                const uint32 newMaxOffset = MathUtil::Max(batch.maxOffset, block.bufferOffset + block.bufferSize);
+                const uint32 newTotalSize = newMaxOffset - newMinOffset;
+                const uint32 newDataSize = batch.GetDataSize() + block.bufferSize;
+                const uint32 wastedSpace = newTotalSize - newDataSize;
+
+                // Add to this batch if it doesn't exceed size limits and gap isn't too large
+                if (newTotalSize <= maxStagingBufferSize && wastedSpace <= maxGapSize)
+                {
+                    batch.blockIndices.PushBack(i);
+                    batch.minOffset = newMinOffset;
+                    batch.maxOffset = newMaxOffset;
+                    addedToBatch = true;
+                    break;
+                }
+            }
+
+            // Create new batch if couldn't add to existing one
+            if (!addedToBatch)
+            {
+                StagingBatch newBatch;
+                newBatch.blockIndices.PushBack(i);
+                newBatch.minOffset = block.bufferOffset;
+                newBatch.maxOffset = block.bufferOffset + block.bufferSize;
+                batches.PushBack(std::move(newBatch));
+            }
+        }
+
+        // Create staging buffers and copy data for each batch
+        for (const StagingBatch& batch : batches)
+        {
+            const uint32 stagingBufferSize = batch.GetTotalSize();
+            const uint32 startOffset = batch.minOffset;
+
+            GpuBufferBase* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, startOffset, stagingBufferSize);
+            Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
+
+            // Copy each block in the batch to the appropriate offset in the staging buffer
+            for (uint32 blockIdx : batch.blockIndices)
+            {
+                const DirtyBlockInfo& block = dirtyBlocks[blockIdx];
+                const uint32 stagingOffset = block.bufferOffset - startOffset;
+
+                stagingBuffer->Copy(stagingOffset, block.bufferSize, block.dataPtr);
+            }
+
+            outStagingBuffers.PushBack(stagingBuffer);
+            outChunkStarts.PushBack(startOffset);
+            outChunkEnds.PushBack(startOffset + stagingBufferSize);
         }
 
         m_dirtyRanges[frameIndex].Reset();
@@ -353,7 +448,7 @@ public:
     virtual void UpdateBufferSize(uint32 frameIndex) override
     {
         // m_pool.RemoveEmptyBlocks();
-        
+
         m_pool.EnsureGpuBufferCapacity(m_gpuBuffer, frameIndex);
     }
 

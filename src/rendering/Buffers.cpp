@@ -25,16 +25,28 @@ static thread_local StagingBufferPool* s_stagingBufferPool = nullptr;
 
 struct StagingBufferPoolImpl
 {
+    static constexpr uint32 MaxFramesBeforeDiscard = 300; // about 5 seconds at 60fps
+
     struct CachedStagingBuffer
     {
         uint32 offset = 0;
         uint32 size = 0;
         uint32 lastUsedFrame = uint32(-1);
         GpuBufferRef buffer;
+
+        HYP_FORCE_INLINE bool operator==(const CachedStagingBuffer& other) const
+        {
+            return buffer == other.buffer;
+        }
+
+        HYP_FORCE_INLINE bool operator<(const CachedStagingBuffer& other) const
+        {
+            return size < other.size;
+        }
     };
 
-    Array<CachedStagingBuffer> cachedBuffers[NumFramesInFlight];
-    
+    FlatSet<CachedStagingBuffer> cachedBuffers[NumFramesInFlight];
+
     ~StagingBufferPoolImpl()
     {
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -54,7 +66,7 @@ struct StagingBufferPoolImpl
         {
             const int64 frameDiff = int64(currFrame) - int64(it->lastUsedFrame);
 
-            if (frameDiff >= 10 / NumFramesInFlight)
+            if (frameDiff >= MaxFramesBeforeDiscard)
             {
                 GpuBufferRef& gpuBuffer = it->buffer;
                 SafeDelete(std::move(gpuBuffer));
@@ -75,7 +87,8 @@ struct StagingBufferPoolImpl
         // unused one (different frame)
         for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
         {
-            if (cachedBuffer.size == bufferSize && cachedBuffer.lastUsedFrame != currFrame)
+            // find first that fits to reuse
+            if (cachedBuffer.size >= bufferSize && cachedBuffer.lastUsedFrame != currFrame)
             {
                 cachedBuffer.offset = offset;
                 cachedBuffer.size = bufferSize;
@@ -90,14 +103,17 @@ struct StagingBufferPoolImpl
         }
 
         // create new one if none found
-        CachedStagingBuffer& cachedBuffer = cachedBuffers[frameIndex].EmplaceBack();
-        cachedBuffer.offset = offset;
-        cachedBuffer.size = bufferSize;
-        cachedBuffer.lastUsedFrame = currFrame;
-        cachedBuffer.buffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
-        HYP_GFX_ASSERT(cachedBuffer.buffer->Create());
+        CachedStagingBuffer newBuffer;
+        newBuffer.offset = offset;
+        newBuffer.size = bufferSize;
+        newBuffer.lastUsedFrame = currFrame;
+        newBuffer.buffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
+        HYP_GFX_ASSERT(newBuffer.buffer->Create());
 
-        return cachedBuffer.buffer;
+        auto insertResult = cachedBuffers[frameIndex].Insert(std::move(newBuffer));
+        HYP_GFX_ASSERT(insertResult.second); // must be inserted
+
+        return insertResult.first->buffer;
     }
 };
 
@@ -143,7 +159,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
 void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, SizeType size)
 {
     HYP_SCOPE;
-    //Threads::AssertOnThread(g_renderThread);
+    // Threads::AssertOnThread(g_renderThread);
 
     if (initialCount == 0)
     {
@@ -209,7 +225,6 @@ void GpuBufferHolderBase::CopyToGpuBuffer(
     }
 
     rq << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::SSBO ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
-
 }
 
 #pragma endregion GpuBufferHolderBase
