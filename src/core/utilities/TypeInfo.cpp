@@ -72,7 +72,7 @@ static Pool& GetTypeAttributePool()
     {
         Initializer()
         {
-            s_typeAttributePool = new Pool(16 * 1024); // 16 kib blocks (~292 TypeInfo per block)
+            s_typeAttributePool = new Pool();
         }
     } s_initializer;
 

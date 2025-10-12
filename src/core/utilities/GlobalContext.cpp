@@ -5,8 +5,6 @@ namespace utilities {
 
 #pragma region GlobalContextRegistry
 
-static constexpr SizeType PoolBlockSize = 4096;
-
 static thread_local GlobalContextRegistry* s_globalContextRegistry = nullptr;
 static thread_local Pool* s_globalContextPool = nullptr;
 
@@ -14,7 +12,7 @@ HYP_API Pool* GetGlobalContextPoolForCurrentThread()
 {
     if (!s_globalContextPool)
     {
-        s_globalContextPool = new Pool(/* blockSize */ PoolBlockSize);
+        s_globalContextPool = new Pool();
     }
 
     return s_globalContextPool;

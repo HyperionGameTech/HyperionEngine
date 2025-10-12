@@ -229,12 +229,20 @@ Texture::~Texture()
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void Texture::Init()
 {
+    HYP_SCOPE;
+    AssetObject::Init();
+
     AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
         {
             SafeDelete(std::move(m_gpuImage));
         }));
+
+    TextureDesc textureDesc;
+    ResourceHandle resourceHandle;
+    WeakHandle<TextureAsset> assetWeak;
 
     if (const Handle<TextureAsset>& asset = GetAsset())
     {
@@ -249,29 +257,34 @@ void Texture::Init()
         }
 
         m_assetReference = TAssetReference(asset);
+
+        textureDesc = asset->GetTextureDesc();
+        resourceHandle = ResourceHandle(*asset->GetResource());
+        assetWeak = MakeWeakRef(asset);
     }
 
-    m_gpuImage = g_renderBackend->MakeImage(GetTextureDesc());
+    m_gpuImage = g_renderBackend->MakeImage(textureDesc);
 
     if (m_name.IsValid())
     {
         m_gpuImage->SetDebugName(m_name);
     }
 
-    const Handle<TextureAsset>& asset = GetAsset();
-
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
-        MakeWeakRef(asset),
-        asset != nullptr ? ResourceHandle(*asset->GetResource()) : ResourceHandle(),
+        assetWeak,
+        std::move(resourceHandle),
         RS_SHADER_RESOURCE,
         m_gpuImage);
 
     SetReady(true);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 Result Texture::Rename(Name name)
 {
+    HYP_SCOPE;
+
     if (name == m_name)
     {
         return {};
@@ -318,6 +331,8 @@ const TextureDesc& Texture::GetTextureDesc() const
 
 void Texture::SetTextureDesc(const TextureDesc& textureDesc)
 {
+    HYP_SCOPE;
+
     TextureDesc currentTextureDesc = GetTextureDesc();
 
     if (currentTextureDesc == textureDesc)

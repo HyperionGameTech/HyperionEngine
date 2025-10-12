@@ -101,6 +101,20 @@ private:
     Pimpl<class LinearPoolImpl> m_pImpl;
 };
 
+template <class T>
+static inline HYP_NODISCARD T* PoolAlloc(LinearPool& pool)
+{
+    return reinterpret_cast<T*>(pool.Alloc(sizeof(T), alignof(T)));
+}
+
+template <class T>
+static inline void PoolFree(LinearPool& pool, T& obj)
+{
+    // no-op, LinearPool does not support freeing individual allocations
+    (void)pool;
+    (void)obj;
+}
+
 template <class T, class... Args>
 static inline HYP_NODISCARD T* PoolNew(LinearPool& pool, Args&&... args)
 {
@@ -108,9 +122,11 @@ static inline HYP_NODISCARD T* PoolNew(LinearPool& pool, Args&&... args)
 }
 
 template <class T>
-static inline HYP_NODISCARD T* PoolAlloc(LinearPool& pool)
+static inline void PoolDelete(LinearPool& pool, T* ptr)
 {
-    return reinterpret_cast<T*>(pool.Alloc(sizeof(T), alignof(T)));
+    // no-op, LinearPool does not support freeing individual allocations
+    (void)pool;
+    (void)ptr;
 }
 
 } // namespace memory
@@ -118,5 +134,7 @@ static inline HYP_NODISCARD T* PoolAlloc(LinearPool& pool)
 using memory::LinearPool;
 using memory::PoolAlloc;
 using memory::PoolNew;
+using memory::PoolFree;
+using memory::PoolDelete;
 
 } // namespace hyperion
