@@ -20,11 +20,11 @@ HYP_END_CLASS
 
 /* Generated from: rendering/vulkan/VulkanDescriptorSet.hpp */
 
-#include <rendering/vulkan/VulkanDescriptorSet.hpp>
+#include <scene\EntityTag.hpp>
 
 namespace hyperion {
 
-#pragma region VulkanDescriptorTable Reflection Data
+#pragma region EntityTag Reflection Data
 
 HYP_BEGIN_CLASS(VulkanDescriptorTable, 78, 0, NAME("DescriptorTableBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
@@ -165,17 +165,15 @@ HYP_BEGIN_ENUM(VulkanDeviceQueueType, 354, 0, {})
     HypConstant(NAME(HYP_STR(PRESENT)), VulkanDeviceQueueType::PRESENT)
 HYP_END_ENUM
 
-#pragma endregion VulkanDeviceQueueType Reflection Data
+#pragma endregion EntityTag Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: rendering/vulkan/VulkanCommandBuffer.hpp */
-
-#include <rendering/vulkan/VulkanCommandBuffer.hpp>
+#include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
 
-#pragma region VulkanCommandBuffer Reflection Data
+#pragma region TagComponentBase Reflection Data
 
 HYP_BEGIN_CLASS(VulkanCommandBuffer, 110, 0, NAME("CommandBufferBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
@@ -381,15 +379,20 @@ namespace hyperion {
 HYP_BEGIN_STRUCT(FontAtlasTextureSet, 355, 0, {})
 HYP_END_STRUCT
 
-#pragma endregion FontAtlasTextureSet Reflection Data
+#pragma endregion TagComponentBase Reflection Data
 
+HYP_REGISTER_COMPONENT(TagComponentBase);
 } // namespace hyperion
 
-/* Generated from: rendering/debug/DebugDrawer.hpp */
+/* Generated from: scene\EnvGrid.hpp */
 
-#include <rendering/debug/DebugDrawer.hpp>
+#include <scene\EnvGrid.hpp>
+#include <core\math\BoundingBox.hpp>
+#include <scene\View.hpp>
+#include <scene\camera\Camera.hpp>
 
-namespace hyperion {
+#include <scene/ComponentInterface.hpp>
+#include <scene/EntityTag.hpp>
 
 #pragma region DebugDrawerConfig Reflection Data
 
@@ -407,7 +410,7 @@ HYP_END_STRUCT
 
 namespace hyperion {
 
-#pragma region PhysicsMaterial Reflection Data
+#pragma region EnvGrid Reflection Data
 
 HYP_BEGIN_STRUCT(PhysicsMaterial, 357, 0, {})
     HypField(NAME(HYP_STR(Mass)), &PhysicsMaterial::mass, offsetof(PhysicsMaterial, mass), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Mass") } })
@@ -454,77 +457,35 @@ HYP_BEGIN_CLASS(RigidBody, 141, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(ApplyForce)), &RigidBody::ApplyForce)
 HYP_END_CLASS
 
-#pragma endregion RigidBody Reflection Data
+#pragma endregion EnvGrid Reflection Data
 
+HYP_REGISTER_ENTITY_TYPE(EnvGrid);
 } // namespace hyperion
 
 
 namespace hyperion {
 
-#pragma region SpherePhysicsShape Reflection Data
+#pragma region LegacyEnvGrid Reflection Data
 
-HYP_BEGIN_CLASS(SpherePhysicsShape, 143, 0, NAME("PhysicsShape"))
+HYP_BEGIN_CLASS(LegacyEnvGrid, 133, 0, NAME("EnvGrid"))
+    HypMethod(NAME(HYP_STR(SetAABB)), &LegacyEnvGrid::SetAABB),
+    HypMethod(NAME(HYP_STR(GetView)), &LegacyEnvGrid::GetView),
+    HypMethod(NAME(HYP_STR(GetCamera)), &LegacyEnvGrid::GetCamera),
+    HypMethod(NAME(HYP_STR(Translate)), &LegacyEnvGrid::Translate)
 HYP_END_CLASS
 
-#pragma endregion SpherePhysicsShape Reflection Data
+#pragma endregion LegacyEnvGrid Reflection Data
 
+HYP_REGISTER_ENTITY_TYPE(LegacyEnvGrid);
 } // namespace hyperion
 
+/* Generated from: scene\EnvProbe.hpp */
 
-namespace hyperion {
-
-#pragma region ConvexHullPhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(ConvexHullPhysicsShape, 144, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion ConvexHullPhysicsShape Reflection Data
-
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region BoxPhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(BoxPhysicsShape, 145, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion BoxPhysicsShape Reflection Data
-
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region PhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(PhysicsShape, 142, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
-HYP_END_CLASS
-
-#pragma endregion PhysicsShape Reflection Data
-
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region PlanePhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(PlanePhysicsShape, 146, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion PlanePhysicsShape Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: scene/EnvProbe.hpp */
-
-#include <scene/EnvProbe.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <scene/camera/Camera.hpp>
-#include <rendering/RenderProxy.hpp>
-#include <rendering/Texture.hpp>
+#include <scene\EnvProbe.hpp>
+#include <core\math\BoundingBox.hpp>
+#include <scene\camera\Camera.hpp>
+#include <rendering\RenderProxy.hpp>
+#include <rendering\Texture.hpp>
 
 
 namespace hyperion {
@@ -551,7 +512,7 @@ namespace hyperion {
 
 #pragma region EnvProbe Reflection Data
 
-HYP_BEGIN_CLASS(EnvProbe, 167, 2, NAME("Entity"))
+HYP_BEGIN_CLASS(EnvProbe, 134, 2, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetEnvProbeType)), &EnvProbe::GetEnvProbeType),
     HypMethod(NAME(HYP_STR(IsReflectionProbe)), &EnvProbe::IsReflectionProbe),
     HypMethod(NAME(HYP_STR(IsSkyProbe)), &EnvProbe::IsSkyProbe),
@@ -579,7 +540,7 @@ namespace hyperion {
 
 #pragma region ReflectionProbe Reflection Data
 
-HYP_BEGIN_CLASS(ReflectionProbe, 168, 0, NAME("EnvProbe"))
+HYP_BEGIN_CLASS(ReflectionProbe, 135, 0, NAME("EnvProbe"))
 HYP_END_CLASS
 
 #pragma endregion ReflectionProbe Reflection Data
@@ -592,7 +553,7 @@ namespace hyperion {
 
 #pragma region SkyProbe Reflection Data
 
-HYP_BEGIN_CLASS(SkyProbe, 169, 0, NAME("EnvProbe"))
+HYP_BEGIN_CLASS(SkyProbe, 136, 0, NAME("EnvProbe"))
     HypMethod(NAME(HYP_STR(GetSkyboxCubemap)), &SkyProbe::GetSkyboxCubemap)
 HYP_END_CLASS
 
@@ -601,9 +562,9 @@ HYP_END_CLASS
 HYP_REGISTER_ENTITY_TYPE(SkyProbe);
 } // namespace hyperion
 
-/* Generated from: scene/GameState.hpp */
+/* Generated from: scene\GameState.hpp */
 
-#include <scene/GameState.hpp>
+#include <scene\GameState.hpp>
 
 namespace hyperion {
 
@@ -635,80 +596,60 @@ HYP_END_ENUM
 
 } // namespace hyperion
 
-/* Generated from: scene/World.hpp */
+/* Generated from: scene\Light.hpp */
 
-#include <scene/World.hpp>
-#include <core/NameInternal.hpp>
-#include <rendering/RenderStats.hpp>
-#include <scene/Subsystem.hpp>
-#include <scene/world_grid/WorldGrid.hpp>
-#include <scene/GameState.hpp>
-#include <scene/Scene.hpp>
-#include <scene/View.hpp>
+#include <scene\Light.hpp>
+#include <core\math\Color.hpp>
+#include <rendering\Material.hpp>
+#include <core\math\BoundingBox.hpp>
+#include <rendering\shadows\ShadowMap.hpp>
 
-
-namespace hyperion {
-
-#pragma region World Reflection Data
-
-HYP_BEGIN_CLASS(World, 147, 0, NAME("HypObjectBase"))
-    HypMethod(NAME(HYP_STR(GetName)), &World::GetName),
-    HypMethod(NAME(HYP_STR(SetName)), &World::SetName),
-    HypMethod(NAME(HYP_STR(GetRenderStats)), &World::GetRenderStats),
-    HypMethod(NAME(HYP_STR(GetSubsystemByName)), &World::GetSubsystemByName),
-    HypMethod(NAME(HYP_STR(RemoveSubsystem)), &World::RemoveSubsystem),
-    HypMethod(NAME(HYP_STR(GetWorldGrid)), &World::GetWorldGrid),
-    HypMethod(NAME(HYP_STR(GetGameState)), &World::GetGameState),
-    HypMethod(NAME(HYP_STR(StartSimulating)), &World::StartSimulating),
-    HypMethod(NAME(HYP_STR(StopSimulating)), &World::StopSimulating),
-    HypMethod(NAME(HYP_STR(AddScene)), &World::AddScene),
-    HypMethod(NAME(HYP_STR(RemoveScene)), &World::RemoveScene),
-    HypMethod(NAME(HYP_STR(HasScene)), &World::HasScene),
-    HypMethod(NAME(HYP_STR(GetSceneByName)), &World::GetSceneByName),
-    HypMethod(NAME(HYP_STR(GetScenes)), &World::GetScenes),
-    HypMethod(NAME(HYP_STR(AddView)), &World::AddView),
-    HypMethod(NAME(HYP_STR(RemoveView)), &World::RemoveView),
-    HypField(NAME(HYP_STR(Name)), &World::m_name, offsetof(World, m_name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } })
-HYP_END_CLASS
-
-#pragma endregion World Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: scene/VisibilityState.hpp */
-
-#include <scene/VisibilityState.hpp>
-
-namespace hyperion {
-
-#pragma region VisibilityState Reflection Data
-
-HYP_BEGIN_STRUCT(VisibilityState, 362, 0, {})
-HYP_END_STRUCT
-
-#pragma endregion VisibilityState Reflection Data
-
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region VisibilityStateSnapshot Reflection Data
-
-HYP_BEGIN_STRUCT(VisibilityStateSnapshot, 363, 0, {})
-HYP_END_STRUCT
-
-#pragma endregion VisibilityStateSnapshot Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: scene/EntityTag.hpp */
-
+#include <scene/ComponentInterface.hpp>
 #include <scene/EntityTag.hpp>
 
 namespace hyperion {
 
-#pragma region EntityTag Reflection Data
+#pragma region DirectionalLight Reflection Data
+
+HYP_BEGIN_CLASS(DirectionalLight, 138, 0, NAME("Light"))
+    HypMethod(NAME(HYP_STR(GetDirection)), &DirectionalLight::GetDirection),
+    HypMethod(NAME(HYP_STR(SetDirection)), &DirectionalLight::SetDirection)
+HYP_END_CLASS
+
+#pragma endregion DirectionalLight Reflection Data
+
+HYP_REGISTER_ENTITY_TYPE(DirectionalLight);
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region LightFlags Reflection Data
+
+HYP_BEGIN_STRUCT(VisibilityState, 362, 0, {})
+HYP_END_STRUCT
+
+#pragma endregion LightFlags Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AreaRectLight Reflection Data
+
+HYP_BEGIN_STRUCT(VisibilityStateSnapshot, 363, 0, {})
+HYP_END_STRUCT
+
+#pragma endregion AreaRectLight Reflection Data
+
+HYP_REGISTER_ENTITY_TYPE(AreaRectLight);
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region LightType Reflection Data
 
 HYP_BEGIN_ENUM(EntityTag, 364, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), EntityTag::NONE),
@@ -728,49 +669,41 @@ HYP_BEGIN_ENUM(EntityTag, 364, 0, {})
     HypConstant(NAME(HYP_STR(TYPE_ID_MASK)), EntityTag::TYPE_ID_MASK)
 HYP_END_ENUM
 
-#pragma endregion EntityTag Reflection Data
+#pragma endregion LightType Reflection Data
 
 } // namespace hyperion
 
-#include <scene/ComponentInterface.hpp>
 
 namespace hyperion {
 
-#pragma region TagComponentBase Reflection Data
+#pragma region SpotLight Reflection Data
 
 HYP_BEGIN_STRUCT(TagComponentBase, 365, 0, {}, HypClassAttribute("component", true))
     HypField(NAME(HYP_STR(Value)), &TagComponentBase::value, offsetof(TagComponentBase, value))
 HYP_END_STRUCT
 
-#pragma endregion TagComponentBase Reflection Data
+#pragma endregion SpotLight Reflection Data
 
-HYP_REGISTER_COMPONENT(TagComponentBase);
+HYP_REGISTER_ENTITY_TYPE(SpotLight);
 } // namespace hyperion
 
-/* Generated from: scene/System.hpp */
-
-#include <scene/System.hpp>
 
 namespace hyperion {
 
-#pragma region SystemBase Reflection Data
+#pragma region PointLight Reflection Data
 
-HYP_BEGIN_CLASS(SystemBase, 148, 11, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(PointLight, 141, 0, NAME("Light"))
 HYP_END_CLASS
 
-#pragma endregion SystemBase Reflection Data
+#pragma endregion PointLight Reflection Data
 
+HYP_REGISTER_ENTITY_TYPE(PointLight);
 } // namespace hyperion
-
-/* Generated from: scene/ComponentContainer.hpp */
-
-#include <scene/ComponentContainer.hpp>
-#include <core/utilities/TypeId.hpp>
 
 
 namespace hyperion {
 
-#pragma region ComponentRWFlags Reflection Data
+#pragma region Light Reflection Data
 
 HYP_BEGIN_ENUM(ComponentRWFlags, 366, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), ComponentRWFlags::NONE),
@@ -810,20 +743,21 @@ namespace hyperion {
 HYP_BEGIN_CLASS(Subsystem, 160, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
 HYP_END_CLASS
 
-#pragma endregion Subsystem Reflection Data
+#pragma endregion Light Reflection Data
 
+HYP_REGISTER_ENTITY_TYPE(Light);
 } // namespace hyperion
 
-/* Generated from: scene/Node.hpp */
+/* Generated from: scene\Node.hpp */
 
-#include <scene/Node.hpp>
-#include <core/NameInternal.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <scene/Scene.hpp>
-#include <scene/World.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Transform.hpp>
-#include <core/math/Quaternion.hpp>
+#include <scene\Node.hpp>
+#include <core\NameInternal.hpp>
+#include <core\utilities\Uuid.hpp>
+#include <scene\Scene.hpp>
+#include <scene\World.hpp>
+#include <core\math\BoundingBox.hpp>
+#include <core\math\Transform.hpp>
+#include <core\math\Quaternion.hpp>
 
 
 namespace hyperion {
@@ -876,7 +810,7 @@ namespace hyperion {
 
 #pragma region Node Reflection Data
 
-HYP_BEGIN_CLASS(Node, 165, 14, NAME("HypObjectBase"), HypClassAttribute("postload", "Node_OnPostLoad"))
+HYP_BEGIN_CLASS(Node, 130, 14, NAME("HypObjectBase"), HypClassAttribute("postload", "Node_OnPostLoad"))
     HypMethod(NAME(HYP_STR(GetUUID)), &Node::GetUUID),
     HypMethod(NAME(HYP_STR(GetName)), &Node::GetName),
     HypMethod(NAME(HYP_STR(SetName)), &Node::SetName),
@@ -943,7 +877,7 @@ HYP_END_CLASS
 static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_Node(TypeId::ForType<Node>(), ValueWrapper<Node_OnPostLoad>());
 } // namespace hyperion
 
-/* Generated from: scene/Light.hpp */
+/* Generated from: scene\Scene.hpp */
 
 #include <scene/Light.hpp>
 #include <core/math/Color.hpp>
@@ -990,20 +924,44 @@ HYP_END_ENUM
 
 namespace hyperion {
 
-#pragma region AreaRectLight Reflection Data
+#pragma region Scene Reflection Data
 
-HYP_BEGIN_CLASS(AreaRectLight, 172, 0, NAME("Light"))
+HYP_BEGIN_CLASS(Scene, 23, 0, NAME("AssetObject"), HypClassAttribute("postload", "Scene_OnPostLoad"))
+    HypMethod(NAME(HYP_STR(GetPrimaryCamera)), &Scene::GetPrimaryCamera),
+    HypMethod(NAME(HYP_STR(GetSceneFlags)), &Scene::GetSceneFlags),
+    HypMethod(NAME(HYP_STR(SetSceneFlags)), &Scene::SetSceneFlags),
+    HypMethod(NAME(HYP_STR(FindNodeByName)), &Scene::FindNodeByName),
+    HypMethod(NAME(HYP_STR(GetRoot)), &Scene::GetRoot, Span<const HypClassAttribute> { {HypClassAttribute("property", "Root"), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(SetRoot)), &Scene::SetRoot, Span<const HypClassAttribute> { {HypClassAttribute("property", "Root"), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(GetEntityManager)), &Scene::GetEntityManager),
+    HypMethod(NAME(HYP_STR(IsAttachedToWorld)), &Scene::IsAttachedToWorld),
+    HypMethod(NAME(HYP_STR(GetWorld)), &Scene::GetWorld),
+    HypMethod(NAME(HYP_STR(SetWorld)), &Scene::SetWorld),
+    HypMethod(NAME(HYP_STR(IsForegroundScene)), &Scene::IsForegroundScene),
+    HypMethod(NAME(HYP_STR(IsBackgroundScene)), &Scene::IsBackgroundScene),
+    HypMethod(NAME(HYP_STR(IsAudioListener)), &Scene::IsAudioListener),
+    HypMethod(NAME(HYP_STR(SetIsAudioListener)), &Scene::SetIsAudioListener),
+    HypMethod(NAME(HYP_STR(AddToWorld)), &Scene::AddToWorld),
+    HypMethod(NAME(HYP_STR(RemoveFromWorld)), &Scene::RemoveFromWorld),
+    HypMethod(NAME(HYP_STR(GetUniqueNodeName)), &Scene::GetUniqueNodeName),
+    HypField(NAME(HYP_STR(SceneFlags)), &Scene::m_sceneFlags, offsetof(Scene, m_sceneFlags), Span<const HypClassAttribute> { {HypClassAttribute("property", "SceneFlags") } }),
+    HypField(NAME(HYP_STR(Root)), &Scene::m_root, offsetof(Scene, m_root), Span<const HypClassAttribute> { {HypClassAttribute("property", "Root") } }),
+    HypField(NAME(HYP_STR(OwnerThreadId)), &Scene::m_ownerThreadId, offsetof(Scene, m_ownerThreadId), Span<const HypClassAttribute> { {HypClassAttribute("property", "OwnerThreadId"), HypClassAttribute("transient", true) } }),
+    HypField(NAME(HYP_STR(World)), &Scene::m_world, offsetof(Scene, m_world), Span<const HypClassAttribute> { {HypClassAttribute("property", "World"), HypClassAttribute("transient", true) } }),
+    HypField(NAME(HYP_STR(EntityManager)), &Scene::m_entityManager, offsetof(Scene, m_entityManager), Span<const HypClassAttribute> { {HypClassAttribute("property", "EntityManager"), HypClassAttribute("transient", true) } }),
+    HypField(NAME(HYP_STR(IsAudioListener)), &Scene::m_isAudioListener, offsetof(Scene, m_isAudioListener), Span<const HypClassAttribute> { {HypClassAttribute("property", "IsAudioListener") } }),
+    HypField(NAME(HYP_STR(PreviousDelta)), &Scene::m_previousDelta, offsetof(Scene, m_previousDelta), Span<const HypClassAttribute> { {HypClassAttribute("property", "PreviousDelta"), HypClassAttribute("transient", true) } })
 HYP_END_CLASS
 
-#pragma endregion AreaRectLight Reflection Data
+#pragma endregion Scene Reflection Data
 
-HYP_REGISTER_ENTITY_TYPE(AreaRectLight);
+static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_Scene(TypeId::ForType<Scene>(), ValueWrapper<Scene_OnPostLoad>());
 } // namespace hyperion
 
 
 namespace hyperion {
 
-#pragma region LightType Reflection Data
+#pragma region SceneFlags Reflection Data
 
 HYP_BEGIN_ENUM(LightType, 372, 0, {})
     HypConstant(NAME(HYP_STR(LT_DIRECTIONAL)), LightType::LT_DIRECTIONAL),
@@ -1160,11 +1118,11 @@ HYP_END_CLASS
 
 } // namespace hyperion
 
-/* Generated from: scene/ScriptableSystem.hpp */
+/* Generated from: scene\ScriptableSystem.hpp */
 
-#include <scene/ScriptableSystem.hpp>
-#include <scene/Entity.hpp>
-#include <scene/ComponentContainer.hpp>
+#include <scene\ScriptableSystem.hpp>
+#include <scene\Entity.hpp>
+#include <scene\ComponentContainer.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 
@@ -1176,7 +1134,7 @@ namespace hyperion {
 
 #pragma region ScriptableSystem Reflection Data
 
-HYP_BEGIN_CLASS(ScriptableSystem, 149, 0, NAME("SystemBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(ScriptableSystem, 151, 0, NAME("SystemBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(AllowParallelExecution)), &ScriptableSystem::AllowParallelExecution, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(RequiresGameThread)), &ScriptableSystem::RequiresGameThread, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(AllowUpdate)), &ScriptableSystem::AllowUpdate, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
@@ -1333,56 +1291,28 @@ Array<ComponentInfo> ScriptableSystem::GetComponentInfos() const
 #pragma endregion ScriptableSystem Scriptable Methods
 } // namespace hyperion
 
-/* Generated from: scene/Scene.hpp */
+/* Generated from: scene\Subsystem.hpp */
 
-#include <scene/Scene.hpp>
-#include <scene/camera/Camera.hpp>
-#include <scene/Node.hpp>
-#include <core/NameInternal.hpp>
-#include <scene/EntityManager.hpp>
-#include <scene/World.hpp>
-
+#include <scene\Subsystem.hpp>
 
 namespace hyperion {
 
-#pragma region Scene Reflection Data
+#pragma region Subsystem Reflection Data
 
-HYP_BEGIN_CLASS(Scene, 52, 0, NAME("AssetObject"), HypClassAttribute("postload", "Scene_OnPostLoad"))
-    HypMethod(NAME(HYP_STR(GetPrimaryCamera)), &Scene::GetPrimaryCamera),
-    HypMethod(NAME(HYP_STR(GetSceneFlags)), &Scene::GetSceneFlags),
-    HypMethod(NAME(HYP_STR(SetSceneFlags)), &Scene::SetSceneFlags),
-    HypMethod(NAME(HYP_STR(FindNodeByName)), &Scene::FindNodeByName),
-    HypMethod(NAME(HYP_STR(GetRoot)), &Scene::GetRoot, Span<const HypClassAttribute> { {HypClassAttribute("property", "Root"), HypClassAttribute("editor", true) } }),
-    HypMethod(NAME(HYP_STR(SetRoot)), &Scene::SetRoot, Span<const HypClassAttribute> { {HypClassAttribute("property", "Root"), HypClassAttribute("editor", true) } }),
-    HypMethod(NAME(HYP_STR(GetEntityManager)), &Scene::GetEntityManager),
-    HypMethod(NAME(HYP_STR(IsAttachedToWorld)), &Scene::IsAttachedToWorld),
-    HypMethod(NAME(HYP_STR(GetWorld)), &Scene::GetWorld),
-    HypMethod(NAME(HYP_STR(SetWorld)), &Scene::SetWorld),
-    HypMethod(NAME(HYP_STR(IsForegroundScene)), &Scene::IsForegroundScene),
-    HypMethod(NAME(HYP_STR(IsBackgroundScene)), &Scene::IsBackgroundScene),
-    HypMethod(NAME(HYP_STR(IsAudioListener)), &Scene::IsAudioListener),
-    HypMethod(NAME(HYP_STR(SetIsAudioListener)), &Scene::SetIsAudioListener),
-    HypMethod(NAME(HYP_STR(AddToWorld)), &Scene::AddToWorld),
-    HypMethod(NAME(HYP_STR(RemoveFromWorld)), &Scene::RemoveFromWorld),
-    HypMethod(NAME(HYP_STR(GetUniqueNodeName)), &Scene::GetUniqueNodeName),
-    HypField(NAME(HYP_STR(SceneFlags)), &Scene::m_sceneFlags, offsetof(Scene, m_sceneFlags), Span<const HypClassAttribute> { {HypClassAttribute("property", "SceneFlags") } }),
-    HypField(NAME(HYP_STR(Root)), &Scene::m_root, offsetof(Scene, m_root), Span<const HypClassAttribute> { {HypClassAttribute("property", "Root") } }),
-    HypField(NAME(HYP_STR(OwnerThreadId)), &Scene::m_ownerThreadId, offsetof(Scene, m_ownerThreadId), Span<const HypClassAttribute> { {HypClassAttribute("property", "OwnerThreadId"), HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(World)), &Scene::m_world, offsetof(Scene, m_world), Span<const HypClassAttribute> { {HypClassAttribute("property", "World"), HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(EntityManager)), &Scene::m_entityManager, offsetof(Scene, m_entityManager), Span<const HypClassAttribute> { {HypClassAttribute("property", "EntityManager"), HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(IsAudioListener)), &Scene::m_isAudioListener, offsetof(Scene, m_isAudioListener), Span<const HypClassAttribute> { {HypClassAttribute("property", "IsAudioListener") } }),
-    HypField(NAME(HYP_STR(PreviousDelta)), &Scene::m_previousDelta, offsetof(Scene, m_previousDelta), Span<const HypClassAttribute> { {HypClassAttribute("property", "PreviousDelta"), HypClassAttribute("transient", true) } })
+HYP_BEGIN_CLASS(Subsystem, 145, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
 HYP_END_CLASS
 
-#pragma endregion Scene Reflection Data
+#pragma endregion Subsystem Reflection Data
 
-static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_Scene(TypeId::ForType<Scene>(), ValueWrapper<Scene_OnPostLoad>());
 } // namespace hyperion
 
+/* Generated from: scene\System.hpp */
+
+#include <scene\System.hpp>
 
 namespace hyperion {
 
-#pragma region SceneFlags Reflection Data
+#pragma region SystemBase Reflection Data
 
 HYP_BEGIN_ENUM(SceneFlags, 374, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), SceneFlags::NONE),
@@ -1392,110 +1322,139 @@ HYP_BEGIN_ENUM(SceneFlags, 374, 0, {})
     HypConstant(NAME(HYP_STR(EDITOR)), SceneFlags::EDITOR)
 HYP_END_ENUM
 
-#pragma endregion SceneFlags Reflection Data
+#pragma endregion SystemBase Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/EnvGrid.hpp */
+/* Generated from: scene\View.hpp */
 
-#include <scene/EnvGrid.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <scene/View.hpp>
-#include <scene/camera/Camera.hpp>
-
-#include <scene/ComponentInterface.hpp>
-#include <scene/EntityTag.hpp>
-
-namespace hyperion {
-
-#pragma region EnvGrid Reflection Data
-
-HYP_BEGIN_CLASS(EnvGrid, 175, 1, NAME("Entity"))
-    HypMethod(NAME(HYP_STR(GetAABB)), &EnvGrid::GetAABB),
-    HypField(NAME(HYP_STR(Aabb)), &EnvGrid::m_aabb, offsetof(EnvGrid, m_aabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "AABB") } })
-HYP_END_CLASS
-
-#pragma endregion EnvGrid Reflection Data
-
-HYP_REGISTER_ENTITY_TYPE(EnvGrid);
-} // namespace hyperion
+#include <scene\View.hpp>
+#include <scene\Scene.hpp>
+#include <scene\camera\Camera.hpp>
 
 
 namespace hyperion {
 
-#pragma region LegacyEnvGrid Reflection Data
+#pragma region View Reflection Data
 
-HYP_BEGIN_CLASS(LegacyEnvGrid, 176, 0, NAME("EnvGrid"))
-    HypMethod(NAME(HYP_STR(SetAABB)), &LegacyEnvGrid::SetAABB),
-    HypMethod(NAME(HYP_STR(GetView)), &LegacyEnvGrid::GetView),
-    HypMethod(NAME(HYP_STR(GetCamera)), &LegacyEnvGrid::GetCamera),
-    HypMethod(NAME(HYP_STR(Translate)), &LegacyEnvGrid::Translate)
+HYP_BEGIN_CLASS(View, 162, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(GetScenes)), &View::GetScenes),
+    HypMethod(NAME(HYP_STR(AddScene)), &View::AddScene),
+    HypMethod(NAME(HYP_STR(RemoveScene)), &View::RemoveScene),
+    HypMethod(NAME(HYP_STR(GetCamera)), &View::GetCamera),
+    HypMethod(NAME(HYP_STR(GetPriority)), &View::GetPriority),
+    HypMethod(NAME(HYP_STR(SetPriority)), &View::SetPriority)
 HYP_END_CLASS
 
-#pragma endregion LegacyEnvGrid Reflection Data
-
-HYP_REGISTER_ENTITY_TYPE(LegacyEnvGrid);
-} // namespace hyperion
-
-/* Generated from: scene/Entity.hpp */
-
-#include <scene/Entity.hpp>
-
-namespace hyperion {
-
-#pragma region Entity Reflection Data
-
-HYP_BEGIN_CLASS(Entity, 166, 12, NAME("Node"))
-    HypMethod(NAME(HYP_STR(SerializeComponents)), &Entity::SerializeComponents, Span<const HypClassAttribute> { {HypClassAttribute("property", "Components"), HypClassAttribute("noscriptbindings", true) } }),
-    HypMethod(NAME(HYP_STR(DeserializeComponents)), &Entity::DeserializeComponents, Span<const HypClassAttribute> { {HypClassAttribute("property", "Components"), HypClassAttribute("noscriptbindings", true) } })
-HYP_END_CLASS
-
-#pragma endregion Entity Reflection Data
+#pragma endregion View Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/camera/PerspectiveCamera.hpp */
+/* Generated from: scene\VisibilityState.hpp */
 
-#include <scene/camera/PerspectiveCamera.hpp>
+#include <scene\VisibilityState.hpp>
 
 namespace hyperion {
 
-#pragma region PerspectiveCameraController Reflection Data
+#pragma region VisibilityState Reflection Data
 
-HYP_BEGIN_CLASS(PerspectiveCameraController, 183, 4, NAME("CameraController"))
-HYP_END_CLASS
+HYP_BEGIN_STRUCT(VisibilityState, 353, 0, {})
+HYP_END_STRUCT
 
-#pragma endregion PerspectiveCameraController Reflection Data
+#pragma endregion VisibilityState Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/camera/CameraTrackController.hpp */
-
-#include <scene/camera/CameraTrackController.hpp>
 
 namespace hyperion {
 
-#pragma region CameraTrackController Reflection Data
+#pragma region VisibilityStateSnapshot Reflection Data
 
-HYP_BEGIN_CLASS(CameraTrackController, 184, 0, NAME("PerspectiveCameraController"))
-HYP_END_CLASS
+HYP_BEGIN_STRUCT(VisibilityStateSnapshot, 354, 0, {})
+HYP_END_STRUCT
 
-#pragma endregion CameraTrackController Reflection Data
+#pragma endregion VisibilityStateSnapshot Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/camera/FirstPersonCamera.hpp */
+/* Generated from: scene\World.hpp */
 
-#include <scene/camera/FirstPersonCamera.hpp>
+#include <scene\World.hpp>
+#include <core\NameInternal.hpp>
+#include <rendering\RenderStats.hpp>
+#include <scene\Subsystem.hpp>
+#include <scene\world_grid\WorldGrid.hpp>
+#include <scene\GameState.hpp>
+#include <scene\Scene.hpp>
+#include <scene\View.hpp>
+
 
 namespace hyperion {
 
-#pragma region FirstPersonCameraInputHandler Reflection Data
+#pragma region World Reflection Data
 
-HYP_BEGIN_CLASS(FirstPersonCameraInputHandler, 58, 0, NAME("InputHandlerBase"))
+HYP_BEGIN_CLASS(World, 163, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(GetName)), &World::GetName),
+    HypMethod(NAME(HYP_STR(SetName)), &World::SetName),
+    HypMethod(NAME(HYP_STR(GetRenderStats)), &World::GetRenderStats),
+    HypMethod(NAME(HYP_STR(GetSubsystemByName)), &World::GetSubsystemByName),
+    HypMethod(NAME(HYP_STR(RemoveSubsystem)), &World::RemoveSubsystem),
+    HypMethod(NAME(HYP_STR(GetWorldGrid)), &World::GetWorldGrid),
+    HypMethod(NAME(HYP_STR(GetGameState)), &World::GetGameState),
+    HypMethod(NAME(HYP_STR(StartSimulating)), &World::StartSimulating),
+    HypMethod(NAME(HYP_STR(StopSimulating)), &World::StopSimulating),
+    HypMethod(NAME(HYP_STR(AddScene)), &World::AddScene),
+    HypMethod(NAME(HYP_STR(RemoveScene)), &World::RemoveScene),
+    HypMethod(NAME(HYP_STR(HasScene)), &World::HasScene),
+    HypMethod(NAME(HYP_STR(GetSceneByName)), &World::GetSceneByName),
+    HypMethod(NAME(HYP_STR(GetScenes)), &World::GetScenes),
+    HypMethod(NAME(HYP_STR(AddView)), &World::AddView),
+    HypMethod(NAME(HYP_STR(RemoveView)), &World::RemoveView),
+    HypField(NAME(HYP_STR(Name)), &World::m_name, offsetof(World, m_name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } })
 HYP_END_CLASS
 
-#pragma endregion FirstPersonCameraInputHandler Reflection Data
+#pragma endregion World Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\animation\Animation.hpp */
+
+#include <scene\animation\Animation.hpp>
+#include <scene\animation\Keyframe.hpp>
+
+
+namespace hyperion {
+
+#pragma region AnimationTrack Reflection Data
+
+HYP_BEGIN_CLASS(AnimationTrack, 164, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(GetLength)), &AnimationTrack::GetLength),
+    HypMethod(NAME(HYP_STR(GetKeyframe)), &AnimationTrack::GetKeyframe)
+HYP_END_CLASS
+
+#pragma endregion AnimationTrack Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region Animation Reflection Data
+
+HYP_BEGIN_CLASS(Animation, 165, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(GetName)), &Animation::GetName, Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(SetName)), &Animation::SetName, Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(GetLength)), &Animation::GetLength, Span<const HypClassAttribute> { {HypClassAttribute("property", "Length"), HypClassAttribute("serialize", false) } }),
+    HypMethod(NAME(HYP_STR(AddTrack)), &Animation::AddTrack),
+    HypMethod(NAME(HYP_STR(GetTracks)), &Animation::GetTracks, Span<const HypClassAttribute> { {HypClassAttribute("property", "Tracks"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(SetTracks)), &Animation::SetTracks, Span<const HypClassAttribute> { {HypClassAttribute("property", "Tracks"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(GetTrack)), &Animation::GetTrack),
+    HypMethod(NAME(HYP_STR(NumTracks)), &Animation::NumTracks),
+    HypMethod(NAME(HYP_STR(Apply)), &Animation::Apply),
+    HypMethod(NAME(HYP_STR(ApplyBlended)), &Animation::ApplyBlended)
+HYP_END_CLASS
+
+#pragma endregion Animation Reflection Data
 
 } // namespace hyperion
 
@@ -1513,57 +1472,70 @@ HYP_END_ENUM
 
 } // namespace hyperion
 
+#include <scene\animation\Bone.hpp>
 
 namespace hyperion {
 
-#pragma region FirstPersonCameraController Reflection Data
+#pragma region Bone Reflection Data
 
-HYP_BEGIN_CLASS(FirstPersonCameraController, 185, 1, NAME("PerspectiveCameraController"))
-    HypMethod(NAME(HYP_STR(GetMode)), &FirstPersonCameraController::GetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
-    HypMethod(NAME(HYP_STR(SetMode)), &FirstPersonCameraController::SetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
-    HypMethod(NAME(HYP_STR(IsMouseLockAllowed)), &FirstPersonCameraController::IsMouseLockAllowed)
+HYP_BEGIN_CLASS(Bone, 144, 0, NAME("Node"))
 HYP_END_CLASS
 
-#pragma endregion FirstPersonCameraController Reflection Data
+#pragma endregion Bone Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/camera/FollowCamera.hpp */
+/* Generated from: scene\animation\Keyframe.hpp */
 
-#include <scene/camera/FollowCamera.hpp>
+#include <scene\animation\Keyframe.hpp>
+#include <core\math\Transform.hpp>
+
 
 namespace hyperion {
 
-#pragma region FollowCameraController Reflection Data
+#pragma region Keyframe Reflection Data
 
-HYP_BEGIN_CLASS(FollowCameraController, 187, 0, NAME("PerspectiveCameraController"))
-HYP_END_CLASS
+HYP_BEGIN_STRUCT(Keyframe, 355, 0, {})
+    HypField(NAME(HYP_STR(Time)), &Keyframe::time, offsetof(Keyframe, time), Span<const HypClassAttribute> { {HypClassAttribute("property", "Time"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Transform)), &Keyframe::transform, offsetof(Keyframe, transform), Span<const HypClassAttribute> { {HypClassAttribute("property", "Transform"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(Blend)), &Keyframe::Blend)
+HYP_END_STRUCT
 
-#pragma endregion FollowCameraController Reflection Data
+#pragma endregion Keyframe Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/camera/OrthoCamera.hpp */
+/* Generated from: scene\animation\Skeleton.hpp */
 
-#include <scene/camera/OrthoCamera.hpp>
+#include <scene\animation\Skeleton.hpp>
+#include <scene\animation\Bone.hpp>
+#include <scene\animation\Animation.hpp>
+
 
 namespace hyperion {
 
-#pragma region OrthoCameraController Reflection Data
+#pragma region Skeleton Reflection Data
 
-HYP_BEGIN_CLASS(OrthoCameraController, 188, 0, NAME("CameraController"))
+HYP_BEGIN_CLASS(Skeleton, 166, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(GetRootBone)), &Skeleton::GetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "RootBone") } }),
+    HypMethod(NAME(HYP_STR(SetRootBone)), &Skeleton::SetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "RootBone") } }),
+    HypMethod(NAME(HYP_STR(GetAnimations)), &Skeleton::GetAnimations, Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Animations") } }),
+    HypMethod(NAME(HYP_STR(SetAnimations)), &Skeleton::SetAnimations, Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Animations") } }),
+    HypMethod(NAME(HYP_STR(NumAnimations)), &Skeleton::NumAnimations),
+    HypMethod(NAME(HYP_STR(AddAnimation)), &Skeleton::AddAnimation),
+    HypMethod(NAME(HYP_STR(GetAnimation)), &Skeleton::GetAnimation)
 HYP_END_CLASS
 
-#pragma endregion OrthoCameraController Reflection Data
+#pragma endregion Skeleton Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: scene/camera/Camera.hpp */
+/* Generated from: scene\camera\Camera.hpp */
 
-#include <scene/camera/Camera.hpp>
-#include <input/InputHandler.hpp>
-#include <core/math/Frustum.hpp>
-#include <core/math/Matrix4.hpp>
+#include <scene\camera\Camera.hpp>
+#include <input\InputHandler.hpp>
+#include <core\math\Frustum.hpp>
+#include <core\math\Matrix4.hpp>
 
 
 namespace hyperion {
@@ -1599,7 +1571,7 @@ namespace hyperion {
 
 #pragma region CameraController Reflection Data
 
-HYP_BEGIN_CLASS(CameraController, 182, 7, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(CameraController, 167, 7, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetInputHandler)), &CameraController::GetInputHandler, Span<const HypClassAttribute> { {HypClassAttribute("property", "InputHandler") } }),
     HypMethod(NAME(HYP_STR(SetInputHandler)), &CameraController::SetInputHandler, Span<const HypClassAttribute> { {HypClassAttribute("property", "InputHandler") } }),
     HypMethod(NAME(HYP_STR(GetCamera)), &CameraController::GetCamera, Span<const HypClassAttribute> { {HypClassAttribute("property", "Camera") } }),
@@ -1626,7 +1598,7 @@ namespace hyperion {
 
 #pragma region Camera Reflection Data
 
-HYP_BEGIN_CLASS(Camera, 177, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(Camera, 142, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetCameraFlags)), &Camera::GetCameraFlags, Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(SetCameraFlags)), &Camera::SetCameraFlags, Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(GetCameraControllers)), &Camera::GetCameraControllers, Span<const HypClassAttribute> { {HypClassAttribute("property", "CameraControllers") } }),
@@ -1695,10 +1667,284 @@ namespace hyperion {
 
 #pragma region NullCameraController Reflection Data
 
-HYP_BEGIN_CLASS(NullCameraController, 189, 0, NAME("CameraController"))
+HYP_BEGIN_CLASS(NullCameraController, 168, 0, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion NullCameraController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\camera\CameraTrackController.hpp */
+
+#include <scene\camera\CameraTrackController.hpp>
+
+namespace hyperion {
+
+#pragma region CameraTrackController Reflection Data
+
+HYP_BEGIN_CLASS(CameraTrackController, 171, 0, NAME("PerspectiveCameraController"))
+HYP_END_CLASS
+
+#pragma endregion CameraTrackController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\camera\FirstPersonCamera.hpp */
+
+#include <scene\camera\FirstPersonCamera.hpp>
+
+namespace hyperion {
+
+#pragma region FirstPersonCameraInputHandler Reflection Data
+
+HYP_BEGIN_CLASS(FirstPersonCameraInputHandler, 55, 0, NAME("InputHandlerBase"))
+HYP_END_CLASS
+
+#pragma endregion FirstPersonCameraInputHandler Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region FirstPersonCameraControllerMode Reflection Data
+
+HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 358, 0, {})
+    HypConstant(NAME(HYP_STR(MOUSE_LOCKED)), FirstPersonCameraControllerMode::MOUSE_LOCKED),
+    HypConstant(NAME(HYP_STR(MOUSE_FREE)), FirstPersonCameraControllerMode::MOUSE_FREE)
+HYP_END_ENUM
+
+#pragma endregion FirstPersonCameraControllerMode Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region FirstPersonCameraController Reflection Data
+
+HYP_BEGIN_CLASS(FirstPersonCameraController, 172, 1, NAME("PerspectiveCameraController"))
+    HypMethod(NAME(HYP_STR(GetMode)), &FirstPersonCameraController::GetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
+    HypMethod(NAME(HYP_STR(SetMode)), &FirstPersonCameraController::SetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
+    HypMethod(NAME(HYP_STR(IsMouseLockAllowed)), &FirstPersonCameraController::IsMouseLockAllowed)
+HYP_END_CLASS
+
+#pragma endregion FirstPersonCameraController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\camera\FollowCamera.hpp */
+
+#include <scene\camera\FollowCamera.hpp>
+
+namespace hyperion {
+
+#pragma region FollowCameraController Reflection Data
+
+HYP_BEGIN_CLASS(FollowCameraController, 174, 0, NAME("PerspectiveCameraController"))
+HYP_END_CLASS
+
+#pragma endregion FollowCameraController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\camera\OrthoCamera.hpp */
+
+#include <scene\camera\OrthoCamera.hpp>
+
+namespace hyperion {
+
+#pragma region OrthoCameraController Reflection Data
+
+HYP_BEGIN_CLASS(OrthoCameraController, 169, 0, NAME("CameraController"))
+HYP_END_CLASS
+
+#pragma endregion OrthoCameraController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\camera\PerspectiveCamera.hpp */
+
+#include <scene\camera\PerspectiveCamera.hpp>
+
+namespace hyperion {
+
+#pragma region PerspectiveCameraController Reflection Data
+
+HYP_BEGIN_CLASS(PerspectiveCameraController, 170, 4, NAME("CameraController"))
+HYP_END_CLASS
+
+#pragma endregion PerspectiveCameraController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\camera\streaming\CameraStreamingVolume.hpp */
+
+#include <scene\camera\streaming\CameraStreamingVolume.hpp>
+#include <streaming\StreamingVolume.hpp>
+#include <core\math\BoundingBox.hpp>
+#include <core\math\BoundingSphere.hpp>
+
+
+namespace hyperion {
+
+#pragma region CameraStreamingVolume Reflection Data
+
+HYP_BEGIN_CLASS(CameraStreamingVolume, 183, 0, NAME("StreamingVolumeBase"), HypClassAttribute("noscriptbindings", true))
+    HypMethod(NAME(HYP_STR(GetShape_Impl)), &CameraStreamingVolume::GetShape_Impl),
+    HypMethod(NAME(HYP_STR(GetBoundingBox_Impl)), &CameraStreamingVolume::GetBoundingBox_Impl),
+    HypMethod(NAME(HYP_STR(GetBoundingSphere_Impl)), &CameraStreamingVolume::GetBoundingSphere_Impl),
+    HypMethod(NAME(HYP_STR(ContainsPoint_Impl)), &CameraStreamingVolume::ContainsPoint_Impl)
+HYP_END_CLASS
+
+#pragma endregion CameraStreamingVolume Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\components\AnimationComponent.hpp */
+
+#include <scene\components\AnimationComponent.hpp>
+#include <scene/ComponentInterface.hpp>
+
+namespace hyperion {
+
+#pragma region AnimationComponent Reflection Data
+
+HYP_BEGIN_STRUCT(AnimationComponent, 359, 0, {}, HypClassAttribute("component", true))
+    HypField(NAME(HYP_STR(PlaybackState)), &AnimationComponent::playbackState, offsetof(AnimationComponent, playbackState), Span<const HypClassAttribute> { {HypClassAttribute("property", "PlaybackState"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } })
+HYP_END_STRUCT
+
+#pragma endregion AnimationComponent Reflection Data
+
+HYP_REGISTER_COMPONENT(AnimationComponent);
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AnimationPlaybackState Reflection Data
+
+HYP_BEGIN_STRUCT(AnimationPlaybackState, 360, 0, {})
+    HypField(NAME(HYP_STR(AnimationIndex)), &AnimationPlaybackState::animationIndex, offsetof(AnimationPlaybackState, animationIndex), Span<const HypClassAttribute> { {HypClassAttribute("property", "AnimationIndex"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(Status)), &AnimationPlaybackState::status, offsetof(AnimationPlaybackState, status), Span<const HypClassAttribute> { {HypClassAttribute("property", "Status"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(LoopMode)), &AnimationPlaybackState::loopMode, offsetof(AnimationPlaybackState, loopMode), Span<const HypClassAttribute> { {HypClassAttribute("property", "LoopMode"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(Speed)), &AnimationPlaybackState::speed, offsetof(AnimationPlaybackState, speed), Span<const HypClassAttribute> { {HypClassAttribute("property", "Speed"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(CurrentTime)), &AnimationPlaybackState::currentTime, offsetof(AnimationPlaybackState, currentTime), Span<const HypClassAttribute> { {HypClassAttribute("property", "CurrentTime"), HypClassAttribute("editor", true) } })
+HYP_END_STRUCT
+
+#pragma endregion AnimationPlaybackState Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AnimationLoopMode Reflection Data
+
+HYP_BEGIN_ENUM(AnimationLoopMode, 361, 0, {})
+    HypConstant(NAME(HYP_STR(ONCE)), AnimationLoopMode::ONCE),
+    HypConstant(NAME(HYP_STR(REPEAT)), AnimationLoopMode::REPEAT)
+HYP_END_ENUM
+
+#pragma endregion AnimationLoopMode Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AnimationPlaybackStatus Reflection Data
+
+HYP_BEGIN_ENUM(AnimationPlaybackStatus, 362, 0, {})
+    HypConstant(NAME(HYP_STR(STOPPED)), AnimationPlaybackStatus::STOPPED),
+    HypConstant(NAME(HYP_STR(PAUSED)), AnimationPlaybackStatus::PAUSED),
+    HypConstant(NAME(HYP_STR(PLAYING)), AnimationPlaybackStatus::PLAYING)
+HYP_END_ENUM
+
+#pragma endregion AnimationPlaybackStatus Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene\components\AudioComponent.hpp */
+
+#include <scene\components\AudioComponent.hpp>
+#include <audio\AudioSource.hpp>
+
+
+namespace hyperion {
+
+#pragma region AudioLoopMode Reflection Data
+
+HYP_BEGIN_ENUM(AudioLoopMode, 363, 0, {})
+    HypConstant(NAME(HYP_STR(ALM_ONCE)), AudioLoopMode::ALM_ONCE),
+    HypConstant(NAME(HYP_STR(ALM_REPEAT)), AudioLoopMode::ALM_REPEAT)
+HYP_END_ENUM
+
+#pragma endregion AudioLoopMode Reflection Data
+
+} // namespace hyperion
+
+#include <scene/ComponentInterface.hpp>
+
+namespace hyperion {
+
+#pragma region AudioComponent Reflection Data
+
+HYP_BEGIN_STRUCT(AudioComponent, 364, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Audio Component"),HypClassAttribute("description", "Controls the state of an audio source."),HypClassAttribute("editor", true))
+    HypField(NAME(HYP_STR(AudioSource)), &AudioComponent::audioSource, offsetof(AudioComponent, audioSource), Span<const HypClassAttribute> { {HypClassAttribute("property", "AudioSource"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(PlaybackState)), &AudioComponent::playbackState, offsetof(AudioComponent, playbackState), Span<const HypClassAttribute> { {HypClassAttribute("property", "PlaybackState"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(Flags)), &AudioComponent::flags, offsetof(AudioComponent, flags), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
+    HypField(NAME(HYP_STR(LastPosition)), &AudioComponent::lastPosition, offsetof(AudioComponent, lastPosition), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
+    HypField(NAME(HYP_STR(Timer)), &AudioComponent::timer, offsetof(AudioComponent, timer), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } })
+HYP_END_STRUCT
+
+#pragma endregion AudioComponent Reflection Data
+
+HYP_REGISTER_COMPONENT(AudioComponent);
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AudioComponentFlags Reflection Data
+
+HYP_BEGIN_ENUM(AudioComponentFlags, 365, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), AudioComponentFlags::NONE),
+    HypConstant(NAME(HYP_STR(INIT)), AudioComponentFlags::INIT)
+HYP_END_ENUM
+
+#pragma endregion AudioComponentFlags Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AudioPlaybackStatus Reflection Data
+
+HYP_BEGIN_ENUM(AudioPlaybackStatus, 366, 0, {})
+    HypConstant(NAME(HYP_STR(APS_STOPPED)), AudioPlaybackStatus::APS_STOPPED),
+    HypConstant(NAME(HYP_STR(APS_PAUSED)), AudioPlaybackStatus::APS_PAUSED),
+    HypConstant(NAME(HYP_STR(APS_PLAYING)), AudioPlaybackStatus::APS_PLAYING)
+HYP_END_ENUM
+
+#pragma endregion AudioPlaybackStatus Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AudioPlaybackState Reflection Data
+
+HYP_BEGIN_STRUCT(AudioPlaybackState, 367, 0, {})
+    HypField(NAME(HYP_STR(Status)), &AudioPlaybackState::status, offsetof(AudioPlaybackState, status), Span<const HypClassAttribute> { {HypClassAttribute("property", "Status"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(LoopMode)), &AudioPlaybackState::loopMode, offsetof(AudioPlaybackState, loopMode), Span<const HypClassAttribute> { {HypClassAttribute("property", "LoopMode"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(Speed)), &AudioPlaybackState::speed, offsetof(AudioPlaybackState, speed), Span<const HypClassAttribute> { {HypClassAttribute("property", "Speed"), HypClassAttribute("editor", true) } }),
+    HypField(NAME(HYP_STR(CurrentTime)), &AudioPlaybackState::currentTime, offsetof(AudioPlaybackState, currentTime), Span<const HypClassAttribute> { {HypClassAttribute("property", "CurrentTime"), HypClassAttribute("editor", true) } })
+HYP_END_STRUCT
+
+#pragma endregion AudioPlaybackState Reflection Data
 
 } // namespace hyperion
 

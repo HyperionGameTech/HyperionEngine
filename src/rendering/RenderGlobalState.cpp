@@ -81,6 +81,8 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
 
+static constexpr SizeType RenderPoolBlockSize = 16 * 1024 * 1024; // 16 MiB
+
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
 static thread_local uint32* s_threadFrameIndex;
@@ -544,7 +546,7 @@ void RenderApi_Init()
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
     Assert(g_renderBackend != nullptr);
 
-    g_renderPool = new Pool();
+    g_renderPool = new Pool(RenderPoolBlockSize);
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {

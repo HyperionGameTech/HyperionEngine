@@ -60,7 +60,7 @@ public:
 #endif
 
         explicit Block(SizeType capacity);
-        ~Block();
+        ~Block() = default;
 
         void* Allocate(SizeType size, SizeType alignment);
         void Free(void* ptr);

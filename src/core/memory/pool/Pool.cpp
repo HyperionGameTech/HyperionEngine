@@ -17,16 +17,6 @@ Pool::Block::Block(SizeType capacity)
 #endif
 }
 
-Pool::Block::~Block()
-{
-#if defined(HYP_POOL_USE_TLSF_ALLOCATOR) && HYP_POOL_USE_TLSF_ALLOCATOR
-    // allocator destructor will clean up
-#else
-    freeRanges.Clear();
-#endif
-    buffer.Clear();
-}
-
 void* Pool::Block::Allocate(SizeType size, SizeType alignment)
 {
 #if defined(HYP_POOL_USE_TLSF_ALLOCATOR) && HYP_POOL_USE_TLSF_ALLOCATOR
