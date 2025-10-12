@@ -44,6 +44,8 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
+#include <core/object/HypEnum.hpp> // For EnumValue()
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -129,6 +131,11 @@ HYP_API Pool* EngineMemory_GetPool(EnginePoolName poolName)
 {
     Assert(poolName < EPN_MAX);
     return g_enginePools[poolName];
+}
+
+HYP_API EnginePoolName EngineMemory_GetPoolName(const char* str)
+{
+    return EnumValue<EnginePoolName>(str, EPN_NONE);
 }
 
 #pragma endregion EngineMemory
