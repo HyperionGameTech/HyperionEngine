@@ -5,6 +5,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/Bitset.hpp>
 
+#include <core/memory/allocator/Allocator.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 #include <core/Defines.hpp>
@@ -18,8 +20,8 @@ namespace containers {
  *  \details This container is useful when you have a large number of elements, but only a small subset of them are initialized.
  *  Another useful feature of this container: pointers to elements will not be invalidated as the container grows and shrinks.
  *  (as long as the elements themselves being pointed to are not removed from the container) */
-template <class T, uint32 PageSize>
-class SparsePagedArray : public ContainerBase<SparsePagedArray<T, PageSize>, SizeType>
+template <class T, uint32 PageSize, class AllocatorType = DynamicAllocator>
+class SparsePagedArray : public ContainerBase<SparsePagedArray<T, PageSize, AllocatorType>, SizeType>
 {
     static_assert(MathUtil::IsPowerOfTwo(PageSize), "PageSize must be power of two!");
 
@@ -35,6 +37,7 @@ protected:
         // would only introduce complexity.
         Page(const Page& other) = delete;
         Page& operator=(Page& other) = delete;
+
         Page(Page&& other) noexcept = delete;
         Page& operator=(Page&& other) noexcept = delete;
 
@@ -271,7 +274,8 @@ public:
         {
             HYP_CORE_ASSERT(bit < other.m_pages.Size());
 
-            m_pages[bit] = new Page;
+            m_pages[bit] = (Page*)AllocatorType().Allocate(sizeof(Page), alignof(Page));
+            new (m_pages[bit]) Page();
 
             for (Bitset::BitIndex elem : other.m_pages[bit]->initializedBits)
             {
@@ -290,7 +294,10 @@ public:
         for (Bitset::BitIndex bit : m_validPages)
         {
             HYP_CORE_ASSERT(bit < m_pages.Size());
-            delete m_pages[bit];
+
+            m_pages[bit]->~Page();
+            AllocatorType().Free(m_pages[bit]);
+
             m_pages[bit] = nullptr;
         }
 
@@ -301,7 +308,8 @@ public:
         {
             HYP_CORE_ASSERT(bit < other.m_pages.Size());
 
-            m_pages[bit] = new Page;
+            m_pages[bit] = (Page*)AllocatorType().Allocate(sizeof(Page), alignof(Page));
+            new (m_pages[bit]) Page();
 
             for (Bitset::BitIndex elem : other.m_pages[bit]->initializedBits)
             {
@@ -329,7 +337,9 @@ public:
         {
             HYP_CORE_ASSERT(bit < m_pages.Size());
 
-            delete m_pages[bit];
+            m_pages[bit]->~Page();
+            AllocatorType().Free(m_pages[bit]);
+
             m_pages[bit] = nullptr;
         }
 
@@ -345,7 +355,9 @@ public:
         {
             HYP_CORE_ASSERT(bit < m_pages.Size());
 
-            delete m_pages[bit];
+            m_pages[bit]->~Page();
+            AllocatorType().Free(m_pages[bit]);
+
             m_pages[bit] = nullptr;
         }
     }
@@ -586,7 +598,9 @@ public:
             // no elems remaining, delete the page
             m_validPages.Set(pageIndex, false);
 
-            delete page;
+            page->~Page();
+            AllocatorType().Free(page);
+
             m_pages[pageIndex] = nullptr;
         }
 
@@ -655,7 +669,9 @@ public:
 
             if (freeMemory)
             {
-                delete page;
+                page->~Page();
+                AllocatorType().Free(page);
+
                 m_pages[bit] = nullptr;
             }
             else
@@ -707,7 +723,9 @@ protected:
                 m_pages.Resize(pageIndex + 1);
             }
 
-            m_pages[pageIndex] = new Page;
+            m_pages[pageIndex] = (Page*)AllocatorType().Allocate(sizeof(Page), alignof(Page));
+            new (m_pages[pageIndex]) Page();
+
             m_validPages.Set(pageIndex, true);
         }
 
@@ -720,7 +738,7 @@ protected:
 
 } // namespace containers
 
-template <class T, uint32 PageSize = 16>
-using SparsePagedArray = containers::SparsePagedArray<T, PageSize>;
+template <class T, uint32 PageSize = 16, class AllocatorType = DynamicAllocator>
+using SparsePagedArray = containers::SparsePagedArray<T, PageSize, AllocatorType>;
 
 } // namespace hyperion

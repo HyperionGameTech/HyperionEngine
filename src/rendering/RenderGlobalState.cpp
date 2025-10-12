@@ -220,7 +220,7 @@ struct ResourceBindings
     void Assign(HypObjectBase* resource, uint32 binding)
     {
 #ifdef HYP_DEBUG_MODE
-        Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+        Threads::AssertOnThread(g_renderThread);
 #endif
 
         AssertDebug(resource != nullptr);
@@ -586,7 +586,7 @@ void RenderApi_Shutdown()
         }
 
         g_frameData[i].viewFrameData.Clear();
-        
+
         delete g_framePools[i];
         g_framePools[i] = nullptr;
     }
