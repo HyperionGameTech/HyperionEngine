@@ -19,7 +19,7 @@ class Pool;
 class LinearPool;
 
 // Helper metadata for natvis navigation
-enum AllocationType
+enum AllocationType : uint32
 {
     AT_DYNAMIC = 1,
     AT_INLINE = 2

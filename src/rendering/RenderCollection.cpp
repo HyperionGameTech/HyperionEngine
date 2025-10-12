@@ -570,7 +570,7 @@ RenderCollector::~RenderCollector()
             {
                 state->taskBatch->AwaitCompletion();
 
-                PoolDelete(*g_renderPool, state->taskBatch);
+                delete state->taskBatch;
             }
 
             ParallelRenderingState* nextState = state->next;
@@ -628,7 +628,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
-            TaskBatch* taskBatch = PoolNew<TaskBatch>(*g_renderPool);
+            TaskBatch* taskBatch = new TaskBatch;
             taskBatch->pool = &pool;
 
             parallelRenderingStateHead->taskBatch = taskBatch;
@@ -644,8 +644,8 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
             ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
-            
-            TaskBatch* taskBatch = PoolNew<TaskBatch>(*g_renderPool);
+
+            TaskBatch* taskBatch = new TaskBatch;
             taskBatch->pool = &pool;
 
             newParallelRenderingState->taskBatch = taskBatch;
@@ -869,7 +869,7 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
                 Assert(drawCall.material && drawCall.material->IsReady());
                 Assert(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
             };
-            
+
             for (const DrawCall& drawCall : drawCallCollection.drawCalls)
             {
                 doDrawCallAssertions(drawCall);
@@ -1096,8 +1096,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             AssertDebug(meshProxy != nullptr);
 
             AssertDebug(meshProxy->mesh != nullptr && meshProxy->material != nullptr,
-                        "Entity {} is missing a mesh or material on its MeshProxy! Mesh: {}, Material: {}",
-                        id, (void*)meshProxy->mesh, (void*)meshProxy->material);
+                "Entity {} is missing a mesh or material on its MeshProxy! Mesh: {}, Material: {}",
+                id, (void*)meshProxy->mesh, (void*)meshProxy->material);
 
             RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
             UpdateRenderableAttributesDynamic(meshProxy, attributes);

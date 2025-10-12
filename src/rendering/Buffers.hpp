@@ -337,7 +337,7 @@ public:
                 return maxOffset - minOffset;
             }
 
-            uint32 GetDataSize() const
+            uint32 GetDataSize(const Array<DirtyBlockInfo>& dirtyBlocks) const
             {
                 uint32 size = 0;
                 for (uint32 idx : blockIndices)
@@ -362,7 +362,7 @@ public:
                 const uint32 newMinOffset = MathUtil::Min(batch.minOffset, block.bufferOffset);
                 const uint32 newMaxOffset = MathUtil::Max(batch.maxOffset, block.bufferOffset + block.bufferSize);
                 const uint32 newTotalSize = newMaxOffset - newMinOffset;
-                const uint32 newDataSize = batch.GetDataSize() + block.bufferSize;
+                const uint32 newDataSize = batch.GetDataSize(dirtyBlocks) + block.bufferSize;
                 const uint32 wastedSpace = newTotalSize - newDataSize;
 
                 // Add to this batch if it doesn't exceed size limits and gap isn't too large

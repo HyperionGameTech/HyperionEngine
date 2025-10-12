@@ -5,6 +5,9 @@
 
 namespace hyperion {
 
+/// @TODO: Use thread-local memory pools (global for all object containers?) to reduce lock contention when allocating objects.
+/// We'll need to free the memory  on the owning thread though so all HypObjects will need an owning thread OR we will only allocate / release on the main thread.
+
 HYP_API void ReleaseHypObject(HypObjectHeader* header)
 {
     HYP_CORE_ASSERT(header != nullptr);

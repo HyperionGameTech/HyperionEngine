@@ -146,6 +146,10 @@ void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
 HypObjectBase::HypObjectBase()
     : m_initState(INIT_STATE_UNINITIALIZED)
 {
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+    m_scriptObjectResource = nullptr;
+#endif
+
 #ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to HypClass data
     HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
     HYP_CORE_ASSERT(context != nullptr);
