@@ -8,6 +8,15 @@
 
 namespace hyperion {
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+
+enum EnginePoolName : int;
+
+HYP_API extern Pool* EngineMemory_GetPool(EnginePoolName poolName);
+HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName);
+
+#endif
+
 HYP_API void ReleaseHypObject(HypObjectHeader* header)
 {
     HYP_CORE_ASSERT(header != nullptr);
@@ -112,12 +121,6 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-enum EnginePoolName : uint32;
-HYP_API extern Pool* EngineMemory_GetPool(EnginePoolName poolName);
-HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName);
-#endif
-
 static Spinlock& GetGlobalPoolLock()
 {
     static volatile int64 s_globalPoolLockValue = 0;
@@ -128,8 +131,12 @@ static Spinlock& GetGlobalPoolLock()
 
 static Pool& GetGlobalPool()
 {
-    static Pool s_globalPool;
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    return *EngineMemory_GetPool((EnginePoolName)0);
+#else
+    static Pool s_globalPool { 16 * 1024 * 1024 };
     return s_globalPool;
+#endif
 }
 
 static Pool& GetPoolForClass(const HypClass* hypClass)
@@ -161,8 +168,9 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuar
 {
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     EnginePoolName poolName = m_hypClass->GetEnginePoolName();
+    HYP_CORE_ASSERT(poolName >= 0);
 
-    if (poolName == (EnginePoolName)0)
+    if ((int)poolName == 0)
     {
 #endif
         Spinlock& lock = GetGlobalPoolLock();
@@ -182,15 +190,15 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuar
         return;
     }
 
-    if (!Threads::IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
+    /*if (!Threads::IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
     {
         HYP_LOG(Core, Warning, "Create/destroying object of type {} from thread: {} but its pool is owned by thread: {}",
             m_hypClass->GetName(),
             Threads::CurrentThreadId().GetName(),
             EngineMemory_GetPoolThreadId(poolName).GetName());
-    }
+    }*/
 
-    // Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "HypObject can only be destroyed from its owning pool thread");
+    Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "HypObject can only be created/destroyed from its owning pool thread");
 #endif
 }
 

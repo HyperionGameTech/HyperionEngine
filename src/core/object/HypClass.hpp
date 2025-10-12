@@ -43,7 +43,7 @@ template <class T>
 class HypStructInstance;
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-enum EnginePoolName : uint32;
+enum EnginePoolName : int;
 #endif
 
 HYP_ENUM()

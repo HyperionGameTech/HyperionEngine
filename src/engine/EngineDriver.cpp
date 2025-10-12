@@ -87,14 +87,12 @@ extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 HYP_API Pool* g_enginePools[EPN_MAX];
 
 static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
-    &ThreadId::Invalid(),
-    &g_mainThread,   // EPN_CORE
-    &g_renderThread, // EPN_RENDER
-    &g_gameThread    // EPN_SCENE
+    &ThreadId::Invalid(),   // EPN_CORE <-- not tied to any thread
+    &g_renderThread,        // EPN_RENDER
+    &g_gameThread           // EPN_SCENE
 };
 
 constexpr SizeType EnginePoolSizes[EPN_MAX] = {
-    0,                 // EPN_NONE
     32 * 1024 * 1024,  // EPN_CORE
     128 * 1024 * 1024, // EPN_RENDER
     128 * 1024 * 1024  // EPN_SCENE
@@ -104,9 +102,9 @@ HYP_API void EngineMemory_Initialize()
 {
     // init pools
 
-    for (uint32 i = EPN_NONE + 1; i < EPN_MAX; ++i)
+    for (int i = 0; i < EPN_MAX; ++i)
     {
-        Assert(g_enginePools[i] == nullptr);
+        AssertDebug(g_enginePools[i] == nullptr);
 
         g_enginePools[i] = EnginePoolSizes[i] > 0 ? new Pool(EnginePoolSizes[i]) : nullptr;
     }
@@ -114,7 +112,7 @@ HYP_API void EngineMemory_Initialize()
 
 HYP_API void EngineMemory_Shutdown()
 {
-    for (uint32 i = EPN_NONE + 1; i < EPN_MAX; ++i)
+    for (int i = 0; i < EPN_MAX; ++i)
     {
         delete g_enginePools[i];
         g_enginePools[i] = nullptr;
@@ -123,19 +121,19 @@ HYP_API void EngineMemory_Shutdown()
 
 HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName)
 {
-    Assert(poolName < EPN_MAX);
+    AssertDebug(poolName < EPN_MAX && poolName >= 0);
     return *s_enginePoolThreadIds[poolName];
 }
 
 HYP_API Pool* EngineMemory_GetPool(EnginePoolName poolName)
 {
-    Assert(poolName < EPN_MAX);
+    AssertDebug(poolName < EPN_MAX && poolName >= 0);
     return g_enginePools[poolName];
 }
 
 HYP_API EnginePoolName EngineMemory_GetPoolName(const char* str)
 {
-    return EnumValue<EnginePoolName>(str, EPN_NONE);
+    return EnumValue<EnginePoolName>(str, EPN_INVALID);
 }
 
 #pragma endregion EngineMemory

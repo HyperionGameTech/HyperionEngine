@@ -96,7 +96,7 @@ protected:
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
-    void LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const;
+    HYP_API void LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const;
 
     TypeId m_typeId;
     const HypClass* m_hypClass;

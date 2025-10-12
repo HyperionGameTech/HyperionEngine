@@ -20,10 +20,11 @@ class ThreadId;
 using threading::ThreadId;
 
 HYP_ENUM()
-enum EnginePoolName : uint32
+enum EnginePoolName : int
 {
-    EPN_NONE = 0,
-    EPN_CORE,
+    EPN_INVALID = -1,
+
+    EPN_CORE = 0, // global shared pool
     EPN_RENDER,
     EPN_SCENE,
 

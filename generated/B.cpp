@@ -235,7 +235,7 @@ namespace hyperion {
 #pragma region EnginePoolName Reflection Data
 
 HYP_BEGIN_ENUM(EnginePoolName, 254, 0, {})
-    HypConstant(NAME(HYP_STR(EPN_NONE)), EnginePoolName::EPN_NONE),
+    HypConstant(NAME(HYP_STR(EPN_INVALID)), EnginePoolName::EPN_INVALID),
     HypConstant(NAME(HYP_STR(EPN_CORE)), EnginePoolName::EPN_CORE),
     HypConstant(NAME(HYP_STR(EPN_RENDER)), EnginePoolName::EPN_RENDER),
     HypConstant(NAME(HYP_STR(EPN_SCENE)), EnginePoolName::EPN_SCENE),
@@ -1341,12 +1341,58 @@ HYP_END_STRUCT
 
 namespace hyperion {
 
+#pragma region StoreOperation Reflection Data
+
+HYP_BEGIN_ENUM(StoreOperation, 277, 0, {})
+    HypConstant(NAME(HYP_STR(UNDEFINED)), StoreOperation::UNDEFINED),
+    HypConstant(NAME(HYP_STR(NONE)), StoreOperation::NONE),
+    HypConstant(NAME(HYP_STR(STORE)), StoreOperation::STORE)
+HYP_END_ENUM
+
+#pragma endregion StoreOperation Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region LoadOperation Reflection Data
+
+HYP_BEGIN_ENUM(LoadOperation, 278, 0, {})
+    HypConstant(NAME(HYP_STR(UNDEFINED)), LoadOperation::UNDEFINED),
+    HypConstant(NAME(HYP_STR(NONE)), LoadOperation::NONE),
+    HypConstant(NAME(HYP_STR(CLEAR)), LoadOperation::CLEAR),
+    HypConstant(NAME(HYP_STR(LOAD)), LoadOperation::LOAD)
+HYP_END_ENUM
+
+#pragma endregion LoadOperation Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
 #pragma region AttachmentBase Reflection Data
 
 HYP_BEGIN_CLASS(AttachmentBase, 77, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion AttachmentBase Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region RenderPassStage Reflection Data
+
+HYP_BEGIN_ENUM(RenderPassStage, 279, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), RenderPassStage::NONE),
+    HypConstant(NAME(HYP_STR(PRESENT)), RenderPassStage::PRESENT),
+    HypConstant(NAME(HYP_STR(SHADER)), RenderPassStage::SHADER)
+HYP_END_ENUM
+
+#pragma endregion RenderPassStage Reflection Data
 
 } // namespace hyperion
 
@@ -1358,7 +1404,7 @@ namespace hyperion {
 
 #pragma region RenderBucket Reflection Data
 
-HYP_BEGIN_ENUM(RenderBucket, 277, 0, {})
+HYP_BEGIN_ENUM(RenderBucket, 280, 0, {})
     HypConstant(NAME(HYP_STR(RB_NONE)), RenderBucket::RB_NONE),
     HypConstant(NAME(HYP_STR(RB_OPAQUE)), RenderBucket::RB_OPAQUE),
     HypConstant(NAME(HYP_STR(RB_LIGHTMAP)), RenderBucket::RB_LIGHTMAP),
@@ -1412,7 +1458,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetElementType Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetElementType, 278, 0, {})
+HYP_BEGIN_ENUM(DescriptorSetElementType, 281, 0, {})
     HypConstant(NAME(HYP_STR(UNSET)), DescriptorSetElementType::UNSET),
     HypConstant(NAME(HYP_STR(UNIFORM_BUFFER)), DescriptorSetElementType::UNIFORM_BUFFER),
     HypConstant(NAME(HYP_STR(UNIFORM_BUFFER_DYNAMIC)), DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC),
@@ -1434,7 +1480,7 @@ namespace hyperion {
 
 #pragma region DescriptorTableDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableDeclaration, 279, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableDeclaration, 282, 0, {})
     HypField(NAME(HYP_STR(Elements)), &DescriptorTableDeclaration::elements, offsetof(DescriptorTableDeclaration, elements), Span<const HypClassAttribute> { {HypClassAttribute("property", "Elements"), HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -1459,7 +1505,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 280, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 283, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorSetOffsetMap Reflection Data
@@ -1471,7 +1517,7 @@ namespace hyperion {
 
 #pragma region DescriptorDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorDeclaration, 281, 0, {})
+HYP_BEGIN_STRUCT(DescriptorDeclaration, 284, 0, {})
     HypField(NAME(HYP_STR(Slot)), &DescriptorDeclaration::slot, offsetof(DescriptorDeclaration, slot), Span<const HypClassAttribute> { {HypClassAttribute("property", "Slot"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Name)), &DescriptorDeclaration::name, offsetof(DescriptorDeclaration, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Count)), &DescriptorDeclaration::count, offsetof(DescriptorDeclaration, count), Span<const HypClassAttribute> { {HypClassAttribute("property", "Count"), HypClassAttribute("serialize", true) } }),
@@ -1489,7 +1535,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetDeclaration, 282, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetDeclaration, 285, 0, {})
     HypField(NAME(HYP_STR(SetIndex)), &DescriptorSetDeclaration::setIndex, offsetof(DescriptorSetDeclaration, setIndex), Span<const HypClassAttribute> { {HypClassAttribute("property", "SetIndex"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Name)), &DescriptorSetDeclaration::name, offsetof(DescriptorSetDeclaration, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Slots)), &DescriptorSetDeclaration::slots, offsetof(DescriptorSetDeclaration, slots), Span<const HypClassAttribute> { {HypClassAttribute("property", "Slots"), HypClassAttribute("serialize", true) } }),
@@ -1517,7 +1563,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetDeclarationFlags Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetDeclarationFlags, 283, 0, {})
+HYP_BEGIN_ENUM(DescriptorSetDeclarationFlags, 286, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), DescriptorSetDeclarationFlags::NONE),
     HypConstant(NAME(HYP_STR(REFERENCE)), DescriptorSetDeclarationFlags::REFERENCE),
     HypConstant(NAME(HYP_STR(TEMPLATE)), DescriptorSetDeclarationFlags::TEMPLATE)
@@ -1532,7 +1578,7 @@ namespace hyperion {
 
 #pragma region DescriptorSlot Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSlot, 284, 0, {})
+HYP_BEGIN_ENUM(DescriptorSlot, 287, 0, {})
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_NONE)), DescriptorSlot::DESCRIPTOR_SLOT_NONE),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_SRV)), DescriptorSlot::DESCRIPTOR_SLOT_SRV),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_UAV)), DescriptorSlot::DESCRIPTOR_SLOT_UAV),
@@ -1552,7 +1598,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetLayoutElement Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetLayoutElement, 285, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetLayoutElement, 288, 0, {})
     HypField(NAME(HYP_STR(Type)), &DescriptorSetLayoutElement::type, offsetof(DescriptorSetLayoutElement, type)),
     HypField(NAME(HYP_STR(Binding)), &DescriptorSetLayoutElement::binding, offsetof(DescriptorSetLayoutElement, binding)),
     HypField(NAME(HYP_STR(Count)), &DescriptorSetLayoutElement::count, offsetof(DescriptorSetLayoutElement, count)),
@@ -1568,25 +1614,10 @@ namespace hyperion {
 
 #pragma region DescriptorTableOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 286, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 289, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorTableOffsetMap Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\RenderDevice.hpp */
-
-#include <rendering\RenderDevice.hpp>
-
-namespace hyperion {
-
-#pragma region DeviceBase Reflection Data
-
-HYP_BEGIN_CLASS(DeviceBase, 87, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion DeviceBase Reflection Data
 
 } // namespace hyperion
 

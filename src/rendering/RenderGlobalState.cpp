@@ -166,9 +166,7 @@ struct ResourceBindings
     {
         const HypClass* resourceClass;
         GpuBufferHolderBase* gpuBufferHolder;
-
-        // Element binding index to mapping in CPU memory (only if gpuBufferHolder is not null)
-        SparsePagedArray<Pair<uint32, void*>, 1024> indexAndMapping;
+        SparsePagedArray<uint32, 1024> bindingIndices;
 
         SubtypeResourceBindings(const HypClass* resourceClass, GpuBufferHolderBase* gpuBufferHolder)
             : resourceClass(resourceClass),
@@ -234,25 +232,20 @@ struct ResourceBindings
 
         if (binding == ~0u)
         {
-            bindings.indexAndMapping.EraseAt(resourceId.ToIndex());
+            bindings.bindingIndices.EraseAt(resourceId.ToIndex());
 
             return;
         }
 
-        void* cpuMapping = nullptr;
-
         if (bindings.gpuBufferHolder != nullptr)
         {
             bindings.gpuBufferHolder->EnsureCapacity(binding);
-
-            cpuMapping = bindings.gpuBufferHolder->GetCpuMapping(binding);
-            AssertDebug(cpuMapping != nullptr);
         }
 
-        bindings.indexAndMapping.Emplace(resourceId.ToIndex(), binding, cpuMapping);
+        bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
     }
 
-    Pair<uint32, void*> Retrieve(const HypObjectBase* resource) const
+    uint32 Retrieve(const HypObjectBase* resource) const
     {
 #ifdef HYP_DEBUG_MODE
         Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -260,18 +253,18 @@ struct ResourceBindings
 
         if (!resource)
         {
-            return Pair<uint32, void*>(~0u, nullptr); // invalid resource
+            return ~0u; // invalid resource
         }
 
         const SubtypeResourceBindings& bindings = const_cast<ResourceBindings*>(this)->GetSubtypeBindings(resource->InstanceClass());
 
         const ObjIdBase resourceId = resource->Id();
 
-        const auto* elem = bindings.indexAndMapping.TryGet(resourceId.ToIndex());
+        const uint32* elem = bindings.bindingIndices.TryGet(resourceId.ToIndex());
 
         AssertDebug(elem != nullptr, "Failed to retrieve resource binding for resource with ID: {}", resourceId);
 
-        return elem ? *elem : Pair<uint32, void*>(~0u, nullptr);
+        return elem ? *elem : ~0u;
     }
 
     SubtypeResourceBindings& GetSubtypeBindings(const HypClass* hypClass)
@@ -955,15 +948,15 @@ void RenderApi_UpdateGpuData(const HypObjectBase* resource)
         "Cannot use UpdateGpuData() for type which does not have a RenderProxy! TypeId: {}, HypClass {}",
         subtypeData.typeId.Value(), *GetClass(subtypeData.typeId)->GetName());
 
-    const Pair<uint32, void*> bindingData = g_renderGlobalState->resourceBindings->Retrieve(resource);
-    AssertDebug(bindingData.first != ~0u && bindingData.second != nullptr);
+    const uint32 bindingIndex = g_renderGlobalState->resourceBindings->Retrieve(resource);
+    AssertDebug(bindingIndex != ~0u);
 
     const uint32 idx = resourceId.ToIndex();
 
     IRenderProxy* pProxy = subtypeData.proxies.Get(idx);
     AssertDebug(pProxy != nullptr);
 
-    subtypeData.SetGpuElem(bindingData.first, pProxy);
+    subtypeData.SetGpuElem(bindingIndex, pProxy);
 
     // set it as no longer needing update next frame since we updated immediately
     subtypeData.indicesPendingUpdate.Set(idx, false);
@@ -1208,15 +1201,15 @@ void RenderApi_BeginFrame_RenderThread()
                 AssertDebug(subtypeData.hasProxyData);
                 AssertDebug(subtypeData.writeBufferDataFn != nullptr);
 
-                const Pair<uint32, void*> bindingData = g_renderGlobalState->resourceBindings->Retrieve(resource);
-                AssertDebug(bindingData.first != ~0u && bindingData.second != nullptr,
+                const uint32 bindingIndex = g_renderGlobalState->resourceBindings->Retrieve(resource);
+                AssertDebug(bindingIndex != ~0u,
                     "Failed to retrieve binding for resource: {} in frame {}, but it is marked as bound (index: {})",
                     i, slot, i);
 
                 IRenderProxy* pProxy = subtypeData.proxies.Get(i);
                 AssertDebug(pProxy != nullptr);
 
-                subtypeData.SetGpuElem(bindingData.first, pProxy);
+                subtypeData.SetGpuElem(bindingIndex, pProxy);
 
                 subtypeData.indicesPendingUpdate.Set(i, false);
             }

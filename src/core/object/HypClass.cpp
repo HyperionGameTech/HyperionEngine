@@ -644,6 +644,7 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
     HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    // default to CORE pool
     m_enginePoolName = (EnginePoolName)0;
 #endif
 
