@@ -14,7 +14,7 @@ namespace hyperion {
 class RenderableAttributeSet;
 struct DescriptorTableDeclaration;
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class GraphicsPipelineBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(GraphicsPipelineBase);

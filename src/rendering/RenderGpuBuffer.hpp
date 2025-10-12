@@ -44,7 +44,7 @@ enum BufferIDMask : uint64
     ID_MASK_IMAGE = (0x2ull << 32ull)
 };
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class GpuBufferBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(GpuBufferBase);

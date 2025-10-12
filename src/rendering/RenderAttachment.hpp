@@ -40,7 +40,7 @@ enum class StoreOperation : uint8
     STORE
 };
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class AttachmentBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(AttachmentBase);

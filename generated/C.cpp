@@ -424,7 +424,7 @@ namespace hyperion {
 
 #pragma region ComputePipelineBase Reflection Data
 
-HYP_BEGIN_CLASS(ComputePipelineBase, 82, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(ComputePipelineBase, 82, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion ComputePipelineBase Reflection Data
@@ -526,7 +526,7 @@ namespace hyperion {
 
 #pragma region SwapchainBase Reflection Data
 
-HYP_BEGIN_CLASS(SwapchainBase, 84, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(SwapchainBase, 84, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion SwapchainBase Reflection Data
@@ -635,7 +635,7 @@ namespace hyperion {
 
 #pragma region AttachmentBase Reflection Data
 
-HYP_BEGIN_CLASS(AttachmentBase, 95, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(AttachmentBase, 95, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion AttachmentBase Reflection Data
@@ -692,7 +692,7 @@ namespace hyperion {
 
 #pragma region GpuBufferBase Reflection Data
 
-HYP_BEGIN_CLASS(GpuBufferBase, 97, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(GpuBufferBase, 97, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GpuBufferBase Reflection Data
@@ -734,7 +734,7 @@ namespace hyperion {
 
 #pragma region ShaderBase Reflection Data
 
-HYP_BEGIN_CLASS(ShaderBase, 99, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(ShaderBase, 99, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion ShaderBase Reflection Data
@@ -829,7 +829,7 @@ namespace hyperion {
 
 #pragma region DeviceBase Reflection Data
 
-HYP_BEGIN_CLASS(DeviceBase, 103, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(DeviceBase, 103, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion DeviceBase Reflection Data
@@ -844,7 +844,7 @@ namespace hyperion {
 
 #pragma region GraphicsPipelineBase Reflection Data
 
-HYP_BEGIN_CLASS(GraphicsPipelineBase, 105, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(GraphicsPipelineBase, 105, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GraphicsPipelineBase Reflection Data
@@ -910,7 +910,7 @@ namespace hyperion {
 
 #pragma region CommandBufferBase Reflection Data
 
-HYP_BEGIN_CLASS(CommandBufferBase, 109, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(CommandBufferBase, 109, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion CommandBufferBase Reflection Data
@@ -947,7 +947,7 @@ namespace hyperion {
 
 #pragma region SamplerBase Reflection Data
 
-HYP_BEGIN_CLASS(SamplerBase, 111, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(SamplerBase, 111, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion SamplerBase Reflection Data
@@ -1020,7 +1020,7 @@ namespace hyperion {
 
 #pragma region FrameBase Reflection Data
 
-HYP_BEGIN_CLASS(FrameBase, 113, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(FrameBase, 113, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion FrameBase Reflection Data
@@ -1073,7 +1073,7 @@ namespace hyperion {
 
 #pragma region GpuImageBase Reflection Data
 
-HYP_BEGIN_CLASS(GpuImageBase, 117, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(GpuImageBase, 117, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GpuImageBase Reflection Data
@@ -1517,7 +1517,7 @@ namespace hyperion {
 
 #pragma region TLASBase Reflection Data
 
-HYP_BEGIN_CLASS(TLASBase, 128, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(TLASBase, 128, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion TLASBase Reflection Data
@@ -1529,7 +1529,7 @@ namespace hyperion {
 
 #pragma region BLASBase Reflection Data
 
-HYP_BEGIN_CLASS(BLASBase, 130, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(BLASBase, 130, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion BLASBase Reflection Data
@@ -1558,7 +1558,7 @@ namespace hyperion {
 
 #pragma region RaytracingPipelineBase Reflection Data
 
-HYP_BEGIN_CLASS(RaytracingPipelineBase, 132, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("pool", "EPN_RENDER"))
+HYP_BEGIN_CLASS(RaytracingPipelineBase, 132, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion RaytracingPipelineBase Reflection Data

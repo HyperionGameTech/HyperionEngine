@@ -18,7 +18,7 @@ namespace hyperion {
 
 enum ShaderModuleType : uint32;
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class GpuImageBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(GpuImageBase);

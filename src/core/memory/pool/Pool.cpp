@@ -7,7 +7,7 @@ namespace memory {
 
 Pool::Block::Block(SizeType capacity)
 {
-    buffer.SetCapacity(capacity);
+    buffer.SetSize(capacity);
 
 #if defined(HYP_POOL_USE_TLSF_ALLOCATOR) && HYP_POOL_USE_TLSF_ALLOCATOR
     allocator.AddPool(buffer.Data(), buffer.GetCapacity());

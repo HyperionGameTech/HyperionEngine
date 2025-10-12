@@ -44,7 +44,7 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
     ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE = 0x4
 };
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class TLASBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(TLASBase);
@@ -96,7 +96,7 @@ protected:
     Name m_debugName;
 };
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class BLASBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(BLASBase);

@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
+HYP_CLASS(Abstract, NoScriptBindings)
 class ComputePipelineBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(ComputePipelineBase);
