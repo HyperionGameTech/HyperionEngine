@@ -11,7 +11,7 @@
 
 namespace hyperion {
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class CommandBufferBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(CommandBufferBase);

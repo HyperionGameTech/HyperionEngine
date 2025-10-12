@@ -44,7 +44,7 @@ enum BufferIDMask : uint64
     ID_MASK_IMAGE = (0x2ull << 32ull)
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class GpuBufferBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(GpuBufferBase);
@@ -56,7 +56,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;

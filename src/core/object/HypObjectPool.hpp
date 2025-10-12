@@ -13,6 +13,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Spinlock.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -60,11 +61,47 @@ public:
     virtual void Release(HypObjectHeader* header) = 0;
 
 protected:
+    enum PoolFlags : uint8
+    {
+        PF_NONE = 0x0,
+        PF_WRITER = 0x1,
+        PF_ALLOCATE = 0x2,
+        PF_FREE = 0x4
+    };
+
+    struct GlobalPoolLockGuard
+    {
+        Spinlock* lock = nullptr;
+        int flags = PF_NONE;
+
+        HYP_FORCE_INLINE ~GlobalPoolLockGuard()
+        {
+            if (lock)
+            {
+                if (flags & PF_WRITER)
+                {
+                    // make sure lock is released on destruction
+                    lock->UnlockWriter();
+                }
+                else
+                {
+                    lock->UnlockReader();
+                }
+            }
+        }
+    };
+
     HypObjectContainerBase(TypeId typeId, const HypClass* hypClass);
+
+    /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
+     *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
+     */
+    void LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const;
 
     TypeId m_typeId;
     const HypClass* m_hypClass;
     IdGenerator m_idGenerator;
+    Pool* m_pool;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -237,11 +274,11 @@ struct HypObjectMemory final : HypObjectHeader
 template <class T>
 static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T>* elements, uint32 offset, uint32 count)
 {
-    static const HypClass* hypClass = T::Class();
+    static const HypClass* s_class = T::Class();
 
     for (uint32 index = 0; index < count; index++)
     {
-        elements[index].hypClass = hypClass;
+        elements[index].hypClass = s_class;
         elements[index].index = offset + index;
     }
 }
@@ -249,11 +286,7 @@ static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T
 template <class T>
 class HypObjectContainer final : public HypObjectContainerBase
 {
-    using MemoryPoolType = Pool;
-
     using HypObjectMemory = HypObjectMemory<T>;
-
-    static const Name s_poolName;
 
 public:
     HypObjectContainer(const HypClass* hypClass)
@@ -268,14 +301,36 @@ public:
 
     virtual ~HypObjectContainer() override
     {
-        // Free all allocated elements
-        for (HypObjectHeader* header : m_headers)
+        Array<HypObjectHeader*> headers;
+
+        {
+            GlobalPoolLockGuard guard;
+            LockPoolOrThreadAssert(guard, PF_NONE);
+
+            for (auto& header : m_headers)
+            {
+                headers.PushBack(header);
+            }
+        }
+
+        // destruct all allocated elements
+        for (HypObjectHeader* header : headers)
         {
             HYP_CORE_ASSERT(header != nullptr);
 
             HypObjectHeader::DestructThisObject(header);
+        }
 
-            m_pool.Free(header);
+        GlobalPoolLockGuard guard;
+        LockPoolOrThreadAssert(guard, PF_WRITER | PF_FREE);
+
+        /// @FIXME: This is not safe if the destructor of T tries to allocate more objects from the pool during
+        // its destruction
+
+        // Free all allocated elements
+        for (HypObjectHeader* header : headers)
+        {
+            m_pool->Free(header);
         }
     }
 
@@ -287,10 +342,11 @@ public:
         // allocation would be the header size + object size, aligned to the object alignment
         const SizeType allocationSize = ByteUtil::AlignAs(sizeof(HypObjectHeader), objectAlignment) + objectSize;
 
-        Mutex::Guard guard(m_mutex);
+        GlobalPoolLockGuard guard;
+        LockPoolOrThreadAssert(guard, PF_WRITER | PF_ALLOCATE);
 
         // we align the object internal to the header, so only need to align the header itself
-        HypObjectHeader* header = (HypObjectHeader*)m_pool.Alloc(allocationSize, alignof(HypObjectHeader));
+        HypObjectHeader* header = (HypObjectHeader*)m_pool->Alloc(allocationSize, alignof(HypObjectHeader));
         header->index = m_idGenerator.Next() - 1;
         header->hypClass = m_hypClass;
         header->refCountStrong = 0;
@@ -318,7 +374,8 @@ public:
             return nullptr;
         }
 
-        Mutex::Guard guard(m_mutex);
+        GlobalPoolLockGuard guard;
+        LockPoolOrThreadAssert(guard, PF_NONE);
 
         if (!m_headers.HasIndex(index))
         {
@@ -332,26 +389,21 @@ public:
     {
         HYP_CORE_ASSERT(header != nullptr);
 
-        Mutex::Guard guard(m_mutex);
+        GlobalPoolLockGuard guard;
+        LockPoolOrThreadAssert(guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;
         HYP_CORE_ASSERT(index != ~0u, "Invalid index");
 
         m_idGenerator.ReleaseId(index + 1);
-        m_pool.Free(header);
+        m_pool->Free(header);
 
         m_headers.EraseAt(index);
     }
 
 private:
-    MemoryPoolType m_pool;
-
     SparsePagedArray<HypObjectHeader*, 1024> m_headers;
-    mutable Mutex m_mutex;
 };
-
-template <class T>
-const Name HypObjectContainer<T>::s_poolName = CreateNameFromDynamicString(ANSIString("HypObjectPool_") + TypeNameHelper<T, false>::value.Data());
 
 class HypObjectPool
 {
@@ -383,12 +435,12 @@ public:
         HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static HypObjectContainer<T>& container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), hypClass, +[](const HypClass* hypClass) -> HypObjectContainerBase*
+            static HypObjectContainer<T>& s_container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), hypClass, +[](const HypClass* hypClass) -> HypObjectContainerBase*
                 {
                     return new HypObjectContainer<T>(hypClass);
                 }));
 
-            return container;
+            return s_container;
         }
     };
 

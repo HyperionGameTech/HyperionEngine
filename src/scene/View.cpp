@@ -240,7 +240,7 @@ void View::Init()
         m_outputTarget = ViewOutputTarget(framebuffer);
     }
 
-    Assert(m_outputTarget.IsValid(), "View with id #%u must have a valid output target!", Id().Value());
+    Assert(m_outputTarget.IsValid(), "View with id {} must have a valid output target!", Id());
 
     if (m_flags & ViewFlags::ENABLE_READBACK)
     {

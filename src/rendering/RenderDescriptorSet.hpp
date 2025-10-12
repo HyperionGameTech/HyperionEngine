@@ -713,7 +713,7 @@ struct DescriptorSetElement
     }
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class DescriptorSetBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(DescriptorSetBase);
@@ -945,7 +945,7 @@ protected:
 #endif
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class DescriptorTableBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(DescriptorTableBase);

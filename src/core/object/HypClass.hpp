@@ -42,6 +42,10 @@ class HypClassInstance;
 template <class T>
 class HypStructInstance;
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+enum EnginePoolName : uint32;
+#endif
+
 HYP_ENUM()
 enum class HypClassFlags : uint8
 {
@@ -71,8 +75,6 @@ enum class HypClassSerializationMode : uint8
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)
-
-static constexpr uint32 g_maxStaticClassIndex = 0xFFFu;
 
 HYP_API extern const HypClass* g_hypObjectBaseClass;
 
@@ -375,6 +377,13 @@ public:
         return m_alignment;
     }
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    HYP_FORCE_INLINE EnginePoolName GetEnginePoolName() const
+    {
+        return m_enginePoolName;
+    }
+#endif
+
     virtual HypClassAllocationMethod GetAllocationMethod() const = 0;
 
     HYP_FORCE_INLINE bool UseHandles() const
@@ -494,6 +503,32 @@ public:
     HYP_FORCE_INLINE const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const
     {
         return m_attributes.Get(key, defaultValue);
+    }
+
+    HYP_FORCE_INLINE const HypClassAttributeValue& GetAttributeDeep(WeakName key) const
+    {
+        static const HypClassAttributeValue s_invalidValue {};
+
+        return GetAttributeDeep(key, s_invalidValue);
+    }
+
+    const HypClassAttributeValue& GetAttributeDeep(WeakName key, const HypClassAttributeValue& defaultValue) const
+    {
+        const HypClass* hypClass = this;
+
+        while (hypClass)
+        {
+            const HypClassAttributeValue& value = hypClass->GetAttribute(key);
+
+            if (value.IsValid())
+            {
+                return value;
+            }
+
+            hypClass = hypClass->GetParent();
+        }
+
+        return defaultValue;
     }
 
     HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> memberTypes, bool deep = true) const
@@ -666,6 +701,10 @@ protected:
 
     HypObjectContainerBase* m_objectContainer;
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    EnginePoolName m_enginePoolName;
+#endif
+
 private:
     mutable Weak<dotnet::Class> m_managedClass;
     mutable Mutex m_managedClassMutex;
@@ -686,9 +725,9 @@ public:
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members)
     {
-        static HypClassInstance instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
+        static HypClassInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
-        return instance;
+        return s_instance;
     }
 
     HypClassInstance(

@@ -7,7 +7,7 @@
 
 namespace hyperion {
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class RaytracingPipelineBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(RaytracingPipelineBase);
@@ -19,7 +19,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;
@@ -44,7 +44,7 @@ public:
     {
         m_shader = shader;
     }
-    
+
     virtual bool IsCreated() const = 0;
 
     HYP_API virtual RendererResult Create() = 0;

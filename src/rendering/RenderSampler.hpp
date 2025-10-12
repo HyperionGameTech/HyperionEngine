@@ -9,7 +9,7 @@
 
 namespace hyperion {
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class SamplerBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(SamplerBase);

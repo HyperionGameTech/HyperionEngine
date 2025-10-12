@@ -18,7 +18,7 @@ namespace hyperion {
 
 enum ShaderModuleType : uint32;
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class GpuImageBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(GpuImageBase);
@@ -30,7 +30,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;

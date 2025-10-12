@@ -15,6 +15,7 @@ namespace hyperion {
 
 class Material;
 
+HYP_ENUM()
 enum class AccelerationStructureType : uint8
 {
     BOTTOM_LEVEL,
@@ -43,7 +44,7 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
     ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE = 0x4
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class TLASBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(TLASBase);
@@ -53,7 +54,7 @@ public:
         : m_meshDescriptionsBuffer(GpuBufferRef::Null())
     {
     }
-    
+
     virtual ~TLASBase() override
     {
         SafeDelete(std::move(m_meshDescriptionsBuffer));
@@ -63,7 +64,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;
@@ -95,7 +96,7 @@ protected:
     Name m_debugName;
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class BLASBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(BLASBase);
@@ -113,12 +114,12 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;
     }
-    
+
     HYP_FORCE_INLINE AccelerationStructureType GetType() const
     {
         return AccelerationStructureType::BOTTOM_LEVEL;

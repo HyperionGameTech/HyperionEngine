@@ -72,7 +72,7 @@ static inline bool IsRaytracingShaderModule(ShaderModuleType type)
         || type == SMT_RAY_MISS;
 }
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class ShaderBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(ShaderBase);
@@ -94,7 +94,7 @@ public:
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;

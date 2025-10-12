@@ -3,10 +3,10 @@
 #include <core/object/HypObjectPool.hpp>
 #include <core/object/HypClass.hpp>
 
-namespace hyperion {
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
-/// @TODO: Use thread-local memory pools (global for all object containers?) to reduce lock contention when allocating objects.
-/// We'll need to free the memory  on the owning thread though so all HypObjects will need an owning thread OR we will only allocate / release on the main thread.
+namespace hyperion {
 
 HYP_API void ReleaseHypObject(HypObjectHeader* header)
 {
@@ -112,13 +112,86 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+enum EnginePoolName : uint32;
+HYP_API extern Pool* EngineMemory_GetPool(EnginePoolName poolName);
+HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName);
+#endif
+
+static Spinlock& GetGlobalPoolLock()
+{
+    static volatile int64 s_globalPoolLockValue = 0;
+    static Spinlock s_globalPoolLock { &s_globalPoolLockValue };
+
+    return s_globalPoolLock;
+}
+
+static Pool& GetGlobalPool()
+{
+    static Pool s_globalPool;
+    return s_globalPool;
+}
+
+static Pool& GetPoolForClass(const HypClass* hypClass)
+{
+    HYP_CORE_ASSERT(hypClass != nullptr);
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    Pool* pool = EngineMemory_GetPool(hypClass->GetEnginePoolName());
+    if (pool != nullptr)
+    {
+        return *pool;
+    }
+#endif
+
+    return GetGlobalPool();
+}
+
 #pragma region HypObjectContainerBase
 
 HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const HypClass* hypClass)
     : m_typeId(typeId),
-      m_hypClass(hypClass)
+      m_hypClass(hypClass),
+      m_pool(&GetPoolForClass(hypClass))
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void());
+}
+
+void HypObjectContainerBase::LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const
+{
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    EnginePoolName poolName = m_hypClass->GetEnginePoolName();
+
+    if (poolName == (EnginePoolName)0)
+    {
+#endif
+        Spinlock& lock = GetGlobalPoolLock();
+        if (flags & PF_WRITER)
+        {
+            lock.LockWriter();
+        }
+        else
+        {
+            lock.LockReader();
+        }
+
+        outGuard.lock = &lock;
+        outGuard.flags = flags;
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+        return;
+    }
+
+    if (!Threads::IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
+    {
+        HYP_LOG(Core, Warning, "Create/destroying object of type {} from thread: {} but its pool is owned by thread: {}",
+            m_hypClass->GetName(),
+            Threads::CurrentThreadId().GetName(),
+            EngineMemory_GetPoolThreadId(poolName).GetName());
+    }
+
+    // Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "HypObject can only be destroyed from its owning pool thread");
+#endif
 }
 
 #pragma endregion HypObjectContainerBase

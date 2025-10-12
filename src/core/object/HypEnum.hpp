@@ -52,9 +52,9 @@ public:
 
     static HypEnumInstance& GetInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypEnumInstance instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
+        static HypEnumInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
-        return instance;
+        return s_instance;
     }
 
     HypEnumInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)

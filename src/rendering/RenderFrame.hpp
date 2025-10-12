@@ -19,7 +19,7 @@
 
 namespace hyperion {
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class FrameBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(FrameBase);

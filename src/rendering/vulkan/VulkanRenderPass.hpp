@@ -23,7 +23,7 @@ enum RenderPassMode
     RENDER_PASS_SECONDARY_COMMAND_BUFFER = 1
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Pool = "EPN_RENDER")
 class VulkanRenderPass final : public HypObjectBase
 {
     HYP_OBJECT_BODY(VulkanRenderPass);

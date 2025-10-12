@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/object/HypClass.hpp>
+#include <core/object/HypEnum.hpp>
 #include <core/object/HypMember.hpp>
 #include <core/object/HypObject.hpp>
 #include <core/object/HypConstant.hpp>
@@ -642,15 +643,14 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
 {
     HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    m_enginePoolName = (EnginePoolName)0;
+#endif
+
     static const HashMap<Name, HypClassFlags> s_attributeToFlags = {
         { NAME("abstract"), HypClassFlags::ABSTRACT },
         { NAME("noscriptbindings"), HypClassFlags::NO_SCRIPT_BINDINGS }
     };
-
-    if (staticIndex >= 0)
-    {
-        HYP_CORE_ASSERT(staticIndex < g_maxStaticClassIndex, "Static index %d exceeds maximum static class index %u", staticIndex, g_maxStaticClassIndex);
-    }
 
     // Apply flags for all values in s_attributeToFlags
     for (const HypClassAttribute& attr : m_attributes)
@@ -743,6 +743,32 @@ void HypClass::Initialize()
     HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
     m_serializationMode = HypClassSerializationMode::DEFAULT;
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    if (UseHandles())
+    {
+        if (const HypClassAttributeValue& poolAttribute = GetAttributeDeep("pool"))
+        {
+            if (poolAttribute.IsString())
+            {
+                const EnginePoolName poolName = EnumValue<EnginePoolName>(poolAttribute.GetString(), (EnginePoolName)-1);
+
+                if (poolName != (EnginePoolName)-1)
+                {
+                    m_enginePoolName = poolName;
+                }
+                else
+                {
+                    HYP_FAIL("Unknown engine pool name: {}", poolAttribute.GetString());
+                }
+            }
+            else
+            {
+                HYP_FAIL("Engine pool attribute must be a string");
+            }
+        }
+    }
+#endif
 
     if (const HypClassAttributeValue& serializeAttribute = GetAttribute("serialize"))
     {

@@ -14,7 +14,7 @@ namespace hyperion {
 class RenderableAttributeSet;
 struct DescriptorTableDeclaration;
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class GraphicsPipelineBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(GraphicsPipelineBase);
@@ -120,14 +120,14 @@ public:
     {
         return m_framebuffers;
     }
-    
+
     void SetFramebuffers(const Array<FramebufferRef>& framebuffers);
 
     Name GetDebugName() const
     {
         return m_debugName;
     }
-    
+
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;

@@ -14,6 +14,8 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
+
+HYP_ENUM()
 enum class RenderPassStage : uint8
 {
     NONE,
@@ -21,6 +23,7 @@ enum class RenderPassStage : uint8
     SHADER   /* for use as a sampled texture in a shader */
 };
 
+HYP_ENUM()
 enum class LoadOperation : uint8
 {
     UNDEFINED,
@@ -29,6 +32,7 @@ enum class LoadOperation : uint8
     LOAD
 };
 
+HYP_ENUM()
 enum class StoreOperation : uint8
 {
     UNDEFINED,
@@ -36,7 +40,7 @@ enum class StoreOperation : uint8
     STORE
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract, NoScriptBindings, Pool = "EPN_RENDER")
 class AttachmentBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(AttachmentBase);

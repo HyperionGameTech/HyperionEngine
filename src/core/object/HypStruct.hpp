@@ -74,9 +74,9 @@ public:
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members)
     {
-        static HypStructInstance instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
+        static HypStructInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
-        return instance;
+        return s_instance;
     }
 
     HypStructInstance(
