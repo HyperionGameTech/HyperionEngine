@@ -61,7 +61,6 @@ void Bone::ClearPose()
 
 void Bone::StoreBindingPose()
 {
-    m_invBindingTranslation = m_worldBoneTranslation * -1.0f;
     m_invBindingRotation = Quaternion(m_worldBoneRotation).Invert();
 
     for (const Handle<Node>& child : m_childNodes)

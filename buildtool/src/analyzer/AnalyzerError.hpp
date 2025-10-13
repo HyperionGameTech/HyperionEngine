@@ -42,7 +42,7 @@ public:
     {
     }
 
-    virtual ~AnalyzerError() override = default;
+    ~AnalyzerError() = default;
 
     HYP_FORCE_INLINE const FilePath& GetPath() const
     {

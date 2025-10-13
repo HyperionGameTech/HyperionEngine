@@ -35,7 +35,7 @@ if [[ $RESP =~ ^[Yy] ]]; then
             cmake -G Xcode .. -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
         fi
     elif [[ $DARWIN -eq 1 ]]; then
-        cmake -G Xcode ..
+        cmake -G Xcode .. -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
     else
         cmake ..
     fi

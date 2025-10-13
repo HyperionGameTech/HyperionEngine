@@ -14,16 +14,16 @@ class HYP_API TlsfAllocator
 {
 public:
     // SLI = 5 gives 32 second-level lists per FLI, as recommended in TLSF v2.0
-    static constexpr uint32 SliBits = 5u;
-    static constexpr uint32 SlCount = 1u << SliBits; // 32
+    static constexpr uint32 SliBits = 5;
+    static constexpr uint32 SlCount = 1 << SliBits; // 32
 
     // Smallest block size managed by TLSF, including header; must be power of two
-    static constexpr SizeType MinBlockSize = 32u;
+    static constexpr SizeType MinBlockSize = 32;
 
-    static constexpr SizeType DefaultAlign = alignof(std::max_align_t);
+    static constexpr SizeType DefaultAlign = 16;
 
     // Maximum first-level classes supported (kept <= 30 so we can pack bitmap in 32 bits)
-    static constexpr uint32 MaxFli = 30u; // supports blocks up to ~1<<30 bytes with SliBits splitting
+    static constexpr uint32 MaxFli = 30; // supports blocks up to ~1<<30 bytes with SliBits splitting
 
     TlsfAllocator();
     ~TlsfAllocator();

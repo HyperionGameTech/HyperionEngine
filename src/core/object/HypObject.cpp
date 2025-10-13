@@ -114,12 +114,8 @@ HypObjectBase* HypObjectHeader::GetObjectPointer(HypObjectHeader* header)
     AssertDebug(header != nullptr);
     AssertDebug(header->hypClass != nullptr);
 
-    // calculate offset of the object data after the header
-    const SizeType alignment = header->hypClass->GetAlignment();
-    const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
-
     // get pointer to object
-    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + objectOffset);
+    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(HypObjectHeader));
 
     return ptr;
 }
@@ -129,12 +125,8 @@ void HypObjectHeader::DestructThisObject(HypObjectHeader* header)
     AssertDebug(header != nullptr);
     AssertDebug(header->hypClass != nullptr);
 
-    // calculate offset of the object data after the header
-    const SizeType alignment = header->hypClass->GetAlignment();
-    const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
-
     // get pointer to object
-    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + objectOffset);
+    HypObjectBase* ptr = reinterpret_cast<HypObjectBase*>(reinterpret_cast<UIntPtr>(header) + sizeof(HypObjectHeader));
 
     ptr->~HypObjectBase();
 }
@@ -154,14 +146,8 @@ HypObjectBase::HypObjectBase()
     HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
     HYP_CORE_ASSERT(context != nullptr);
 
-    const SizeType alignment = context->hypClass->GetAlignment();
-    HYP_CORE_ASSERT(alignment != 0);
-
-    // calculate offset of the object data after the header
-    const SizeType objectOffset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
-
     // get the header by subtracting the offset from this pointer
-    m_header = reinterpret_cast<HypObjectHeader*>(UIntPtr(this) - objectOffset);
+    m_header = reinterpret_cast<HypObjectHeader*>(UIntPtr(this) - sizeof(HypObjectHeader));
 
     // increment the strong reference count for the Handle<T> that will be returned from CreateObject<T>().
     AtomicIncrement(&m_header->refCountStrong);

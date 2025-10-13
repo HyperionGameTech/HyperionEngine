@@ -32,7 +32,6 @@
 
 namespace hyperion {
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 struct SaveAssetsAsReferencesContext
 {
 };
@@ -40,7 +39,6 @@ struct SaveAssetsAsReferencesContext
 struct LoadAssetsFromReferencesContext
 {
 };
-#endif
 
 // used to prevent infinite recursion when serializing nested objects
 static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;

@@ -219,32 +219,17 @@ public:
     Array(Array<T, OtherAllocatorType>&& other)
         : Array()
     {
-        if (other.m_allocation.IsDynamic())
-        {
-            m_size = other.m_size;
-            m_startOffset = other.m_startOffset;
+        m_size = other.m_size - other.m_startOffset;
+        m_startOffset = 0;
 
-            m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+        m_allocation.Allocate(m_size);
+        m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
-            other.m_allocation.SetToInitialState();
+        other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
+        other.m_allocation.Free();
 
-            other.m_size = 0;
-            other.m_startOffset = 0;
-        }
-        else
-        {
-            m_size = other.m_size - other.m_startOffset;
-            m_startOffset = 0;
-
-            m_allocation.Allocate(m_size);
-            m_allocation.InitFromRangeMove(other.Begin(), other.End());
-
-            other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-            other.m_allocation.Free();
-
-            other.m_size = 0;
-            other.m_startOffset = 0;
-        }
+        other.m_size = 0;
+        other.m_startOffset = 0;
     }
 
     ~Array();

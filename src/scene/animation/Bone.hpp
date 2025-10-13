@@ -59,15 +59,6 @@ public:
 
     void UpdateBoneTransform();
 
-    Transform m_bindingTransform;
-    Transform m_poseTransform;
-
-    Vec3f m_worldBoneTranslation;
-    Vec3f m_invBindingTranslation;
-
-    Quaternion m_worldBoneRotation;
-    Quaternion m_invBindingRotation;
-
 private:
     void SetSkeleton(Skeleton* skeleton);
 
@@ -76,10 +67,29 @@ private:
         return m_skeleton;
     }
 
+    HYP_FIELD(Transient)
     Skeleton* m_skeleton;
+
+    HYP_FIELD()
     Matrix4 m_boneMatrix;
+
+    HYP_FIELD(Transient)
     Keyframe m_keyframe;
+
+    HYP_FIELD()
+    Transform m_bindingTransform;
+
+    HYP_FIELD()
+    Transform m_poseTransform;
+
+    HYP_FIELD()
+    Vec3f m_worldBoneTranslation;
+
+    HYP_FIELD()
+    Quaternion m_worldBoneRotation;
+
+    HYP_FIELD()
+    Quaternion m_invBindingRotation;
 };
 
 } // namespace hyperion
-

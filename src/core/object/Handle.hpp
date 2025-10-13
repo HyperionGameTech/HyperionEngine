@@ -919,22 +919,16 @@ const WeakHandle<T> WeakHandle<T>::empty = {};
 template <class T, class... Args>
 inline Handle<T> CreateObject(Args&&... args)
 {
-    // this requirement is due to the way we do pointer arithmetic to get the object pointer from the header. (see HypObjectHeader::GetObjectPointer)
-    if constexpr (!std::is_same_v<T, typename T::HypClassInfo::Type>)
-    {
-        static_assert(alignof(T) == alignof(typename T::HypClassInfo::Type), "Type T does not have its own HypClass and so it must be aligned the same as its parent class (which DOES have a HypClass)");
-    }
-
     auto* container = reinterpret_cast<HypObjectContainer<typename T::HypClassInfo::Type>*>(GetObjectContainerForClass(T::Class()));
     HYP_CORE_ASSERT(container != nullptr, "Container for type not initialized!");
 
-    HypObjectHeader* header = container->Allocate(sizeof(T), alignof(T));
+    HypObjectHeader* header = container->Allocate(sizeof(T));
 
-    T* ptr = (T*)HypObjectHeader::GetObjectPointer(header);
+    HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
     Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
 
     Handle<T> handle;
-    handle.ptr = static_cast<HypObjectBase*>(ptr);
+    handle.ptr = ptr;
 
     return handle;
 }

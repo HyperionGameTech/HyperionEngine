@@ -31,7 +31,7 @@ HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer
     {
         for (uint32 x = 0; x < dimensions.x; x++)
         {
-            bitmap.SetPixel(x, y, { 0xFF, 0x00, 0xFF, 0xFF });
+            bitmap.SetPixel(x, y, { 1.0f, 0.0f, 1.0f, 1.0f });
         }
     }
 
@@ -58,7 +58,7 @@ HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuff
     {
         for (uint32 x = 0; x < dimensions.x; x++)
         {
-            bitmap.SetPixel(x, y, { 0xFF, 0x00, 0xFF, 0xFF });
+            bitmap.SetPixel(x, y, { 1.0f, 0.0f, 1.0f, 1.0f });
         }
     }
 

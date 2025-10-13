@@ -334,19 +334,27 @@ public:
         }
     }
 
-    HYP_NODISCARD HypObjectHeader* Allocate(SizeType objectSize, SizeType objectAlignment)
+    HYP_NODISCARD HypObjectHeader* Allocate(SizeType size)
     {
-        AssertDebug(objectSize != 0 && objectAlignment != 0, "Object size and alignment must be set before allocating objects");
-        AssertDebug(objectSize >= sizeof(T) && objectAlignment == alignof(T));
+        static constexpr uint32 MaxObjectAlignment = 16;
+
+        static_assert(alignof(T) <= MaxObjectAlignment, "Invalid alignment for object type T, must be <= MaxObjectAlignment");
+
+        AssertDebug(size != 0, "Object size and alignment must be set before allocating objects");
+        AssertDebug(size >= sizeof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
-        const SizeType allocationSize = ByteUtil::AlignAs(sizeof(HypObjectHeader), objectAlignment) + objectSize;
+        const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
         GlobalPoolLockGuard guard;
         LockPoolOrThreadAssert(guard, PF_WRITER | PF_ALLOCATE);
 
-        // we align the object internal to the header, so only need to align the header itself
-        HypObjectHeader* header = (HypObjectHeader*)m_pool->Alloc(allocationSize, alignof(HypObjectHeader));
+        void* mem = m_pool->Alloc(totalSize, MaxObjectAlignment);
+
+        // header needs to have padding in front of it so we can get the header from the object pointer
+        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) - sizeof(HypObjectHeader);
+
+        HypObjectHeader* header = reinterpret_cast<HypObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
         header->index = m_idGenerator.Next() - 1;
         header->hypClass = m_hypClass;
         header->refCountStrong = 0;

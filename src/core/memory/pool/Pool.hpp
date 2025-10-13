@@ -86,7 +86,7 @@ public:
     ~Pool();
 
     /*! \brief Allocates memory from the pool with the given size and alignment. */
-    HYP_NODISCARD void* Alloc(SizeType size, SizeType alignment = alignof(std::max_align_t));
+    HYP_NODISCARD void* Alloc(SizeType size, SizeType alignment = 16);
 
     /*! \brief Allocates an object of type T from the pool. */
     template <class T>

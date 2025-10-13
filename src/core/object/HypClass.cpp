@@ -1561,7 +1561,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 
     PushGlobalContext(HypObjectInitializerContext { .hypClass = this, .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
-    HypObjectHeader* header = container->Allocate(m_size, m_alignment);
+    HypObjectHeader* header = container->Allocate(m_size);
     header->hypClass = this;
 
     HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
