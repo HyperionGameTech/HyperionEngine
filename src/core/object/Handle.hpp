@@ -75,7 +75,9 @@ struct Handle final : HandleBase
                 "Container is not initialized for type! Possibly using an id created without pointing to a valid %s instance?",
                 LookupTypeName(id.GetTypeId()));
 
-            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex());
+            HypObjectContainerBase::LockGuard guard;
+
+            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
             HYP_CORE_ASSERT(header != nullptr);
 
             ptr = HypObjectHeader::GetObjectPointer(header);
@@ -396,8 +398,10 @@ struct WeakHandle final
             HYP_CORE_ASSERT(container != nullptr,
                 "Container is not initialized for type! Possibly using an id created without pointing to a valid %s instance?",
                 LookupTypeName(id.GetTypeId()));
+            
+            HypObjectContainerBase::LockGuard guard;
 
-            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex());
+            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex(), guard);
             HYP_CORE_ASSERT(header != nullptr);
 
             ptr = HypObjectHeader::GetObjectPointer(header);

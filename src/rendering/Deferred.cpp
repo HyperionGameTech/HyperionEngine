@@ -27,6 +27,7 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderSwapchain.hpp>
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
 #include <rendering/rt/MeshBlasBuilder.hpp>
 #include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/rt/DDGI.hpp>
@@ -93,28 +94,56 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
-void GetDeferredShaderProperties(ShaderProperties& outShaderProperties)
+static void GetDeferredShaderProperties(
+    ShaderProperties& outShaderProperties,
+    const RenderProxyList* rpl = nullptr,
+    LightType lightType = LT_INVALID)
 {
     static const GlobalConfig& globalConfig = CoreApi_GetGlobalConfig();
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
+    
+    MergeGlobalShaderProperties(outShaderProperties);
 
-    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.raytracing && globalConfig.Get("rendering.raytracing.reflections.enabled").ToBool());
-    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.raytracing && globalConfig.Get("rendering.raytracing.globalIllumination.enabled").ToBool());
-    outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), globalConfig.Get("rendering.envGrid.globalIllumination.enabled").ToBool());
-    outShaderProperties.Set(NAME("HBIL_ENABLED"), globalConfig.Get("rendering.hbil.enabled").ToBool());
-    outShaderProperties.Set(NAME("HBAO_ENABLED"), globalConfig.Get("rendering.hbao.enabled").ToBool());
+#define DEF_STATIC_CONFIGURATION_VALUE(name, path) \
+    static const ConfigurationValue& s_##name = globalConfig.Get(path); \
+    const bool name = s_##name.ToBool()
+    
+    DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "rendering.raytracing.reflections.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(raytracingGlobalIllumination, "rendering.raytracing.globalIllumination.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(envGrid, "rendering.envGrid.globalIllumination.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(hbil, "rendering.hbil.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(hbao, "rendering.hbao.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(ssgi, "rendering.ssgi.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(pathTracing, "rendering.raytracing.pathTracing.enabled");
 
-    if (globalConfig.Get("rendering.raytracing.pathTracing.enabled").ToBool())
+    DEF_STATIC_CONFIGURATION_VALUE(debugReflections, "rendering.debug.reflections");
+    DEF_STATIC_CONFIGURATION_VALUE(debugIrradiance, "rendering.debug.irradiance");
+
+#undef DEF_STATIC_CONFIGURATION_VALUE
+
+    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.raytracing && raytracingReflections);
+    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.raytracing && raytracingGlobalIllumination);
+    outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGrid);
+    outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
+    outShaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
+    outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
+
+    if (renderConfig.raytracing && pathTracing)
     {
         outShaderProperties.Set(NAME("PATHTRACER"));
     }
-    else if (globalConfig.Get("rendering.debug.reflections").ToBool())
+    else if (debugReflections)
     {
         outShaderProperties.Set(NAME("DEBUG_REFLECTIONS"));
     }
-    else if (globalConfig.Get("rendering.debug.irradiance").ToBool())
+    else if (debugIrradiance)
     {
         outShaderProperties.Set(NAME("DEBUG_IRRADIANCE"));
+    }
+
+    if (lightType != LT_INVALID)
+    {
+        outShaderProperties.Merge(s_deferredLightTypeProperties[uint32(lightType)]);
     }
 }
 
@@ -125,7 +154,27 @@ static constexpr TypeId EnvProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
 };
 
-#pragma region Deferred pass
+#pragma region DeferredPass
+
+static inline bool ShouldRecreatePipeline(
+    const GraphicsPipelineCacheHandle& handle,
+    const ShaderProperties& shaderProperties)
+{
+    if (!handle.IsAlive())
+    {
+        return true;
+    }
+
+    const GraphicsPipelineRef& pipeline = *handle;
+    Assert(pipeline.IsValid());
+
+    if (pipeline->GetShader()->GetCompiledShader()->GetProperties().GetHashCode() != shaderProperties.GetHashCode())
+    {
+        return true;
+    }
+
+    return false;
+}
 
 DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TF_RGBA16F, extent, gbuffer),
@@ -147,7 +196,9 @@ void DeferredPass::Create()
 
 void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 {
-    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
+    HYP_SCOPE;
+
+    if (m_mode == DPM_INDIRECT_LIGHTING)
     {
         ShaderProperties shaderProperties;
         GetDeferredShaderProperties(shaderProperties);
@@ -202,7 +253,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
     for (uint32 i = 0; i < LT_MAX; i++)
     {
         ShaderProperties shaderProperties;
-        GetDeferredShaderProperties(shaderProperties);
+        GetDeferredShaderProperties(shaderProperties, nullptr, LightType(i));
 
         shaderProperties.Merge(s_deferredLightTypeProperties[i]);
 
@@ -257,31 +308,51 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
 
-    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
-    {
-        RenderToFramebuffer(frame, rs, nullptr);
-
-        return;
-    }
-
     RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    // no lights bound, do not render direct shading at all
-    if (rpl.GetLights().NumCurrent() == 0)
+    switch (m_mode)
     {
+    case DPM_DIRECT_LIGHTING:
+        // no lights bound, do not render direct shading at all
+        if (rpl.GetLights().NumCurrent() == 0)
+        {
+            return;
+        }
+
+        break;
+    case DPM_INDIRECT_LIGHTING:
+    {
+        // check needs invalidation
+        ShaderProperties shaderProperties;
+        GetDeferredShaderProperties(shaderProperties, &rpl);
+
+        if (ShouldRecreatePipeline(m_graphicsPipelineCacheHandle, shaderProperties))
+        {
+            FullScreenPass::CreatePipeline();
+
+            AssertDebug(m_graphicsPipelineCacheHandle.IsAlive());
+        }
+
+        RenderToFramebuffer(frame, rs, nullptr);
+
+        return;
+    }
+    default:
+        HYP_UNREACHABLE();
         return;
     }
 
     const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
 
+    // last LightType we rendered
+    LightType prevLightType = LT_INVALID;
+
     // render with each light
     for (uint32 lightTypeIndex = 0; lightTypeIndex < LT_MAX; lightTypeIndex++)
     {
         const LightType lightType = LightType(lightTypeIndex);
-
-        bool isFirstLight = true;
 
         for (Light* light : rpl.GetLights())
         {
@@ -290,11 +361,21 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 continue;
             }
 
-            if (!m_directLightGraphicsPipelines[lightTypeIndex].IsAlive())
-            {
-                FullScreenPass::CreatePipeline();
+            bool pipelineChanged = false;
 
-                AssertDebug(m_directLightGraphicsPipelines[lightTypeIndex].IsAlive());
+            if (lightType != prevLightType)
+            {
+                ShaderProperties shaderProperties;
+                GetDeferredShaderProperties(shaderProperties, &rpl, lightType);
+
+                if (ShouldRecreatePipeline(m_directLightGraphicsPipelines[lightTypeIndex], shaderProperties))
+                {
+                    FullScreenPass::CreatePipeline();
+
+                    AssertDebug(m_directLightGraphicsPipelines[lightTypeIndex].IsAlive());
+                }
+
+                pipelineChanged = true;
             }
 
             const GraphicsPipelineRef& pipeline = *m_directLightGraphicsPipelines[lightTypeIndex];
@@ -307,7 +388,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
             const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("DeferredDirectDescriptorSet");
 
-            if (isFirstLight)
+            if (pipelineChanged)
             {
                 pipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
 
@@ -334,8 +415,6 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
                 frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
                 frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-
-                isFirstLight = false;
             }
 
             frame->renderQueue << BindDescriptorSet(
@@ -364,11 +443,13 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             }
 
             frame->renderQueue << DrawIndexed(6);
+
+            prevLightType = lightType;
         }
     }
 }
 
-#pragma endregion Deferred pass
+#pragma endregion DeferredPass
 
 #pragma region TonemapPass
 
@@ -691,6 +772,17 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region ReflectionsPass
 
+// Sky renders first
+constexpr FixedArray<EnvProbeType, CMT_MAX> EnvProbeTypes {
+    EPT_SKY,
+    EPT_REFLECTION
+};
+
+constexpr FixedArray<CubemapType, CMT_MAX> CubemapTypes {
+    CMT_DEFAULT,           // EPT_SKY
+    CMT_PARALLAX_CORRECTED // EPT_REFLECTION
+};
+
 ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView)
     : FullScreenPass(TF_RGBA16F, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
@@ -735,12 +827,12 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    static const FixedArray<Pair<CubemapType, ShaderProperties>, CMT_MAX> cubemapPasses = {
+    static const FixedArray<Pair<CubemapType, ShaderProperties>, CMT_MAX> s_cubemapPasses = {
         Pair<CubemapType, ShaderProperties> { CMT_DEFAULT, ShaderProperties {} },
         Pair<CubemapType, ShaderProperties> { CMT_PARALLAX_CORRECTED, ShaderProperties { { NAME("ENV_PROBE_PARALLAX_CORRECTED") } } }
     };
 
-    for (const auto& it : cubemapPasses)
+    for (const auto& it : s_cubemapPasses)
     {
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ApplyReflectionProbe"), it.second);
         Assert(shader.IsValid());
@@ -842,22 +934,11 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         m_ssrRenderer->Render(frame, rs);
     }
 
-    // Sky renders first
-    static const FixedArray<EnvProbeType, CMT_MAX> envProbeTypes {
-        EPT_SKY,
-        EPT_REFLECTION
-    };
-
-    static const FixedArray<CubemapType, CMT_MAX> cubemapTypes {
-        CMT_DEFAULT,           // EPT_SKY
-        CMT_PARALLAX_CORRECTED // EPT_REFLECTION
-    };
-
     FixedArray<Array<EnvProbe*>, CMT_MAX> probesPerCubemapType;
 
     for (uint32 cubemapType = 0; cubemapType < CMT_MAX; cubemapType++)
     {
-        const EnvProbeType envProbeType = envProbeTypes[cubemapType];
+        const EnvProbeType envProbeType = EnvProbeTypes[cubemapType];
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes().GetElements(EnvProbeTypeToTypeId[envProbeType]))
         {
@@ -875,10 +956,10 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     uint32 numRenderedEnvProbes = 0;
 
-    for (uint32 envProbeTypeIndex = 0; envProbeTypeIndex < ArraySize(envProbeTypes); envProbeTypeIndex++)
+    for (uint32 envProbeTypeIndex = 0; envProbeTypeIndex < ArraySize(EnvProbeTypes); envProbeTypeIndex++)
     {
-        const EnvProbeType envProbeType = envProbeTypes[envProbeTypeIndex];
-        const CubemapType cubemapType = cubemapTypes[envProbeTypeIndex];
+        const EnvProbeType envProbeType = EnvProbeTypes[envProbeTypeIndex];
+        const CubemapType cubemapType = CubemapTypes[envProbeTypeIndex];
 
         const Array<EnvProbe*>& probes = probesPerCubemapType[cubemapType];
 
@@ -1095,10 +1176,10 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.postProcessing = MakeUnique<PostProcessing>();
         passData.postProcessing->Create();
 
-        passData.indirectPass = CreateObject<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, passData.viewport.extent, gbuffer);
+        passData.indirectPass = CreateObject<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer);
         passData.indirectPass->Create();
 
-        passData.directPass = CreateObject<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, passData.viewport.extent, gbuffer);
+        passData.directPass = CreateObject<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer);
         passData.directPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -1343,12 +1424,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& passD
 
 void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredPassData& passData)
 {
-    // Is hardware ray tracing supported at all?
-    // We could still create TLAS without necessarily creating reflection and global illumination pass data,
-    // and then ray tracing features could be dynamically enabled or disabled.
-    static const bool shouldEnableRaytracingStatic = g_renderBackend->GetRenderConfig().raytracing;
-
-    if (!shouldEnableRaytracingStatic)
+    if (!g_renderBackend->GetRenderConfig().raytracing)
     {
         return;
     }
@@ -2176,13 +2252,13 @@ void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSet
 {
     HYP_SCOPE;
 
-    constexpr uint32 bucketMask = (1 << RB_OPAQUE)
+    constexpr uint32 BucketMask = (1 << RB_OPAQUE)
         | (1 << RB_LIGHTMAP)
         | (1 << RB_SKYBOX)
         | (1 << RB_TRANSLUCENT)
         | (1 << RB_DEBUG);
 
-    renderCollector.PerformOcclusionCulling(frame, rs, bucketMask);
+    renderCollector.PerformOcclusionCulling(frame, rs, BucketMask);
 }
 
 void DeferredRenderer::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask)

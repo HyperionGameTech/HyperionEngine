@@ -214,7 +214,7 @@ void HyperionEditor::Init()
         }
     }
 
-    HYP_BREAKPOINT;
+    //HYP_BREAKPOINT;
 #endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();

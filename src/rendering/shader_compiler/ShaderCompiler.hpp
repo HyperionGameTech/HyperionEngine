@@ -1286,6 +1286,8 @@ private:
     mutable Mutex m_mutex;
 };
 
+void MergeGlobalShaderProperties(ShaderProperties& out);
+
 class ShaderCompiler
 {
     static constexpr SizeType maxPermutations = 2048; // temporalily increased, until some properties are "always enabled"
@@ -1374,9 +1376,6 @@ public:
         CompiledShader& out);
 
 private:
-    void GetPlatformSpecificProperties(
-        ShaderProperties& out) const;
-
     ProcessResult ProcessShaderSource(
         ProcessShaderSourcePhase phase,
         ShaderModuleType type,

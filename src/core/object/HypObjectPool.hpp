@@ -43,37 +43,12 @@ class HypObjectContainerBase
     friend class HypObjectPool;
 
 public:
-    virtual ~HypObjectContainerBase() = default;
-
-    HYP_FORCE_INLINE const TypeId& GetObjectTypeId() const
-    {
-        return m_typeId;
-    }
-
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
-    {
-        return m_hypClass;
-    }
-
-    virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
-
-    virtual void Release(HypObjectHeader* header) = 0;
-
-protected:
-    enum PoolFlags : uint8
-    {
-        PF_NONE = 0x0,
-        PF_WRITER = 0x1,
-        PF_ALLOCATE = 0x2,
-        PF_FREE = 0x4
-    };
-
-    struct GlobalPoolLockGuard
+    struct LockGuard
     {
         Spinlock* lock = nullptr;
         int flags = PF_NONE;
 
-        HYP_FORCE_INLINE ~GlobalPoolLockGuard()
+        HYP_FORCE_INLINE ~LockGuard()
         {
             if (lock)
             {
@@ -90,12 +65,37 @@ protected:
         }
     };
 
+    virtual ~HypObjectContainerBase() = default;
+
+    HYP_FORCE_INLINE const TypeId& GetObjectTypeId() const
+    {
+        return m_typeId;
+    }
+
+    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+    {
+        return m_hypClass;
+    }
+
+    virtual HypObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) = 0;
+
+    virtual void Release(HypObjectHeader* header) = 0;
+
+protected:
+    enum PoolFlags : uint8
+    {
+        PF_NONE = 0x0,
+        PF_WRITER = 0x1,
+        PF_ALLOCATE = 0x2,
+        PF_FREE = 0x4
+    };
+
     HypObjectContainerBase(TypeId typeId, const HypClass* hypClass);
 
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
-    HYP_API void LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const;
+    HYP_API void LockPoolOrThreadAssert(LockGuard& outGuard, int flags) const;
 
     TypeId m_typeId;
     const HypClass* m_hypClass;
@@ -257,7 +257,7 @@ public:
         Array<HypObjectHeader*> headers;
 
         {
-            GlobalPoolLockGuard guard;
+            LockGuard guard;
             LockPoolOrThreadAssert(guard, PF_NONE);
 
             for (auto& header : m_headers)
@@ -274,7 +274,7 @@ public:
             HypObjectHeader::DestructThisObject(header);
         }
 
-        GlobalPoolLockGuard guard;
+        LockGuard guard;
         LockPoolOrThreadAssert(guard, PF_WRITER | PF_FREE);
 
         /// @FIXME: This is not safe if the destructor of T tries to allocate more objects from the pool during
@@ -299,7 +299,7 @@ public:
         // allocation would be the header size + object size, aligned to the object alignment
         const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
-        GlobalPoolLockGuard guard;
+        LockGuard guard;
         LockPoolOrThreadAssert(guard, PF_WRITER | PF_ALLOCATE);
 
         void* mem = m_pool->Alloc(totalSize, MaxObjectAlignment);
@@ -310,7 +310,7 @@ public:
         HypObjectHeader* header = reinterpret_cast<HypObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
         header->index = m_idGenerator.Next() - 1;
         header->hypClass = m_hypClass;
-        header->refCountStrong = 0;
+        header->refCountStrong = 1;
         header->refCountWeak = 0;
 
         m_headers.Emplace(header->index, header);
@@ -318,15 +318,14 @@ public:
         return header;
     }
 
-    virtual HypObjectHeader* GetObjectHeader(uint32 index) override
+    virtual HypObjectHeader* GetObjectHeader(uint32 index, LockGuard& outGuard) override
     {
         if (index == ~0u)
         {
             return nullptr;
         }
 
-        GlobalPoolLockGuard guard;
-        LockPoolOrThreadAssert(guard, PF_NONE);
+        LockPoolOrThreadAssert(outGuard, PF_NONE);
 
         if (!m_headers.HasIndex(index))
         {
@@ -340,7 +339,7 @@ public:
     {
         HYP_CORE_ASSERT(header != nullptr);
 
-        GlobalPoolLockGuard guard;
+        LockGuard guard;
         LockPoolOrThreadAssert(guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;

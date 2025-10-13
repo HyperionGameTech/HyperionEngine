@@ -143,15 +143,8 @@ HypObjectBase::HypObjectBase()
 #endif
 
 #ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to HypClass data
-    HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
-    HYP_CORE_ASSERT(context != nullptr);
-
     // get the header by subtracting the offset from this pointer
     m_header = reinterpret_cast<HypObjectHeader*>(UIntPtr(this) - sizeof(HypObjectHeader));
-
-    // increment the strong reference count for the Handle<T> that will be returned from CreateObject<T>().
-    AtomicIncrement(&m_header->refCountStrong);
-    HYP_CORE_ASSERT(m_header->refCountStrong == 1);
 #endif
 }
 

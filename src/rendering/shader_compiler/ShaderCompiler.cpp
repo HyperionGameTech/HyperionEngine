@@ -67,8 +67,7 @@ static constexpr bool ShouldCompileMissingVariants = true;
 
 #pragma region Helpers
 
-static String BuildDescriptorTableDefines(
-    const DescriptorTableDeclaration& descriptorTableDeclaration)
+static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& descriptorTableDeclaration)
 {
     String descriptorTableDefines;
 
@@ -154,11 +153,72 @@ static String BuildPreamble(const ShaderProperties& properties)
     return preamble;
 }
 
-static String
-BuildPreamble(const ShaderProperties& properties,
+static String BuildPreamble(
+    const ShaderProperties& properties,
     const DescriptorTableDeclaration& descriptorTableDeclaration)
 {
     return BuildDescriptorTableDefines(descriptorTableDeclaration) + "\n\n" + BuildPreamble(properties);
+}
+
+void MergeGlobalShaderProperties(ShaderProperties& properties)
+{
+#if defined(HYP_VULKAN) && HYP_VULKAN
+    properties.Set(ShaderProperty(NAME("HYP_VULKAN"), false));
+
+    constexpr uint32 vulkanVersion = HYP_VULKAN_API_VERSION;
+
+    switch (vulkanVersion)
+    {
+    case VK_API_VERSION_1_1:
+        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_1"), false));
+        break;
+    case VK_API_VERSION_1_2:
+        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_2"), false));
+        break;
+#ifdef VK_API_VERSION_1_3
+    case VK_API_VERSION_1_3:
+        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_3"), false));
+        break;
+#endif
+    default:
+        break;
+    }
+#endif
+
+#if defined(HYP_WINDOWS)
+    properties.Set(ShaderProperty(NAME("HYP_WINDOWS"), false));
+#elif defined(HYP_LINUX)
+    properties.Set(ShaderProperty(NAME("HYP_LINUX"), false));
+#elif defined(HYP_MACOS)
+    properties.Set(ShaderProperty(NAME("HYP_MACOS"), false));
+#elif defined(HYP_IOS)
+    properties.Set(ShaderProperty(NAME("HYP_IOS"), false));
+#endif
+
+    properties.Set(
+        ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false,
+            ShaderProperty::Value(int(NumGbufferTargets))));
+
+    if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
+    {
+        properties.Set(ShaderProperty(
+            NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING"), false));
+    }
+
+    if (g_renderBackend->GetRenderConfig().bindlessTextures)
+    {
+        properties.Set(
+            ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), false));
+    }
+
+    if (!g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
+    {
+        properties.Set(
+            ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA"), false));
+    }
+
+    // props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS", false));
+    // props.Set(ShaderProperty("HYP_MAX_BONES", false));
 }
 
 #pragma endregion Helpers
@@ -1261,68 +1321,6 @@ ShaderCompiler::~ShaderCompiler()
     }
 }
 
-void ShaderCompiler::GetPlatformSpecificProperties(
-    ShaderProperties& properties) const
-{
-#if defined(HYP_VULKAN) && HYP_VULKAN
-    properties.Set(ShaderProperty(NAME("HYP_VULKAN"), false));
-
-    constexpr uint32 vulkanVersion = HYP_VULKAN_API_VERSION;
-
-    switch (vulkanVersion)
-    {
-    case VK_API_VERSION_1_1:
-        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_1"), false));
-        break;
-    case VK_API_VERSION_1_2:
-        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_2"), false));
-        break;
-#ifdef VK_API_VERSION_1_3
-    case VK_API_VERSION_1_3:
-        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_3"), false));
-        break;
-#endif
-    default:
-        break;
-    }
-#endif
-
-#if defined(HYP_WINDOWS)
-    properties.Set(ShaderProperty(NAME("HYP_WINDOWS"), false));
-#elif defined(HYP_LINUX)
-    properties.Set(ShaderProperty(NAME("HYP_LINUX"), false));
-#elif defined(HYP_MACOS)
-    properties.Set(ShaderProperty(NAME("HYP_MACOS"), false));
-#elif defined(HYP_IOS)
-    properties.Set(ShaderProperty(NAME("HYP_IOS"), false));
-#endif
-
-    properties.Set(
-        ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false,
-            ShaderProperty::Value(int(NumGbufferTargets))));
-
-    if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
-    {
-        properties.Set(ShaderProperty(
-            NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING"), false));
-    }
-
-    if (g_renderBackend->GetRenderConfig().bindlessTextures)
-    {
-        properties.Set(
-            ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), false));
-    }
-
-    if (!g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
-    {
-        properties.Set(
-            ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA"), false));
-    }
-
-    // props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS", false));
-    // props.Set(ShaderProperty("HYP_MAX_BONES", false));
-}
-
 void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
     ShaderCompiler::Bundle& bundle)
 {
@@ -1525,7 +1523,7 @@ bool ShaderCompiler::LoadOrCompileBatch(Name name,
     }
 
     Bundle bundle { name };
-    GetPlatformSpecificProperties(bundle.versions);
+    MergeGlobalShaderProperties(bundle.versions);
 
     // apply each permutable property from the definitions file
     const INIFile::Section& section = m_definitions->GetSection(nameString);
@@ -2626,7 +2624,7 @@ bool ShaderCompiler::GetCompiledShader(Name name,
     CompiledShader& out)
 {
     ShaderProperties finalProperties;
-    GetPlatformSpecificProperties(finalProperties);
+    MergeGlobalShaderProperties(finalProperties);
     finalProperties.Merge(properties);
 
     const HashCode finalPropertiesHash = finalProperties.GetHashCode();

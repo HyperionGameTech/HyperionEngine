@@ -165,7 +165,7 @@ HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const HypClass* hy
     HYP_CORE_ASSERT(m_pool != nullptr);
 }
 
-void HypObjectContainerBase::LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const
+void HypObjectContainerBase::LockPoolOrThreadAssert(LockGuard& outGuard, int flags) const
 {
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     EnginePoolName poolName = m_hypClass->GetEnginePoolName();

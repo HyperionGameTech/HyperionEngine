@@ -32,7 +32,9 @@ enum ShadowMapFilter : uint32;
 HYP_ENUM()
 enum LightType : uint32
 {
-    LT_DIRECTIONAL,
+    LT_INVALID = ~0u,
+
+    LT_DIRECTIONAL = 0,
     LT_POINT,
     LT_SPOT,
     LT_AREA_RECT,

@@ -65,13 +65,19 @@ enum DeferredFlags : DeferredFlagBits
     DEFERRED_FLAGS_DDGI_ENABLED = 0x40
 };
 
-enum class DeferredPassMode
+enum DeferredPassMode : uint32
 {
-    INDIRECT_LIGHTING,
-    DIRECT_LIGHTING
+    DPM_INDIRECT_LIGHTING,
+    DPM_DIRECT_LIGHTING
 };
 
-void GetDeferredShaderProperties(ShaderProperties& outShaderProperties);
+enum CubemapType : uint32
+{
+    CMT_DEFAULT = 0,
+    CMT_PARALLAX_CORRECTED,
+
+    CMT_MAX
+};
 
 HYP_CLASS(NoScriptBindings)
 class DeferredPass final : public FullScreenPass
@@ -228,14 +234,6 @@ class ReflectionsPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(ReflectionsPass);
     
-    enum CubemapType : uint32
-    {
-        CMT_DEFAULT = 0,
-        CMT_PARALLAX_CORRECTED,
-
-        CMT_MAX
-    };
-
 public:
     ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView);
     ReflectionsPass(const ReflectionsPass& other) = delete;

@@ -160,6 +160,12 @@ public:
         return static_cast<typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);
     }
 
+    template <SizeType Index>
+    HYP_FORCE_INLINE auto GetResources() const -> const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*
+    {
+        return static_cast<const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);
+    }
+
     // State for tracking transitions from writing (game thread) to reading (render thread).
     enum CollectionState : uint8
     {
@@ -188,7 +194,12 @@ public:
     FixedArray<void (*)(ResourceTrackerBase*), TupleSize<TrackedResourceTypes>::value> releaseRefsFunctions;
 
 #define DEF_RESOURCE_TRACKER_GETTER(getterName, T)                                                                                                                \
-    HYP_FORCE_INLINE auto Get##getterName()->typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type& \
+    HYP_FORCE_INLINE auto Get##getterName() -> typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type& \
+    {                                                                                                                                                             \
+        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                       \
+    } \
+                                                                                                                \
+    HYP_FORCE_INLINE auto Get##getterName() const -> const typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type& \
     {                                                                                                                                                             \
         return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                       \
     }
