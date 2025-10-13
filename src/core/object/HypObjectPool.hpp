@@ -55,7 +55,6 @@ public:
         return m_hypClass;
     }
 
-    virtual HypObjectBase* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
 
     virtual void Release(HypObjectHeader* header) = 0;
@@ -239,55 +238,9 @@ struct HypObjectHeader
     static HYP_API void DestructThisObject(HypObjectHeader* header);
 };
 
-/*! \brief Memory storage for T where T is a subclass of HypObjectBase.
- *  Derives from HypObjectHeader to store reference counts and other information at the start of the memory. */
-template <class T>
-struct HypObjectMemory final : HypObjectHeader
-{
-    static_assert(std::is_base_of_v<HypObjectBase, T>, "T must be a subclass of HypObjectBase");
-
-    ValueStorage<T> storage;
-
-    HypObjectMemory() = default;
-    HypObjectMemory(const HypObjectMemory&) = delete;
-    HypObjectMemory& operator=(const HypObjectMemory&) = delete;
-    HypObjectMemory(HypObjectMemory&&) noexcept = delete;
-    HypObjectMemory& operator=(HypObjectMemory&&) noexcept = delete;
-    ~HypObjectMemory() = default;
-
-    HYP_FORCE_INLINE T& Get()
-    {
-        return storage.Get();
-    }
-
-    HYP_FORCE_INLINE T* GetPointer()
-    {
-        return storage.GetPointer();
-    }
-
-    HYP_FORCE_INLINE const T* GetPointer() const
-    {
-        return storage.GetPointer();
-    }
-};
-
-template <class T>
-static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T>* elements, uint32 offset, uint32 count)
-{
-    static const HypClass* s_class = T::Class();
-
-    for (uint32 index = 0; index < count; index++)
-    {
-        elements[index].hypClass = s_class;
-        elements[index].index = offset + index;
-    }
-}
-
 template <class T>
 class HypObjectContainer final : public HypObjectContainerBase
 {
-    using HypObjectMemory = HypObjectMemory<T>;
-
 public:
     HypObjectContainer(const HypClass* hypClass)
         : HypObjectContainerBase(TypeId::ForType<T>(), hypClass)
@@ -363,16 +316,6 @@ public:
         m_headers.Emplace(header->index, header);
 
         return header;
-    }
-
-    virtual HypObjectBase* GetObjectPointer(HypObjectHeader* ptr) override
-    {
-        if (!ptr)
-        {
-            return nullptr;
-        }
-
-        return static_cast<HypObjectMemory*>(ptr)->GetPointer();
     }
 
     virtual HypObjectHeader* GetObjectHeader(uint32 index) override

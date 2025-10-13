@@ -31,8 +31,6 @@ enum EnginePoolName : int
     EPN_MAX
 };
 
-HYP_API extern Pool* g_enginePools[EPN_MAX];
-
 HYP_API extern void EngineMemory_Initialize();
 HYP_API extern void EngineMemory_Shutdown();
 

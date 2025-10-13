@@ -12,7 +12,6 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/CullData.hpp>
-#include <rendering/DrawCall.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
@@ -30,6 +29,9 @@ class GpuBufferHolderBase;
 class IndirectRenderer;
 struct RenderSetup;
 class PassData;
+struct DrawCallCollection;
+class IDrawCallCollectionImpl;
+struct ParallelRenderingState;
 
 enum class RenderGroupFlags : uint32
 {

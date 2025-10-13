@@ -978,7 +978,7 @@ uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource)
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 #endif
 
-    return g_renderGlobalState->resourceBindings->Retrieve(resource).first;
+    return g_renderGlobalState->resourceBindings->Retrieve(resource);
 }
 
 WorldShaderData* RenderApi_GetWorldBufferData()

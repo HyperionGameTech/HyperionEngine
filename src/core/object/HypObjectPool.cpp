@@ -162,6 +162,7 @@ HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const HypClass* hy
       m_pool(&GetPoolForClass(hypClass))
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void());
+    HYP_CORE_ASSERT(m_pool != nullptr);
 }
 
 void HypObjectContainerBase::LockPoolOrThreadAssert(GlobalPoolLockGuard& outGuard, int flags) const

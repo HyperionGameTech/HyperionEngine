@@ -45,14 +45,14 @@ namespace Hyperion
     }
     public static class AnimationExtensions
     {
-        public static string GetName(this Animation obj)
+        public static Name GetName(this Animation obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(10797569040963027572)).InvokeNative(obj))
             {
-                return resultData.ReadString();
+                return resultData.ReadName();
             }
         }
-        public static void SetName(this Animation obj, string name)
+        public static void SetName(this Animation obj, Name name)
         {
             obj.GetMethod(new Name(7502354063965211432)).InvokeNative(obj, name);
         }

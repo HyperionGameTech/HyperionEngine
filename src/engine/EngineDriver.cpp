@@ -84,7 +84,8 @@ extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
 #pragma region EngineMemory
 
-HYP_API Pool* g_enginePools[EPN_MAX];
+ValueStorage<Pool> s_enginePools[EPN_MAX];
+HYP_API bool g_enginePoolsInitialized = false;
 
 static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
     &ThreadId::Invalid(),   // EPN_CORE <-- not tied to any thread
@@ -104,18 +105,17 @@ HYP_API void EngineMemory_Initialize()
 
     for (int i = 0; i < EPN_MAX; ++i)
     {
-        AssertDebug(g_enginePools[i] == nullptr);
-
-        g_enginePools[i] = EnginePoolSizes[i] > 0 ? new Pool(EnginePoolSizes[i]) : nullptr;
+        s_enginePools[i].Construct(EnginePoolSizes[i]);
     }
+
+    g_enginePoolsInitialized = true;
 }
 
 HYP_API void EngineMemory_Shutdown()
 {
     for (int i = 0; i < EPN_MAX; ++i)
     {
-        delete g_enginePools[i];
-        g_enginePools[i] = nullptr;
+        s_enginePools[i].Destruct();
     }
 }
 
@@ -128,7 +128,7 @@ HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName)
 HYP_API Pool* EngineMemory_GetPool(EnginePoolName poolName)
 {
     AssertDebug(poolName < EPN_MAX && poolName >= 0);
-    return g_enginePools[poolName];
+    return s_enginePools[poolName].GetPointer();
 }
 
 HYP_API EnginePoolName EngineMemory_GetPoolName(const char* str)
