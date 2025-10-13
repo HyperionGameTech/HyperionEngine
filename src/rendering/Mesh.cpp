@@ -76,7 +76,7 @@ Mesh::Mesh()
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes)
     : AssetObject(),
-      m_assetReference(asset),
+      m_meshAsset(asset),
       m_aabb(BoundingBox::Empty()),
       m_flags(MF_NONE)
 {
@@ -120,7 +120,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 
     m_aabb = meshData.CalculateAABB();
 
-    m_assetReference = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
+    m_meshAsset = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
 }
 
 Mesh::~Mesh()
@@ -165,20 +165,20 @@ void Mesh::Init()
     SetReady(true);
 }
 
-void Mesh::SetAssetReference(const AssetReference& assetReference)
+void Mesh::SetMeshAsset(const AssetReference& assetReference)
 {
     HYP_SCOPE;
 
-    if (assetReference == m_assetReference)
+    if (assetReference == m_meshAsset)
     {
         return;
     }
 
-    m_assetReference = TAssetReference<MeshAsset>(assetReference);
+    m_meshAsset = TAssetReference<MeshAsset>(assetReference);
 
-    if (m_assetReference.IsValid() && IsInitCalled())
+    if (m_meshAsset.IsValid() && IsInitCalled())
     {
-        const Handle<MeshAsset>& asset = m_assetReference.Resolve();
+        const Handle<MeshAsset>& asset = m_meshAsset.Resolve();
         if (!asset)
         {
             HYP_LOG(Mesh, Error, "Failed to resolve mesh asset from asset reference with path '{}'", assetReference.GetAssetPath());
@@ -410,7 +410,7 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
     m_aabb = meshData.CalculateAABB();
 
     Handle<MeshAsset> asset = CreateObject<MeshAsset>(GetName(), meshDesc, meshData);
-    m_assetReference = TAssetReference<MeshAsset>(asset);
+    m_meshAsset = TAssetReference<MeshAsset>(asset);
 
     if (IsInitCalled())
     {

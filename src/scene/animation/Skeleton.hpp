@@ -3,8 +3,7 @@
 #pragma once
 
 #include <core/object/Handle.hpp>
-
-#include <core/utilities/DataMutationState.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -12,9 +11,10 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/object/HypObject.hpp>
-
 #include <core/math/Matrix4.hpp>
+
+#include <asset/AssetObject.hpp>
+#include <asset/AssetReference.hpp>
 
 #include <core/Types.hpp>
 
@@ -23,9 +23,10 @@ namespace hyperion {
 class Bone;
 class Animation;
 class RenderProxySkeleton;
+class SkeletonAsset;
 
 HYP_CLASS()
-class HYP_API Skeleton final : public HypObjectBase
+class HYP_API Skeleton final : public AssetObject
 {
     HYP_OBJECT_BODY(Skeleton);
 
@@ -115,7 +116,7 @@ public:
      *  \returns The animation with the given name, or nullptr if it could not be found.
      */
     const Animation* FindAnimation(UTF8StringView name, uint32* outIndex) const;
-    
+
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
 
     const int* GetRenderProxyVersionPtr() const
@@ -134,8 +135,9 @@ private:
     Handle<Bone> m_rootBone;
     Array<Handle<Animation>> m_animations;
 
+    TAssetReference<SkeletonAsset> m_skeletonAsset;
+
     int m_renderProxyVersion;
 };
 
 } // namespace hyperion
-

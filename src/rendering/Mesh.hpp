@@ -142,13 +142,7 @@ public:
 
     HYP_FORCE_INLINE const Handle<MeshAsset>& GetAsset() const
     {
-        return m_assetReference.Resolve();
-    }
-
-    HYP_METHOD(Property = "AssetReference")
-    const AssetReference& GetAssetReference() const
-    {
-        return m_assetReference;
+        return m_meshAsset.Resolve();
     }
 
     /*! \brief Get the axis-aligned bounding box for the mesh. */
@@ -180,8 +174,15 @@ private:
     void Init() override;
 
     /*! \internal Serialization only */
-    HYP_METHOD(Property = "AssetReference")
-    void SetAssetReference(const AssetReference& assetReference);
+    HYP_METHOD(Property = "MeshAsset")
+    const AssetReference& GetMeshAsset() const
+    {
+        return m_assetReference;
+    }
+
+    /*! \internal Serialization only */
+    HYP_METHOD(Property = "MeshAsset")
+    void SetMeshAsset(const AssetReference& assetReference);
 
     HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;
@@ -192,7 +193,7 @@ private:
     HYP_FIELD()
     EnumFlags<MeshFlags> m_flags;
 
-    TAssetReference<MeshAsset> m_assetReference;
+    TAssetReference<MeshAsset> m_meshAsset;
 
     GpuBufferRef m_vertexBuffer;
     GpuBufferRef m_indexBuffer;
