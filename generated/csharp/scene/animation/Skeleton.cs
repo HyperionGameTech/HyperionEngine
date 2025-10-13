@@ -17,34 +17,16 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(5166908416153211461)).InvokeNative(obj, bone);
         }
-        public static Array GetAnimations(this Skeleton obj)
+        public static AssetReference GetSkeletonAsset(this Skeleton obj)
         {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(17818591371326479364)).InvokeNative(obj))
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(14596039101098593632)).InvokeNative(obj))
             {
-                return (Array)resultData.GetValue();
+                return resultData.ReadStruct<AssetReference>();
             }
         }
-        public static void SetAnimations(this Skeleton obj, Array animations)
+        public static void SetSkeletonAsset(this Skeleton obj, AssetReference assetReference)
         {
-            obj.GetMethod(new Name(12639356803278944952)).InvokeNative(obj, animations);
-        }
-        public static uint NumAnimations(this Skeleton obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(7774493487799490216)).InvokeNative(obj))
-            {
-                return resultData.ReadUInt32();
-            }
-        }
-        public static void AddAnimation(this Skeleton obj, Animation animation)
-        {
-            obj.GetMethod(new Name(4319464961949878498)).InvokeNative(obj, animation);
-        }
-        public static Animation GetAnimation(this Skeleton obj, uint index)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(10248038291581274527)).InvokeNative(obj, index))
-            {
-                return resultData.ReadObject<Animation>();
-            }
+            obj.GetMethod(new Name(13637788671549822836)).InvokeNative(obj, assetReference);
         }
     }
 }

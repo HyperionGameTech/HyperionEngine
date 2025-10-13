@@ -45,13 +45,6 @@ namespace Hyperion
                 return (Topology)resultData.GetValue();
             }
         }
-        public static AssetReference GetAssetReference(this Mesh obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(5891541361427453822)).InvokeNative(obj))
-            {
-                return resultData.ReadStruct<AssetReference>();
-            }
-        }
         public static BoundingBox GetAABB(this Mesh obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(15803354007010410777)).InvokeNative(obj))
@@ -63,9 +56,16 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(15734079476479379973)).InvokeNative(obj, aabb);
         }
-        public static void SetAssetReference(this Mesh obj, AssetReference assetReference)
+        public static AssetReference GetMeshAsset(this Mesh obj)
         {
-            obj.GetMethod(new Name(367262660023360714)).InvokeNative(obj, assetReference);
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(8915671312933091710)).InvokeNative(obj))
+            {
+                return resultData.ReadStruct<AssetReference>();
+            }
+        }
+        public static void SetMeshAsset(this Mesh obj, AssetReference assetReference)
+        {
+            obj.GetMethod(new Name(13136002942697606994)).InvokeNative(obj, assetReference);
         }
     }
 }

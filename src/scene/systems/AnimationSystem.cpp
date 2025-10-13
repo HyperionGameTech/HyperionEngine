@@ -8,16 +8,48 @@
 
 #include <core/object/Handle.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion {
 
 void AnimationSystem::OnEntityAdded(Entity* entity)
 {
+    HYP_SCOPE;
+
+    SystemBase::OnEntityAdded(entity);
+
     const MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
     InitObject(meshComponent.skeleton);
+
+    if (meshComponent.skeleton.IsValid())
+    {
+        if (const Handle<SkeletonAsset>& skeletonAsset = meshComponent.skeleton->GetAsset())
+        {
+            m_resourceHandles.Set(meshComponent.skeleton.Get(), ResourceHandle(*skeletonAsset->GetResource()));
+        }
+    }
+}
+
+void AnimationSystem::OnEntityRemoved(Entity* entity)
+{
+    HYP_SCOPE;
+
+    SystemBase::OnEntityRemoved(entity);
+
+    const AnimationComponent& animationComponent = GetEntityManager().GetComponent<AnimationComponent>(entity);
+    const MeshComponent& meshComponent = GetEntityManager().GetComponent<MeshComponent>(entity);
+
+    if (meshComponent.skeleton.IsValid())
+    {
+        m_resourceHandles.Erase(meshComponent.skeleton.Get());
+    }
 }
 
 void AnimationSystem::Process(float delta)
 {
+    HYP_SCOPE;
+
     for (auto [entity, animationComponent, meshComponent] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!meshComponent.skeleton)
@@ -29,6 +61,18 @@ void AnimationSystem::Process(float delta)
 
         if (playbackState.status == AnimationPlaybackStatus::PLAYING)
         {
+            const Handle<SkeletonAsset>& skeletonAsset = meshComponent.skeleton->GetAsset();
+            Assert(skeletonAsset != nullptr);
+
+            auto resourceHandleIt = m_resourceHandles.Find(meshComponent.skeleton.Get());
+            if (resourceHandleIt == m_resourceHandles.End())
+            {
+                resourceHandleIt = m_resourceHandles.Insert(meshComponent.skeleton.Get(), ResourceHandle(*skeletonAsset->GetResource())).first;
+            }
+
+            SkeletonData* skeletonData = skeletonAsset->GetSkeletonData();
+            Assert(skeletonData != nullptr);
+
             if (playbackState.animationIndex == ~0u)
             {
                 playbackState = {};
@@ -36,8 +80,15 @@ void AnimationSystem::Process(float delta)
                 continue;
             }
 
-            const Handle<Animation>& animation = meshComponent.skeleton->GetAnimation(playbackState.animationIndex);
-            Assert(animation.IsValid());
+            Animation* animation = skeletonData->GetAnimation(playbackState.animationIndex);
+            if (!animation)
+            {
+                HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
+
+                playbackState = {};
+
+                continue;
+            }
 
             playbackState.currentTime += delta * playbackState.speed;
 
@@ -52,10 +103,10 @@ void AnimationSystem::Process(float delta)
                 }
             }
 
-            animation->ApplyBlended(playbackState.currentTime, 0.5f);
-        }
+            animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
 
-        meshComponent.skeleton->SetNeedsRenderProxyUpdate();
+            meshComponent.skeleton->SetNeedsRenderProxyUpdate();
+        }
     }
 }
 

@@ -19,15 +19,10 @@
 namespace hyperion {
 
 class Bone;
-
-struct AnimationTrackDesc
-{
-    Name boneName;
-    Array<Keyframe> keyframes;
-};
+class Skeleton;
 
 HYP_CLASS()
-class AnimationTrack final : public HypObjectBase
+class HYP_API AnimationTrack final : public HypObjectBase
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -35,88 +30,93 @@ public:
     friend class Bone;
     friend class Animation;
 
-    HYP_API AnimationTrack();
-    HYP_API AnimationTrack(const AnimationTrackDesc& desc);
+    AnimationTrack();
+    explicit AnimationTrack(Name boneName);
     AnimationTrack(const AnimationTrack& other) = delete;
     AnimationTrack& operator=(const AnimationTrack& other) = delete;
     ~AnimationTrack() override = default;
 
-    HYP_FORCE_INLINE Bone* GetBone() const
+    HYP_METHOD()
+    Name GetBoneName() const
     {
-        return m_bone;
+        return m_boneName;
     }
 
-    /*! \internal Used by Skeleton class to set up mapping between bones and animation tracks. */
-    HYP_FORCE_INLINE void SetBone(Bone* bone)
+    HYP_METHOD()
+    void SetBoneName(Name boneName)
     {
-        m_bone = bone;
+        m_boneName = boneName;
     }
 
-    HYP_FORCE_INLINE const AnimationTrackDesc& GetDesc() const
+    HYP_METHOD()
+    void AddKeyframe(const Keyframe& keyframe)
     {
-        return m_desc;
+        m_keyframes.PushBack(keyframe);
+    }
+
+    HYP_METHOD()
+    const Array<Keyframe>& GetKeyframes() const
+    {
+        return m_keyframes;
     }
 
     HYP_METHOD()
     float GetLength() const;
 
     HYP_METHOD()
-    HYP_API Keyframe GetKeyframe(float time) const;
+    Keyframe GetKeyframe(float time) const;
 
 private:
     void Init() override;
 
-    mutable Bone* m_bone;
-    AnimationTrackDesc m_desc;
+    HYP_FIELD()
+    Name m_boneName;
+
+    HYP_FIELD()
+    Array<Keyframe> m_keyframes;
 };
 
 HYP_CLASS()
-class Animation final : public HypObjectBase
+class HYP_API Animation final : public HypObjectBase
 {
     HYP_OBJECT_BODY(Animation);
 
 public:
-    HYP_API Animation();
-    HYP_API Animation(const String& name);
+    Animation();
+    explicit Animation(Name name);
     Animation(const Animation& other) = delete;
     Animation& operator=(const Animation& other) = delete;
     ~Animation() = default;
 
-    HYP_METHOD(Property = "Name", Serialize = true)
-    const String& GetName() const
+    HYP_METHOD(Property = "Name")
+    Name GetName() const
     {
         return m_name;
     }
 
-    HYP_METHOD(Property = "Name", Serialize = true)
-    void SetName(const String& name)
+    HYP_METHOD(Property = "Name")
+    void SetName(Name name)
     {
         m_name = name;
     }
 
-    HYP_METHOD(Property = "Length", Serialize = false)
+    HYP_METHOD(Property = "Length", Transient)
     float GetLength() const
     {
         return m_tracks.Empty() ? 0.0f : m_tracks.Back()->GetLength();
     }
 
     HYP_METHOD()
-    void AddTrack(const Handle<AnimationTrack>& track)
-    {
-        m_tracks.PushBack(track);
-    }
+    void AddTrack(const Handle<AnimationTrack>& track);
 
-    HYP_METHOD(Property = "Tracks", Serialize = true)
+    HYP_METHOD(Property = "Tracks")
     const Array<Handle<AnimationTrack>>& GetTracks() const
     {
         return m_tracks;
     }
 
-    HYP_METHOD(Property = "Tracks", Serialize = true)
-    void SetTracks(const Array<Handle<AnimationTrack>>& tracks)
-    {
-        m_tracks = tracks;
-    }
+    HYP_METHOD(Property = "Tracks")
+    void SetTracks(const Array<Handle<AnimationTrack>>& tracks);
 
     HYP_METHOD()
     const Handle<AnimationTrack>& GetTrack(uint32 index) const
@@ -131,17 +131,19 @@ public:
     }
 
     HYP_METHOD()
-    HYP_API void Apply(float time);
+    void Apply(Skeleton* skeleton, float time);
 
     HYP_METHOD()
-    HYP_API void ApplyBlended(float time, float blend);
+    void ApplyBlended(Skeleton* skeleton, float time, float blend);
 
 private:
     void Init() override;
 
-    String m_name;
+    HYP_FIELD(Property = "Name")
+    Name m_name;
+
+    HYP_FIELD(Property = "Tracks")
     Array<Handle<AnimationTrack>> m_tracks;
 };
 
 } // namespace hyperion
-

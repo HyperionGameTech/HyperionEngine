@@ -19,13 +19,14 @@ struct HYP_API Keyframe
     Transform transform = Transform::identity;
 
     Keyframe() = default;
-    Keyframe(const Keyframe& other) = default;
-    Keyframe& operator=(const Keyframe& other) = default;
     Keyframe(float time, const Transform& transform)
         : time(time),
           transform(transform)
     {
     }
+
+    Keyframe(const Keyframe& other) = default;
+    Keyframe& operator=(const Keyframe& other) = default;
 
     HYP_METHOD()
     Keyframe Blend(const Keyframe& to, float blend) const;

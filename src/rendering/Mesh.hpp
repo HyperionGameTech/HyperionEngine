@@ -177,7 +177,7 @@ private:
     HYP_METHOD(Property = "MeshAsset")
     const AssetReference& GetMeshAsset() const
     {
-        return m_assetReference;
+        return m_meshAsset;
     }
 
     /*! \internal Serialization only */

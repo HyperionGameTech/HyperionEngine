@@ -51,6 +51,11 @@ public:
         m_bindingTransform = transform;
     }
 
+    HYP_FORCE_INLINE const Transform& GetBindingTransform() const
+    {
+        return m_bindingTransform;
+    }
+
     void SetToBindingPose();
     void StoreBindingPose();
 

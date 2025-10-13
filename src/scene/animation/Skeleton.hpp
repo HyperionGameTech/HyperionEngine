@@ -15,6 +15,7 @@
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
+#include <asset/SkeletonAsset.hpp>
 
 #include <core/Types.hpp>
 
@@ -23,8 +24,10 @@ namespace hyperion {
 class Bone;
 class Animation;
 class RenderProxySkeleton;
-class SkeletonAsset;
 
+/*! \brief Runtime skeleton instance that references shared SkeletonAsset data.
+ *  Contains the actual bone node hierarchy that can be manipulated at runtime.
+ *  Multiple Skeleton instances can share the same SkeletonAsset. */
 HYP_CLASS()
 class HYP_API Skeleton final : public AssetObject
 {
@@ -35,7 +38,8 @@ class HYP_API Skeleton final : public AssetObject
 
 public:
     Skeleton();
-    Skeleton(const Handle<Bone>& rootBone);
+    explicit Skeleton(const Handle<Bone>& rootBone);
+    explicit Skeleton(const Handle<SkeletonAsset>& asset);
     Skeleton(const Skeleton& other) = delete;
     Skeleton& operator=(const Skeleton& other) = delete;
     ~Skeleton();
@@ -69,53 +73,12 @@ public:
      *  \returns The number of bones in this skeleton. */
     SizeType NumBones() const;
 
-    /*! \brief Get the array of animations that are associated with this skeleton.
-     *  \returns The array of animations associated with this skeleton. */
-    HYP_METHOD(Serialize, Property = "Animations")
-    const Array<Handle<Animation>>& GetAnimations() const
+    /*! \brief Get the SkeletonAsset that this skeleton references.
+     *  \returns The skeleton asset, or invalid handle if none is set. */
+    HYP_FORCE_INLINE const Handle<SkeletonAsset>& GetAsset() const
     {
-        return m_animations;
+        return m_skeletonAsset.Resolve();
     }
-
-    /*! \brief Set the array of animations that are associated with this skeleton.
-     *  \param animations The array of animations to set on this skeleton. */
-    HYP_METHOD(Serialize, Property = "Animations")
-    void SetAnimations(const Array<Handle<Animation>>& animations)
-    {
-        m_animations = animations;
-    }
-
-    /*! \brief Get the number of animations that are associated with this skeleton.
-     *  \returns The number of animations associated with this skeleton.
-     */
-    HYP_METHOD()
-    uint32 NumAnimations() const
-    {
-        return uint32(m_animations.Size());
-    }
-
-    /*! \brief Add an animation to this skeleton.
-     *  \param animation The animation to add to this skeleton.
-     */
-    HYP_METHOD()
-    void AddAnimation(const Handle<Animation>& animation);
-
-    /*! \brief Get the animation at the given index. Ensure the index is valid before calling this.
-     *  \param index The index of the animation to get.
-     *  \returns The animation at the given index.
-     */
-    HYP_METHOD()
-    const Handle<Animation>& GetAnimation(uint32 index) const
-    {
-        return m_animations[index];
-    }
-
-    /*! \brief Find an animation with the given name. If the animation could not be found, nullptr is returned.
-     *  \param name The name of the animation to find.
-     *  \param outIndex The index of the animation, if it was found.
-     *  \returns The animation with the given name, or nullptr if it could not be found.
-     */
-    const Animation* FindAnimation(UTF8StringView name, uint32* outIndex) const;
 
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
 
@@ -132,8 +95,18 @@ public:
 private:
     void Init() override;
 
+    /*! \internal Serialization only */
+    HYP_METHOD(Property = "SkeletonAsset")
+    const AssetReference& GetSkeletonAsset() const
+    {
+        return m_skeletonAsset;
+    }
+
+    /*! \internal Serialization only */
+    HYP_METHOD(Property = "SkeletonAsset")
+    void SetSkeletonAsset(const AssetReference& assetReference);
+
     Handle<Bone> m_rootBone;
-    Array<Handle<Animation>> m_animations;
 
     TAssetReference<SkeletonAsset> m_skeletonAsset;
 

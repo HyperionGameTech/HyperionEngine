@@ -2,6 +2,7 @@
 
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Bone.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -10,43 +11,47 @@ namespace hyperion {
 #pragma region AnimationTrack
 
 AnimationTrack::AnimationTrack()
-    : m_bone(nullptr)
 {
 }
 
-AnimationTrack::AnimationTrack(const AnimationTrackDesc& desc)
-    : m_bone(nullptr),
-      m_desc(desc)
+AnimationTrack::AnimationTrack(Name boneName)
+    : m_boneName(boneName)
 {
 }
 
 void AnimationTrack::Init()
 {
+    HYP_SCOPE;
+
+    HypObjectBase::Init();
+
     SetReady(true);
 }
 
 float AnimationTrack::GetLength() const
 {
-    if (m_desc.keyframes.Empty())
+    if (m_keyframes.Empty())
     {
         return 0.0f;
     }
 
-    return m_desc.keyframes.Back().time;
+    return m_keyframes.Back().time;
 }
 
 Keyframe AnimationTrack::GetKeyframe(float time) const
 {
+    HYP_SCOPE;
+
     int first = 0, second = -1;
 
-    if (m_desc.keyframes.Empty())
+    if (m_keyframes.Empty())
     {
         return { time, Transform() };
     }
 
-    for (int i = 0; i < int(m_desc.keyframes.Size() - 1); i++)
+    for (int i = 0; i < int(m_keyframes.Size() - 1); i++)
     {
-        if (MathUtil::InRange(time, { m_desc.keyframes[i].time, m_desc.keyframes[i + 1].time }))
+        if (MathUtil::InRange(time, { m_keyframes[i].time, m_keyframes[i + 1].time }))
         {
             first = i;
             second = i + 1;
@@ -55,13 +60,13 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         }
     }
 
-    const Keyframe& current = m_desc.keyframes[first];
+    const Keyframe& current = m_keyframes[first];
 
     Transform transform = current.transform;
 
     if (second > first)
     {
-        const Keyframe& next = m_desc.keyframes[second];
+        const Keyframe& next = m_keyframes[second];
 
         const float delta = (time - current.time) / (next.time - current.time);
 
@@ -79,13 +84,17 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 
 Animation::Animation() = default;
 
-Animation::Animation(const String& name)
+Animation::Animation(Name name)
     : m_name(name)
 {
 }
 
 void Animation::Init()
 {
+    HYP_SCOPE;
+
+    HypObjectBase::Init();
+
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
         InitObject(track);
@@ -94,40 +103,80 @@ void Animation::Init()
     SetReady(true);
 }
 
-void Animation::Apply(float time)
+void Animation::AddTrack(const Handle<AnimationTrack>& track)
 {
+    HYP_SCOPE;
+
+    if (!track)
+    {
+        return;
+    }
+
+    if (IsInitCalled())
+    {
+        InitObject(track);
+    }
+
+    m_tracks.PushBack(track);
+}
+
+void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
+{
+    HYP_SCOPE;
+
+    if (IsInitCalled())
+    {
+        for (const Handle<AnimationTrack>& track : tracks)
+        {
+            InitObject(track);
+        }
+    }
+
+    m_tracks = tracks;
+}
+
+void Animation::Apply(Skeleton* skeleton, float time)
+{
+    HYP_SCOPE;
+    Assert(skeleton != nullptr);
+
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
-        if (track->m_bone == nullptr)
+        Bone* bone = skeleton->FindBone(track->GetBoneName());
+        if (!bone)
         {
             continue;
         }
 
-        track->m_bone->ClearPose();
-        track->m_bone->SetKeyframe(track->GetKeyframe(time));
+        bone->ClearPose();
+        bone->SetKeyframe(track->GetKeyframe(time));
     }
 }
 
-void Animation::ApplyBlended(float time, float blend)
+void Animation::ApplyBlended(Skeleton* skeleton, float time, float blend)
 {
+    HYP_SCOPE;
+    Assert(skeleton != nullptr);
+
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
-        if (track->m_bone == nullptr)
+        Bone* bone = skeleton->FindBone(track->GetBoneName());
+        if (!bone)
         {
             continue;
         }
 
         if (blend <= MathUtil::epsilonF)
         {
-            track->m_bone->ClearPose();
+            bone->ClearPose();
         }
 
         Keyframe frame = track->GetKeyframe(time);
-        Keyframe blended = track->m_bone->GetKeyframe().Blend(
+        Keyframe blended = bone->GetKeyframe().Blend(
             frame,
             MathUtil::Clamp(blend, 0.0f, 1.0f));
 
-        track->m_bone->SetKeyframe(blended);
+        bone->SetKeyframe(blended);
     }
 }
 

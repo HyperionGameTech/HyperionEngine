@@ -236,60 +236,90 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", saxResult.message);
     }
 
-    Handle<Skeleton> skeletonHandle = CreateObject<Skeleton>();
+    SkeletonDesc skeletonDesc;
+
+    Handle<Bone> rootBone;
 
     for (const auto& item : object.bones)
     {
-        Handle<Bone> bone = CreateObject<Bone>(CreateNameFromDynamicString(item.name));
+        const Name boneName = CreateNameFromDynamicString(item.name);
+
+        Handle<Bone> bone = CreateObject<Bone>(boneName);
+
+        BoneDesc& boneDesc = skeletonDesc.bones.EmplaceBack();
+        boneDesc.name = boneName;
 
         bone->SetBindingTransform(Transform(
             item.bindingTranslation,
             Vec3f::One(),
             item.bindingRotation));
 
+        boneDesc.bindingTransform = bone->GetBindingTransform();
+
         if (item.parentName.Any())
         {
-            if (Bone* parentBone = skeletonHandle->FindBone(item.parentName))
+            if (!rootBone)
             {
+                HYP_LOG(Assets, Warning, "Ogre XML parser: Attempt to set parent bone '{}' for node '{}' but no root bone has been set yet", item.parentName, item.name);
+
+                continue;
+            }
+
+            if (Handle<Bone> parentBone = ObjCast<Bone>(rootBone->FindChildByName(*item.parentName)); parentBone.IsValid())
+            {
+                boneDesc.parentName = parentBone->GetName();
+
                 parentBone->AddChild(bone);
 
                 continue;
             }
 
-            HYP_LOG(Assets, Warning, "Ogre XML parser: Parent bone '{}' not found in skeleton at this stage", item.parentName);
+            HYP_LOG(Assets, Warning, "Ogre XML parser: Parent bone '{}' not found in hierarchy", item.parentName);
         }
-        else if (skeletonHandle->GetRootBone() != nullptr)
+        else if (rootBone)
         {
             HYP_LOG(Assets, Warning, "Ogre XML parser: Attempt to set root bone to node '{}' but it has already been set", item.name);
         }
         else
         {
-            skeletonHandle->SetRootBone(bone);
+            rootBone = bone;
         }
     }
 
+    SkeletonData skeletonData;
+
     for (const auto& animationIt : object.animations)
     {
-        Handle<Animation> animation = CreateObject<Animation>(animationIt.name);
+        const Name animationName = CreateNameFromDynamicString(animationIt.name);
+
+        Handle<Animation> animation = CreateObject<Animation>(animationName);
 
         for (const auto& trackIt : animationIt.tracks)
         {
-            AnimationTrackDesc animationTrackDesc;
-            animationTrackDesc.boneName = CreateNameFromDynamicString(trackIt.boneName);
-            animationTrackDesc.keyframes.Reserve(trackIt.keyframes.Size());
+            Handle<AnimationTrack> animationTrack = CreateObject<AnimationTrack>(CreateNameFromDynamicString(trackIt.boneName));
 
             for (const auto& keyframeIt : trackIt.keyframes)
             {
-                animationTrackDesc.keyframes.PushBack(Keyframe(
+                animationTrack->AddKeyframe(Keyframe(
                     keyframeIt.time,
                     Transform(keyframeIt.translation, Vector3::One(), keyframeIt.rotation)));
             }
 
-            animation->AddTrack(CreateObject<AnimationTrack>(animationTrackDesc));
+            animation->AddTrack(animationTrack);
         }
 
-        skeletonHandle->AddAnimation(animation);
+        skeletonDesc.animationNames.PushBack(animationName);
+
+        skeletonData.animations.PushBack(animation);
     }
+
+    Handle<SkeletonAsset> skeletonAsset = CreateObject<SkeletonAsset>(
+        CreateNameFromDynamicString(state.filepath.Basename()),
+        skeletonDesc,
+        std::move(skeletonData));
+
+    Handle<Skeleton> skeletonHandle = CreateObject<Skeleton>(skeletonAsset);
+    skeletonHandle->SetRootBone(rootBone);
 
     if (Bone* rootBone = skeletonHandle->GetRootBone())
     {

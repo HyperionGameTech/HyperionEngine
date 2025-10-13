@@ -6,6 +6,28 @@ namespace Hyperion
 {
     public static class AnimationTrackExtensions
     {
+        public static Name GetBoneName(this AnimationTrack obj)
+        {
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(14224922598587193950)).InvokeNative(obj))
+            {
+                return resultData.ReadName();
+            }
+        }
+        public static void SetBoneName(this AnimationTrack obj, Name boneName)
+        {
+            obj.GetMethod(new Name(3159939720043497514)).InvokeNative(obj, boneName);
+        }
+        public static void AddKeyframe(this AnimationTrack obj, Keyframe keyframe)
+        {
+            obj.GetMethod(new Name(1466409926732317176)).InvokeNative(obj, keyframe);
+        }
+        public static Array GetKeyframes(this AnimationTrack obj)
+        {
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(8892112913208462276)).InvokeNative(obj))
+            {
+                return (Array)resultData.GetValue();
+            }
+        }
         public static float GetLength(this AnimationTrack obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(16473511989596754871)).InvokeNative(obj))
@@ -70,13 +92,13 @@ namespace Hyperion
                 return resultData.ReadUInt32();
             }
         }
-        public static void Apply(this Animation obj, float time)
+        public static void Apply(this Animation obj, Skeleton skeleton, float time)
         {
-            obj.GetMethod(new Name(13328497331238385691)).InvokeNative(obj, time);
+            obj.GetMethod(new Name(13328497331238385691)).InvokeNative(obj, skeleton, time);
         }
-        public static void ApplyBlended(this Animation obj, float time, float blend)
+        public static void ApplyBlended(this Animation obj, Skeleton skeleton, float time, float blend)
         {
-            obj.GetMethod(new Name(15259310645485430571)).InvokeNative(obj, time, blend);
+            obj.GetMethod(new Name(15259310645485430571)).InvokeNative(obj, skeleton, time, blend);
         }
     }
 }

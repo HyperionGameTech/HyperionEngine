@@ -6,7 +6,16 @@
 #include <scene/components/AnimationComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 
+#include <core/containers/HashMap.hpp>
+
+#include <core/memory/resource/Resource.hpp>
+
+#include <asset/AssetReference.hpp>
+
 namespace hyperion {
+
+class Skeleton;
+class SkeletonAsset;
 
 HYP_CLASS(NoScriptBindings)
 class AnimationSystem : public SystemBase
@@ -22,6 +31,7 @@ public:
     virtual ~AnimationSystem() override = default;
 
     virtual void OnEntityAdded(Entity* entity) override;
+    virtual void OnEntityRemoved(Entity* entity) override;
 
     virtual void Process(float delta) override;
 
@@ -33,7 +43,8 @@ private:
             ComponentDescriptor<MeshComponent, ComponentRWFlags::READ> {}
         };
     }
+
+    HashMap<Skeleton*, ResourceHandle> m_resourceHandles;
 };
 
 } // namespace hyperion
-

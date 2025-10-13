@@ -10,10 +10,17 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion {
+
+static const Name s_nameSkeletonDefault = NAME("<unnamed skeleton>");
 
 Skeleton::Skeleton()
     : m_renderProxyVersion(0)
@@ -30,6 +37,12 @@ Skeleton::Skeleton(const Handle<Bone>& rootBone)
     }
 }
 
+Skeleton::Skeleton(const Handle<SkeletonAsset>& asset)
+    : m_skeletonAsset(asset),
+      m_renderProxyVersion(0)
+{
+}
+
 Skeleton::~Skeleton()
 {
     if (m_rootBone)
@@ -42,11 +55,32 @@ Skeleton::~Skeleton()
 
 void Skeleton::Init()
 {
+    HYP_SCOPE;
+
+    if (const Handle<SkeletonAsset>& asset = GetAsset())
+    {
+        if (!asset->IsRegistered())
+        {
+            if (Result renameResult = asset->Rename(GetName()); renameResult.HasError())
+            {
+                HYP_LOG(Animation, Warning, "Failed to rename skeleton asset to '{}': {}", GetName(), renameResult.GetError().GetMessage());
+            }
+
+            // All assets must be registered - if our asset isn't part of a package,
+            // register it with transient Memory package
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Skeletons", asset);
+        }
+    }
+
+    AssetObject::Init();
+
     SetReady(true);
 }
 
 Bone* Skeleton::FindBone(WeakName name) const
 {
+    HYP_SCOPE;
+
     if (!m_rootBone)
     {
         return nullptr;
@@ -82,6 +116,8 @@ Bone* Skeleton::FindBone(WeakName name) const
 
 uint32 Skeleton::FindBoneIndex(WeakName name) const
 {
+    HYP_SCOPE;
+
     if (!m_rootBone)
     {
         return uint32(-1);
@@ -126,6 +162,8 @@ const Handle<Bone>& Skeleton::GetRootBone() const
 
 void Skeleton::SetRootBone(const Handle<Bone>& bone)
 {
+    HYP_SCOPE;
+
     if (m_rootBone)
     {
         m_rootBone->SetSkeleton(nullptr);
@@ -152,55 +190,42 @@ SizeType Skeleton::NumBones() const
     return 1 + m_rootBone->GetDescendants().Size();
 }
 
-void Skeleton::AddAnimation(const Handle<Animation>& animation)
+void Skeleton::SetSkeletonAsset(const AssetReference& assetReference)
 {
-    if (!animation)
+    HYP_SCOPE;
+
+    if (assetReference == m_skeletonAsset)
     {
         return;
     }
 
-    for (const Handle<AnimationTrack>& track : animation->GetTracks())
-    {
-        if (!track->GetDesc().boneName.IsValid())
-        {
-            track->SetBone(nullptr);
+    m_skeletonAsset = TAssetReference<SkeletonAsset>(assetReference);
 
-            continue;
+    if (m_skeletonAsset.IsValid() && IsInitCalled())
+    {
+        const Handle<SkeletonAsset>& asset = m_skeletonAsset.Resolve();
+        if (!asset)
+        {
+            HYP_LOG(Animation, Error, "Failed to resolve skeleton asset from asset reference with path '{}'", assetReference.GetAssetPath());
+            return;
         }
 
-        track->SetBone(FindBone(track->GetDesc().boneName));
-
-        if (!track->GetBone())
+        if (!asset->IsRegistered())
         {
-            HYP_LOG(Animation, Warning, "Skeleton could not find bone with name '{}'", track->GetDesc().boneName);
+            if (Result renameResult = asset->Rename(GetName()); renameResult.HasError())
+            {
+                HYP_LOG(Animation, Warning, "Failed to rename skeleton asset to '{}': {}", GetName(), renameResult.GetError().GetMessage());
+            }
+
+            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Skeletons", asset);
         }
     }
-
-    m_animations.PushBack(animation);
-}
-
-const Animation* Skeleton::FindAnimation(UTF8StringView name, uint32* outIndex) const
-{
-    const auto it = m_animations.FindIf([&name](const auto& item)
-        {
-            return item->GetName() == name;
-        });
-
-    if (it == m_animations.End())
-    {
-        return nullptr;
-    }
-
-    if (outIndex != nullptr)
-    {
-        *outIndex = m_animations.IndexOf(it);
-    }
-
-    return it->Get();
 }
 
 void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
 {
+    HYP_SCOPE;
+
     proxy->skeleton = WeakHandleFromThis();
 
     const SizeType numBones = MathUtil::Min(SkeletonShaderData::maxBones, NumBones());
