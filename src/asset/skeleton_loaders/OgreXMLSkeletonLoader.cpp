@@ -265,6 +265,15 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
                 continue;
             }
 
+            if (rootBone->GetName() == *item.parentName)
+            {
+                boneDesc.parentName = rootBone->GetName();
+
+                rootBone->AddChild(bone);
+
+                continue;
+            }
+
             if (Handle<Bone> parentBone = ObjCast<Bone>(rootBone->FindChildByName(*item.parentName)); parentBone.IsValid())
             {
                 boneDesc.parentName = parentBone->GetName();

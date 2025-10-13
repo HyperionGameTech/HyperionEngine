@@ -136,8 +136,6 @@
       <Item Name="[Text]" Condition="m_allocation.allocationType == 1 || m_allocation.isDynamic == true &amp;&amp; isWide">((CharType *)m_allocation.buffer + m_startOffset + m_startOffset), su</Item>
       <Item Name="[Text]" Condition="m_allocation.allocationType == 2 &amp;&amp; m_allocation.isDynamic == false &amp;&amp; isWide">(((CharType *)&amp;m_allocation.storage.dataBuffer[0]) + m_startOffset), su</Item>
 
-      <Item Name="[Type]">string_type</Item>
-
       <Item Name="[Size]">(m_size - m_startOffset - 1)</Item>
       <Item Name="[Capacity]" Condition="m_allocation.allocationType == 1">m_allocation.capacity</Item>
       <Item Name="[Capacity]" Condition="m_allocation.allocationType == 2 &amp;&amp; m_allocation.isDynamic == false">m_allocation.capacity</Item>
