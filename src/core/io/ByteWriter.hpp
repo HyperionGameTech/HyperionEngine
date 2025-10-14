@@ -129,19 +129,11 @@ public:
 
     virtual void Seek(SizeType position, bool truncate = false) override
     {
-        if (position < m_buffer.Size())
-        {
-            m_pos = position;
+        m_pos = position;
 
-            if (truncate)
-            {
-                m_buffer.SetSize(m_pos);
-            }
-        }
-        else
+        if (position >= m_buffer.Size() || truncate)
         {
-            m_buffer.SetSize(position + 1);
-            m_pos = position;
+            m_buffer.SetSize(position);
         }
     }
 

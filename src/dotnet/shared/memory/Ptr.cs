@@ -44,7 +44,7 @@ namespace Hyperion
             }
 
             HypDataBuffer hypDataBuffer;
-            PtrNativeBindings.Ptr_Get(((HypClass)hypClass).TypeInfo, ptr, out hypDataBuffer);
+            PtrNativeBindings.Ptr_Get(((HypClass)hypClass).TypeInfo.Address, ptr, out hypDataBuffer);
 
             T? value = (T?)hypDataBuffer.GetValue();
 

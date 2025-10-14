@@ -425,6 +425,16 @@ struct NodeAllocator
     };
 };
 
+template <class T>
+struct IsPooledNodeAllocator : std::false_type
+{
+};
+
+template <class Allocator>
+struct IsPooledNodeAllocator<PooledNodeAllocator<Allocator>> : std::true_type
+{
+};
+
 using DynamicNodeAllocator = NodeAllocator<DynamicAllocator>;
 using DefaultNodeAllocator = PooledNodeAllocator<DynamicAllocator>;
 
@@ -671,7 +681,7 @@ public:
 
     HYP_FORCE_INLINE SizeType Capacity() const
     {
-        if constexpr (std::is_same_v<NodeAllocatorType, PooledNodeAllocator>)
+        if constexpr (IsPooledNodeAllocator<NodeAllocatorType>::value)
         {
             return m_nodeAllocator.m_pool.Capacity();
         }
@@ -1406,10 +1416,10 @@ void HashSet<Value, KeyBy, NodeAllocatorType>::Clear()
 
 } // namespace containers
 
-using containers::HashSet;
-using containers::NodeAllocator;
 using containers::DefaultNodeAllocator;
 using containers::DynamicNodeAllocator;
+using containers::HashSet;
+using containers::NodeAllocator;
 using containers::PooledNodeAllocator;
 
 template <class Value, auto KeyBy, class NodeAllocatorType>

@@ -214,7 +214,7 @@ void HyperionEditor::Init()
         }
     }
 
-    //HYP_BREAKPOINT;
+    // HYP_BREAKPOINT;
 #endif
 
     m_editorSubsystem = CreateObject<EditorSubsystem>();
@@ -337,7 +337,7 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
                 Handle<LegacyEnvGrid> envGridEntity = CreateObject<LegacyEnvGrid>(node->GetWorldAABB() * 1.2f, EnvGridOptions { EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, Vec3u { 10, 3, 10 } });
                 envGridEntity->SetName(NAME("EnvGrid2"));
                 scene->GetRoot()->AddChild(envGridEntity);

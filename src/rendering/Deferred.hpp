@@ -83,7 +83,7 @@ HYP_CLASS(NoScriptBindings)
 class DeferredPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(DeferredPass);
-    
+
     friend class DeferredRenderer;
 
 public:
@@ -96,7 +96,7 @@ public:
     virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
-    virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes) override;
+    GraphicsPipelineCacheHandle CreatePipeline(const ShaderProperties& shaderProperties);
 
     virtual void Resize_Internal(Vec2u newSize) override;
 
@@ -131,7 +131,7 @@ HYP_CLASS(NoScriptBindings)
 class TonemapPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(TonemapPass);
-    
+
 public:
     TonemapPass(Vec2u extent, GBuffer* gbuffer);
     TonemapPass(const TonemapPass& other) = delete;
@@ -162,7 +162,7 @@ HYP_CLASS(NoScriptBindings)
 class LightmapPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(LightmapPass);
-    
+
 public:
     LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer);
     LightmapPass(const LightmapPass& other) = delete;
@@ -193,7 +193,7 @@ HYP_CLASS(NoScriptBindings)
 class EnvGridPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(EnvGridPass);
-    
+
 public:
     EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer);
     EnvGridPass(const EnvGridPass& other) = delete;
@@ -233,7 +233,7 @@ HYP_CLASS(NoScriptBindings)
 class ReflectionsPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(ReflectionsPass);
-    
+
 public:
     ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView);
     ReflectionsPass(const ReflectionsPass& other) = delete;

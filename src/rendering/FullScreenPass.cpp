@@ -216,7 +216,7 @@ void FullScreenPass::Create()
     CreateRenderTextureToScreenPass();
     CreateTemporalBlending();
     CreateDescriptors();
-    CreatePipeline();
+    // CreatePipeline();
 
     m_isInitialized = true;
 }
@@ -297,7 +297,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
     CreateRenderTextureToScreenPass();
     CreateTemporalBlending();
     CreateDescriptors();
-    CreatePipeline();
+    // CreatePipeline();
 }
 
 void FullScreenPass::CreateQuad()

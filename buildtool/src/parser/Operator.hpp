@@ -68,7 +68,7 @@ enum Operators
 class Operator
 {
 public:
-    using OperatorMap = HashMap<String, Operator, HashTable_DynamicNodeAllocator>;
+    using OperatorMap = HashMap<String, Operator, DynamicNodeAllocator>;
 
     static const OperatorMap s_binaryOperators;
     static const OperatorMap s_unaryOperators;

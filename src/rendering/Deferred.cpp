@@ -95,19 +95,23 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
 static void GetDeferredShaderProperties(
+    DeferredPassMode mode,
     ShaderProperties& outShaderProperties,
     const RenderProxyList* rpl = nullptr,
     LightType lightType = LT_INVALID)
 {
     static const GlobalConfig& globalConfig = CoreApi_GetGlobalConfig();
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
-    
+
+    outShaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
+    // VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
+
     MergeGlobalShaderProperties(outShaderProperties);
 
-#define DEF_STATIC_CONFIGURATION_VALUE(name, path) \
+#define DEF_STATIC_CONFIGURATION_VALUE(name, path)                      \
     static const ConfigurationValue& s_##name = globalConfig.Get(path); \
     const bool name = s_##name.ToBool()
-    
+
     DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "rendering.raytracing.reflections.enabled");
     DEF_STATIC_CONFIGURATION_VALUE(raytracingGlobalIllumination, "rendering.raytracing.globalIllumination.enabled");
     DEF_STATIC_CONFIGURATION_VALUE(envGrid, "rendering.envGrid.globalIllumination.enabled");
@@ -121,12 +125,15 @@ static void GetDeferredShaderProperties(
 
 #undef DEF_STATIC_CONFIGURATION_VALUE
 
-    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.raytracing && raytracingReflections);
-    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.raytracing && raytracingGlobalIllumination);
-    outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGrid);
-    outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
-    outShaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
-    outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
+    if (mode == DPM_INDIRECT_LIGHTING)
+    {
+        outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.raytracing && raytracingReflections);
+        outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.raytracing && raytracingGlobalIllumination);
+        outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGrid);
+        outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
+        outShaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
+        outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
+    }
 
     if (renderConfig.raytracing && pathTracing)
     {
@@ -170,6 +177,10 @@ static inline bool ShouldRecreatePipeline(
 
     if (pipeline->GetShader()->GetCompiledShader()->GetProperties().GetHashCode() != shaderProperties.GetHashCode())
     {
+        HYP_LOG(Rendering, Debug, "Recreating graphics pipeline due to shader property mismatch:\n\nGot:\n{}\n\nExpected:\n{}\n",
+            pipeline->GetShader()->GetCompiledShader()->GetProperties().ToString(),
+            shaderProperties.ToString());
+
         return true;
     }
 
@@ -194,20 +205,28 @@ void DeferredPass::Create()
     FullScreenPass::Create();
 }
 
-void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
+GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties& shaderProperties)
 {
     HYP_SCOPE;
 
+    const RenderableAttributeSet renderableAttributes {
+        MeshAttributes { .vertexAttributes = shaderProperties.GetRequiredVertexAttributes() },
+        MaterialAttributes {
+            .fillMode = FM_FILL,
+            .blendFunction = m_blendFunction,
+            .flags = MAF_NONE }
+    };
+
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
-        ShaderProperties shaderProperties;
-        GetDeferredShaderProperties(shaderProperties);
-
         m_shader = g_shaderManager->GetOrCreate(NAME("DeferredIndirect"), shaderProperties);
         Assert(m_shader.IsValid());
 
-        FullScreenPass::CreatePipeline(renderableAttributes);
-        return;
+        return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+            m_shader,
+            nullptr,
+            { &m_framebuffer, 1 },
+            renderableAttributes);
     }
 
     // linear transform cosines texture data
@@ -250,47 +269,32 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
         InitObject(m_ltcBrdfTexture);
     }
 
-    for (uint32 i = 0; i < LT_MAX; i++)
+    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
+    Assert(shader != nullptr);
+
+    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        ShaderProperties shaderProperties;
-        GetDeferredShaderProperties(shaderProperties, nullptr, LightType(i));
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DeferredDirectDescriptorSet", frameIndex);
+        Assert(descriptorSet.IsValid());
 
-        shaderProperties.Merge(s_deferredLightTypeProperties[i]);
+        descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-        ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
-        Assert(shader != nullptr);
-
-        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DeferredDirectDescriptorSet", frameIndex);
-            Assert(descriptorSet.IsValid());
-
-            descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-
-            descriptorSet->SetElement("LTCSampler", m_ltcSampler);
-            descriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
-            descriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
-        }
-
-        DeferCreate(descriptorTable);
-
-        GraphicsPipelineCacheHandle cacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
-            shader,
-            descriptorTable,
-            { &m_framebuffer, 1 },
-            renderableAttributes);
-
-        if (i == 0)
-        {
-            m_graphicsPipelineCacheHandle = cacheHandle;
-        }
-
-        m_directLightGraphicsPipelines[i] = std::move(cacheHandle);
+        descriptorSet->SetElement("LTCSampler", m_ltcSampler);
+        descriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
+        descriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
     }
+
+    DeferCreate(descriptorTable);
+
+    return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+        shader,
+        descriptorTable,
+        { &m_framebuffer, 1 },
+        renderableAttributes);
 }
 
 void DeferredPass::Resize_Internal(Vec2u newSize)
@@ -326,13 +330,12 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     {
         // check needs invalidation
         ShaderProperties shaderProperties;
-        GetDeferredShaderProperties(shaderProperties, &rpl);
+        GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
 
         if (ShouldRecreatePipeline(m_graphicsPipelineCacheHandle, shaderProperties))
         {
-            FullScreenPass::CreatePipeline();
-
-            AssertDebug(m_graphicsPipelineCacheHandle.IsAlive());
+            m_graphicsPipelineCacheHandle = CreatePipeline(shaderProperties);
+            AssertDebug(!ShouldRecreatePipeline(m_graphicsPipelineCacheHandle, shaderProperties));
         }
 
         RenderToFramebuffer(frame, rs, nullptr);
@@ -366,13 +369,13 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             if (lightType != prevLightType)
             {
                 ShaderProperties shaderProperties;
-                GetDeferredShaderProperties(shaderProperties, &rpl, lightType);
+                GetDeferredShaderProperties(m_mode, shaderProperties, &rpl, lightType);
 
                 if (ShouldRecreatePipeline(m_directLightGraphicsPipelines[lightTypeIndex], shaderProperties))
                 {
-                    FullScreenPass::CreatePipeline();
+                    m_directLightGraphicsPipelines[lightTypeIndex] = CreatePipeline(shaderProperties);
 
-                    AssertDebug(m_directLightGraphicsPipelines[lightTypeIndex].IsAlive());
+                    AssertDebug(!ShouldRecreatePipeline(m_directLightGraphicsPipelines[lightTypeIndex], shaderProperties));
                 }
 
                 pipelineChanged = true;
@@ -566,9 +569,9 @@ void LightmapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma endregion LightmapPass
 
-#pragma region Env grid pass
+#pragma region EnvGridPass
 
-static EnvGridApplyMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
+static inline EnvGridApplyMode EnvGridTypeToApplyMode(EnvGridType type)
 {
     switch (type)
     {
@@ -579,7 +582,7 @@ static EnvGridApplyMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
     case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
         return EGAM_LIGHT_FIELD;
     default:
-        HYP_FAIL("Invalid EnvGridType");
+        HYP_UNREACHABLE();
     }
 }
 
@@ -630,13 +633,13 @@ void EnvGridPass::CreatePipeline()
         return;
     }
 
-    static const FixedArray<Pair<EnvGridApplyMode, ShaderProperties>, EGAM_MAX> applyEnvGridPasses = {
+    static const FixedArray<Pair<EnvGridApplyMode, ShaderProperties>, EGAM_MAX> s_applyEnvGridPasses = {
         Pair<EnvGridApplyMode, ShaderProperties> { EGAM_SH, ShaderProperties { { NAME("MODE_IRRADIANCE"), NAME("IRRADIANCE_MODE_SH") } } },
         Pair<EnvGridApplyMode, ShaderProperties> { EGAM_VOXEL, ShaderProperties { { NAME("MODE_IRRADIANCE"), NAME("IRRADIANCE_MODE_VOXEL") } } },
         Pair<EnvGridApplyMode, ShaderProperties> { EGAM_LIGHT_FIELD, ShaderProperties { { NAME("MODE_IRRADIANCE"), NAME("IRRADIANCE_MODE_LIGHT_FIELD") } } }
     };
 
-    for (const auto& it : applyEnvGridPasses)
+    for (const auto& it : s_applyEnvGridPasses)
     {
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ApplyEnvGrid"), it.second);
         Assert(shader.IsValid());
@@ -694,7 +697,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     {
         return m_mode == EGPM_RADIANCE
             ? m_graphicsPipelineCacheHandle
-            : m_graphicsPipelines[EnvGridTypeToApplyEnvGridMode(envGrid->GetEnvGridType())];
+            : m_graphicsPipelines[EnvGridTypeToApplyMode(envGrid->GetEnvGridType())];
     };
 
     for (EnvGrid* envGrid : rpl.GetEnvGrids().GetElements<LegacyEnvGrid>())
@@ -768,7 +771,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     m_isFirstFrame = false;
 }
 
-#pragma endregion Env grid pass
+#pragma endregion EnvGridPass
 
 #pragma region ReflectionsPass
 

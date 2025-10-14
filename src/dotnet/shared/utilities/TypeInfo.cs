@@ -22,7 +22,7 @@ namespace Hyperion
             this.ptr = ptr;
         }
 
-        public IntPtr Ptr
+        public IntPtr Address
         {
             get
             {
