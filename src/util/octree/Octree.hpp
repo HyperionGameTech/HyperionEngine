@@ -38,8 +38,8 @@ struct OctantId
     HYP_STRUCT_BODY(OctantId);
 
     //! This bit is reserved for invalid octants -- We use 3 bits for each index, leaving 1 bit left on a 64-bit integer
-    static constexpr uint64 invalidBits = 1ull << 63;
-    static constexpr SizeType maxDepth = 64 / 3;
+    static constexpr uint64 InvalidBits = 1ull << 63;
+    static constexpr SizeType MaxDepth = 64 / 3;
 
     uint64 indexBits { 0 };
     uint8 depth { 0 };
@@ -68,7 +68,7 @@ struct OctantId
 
     HYP_FORCE_INLINE bool IsInvalid() const
     {
-        return indexBits & invalidBits;
+        return indexBits & InvalidBits;
     }
 
     HYP_FORCE_INLINE bool operator==(const OctantId& other) const
@@ -135,7 +135,7 @@ struct OctantId
     {
         // 0x80 For index bit because we reserve the highest bit for invalid octants
         // 0xff for depth because +1 (used for child octant id) will cause it to overflow to 0
-        return OctantId(invalidBits, 0xff);
+        return OctantId(InvalidBits, 0xff);
     }
 };
 
@@ -202,11 +202,11 @@ protected:
         DEPTH_SEARCH_ONLY_THIS = 0
     };
 
-    static constexpr float g_growthFactor = 1.5f;
-    static const BoundingBox g_defaultBounds;
+    static constexpr float GrowthFactor = 1.5f;
+    static const BoundingBox DefaultBounds;
 
-    static constexpr uint8 g_maxDepth = OctantId::maxDepth;
-    static constexpr EnumFlags<OctreeFlags> g_flags = OctreeFlags::OF_DEFAULT;
+    static constexpr uint8 MaxDepth = OctantId::MaxDepth;
+    static constexpr EnumFlags<OctreeFlags> Flags = OctreeFlags::OF_DEFAULT;
 
     OctreeBase();
     OctreeBase(const BoundingBox& aabb);

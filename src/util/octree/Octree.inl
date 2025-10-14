@@ -30,9 +30,9 @@ void OctreeState<Derived, Payload>::MarkOctantDirty(OctantId octantId, bool need
 
 template <class Derived, class Payload>
 OctreeBase<Derived, Payload>::OctreeBase()
-    : OctreeBase(Derived::g_defaultBounds)
+    : OctreeBase(Derived::DefaultBounds)
 {
-    static_assert(Derived::g_maxDepth <= OctantId::maxDepth);
+    static_assert(Derived::MaxDepth <= OctantId::MaxDepth);
 }
 
 template <class Derived, class Payload>
@@ -337,7 +337,7 @@ void OctreeBase<Derived, Payload>::Clear(Array<Payload>& outPayloads, bool undiv
 template <class Derived, class Payload>
 OctreeBase<Derived, Payload>::Result OctreeBase<Derived, Payload>::Insert(const Payload& payload, const BoundingBox& aabb)
 {
-    if (Derived::g_flags & OF_INSERT_ON_OVERLAP)
+    if (Derived::Flags & OF_INSERT_ON_OVERLAP)
     {
         AssertDebug(aabb.IsValid() && aabb.IsFinite() && !aabb.IsZero(), "Attempting to insert invalid AABB into octree: {}", aabb);
     }
@@ -350,13 +350,13 @@ OctreeBase<Derived, Payload>::Result OctreeBase<Derived, Payload>::Insert(const 
         }
 
         // stop recursing if we are at max depth
-        if (m_octantId.GetDepth() < int(Derived::g_maxDepth) - 1)
+        if (m_octantId.GetDepth() < int(Derived::MaxDepth) - 1)
         {
             bool wasInserted = false;
 
             for (Octant& octant : m_octants)
             {
-                if (!((Derived::g_flags & OF_INSERT_ON_OVERLAP) ? octant.aabb.Overlaps(aabb) : octant.aabb.Contains(aabb)))
+                if (!((Derived::Flags & OF_INSERT_ON_OVERLAP) ? octant.aabb.Overlaps(aabb) : octant.aabb.Contains(aabb)))
                 {
                     continue;
                 }
@@ -371,7 +371,7 @@ OctreeBase<Derived, Payload>::Result OctreeBase<Derived, Payload>::Insert(const 
                 Result insertResult = octant.octree->Insert(payload, aabb);
                 wasInserted |= bool(insertResult.HasValue());
 
-                if (Derived::g_flags & OF_INSERT_ON_OVERLAP)
+                if (Derived::Flags & OF_INSERT_ON_OVERLAP)
                 {
                     AssertDebug(insertResult.HasValue(), "Failed to insert into overlapping octant! Message: {}", insertResult.GetError().GetMessage());
                 }

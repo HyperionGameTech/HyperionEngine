@@ -61,6 +61,11 @@ struct SceneOctreePayload
                 || aabb != other.aabb;
         }
 
+        HYP_FORCE_INLINE ObjId<Entity> GetId() const
+        {
+            return value ? value->Id() : ObjId<Entity>::invalid;
+        }
+
         HYP_FORCE_INLINE HashCode GetHashCode() const
         {
             HashCode hc;
@@ -72,7 +77,7 @@ struct SceneOctreePayload
         }
     };
 
-    using EntrySet = SparsePagedArray<Entry, 1024>;
+    using EntrySet = HashSet<Entry, &Entry::GetId, HashTable_DynamicNodeAllocator<Entry>>;
 
     EntrySet entries;
 
@@ -195,7 +200,7 @@ private:
 
     HYP_FORCE_INLINE bool UseEntityMap() const
     {
-        return m_state != nullptr && !(g_flags & OF_INSERT_ON_OVERLAP);
+        return m_state != nullptr && !Flags[OF_INSERT_ON_OVERLAP];
     }
 
     static SceneOctree* CreateChildOctant(SceneOctree* parent, const BoundingBox& aabb, uint8 index)

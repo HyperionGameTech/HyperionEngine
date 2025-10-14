@@ -721,6 +721,40 @@ public:
     Iterator FindByHashCode(HashCode hashCode);
     ConstIterator FindByHashCode(HashCode hashCode) const;
 
+    HYP_FORCE_INLINE ValueType& Get(const KeyType& value)
+    {
+        return At(value);
+    }
+
+    HYP_FORCE_INLINE const ValueType& Get(const KeyType& value) const
+    {
+        return At(value);
+    }
+
+    HYP_FORCE_INLINE ValueType* TryGet(const KeyType& value)
+    {
+        auto it = Find(value);
+
+        if (it == End())
+        {
+            return nullptr;
+        }
+
+        return &(*it);
+    }
+
+    HYP_FORCE_INLINE const ValueType* TryGet(const KeyType& value) const
+    {
+        auto it = Find(value);
+
+        if (it == End())
+        {
+            return nullptr;
+        }
+
+        return &(*it);
+    }
+
     HYP_FORCE_INLINE bool Contains(const KeyType& value) const
     {
         return Find(value) != End();

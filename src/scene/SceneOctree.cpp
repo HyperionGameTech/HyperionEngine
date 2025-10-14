@@ -66,7 +66,7 @@ void SceneOctree::SetEntityManager(const Handle<EntityManager>& entityManager)
 
 void SceneOctree::Collect(Array<Entity*>& outEntities) const
 {
-    outEntities.Reserve(outEntities.Size() + m_payload.entries.Count());
+    outEntities.Reserve(outEntities.Size() + m_payload.entries.Size());
 
     for (const SceneOctreePayload::Entry& entry : m_payload.entries)
     {
@@ -91,7 +91,7 @@ void SceneOctree::Collect(const BoundingSphere& bounds, Array<Entity*>& outEntit
         return;
     }
 
-    outEntities.Reserve(outEntities.Size() + m_payload.entries.Count());
+    outEntities.Reserve(outEntities.Size() + m_payload.entries.Size());
 
     for (const SceneOctreePayload::Entry& entry : m_payload.entries)
     {
@@ -119,7 +119,7 @@ void SceneOctree::Collect(const BoundingBox& bounds, Array<Entity*>& outEntities
         return;
     }
 
-    outEntities.Reserve(outEntities.Size() + m_payload.entries.Count());
+    outEntities.Reserve(outEntities.Size() + m_payload.entries.Size());
 
     for (const SceneOctreePayload::Entry& entry : m_payload.entries)
     {
@@ -194,7 +194,7 @@ SceneOctree::Result SceneOctree::Rebuild()
 {
     if (IsRoot())
     {
-        return Rebuild(BoundingBox::Empty(), /* allowGrow */ g_flags[OF_ALLOW_GROW_ROOT]);
+        return Rebuild(BoundingBox::Empty(), /* allowGrow */ Flags[OF_ALLOW_GROW_ROOT]);
     }
     else
     {
@@ -219,7 +219,7 @@ SceneOctree::Result SceneOctree::RebuildExtend_Internal(const BoundingBox& exten
     BoundingBox newAabb(m_aabb.Union(extendIncludeAabb));
     // grow our new aabb by a predetermined growth factor,
     // to keep it from constantly resizing
-    newAabb *= g_growthFactor;
+    newAabb *= GrowthFactor;
 
     return Rebuild(newAabb, /* allowGrow */ false);
 }
@@ -337,7 +337,7 @@ SceneOctree::Result SceneOctree::Insert(Entity* entity, const BoundingBox& aabb,
         return HYP_MAKE_ERROR(Error, "Cannot insert null entity into octree");
     }
 
-    if (g_flags & OF_INSERT_ON_OVERLAP)
+    if (Flags & OF_INSERT_ON_OVERLAP)
     {
         if (!aabb.IsValid() || !aabb.IsFinite() || aabb.IsZero())
         {
@@ -349,7 +349,7 @@ SceneOctree::Result SceneOctree::Insert(Entity* entity, const BoundingBox& aabb,
     {
         if (IsRoot())
         {
-            if (!m_aabb.Contains(aabb) && (g_flags & OF_ALLOW_GROW_ROOT))
+            if (!m_aabb.Contains(aabb) && (Flags & OF_ALLOW_GROW_ROOT))
             {
                 if (allowRebuild)
                 {
@@ -376,13 +376,13 @@ SceneOctree::Result SceneOctree::Insert(Entity* entity, const BoundingBox& aabb,
         }
 
         // stop recursing if we are at max depth
-        if (m_octantId.GetDepth() < g_maxDepth - 1)
+        if (m_octantId.GetDepth() < MaxDepth - 1)
         {
             bool wasInserted = false;
 
             for (Octant& octant : m_octants)
             {
-                if (!((g_flags & OF_INSERT_ON_OVERLAP) ? octant.aabb.Overlaps(aabb) : octant.aabb.Contains(aabb)))
+                if (!((Flags & OF_INSERT_ON_OVERLAP) ? octant.aabb.Overlaps(aabb) : octant.aabb.Contains(aabb)))
                 {
                     continue;
                 }
@@ -409,7 +409,7 @@ SceneOctree::Result SceneOctree::Insert(Entity* entity, const BoundingBox& aabb,
                 Result insertResult = octant.octree->Insert(entity, aabb, allowRebuild);
                 wasInserted |= bool(insertResult.HasValue());
 
-                if (g_flags & OF_INSERT_ON_OVERLAP)
+                if (Flags & OF_INSERT_ON_OVERLAP)
                 {
                     AssertDebug(insertResult.HasValue(), "Failed to insert into overlapping octant! Message: {}", insertResult.GetError().GetMessage());
                 }
@@ -450,7 +450,7 @@ SceneOctree::Result SceneOctree::Insert_Internal(Entity* entity, const BoundingB
         entity->InstanceClass()->GetName());
 #endif
 
-    m_payload.entries.Set(entity->Id().ToIndex(), SceneOctreePayload::Entry { entity, aabb });
+    m_payload.entries.Insert(SceneOctreePayload::Entry { entity, aabb });
 
     // mark dirty (not for rebuild), but ontant id has changed
     m_state->MarkOctantDirty(m_octantId);
@@ -493,8 +493,8 @@ SceneOctree::Result SceneOctree::Remove_Internal(Entity* entity, bool allowRebui
         entity->InstanceClass()->GetName());
 #endif
 
-    const SizeType entryIndex = entity->Id().ToIndex();
-    SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entryIndex);
+    const ObjId<Entity> entityId = entity->Id();
+    SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entityId);
 
     if (!entry)
     {
@@ -506,7 +506,7 @@ SceneOctree::Result SceneOctree::Remove_Internal(Entity* entity, bool allowRebui
             {
                 Assert(octant.octree != nullptr);
 
-                if (g_flags & OF_INSERT_ON_OVERLAP)
+                if (Flags & OF_INSERT_ON_OVERLAP)
                 {
                     wasRemoved |= bool(octant.octree->Remove_Internal(entity, allowRebuild));
                 }
@@ -540,7 +540,7 @@ SceneOctree::Result SceneOctree::Remove_Internal(Entity* entity, bool allowRebui
         }
     }
 
-    m_payload.entries.EraseAt(entryIndex);
+    m_payload.entries.Erase(entityId);
 
     m_state->MarkOctantDirty(m_octantId);
 
@@ -653,7 +653,7 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
                         }
                     }
 
-                    m_payload.entries.EraseAt(entry->value->Id().ToIndex());
+                    m_payload.entries.Erase(entry->value->Id());
                 }
 
                 parentInsertResult = parent->Move(entity, aabb, allowRebuild, nullptr);
@@ -691,7 +691,7 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
         // Check if we can go deeper.
         for (Octant& octant : m_octants)
         {
-            if ((g_flags & OF_INSERT_ON_OVERLAP) ? octant.aabb.Overlaps(newAabb) : octant.aabb.Contains(newAabb))
+            if ((Flags & OF_INSERT_ON_OVERLAP) ? octant.aabb.Overlaps(newAabb) : octant.aabb.Contains(newAabb))
             {
                 if (entry)
                 {
@@ -707,12 +707,12 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
                         }
                     }
 
-                    m_payload.entries.EraseAt(entry->value->Id().ToIndex());
+                    m_payload.entries.Erase(entry->value->Id());
                 }
 
                 if (!IsDivided())
                 {
-                    if (allowRebuild && m_octantId.GetDepth() < int(g_maxDepth) - 1)
+                    if (allowRebuild && m_octantId.GetDepth() < int(MaxDepth) - 1)
                     {
                         Divide();
                     }
@@ -725,7 +725,7 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
 
                 AssertDebug(octant.octree != nullptr);
 
-                if (g_flags & OF_INSERT_ON_OVERLAP)
+                if (Flags & OF_INSERT_ON_OVERLAP)
                 {
                     wasMoved |= bool(octant.octree->Move(entity, aabb, allowRebuild, nullptr));
                 }
@@ -757,7 +757,7 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
     else
     {
         /* Moved into this octant */
-        m_payload.entries.Set(entity->Id().ToIndex(), SceneOctreePayload::Entry { entity, newAabb });
+        m_payload.entries.Insert(SceneOctreePayload::Entry { entity, newAabb });
 
         if (UseEntityMap())
         {
@@ -809,8 +809,8 @@ SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingB
         entity->InstanceClass()->GetName());
 #endif
 
-    const SizeType entryIndex = entity->Id().ToIndex();
-    SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entryIndex);
+    const ObjId<Entity> entityId = entity->Id();
+    SceneOctreePayload::Entry* entry = m_payload.entries.TryGet(entityId);
 
     if (!entry)
     {
@@ -822,7 +822,7 @@ SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingB
             {
                 Assert(octant.octree != nullptr);
 
-                if (g_flags & OF_INSERT_ON_OVERLAP)
+                if (Flags & OF_INSERT_ON_OVERLAP)
                 {
                     wasUpdated |= bool(octant.octree->Update_Internal(entity, aabb, forceInvalidation, allowRebuild));
                 }
