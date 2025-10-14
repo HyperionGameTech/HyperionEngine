@@ -283,7 +283,7 @@ protected:
 
     HYP_FORCE_INLINE bool ContainsAabb(const BoundingBox& aabb) const
     {
-        return (Derived::g_flags & OF_INSERT_ON_OVERLAP) ? m_aabb.Overlaps(aabb) : m_aabb.Contains(aabb);
+        return (Derived::Flags & OF_INSERT_ON_OVERLAP) ? m_aabb.Overlaps(aabb) : m_aabb.Contains(aabb);
     }
 
     HYP_FORCE_INLINE bool IsRoot() const

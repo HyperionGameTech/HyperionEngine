@@ -1,5 +1,5 @@
 template <class Derived, class Payload>
-const BoundingBox OctreeBase<Derived, Payload>::g_defaultBounds = BoundingBox({ -250.0f }, { 250.0f });
+const BoundingBox OctreeBase<Derived, Payload>::DefaultBounds = BoundingBox({ -250.0f }, { 250.0f });
 
 template <class Derived, class Payload>
 void OctreeState<Derived, Payload>::MarkOctantDirty(OctantId octantId, bool needsRebuild)
