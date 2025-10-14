@@ -306,6 +306,158 @@ class HYP_API Node : public HypObjectBase
     HYP_OBJECT_BODY(Node);
 
 public:
+    class DescendantsIterator
+    {
+    public:
+        DescendantsIterator()
+            : m_current(nullptr)
+        {
+        }
+
+        explicit DescendantsIterator(const Node* root)
+            : m_current(nullptr)
+        {
+            if (root != nullptr && root->GetChildren().Any())
+            {
+                // Start with first child of root
+                m_stack.PushBack({ root, 0 });
+                ++(*this);
+            }
+        }
+
+        DescendantsIterator& operator++()
+        {
+            while (m_stack.Any())
+            {
+                auto& [node, index] = m_stack.Back();
+
+                if (index < node->GetChildren().Size())
+                {
+                    const Handle<Node>& child = node->GetChildren()[index];
+                    ++index;
+
+                    if (child.IsValid())
+                    {
+                        m_current = child.Get();
+
+                        if (m_current->GetChildren().Any())
+                        {
+                            m_stack.PushBack({ m_current, 0 });
+                        }
+
+                        return *this;
+                    }
+                }
+                else
+                {
+                    m_stack.PopBack();
+                }
+            }
+
+            m_current = nullptr;
+            return *this;
+        }
+
+        DescendantsIterator operator++(int)
+        {
+            DescendantsIterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+        Node* operator*() const
+        {
+            return m_current;
+        }
+
+        Node* operator->() const
+        {
+            return m_current;
+        }
+
+        bool operator==(const DescendantsIterator& other) const
+        {
+            return m_current == other.m_current;
+        }
+
+        bool operator!=(const DescendantsIterator& other) const
+        {
+            return m_current != other.m_current;
+        }
+
+    private:
+        struct StackEntry
+        {
+            const Node* node;
+            SizeType index;
+        };
+
+        Node* m_current;
+        Array<StackEntry> m_stack;
+    };
+
+    class DescendantsView
+    {
+    public:
+        explicit DescendantsView(const Node* node)
+            : m_node(node)
+        {
+        }
+
+        DescendantsIterator Begin() const
+        {
+            return DescendantsIterator(m_node);
+        }
+
+        DescendantsIterator End() const
+        {
+            return DescendantsIterator();
+        }
+
+        DescendantsIterator begin() const { return Begin(); }
+        DescendantsIterator end() const { return End(); }
+
+        /*! \brief Get the number of descendant nodes.
+         *  \note This method traverses the entire tree to count descendants, so it has O(n) complexity.
+         *  \returns The total count of descendant nodes. */
+        SizeType Size() const
+        {
+            SizeType count = 0;
+
+            for (auto it = Begin(); it != End(); ++it)
+            {
+                ++count;
+            }
+
+            return count;
+        }
+
+        /*! \brief Get a descendant node by index.
+         *  \param index The index of the descendant to retrieve (0-based).
+         *  \note This method traverses the tree up to the specified index, so it has O(index) complexity.
+         *        For sequential access, prefer using iterators directly.
+         *  \returns A pointer to the node at the specified index, or nullptr if the index is out of bounds. */
+        Node* operator[](SizeType index) const
+        {
+            SizeType currentIndex = 0;
+
+            for (auto it = Begin(); it != End(); ++it)
+            {
+                if (currentIndex == index)
+                {
+                    return *it;
+                }
+
+                ++currentIndex;
+            }
+
+            return nullptr;
+        }
+
+    private:
+        const Node* m_node;
+    };
+
     struct Delegates
     {
         Delegate<void, Node*, bool /* direct */> OnChildAdded;
@@ -485,10 +637,16 @@ public:
         return m_childNodes;
     }
 
-    /*! \brief Get all descendant child Nodes from this Node. This vector is pre-calculated,
-     * so no calculation happens when calling this method.
+    /*! \brief Get all descendant child Nodes from this Node.
+     * \returns A view that can be iterated over to traverse all descendant nodes */
+    DescendantsView GetDescendants() const
+    {
+        return DescendantsView(this);
+    }
+
+    /*! \brief Get all descendant child Nodes from this Node as an array.
      * \returns A vector of raw pointers to descendant Nodes */
-    Array<Node*> GetDescendants() const;
+    Array<Node*> GetDescendantsArray() const;
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property = "LocalTransform", Editor = true, Label = "Local-space Transform", EditorPropertyPanelClass = "TransformEditorPropertyPanel")

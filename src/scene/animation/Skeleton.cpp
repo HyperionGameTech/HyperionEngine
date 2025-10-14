@@ -228,31 +228,38 @@ void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
 
     proxy->skeleton = WeakHandleFromThis();
 
-    const SizeType numBones = MathUtil::Min(SkeletonShaderData::maxBones, NumBones());
-
-    if (numBones != 0)
+    if (m_rootBone != nullptr)
     {
         SkeletonShaderData& bufferData = proxy->bufferData;
         bufferData.bones[0] = m_rootBone->GetBoneMatrix();
 
-        for (SizeType i = 1; i < numBones; i++)
+        uint32 descendantIndex = 1;
+
+        for (Node* descendant : m_rootBone->GetDescendants())
         {
-            if (Node* descendant = m_rootBone->GetDescendants()[i - 1])
+            if (descendantIndex >= SkeletonShaderData::maxBones)
             {
-                if (!descendant)
-                {
-                    continue;
-                }
-
-                Bone* bone = ObjCast<Bone>(descendant);
-
-                if (!bone)
-                {
-                    continue;
-                }
-
-                bufferData.bones[i] = bone->GetBoneMatrix();
+                HYP_LOG_ONCE(Animation, Warning, "Skeleton has more bones than supported by the shader ({}). Some bones will be ignored in skinning.", SkeletonShaderData::maxBones);
+                break;
             }
+
+            if (!descendant)
+            {
+                ++descendantIndex;
+                continue;
+            }
+
+            Bone* bone = ObjCast<Bone>(descendant);
+
+            if (!bone)
+            {
+                ++descendantIndex;
+                continue;
+            }
+
+            bufferData.bones[descendantIndex] = bone->GetBoneMatrix();
+            
+            ++descendantIndex;
         }
     }
 }

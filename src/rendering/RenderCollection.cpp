@@ -137,7 +137,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, Rend
     hasInstancing = proxy->instanceData.enableAutoInstancing || proxy->instanceData.numInstances > 1;
     hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
     hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
-    hasSkinning = proxy->skeleton != nullptr && proxy->skeleton->NumBones() > 0;
+    hasSkinning = proxy->skeleton != nullptr && proxy->skeleton->GetRootBone() != nullptr;
 
     //    // temp testing
     //    MaterialAttributes materialAttributes = attributes.GetMaterialAttributes();

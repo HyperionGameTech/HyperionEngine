@@ -582,7 +582,7 @@ Node::NodeList::ConstIterator Node::FindChild(const char* name) const
         });
 }
 
-Array<Node*> Node::GetDescendants() const
+Array<Node*> Node::GetDescendantsArray() const
 {
     // add all children to the list
     Array<Node*> descendants;
