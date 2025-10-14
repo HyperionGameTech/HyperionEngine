@@ -39,7 +39,7 @@ public:
         }
     };
 
-    using InternalMapType = HashMap<VMMapKey, HypData, HashTable_DynamicNodeAllocator<KeyValuePair<VMMapKey, HypData>>>;
+    using InternalMapType = HashMap<VMMapKey, HypData, DynamicNodeAllocator>;
 
     Script_HashMap();
     Script_HashMap(const Script_HashMap& other) = delete;

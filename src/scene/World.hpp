@@ -69,7 +69,7 @@ class HYP_API World final : public HypObjectBase
     HYP_OBJECT_BODY(World);
 
 public:
-    using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, HashTable_DynamicNodeAllocator<KeyValuePair<TypeId, Handle<Subsystem>>>>;
+    using SubsystemsMap = HashMap<TypeId, Handle<Subsystem>, DynamicNodeAllocator>;
 
     World();
     World(const World& other) = delete;
@@ -77,13 +77,13 @@ public:
     World(World&& other) noexcept = delete;
     World& operator=(World&& other) noexcept = delete;
     ~World() override;
-    
+
     HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
     }
-    
+
     HYP_METHOD()
     HYP_FORCE_INLINE void SetName(Name name)
     {
@@ -217,7 +217,7 @@ public:
 
 private:
     void Init() override;
-    
+
     HYP_FIELD(Property = "Name", Serialize = true)
     Name m_name;
 
@@ -247,4 +247,3 @@ private:
 };
 
 } // namespace hyperion
-

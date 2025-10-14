@@ -19,8 +19,8 @@ namespace containers {
  *  A custom allocator can be provided to control memory allocation for the nodes.
  *  \tparam Key The type of keys stored in the hash map.
  * \tparam Value The type of values stored in the hash map.
- * \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash map elements. The default is `HashTable_DefaultNodeAllocator<KeyValuePair<Key, Value>>`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `HashTable_DynamicNodeAllocator<KeyValuePair<Key, Value>>` instead. */
-template <class Key, class Value, class NodeAllocatorType = HashTable_DefaultNodeAllocator<KeyValuePair<Key, Value>>>
+ * \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash map elements. The default is `DefaultNodeAllocator`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `HashTable_DynamicNodeAllocator` instead. */
+template <class Key, class Value, class NodeAllocatorType = DefaultNodeAllocator>
 class HashMap : public HashSet<KeyValuePair<Key, Value>, &KeyValuePair<Key, Value>::first, NodeAllocatorType>
 {
 public:

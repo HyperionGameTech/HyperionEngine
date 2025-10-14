@@ -269,157 +269,172 @@ struct HashSetBucket
     }
 };
 
-template <class Value, class ArrayAllocatorType = typename containers::ArrayDefaultAllocatorSelector<Value, 32>::Type>
-struct HashTable_PooledNodeAllocator
+template <class Allocator>
+struct PooledNodeAllocator
 {
-    using Node = HashSetElement<Value>;
-    using Bucket = HashSetBucket<Value>;
-
-    Node* m_freeNodesHead = nullptr;
-    Array<Node, ArrayAllocatorType> m_pool;
-
-    template <class Ty>
-    Node* Allocate(Ty&& value, Span<Bucket> buckets)
+    template <class Value>
+    struct Impl
     {
-        if (m_freeNodesHead != nullptr)
-        {
-            Node* ptr = m_freeNodesHead;
-            m_freeNodesHead = ptr->next;
+        using Node = HashSetElement<Value>;
+        using Bucket = HashSetBucket<Value>;
 
-            ptr->value = std::forward<Ty>(value);
-            ptr->next = nullptr;
+        Node* m_freeNodesHead = nullptr;
+        Array<Node, Allocator> m_pool;
+
+        template <class Ty>
+        Node* Allocate(Ty&& value, Span<Bucket> buckets)
+        {
+            if (m_freeNodesHead != nullptr)
+            {
+                Node* ptr = m_freeNodesHead;
+                m_freeNodesHead = ptr->next;
+
+                ptr->value = std::forward<Ty>(value);
+                ptr->next = nullptr;
+
+                return ptr;
+            }
+
+            HYP_CORE_ASSERT(m_pool.Capacity() >= m_pool.Size() + 1, "Allocate() call would invalidate element pointers - Capacity should be updated before this call");
+
+            Node* previousBase = m_pool.Data();
+
+            Node* ptr = &m_pool.EmplaceBack(std::forward<Ty>(value));
+
+            Node* newBase = m_pool.Data();
+
+            HYP_CORE_ASSERT(previousBase == newBase, "Allocate() call would invalidate element pointers - Capacity should be updated before this call");
 
             return ptr;
         }
 
-        HYP_CORE_ASSERT(m_pool.Capacity() >= m_pool.Size() + 1, "Allocate() call would invalidate element pointers - Capacity should be updated before this call");
-
-        Node* previousBase = m_pool.Data();
-
-        Node* ptr = &m_pool.EmplaceBack(std::forward<Ty>(value));
-
-        Node* newBase = m_pool.Data();
-
-        HYP_CORE_ASSERT(previousBase == newBase, "Allocate() call would invalidate element pointers - Capacity should be updated before this call");
-
-        return ptr;
-    }
-
-    void Free(Node* node)
-    {
-        HYP_CORE_ASSERT(node != nullptr, "Cannot free a null node");
-
-        // Set the value to a default value
-        node->value = Value();
-        node->next = m_freeNodesHead;
-
-        m_freeNodesHead = node;
-    }
-
-    void Fixup(const Node* previousBase, const Node* newBase, Span<Bucket> buckets)
-    {
-        if (!previousBase || previousBase == newBase)
+        void Free(Node* node)
         {
-            return;
+            HYP_CORE_ASSERT(node != nullptr, "Cannot free a null node");
+
+            // Set the value to a default value
+            node->value = Value();
+            node->next = m_freeNodesHead;
+
+            m_freeNodesHead = node;
         }
 
-        const auto shift = [previousBase, newBase](Node* p) -> Node*
+        void Fixup(const Node* previousBase, const Node* newBase, Span<Bucket> buckets)
         {
-            if (!p)
+            if (!previousBase || previousBase == newBase)
             {
-                return nullptr;
+                return;
             }
 
-            return reinterpret_cast<Node*>(UIntPtr(newBase) + (UIntPtr(p) - UIntPtr(previousBase)));
-        };
-
-        for (Bucket& bucket : buckets)
-        {
-            bucket.head = shift(bucket.head);
-        }
-
-        if (m_freeNodesHead)
-        {
-            m_freeNodesHead = shift(m_freeNodesHead);
-        }
-
-        for (Node& n : m_pool)
-        {
-            if (n.next)
+            const auto shift = [previousBase, newBase](Node* p) -> Node*
             {
-                n.next = shift(n.next);
+                if (!p)
+                {
+                    return nullptr;
+                }
+
+                return reinterpret_cast<Node*>(UIntPtr(newBase) + (UIntPtr(p) - UIntPtr(previousBase)));
+            };
+
+            for (Bucket& bucket : buckets)
+            {
+                bucket.head = shift(bucket.head);
+            }
+
+            if (m_freeNodesHead)
+            {
+                m_freeNodesHead = shift(m_freeNodesHead);
+            }
+
+            for (Node& n : m_pool)
+            {
+                if (n.next)
+                {
+                    n.next = shift(n.next);
+                }
             }
         }
-    }
 
-    void Reserve(SizeType capacity, Span<Bucket> buckets)
-    {
-        if (capacity <= m_pool.Capacity())
+        void Reserve(SizeType capacity, Span<Bucket> buckets)
         {
-            return;
+            if (capacity <= m_pool.Capacity())
+            {
+                return;
+            }
+
+            const Node* previousBase = m_pool.Data();
+            m_pool.Reserve(capacity);
+
+            Node* newBase = m_pool.Data();
+
+            Fixup(previousBase, newBase, buckets);
         }
 
-        const Node* previousBase = m_pool.Data();
-        m_pool.Reserve(capacity);
+        void Swap(Impl& other, Span<Bucket> buckets)
+        {
+            std::swap(m_freeNodesHead, other.m_freeNodesHead);
 
-        Node* newBase = m_pool.Data();
+            Node* previousBase = other.m_pool.Data();
 
-        Fixup(previousBase, newBase, buckets);
-    }
+            m_pool = std::move(other.m_pool);
 
-    void Swap(HashTable_PooledNodeAllocator& other, Span<Bucket> buckets)
-    {
-        std::swap(m_freeNodesHead, other.m_freeNodesHead);
+            Node* newBase = m_pool.Data();
 
-        Node* previousBase = other.m_pool.Data();
-
-        m_pool = std::move(other.m_pool);
-
-        Node* newBase = m_pool.Data();
-
-        Fixup(previousBase, newBase, buckets);
-    }
+            Fixup(previousBase, newBase, buckets);
+        }
+    };
 };
 
-template <class Value>
-struct HashTable_DynamicNodeAllocator
+template <class Allocator>
+struct NodeAllocator
 {
-    using Node = HashSetElement<Value>;
-    using Bucket = HashSetBucket<Value>;
-
-    template <class Ty>
-    Node* Allocate(Ty&& value, Span<Bucket> buckets)
+    template <class Value>
+    struct Impl
     {
-        Node* node = new Node(std::forward<Ty>(value));
-        return node;
-    }
+        using Node = HashSetElement<Value>;
+        using Bucket = HashSetBucket<Value>;
 
-    HYP_FORCE_INLINE void Free(Node* node)
-    {
-        delete node;
-    }
+        template <class Ty>
+        Node* Allocate(Ty&& value, Span<Bucket> buckets)
+        {
+            void* mem = Allocator().Allocate(sizeof(Node), alignof(Node));
+            HYP_CORE_ASSERT(mem != nullptr);
 
-    HYP_FORCE_INLINE void Reserve(SizeType capacity, Span<Bucket> buckets)
-    {
-        return; // No-op for dynamic allocation
-    }
+            return new (mem) Node(std::forward<Ty>(value));
+        }
 
-    HYP_FORCE_INLINE void Swap(HashTable_DynamicNodeAllocator& other, Span<Bucket> buckets)
-    {
-        // No-op for dynamic allocation
-    }
+        HYP_FORCE_INLINE void Free(Node* node)
+        {
+            if (node != nullptr)
+            {
+                node->~Node();
+
+                Allocator().Free(node);
+            }
+        }
+
+        HYP_FORCE_INLINE void Reserve(SizeType capacity, Span<Bucket> buckets)
+        {
+            return; // No-op for dynamic allocation
+        }
+
+        HYP_FORCE_INLINE void Swap(Impl& other, Span<Bucket> buckets)
+        {
+            // No-op for dynamic allocation
+        }
+    };
 };
 
-template <class Value>
-using HashTable_DefaultNodeAllocator = HashTable_PooledNodeAllocator<Value>;
+using DynamicNodeAllocator = NodeAllocator<DynamicAllocator>;
+using DefaultNodeAllocator = PooledNodeAllocator<DynamicAllocator>;
 
 /*! \brief A hash set container that uses a hash table to store unique values, supporting a custom node allocator and a key extraction function.
  *  \details This container allows for efficient storage and retrieval of unique values based on a key extracted from each value using the provided `KeyBy` function. The default key extraction function is the identity function, which uses the value itself as the key.
  *  \tparam Value The type of values stored in the hash set.
  *  \tparam KeyBy A function that extracts a key from a value. The default is the identity function, which uses the value itself as the key.
- *  \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash set elements. The default is `HashTable_DefaultNodeAllocator<Value>`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `HashTable_DynamicNodeAllocator<Value>` instead.
+ *  \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash set elements. The default is `DefaultNodeAllocator`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `DynamicNodeAllocator<Value>` instead.
  */
-template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class NodeAllocatorType = HashTable_DefaultNodeAllocator<Value>>
+template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class NodeAllocatorType = DefaultNodeAllocator>
 class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
 public:
@@ -656,7 +671,7 @@ public:
 
     HYP_FORCE_INLINE SizeType Capacity() const
     {
-        if constexpr (std::is_same_v<NodeAllocatorType, HashTable_PooledNodeAllocator<Value>>)
+        if constexpr (std::is_same_v<NodeAllocatorType, PooledNodeAllocator>)
         {
             return m_nodeAllocator.m_pool.Capacity();
         }
@@ -950,7 +965,7 @@ protected:
     }
 
     BucketArray m_buckets;
-    NodeAllocatorType m_nodeAllocator;
+    typename NodeAllocatorType::template Impl<Value> m_nodeAllocator;
     SizeType m_size;
 };
 
@@ -1392,9 +1407,10 @@ void HashSet<Value, KeyBy, NodeAllocatorType>::Clear()
 } // namespace containers
 
 using containers::HashSet;
-using containers::HashTable_DefaultNodeAllocator;
-using containers::HashTable_DynamicNodeAllocator;
-using containers::HashTable_PooledNodeAllocator;
+using containers::NodeAllocator;
+using containers::DefaultNodeAllocator;
+using containers::DynamicNodeAllocator;
+using containers::PooledNodeAllocator;
 
 template <class Value, auto KeyBy, class NodeAllocatorType>
 struct IsHashSet<HashSet<Value, KeyBy, NodeAllocatorType>> : std::true_type

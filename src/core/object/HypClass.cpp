@@ -431,7 +431,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     return pResult;
 }
 
-using FormattedStringMap = HashMap<TypeId, String, HashTable_DynamicNodeAllocator<KeyValuePair<TypeId, String>>>;
+using FormattedStringMap = HashMap<TypeId, String, DynamicNodeAllocator>;
 thread_local FormattedStringMap* g_formattedStringMap;
 
 static void InitFormattedStringMap(void* mem)

@@ -77,7 +77,7 @@ struct SceneOctreePayload
         }
     };
 
-    using EntrySet = HashSet<Entry, &Entry::GetId, HashTable_DynamicNodeAllocator<Entry>>;
+    using EntrySet = HashSet<Entry, &Entry::GetId, DynamicNodeAllocator>;
 
     EntrySet entries;
 

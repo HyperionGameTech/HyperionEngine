@@ -117,7 +117,7 @@ public:
     }
 
 private:
-    using CacheMap = HashMap<Key, SymbolType*, HashTable_DynamicNodeAllocator<KeyValuePair<Key, SymbolType*>>>;
+    using CacheMap = HashMap<Key, SymbolType*, DynamicNodeAllocator>;
 
     mutable Mutex m_mutex;
     CacheMap m_cache;

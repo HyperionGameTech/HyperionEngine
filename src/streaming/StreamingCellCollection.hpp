@@ -71,7 +71,7 @@ struct StreamingCellRuntimeInfo
     ~StreamingCellRuntimeInfo() = default;
 };
 
-class StreamingCellCollection final : HashSet<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, HashTable_DynamicNodeAllocator<StreamingCellRuntimeInfo>>
+class StreamingCellCollection final : HashSet<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, DynamicNodeAllocator>
 {
 public:
     using Iterator = typename HashSet::Iterator;

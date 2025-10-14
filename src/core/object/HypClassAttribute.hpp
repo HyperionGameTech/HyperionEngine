@@ -198,7 +198,7 @@ struct HypClassAttribute final
 class HypClassAttributeSet final
 {
 public:
-    using SetType = HashSet<HypClassAttribute, &HypClassAttribute::name, HashTable_DynamicNodeAllocator<HypClassAttribute>>;
+    using SetType = HashSet<HypClassAttribute, &HypClassAttribute::name, DynamicNodeAllocator>;
 
     using Iterator = typename SetType::Iterator;
     using ConstIterator = typename SetType::ConstIterator;

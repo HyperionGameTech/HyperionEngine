@@ -350,7 +350,7 @@ public:
         {
             return 0;
         }
-        
+
         Mutex::Guard guard(m_detachedHandlersMutex);
         m_detachedHandlers.Clear();
 
@@ -500,7 +500,7 @@ public:
                 current->mask.Increment(2, MemoryOrder::RELEASE);
 
                 const bool markedForRemoval = current->IsMarkedForRemoval();
-                
+
                 current->mask.Decrement(2, MemoryOrder::RELEASE);
 
                 if (markedForRemoval)
@@ -896,7 +896,7 @@ private:
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
-class DelegateHandlerSet : HashMap<Name, DelegateHandler, HashTable_DynamicNodeAllocator<KeyValuePair<Name, DelegateHandler>>>
+class DelegateHandlerSet : HashMap<Name, DelegateHandler, DynamicNodeAllocator>
 {
 public:
     using HashMap::ConstIterator;
@@ -1012,7 +1012,7 @@ using functional::Delegate;
 using functional::DelegateHandler;
 using functional::DelegateHandlerSet;
 using functional::IDelegate;
-using functional::IsDelegateV;
 using functional::IsDelegate;
+using functional::IsDelegateV;
 
 } // namespace hyperion

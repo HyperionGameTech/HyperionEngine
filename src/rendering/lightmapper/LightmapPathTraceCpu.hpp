@@ -162,7 +162,7 @@ class HYP_API Lightmapper_CpuPathTracing : public Lightmapper
         }
     };
 
-    using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, HashTable_DynamicNodeAllocator<CachedResource>>;
+    using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, DynamicNodeAllocator>;
 
 public:
     Lightmapper_CpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);

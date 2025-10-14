@@ -22,7 +22,7 @@ namespace buildtool {
 class Module
 {
 public:
-    using HypClassDefinitionMap = HashMap<String, HypClassDefinition, HashTable_DynamicNodeAllocator<KeyValuePair<String, HypClassDefinition>>>;
+    using HypClassDefinitionMap = HashMap<String, HypClassDefinition, HashTable_DynamicNodeAllocator>;
 
     explicit Module(const FilePath& path);
 
