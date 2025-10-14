@@ -7,7 +7,7 @@
 #include <core/utilities/UserData.hpp>
 #include <core/utilities/Uuid.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <rendering/MeshInstanceData.hpp>
 
@@ -59,7 +59,7 @@ struct MeshComponent
     // 140 + 4 padding
 
     HYP_FIELD(Transient)
-    Matrix4 previousModelMatrix;
+    Mat4f previousModelMatrix;
 
     // 208
 
@@ -91,7 +91,7 @@ struct MeshComponent
           material(material),
           skeleton(skeleton),
           instanceData(),
-          previousModelMatrix(Matrix4::Identity()),
+          previousModelMatrix(Mat4f::Identity()),
           lightmapVolumeUuid(Uuid::Invalid()),
           lightmapElementId(~0u)
     {

@@ -92,6 +92,6 @@ struct HYP_API Triangle
     }
 };
 
-Triangle operator*(const Matrix4& transform, const Triangle& triangle);
+Triangle operator*(const Mat4f& transform, const Triangle& triangle);
 
 } // namespace hyperion

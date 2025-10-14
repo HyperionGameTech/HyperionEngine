@@ -156,8 +156,8 @@ struct FBXConnection
 struct FBXCluster
 {
     String name;
-    Matrix4 transform;
-    Matrix4 transformLink;
+    Mat4f transform;
+    Mat4f transformLink;
     Array<int32> vertexIndices;
     Array<double> boneWeights;
 
@@ -172,7 +172,7 @@ struct FBXSkin
 struct FBXPoseNode
 {
     FBXObjectID nodeId = 0;
-    Matrix4 matrix;
+    Mat4f matrix;
 };
 
 struct FBXBindPose
@@ -239,8 +239,8 @@ struct FBXNode
 
     Transform localTransform;
 
-    Matrix4 worldBindMatrix;
-    Matrix4 localBindMatrix;
+    Mat4f worldBindMatrix;
+    Mat4f localBindMatrix;
 
     Optional<Handle<Skeleton>> skeleton;
 };
@@ -738,14 +738,14 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    const auto readMatrix = [](const FBXObject& object) -> Matrix4
+    const auto readMatrix = [](const FBXObject& object) -> Mat4f
     {
         if (!object)
         {
-            return Matrix4::zeros;
+            return Mat4f::zeros;
         }
 
-        Matrix4 matrix = Matrix4::zeros;
+        Mat4f matrix = Mat4f::zeros;
 
         if (FBXProperty matrixProperty = object.GetProperty(0))
         {

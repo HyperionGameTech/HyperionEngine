@@ -2,7 +2,7 @@
 #include <core/math/Ray.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Triangle.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/MathUtil.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-HYP_API Ray operator*(const Matrix4& transform, const Ray& ray)
+HYP_API Ray operator*(const Mat4f& transform, const Ray& ray)
 {
     Vec4f transformedPosition = transform * Vec4f(ray.position, 1.0f);
     transformedPosition /= transformedPosition.w;
@@ -24,7 +24,7 @@ HYP_API Ray operator*(const Matrix4& transform, const Ray& ray)
     return result;
 }
 
-Ray Ray::operator*(const Matrix4& transform) const
+Ray Ray::operator*(const Mat4f& transform) const
 {
     Vec4f transformedPosition = Vec4f(position, 1.0f) * transform;
     transformedPosition /= transformedPosition.w;

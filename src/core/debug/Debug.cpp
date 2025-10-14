@@ -131,12 +131,15 @@ void LogAssert(const char* str)
 {
     if (HYP_UNLIKELY(!g_logger))
     {
+        std::fprintf(HYP_DEBUG_OUTPUT_STREAM, "FATAL: %s\n", str);
+        std::fflush(HYP_DEBUG_OUTPUT_STREAM);
         // will cause infinite recursion if no logger is defined yet
         std::terminate();
     }
 
 #ifdef HYP_DEBUG_MODE
     HYP_LOG_DYNAMIC(Core, Error, str);
+    std::fflush(HYP_DEBUG_OUTPUT_STREAM);
 
     if (IsDebuggerAttached())
     {

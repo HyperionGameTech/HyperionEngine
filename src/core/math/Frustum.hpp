@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Vector4.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
@@ -31,7 +31,7 @@ struct HYP_API Frustum
     Frustum(const Frustum& other) = default;
     Frustum& operator=(const Frustum& other) = default;
 
-    Frustum(const Matrix4& viewProj);
+    Frustum(const Mat4f& viewProj);
 
     HYP_FORCE_INLINE FixedArray<Vec4f, 6>& GetPlanes()
     {
@@ -67,7 +67,7 @@ struct HYP_API Frustum
     bool ContainsBoundingSphere(const BoundingSphere& sphere) const;
     bool ContainsPoint(const Vec3f& point) const;
 
-    Frustum& SetFromViewProjectionMatrix(const Matrix4& viewProj);
+    Frustum& SetFromViewProjectionMatrix(const Mat4f& viewProj);
     Vec3f GetIntersectionPoint(uint32 planeIndex0, uint32 planeIndex1, uint32 planeIndex2) const;
 };
 

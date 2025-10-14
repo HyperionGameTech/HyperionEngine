@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-class Matrix4;
+class Mat4f;
 
 namespace math {
 template <class T>
@@ -650,8 +650,8 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w));
     }
 
-    Vec4 operator*(const Matrix4& mat) const;
-    Vec4& operator*=(const Matrix4& mat);
+    Vec4 operator*(const Mat4f& mat) const;
+    Vec4& operator*=(const Mat4f& mat);
 
     Type DistanceSquared(const Vec4& other) const;
     Type Distance(const Vec4& other) const;

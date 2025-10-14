@@ -894,7 +894,7 @@ struct PushConstantData
 
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 namespace hyperion {
 struct alignas(16) MeshDescription

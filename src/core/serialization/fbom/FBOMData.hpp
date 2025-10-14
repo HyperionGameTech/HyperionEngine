@@ -23,8 +23,8 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Matrix3.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat3f.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Quaternion.hpp>
 
 #include <core/utilities/Uuid.hpp>
@@ -285,8 +285,8 @@ public:
     FBOM_TYPE_FUNCTIONS(Float, float)
     FBOM_TYPE_FUNCTIONS(Double, double)
     FBOM_TYPE_FUNCTIONS(Bool, bool)
-    FBOM_TYPE_FUNCTIONS(Mat3f, Matrix3)
-    FBOM_TYPE_FUNCTIONS(Mat4f, Matrix4)
+    FBOM_TYPE_FUNCTIONS(Mat3f, Mat3f)
+    FBOM_TYPE_FUNCTIONS(Mat4f, Mat4f)
     FBOM_TYPE_FUNCTIONS(Vec2f, Vec2f)
     FBOM_TYPE_FUNCTIONS(Vec3f, Vec3f)
     FBOM_TYPE_FUNCTIONS(Vec4f, Vec4f)

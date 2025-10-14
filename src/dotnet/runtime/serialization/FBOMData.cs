@@ -302,11 +302,11 @@ namespace Hyperion
             return data;
         }
 
-        // public Matrix3? GetMatrix3()
+        // public Mat3f? GetMatrix3()
 
-        public Matrix4? GetMatrix4()
+        public Mat4f? GetMatrix4()
         {
-            Matrix4 value;
+            Mat4f value;
 
             if (FBOMData_GetMatrix4(this.ptr, out value))
             {
@@ -316,7 +316,7 @@ namespace Hyperion
             return null;
         }
 
-        public static FBOMData FromMatrix4(Matrix4 value)
+        public static FBOMData FromMatrix4(Mat4f value)
         {
             FBOMData data = new FBOMData();
             FBOMData_SetMatrix4(data.ptr, ref value);
@@ -504,16 +504,16 @@ namespace Hyperion
         private static extern void FBOMData_SetName(IntPtr dataPtr, [In] ref Name value);
 
         // [DllImport("hyperion", EntryPoint = "FBOMData_GetMatrix3")]
-        // private static extern bool FBOMData_GetMatrix3(IntPtr dataPtr, [Out] out Matrix3 value);
+        // private static extern bool FBOMData_GetMatrix3(IntPtr dataPtr, [Out] out Mat3f value);
 
         // [DllImport("hyperion", EntryPoint = "FBOMData_SetMatrix3")]
-        // private static extern void FBOMData_SetMatrix3(IntPtr dataPtr, [In] ref Matrix3 value);
+        // private static extern void FBOMData_SetMatrix3(IntPtr dataPtr, [In] ref Mat3f value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_GetMatrix4")]
-        private static extern bool FBOMData_GetMatrix4(IntPtr dataPtr, [Out] out Matrix4 value);
+        private static extern bool FBOMData_GetMatrix4(IntPtr dataPtr, [Out] out Mat4f value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_SetMatrix4")]
-        private static extern void FBOMData_SetMatrix4(IntPtr dataPtr, [In] ref Matrix4 value);
+        private static extern void FBOMData_SetMatrix4(IntPtr dataPtr, [In] ref Mat4f value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_GetVec2f")]
         private static extern bool FBOMData_GetVec2f(IntPtr dataPtr, [Out] out Vec2f value);

@@ -107,116 +107,6 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 1
-    { // script 2
-        String str;
-#if 0
-        str = "extern class Uuid {\n"
-              "    ToString() -> string\n"
-              "}\n"
-              "extern class Vec3f {\n"
-              "    x : float\n"
-              "    y : float\n"
-              "    z : float\n"
-              "}\n"
-              "extern class Name {\n"
-              "    ToString() -> string\n"
-              "}\n"
-              "extern class Node {\n"
-              "    GetName() -> Name\n"
-              "}\n"
-              "extern class Entity : Node {\n"
-              "    GetUUID() -> Uuid\n"
-              "    GetWorldTranslation() -> Vec3f\n"
-              "    SetWorldTranslation(translation : Vec3f) -> void\n"
-              "}\n"
-              "extern class Scene {\n"
-              "    AddEntity(entity: Entity) -> void\n"
-              "}\n"
-              "testVec3 := new Vec3f()\n"
-              "testVec3.x = 9.0f\n"
-              "testVec4 := testVec3\n"
-              "testVec4.x = 4.0f\n"
-              "entity := new Entity()\n"
-              "export x := (a, b) { return testVec3.x };";
-
-#else
-        // vvvvv This is a test script vvvvv
-        str = "class Base {} \n"
-              "class MyClass : Base {\n"
-              "    blah: string = \"hello\"\n"
-              "    jet : int = 1\n"
-              "    x(a: int32) { return a * jet; }\n"
-              "    MyClass() {\n"
-              "        jet = 4\n"
-              "        return self\n"
-              "    }\n"
-              "    static testStaticField : int = 99;\n"
-              "    operator[](i: int32) -> int {\n"
-              "       for (j := 1; j < i; j++) {\n"
-              "           jet += j\n"
-              "       }\n"
-              "       return jet\n"
-              "    }\n"
-              "    operator[]=(i: int32, val: any) {\n"
-              "       jet = val as int32\n"
-              "       return jet\n"
-              "    }\n"
-              "    modValue(inValue : Array<int>, farts: Fart...) -> int {\n"
-              "        farts[0].i\n"
-              "    }\n"
-              "}\n"
-              "class Fart { i: int = 9949; }\n"
-              "enum Fupa : uint8 { MEOW = -1 as uint8 }\n"
-              "ins := new MyClass();\n"
-              "testArray2 : Array<int32> = [9,9,34]\n"
-              "testArray2[0]++\n"
-              "ref testRef := testArray2\n"
-              "testRef = [4,3,13424,1]\n"
-              "blah := ins.modValue(testRef, new Fart());\n"
-              "getArrayElement := (elementIndex : int32 = 5, ary: Array<int32> = [1,2,3], obj: MyClass) { ins[5454] = 9;\ntestArray2.PushBack(343);\ntestArray2.PushBack(1111);\nreturn () { return testArray2; }; };\n"
-              "export x := (a: float, ref b: int32) { f := getArrayElement(obj : ins);\nf();\nreturn f(); };";
-#endif
-
-        ByteBuffer byteBuffer(ConstByteView(reinterpret_cast<const ubyte*>(str.Data()), reinterpret_cast<const ubyte*>(str.Data() + str.Size())));
-
-        SourceFile sourceFile("<temp>", byteBuffer.Size());
-        sourceFile.ReadIntoBuffer(byteBuffer);
-
-        ErrorList errorList;
-        Script_Instance* instance = HypScript::GetInstance().Compile(sourceFile, errorList);
-
-        if (instance != nullptr)
-        {
-
-            InstructionStream* is = HypScript::GetInstance().Decompile(instance, &std::cout);
-            delete is;
-
-            HypScript::GetInstance().Run(instance);
-
-            // call function
-            HypData functionValue;
-            if (HypScript::GetInstance().GetFunctionHandle(instance, "x", functionValue))
-            {
-                HypData lastReturn = HypScript::GetInstance().CallFunction(instance, functionValue, 5, 4);
-
-                if (lastReturn.IsValid())
-                {
-                    HYP_LOG(Editor, Debug, "Last value : {}", ToString(lastReturn).Data());
-                }
-            }
-            else
-            {
-                HYP_LOG(Editor, Error, "Failed to get function handle for 'x'!");
-            }
-
-            HypScript::GetInstance().DestroyScript(instance);
-        }
-    }
-
-    // HYP_BREAKPOINT;
-#endif
-
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
@@ -397,11 +287,11 @@ void HyperionEditor::Init()
                     HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
                 }
 
-                // test
-                const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
-                project->SetName(NAME("NewProj2"));
-                Result saveResult = project->Save();
-                Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
+                // // test
+                // const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
+                // project->SetName(NAME("NewProj2"));
+                // Result saveResult = project->Save();
+                // Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
             })
         .Detach();
 

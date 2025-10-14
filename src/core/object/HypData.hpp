@@ -2015,6 +2015,10 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
+            if (arr->arrayTypeId != TypeId::ForType<Array<T, AllocatorType>>())
+            {
+                HYP_BREAKPOINT;
+            }
             return arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
         }
 
@@ -3019,31 +3023,31 @@ struct HypDataHelper<math::Vec4<T>> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<Matrix3>
+struct HypDataHelperDecl<Mat3f>
 {
 };
 
 template <>
-struct HypDataHelper<Matrix3> : HypDataHelper<Any>
+struct HypDataHelper<Mat3f> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return value.Is<Matrix3>();
+        return value.Is<Mat3f>();
     }
 
-    HYP_FORCE_INLINE Matrix3& Get(const Any& value) const
+    HYP_FORCE_INLINE Mat3f& Get(const Any& value) const
     {
-        return value.Get<Matrix3>();
+        return value.Get<Mat3f>();
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, const Matrix3& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const Mat3f& value) const
     {
-        HypDataHelper<Any>::Set(hypData, Any::Construct<Matrix3>(value));
+        HypDataHelper<Any>::Set(hypData, Any::Construct<Mat3f>(value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Matrix3& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const Mat3f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
@@ -3056,7 +3060,7 @@ struct HypDataHelper<Matrix3> : HypDataHelper<Any>
     {
         HYP_SCOPE;
 
-        Matrix3 result;
+        Mat3f result;
 
         if (FBOMResult err = data.Read(&result))
         {
@@ -3070,31 +3074,31 @@ struct HypDataHelper<Matrix3> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<Matrix4>
+struct HypDataHelperDecl<Mat4f>
 {
 };
 
 template <>
-struct HypDataHelper<Matrix4> : HypDataHelper<Any>
+struct HypDataHelper<Mat4f> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return value.Is<Matrix4>();
+        return value.Is<Mat4f>();
     }
 
-    HYP_FORCE_INLINE Matrix4& Get(const Any& value) const
+    HYP_FORCE_INLINE Mat4f& Get(const Any& value) const
     {
-        return value.Get<Matrix4>();
+        return value.Get<Mat4f>();
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, const Matrix4& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const Mat4f& value) const
     {
-        HypDataHelper<Any>::Set(hypData, Any::Construct<Matrix4>(value));
+        HypDataHelper<Any>::Set(hypData, Any::Construct<Mat4f>(value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Matrix4& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const Mat4f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
@@ -3107,7 +3111,7 @@ struct HypDataHelper<Matrix4> : HypDataHelper<Any>
     {
         HYP_SCOPE;
 
-        Matrix4 result;
+        Mat4f result;
 
         if (FBOMResult err = data.Read(&result))
         {

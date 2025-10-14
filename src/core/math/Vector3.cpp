@@ -2,8 +2,8 @@
 
 #include <core/math/Vector3.hpp>
 #include <core/math/Quaternion.hpp>
-#include <core/math/Matrix3.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat3f.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 #include <core/object/HypClassRegistry.hpp>
@@ -37,7 +37,7 @@ HYP_END_STRUCT
 
 // clang-format on
 
-Vec3<float> math::Vec3<float>::operator*(const Matrix3& mat) const
+Vec3<float> math::Vec3<float>::operator*(const Mat3f& mat) const
 {
     return {
         x * mat.values[0] + y * mat.values[3] + z * mat.values[6],
@@ -46,12 +46,12 @@ Vec3<float> math::Vec3<float>::operator*(const Matrix3& mat) const
     };
 }
 
-Vec3<float>& math::Vec3<float>::operator*=(const Matrix3& mat)
+Vec3<float>& math::Vec3<float>::operator*=(const Mat3f& mat)
 {
     return operator=(operator*(mat));
 }
 
-Vec3<float> math::Vec3<float>::operator*(const Matrix4& mat) const
+Vec3<float> math::Vec3<float>::operator*(const Mat4f& mat) const
 {
     Vector4 product {
         x * mat.values[0] + y * mat.values[4] + z * mat.values[8] + mat.values[12],
@@ -69,7 +69,7 @@ Vec3<float> math::Vec3<float>::operator*(const Matrix4& mat) const
     };
 }
 
-Vec3<float>& math::Vec3<float>::operator*=(const Matrix4& mat)
+Vec3<float>& math::Vec3<float>::operator*=(const Mat4f& mat)
 {
     return operator=(operator*(mat));
 }
@@ -131,12 +131,12 @@ Vec3<float> math::Vec3<float>::Reflect(const Vec3<float>& normal) const
 
 Vec3<float>& math::Vec3<float>::Rotate(const Vec3<float>& axis, float radians)
 {
-    return (*this) = Matrix4::Rotation(axis, radians) * (*this);
+    return (*this) = Mat4f::Rotation(axis, radians) * (*this);
 }
 
 Vec3<float>& math::Vec3<float>::Rotate(const Quaternion& quaternion)
 {
-    return (*this) = Matrix4::Rotation(quaternion) * (*this);
+    return (*this) = Mat4f::Rotation(quaternion) * (*this);
 }
 
 Vec3<float>& math::Vec3<float>::Lerp(const Vec3<float>& to, const float amt)

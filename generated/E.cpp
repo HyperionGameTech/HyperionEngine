@@ -109,10 +109,11 @@ namespace hyperion {
 #pragma region Skeleton Reflection Data
 
 HYP_BEGIN_CLASS(Skeleton, 54, 0, NAME("AssetObject"))
-    HypMethod(NAME(HYP_STR(GetRootBone)), &Skeleton::GetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "RootBone") } }),
-    HypMethod(NAME(HYP_STR(SetRootBone)), &Skeleton::SetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "RootBone") } }),
+    HypMethod(NAME(HYP_STR(GetRootBone)), &Skeleton::GetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("property", "RootBone") } }),
+    HypMethod(NAME(HYP_STR(SetRootBone)), &Skeleton::SetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("property", "RootBone") } }),
     HypMethod(NAME(HYP_STR(GetSkeletonAsset)), &Skeleton::GetSkeletonAsset, Span<const HypClassAttribute> { {HypClassAttribute("property", "SkeletonAsset") } }),
-    HypMethod(NAME(HYP_STR(SetSkeletonAsset)), &Skeleton::SetSkeletonAsset, Span<const HypClassAttribute> { {HypClassAttribute("property", "SkeletonAsset") } })
+    HypMethod(NAME(HYP_STR(SetSkeletonAsset)), &Skeleton::SetSkeletonAsset, Span<const HypClassAttribute> { {HypClassAttribute("property", "SkeletonAsset") } }),
+    HypField(NAME(HYP_STR(RootBone)), &Skeleton::m_rootBone, offsetof(Skeleton, m_rootBone), Span<const HypClassAttribute> { {HypClassAttribute("property", "RootBone") } })
 HYP_END_CLASS
 
 #pragma endregion Skeleton Reflection Data
@@ -123,7 +124,7 @@ HYP_END_CLASS
 
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Skeleton.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <scene/animation/Keyframe.hpp>
 #include <core/math/Transform.hpp>
 #include <core/math/Quaternion.hpp>
@@ -231,7 +232,7 @@ HYP_END_ENUM
 #include <rendering/Material.hpp>
 #include <scene/animation/Skeleton.hpp>
 #include <rendering/MeshInstanceData.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <core/utilities/Uuid.hpp>

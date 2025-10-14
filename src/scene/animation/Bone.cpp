@@ -159,9 +159,9 @@ void Bone::CalculateBoneRotation()
 
 void Bone::UpdateBoneTransform()
 {
-    m_boneMatrix = Matrix4::Translation(m_worldBoneTranslation * -1.0f);
-    m_boneMatrix = Matrix4::Rotation(m_worldBoneRotation * m_poseTransform.GetRotation() * GetOffsetRotation() * m_invBindingRotation) * m_boneMatrix;
-    m_boneMatrix = Matrix4::Translation(m_worldBoneTranslation + m_poseTransform.GetTranslation() + GetOffsetTranslation()) * m_boneMatrix;
+    m_boneMatrix = Mat4f::Translation(m_worldBoneTranslation * -1.0f);
+    m_boneMatrix = Mat4f::Rotation(m_worldBoneRotation * m_poseTransform.GetRotation() * GetOffsetRotation() * m_invBindingRotation) * m_boneMatrix;
+    m_boneMatrix = Mat4f::Translation(m_worldBoneTranslation + m_poseTransform.GetTranslation() + GetOffsetTranslation()) * m_boneMatrix;
 
     if (m_parentNode != nullptr)
     {

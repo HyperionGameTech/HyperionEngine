@@ -855,7 +855,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
             const Entity* entity = static_cast<const Entity*>(this);
 
             const BVHNode* bvh = nullptr;
-            Matrix4 modelMatrix = Matrix4::Identity();
+            Mat4f modelMatrix = Mat4f::Identity();
 
             if (useBvh)
             {
@@ -881,7 +881,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
 
                 if (localBvhResults.Any())
                 {
-                    const Matrix4 normalMatrix = modelMatrix.Transposed().Inverted();
+                    const Mat4f normalMatrix = modelMatrix.Transposed().Inverted();
 
                     RayTestResults bvhResults;
 

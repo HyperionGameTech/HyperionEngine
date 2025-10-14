@@ -73,9 +73,9 @@ bool Triangle::ContainsPoint(const Vec3f& pt) const
     return (u >= 0.0f) && (v >= 0.0f) && (u + v < 1.0f);
 }
 
-Triangle operator*(const Matrix4& transform, const Triangle& triangle)
+Triangle operator*(const Mat4f& transform, const Triangle& triangle)
 {
-    const Matrix4 normalMatrix = transform.Inverted().Transposed();
+    const Mat4f normalMatrix = transform.Inverted().Transposed();
 
     Triangle result;
 

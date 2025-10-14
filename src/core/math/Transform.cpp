@@ -10,7 +10,7 @@ Transform::Transform()
     : translation(Vec3f::Zero()),
       scale(Vec3f::One()),
       rotation(Quaternion::Identity()),
-      matrix(Matrix4::Identity())
+      matrix(Mat4f::Identity())
 {
 }
 
@@ -37,9 +37,9 @@ Transform::Transform(const Vec3f& translation)
 
 void Transform::UpdateMatrix()
 {
-    const Matrix4 t = Matrix4::Translation(translation);
-    const Matrix4 r = Matrix4::Rotation(rotation);
-    const Matrix4 s = Matrix4::Scaling(scale);
+    const Mat4f t = Mat4f::Translation(translation);
+    const Mat4f r = Mat4f::Rotation(rotation);
+    const Mat4f s = Mat4f::Scaling(scale);
 
     matrix = t * r * s;
 }

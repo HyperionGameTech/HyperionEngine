@@ -18,7 +18,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderFrame.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
@@ -47,22 +47,22 @@ static_assert(sizeof(GaussianSplattingInstanceShaderData) == 64);
 
 struct GaussianSplattingSceneShaderData
 {
-    Matrix4 modelMatrix;
+    Mat4f modelMatrix;
 };
 
 static_assert(sizeof(GaussianSplattingSceneShaderData) == 64);
 
 struct CubemapUniforms
 {
-    Matrix4 projectionMatrices[6];
-    Matrix4 viewMatrices[6];
+    Mat4f projectionMatrices[6];
+    Mat4f viewMatrices[6];
 };
 
 static_assert(sizeof(CubemapUniforms) % 256 == 0);
 
 struct ImmediateDrawShaderData
 {
-    Matrix4 transform;
+    Mat4f transform;
     uint32 colorPacked;
     uint32 envProbeType;
     uint32 envProbeIndex;

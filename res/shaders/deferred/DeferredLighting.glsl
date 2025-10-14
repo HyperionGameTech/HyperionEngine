@@ -303,7 +303,7 @@ vec4 CalculatePathTracing(DeferredParams deferred_params, vec2 uv)
 }
 #endif
 
-#ifdef RT_REFLECTIONS_ENABLED
+#ifdef RT_REFLECTIONS
 void CalculateRaytracingReflection(DeferredParams deferred_params, vec2 uv, inout vec4 reflections)
 {
     const bool enabled = bool(deferred_params.flags & DEFERRED_FLAGS_RT_RADIANCE_ENABLED);

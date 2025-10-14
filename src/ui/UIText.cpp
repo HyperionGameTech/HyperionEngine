@@ -366,7 +366,7 @@ void UIText::UpdateMeshData_Internal()
     const Vec2f position = GetAbsolutePosition();
     const float textSize = GetTextSize();
 
-    Array<Matrix4> instanceTransforms;
+    Array<Mat4f> instanceTransforms;
     Array<Vec4f> instanceTexcoords;
     Array<Vec4f> instanceOffsets;
     Array<Vec4f> instanceSizes;
@@ -387,7 +387,7 @@ void UIText::UpdateMeshData_Internal()
 
             BoundingBox characterAabbClamped = characterAabb.Intersection(parentAabbClamped);
 
-            Matrix4 instanceTransform;
+            Mat4f instanceTransform;
             instanceTransform[0][0] = characterAabbClamped.max.x - characterAabbClamped.min.x;
             instanceTransform[1][1] = characterAabbClamped.max.y - characterAabbClamped.min.y;
             instanceTransform[2][2] = 1.0f;

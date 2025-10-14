@@ -4,7 +4,7 @@
 
 #include <core/math/Vector3.hpp>
 #include <core/math/Quaternion.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -29,7 +29,7 @@ struct alignas(16) HYP_API Transform
     Quaternion rotation;
 
     HYP_FIELD(Transient)
-    Matrix4 matrix;
+    Mat4f matrix;
 
     Transform();
     explicit Transform(const Vec3f& translation);
@@ -92,7 +92,7 @@ struct alignas(16) HYP_API Transform
 
     void UpdateMatrix();
 
-    HYP_FORCE_INLINE const Matrix4& GetMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetMatrix() const
     {
         return this->matrix;
     }

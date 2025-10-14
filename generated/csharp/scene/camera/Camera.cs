@@ -283,44 +283,44 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(14518491116059678595)).InvokeNative(obj, frustum);
         }
-        public static Matrix4 GetViewMatrix(this Camera obj)
+        public static Mat4f GetViewMatrix(this Camera obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(14234930053693994591)).InvokeNative(obj))
             {
-                return resultData.ReadStruct<Matrix4>();
+                return resultData.ReadStruct<Mat4f>();
             }
         }
-        public static void SetViewMatrix(this Camera obj, Matrix4 viewMat)
+        public static void SetViewMatrix(this Camera obj, Mat4f viewMat)
         {
             obj.GetMethod(new Name(12528571770829543715)).InvokeNative(obj, viewMat);
         }
-        public static Matrix4 GetProjectionMatrix(this Camera obj)
+        public static Mat4f GetProjectionMatrix(this Camera obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(7831665581377982559)).InvokeNative(obj))
             {
-                return resultData.ReadStruct<Matrix4>();
+                return resultData.ReadStruct<Mat4f>();
             }
         }
-        public static void SetProjectionMatrix(this Camera obj, Matrix4 projMat)
+        public static void SetProjectionMatrix(this Camera obj, Mat4f projMat)
         {
             obj.GetMethod(new Name(17574759256307172707)).InvokeNative(obj, projMat);
         }
-        public static Matrix4 GetViewProjectionMatrix(this Camera obj)
+        public static Mat4f GetViewProjectionMatrix(this Camera obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(15161593157949589818)).InvokeNative(obj))
             {
-                return resultData.ReadStruct<Matrix4>();
+                return resultData.ReadStruct<Mat4f>();
             }
         }
-        public static void SetViewProjectionMatrix(this Camera obj, Matrix4 viewMat, Matrix4 projMat)
+        public static void SetViewProjectionMatrix(this Camera obj, Mat4f viewMat, Mat4f projMat)
         {
             obj.GetMethod(new Name(15442221883563466646)).InvokeNative(obj, viewMat, projMat);
         }
-        public static Matrix4 GetPreviousViewMatrix(this Camera obj)
+        public static Mat4f GetPreviousViewMatrix(this Camera obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(9347706971088603222)).InvokeNative(obj))
             {
-                return resultData.ReadStruct<Matrix4>();
+                return resultData.ReadStruct<Mat4f>();
             }
         }
         public static Vec3f TransformScreenToNDC(this Camera obj, Vec2f screen)

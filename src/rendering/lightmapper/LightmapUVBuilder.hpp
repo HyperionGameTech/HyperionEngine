@@ -11,7 +11,7 @@
 #include <core/object/Handle.hpp>
 
 #include <core/math/Transform.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Vertex.hpp>
 #include <core/math/Ray.hpp>
@@ -43,7 +43,7 @@ struct LightmapMeshData
     Handle<Mesh> mesh;
     Handle<Material> material;
 
-    Matrix4 transform;
+    Mat4f transform;
 
     Array<Vertex> vertices;
     Array<uint32> indices;
@@ -77,7 +77,7 @@ struct LightmapUV
 {
     Handle<Mesh> mesh;
     Handle<Material> material;
-    Matrix4 transform = Matrix4::identity;
+    Mat4f transform = Mat4f::identity;
     uint32 triangleIndex = ~0u;
     Vec3f barycentricCoords = Vec3f::Zero();
     Vec2f lightmapUv = Vec2f::Zero();

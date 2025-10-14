@@ -1,19 +1,19 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Matrix4.hpp>
-#include <core/math/Matrix3.hpp>
+#include <core/math/Mat4f.hpp>
+#include <core/math/Mat3f.hpp>
 #include <core/math/Rect.hpp>
 #include <core/math/Halton.hpp>
 
 namespace hyperion {
 
-const Matrix4 Matrix4::identity = Matrix4::Identity();
-const Matrix4 Matrix4::zeros = Matrix4::Zeros();
-const Matrix4 Matrix4::ones = Matrix4::Ones();
+const Mat4f Mat4f::identity = Mat4f::Identity();
+const Mat4f Mat4f::zeros = Mat4f::Zeros();
+const Mat4f Mat4f::ones = Mat4f::Ones();
 
-Matrix4 Matrix4::Translation(const Vec3f& translation)
+Mat4f Mat4f::Translation(const Vec3f& translation)
 {
-    Matrix4 mat;
+    Mat4f mat;
 
     mat[0][3] = translation.x;
     mat[1][3] = translation.y;
@@ -22,9 +22,9 @@ Matrix4 Matrix4::Translation(const Vec3f& translation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Quaternion& rotation)
+Mat4f Mat4f::Rotation(const Quaternion& rotation)
 {
-    Matrix4 mat;
+    Mat4f mat;
 
     const float xx = rotation.x * rotation.x,
                 xy = rotation.x * rotation.y,
@@ -60,14 +60,14 @@ Matrix4 Matrix4::Rotation(const Quaternion& rotation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Vec3f& axis, float radians)
+Mat4f Mat4f::Rotation(const Vec3f& axis, float radians)
 {
     return Rotation(Quaternion(axis, radians));
 }
 
-Matrix4 Matrix4::Scaling(const Vec3f& scale)
+Mat4f Mat4f::Scaling(const Vec3f& scale)
 {
-    Matrix4 mat;
+    Mat4f mat;
 
     mat[0][0] = scale.x;
     mat[1][1] = scale.y;
@@ -76,9 +76,9 @@ Matrix4 Matrix4::Scaling(const Vec3f& scale)
     return mat;
 }
 
-Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
+Mat4f Mat4f::Perspective(float fov, int w, int h, float n, float f)
 {
-    Matrix4 mat = zeros;
+    Mat4f mat = zeros;
 
     float ar = (float)w / (float)h;
     float tanHalfFov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
@@ -97,9 +97,9 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
     return mat;
 }
 
-Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float f)
+Mat4f Mat4f::Orthographic(float l, float r, float b, float t, float n, float f)
 {
-    Matrix4 mat = zeros;
+    Mat4f mat = zeros;
 
     float xOrth = 2.0f / (r - l);
     float yOrth = 2.0f / (t - b);
@@ -116,11 +116,11 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     return mat;
 }
 
-Matrix4 Matrix4::Jitter(uint32 index, uint32 width, uint32 height, Vec4f& outJitter)
+Mat4f Mat4f::Jitter(uint32 index, uint32 width, uint32 height, Vec4f& outJitter)
 {
     static const HaltonSequence halton;
 
-    Matrix4 offsetMatrix;
+    Mat4f offsetMatrix;
 
     const uint32 frameCounter = index;
     const uint32 haltonIndex = frameCounter % HaltonSequence::size;
@@ -146,7 +146,7 @@ Matrix4 Matrix4::Jitter(uint32 index, uint32 width, uint32 height, Vec4f& outJit
     return offsetMatrix;
 }
 
-Matrix4 Matrix4::LookAt(const Vec3f& direction, const Vec3f& up)
+Mat4f Mat4f::LookAt(const Vec3f& direction, const Vec3f& up)
 {
     auto mat = Identity();
 
@@ -161,12 +161,12 @@ Matrix4 Matrix4::LookAt(const Vec3f& direction, const Vec3f& up)
     return mat;
 }
 
-Matrix4 Matrix4::LookAt(const Vec3f& pos, const Vec3f& target, const Vec3f& up)
+Mat4f Mat4f::LookAt(const Vec3f& pos, const Vec3f& target, const Vec3f& up)
 {
     return LookAt(target - pos, up) * Translation(pos * -1);
 }
 
-Matrix4::Matrix4()
+Mat4f::Mat4f()
     : rows {
           { 1.0f, 0.0f, 0.0f, 0.0f },
           { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -176,7 +176,7 @@ Matrix4::Matrix4()
 {
 }
 
-Matrix4::Matrix4(const Matrix3& matrix3)
+Mat4f::Mat4f(const Mat3f& matrix3)
     : rows {
           { matrix3.rows[0][0], matrix3.rows[0][1], matrix3.rows[0][2], 0.0f },
           { matrix3.rows[1][0], matrix3.rows[1][1], matrix3.rows[1][2], 0.0f },
@@ -186,7 +186,7 @@ Matrix4::Matrix4(const Matrix3& matrix3)
 {
 }
 
-Matrix4::Matrix4(const Vec4f* rows)
+Mat4f::Mat4f(const Vec4f* rows)
     : rows {
           rows[0],
           rows[1],
@@ -196,7 +196,7 @@ Matrix4::Matrix4(const Vec4f* rows)
 {
 }
 
-Matrix4::Matrix4(const float* v)
+Mat4f::Mat4f(const float* v)
 {
     rows[0] = { v[0], v[1], v[2], v[3] };
     rows[1] = { v[4], v[5], v[6], v[7] };
@@ -204,21 +204,21 @@ Matrix4::Matrix4(const float* v)
     rows[3] = { v[12], v[13], v[14], v[15] };
 }
 
-float Matrix4::Determinant() const
+float Mat4f::Determinant() const
 {
     return rows[3][0] * rows[2][1] * rows[1][2] * rows[0][3] - rows[2][0] * rows[3][1] * rows[1][2] * rows[0][3] - rows[3][0] * rows[1][1] * rows[2][2] * rows[0][3] + rows[1][0] * rows[3][1] * rows[2][2] * rows[0][3] + rows[2][0] * rows[1][1] * rows[3][2] * rows[0][3] - rows[1][0] * rows[2][1] * rows[3][2] * rows[0][3] - rows[3][0] * rows[2][1] * rows[0][2] * rows[1][3] + rows[2][0] * rows[3][1] * rows[0][2] * rows[1][3]
         + rows[3][0] * rows[0][1] * rows[2][2] * rows[1][3] - rows[0][0] * rows[3][1] * rows[2][2] * rows[1][3] - rows[2][0] * rows[0][1] * rows[3][2] * rows[1][3] + rows[0][0] * rows[2][1] * rows[3][2] * rows[1][3] + rows[3][0] * rows[1][1] * rows[0][2] * rows[2][3] - rows[1][0] * rows[3][1] * rows[0][2] * rows[2][3] - rows[3][0] * rows[0][1] * rows[1][2] * rows[2][3] + rows[0][0] * rows[3][1] * rows[1][2] * rows[2][3] + rows[1][0] * rows[0][1] * rows[3][2] * rows[2][3] - rows[0][0] * rows[1][1] * rows[3][2] * rows[2][3] - rows[2][0] * rows[1][1] * rows[0][2] * rows[3][3]
         + rows[1][0] * rows[2][1] * rows[0][2] * rows[3][3] + rows[2][0] * rows[0][1] * rows[1][2] * rows[3][3] - rows[0][0] * rows[2][1] * rows[1][2] * rows[3][3] - rows[1][0] * rows[0][1] * rows[2][2] * rows[3][3] + rows[0][0] * rows[1][1] * rows[2][2] * rows[3][3];
 }
 
-Matrix4& Matrix4::Transpose()
+Mat4f& Mat4f::Transpose()
 {
     return operator=(Transposed());
 }
 
-Matrix4 Matrix4::Transposed() const
+Mat4f Mat4f::Transposed() const
 {
-    Matrix4 transposed(*this);
+    Mat4f transposed(*this);
     transposed.rows[0][0] = rows[0][0];
     transposed.rows[0][1] = rows[1][0];
     transposed.rows[0][2] = rows[2][0];
@@ -239,12 +239,12 @@ Matrix4 Matrix4::Transposed() const
     return transposed;
 }
 
-Matrix4& Matrix4::Invert()
+Mat4f& Mat4f::Invert()
 {
     return operator=(Inverted());
 }
 
-Matrix4 Matrix4::Inverted() const
+Mat4f Mat4f::Inverted() const
 {
     const float det = Determinant();
     float invDet = 1.0f / det;
@@ -299,17 +299,17 @@ Matrix4 Matrix4::Inverted() const
     tmp[3][3] = (rows[0][1] * rows[1][2] * rows[2][0] - rows[0][2] * rows[1][1] * rows[2][0] + rows[0][2] * rows[1][0] * rows[2][1] - rows[0][0] * rows[1][2] * rows[2][1] - rows[0][1] * rows[1][0] * rows[2][2] + rows[0][0] * rows[1][1] * rows[2][2])
         * invDet;
 
-    return Matrix4(reinterpret_cast<const float*>(tmp));
+    return Mat4f(reinterpret_cast<const float*>(tmp));
 }
 
-Matrix4& Matrix4::Orthonormalize()
+Mat4f& Mat4f::Orthonormalize()
 {
     return operator=(Orthonormalized());
 }
 
-Matrix4 Matrix4::Orthonormalized() const
+Mat4f Mat4f::Orthonormalized() const
 {
-    Matrix4 mat = *this;
+    Mat4f mat = *this;
 
     float length = MathUtil::Sqrt(mat[0][0] * mat[0][0] + mat[0][1] * mat[0][1] + mat[0][2] * mat[0][2]);
     mat[0][0] /= length;
@@ -345,30 +345,30 @@ Matrix4 Matrix4::Orthonormalized() const
     return mat;
 }
 
-float Matrix4::GetYaw() const
+float Mat4f::GetYaw() const
 {
     return Quaternion(*this).Yaw();
 }
 
-float Matrix4::GetPitch() const
+float Mat4f::GetPitch() const
 {
     return Quaternion(*this).Pitch();
 }
 
-float Matrix4::GetRoll() const
+float Mat4f::GetRoll() const
 {
     return Quaternion(*this).Roll();
 }
 
-Matrix4 Matrix4::operator+(const Matrix4& other) const
+Mat4f Mat4f::operator+(const Mat4f& other) const
 {
-    Matrix4 result(*this);
+    Mat4f result(*this);
     result += other;
 
     return result;
 }
 
-Matrix4& Matrix4::operator+=(const Matrix4& other)
+Mat4f& Mat4f::operator+=(const Mat4f& other)
 {
     for (int i = 0; i < std::size(values); i++)
     {
@@ -378,7 +378,7 @@ Matrix4& Matrix4::operator+=(const Matrix4& other)
     return *this;
 }
 
-Matrix4 Matrix4::operator*(const Matrix4& other) const
+Mat4f Mat4f::operator*(const Mat4f& other) const
 {
     const float fv[] = {
         values[0] * other.values[0] + values[1] * other.values[4] + values[2] * other.values[8] + values[3] * other.values[12],
@@ -402,23 +402,23 @@ Matrix4 Matrix4::operator*(const Matrix4& other) const
         values[12] * other.values[3] + values[13] * other.values[7] + values[14] * other.values[11] + values[15] * other.values[15]
     };
 
-    return Matrix4(fv);
+    return Mat4f(fv);
 }
 
-Matrix4& Matrix4::operator*=(const Matrix4& other)
+Mat4f& Mat4f::operator*=(const Mat4f& other)
 {
     return (*this) = operator*(other);
 }
 
-Matrix4 Matrix4::operator*(float scalar) const
+Mat4f Mat4f::operator*(float scalar) const
 {
-    Matrix4 result(*this);
+    Mat4f result(*this);
     result *= scalar;
 
     return result;
 }
 
-Matrix4& Matrix4::operator*=(float scalar)
+Mat4f& Mat4f::operator*=(float scalar)
 {
     for (float& value : values)
     {
@@ -428,7 +428,7 @@ Matrix4& Matrix4::operator*=(float scalar)
     return *this;
 }
 
-Vec3f Matrix4::operator*(const Vec3f& vec) const
+Vec3f Mat4f::operator*(const Vec3f& vec) const
 {
     const Vec4f product {
         vec.x * values[0] + vec.y * values[1] + vec.z * values[2] + values[3],
@@ -440,7 +440,7 @@ Vec3f Matrix4::operator*(const Vec3f& vec) const
     return product.GetXYZ() / product.w;
 }
 
-Vec4f Matrix4::operator*(const Vec4f& vec) const
+Vec4f Mat4f::operator*(const Vec4f& vec) const
 {
     return {
         vec.x * values[0] + vec.y * values[1] + vec.z * values[2] + vec.w * values[3],
@@ -450,7 +450,7 @@ Vec4f Matrix4::operator*(const Vec4f& vec) const
     };
 }
 
-Vec3f Matrix4::ExtractTranslation() const
+Vec3f Mat4f::ExtractTranslation() const
 {
     return {
         rows[0][3],
@@ -459,7 +459,7 @@ Vec3f Matrix4::ExtractTranslation() const
     };
 }
 
-Vec3f Matrix4::ExtractScale() const
+Vec3f Mat4f::ExtractScale() const
 {
     return {
         rows[0][0],
@@ -468,12 +468,12 @@ Vec3f Matrix4::ExtractScale() const
     };
 }
 
-Quaternion Matrix4::ExtractRotation() const
+Quaternion Mat4f::ExtractRotation() const
 {
     return Quaternion(*this);
 }
 
-Vec4f Matrix4::GetColumn(uint32 index) const
+Vec4f Mat4f::GetColumn(uint32 index) const
 {
     return {
         rows[0][index],
@@ -483,22 +483,22 @@ Vec4f Matrix4::GetColumn(uint32 index) const
     };
 }
 
-Matrix4 Matrix4::Zeros()
+Mat4f Mat4f::Zeros()
 {
     static constexpr float zeroArray[sizeof(values) / sizeof(values[0])] = { 0.0f };
 
-    return Matrix4(zeroArray);
+    return Mat4f(zeroArray);
 }
 
-Matrix4 Matrix4::Ones()
+Mat4f Mat4f::Ones()
 {
     static constexpr float onesArray[sizeof(values) / sizeof(values[0])] = { 1.0f };
 
-    return Matrix4(onesArray);
+    return Mat4f(onesArray);
 }
 
-Matrix4 Matrix4::Identity()
+Mat4f Mat4f::Identity()
 {
-    return Matrix4(); // constructor fills out identity matrix
+    return Mat4f(); // constructor fills out identity matrix
 }
 } // namespace hyperion

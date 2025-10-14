@@ -4,6 +4,7 @@
 
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/Format.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -35,7 +36,7 @@ public:
     const ANSIString& LookupStringForName(Name name) const;
 
 private:
-    HashMap<NameID, Pair<ANSIString, uint32>> m_nameMap;
+    HashMap<NameID, Pair<ANSIString, uint32>, DynamicNodeAllocator> m_nameMap;
     mutable Mutex m_mutex;
 };
 
@@ -134,7 +135,20 @@ const ANSIString& NameRegistry::LookupStringForName(Name name) const
         return ANSIString::empty;
     }
 
-    Mutex::Guard guard(m_mutex);
+    bool locked = false;
+
+    if (ShouldLockNameRegistry())
+    {
+        m_mutex.Lock();
+        locked = true;
+    }
+
+    HYP_DEFER({
+        if (locked)
+        {
+            m_mutex.Unlock();
+        }
+    });
 
     const auto it = m_nameMap.Find(name.hashCode);
 

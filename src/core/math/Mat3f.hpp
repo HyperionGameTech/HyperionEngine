@@ -13,9 +13,9 @@
 namespace hyperion {
 
 HYP_STRUCT(Size = 48)
-class HYP_API Matrix3
+class HYP_API Mat3f
 {
-    HYP_STRUCT_BODY(Matrix3);
+    HYP_STRUCT_BODY(Mat3f);
 
 public:
     union
@@ -29,30 +29,30 @@ public:
         };
     };
 
-    Matrix3();
-    explicit Matrix3(const float* v);
-    Matrix3(const Matrix3& other) = default;
-    Matrix3& operator=(const Matrix3& other) = default;
+    Mat3f();
+    explicit Mat3f(const float* v);
+    Mat3f(const Mat3f& other) = default;
+    Mat3f& operator=(const Mat3f& other) = default;
 
     float Determinant() const;
-    Matrix3& Transpose();
-    Matrix3 Transposed() const;
-    Matrix3& Invert();
-    Matrix3 Inverted() const;
+    Mat3f& Transpose();
+    Mat3f Transposed() const;
+    Mat3f& Invert();
+    Mat3f Inverted() const;
 
-    Matrix3 operator+(const Matrix3& other) const;
-    Matrix3& operator+=(const Matrix3& other);
-    Matrix3 operator*(const Matrix3& other) const;
-    Matrix3& operator*=(const Matrix3& other);
-    Matrix3 operator*(float scalar) const;
-    Matrix3& operator*=(float scalar);
+    Mat3f operator+(const Mat3f& other) const;
+    Mat3f& operator+=(const Mat3f& other);
+    Mat3f operator*(const Mat3f& other) const;
+    Mat3f& operator*=(const Mat3f& other);
+    Mat3f operator*(float scalar) const;
+    Mat3f& operator*=(float scalar);
 
-    HYP_FORCE_INLINE bool operator==(const Matrix3& other) const
+    HYP_FORCE_INLINE bool operator==(const Mat3f& other) const
     {
         return &values[0] == &other.values[0] || !memcmp(values, other.values, std::size(values) * sizeof(values[0]));
     }
 
-    HYP_FORCE_INLINE bool operator!=(const Matrix3& other) const
+    HYP_FORCE_INLINE bool operator!=(const Mat3f& other) const
     {
         return !operator==(other);
     }
@@ -75,9 +75,9 @@ public:
         return rows[row];
     }
 
-    static Matrix3 Zeros();
-    static Matrix3 Ones();
-    static Matrix3 Identity();
+    static Mat3f Zeros();
+    static Mat3f Ones();
+    static Mat3f Identity();
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

@@ -19,7 +19,7 @@ Frustum::Frustum()
 {
 }
 
-Frustum::Frustum(const Matrix4& viewProj)
+Frustum::Frustum(const Mat4f& viewProj)
 {
     SetFromViewProjectionMatrix(viewProj);
 }
@@ -79,9 +79,9 @@ bool Frustum::ContainsPoint(const Vec3f& point) const
     return true;
 }
 
-Frustum& Frustum::SetFromViewProjectionMatrix(const Matrix4& viewProj)
+Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
 {
-    const Matrix4 mat = viewProj.Transposed();
+    const Mat4f mat = viewProj.Transposed();
 
     planes[0][0] = mat[0][3] - mat[0][0];
     planes[0][1] = mat[1][3] - mat[1][0];
@@ -119,7 +119,7 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Matrix4& viewProj)
     planes[5][3] = mat[3][3] + mat[3][2];
     // planes[5].Normalize();
 
-    const Matrix4 clipToWorld = viewProj.Inverted();
+    const Mat4f clipToWorld = viewProj.Inverted();
 
     for (uint32 i = 0; i < 8; i++)
     {

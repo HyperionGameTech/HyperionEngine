@@ -20,13 +20,13 @@
 
 namespace hyperion {
 
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
+static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
-    FixedArray<Matrix4, 6> viewMatrices;
+    FixedArray<Mat4f, 6> viewMatrices;
 
     for (uint32 i = 0; i < 6; i++)
     {
-        viewMatrices[i] = Matrix4::LookAt(
+        viewMatrices[i] = Mat4f::LookAt(
             origin,
             origin + Texture::s_cubemapDirections[i].first,
             Texture::s_cubemapDirections[i].second);
@@ -93,7 +93,7 @@ void EnvProbe::Init()
             m_cameraNear, m_cameraFar);
 
         m_camera->SetName(NAME("EnvProbeCamera"));
-        m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+        m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
 
         InitObject(m_camera);
         AddChild(m_camera);
@@ -295,7 +295,7 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
     {
         AssertDebug(m_camera != nullptr);
 
-        m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+        m_camera->SetViewMatrix(Mat4f::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
     }
 
     Invalidate();
@@ -378,7 +378,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
         | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
         | EnvProbeFlags::DIRTY;
 
-    const FixedArray<Matrix4, 6> viewMatrices = CreateCubemapMatrices(m_aabb, GetOrigin());
+    const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
     Memory::MemCpy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
     Memory::MemCpy(bufferData.sh.values, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));

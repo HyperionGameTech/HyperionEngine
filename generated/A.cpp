@@ -931,18 +931,34 @@ HYP_END_STRUCT
 
 } // namespace hyperion
 
+/* Generated from: core/math/Mat3f.hpp */
+
+#include <core/math/Mat3f.hpp>
+
+namespace hyperion {
+
+#pragma region Mat3f Reflection Data
+
+HYP_BEGIN_STRUCT(Mat3f, 239, 0, {}, HypClassAttribute("size", 48))
+HYP_END_STRUCT
+
+#pragma endregion Mat3f Reflection Data
+
+static_assert(sizeof(Mat3f) == 48, "Expected sizeof(Mat3f) to be 48 bytes");
+} // namespace hyperion
+
 /* Generated from: core/math/Transform.hpp */
 
 #include <core/math/Transform.hpp>
 #include <core/math/Quaternion.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 
 namespace hyperion {
 
 #pragma region Transform Reflection Data
 
-HYP_BEGIN_STRUCT(Transform, 239, 0, {}, HypClassAttribute("size", 112),HypClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(Transform, 240, 0, {}, HypClassAttribute("size", 112),HypClassAttribute("serialize", "bitwise"))
     HypField(NAME(HYP_STR(Translation)), &Transform::translation, offsetof(Transform, translation)),
     HypField(NAME(HYP_STR(Scale)), &Transform::scale, offsetof(Transform, scale)),
     HypField(NAME(HYP_STR(Rotation)), &Transform::rotation, offsetof(Transform, rotation)),
@@ -952,6 +968,22 @@ HYP_END_STRUCT
 #pragma endregion Transform Reflection Data
 
 static_assert(sizeof(Transform) == 112, "Expected sizeof(Transform) to be 112 bytes");
+} // namespace hyperion
+
+/* Generated from: core/math/Mat4f.hpp */
+
+#include <core/math/Mat4f.hpp>
+
+namespace hyperion {
+
+#pragma region Mat4f Reflection Data
+
+HYP_BEGIN_STRUCT(Mat4f, 241, 0, {}, HypClassAttribute("size", 64))
+HYP_END_STRUCT
+
+#pragma endregion Mat4f Reflection Data
+
+static_assert(sizeof(Mat4f) == 64, "Expected sizeof(Mat4f) to be 64 bytes");
 } // namespace hyperion
 
 /* Generated from: core/math/Triangle.hpp */
@@ -964,7 +996,7 @@ namespace hyperion {
 
 #pragma region Triangle Reflection Data
 
-HYP_BEGIN_STRUCT(Triangle, 240, 0, {}, HypClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(Triangle, 242, 0, {}, HypClassAttribute("serialize", "bitwise"))
     HypField(NAME(HYP_STR(Points)), &Triangle::points, offsetof(Triangle, points))
 HYP_END_STRUCT
 
@@ -980,7 +1012,7 @@ namespace hyperion {
 
 #pragma region Quaternion Reflection Data
 
-HYP_BEGIN_STRUCT(Quaternion, 241, 0, {}, HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(Quaternion, 243, 0, {}, HypClassAttribute("size", 16))
     HypField(NAME(HYP_STR(X)), &Quaternion::x, offsetof(Quaternion, x)),
     HypField(NAME(HYP_STR(Y)), &Quaternion::y, offsetof(Quaternion, y)),
     HypField(NAME(HYP_STR(Z)), &Quaternion::z, offsetof(Quaternion, z)),
@@ -1000,7 +1032,7 @@ namespace hyperion {
 
 #pragma region BoundingSphere Reflection Data
 
-HYP_BEGIN_STRUCT(BoundingSphere, 242, 0, {}, HypClassAttribute("size", 32))
+HYP_BEGIN_STRUCT(BoundingSphere, 244, 0, {}, HypClassAttribute("size", 32))
     HypField(NAME(HYP_STR(Center)), &BoundingSphere::center, offsetof(BoundingSphere, center), Span<const HypClassAttribute> { {HypClassAttribute("property", "Center"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Radius)), &BoundingSphere::radius, offsetof(BoundingSphere, radius), Span<const HypClassAttribute> { {HypClassAttribute("property", "Radius"), HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
@@ -1008,38 +1040,6 @@ HYP_END_STRUCT
 #pragma endregion BoundingSphere Reflection Data
 
 static_assert(sizeof(BoundingSphere) == 32, "Expected sizeof(BoundingSphere) to be 32 bytes");
-} // namespace hyperion
-
-/* Generated from: core/math/Matrix4.hpp */
-
-#include <core/math/Matrix4.hpp>
-
-namespace hyperion {
-
-#pragma region Matrix4 Reflection Data
-
-HYP_BEGIN_STRUCT(Matrix4, 243, 0, {}, HypClassAttribute("size", 64))
-HYP_END_STRUCT
-
-#pragma endregion Matrix4 Reflection Data
-
-static_assert(sizeof(Matrix4) == 64, "Expected sizeof(Matrix4) to be 64 bytes");
-} // namespace hyperion
-
-/* Generated from: core/math/Matrix3.hpp */
-
-#include <core/math/Matrix3.hpp>
-
-namespace hyperion {
-
-#pragma region Matrix3 Reflection Data
-
-HYP_BEGIN_STRUCT(Matrix3, 244, 0, {}, HypClassAttribute("size", 48))
-HYP_END_STRUCT
-
-#pragma endregion Matrix3 Reflection Data
-
-static_assert(sizeof(Matrix3) == 48, "Expected sizeof(Matrix3) to be 48 bytes");
 } // namespace hyperion
 
 /* Generated from: core/math/Ray.hpp */

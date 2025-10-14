@@ -164,6 +164,9 @@ vec4 ConvoleProbe(uvec2 local_coord)
         vec4 color = albedo;
 #endif
 
+        // temp
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+
         sum_radiance += color;
     }
 

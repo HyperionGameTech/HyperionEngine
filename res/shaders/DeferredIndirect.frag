@@ -144,10 +144,12 @@ void main()
 
     reflections = Texture2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
 
-#ifdef ENV_GRID_ENABLED
+#ifdef ENV_GRID_REFLECTIONS
     vec4 env_grid_radiance = Texture2D(HYP_SAMPLER_LINEAR, env_grid_radiance_texture, texcoord);
     reflections = reflections * (1.0 - env_grid_radiance.a) + (vec4(env_grid_radiance.rgb, 1.0) * env_grid_radiance.a);
+#endif
 
+#ifdef ENV_GRID_GI
     irradiance += Texture2D(HYP_SAMPLER_LINEAR, env_grid_irradiance_texture, texcoord).rgb * ENV_GRID_MULTIPLIER;
 #endif
 
@@ -162,11 +164,11 @@ void main()
     irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
 #endif
 
-#ifdef RT_REFLECTIONS_ENABLED
+#ifdef RT_REFLECTIONS
     CalculateRaytracingReflection(deferred_params, texcoord, reflections);
 #endif
 
-#ifdef RT_GI_ENABLED
+#ifdef RT_GI
     irradiance += DDGISampleIrradiance(position.xyz, ws_normal, V).rgb * DDGI_MULTIPLIER;
 #endif
 

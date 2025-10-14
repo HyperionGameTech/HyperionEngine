@@ -41,13 +41,13 @@ static constexpr Vec2u shNumTiles = { 16, 16 };
 static constexpr uint32 shNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(shNumSamples.Max()) + 1));
 static constexpr bool shParallelReduce = false;
 
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
+static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
-    FixedArray<Matrix4, 6> viewMatrices;
+    FixedArray<Mat4f, 6> viewMatrices;
 
     for (uint32 i = 0; i < 6; i++)
     {
-        viewMatrices[i] = Matrix4::LookAt(
+        viewMatrices[i] = Mat4f::LookAt(
             origin,
             origin + Texture::s_cubemapDirections[i].first,
             Texture::s_cubemapDirections[i].second);

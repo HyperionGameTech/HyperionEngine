@@ -12,14 +12,14 @@ namespace Hyperion
         private Vec3f translation;
         private Vec3f scale;
         private Quaternion rotation;
-        private Matrix4 matrix;
+        private Mat4f matrix;
 
         public Transform()
         {
             this.translation = new Vec3f();
             this.scale = new Vec3f(1);
             this.rotation = new Quaternion();
-            this.matrix = new Matrix4();
+            this.matrix = new Mat4f();
 
             UpdateMatrix();
         }
@@ -29,7 +29,7 @@ namespace Hyperion
             this.translation = translation;
             this.scale = scale;
             this.rotation = rotation;
-            this.matrix = new Matrix4();
+            this.matrix = new Mat4f();
 
             UpdateMatrix();
         }
@@ -76,7 +76,7 @@ namespace Hyperion
             }
         }
 
-        public Matrix4 Matrix
+        public Mat4f Matrix
         {
             get
             {

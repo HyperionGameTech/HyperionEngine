@@ -245,7 +245,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
         resourceHandle = ResourceHandle(*mesh->GetAsset()->GetResource());
     }
 
-    const Matrix4 normalMatrix = transform.GetMatrix().Inverted().Transposed();
+    const Mat4f normalMatrix = transform.GetMatrix().Inverted().Transposed();
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
 

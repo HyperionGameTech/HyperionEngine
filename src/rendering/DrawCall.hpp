@@ -40,7 +40,7 @@ struct alignas(16) EntityInstanceBatch
     uint32 _pad1;
 
     uint32 indices[MaxEntitiesPerBatch];
-    Matrix4 transforms[MaxEntitiesPerBatch];
+    Mat4f transforms[MaxEntitiesPerBatch];
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 4096);
@@ -137,7 +137,7 @@ struct DrawCallStorage
     SizeType Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, ObjId<Entity> entityId, uint32 numIndicesValue)
     {
         const SizeType index = ids.Size();
-        
+
         ids.PushBack(id);
         meshes.PushBack(mesh);
         materials.PushBack(material);
@@ -194,7 +194,7 @@ struct InstancedDrawCallStorage
     SizeType Push(DrawCallID id, Mesh* mesh, Material* material, Skeleton* skeleton, EntityInstanceBatch* batch, uint32 numIndicesValue)
     {
         const SizeType index = ids.Size();
-        
+
         ids.PushBack(id);
         meshes.PushBack(mesh);
         materials.PushBack(material);

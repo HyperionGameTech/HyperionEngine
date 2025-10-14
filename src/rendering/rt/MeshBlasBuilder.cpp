@@ -53,7 +53,7 @@ struct RENDER_COMMAND(BuildMeshBlas)
             uint32(this->packedVertices.Size()),
             uint32(this->packedIndices.Size()),
             material,
-            Matrix4::identity);
+            Mat4f::identity);
 
         this->blas = blas;
     }

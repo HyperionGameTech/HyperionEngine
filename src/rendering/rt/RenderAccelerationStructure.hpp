@@ -144,7 +144,7 @@ public:
         m_materialBinding = materialBinding;
     }
 
-    virtual void SetTransform(const Matrix4& transform) = 0;
+    virtual void SetTransform(const Mat4f& transform) = 0;
 
 protected:
     Handle<Material> m_material;

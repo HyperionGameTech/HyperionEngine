@@ -26,7 +26,7 @@ namespace Hyperion
         private uint UNUSED_flags;
 
         [FieldOffset(144)]
-        private Matrix4 previousModelMatrix;
+        private Mat4f previousModelMatrix;
 
         [FieldOffset(208)]
         private IntPtr UNUSED_rayTracingDataPtr;

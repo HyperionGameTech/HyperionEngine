@@ -415,7 +415,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     struct
     {
-        Matrix4 matrix;
+        Mat4f matrix;
         uint32 time;
     } pushConstants;
 

@@ -24,7 +24,7 @@ struct BoundingBox;
 struct Triangle;
 class RayTestResults;
 struct RayHit;
-class Matrix4;
+class Mat4f;
 
 using RayHitID = uint32;
 
@@ -51,7 +51,7 @@ struct HYP_API Ray
             || direction != other.direction;
     }
 
-    Ray operator*(const Matrix4& transform) const;
+    Ray operator*(const Mat4f& transform) const;
 
     Optional<RayHit> TestAABB(const BoundingBox& aabb) const;
     bool TestAABB(const BoundingBox& aabb, RayTestResults& outResults) const;
@@ -126,7 +126,7 @@ struct HYP_API Ray
     }
 };
 
-HYP_API Ray operator*(const Matrix4& transform, const Ray& ray);
+HYP_API Ray operator*(const Mat4f& transform, const Ray& ray);
 
 struct RayHit
 {

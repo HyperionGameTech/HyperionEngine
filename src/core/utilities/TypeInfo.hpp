@@ -48,7 +48,12 @@ enum class TypeInfoFlags : uint32
     VEC2_TYPE = 0x200000,
     VEC3_TYPE = 0x400000,
     VEC4_TYPE = 0x800000,
-    VECTOR_TYPE = VEC2_TYPE | VEC3_TYPE | VEC4_TYPE
+    VECTOR_TYPE = VEC2_TYPE | VEC3_TYPE | VEC4_TYPE,
+
+    // Matrix types
+    MAT3_TYPE = 0x1000000,
+    MAT4_TYPE = 0x2000000,
+    MATRIX_TYPE = MAT3_TYPE | MAT4_TYPE
 };
 
 HYP_MAKE_ENUM_FLAGS(TypeInfoFlags)
@@ -101,6 +106,9 @@ template <class T>
 struct Vec4;
 
 } // namespace math
+
+struct Mat3f;
+struct Mat4f;
 
 namespace utilities {
 
@@ -163,7 +171,8 @@ public:
         TYPE_LINKEDLIST,
         TYPE_MAP,
         TYPE_STRING,
-        TYPE_VECTOR
+        TYPE_VECTOR,
+        TYPE_MATRIX
     };
 
     virtual ~ITypeInfoHandler() = default;
@@ -277,6 +286,27 @@ public:
 
     virtual AnyRef GetComponent(const HypData& instance, int index) const = 0;
     virtual void SetComponent(const HypData& instance, int index, const HypData& value) const = 0;
+};
+
+class ITypeInfoMatrixHandler : public ITypeInfoHandler
+{
+public:
+    virtual ~ITypeInfoMatrixHandler() = default;
+
+    virtual Type GetHandlerType() const override final
+    {
+        return TYPE_MATRIX;
+    }
+
+    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+
+    virtual ITypeInfoHandler* Clone() const override = 0;
+
+    virtual int GetNumRows() const = 0;
+    virtual int GetNumColumns() const = 0;
+
+    virtual AnyRef GetElement(const HypData& instance, int row, int column) const = 0;
+    virtual void SetElement(const HypData& instance, int row, int column, const HypData& value) const = 0;
 };
 
 /*! \brief Additional type information for containers and complex types */
@@ -422,6 +452,18 @@ struct TypeInfoImpl<math::Vec4<T>, HypDataType>
     void operator()(TypeInfo& result) const;
 };
 
+template <class T, class HypDataType>
+struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>
+{
+    void operator()(TypeInfo& result) const;
+};
+
+template <class T, class HypDataType>
+struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>
+{
+    void operator()(TypeInfo& result) const;
+};
+
 struct TypeInfo
 {
     /*! \brief Get a default TypeInfo instance representing void type */
@@ -481,7 +523,7 @@ struct TypeInfo
     {
         using NormalizedT = NormalizedType<T>;
 
-        constexpr TypeId typeId = TypeId::ForType<NormalizedT>();
+        const TypeId typeId = TypeId::ForType<NormalizedT>();
 
         if constexpr (std::is_void_v<NormalizedT>)
         {
@@ -494,12 +536,19 @@ struct TypeInfo
 
             if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, uint16(sizeof(NormalizedT)), uint16(alignof(NormalizedT))))
             {
+                // debugging
+                constexpr const char* TypeName = TypeNameHelper<NormalizedT, true>::value.Data();
+                HYP_CORE_ASSERT(Memory::StrCmp(cached->name.LookupString(), TypeName) == 0,
+                    "cached type name '%s' does not match expected type name '%s'",
+                    cached->name.LookupString(),
+                    TypeName);
+
                 return *cached;
             }
 
             TypeInfo result;
             result.id = typeId;
-            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<T, false>::value>());
+            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<T, true>::value>());
             result.size = uint16(sizeof(NormalizedT));
             result.alignment = uint16(alignof(NormalizedT));
             result.flags = TypeInfoFlags::NONE;
@@ -526,9 +575,12 @@ struct TypeInfo
 
             if constexpr (IsEnumFlagsV<NormalizedT>)
             {
-                // use the enum type for EnumFlags instead of EnumFlags<T>
-                result = ForType<typename NormalizedT::EnumType>();
                 result.flags |= TypeInfoFlags::ENUM_FLAGS_TYPE;
+
+                result.extendedInfo.data.typeInfo = &ForType<typename NormalizedT::EnumType>();
+
+                result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+                result.extendedInfo.handler = nullptr;
             }
 
             if constexpr (std::is_fundamental_v<NormalizedT>)
@@ -669,6 +721,11 @@ struct TypeInfo
         return flags & TypeInfoFlags::VECTOR_TYPE;
     }
 
+    HYP_FORCE_INLINE bool IsMatrixType() const
+    {
+        return flags & TypeInfoFlags::MATRIX_TYPE;
+    }
+
     HYP_FORCE_INLINE bool IsContainerType() const
     {
         constexpr EnumFlags<TypeInfoFlags> Mask = TypeInfoFlags::ARRAY_TYPE
@@ -703,6 +760,45 @@ struct TypeInfo
     HYP_FORCE_INLINE const TypeInfo* GetElementType() const
     {
         return extendedInfo.GetElementType();
+    }
+
+    HYP_FORCE_INLINE const TypeInfo* GetEnumType() const
+    {
+        if (IsEnum())
+        {
+            return this;
+        }
+        else if (IsEnumFlags())
+        {
+            const TypeInfo* enumType = GetElementType();
+
+            if (enumType && enumType->IsEnum())
+            {
+                return enumType;
+            }
+        }
+
+        return nullptr;
+    }
+
+    /*! \brief Get underlying type for Enum or EnumFlags */
+    HYP_FORCE_INLINE const TypeInfo* GetUnderlyingType() const
+    {
+        if (IsEnum())
+        {
+            return GetElementType();
+        }
+        else if (IsEnumFlags())
+        {
+            const TypeInfo* enumType = GetElementType();
+
+            if (enumType && enumType->IsEnum())
+            {
+                return enumType->GetElementType();
+            }
+        }
+
+        return nullptr;
     }
 
     /*! \brief Get value type for HashMap/FlatMap (stored in extendedInfo.next->data) */
@@ -826,6 +922,8 @@ void TypeInfoImpl<containers::Array<T, AllocatorType>, HypDataType>::operator()(
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
             outInstance = HypDataType(ArrayType {});
+            // temp debugging
+            HYP_CORE_ASSERT(outInstance.template Is<ArrayType>());
             return true;
         }
 
@@ -1588,6 +1686,126 @@ void TypeInfoImpl<math::Vec4<T>, HypDataType>::operator()(TypeInfo& result) cons
     result.extendedInfo.handler = new Vec4Handler();
 }
 
+template <class T, class HypDataType>
+void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat3f>>>::operator()(TypeInfo& result) const
+{
+    using MatrixType = T;
+
+    result.flags |= TypeInfoFlags::MATRIX_TYPE;
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<float>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+    // set handler
+    class Mat3fHandler final : public ITypeInfoMatrixHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new Mat3fHandler();
+        }
+
+        virtual bool CreateInstance(HypDataType& outInstance) const override
+        {
+            outInstance = HypData(MatrixType {});
+            return true;
+        }
+
+        virtual int GetNumRows() const override
+        {
+            return 3;
+        }
+
+        virtual int GetNumColumns() const override
+        {
+            return 3;
+        }
+
+        virtual AnyRef GetElement(const HypDataType& instance, int row, int column) const override
+        {
+            MatrixType& mat = instance.template Get<MatrixType>();
+            if (row < 0 || row >= 3 || column < 0 || column >= 3)
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(&mat[row][column]);
+        }
+
+        virtual void SetElement(const HypDataType& instance, int row, int column, const HypDataType& value) const override
+        {
+            MatrixType& mat = instance.template Get<MatrixType>();
+            if (row < 0 || row >= 3 || column < 0 || column >= 3)
+            {
+                return;
+            }
+
+            mat[row][column] = value.template Get<float>();
+        }
+    };
+
+    result.extendedInfo.handler = new Mat3fHandler();
+}
+
+template <class T, class HypDataType>
+void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, Mat4f>>>::operator()(TypeInfo& result) const
+{
+    using MatrixType = T;
+
+    result.flags |= TypeInfoFlags::MATRIX_TYPE;
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<float>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+    // set handler
+    class Mat4fHandler final : public ITypeInfoMatrixHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new Mat4fHandler();
+        }
+
+        virtual bool CreateInstance(HypDataType& outInstance) const override
+        {
+            outInstance = HypData(MatrixType {});
+            return true;
+        }
+
+        virtual int GetNumRows() const override
+        {
+            return 4;
+        }
+
+        virtual int GetNumColumns() const override
+        {
+            return 4;
+        }
+
+        virtual AnyRef GetElement(const HypDataType& instance, int row, int column) const override
+        {
+            MatrixType& mat = instance.template Get<MatrixType>();
+            if (row < 0 || row >= 4 || column < 0 || column >= 4)
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(&mat[row][column]);
+        }
+
+        virtual void SetElement(const HypDataType& instance, int row, int column, const HypDataType& value) const override
+        {
+            MatrixType& mat = instance.template Get<MatrixType>();
+            if (row < 0 || row >= 4 || column < 0 || column >= 4)
+            {
+                return;
+            }
+
+            mat[row][column] = value.template Get<float>();
+        }
+    };
+
+    result.extendedInfo.handler = new Mat4fHandler();
+}
+
 /// Wrapper functions for forward decls
 
 inline const TypeInfo& TypeInfo_Void()
@@ -1632,6 +1850,7 @@ using utilities::ITypeInfoHandler;
 using utilities::ITypeInfoArrayHandler;
 using utilities::ITypeInfoLinkedListHandler;
 using utilities::ITypeInfoMapHandler;
+using utilities::ITypeInfoMatrixHandler;
 using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVectorHandler;
 

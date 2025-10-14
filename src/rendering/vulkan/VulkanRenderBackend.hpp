@@ -135,7 +135,7 @@ public:
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
-        const Matrix4& transform) override;
+        const Mat4f& transform) override;
     virtual TLASRef MakeTLAS() override;
 
     virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 faceIndex = 0, uint32 numFaces = ~0u) override;

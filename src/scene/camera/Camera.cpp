@@ -544,7 +544,7 @@ void Camera::Rotate(const Vec3f& axis, float radians)
     UpdateViewProjectionMatrix();
 }
 
-void Camera::SetViewMatrix(const Matrix4& viewMat)
+void Camera::SetViewMatrix(const Mat4f& viewMat)
 {
     HYP_SCOPE;
 
@@ -554,7 +554,7 @@ void Camera::SetViewMatrix(const Matrix4& viewMat)
     UpdateViewProjectionMatrix();
 }
 
-void Camera::SetProjectionMatrix(const Matrix4& projMat)
+void Camera::SetProjectionMatrix(const Mat4f& projMat)
 {
     HYP_SCOPE;
 
@@ -563,7 +563,7 @@ void Camera::SetProjectionMatrix(const Matrix4& projMat)
     UpdateViewProjectionMatrix();
 }
 
-void Camera::SetViewProjectionMatrix(const Matrix4& viewMat, const Matrix4& projMat)
+void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 {
     HYP_SCOPE;
 

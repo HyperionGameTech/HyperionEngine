@@ -88,15 +88,15 @@ struct DDGIInfo
 
 struct RotationMatrixGenerator
 {
-    Matrix4 matrix;
+    Mat4f matrix;
     std::random_device randomDevice;
     std::mt19937 mt { randomDevice() };
     std::uniform_real_distribution<float> angle { 0.0f, 359.0f };
     std::uniform_real_distribution<float> axis { -1.0f, 1.0f };
 
-    const Matrix4& Next()
+    const Mat4f& Next()
     {
-        return matrix = Matrix4::Rotation({ Vec3f { axis(mt), axis(mt), axis(mt) }.Normalize(),
+        return matrix = Mat4f::Rotation({ Vec3f { axis(mt), axis(mt), axis(mt) }.Normalize(),
                    MathUtil::DegToRad(angle(mt)) });
     }
 };

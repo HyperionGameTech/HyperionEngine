@@ -7,7 +7,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -91,7 +91,7 @@ using VulkanAccelerationGeometryWeakRef = WeakHandle<VulkanAccelerationGeometry>
 class HYP_API VulkanAccelerationStructureBase
 {
 protected:
-    VulkanAccelerationStructureBase(const Matrix4& transform = Matrix4::Identity());
+    VulkanAccelerationStructureBase(const Mat4f& transform = Mat4f::Identity());
     ~VulkanAccelerationStructureBase();
 
 public:
@@ -148,12 +148,12 @@ public:
      */
     void RemoveGeometry(const VulkanAccelerationGeometryRef& geometry);
 
-    HYP_FORCE_INLINE const Matrix4& GetTransform() const
+    HYP_FORCE_INLINE const Mat4f& GetTransform() const
     {
         return m_transform;
     }
 
-    HYP_FORCE_INLINE void SetTransform(const Matrix4& transform)
+    HYP_FORCE_INLINE void SetTransform(const Mat4f& transform)
     {
         if (m_transform == transform)
         {
@@ -188,7 +188,7 @@ protected:
     GpuBufferRef m_buffer;
     GpuBufferRef m_scratchBuffer;
     Array<VulkanAccelerationGeometryRef> m_geometries;
-    Matrix4 m_transform;
+    Mat4f m_transform;
     VkAccelerationStructureKHR m_accelerationStructure;
     uint64 m_deviceAddress;
     AccelerationStructureFlags m_flags;
@@ -213,14 +213,14 @@ public:
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
-        const Matrix4& transform);
+        const Mat4f& transform);
     virtual ~VulkanBLAS() override;
 
     virtual bool IsCreated() const override;
 
     virtual RendererResult Create() override;
 
-    virtual void SetTransform(const Matrix4& transform) override
+    virtual void SetTransform(const Mat4f& transform) override
     {
         VulkanAccelerationStructureBase::SetTransform(transform);
     }

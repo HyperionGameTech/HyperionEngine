@@ -18,8 +18,8 @@ namespace Hyperion
         public static readonly FBOMType Double;
         public static readonly FBOMType Bool;
         public static readonly FBOMType Name;
-        public static readonly FBOMType Matrix3;
-        public static readonly FBOMType Matrix4;
+        public static readonly FBOMType Mat3f;
+        public static readonly FBOMType Mat4f;
         public static readonly FBOMType Vec2f;
         public static readonly FBOMType Vec3f;
         public static readonly FBOMType Vec4f;
@@ -40,8 +40,8 @@ namespace Hyperion
             Double = new FBOMType(FBOMType_Double());
             Bool = new FBOMType(FBOMType_Bool());
             Name = new FBOMType(FBOMType_Name());
-            Matrix3 = new FBOMType(FBOMType_Matrix3());
-            Matrix4 = new FBOMType(FBOMType_Matrix4());
+            Mat3f = new FBOMType(FBOMType_Matrix3());
+            Mat4f = new FBOMType(FBOMType_Matrix4());
             Vec2f = new FBOMType(FBOMType_Vec2f());
             Vec3f = new FBOMType(FBOMType_Vec3f());
             Vec4f = new FBOMType(FBOMType_Vec4f());

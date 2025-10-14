@@ -1564,7 +1564,7 @@ HYP_END_CLASS
 #include <scene/camera/Camera.hpp>
 #include <input/InputHandler.hpp>
 #include <core/math/Frustum.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 
 namespace hyperion {

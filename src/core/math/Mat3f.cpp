@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Matrix3.hpp>
+#include <core/math/Mat3f.hpp>
 
 #include <core/memory/Memory.hpp>
 
 namespace hyperion {
 
-Matrix3::Matrix3()
+Mat3f::Mat3f()
     : rows {
           { 1.0f, 0.0f, 0.0f },
           { 0.0f, 1.0f, 0.0f },
@@ -15,12 +15,12 @@ Matrix3::Matrix3()
 {
 }
 
-Matrix3::Matrix3(const float* v)
+Mat3f::Mat3f(const float* v)
 {
     Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
 }
 
-float Matrix3::Determinant() const
+float Mat3f::Determinant() const
 {
     float a = rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1]);
     float b = rows[0][1] * (rows[1][0] * rows[2][2] - rows[1][2] * rows[2][0]);
@@ -28,7 +28,7 @@ float Matrix3::Determinant() const
     return a - b + c;
 }
 
-Matrix3 Matrix3::Transposed() const
+Mat3f Mat3f::Transposed() const
 {
     const float v[3][3] = {
         { rows[0][0], rows[1][0], rows[2][0] },
@@ -36,20 +36,20 @@ Matrix3 Matrix3::Transposed() const
         { rows[0][2], rows[1][2], rows[2][2] }
     };
 
-    return Matrix3(reinterpret_cast<const float*>(v));
+    return Mat3f(reinterpret_cast<const float*>(v));
 }
 
-Matrix3& Matrix3::Transpose()
+Mat3f& Mat3f::Transpose()
 {
     return *this = Transposed();
 }
 
-Matrix3 Matrix3::Inverted() const
+Mat3f Mat3f::Inverted() const
 {
     const float det = Determinant();
     const float invDet = 1.0f / det;
 
-    Matrix3 result;
+    Mat3f result;
     result[0][0] = (rows[1][1] * rows[2][2] - rows[2][1] * rows[1][2]) * invDet;
     result[0][1] = (rows[0][2] * rows[2][1] - rows[0][1] * rows[2][2]) * invDet;
     result[0][2] = (rows[0][1] * rows[1][2] - rows[0][2] * rows[1][1]) * invDet;
@@ -63,14 +63,14 @@ Matrix3 Matrix3::Inverted() const
     return result;
 }
 
-Matrix3& Matrix3::Invert()
+Mat3f& Mat3f::Invert()
 {
     return *this = Inverted();
 }
 
-Matrix3 Matrix3::operator+(const Matrix3& other) const
+Mat3f Mat3f::operator+(const Mat3f& other) const
 {
-    Matrix3 result(*this);
+    Mat3f result(*this);
 
     for (int i = 0; i < std::size(values); i++)
     {
@@ -80,7 +80,7 @@ Matrix3 Matrix3::operator+(const Matrix3& other) const
     return result;
 }
 
-Matrix3& Matrix3::operator+=(const Matrix3& other)
+Mat3f& Mat3f::operator+=(const Mat3f& other)
 {
     for (int i = 0; i < std::size(values); i++)
     {
@@ -90,7 +90,7 @@ Matrix3& Matrix3::operator+=(const Matrix3& other)
     return *this;
 }
 
-Matrix3 Matrix3::operator*(const Matrix3& other) const
+Mat3f Mat3f::operator*(const Mat3f& other) const
 {
     const float fv[] = {
         values[0] * other.values[0] + values[1] * other.values[3] + values[2] * other.values[6],
@@ -106,17 +106,17 @@ Matrix3 Matrix3::operator*(const Matrix3& other) const
         values[6] * other.values[2] + values[7] * other.values[5] + values[8] * other.values[8]
     };
 
-    return Matrix3(fv);
+    return Mat3f(fv);
 }
 
-Matrix3& Matrix3::operator*=(const Matrix3& other)
+Mat3f& Mat3f::operator*=(const Mat3f& other)
 {
     return (*this) = operator*(other);
 }
 
-Matrix3 Matrix3::operator*(float scalar) const
+Mat3f Mat3f::operator*(float scalar) const
 {
-    Matrix3 result(*this);
+    Mat3f result(*this);
 
     for (int i = 0; i < std::size(values); i++)
     {
@@ -126,7 +126,7 @@ Matrix3 Matrix3::operator*(float scalar) const
     return result;
 }
 
-Matrix3& Matrix3::operator*=(float scalar)
+Mat3f& Mat3f::operator*=(float scalar)
 {
     for (int i = 0; i < std::size(values); i++)
     {
@@ -136,42 +136,42 @@ Matrix3& Matrix3::operator*=(float scalar)
     return *this;
 }
 
-float Matrix3::operator()(int i, int j) const
+float Mat3f::operator()(int i, int j) const
 {
     return values[i * 3 + j];
 }
 
-float& Matrix3::operator()(int i, int j)
+float& Mat3f::operator()(int i, int j)
 {
     return values[i * 3 + j];
 }
 
-float Matrix3::At(int i, int j) const
+float Mat3f::At(int i, int j) const
 {
     return operator()(i, j);
 }
 
-float& Matrix3::At(int i, int j)
+float& Mat3f::At(int i, int j)
 {
     return operator()(i, j);
 }
 
-Matrix3 Matrix3::Zeros()
+Mat3f Mat3f::Zeros()
 {
     float zeroArray[sizeof(values) / sizeof(values[0])] = { 0.0f };
 
-    return Matrix3(zeroArray);
+    return Mat3f(zeroArray);
 }
 
-Matrix3 Matrix3::Ones()
+Mat3f Mat3f::Ones()
 {
     float onesArray[sizeof(values) / sizeof(values[0])] = { 1.0f };
 
-    return Matrix3(onesArray);
+    return Mat3f(onesArray);
 }
 
-Matrix3 Matrix3::Identity()
+Mat3f Mat3f::Identity()
 {
-    return Matrix3(); // constructor fills out identity matrix
+    return Mat3f(); // constructor fills out identity matrix
 }
 } // namespace hyperion

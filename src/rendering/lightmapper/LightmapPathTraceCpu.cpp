@@ -198,7 +198,7 @@ public:
 
         LightmapRayTestResults results;
 
-        const Matrix4& modelMatrix = m_subElement->transform.GetMatrix();
+        const Mat4f& modelMatrix = m_subElement->transform.GetMatrix();
 
         const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 
@@ -206,7 +206,7 @@ public:
 
         if (localBvhResults.Any())
         {
-            const Matrix4 normalMatrix = modelMatrix.Transposed().Inverted();
+            const Mat4f normalMatrix = modelMatrix.Transposed().Inverted();
 
             RayTestResults bvhResults;
 

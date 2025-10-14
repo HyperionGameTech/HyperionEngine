@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Matrix4")]
+    [HypClassBinding(Name="Mat4f")]
     [StructLayout(LayoutKind.Explicit, Size = 64, Pack = 16)]
-    public struct Matrix4
+    public struct Mat4f
     {
         [FieldOffset(0)]
         private float m00;
@@ -40,7 +40,7 @@ namespace Hyperion
         [FieldOffset(60)]
         private float m33;
 
-        public Matrix4()
+        public Mat4f()
         {
             m00 = 1; m01 = 0; m02 = 0; m03 = 0;
             m10 = 0; m11 = 1; m12 = 0; m13 = 0;
@@ -48,7 +48,7 @@ namespace Hyperion
             m30 = 0; m31 = 0; m32 = 0; m33 = 1;
         }
 
-        public Matrix4(float[] values)
+        public Mat4f(float[] values)
         {
             if (values.Length != 16)
             {
@@ -61,7 +61,7 @@ namespace Hyperion
             m30 = values[12]; m31 = values[13]; m32 = values[14]; m33 = values[15];
         }
 
-        public Matrix4(Matrix4 other)
+        public Mat4f(Mat4f other)
         {
             m00 = other.m00; m01 = other.m01; m02 = other.m02; m03 = other.m03;
             m10 = other.m10; m11 = other.m11; m12 = other.m12; m13 = other.m13;
@@ -69,38 +69,38 @@ namespace Hyperion
             m30 = other.m30; m31 = other.m31; m32 = other.m32; m33 = other.m33;
         }
 
-        public Matrix4 Transpose
+        public Mat4f Transpose
         {
             get
             {
-                Matrix4 result = new Matrix4();
+                Mat4f result = new Mat4f();
                 Matrix4_Transposed(ref this, out result);
                 return result;
             }
         }
 
-        public Matrix4 Inverse
+        public Mat4f Inverse
         {
             get
             {
-                Matrix4 result = new Matrix4();
+                Mat4f result = new Mat4f();
                 Matrix4_Inverted(ref this, out result);
                 return result;
             }
         }
 
-        public static Matrix4 operator*(Matrix4 a, Matrix4 b)
+        public static Mat4f operator*(Mat4f a, Mat4f b)
         {
-            Matrix4 result = new Matrix4();
+            Mat4f result = new Mat4f();
             Matrix4_Multiply(ref a, ref b, out result);
             return result;
         }
 
-        public static Matrix4 Identity
+        public static Mat4f Identity
         {
             get
             {
-                return new Matrix4();
+                return new Mat4f();
             }
         }
 
@@ -113,15 +113,15 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Identity")]
-        private static extern void Matrix4_Identity([Out] out Matrix4 matrix);
+        private static extern void Matrix4_Identity([Out] out Mat4f matrix);
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Multiply")]
-        private static extern void Matrix4_Multiply([In] ref Matrix4 a, [In] ref Matrix4 b, [Out] out Matrix4 result);
+        private static extern void Matrix4_Multiply([In] ref Mat4f a, [In] ref Mat4f b, [Out] out Mat4f result);
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Transposed")]
-        private static extern void Matrix4_Transposed([In] ref Matrix4 matrix, [Out] out Matrix4 result);
+        private static extern void Matrix4_Transposed([In] ref Mat4f matrix, [Out] out Mat4f result);
 
         [DllImport("hyperion", EntryPoint = "Matrix4_Inverted")]
-        private static extern void Matrix4_Inverted([In] ref Matrix4 matrix, [Out] out Matrix4 result);
+        private static extern void Matrix4_Inverted([In] ref Mat4f matrix, [Out] out Mat4f result);
     }
 }

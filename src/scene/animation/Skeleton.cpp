@@ -180,16 +180,6 @@ void Skeleton::SetRootBone(const Handle<Bone>& bone)
     m_rootBone->SetSkeleton(this);
 }
 
-SizeType Skeleton::NumBones() const
-{
-    if (!m_rootBone)
-    {
-        return 0;
-    }
-
-    return 1 + m_rootBone->GetDescendants().Size();
-}
-
 void Skeleton::SetSkeletonAsset(const AssetReference& assetReference)
 {
     HYP_SCOPE;
@@ -258,7 +248,7 @@ void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
             }
 
             bufferData.bones[descendantIndex] = bone->GetBoneMatrix();
-            
+
             ++descendantIndex;
         }
     }

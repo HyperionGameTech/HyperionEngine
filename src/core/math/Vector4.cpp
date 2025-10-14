@@ -4,7 +4,7 @@
 #include <core/math/MathUtil.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector2.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 #include <core/object/HypClassRegistry.hpp>
@@ -66,7 +66,7 @@ Vec4<float>& math::Vec4<float>::Normalize()
 
 Vec4<float>& math::Vec4<float>::Rotate(const Vec3<float>& axis, float radians)
 {
-    return (*this) = Matrix4::Rotation(axis, radians) * (*this);
+    return (*this) = Mat4f::Rotation(axis, radians) * (*this);
 }
 
 Vec4<float>& math::Vec4<float>::Lerp(const Vec4<float>& to, float amt)
@@ -195,7 +195,7 @@ Vec4<float> math::Vec4<float>::Max(const Vec4<float>& a, const Vec4<float>& b)
     };
 }
 
-Vec4<float> math::Vec4<float>::operator*(const Matrix4& mat) const
+Vec4<float> math::Vec4<float>::operator*(const Mat4f& mat) const
 {
     return {
         x * mat.values[0] + y * mat.values[4] + z * mat.values[8] + w * mat.values[12],

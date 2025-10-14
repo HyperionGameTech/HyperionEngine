@@ -4,7 +4,7 @@
 
 #include <rendering/Renderer.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Vector2.hpp>
 
 #include <core/Types.hpp>

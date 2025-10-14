@@ -29,7 +29,7 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
-static VkTransformMatrixKHR ToVkTransform(const Matrix4& matrix)
+static VkTransformMatrixKHR ToVkTransform(const Mat4f& matrix)
 {
     VkTransformMatrixKHR transform;
     std::memcpy(&transform, matrix.values, sizeof(VkTransformMatrixKHR));
@@ -140,7 +140,7 @@ RendererResult VulkanAccelerationGeometry::Create()
 
 #pragma region AccelerationStructure
 
-VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Matrix4& transform)
+VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Mat4f& transform)
     : m_transform(transform),
       m_accelerationStructure(VK_NULL_HANDLE),
       m_deviceAddress(0),
@@ -823,7 +823,7 @@ VulkanBLAS::VulkanBLAS(
     uint32 numVertices,
     uint32 numIndices,
     const Handle<Material>& material,
-    const Matrix4& transform)
+    const Mat4f& transform)
     : VulkanAccelerationStructureBase(transform),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer)

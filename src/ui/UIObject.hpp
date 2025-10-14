@@ -48,7 +48,7 @@ static inline Scene* GetScene(UIStageType* stage)
 
 struct UIObjectInstanceData
 {
-    Matrix4 transform;
+    Mat4f transform;
     Vec4f texcoords;
 };
 

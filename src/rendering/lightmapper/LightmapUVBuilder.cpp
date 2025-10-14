@@ -146,7 +146,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
             }
         }
 
-        const Matrix4 normalMatrix = subElement.transform.GetMatrix().Inverted().Transpose();
+        const Mat4f normalMatrix = subElement.transform.GetMatrix().Inverted().Transpose();
 
         for (SizeType vertexIndex = 0; vertexIndex < meshData.vertexData.Size(); vertexIndex++)
         {
@@ -225,10 +225,10 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
     {
         LightmapMeshData& lightmapMeshData = m_meshData[meshIndex];
 
-        const Matrix4& transform = lightmapMeshData.transform;
-        const Matrix4 inverseTransform = transform.Inverted();
-        const Matrix4 normalMatrix = transform.Inverted().Transpose();
-        const Matrix4 inverseNormalMatrix = normalMatrix.Inverted();
+        const Mat4f& transform = lightmapMeshData.transform;
+        const Mat4f inverseTransform = transform.Inverted();
+        const Mat4f normalMatrix = transform.Inverted().Transpose();
+        const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
 
         MeshIndexArray& currentUvIndices = uvMap.meshToUvIndices[lightmapMeshData.mesh->Id()];
 
@@ -356,9 +356,9 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
         lightmapMeshData.vertices.Resize(atlas->meshes[meshIndex].vertexCount);
         lightmapMeshData.indices.Resize(atlas->meshes[meshIndex].indexCount);
 
-        const Matrix4 inverseTransform = lightmapMeshData.transform.Inverted();
-        const Matrix4 normalMatrix = lightmapMeshData.transform.Inverted().Transpose();
-        const Matrix4 inverseNormalMatrix = normalMatrix.Inverted();
+        const Mat4f inverseTransform = lightmapMeshData.transform.Inverted();
+        const Mat4f normalMatrix = lightmapMeshData.transform.Inverted().Transpose();
+        const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
 
         for (uint32 j = 0; j < atlas->meshes[meshIndex].indexCount; j++)
         {

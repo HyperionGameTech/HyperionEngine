@@ -114,7 +114,7 @@ public:
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
-        const Matrix4& transform) = 0;
+        const Mat4f& transform) = 0;
     virtual TLASRef MakeTLAS() = 0;
 
     virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 faceIndex = 0, uint32 numFaces = ~0u) = 0;

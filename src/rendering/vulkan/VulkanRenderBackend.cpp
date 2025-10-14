@@ -942,7 +942,7 @@ BLASRef VulkanRenderBackend::MakeBLAS(
     uint32 numVertices,
     uint32 numIndices,
     const Handle<Material>& material,
-    const Matrix4& transform)
+    const Mat4f& transform)
 {
     return CreateObject<VulkanBLAS>(
         VulkanGpuBufferRef(packedVerticesBuffer),

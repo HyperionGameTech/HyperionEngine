@@ -15,7 +15,7 @@
 
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Frustum.hpp>
 #include <core/math/Extent.hpp>
 
@@ -284,7 +284,7 @@ public:
         m_near = _near;
         m_far = _far;
 
-        m_projMat = Matrix4::Perspective(
+        m_projMat = Mat4f::Perspective(
             m_fov,
             m_width, m_height,
             m_near, m_far);
@@ -304,7 +304,7 @@ public:
         m_near = _near;
         m_far = _far;
 
-        m_projMat = Matrix4::Orthographic(
+        m_projMat = Mat4f::Orthographic(
             m_left, m_right,
             m_bottom, m_top,
             m_near, m_far);
@@ -511,34 +511,34 @@ public:
     }
 
     HYP_METHOD(Property = "ViewMatrix", Editor = true)
-    HYP_FORCE_INLINE const Matrix4& GetViewMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetViewMatrix() const
     {
         return m_viewMat;
     }
 
     HYP_METHOD(Property = "ViewMatrix", Editor = true)
-    void SetViewMatrix(const Matrix4& viewMat);
+    void SetViewMatrix(const Mat4f& viewMat);
 
     HYP_METHOD(Property = "ViewMatrix", Editor = true)
-    HYP_FORCE_INLINE const Matrix4& GetProjectionMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetProjectionMatrix() const
     {
         return m_projMat;
     }
 
     HYP_METHOD(Property = "ViewMatrix", Editor = true)
-    void SetProjectionMatrix(const Matrix4& projMat);
+    void SetProjectionMatrix(const Mat4f& projMat);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Matrix4& GetViewProjectionMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetViewProjectionMatrix() const
     {
         return m_viewProjMat;
     }
 
     HYP_METHOD()
-    void SetViewProjectionMatrix(const Matrix4& viewMat, const Matrix4& projMat);
+    void SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Matrix4& GetPreviousViewMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetPreviousViewMatrix() const
     {
         return m_previousViewMatrix;
     }
@@ -591,7 +591,7 @@ protected:
     Array<Handle<CameraController>> m_cameraControllers;
 
     Vec3f m_translation, m_nextTranslation, m_direction, m_up;
-    Matrix4 m_viewMat, m_projMat;
+    Mat4f m_viewMat, m_projMat;
     Frustum m_frustum;
 
     int m_width, m_height;
@@ -613,8 +613,8 @@ private:
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
 
-    Matrix4 m_viewProjMat;
-    Matrix4 m_previousViewMatrix;
+    Mat4f m_viewProjMat;
+    Mat4f m_previousViewMatrix;
 
     InputMouseLockScope m_mouseLockScope;
 

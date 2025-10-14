@@ -267,7 +267,7 @@ struct FBOMVec4u : FBOMType
 struct FBOMMat3f : FBOMType
 {
     FBOMMat3f()
-        : FBOMType("mat3f", 48, TypeId::ForType<Matrix3>(), FBOMSequence(FBOMFloat(), 12))
+        : FBOMType("mat3f", 48, TypeId::ForType<Mat3f>(), FBOMSequence(FBOMFloat(), 12))
     {
     }
 };
@@ -275,7 +275,7 @@ struct FBOMMat3f : FBOMType
 struct FBOMMat4f : FBOMType
 {
     FBOMMat4f()
-        : FBOMType("mat4f", 64, TypeId::ForType<Matrix4>(), FBOMSequence(FBOMFloat(), 16))
+        : FBOMType("mat4f", 64, TypeId::ForType<Mat4f>(), FBOMSequence(FBOMFloat(), 16))
     {
     }
 };

@@ -20,7 +20,7 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Quaternion.hpp>
 
 #include <core/object/HypData.hpp>
@@ -326,14 +326,14 @@ struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize>
     static ComponentInterfaceRegistration<type, ##__VA_ARGS__> type##_ComponentInterface_Registration \
     {                                                                                                 \
     }
-#define HYP_REGISTER_ENTITY_TAG(tag, ...)                                                                                                    \
+#define HYP_REGISTER_ENTITY_TAG(tag, ...)                                                                                              \
     static ComponentInterfaceRegistration<TagComponent<EntityTag::tag>, ##__VA_ARGS__> tag##_EntityTag_ComponentInterface_Registration \
-    {                                                                                                                                        \
+    {                                                                                                                                  \
     }
 
-#define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                                     \
+#define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                               \
     static ComponentInterfaceRegistration<TagComponent<EntityType_Impl<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
-    {                                                                                                                                                        \
+    {                                                                                                                                                  \
     }
 
 } // namespace hyperion

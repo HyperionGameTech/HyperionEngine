@@ -1,6 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <core/object/HypData.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/utilities/TypeInfo.hpp>
 
@@ -10,38 +11,12 @@
 
 #include <core/memory/pool/Pool.hpp>
 
-#include <core/object/HypClass.hpp>
-
 namespace hyperion {
 namespace utilities {
 
 #pragma region Cache
 
-struct TypeAttributeCacheKey
-{
-    TypeId typeId;
-    uint16 size;
-    uint16 alignment;
-
-    HYP_FORCE_INLINE bool operator==(const TypeAttributeCacheKey& other) const
-    {
-        return typeId == other.typeId
-            && size == other.size
-            && alignment == other.alignment;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(typeId);
-        hc.Add(size);
-        hc.Add(alignment);
-
-        return hc;
-    }
-};
-
-using TypeAttributeCache = HashMap<TypeAttributeCacheKey, TypeInfo*>;
+using TypeAttributeCache = HashMap<TypeId, TypeInfo*>;
 
 static bool s_typeInfoSystemInitialized = false;
 static TypeAttributeCache* s_typeAttributeCache = nullptr;
@@ -53,7 +28,7 @@ static Mutex& GetTypeAttributeCacheMutex()
     return s_typeAttributeCacheMutex;
 }
 
-static HashMap<TypeAttributeCacheKey, TypeInfo*>& GetTypeAttributeCache()
+static HashMap<TypeId, TypeInfo*>& GetTypeAttributeCache()
 {
     static struct Initializer
     {
@@ -83,7 +58,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
     TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* outPGuard)
 {
-    const TypeAttributeCacheKey cacheKey { typeId, typeSize, typeAlignment };
+    HYP_CORE_ASSERT(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
     if (outPGuard) // otherwise assumed to be called from a context where the mutex is already held
     {
@@ -92,7 +67,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
 
     TypeAttributeCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeAttributeCache : GetTypeAttributeCache();
 
-    const auto it = typeAttributeCache.Find(cacheKey);
+    const auto it = typeAttributeCache.Find(typeId);
     if (it != typeAttributeCache.End())
     {
         return it->second;
@@ -101,20 +76,20 @@ HYP_API TypeInfo* TypeInfo_Alloc(
     TypeInfo* pTypeInfo = PoolAlloc<TypeInfo>(GetTypeAttributePool());
     HYP_CORE_ASSERT(pTypeInfo != nullptr);
 
-    typeAttributeCache.Insert({ cacheKey, pTypeInfo });
+    typeAttributeCache.Insert({ typeId, pTypeInfo });
 
     return pTypeInfo;
 }
 
 HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 alignment)
 {
-    const TypeAttributeCacheKey key { typeId, size, alignment };
+    HYP_CORE_ASSERT(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
     Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
     TypeAttributeCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeAttributeCache : GetTypeAttributeCache();
 
-    const auto it = typeAttributeCache.Find(key);
+    const auto it = typeAttributeCache.Find(typeId);
     if (it != typeAttributeCache.End())
     {
         return it->second;
@@ -294,14 +269,15 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
         return Void();
     }
 
-    const TypeAttributeCacheKey key { hypClass->GetTypeId(), uint16(hypClass->GetSize()), uint16(hypClass->GetAlignment()) };
-
     Mutex::Guard guard(GetTypeAttributeCacheMutex());
 
-    const auto it = GetTypeAttributeCache().Find(key);
+    const auto it = GetTypeAttributeCache().Find(hypClass->GetTypeId());
     if (it != GetTypeAttributeCache().End())
     {
-        HYP_CORE_ASSERT(it->second != nullptr && it->second->GetHypClass() == hypClass);
+        if (s_typeInfoSystemInitialized) // don't check during static initialization
+        {
+            HYP_CORE_ASSERT(it->second != nullptr && it->second->GetHypClass() == hypClass);
+        }
         return *it->second;
     }
 
@@ -320,6 +296,8 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
     pTypeInfo->size = uint16(hypClass->GetSize());
     pTypeInfo->alignment = uint16(hypClass->GetAlignment());
     pTypeInfo->flags = TypeInfoFlags::NONE;
+
+    HYP_CORE_ASSERT(pTypeInfo->name.IsValid());
 
     if (hypClass->IsClassType())
     {

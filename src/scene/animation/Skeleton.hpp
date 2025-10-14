@@ -11,7 +11,7 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
@@ -38,11 +38,14 @@ class HYP_API Skeleton final : public AssetObject
 
 public:
     Skeleton();
+
     explicit Skeleton(const Handle<Bone>& rootBone);
     explicit Skeleton(const Handle<SkeletonAsset>& asset);
+
     Skeleton(const Skeleton& other) = delete;
     Skeleton& operator=(const Skeleton& other) = delete;
-    ~Skeleton();
+
+    ~Skeleton() override;
 
     /*! \brief Look up a bone with the given name/tag. If no root bone was set,
      *  or the bone could not be found, nullptr is returned. Otherwise, the resulting bone
@@ -61,17 +64,13 @@ public:
     /*! \brief Get the root Bone of this skeleton, which all nested Bones fall under.
      *  If no root bone was set on this Skeleton, nullptr is returned
      *  \returns The root bone of this skeleton, or nullptr */
-    HYP_METHOD(Serialize, Property = "RootBone")
+    HYP_METHOD(Property = "RootBone")
     const Handle<Bone>& GetRootBone() const;
 
     /*! \brief Set the root Bone of this skeleton, which all nested Bones fall under.
      *  \param bone The root bone to set on this skeleton. */
-    HYP_METHOD(Serialize, Property = "RootBone")
+    HYP_METHOD(Property = "RootBone")
     void SetRootBone(const Handle<Bone>& bone);
-
-    /*! \brief Returns the number of bones in this skeleton.
-     *  \returns The number of bones in this skeleton. */
-    SizeType NumBones() const;
 
     /*! \brief Get the SkeletonAsset that this skeleton references.
      *  \returns The skeleton asset, or invalid handle if none is set. */
@@ -106,6 +105,7 @@ private:
     HYP_METHOD(Property = "SkeletonAsset")
     void SetSkeletonAsset(const AssetReference& assetReference);
 
+    HYP_FIELD(Property = "RootBone")
     Handle<Bone> m_rootBone;
 
     TAssetReference<SkeletonAsset> m_skeletonAsset;

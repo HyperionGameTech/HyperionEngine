@@ -385,7 +385,7 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const C
 
     const Vec3f center = points.Avg();
 
-    Matrix4 transformMatrix;
+    Mat4f transformMatrix;
     transformMatrix.rows[0] = Vec4f(x, 0.0f);
     transformMatrix.rows[1] = Vec4f(y, 0.0f);
     transformMatrix.rows[2] = Vec4f(z, 0.0f);

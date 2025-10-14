@@ -65,7 +65,7 @@ enum class DebugDrawType : int
 struct DebugDrawCommand
 {
     IDebugDrawShape* shape;
-    Matrix4 transformMatrix;
+    Mat4f transformMatrix;
     Color color;
     RenderableAttributeSet attributes;
 };

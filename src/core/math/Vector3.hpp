@@ -16,8 +16,8 @@
 namespace hyperion {
 
 struct Quaternion;
-class Matrix3;
-class Matrix4;
+class Mat3f;
+class Mat4f;
 
 namespace math {
 template <class T>
@@ -555,10 +555,10 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
         return z < other.z;
     }
 
-    Vec3 operator*(const Matrix3& mat) const;
-    Vec3& operator*=(const Matrix3& mat);
-    Vec3 operator*(const Matrix4& mat) const;
-    Vec3& operator*=(const Matrix4& mat);
+    Vec3 operator*(const Mat3f& mat) const;
+    Vec3& operator*=(const Mat3f& mat);
+    Vec3 operator*(const Mat4f& mat) const;
+    Vec3& operator*=(const Mat4f& mat);
     Vec3 operator*(const Quaternion& quat) const;
     Vec3& operator*=(const Quaternion& quat);
 

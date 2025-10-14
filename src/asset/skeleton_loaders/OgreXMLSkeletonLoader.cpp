@@ -2,6 +2,9 @@
 
 #include <asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <scene/animation/Skeleton.hpp>
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Animation.hpp>
@@ -244,17 +247,17 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
     {
         const Name boneName = CreateNameFromDynamicString(item.name);
 
-        Handle<Bone> bone = CreateObject<Bone>(boneName);
+        const Transform bindingTransform = Transform(
+            item.bindingTranslation,
+            Vec3f::One(),
+            item.bindingRotation);
 
         BoneDesc& boneDesc = skeletonDesc.bones.EmplaceBack();
         boneDesc.name = boneName;
+        boneDesc.bindingTransform = bindingTransform;
 
-        bone->SetBindingTransform(Transform(
-            item.bindingTranslation,
-            Vec3f::One(),
-            item.bindingRotation));
-
-        boneDesc.bindingTransform = bone->GetBindingTransform();
+        Handle<Bone> bone = CreateObject<Bone>(boneName);
+        bone->SetBindingTransform(bindingTransform);
 
         if (item.parentName.Any())
         {
@@ -318,7 +321,6 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         }
 
         skeletonDesc.animationNames.PushBack(animationName);
-
         skeletonData.animations.PushBack(animation);
     }
 
@@ -327,10 +329,12 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         skeletonDesc,
         std::move(skeletonData));
 
-    Handle<Skeleton> skeletonHandle = CreateObject<Skeleton>(skeletonAsset);
-    skeletonHandle->SetRootBone(rootBone);
+    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Skeletons", skeletonAsset);
 
-    if (Bone* rootBone = skeletonHandle->GetRootBone())
+    Handle<Skeleton> skeleton = CreateObject<Skeleton>(skeletonAsset);
+    skeleton->SetRootBone(rootBone);
+
+    if (Bone* rootBone = skeleton->GetRootBone())
     {
         rootBone->SetToBindingPose();
 
@@ -343,7 +347,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         rootBone->UpdateBoneTransform();
     }
 
-    return LoadedAsset { skeletonHandle };
+    return LoadedAsset { skeleton };
 }
 
 } // namespace hyperion

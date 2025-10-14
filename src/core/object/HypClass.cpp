@@ -628,7 +628,7 @@ void HypClassMemberIterator::Advance()
 
 HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : m_typeId(typeId),
-      m_typeInfo(&TypeInfo::ForHypClass(this)),
+      m_typeInfo(nullptr),
       m_name(name),
       m_staticIndex(staticIndex),
       m_numDescendants(numDescendants),
@@ -641,6 +641,8 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
       m_serializationMode(HypClassSerializationMode::DEFAULT),
       m_objectContainer(nullptr)
 {
+    // needs to be set after name is set
+    m_typeInfo = &TypeInfo::ForHypClass(this);
     HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE

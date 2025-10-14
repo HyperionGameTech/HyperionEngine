@@ -4,7 +4,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/IdGenerator.hpp>

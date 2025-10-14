@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-HYP_API BoundingBox operator*(const Matrix4& transform, const BoundingBox& aabb)
+HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)
 {
     if (!aabb.IsValid())
     {
@@ -218,9 +218,12 @@ BoundingBox BoundingBox::Intersection(const BoundingBox& other) const
 
 bool BoundingBox::Overlaps(const BoundingBox& other) const
 {
-    if (max.x < other.min.x || other.max.x < min.x) return false;
-    if (max.y < other.min.y || other.max.y < min.y) return false;
-    if (max.z < other.min.z || other.max.z < min.z) return false;
+    if (max.x < other.min.x || other.max.x < min.x)
+        return false;
+    if (max.y < other.min.y || other.max.y < min.y)
+        return false;
+    if (max.z < other.min.z || other.max.z < min.z)
+        return false;
 
     return true;
 }

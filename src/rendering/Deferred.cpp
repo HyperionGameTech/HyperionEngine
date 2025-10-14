@@ -114,7 +114,8 @@ static void GetDeferredShaderProperties(
 
     DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "rendering.raytracing.reflections.enabled");
     DEF_STATIC_CONFIGURATION_VALUE(raytracingGlobalIllumination, "rendering.raytracing.globalIllumination.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(envGrid, "rendering.envGrid.globalIllumination.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(envGridGlobalIllumination, "rendering.envGrid.globalIllumination.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(envGridReflections, "rendering.envGrid.reflections.enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbil, "rendering.hbil.enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbao, "rendering.hbao.enabled");
     DEF_STATIC_CONFIGURATION_VALUE(ssgi, "rendering.ssgi.enabled");
@@ -127,9 +128,10 @@ static void GetDeferredShaderProperties(
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.raytracing && raytracingReflections);
-        outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.raytracing && raytracingGlobalIllumination);
-        outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGrid);
+        outShaderProperties.Set(NAME("RT_REFLECTIONS"), renderConfig.raytracing && raytracingReflections);
+        outShaderProperties.Set(NAME("RT_GI"), renderConfig.raytracing && raytracingGlobalIllumination);
+        outShaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
+        outShaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
         outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
         outShaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
         outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
@@ -1914,7 +1916,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             const uint32 frameCounter = RenderApi_GetWorldBufferData()->frameCounter + 1;
 
             Vec4f jitter = Vec4f::Zero();
-            Matrix4::Jitter(frameCounter, cameraBufferData.dimensions.x, cameraBufferData.dimensions.y, jitter);
+            Mat4f::Jitter(frameCounter, cameraBufferData.dimensions.x, cameraBufferData.dimensions.y, jitter);
 
             cameraBufferData.jitter = jitter * CameraJitterScale;
 

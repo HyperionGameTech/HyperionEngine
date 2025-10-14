@@ -264,7 +264,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
     { // Temporary CPU sorting -- inefficient but useful for testing
         for (SizeType index = 0; index < m_model->points.Size(); index++)
         {
-            m_cpuDistances[index] = ((activeCamera ? activeCamera->GetBufferData().view : Matrix4()) * m_model->points[index].position).z;
+            m_cpuDistances[index] = ((activeCamera ? activeCamera->GetBufferData().view : Mat4f()) * m_model->points[index].position).z;
         }
 
         std::sort(m_cpuSortedIndices.Begin(), m_cpuSortedIndices.End(), [&distances = m_cpuDistances](uint32 a, uint32 b)

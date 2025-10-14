@@ -7,7 +7,7 @@
 
 #include <core/math/Transform.hpp>
 #include <core/math/BoundingBox.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <core/object/HypObjectFwd.hpp>
 

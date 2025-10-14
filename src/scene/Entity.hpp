@@ -11,7 +11,7 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <scene/Node.hpp>
 
@@ -56,7 +56,7 @@ public:
         return m_world;
     }
 
-    HYP_FORCE_INLINE const Matrix4& GetPrevModelMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetPrevModelMatrix() const
     {
         return m_prevModelMatrix;
     }
@@ -139,14 +139,14 @@ private:
 
     HYP_METHOD(Property = "Components", NoScriptBindings)
     Array<HypData, DynamicAllocator> SerializeComponents() const;
-    
+
     HYP_METHOD(Property = "Components", NoScriptBindings)
     void DeserializeComponents(const Array<HypData, DynamicAllocator>& components);
 
     World* m_world;
     EntityManager* m_entityManager;
 
-    Matrix4 m_prevModelMatrix;
+    Mat4f m_prevModelMatrix;
 
     int m_renderProxyVersion;
 

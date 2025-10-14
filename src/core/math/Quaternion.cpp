@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/math/Quaternion.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 
 #include <float.h>
 
@@ -23,7 +23,7 @@ Quaternion::Quaternion(float x, float y, float z, float w)
 {
 }
 
-Quaternion::Quaternion(const Matrix4& m)
+Quaternion::Quaternion(const Mat4f& m)
 {
     Vec3f m0 = m[0].GetXYZ(),
           m1 = m[1].GetXYZ(),
@@ -325,7 +325,7 @@ Quaternion Quaternion::LookAt(const Vec3f& direction, const Vec3f& up)
         Vec4f::UnitW()
     };
 
-    return Quaternion(Matrix4(rows));
+    return Quaternion(Mat4f(rows));
 }
 
 Quaternion Quaternion::AxisAngles(const Vec3f& axis, float radians)

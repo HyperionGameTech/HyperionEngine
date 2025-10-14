@@ -41,7 +41,7 @@ public:
 
     void ClearPose();
 
-    HYP_FORCE_INLINE const Matrix4& GetBoneMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetBoneMatrix() const
     {
         return m_boneMatrix;
     }
@@ -76,7 +76,7 @@ private:
     Skeleton* m_skeleton;
 
     HYP_FIELD()
-    Matrix4 m_boneMatrix;
+    Mat4f m_boneMatrix;
 
     HYP_FIELD(Transient)
     Keyframe m_keyframe;

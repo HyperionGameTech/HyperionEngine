@@ -80,7 +80,7 @@ private:
     RaytracingPipelineRef m_raytracingPipeline;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
 
-    Matrix4 m_previousViewMatrix;
+    Mat4f m_previousViewMatrix;
 };
 
 } // namespace hyperion

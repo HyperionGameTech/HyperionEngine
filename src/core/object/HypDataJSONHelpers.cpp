@@ -120,126 +120,76 @@ bool HypDataToJSON(
         return true;
     }
 
-    if (value.Is<Vec2i>())
+    if (typeInfo.IsVectorType())
     {
-        const Vec2i& vec = value.Get<Vec2i>();
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_VECTOR);
+
+        ITypeInfoVectorHandler* handler = static_cast<ITypeInfoVectorHandler*>(typeInfo.extendedInfo.handler);
+
+        const SizeType size = handler->GetNumComponents();
 
         json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
+        jsonArray.Reserve(size);
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            const AnyRef element = handler->GetComponent(value, i);
+
+            if (!element.HasValue())
+            {
+                HYP_LOG(Core, Warning, "Failed to get element at index {} of vector of type {}", i, typeInfo.name);
+
+                continue;
+            }
+
+            json::JSONValue jsonValue;
+            if (!HypDataToJSON(HypData(element), jsonValue, opts))
+            {
+                return false;
+            }
+
+            jsonArray.PushBack(std::move(jsonValue));
+        }
 
         outJson = std::move(jsonArray);
 
         return true;
     }
 
-    if (value.Is<Vec3i>())
+    if (typeInfo.IsMatrixType())
     {
-        const Vec3i& vec = value.Get<Vec3i>();
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_MATRIX);
+
+        ITypeInfoMatrixHandler* handler = static_cast<ITypeInfoMatrixHandler*>(typeInfo.extendedInfo.handler);
+
+        const int rows = handler->GetNumRows();
+        const int columns = handler->GetNumColumns();
 
         json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-        jsonArray.PushBack(json::JSONNumber(vec.z));
+        jsonArray.Resize(rows * columns);
 
-        outJson = std::move(jsonArray);
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < columns; c++)
+            {
+                const AnyRef element = handler->GetElement(value, r, c);
 
-        return true;
-    }
+                if (!element.HasValue())
+                {
+                    HYP_LOG(Core, Warning, "Failed to get element at ({}, {}) of matrix of type {}", r, c, typeInfo.name);
 
-    if (value.Is<Vec4i>())
-    {
-        const Vec4i& vec = value.Get<Vec4i>();
+                    return false;
+                }
 
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-        jsonArray.PushBack(json::JSONNumber(vec.z));
-        jsonArray.PushBack(json::JSONNumber(vec.w));
+                json::JSONValue jsonValue;
+                if (!HypDataToJSON(HypData(element), jsonValue, opts))
+                {
+                    return false;
+                }
 
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
-    if (value.Is<Vec2u>())
-    {
-        const Vec2u& vec = value.Get<Vec2u>();
-
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
-    if (value.Is<Vec3u>())
-    {
-        const Vec3u& vec = value.Get<Vec3u>();
-
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-        jsonArray.PushBack(json::JSONNumber(vec.z));
-
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
-    if (value.Is<Vec4u>())
-    {
-        const Vec4u& vec = value.Get<Vec4u>();
-
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-        jsonArray.PushBack(json::JSONNumber(vec.z));
-        jsonArray.PushBack(json::JSONNumber(vec.w));
-
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
-    if (value.Is<Vec2f>())
-    {
-        const Vec2f& vec = value.Get<Vec2f>();
-
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
-    if (value.Is<Vec3f>())
-    {
-        const Vec3f& vec = value.Get<Vec3f>();
-
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-        jsonArray.PushBack(json::JSONNumber(vec.z));
-
-        outJson = std::move(jsonArray);
-
-        return true;
-    }
-
-    if (value.Is<Vec4f>())
-    {
-        const Vec4f& vec = value.Get<Vec4f>();
-
-        json::JSONArray jsonArray;
-        jsonArray.PushBack(json::JSONNumber(vec.x));
-        jsonArray.PushBack(json::JSONNumber(vec.y));
-        jsonArray.PushBack(json::JSONNumber(vec.z));
-        jsonArray.PushBack(json::JSONNumber(vec.w));
+                jsonArray[r * columns + c] = std::move(jsonValue);
+            }
+        }
 
         outJson = std::move(jsonArray);
 
@@ -310,7 +260,7 @@ bool HypDataToJSON(
 
     if (typeInfo.IsEnum() || typeInfo.IsEnumFlags())
     {
-        const TypeInfo* underlyingTypeInfo = typeInfo.GetElementType();
+        const TypeInfo* underlyingTypeInfo = typeInfo.GetUnderlyingType();
         AssertDebug(underlyingTypeInfo != nullptr, "Enum type must have an underlying type");
 
         constexpr int64 MaxDblValue = (1LL << 53) - 1;
@@ -628,6 +578,7 @@ bool ObjectToJSON(
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClass, HypData& target)
 {
     auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
@@ -782,6 +733,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
 
     return true;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData)
 {
@@ -989,7 +941,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
     if (typeInfo.IsEnum() || typeInfo.IsEnumFlags())
     {
-        const TypeInfo* underlyingTypeInfo = typeInfo.GetElementType();
+        const TypeInfo* underlyingTypeInfo = typeInfo.GetUnderlyingType();
         AssertDebug(underlyingTypeInfo != nullptr, "Enum type must have an underlying type");
 
         if (!underlyingTypeInfo)
@@ -1135,6 +1087,67 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         }
 
         outHypData = std::move(vectorInstance);
+
+        return true;
+    }
+
+    if (typeInfo.IsMatrixType())
+    {
+        if (!jsonValue.IsArray())
+        {
+            HYP_LOG(Core, Warning, "Expected JSON array for matrix type {}, but got value: {}", typeInfo.name, jsonValue.ToString());
+            return false;
+        }
+
+        ITypeInfoHandler* handler = typeInfo.extendedInfo.handler;
+
+        if (!handler || handler->GetHandlerType() != ITypeInfoHandler::TYPE_MATRIX)
+        {
+            HYP_LOG(Core, Warning, "Matrix type {} does not have a valid matrix handler", typeInfo.name);
+            return false;
+        }
+
+        ITypeInfoMatrixHandler* matrixHandler = static_cast<ITypeInfoMatrixHandler*>(handler);
+
+        HypData matrixInstance;
+        if (!matrixHandler->CreateInstance(matrixInstance))
+        {
+            return false;
+        }
+
+        const json::JSONArray& jsonArray = jsonValue.AsArray();
+
+        if (jsonArray.Size() != matrixHandler->GetNumRows() * matrixHandler->GetNumColumns())
+        {
+            HYP_LOG(Core, Warning, "Expected JSON array of size {} for matrix type {}, but got size {}",
+                matrixHandler->GetNumRows() * matrixHandler->GetNumColumns(), typeInfo.name, jsonArray.Size());
+            return false;
+        }
+
+        const TypeInfo* elementTypeInfo = typeInfo.extendedInfo.GetElementType();
+
+        if (!elementTypeInfo)
+        {
+            HYP_LOG(Core, Warning, "Matrix type {} does not have a valid element type", typeInfo.name);
+
+            return false;
+        }
+
+        for (SizeType i = 0; i < jsonArray.Size(); i++)
+        {
+            HypData elementData;
+
+            if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
+            {
+                HYP_LOG(Core, Warning, "Failed to deserialize matrix element at index {} for type {}", i, typeInfo.name);
+
+                return false;
+            }
+
+            matrixHandler->SetElement(matrixInstance, i / matrixHandler->GetNumColumns(), i % matrixHandler->GetNumColumns(), elementData);
+        }
+
+        outHypData = std::move(matrixInstance);
 
         return true;
     }

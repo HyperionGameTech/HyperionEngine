@@ -2375,7 +2375,7 @@ void UIObject::UpdateMeshData_Internal()
         return;
     }
 
-    Matrix4 instanceTransform;
+    Mat4f instanceTransform;
     instanceTransform[0][0] = m_aabbClamped.max.x - m_aabbClamped.min.x;
     instanceTransform[1][1] = m_aabbClamped.max.y - m_aabbClamped.min.y;
     instanceTransform[2][2] = 1.0f;

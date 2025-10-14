@@ -677,7 +677,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     }
     else
     {
-        bufferData.shadowMatrix = Matrix4::Identity();
+        bufferData.shadowMatrix = Mat4f::Identity();
         bufferData.aabbMin = MathUtil::MaxSafeValue<Vec4f>();
         bufferData.aabbMax = MathUtil::MinSafeValue<Vec4f>();
     }

@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-class Matrix4;
+class Mat4f;
 
 HYP_STRUCT(Size = 16)
 struct alignas(16) HYP_API Quaternion
@@ -36,7 +36,7 @@ struct alignas(16) HYP_API Quaternion
 
     Quaternion();
     Quaternion(float x, float y, float z, float w);
-    explicit Quaternion(const Matrix4& mat);
+    explicit Quaternion(const Mat4f& mat);
     explicit Quaternion(const Vec3f& euler);
     Quaternion(const Vec3f& axis, float radians);
 

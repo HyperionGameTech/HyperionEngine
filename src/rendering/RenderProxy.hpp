@@ -15,7 +15,7 @@
 
 #include <core/math/Transform.hpp>
 #include <core/math/BoundingBox.hpp>
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Frustum.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
@@ -74,8 +74,8 @@ struct WorldShaderData
 
 struct EntityShaderData
 {
-    Matrix4 modelMatrix;
-    Matrix4 previousModelMatrix;
+    Mat4f modelMatrix;
+    Mat4f previousModelMatrix;
 
     Vec4f _pad0;
     Vec4f _pad1;
@@ -147,7 +147,7 @@ struct EnvProbeSphericalHarmonics
 
 struct EnvProbeShaderData
 {
-    Matrix4 faceViewMatrices[6];
+    Mat4f faceViewMatrices[6];
 
     Vec4f aabbMax;
     Vec4f aabbMin;
@@ -211,7 +211,7 @@ struct alignas(16) LightShaderData
     Vec4f normal;
 
     // Shadow map data
-    Matrix4 shadowMatrix;
+    Mat4f shadowMatrix;
     Vec4f aabbMin;
     Vec4f aabbMax;
     Vec4f dimensionsScale; // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
@@ -287,7 +287,7 @@ struct SkeletonShaderData
 {
     static constexpr SizeType maxBones = 256;
 
-    Matrix4 bones[maxBones];
+    Mat4f bones[maxBones];
 };
 
 class RenderProxySkeleton final : public IRenderProxy
@@ -297,7 +297,7 @@ public:
     {
         for (SizeType i = 0; i < SkeletonShaderData::maxBones; ++i)
         {
-            bufferData.bones[i] = Matrix4::Identity();
+            bufferData.bones[i] = Mat4f::Identity();
         }
     }
 
@@ -307,9 +307,9 @@ public:
 
 struct CameraShaderData
 {
-    Matrix4 view;
-    Matrix4 projection;
-    Matrix4 previousView;
+    Mat4f view;
+    Mat4f projection;
+    Mat4f previousView;
 
     Vec4u dimensions;
     Vec4f cameraPosition;
@@ -325,9 +325,9 @@ struct CameraShaderData
     Vec4f _pad2;
     Vec4f _pad3;
 
-    Matrix4 _pad4;
-    Matrix4 _pad5;
-    Matrix4 _pad6;
+    Mat4f _pad4;
+    Mat4f _pad5;
+    Mat4f _pad6;
 };
 
 class RenderProxyCamera final : public IRenderProxy

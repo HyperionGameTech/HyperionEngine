@@ -11,7 +11,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <core/math/Matrix4.hpp>
+#include <core/math/Mat4f.hpp>
 #include <core/math/Extent.hpp>
 #include <core/math/Vector3.hpp>
 
