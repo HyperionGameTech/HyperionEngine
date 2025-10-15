@@ -4,6 +4,7 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
+#include <scene/DetachedScene.hpp>
 
 #include <scene/util/EntityScripting.hpp>
 
@@ -97,6 +98,8 @@ Entity::~Entity()
 
 void Entity::Init()
 {
+    HYP_SCOPE;
+
     AssertDebug(m_scene != nullptr);
     SetEntityManager(m_scene->GetEntityManager());
 
@@ -232,6 +235,8 @@ void Entity::OnRemovedFromScene(Scene* scene)
 
 void Entity::OnComponentAdded(AnyRef component)
 {
+    HYP_SCOPE;
+
     if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
     {
         if (!meshComponent->mesh.IsValid())
@@ -325,6 +330,8 @@ void Entity::UnlockTransform()
 
 void Entity::OnTransformUpdated(const Transform& transform)
 {
+    HYP_SCOPE;
+
     Node::OnTransformUpdated(transform);
 
     if (IsInitCalled())
@@ -353,6 +360,8 @@ void Entity::OnTransformUpdated(const Transform& transform)
 
 void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
 {
+    HYP_SCOPE;
+
     AssertDebug(entityManager != nullptr);
 
     EntityManager* previousEntityManager = GetEntityManager();
@@ -371,7 +380,6 @@ void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
 
     AssertDebug(m_entityManager == entityManager);
 }
-
 
 Array<HypData, DynamicAllocator> Entity::SerializeComponents() const
 {
@@ -469,10 +477,17 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
 {
     HYP_SCOPE;
 
+    if (!m_scene)
+    {
+        SetScene(GetDetachedSceneForCurrentThread());
+    }
+
     EntityManager* entityManager = GetEntityManager();
+    AssertDebug(entityManager != nullptr);
+
     if (!entityManager)
     {
-        HYP_LOG(Serialization, Error, "EntityManager is null while deserializing components for entity {}:", Id());
+        HYP_LOG(Serialization, Error, "EntityManager is null while deserializing components for Entity {} (id: {})", GetName(), Id());
 
         return;
     }
@@ -483,7 +498,7 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
 
         if (!entityManager->IsValidComponentType(componentTypeInfo.id))
         {
-            HYP_LOG(Serialization, Warning, "Component with TypeId {} is not a valid component type", componentTypeInfo.name);
+            HYP_LOG(Serialization, Warning, "{} is not a valid component type", componentTypeInfo.name);
 
             continue;
         }
@@ -492,7 +507,7 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
 
         if (!componentInterface)
         {
-            HYP_LOG(Serialization, Warning, "No ComponentInterface registered for component of type: {}", componentTypeInfo.name);
+            HYP_LOG(Serialization, Warning, "No ComponentInterface registered for {}", componentTypeInfo.name);
 
             continue;
         }

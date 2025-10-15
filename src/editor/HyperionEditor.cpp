@@ -287,11 +287,11 @@ void HyperionEditor::Init()
                     HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
                 }
 
-                // // test
-                // const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
-                // project->SetName(NAME("NewProj2"));
-                // Result saveResult = project->Save();
-                // Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
+                 // test
+                 const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
+                 project->SetName(NAME("NewProj2"));
+                 Result saveResult = project->Save();
+                 Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
             })
         .Detach();
 

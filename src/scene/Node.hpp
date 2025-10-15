@@ -414,8 +414,14 @@ public:
             return DescendantsIterator();
         }
 
-        DescendantsIterator begin() const { return Begin(); }
-        DescendantsIterator end() const { return End(); }
+        DescendantsIterator begin() const
+        {
+            return Begin();
+        }
+        DescendantsIterator end() const
+        {
+            return End();
+        }
 
         /*! \brief Get the number of descendant nodes.
          *  \note This method traverses the entire tree to count descendants, so it has O(n) complexity.
@@ -922,8 +928,6 @@ public:
     }
 
 protected:
-    static Scene* GetDefaultScene();
-
     virtual void Init() override;
 
     virtual void OnAttachedToNode(Node* node);

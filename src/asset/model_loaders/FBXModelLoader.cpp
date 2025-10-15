@@ -8,6 +8,7 @@
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/DetachedScene.hpp>
 #include <scene/Node.hpp>
 
 #include <scene/animation/Bone.hpp>
@@ -1517,7 +1518,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         .bucket = RB_OPAQUE },
                     { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
 
-                Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
+                Scene* scene = GetDetachedSceneForCurrentThread();
 
                 const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 

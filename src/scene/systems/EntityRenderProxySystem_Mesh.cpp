@@ -39,7 +39,7 @@ void EntityRenderProxySystem_Mesh::OnEntityAdded(Entity* entity)
 
     if (!meshComponent.mesh.IsValid() || !meshComponent.material.IsValid())
     {
-        HYP_LOG_ONCE(Entity, Warning, "Mesh or material not valid for entity #{}!", entity->Id());
+        HYP_LOG(Entity, Warning, "Mesh or material not valid for Entity {}!", entity->GetName());
 
         return;
     }
@@ -69,11 +69,11 @@ void EntityRenderProxySystem_Mesh::Process(float delta)
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, TagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos()))
     {
-        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity->Id());
+        HYP_NAMED_SCOPE_FMT("Update draw data for Entity: {}", entity->GetName());
 
         if (!meshComponent.mesh.IsValid() || !meshComponent.material.IsValid())
         {
-            HYP_LOG_ONCE(Entity, Warning, "Mesh or material not valid for entity #{}!", entity->Id());
+            HYP_LOG_ONCE(Entity, Warning, "Mesh or material not valid for Entity: {}", entity->GetName());
 
             updatedEntities.Insert(MakeWeakRef(entity));
 

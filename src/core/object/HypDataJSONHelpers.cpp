@@ -630,7 +630,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
         return true;
     };
 
-    json::JSONValue jsonObjectValue(jsonObject);
+    json::JSONValue jsonObjectValue { jsonObject };
 
     const HypClass* instanceClass = target.GetTypeInfo()->GetHypClass();
 
@@ -722,6 +722,8 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
             if (Handle<AssetObject> assetObject = assetReference.Resolve(); assetObject.IsValid())
             {
                 target = HypData(std::move(assetObject));
+
+                return true;
             }
             else
             {
@@ -732,6 +734,10 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
                 return false;
             }
         }
+
+        HYP_LOG(Core, Warning, "Failed to resolve AssetReference when deserializing to AssetObject: invalid reference");
+
+        return false;
     }
 #endif
 
@@ -1261,6 +1267,10 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
             return true;
         }
+
+        HYP_LOG(Core, Warning, "Could not find HypClass for type: {}", typeInfo.name);
+
+        return false;
     }
 
     HYP_LOG(Core, Warning, "Failed to deserialize JSON to HypData of type: {}", typeInfo.name);

@@ -3,8 +3,11 @@
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+
 #include <scene/Node.hpp>
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
+#include <scene/DetachedScene.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -289,7 +292,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             continue;
         }
 
-        Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
+        Scene* scene = GetDetachedSceneForCurrentThread();
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 

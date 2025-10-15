@@ -5,6 +5,7 @@
 #include <scene/World.hpp>
 #include <scene/Entity.hpp>
 #include <scene/BVH.hpp>
+#include <scene/DetachedScene.hpp>
 
 #include <scene/animation/Bone.hpp>
 
@@ -41,7 +42,7 @@ namespace hyperion {
 
 void Node_OnPostLoad(Node& node)
 {
-    node.SetScene(g_engineDriver->GetDefaultWorld()->GetDetachedScene(g_gameThread));
+    node.SetScene(GetDetachedSceneForThread(g_gameThread));
 }
 
 #pragma region NodeTag
@@ -76,7 +77,7 @@ Node::Node(Name name, const Transform& localTransform, Scene* scene)
     : m_name(name.IsValid() ? name : NAME("<unnamed>")),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
-      m_scene(scene != nullptr ? scene : GetDefaultScene()),
+      m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),
       m_transformLocked(false),
       m_delegates(MakeUnique<Delegates>())
 {
@@ -204,7 +205,7 @@ void Node::SetScene(Scene* scene)
 {
     if (!scene)
     {
-        scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId()).Get();
+        scene = GetDetachedSceneForCurrentThread();
     }
 
     Assert(scene != nullptr);
@@ -587,7 +588,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {
@@ -1019,11 +1020,6 @@ bool Node::HasTag(WeakName key) const
     HYP_SCOPE;
 
     return m_tags.Has(key);
-}
-
-Scene* Node::GetDefaultScene()
-{
-    return g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId()).Get();
 }
 
 #ifdef HYP_EDITOR

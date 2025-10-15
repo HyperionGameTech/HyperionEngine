@@ -26,43 +26,6 @@ class TaskBatch;
 
 using threading::TaskBatch;
 
-struct DetachedScenesContainer
-{
-    World* world;
-    HashMap<ThreadId, Handle<Scene>> scenes;
-    Mutex mutex;
-
-    DetachedScenesContainer(World* world)
-        : world(world)
-    {
-    }
-
-    const Handle<Scene>& GetDetachedScene(const ThreadId& threadId)
-    {
-        Mutex::Guard guard(mutex);
-
-        auto it = scenes.Find(threadId);
-
-        if (it == scenes.End())
-        {
-            it = scenes.Insert({ threadId, CreateSceneForThread(threadId) }).first;
-        }
-
-        return it->second;
-    }
-
-private:
-    Handle<Scene> CreateSceneForThread(const ThreadId& threadId)
-    {
-        Handle<Scene> scene = CreateObject<Scene>(nullptr, threadId, SceneFlags::DETACHED);
-        scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *threadId.GetName()));
-
-        InitObject(scene);
-
-        return scene;
-    }
-};
-
 HYP_CLASS()
 class HYP_API World final : public HypObjectBase
 {
@@ -222,8 +185,6 @@ private:
     Name m_name;
 
     PhysicsWorld m_physicsWorld;
-
-    DetachedScenesContainer m_detachedScenes;
 
     Array<Handle<Scene>> m_scenes;
     Array<Handle<View>> m_views;

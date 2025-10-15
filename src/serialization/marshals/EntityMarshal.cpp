@@ -21,6 +21,8 @@
 
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>
+#include <scene/Scene.hpp>
+#include <scene/DetachedScene.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/ComponentInterface.hpp>
@@ -193,7 +195,8 @@ public:
 
         // Read components
 
-        const Handle<Scene>& detachedScene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(ThreadId::Current());
+        Scene* detachedScene = GetDetachedSceneForCurrentThread();
+
         const Handle<EntityManager>& entityManager = detachedScene->GetEntityManager();
         entityManager->AddExistingEntity(entity);
 

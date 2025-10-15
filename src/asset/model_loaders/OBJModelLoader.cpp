@@ -10,6 +10,8 @@
 
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
+#include <scene/Scene.hpp>
+#include <scene/DetachedScene.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
@@ -316,7 +318,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         String materialLibraryPath = String(FileSystem::RelativePath(
             (String(StringUtil::BasePath(model.filepath.Data()).c_str()) + "/" + model.materialLibrary).Data(),
             FileSystem::CurrentPath())
-                .c_str());
+                                                .c_str());
 
         if (!materialLibraryPath.EndsWith(".mtl"))
         {
@@ -463,7 +465,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         InitObject(material);
 
-        Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
+        Scene* scene = GetDetachedSceneForCurrentThread();
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 

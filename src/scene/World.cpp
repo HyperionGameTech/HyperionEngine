@@ -43,7 +43,6 @@ World::World()
     : HypObjectBase(),
       m_name(Name::Unique("World")),
       m_worldGrid(CreateObject<WorldGrid>(this)),
-      m_detachedScenes(this),
       m_raytracingView(nullptr),
       m_viewCollectionBatch(nullptr)
 {
@@ -492,7 +491,6 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
 
     const auto it = m_subsystemsArray.FindIf([name](Subsystem* subsystem)
         {
-
             const HypClass* hypClass = subsystem->InstanceClass();
 
             return hypClass->GetName() == name;
@@ -707,11 +705,6 @@ const Handle<Scene>& World::GetSceneByName(Name name) const
         });
 
     return it != m_scenes.End() ? *it : Handle<Scene>::empty;
-}
-
-const Handle<Scene>& World::GetDetachedScene(const ThreadId& threadId)
-{
-    return m_detachedScenes.GetDetachedScene(threadId);
 }
 
 void World::AddView(const Handle<View>& view)
