@@ -9,11 +9,25 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/ThreadId.hpp>
 
+#include <engine/EngineDriver.hpp>
+#include <engine/EngineGlobals.hpp>
+
 namespace hyperion {
 
 class DetachedScenes
 {
 public:
+    DetachedScenes()
+    {
+        onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+            {
+                Mutex::Guard guard(m_mutex);
+                m_scenes.Clear();
+
+                onShutdownHandle.Reset();
+            });
+    }
+
     Scene* GetDetachedScene(const ThreadId& threadId)
     {
         Mutex::Guard guard(m_mutex);
@@ -28,11 +42,13 @@ public:
         return it->second.Get();
     }
 
+    DelegateHandler onShutdownHandle;
+
 private:
     Handle<Scene> CreateSceneForThread(const ThreadId& threadId)
     {
         Handle<Scene> scene = CreateObject<Scene>(nullptr, threadId, SceneFlags::DETACHED);
-        scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *threadId.GetName()));
+        scene->SetName(NAME_FMT("DetachedSceneForThread_{}", threadId.GetName()));
 
         InitObject(scene);
 
