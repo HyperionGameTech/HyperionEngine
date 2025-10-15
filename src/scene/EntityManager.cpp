@@ -216,23 +216,6 @@ void EntityManager::Init()
 {
     Threads::AssertOnThread(m_ownerThreadId);
 
-    // Notify all entities that they've been added to the world
-    for (auto& subtypeData : m_entities.GetSubtypeData())
-    {
-        for (EntityData& entityData : subtypeData.data)
-        {
-            Entity* entity = entityData.entityWeak.GetUnsafe();
-            Assert(entity != nullptr);
-
-            entity->OnAddedToScene(m_scene);
-
-            if (m_world)
-            {
-                entity->OnAddedToWorld(m_world);
-            }
-        }
-    }
-
     Array<Handle<SystemBase>> systems;
 
     for (SystemExecutionGroup& group : m_systemExecutionGroups)
@@ -269,64 +252,61 @@ void EntityManager::Shutdown()
 {
     HYP_SCOPE;
 
-    if (IsInitCalled())
+    // Notify all entities that they're being removed from the world
+    for (auto& subtypeData : m_entities.GetSubtypeData())
     {
-        // Notify all entities that they're being removed from the world
-        for (auto& subtypeData : m_entities.GetSubtypeData())
+        for (EntityData& entityData : subtypeData.data)
         {
-            for (EntityData& entityData : subtypeData.data)
+            Entity* entity = entityData.entityWeak.GetUnsafe();
+            Assert(entity != nullptr);
+
+            // call OnComponentRemoved() for all components of the entity
+            HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
+
+            NotifySystemsOfEntityRemoved(entity, entityData.components);
+
+            for (auto componentInfoPairIt = entityData.components.Begin(); componentInfoPairIt != entityData.components.End();)
             {
-                Entity* entity = entityData.entityWeak.GetUnsafe();
-                Assert(entity != nullptr);
+                const TypeId componentTypeId = componentInfoPairIt->first;
+                const ComponentId componentId = componentInfoPairIt->second;
 
-                // call OnComponentRemoved() for all components of the entity
-                HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
+                auto componentContainerIt = m_containers.Find(componentTypeId);
+                Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
+                Assert(componentContainerIt->second->HasComponent(componentId), "Component does not exist in component container");
 
-                NotifySystemsOfEntityRemoved(entity, entityData.components);
+                AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
+                Assert(componentRef.HasValue(), "Component of type '%s' with id {} does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
 
-                for (auto componentInfoPairIt = entityData.components.Begin(); componentInfoPairIt != entityData.components.End();)
+                // Notify the entity that the component is being removed
+                // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
+                EntityTag tag;
+                if (IsEntityTagComponent(componentTypeId, tag))
                 {
-                    const TypeId componentTypeId = componentInfoPairIt->first;
-                    const ComponentId componentId = componentInfoPairIt->second;
-
-                    auto componentContainerIt = m_containers.Find(componentTypeId);
-                    Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
-                    Assert(componentContainerIt->second->HasComponent(componentId), "Component does not exist in component container");
-
-                    AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
-                    Assert(componentRef.HasValue(), "Component of type '%s' with id {} does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
-
-                    // Notify the entity that the component is being removed
-                    // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-                    EntityTag tag;
-                    if (IsEntityTagComponent(componentTypeId, tag))
-                    {
-                        // Remove the tag from the entity
-                        entity->OnTagRemoved(tag);
-                    }
-                    else
-                    {
-                        entity->OnComponentRemoved(componentRef);
-                    }
-
-                    HypData componentHypData;
-                    if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
-                    {
-                        HYP_FAIL("Failed to get component of type '%s' as HypData when removing it from entity '{}'",
-                            *GetComponentTypeName(componentTypeId), entity->Id());
-                    }
-
-                    // Update iterator, erase the component from the entity's component map
-                    componentInfoPairIt = entityData.components.Erase(componentInfoPairIt);
+                    // Remove the tag from the entity
+                    entity->OnTagRemoved(tag);
+                }
+                else
+                {
+                    entity->OnComponentRemoved(componentRef);
                 }
 
-                if (m_world)
+                HypData componentHypData;
+                if (!componentContainerIt->second->RemoveComponent(componentId, componentHypData))
                 {
-                    entity->OnRemovedFromWorld(m_world);
+                    HYP_FAIL("Failed to get component of type '%s' as HypData when removing it from entity '{}'",
+                        *GetComponentTypeName(componentTypeId), entity->Id());
                 }
 
-                entity->OnRemovedFromScene(m_scene);
+                // Update iterator, erase the component from the entity's component map
+                componentInfoPairIt = entityData.components.Erase(componentInfoPairIt);
             }
+
+            if (m_world)
+            {
+                entity->OnRemovedFromWorld(m_world);
+            }
+
+            entity->OnRemovedFromScene(m_scene);
         }
 
         if (m_world != nullptr)
@@ -367,69 +347,62 @@ void EntityManager::SetWorld(World* world)
     }
 
     // If EntityManager is initialized we need to notify all of our systems that the world has changed.
-    if (IsInitCalled())
+    Array<Handle<SystemBase>> systems;
+
+    for (SystemExecutionGroup& group : m_systemExecutionGroups)
     {
-        Array<Handle<SystemBase>> systems;
-
-        for (SystemExecutionGroup& group : m_systemExecutionGroups)
+        for (auto& systemIt : group.GetSystems())
         {
-            for (auto& systemIt : group.GetSystems())
-            {
-                const Handle<SystemBase>& system = systemIt.second;
-                Assert(system.IsValid());
+            const Handle<SystemBase>& system = systemIt.second;
+            Assert(system.IsValid());
 
-                systems.PushBack(system);
-            }
+            systems.PushBack(system);
         }
+    }
 
-        // Call OnRemovedFromWorld() now for all entities in the EntityManager if previous world is not null
-        if (m_world)
+    // Call OnRemovedFromWorld() now for all entities in the EntityManager if previous world is not null
+    if (m_world)
+    {
+        for (auto& subtypeData : m_entities.GetSubtypeData())
         {
-            for (auto& subtypeData : m_entities.GetSubtypeData())
+            for (EntityData& entityData : subtypeData.data)
             {
-                for (EntityData& entityData : subtypeData.data)
-                {
-                    Entity* entity = entityData.entityWeak.GetUnsafe();
-                    Assert(entity != nullptr);
+                Entity* entity = entityData.entityWeak.GetUnsafe();
+                Assert(entity != nullptr);
 
-                    entity->OnRemovedFromWorld(m_world);
-                }
-            }
-
-            for (const Handle<SystemBase>& system : systems)
-            {
-                ShutdownSystem(system);
+                entity->OnRemovedFromWorld(m_world);
             }
         }
 
-        m_world = world;
-
-        if (m_world != nullptr)
-        { // notify systems of entity added for the new world
-            for (const Handle<SystemBase>& system : systems)
-            {
-                InitializeSystem(system);
-            }
-
-            for (auto& subtypeData : m_entities.GetSubtypeData())
-            {
-                for (EntityData& entityData : subtypeData.data)
-                {
-                    Entity* entity = entityData.entityWeak.GetUnsafe();
-                    Assert(entity != nullptr);
-
-                    HYP_LOG(Entity, Debug, "Calling OnAddedToWorld() for Entity {} (subclass idx: {})",
-                        entity->Id(), m_entities.GetSubtypeData().IndexOf(&subtypeData));
-
-                    entity->OnAddedToWorld(m_world);
-                }
-            }
+        for (const Handle<SystemBase>& system : systems)
+        {
+            ShutdownSystem(system);
         }
-
-        return;
     }
 
     m_world = world;
+
+    if (m_world != nullptr)
+    { // notify systems of entity added for the new world
+        for (const Handle<SystemBase>& system : systems)
+        {
+            InitializeSystem(system);
+        }
+
+        for (auto& subtypeData : m_entities.GetSubtypeData())
+        {
+            for (EntityData& entityData : subtypeData.data)
+            {
+                Entity* entity = entityData.entityWeak.GetUnsafe();
+                Assert(entity != nullptr);
+
+                HYP_LOG(Entity, Debug, "Calling OnAddedToWorld() for Entity {} (subclass idx: {})",
+                    entity->Id(), m_entities.GetSubtypeData().IndexOf(&subtypeData));
+
+                entity->OnAddedToWorld(m_world);
+            }
+        }
+    }
 }
 
 Handle<Entity> EntityManager::AddBasicEntity()
@@ -461,14 +434,11 @@ Handle<Entity> EntityManager::AddBasicEntity()
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
 
-    if (IsInitCalled())
-    {
-        entity->OnAddedToScene(m_scene);
+    entity->OnAddedToScene(m_scene);
 
-        if (m_world)
-        {
-            entity->OnAddedToWorld(m_world);
-        }
+    if (m_world)
+    {
+        entity->OnAddedToWorld(m_world);
     }
 
     return entity;
@@ -535,14 +505,11 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
 
-    if (IsInitCalled())
-    {
-        entity->OnAddedToScene(m_scene);
+    entity->OnAddedToScene(m_scene);
 
-        if (m_world)
-        {
-            entity->OnAddedToWorld(m_world);
-        }
+    if (m_world)
+    {
+        entity->OnAddedToWorld(m_world);
     }
 
     return entity;
@@ -612,14 +579,11 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
 
-    if (IsInitCalled())
-    {
-        entity->OnAddedToScene(m_scene);
+    entity->OnAddedToScene(m_scene);
 
-        if (m_world)
-        {
-            entity->OnAddedToWorld(m_world);
-        }
+    if (m_world)
+    {
+        entity->OnAddedToWorld(m_world);
     }
 }
 
@@ -765,15 +729,12 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             componentInfoPairIt = entityData->components.Erase(componentInfoPairIt);
         }
 
-        if (IsInitCalled())
+        if (m_world)
         {
-            if (m_world)
-            {
-                entity->OnRemovedFromWorld(m_world);
-            }
-
-            entity->OnRemovedFromScene(m_scene);
+            entity->OnRemovedFromWorld(m_world);
         }
+
+        entity->OnRemovedFromScene(m_scene);
 
         {
             Mutex::Guard entitySetsGuard(m_entitySetsMutex);
@@ -891,14 +852,11 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             componentIds = entityData->components;
         }
 
-        if (other->IsInitCalled())
-        {
-            entity->OnAddedToScene(other->m_scene);
+        entity->OnAddedToScene(other->m_scene);
 
-            if (other->m_world)
-            {
-                entity->OnAddedToWorld(other->m_world);
-            }
+        if (other->m_world)
+        {
+            entity->OnAddedToWorld(other->m_world);
         }
 
         // Notify systems that entity is being added to them

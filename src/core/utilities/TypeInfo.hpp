@@ -68,9 +68,6 @@ HYP_API extern const HypClass* GetClass(TypeId typeId);
 HYP_API extern bool HypClassRegistry_IsInitialized();
 namespace containers {
 
-template <class T, class AllocatorType>
-class Array;
-
 template <int TStringType>
 class String;
 
@@ -368,8 +365,8 @@ struct TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericAr
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class AllocatorType, class HypDataType>
-struct TypeInfoImpl<containers::Array<T, AllocatorType>, HypDataType>
+template <class ArrayType, class HypDataType>
+struct TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::value>>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -614,6 +611,11 @@ struct TypeInfo
             HYP_CORE_ASSERT(pTypeInfo != nullptr);
 
             new (pTypeInfo) TypeInfo(std::move(result));
+
+            // sanity check
+            HYP_CORE_ASSERT(pTypeInfo->id == typeId);
+
+            DebugLog(LogType::Debug, "Registered type info: %s : %u\n", pTypeInfo->name.LookupString(), pTypeInfo->id.Value());
 
             guardStorage.GetPointer()->~Guard();
 
@@ -906,11 +908,9 @@ void TypeInfoImpl<T, HypDataType, std::enable_if_t<std::is_same_v<T, GenericArra
     result.extendedInfo.handler = new GenericArrayHandler();
 }
 
-template <class T, class AllocatorType, class HypDataType>
-void TypeInfoImpl<containers::Array<T, AllocatorType>, HypDataType>::operator()(TypeInfo& result) const
+template <class ArrayType, class HypDataType>
+void TypeInfoImpl<ArrayType, HypDataType, std::enable_if_t<IsArray<ArrayType>::value>>::operator()(TypeInfo& result) const
 {
-    using ArrayType = containers::Array<T, AllocatorType>;
-
     class ArrayHandler final : public ITypeInfoArrayHandler
     {
     public:
@@ -922,8 +922,6 @@ void TypeInfoImpl<containers::Array<T, AllocatorType>, HypDataType>::operator()(
         virtual bool CreateInstance(HypDataType& outInstance) const override
         {
             outInstance = HypDataType(ArrayType {});
-            // temp debugging
-            HYP_CORE_ASSERT(outInstance.template Is<ArrayType>());
             return true;
         }
 
@@ -950,13 +948,13 @@ void TypeInfoImpl<containers::Array<T, AllocatorType>, HypDataType>::operator()(
                 return false;
             }
 
-            if constexpr (std::is_same_v<T, HypDataType>)
+            if constexpr (std::is_same_v<typename ArrayType::ValueType, HypDataType>)
             {
                 array[index] = std::move(value);
             }
             else
             {
-                array[index] = value.template Get<T>();
+                array[index] = value.template Get<typename ArrayType::ValueType>();
             }
 
             return true;
@@ -977,7 +975,7 @@ void TypeInfoImpl<containers::Array<T, AllocatorType>, HypDataType>::operator()(
 
     result.flags |= TypeInfoFlags::ARRAY_TYPE;
 
-    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<T>();
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<typename ArrayType::ValueType>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
     result.extendedInfo.handler = new ArrayHandler();
 }

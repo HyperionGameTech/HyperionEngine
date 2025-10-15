@@ -170,9 +170,9 @@ struct HypPropertyGetter
 
         HYP_CORE_ASSERT(
             target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
-            "Target type mismatch, expected TypeId %u, got %u",
-            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
-            target.GetTypeId().Value());
+            "Target type mismatch, expected %s, got %s",
+            *TypeInfo_GetName(*typeInfo.targetTypeInfo),
+            *TypeInfo_GetName(*target.GetTypeInfo()));
 
         return getProc(target);
     }
@@ -184,9 +184,9 @@ struct HypPropertyGetter
 
         HYP_CORE_ASSERT(
             target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
-            "Target type mismatch, expected TypeId %u, got %u",
-            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
-            target.GetTypeId().Value());
+            "Target type mismatch, expected %s, got %s",
+            *TypeInfo_GetName(*typeInfo.targetTypeInfo),
+            *TypeInfo_GetName(*target.GetTypeInfo()));
 
         return serializeProc(target, out, flags);
     }
@@ -328,9 +328,9 @@ struct HypPropertySetter
 
         HYP_CORE_ASSERT(
             target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
-            "Target type mismatch, expected TypeId %u, got %u",
-            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
-            target.GetTypeId().Value());
+            "Target type mismatch, expected %s, got %s",
+            *TypeInfo_GetName(*typeInfo.targetTypeInfo),
+            *TypeInfo_GetName(*target.GetTypeInfo()));
 
         setProc(target, value);
     }
@@ -342,9 +342,9 @@ struct HypPropertySetter
 
         HYP_CORE_ASSERT(
             target.ToRef().Is(TypeInfo_GetId(*typeInfo.targetTypeInfo)),
-            "Target type mismatch, expected TypeId %u, got %u",
-            TypeInfo_GetId(*typeInfo.targetTypeInfo).Value(),
-            target.GetTypeId().Value());
+            "Target type mismatch, expected %s, got %s",
+            *TypeInfo_GetName(*typeInfo.targetTypeInfo),
+            *TypeInfo_GetName(*target.GetTypeInfo()));
 
         return deserializeProc(context, target, value);
     }

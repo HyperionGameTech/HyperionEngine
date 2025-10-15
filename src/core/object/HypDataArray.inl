@@ -5,17 +5,17 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
     : GenericArrayWrapper()
 {
     pInternalArray = &arr;
-    dtor = nullptr;
-    copyCtor = nullptr;
+    functionTable.dtor = nullptr;
+    functionTable.copyCtor = nullptr;
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const Array<T, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -93,20 +93,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(arr)>(arr);
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(arr)>(*(std::remove_cvref_t<decltype(arr)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const Array<T, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -184,20 +184,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(arr)>(std::move(arr));
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(arr)>(*(std::remove_cvref_t<decltype(arr)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const Array<T, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -277,16 +277,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
     : GenericArrayWrapper()
 {
     pInternalArray = &arr;
-    dtor = nullptr;
+    functionTable.dtor = nullptr;
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);
         return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, HypData& out) -> bool
     {
@@ -335,20 +335,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(arr)>(arr);
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(arr)>(*(std::remove_cvref_t<decltype(arr)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);
         return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, HypData& out) -> bool
     {
@@ -397,20 +397,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(arr)>(std::move(arr));
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(arr)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(arr)>(*(std::remove_cvref_t<decltype(arr)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);
         return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, HypData& out) -> bool
     {
@@ -461,16 +461,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunctio
     : GenericArrayWrapper()
 {
     pInternalArray = &set;
-    dtor = nullptr;
+    functionTable.dtor = nullptr;
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -484,20 +484,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFuncti
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(set);
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(set)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(set)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(set)>(*(std::remove_cvref_t<decltype(set)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -511,20 +511,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, Al
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(set)>(std::move(set));
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(set)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(set)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(set)>(*(std::remove_cvref_t<decltype(set)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -540,16 +540,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashMap<K, V, Allocator
     : GenericArrayWrapper()
 {
     pInternalArray = &map;
-    dtor = nullptr;
+    functionTable.dtor = nullptr;
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -563,20 +563,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashMap<K, V, Allocato
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(map)>(map);
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(map)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(map)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(map)>(*(std::remove_cvref_t<decltype(map)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -590,20 +590,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(map)>(std::move(map));
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(map)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(map)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(map)>(*(std::remove_cvref_t<decltype(map)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
         return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeId = TypeId::ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -619,16 +619,16 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list)
     : GenericArrayWrapper()
 {
     pInternalArray = &list;
-    dtor = nullptr;
+    functionTable.dtor = nullptr;
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
         return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(list)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(list)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -656,20 +656,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(list)>(list);
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(list)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(list)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(list)>(*(std::remove_cvref_t<decltype(list)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
         return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(list)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(list)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -697,20 +697,20 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
     : GenericArrayWrapper()
 {
     pInternalArray = new std::remove_cvref_t<decltype(list)>(std::move(list));
-    dtor = &Memory::Delete<std::remove_cvref_t<decltype(list)>>;
-    copyCtor = [](void** pDst, void* src)
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(list)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
     {
         *pDst = new std::remove_cvref_t<decltype(list)>(*(std::remove_cvref_t<decltype(list)>*)src);
     };
 
-    serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
         return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
-    arrayTypeId = TypeId::ForType<std::remove_cvref_t<decltype(list)>>();
-    elementTypeId = TypeId::ForType<T>();
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(list)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {

@@ -9,6 +9,8 @@
 #include <core/object/HypObjectFwd.hpp>
 #include <core/object/HypDataArray.hpp>
 
+#include <core/containers/Array.hpp>
+
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/utilities/Variant.hpp>
@@ -358,7 +360,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T, false>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, false>::Type;
@@ -368,11 +370,9 @@ struct HypData
 
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
-                "Failed to invoke HypData Get method with T = %s (TypeId: %u) - Mismatched types or T could not be converted to the held type %s (TypeId: %u)",
-                LookupTypeName(TypeId::ForType<T>()),
-                TypeId::ForType<T>().Value(),
-                LookupTypeName(GetTypeId()),
-                GetTypeId().Value());
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
+                TypeNameHelper<T, false>::value.Data(),
+                *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             return *resultValue;
@@ -391,7 +391,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T, false>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, true>::Type;
@@ -401,11 +401,9 @@ struct HypData
 
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
-                "Failed to invoke HypData Get method with T = %s (TypeId: %u) - Mismatched types or T could not be converted to the held type %s (TypeId: %u)",
-                LookupTypeName(TypeId::ForType<T>()),
-                TypeId::ForType<T>().Value(),
-                LookupTypeName(GetTypeId()),
-                GetTypeId().Value());
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
+                TypeNameHelper<T, false>::value.Data(),
+                *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             return *resultValue;
@@ -1676,7 +1674,7 @@ struct HypDataHelper<GenericArrayWrapper> : HypDataHelper<Any>
     {
         HYP_SCOPE;
 
-        GenericArrayWrapper::SerializeFunction serializeFunction = value.serializeFunction;
+        GenericArrayWrapper::SerializeFunction serializeFunction = value.functionTable.serializeFunction;
 
         if (!serializeFunction)
         {
@@ -2005,7 +2003,7 @@ template <class T, class AllocatorType>
 struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
 {
 };
-
+HYP_DISABLE_OPTIMIZATION;
 template <class T, class AllocatorType>
 struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<GenericArrayWrapper>
 {
@@ -2013,43 +2011,45 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
+        const TypeId arrayTypeId = TypeId::ForType<Array<T, AllocatorType>>();
+
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (arr->arrayTypeId != TypeId::ForType<Array<T, AllocatorType>>())
+            // debug
+            if (TypeInfo_GetId(*arr->typeInfo) != arrayTypeId)
             {
+                DebugLog(LogType::Debug, "HypDataHelper<Array>::Is - TypeInfo mismatch! Expected %s (%u), got %s (%u)",
+                    TypeNameHelper<Array<T, AllocatorType>, true>::value.Data(),
+                    arrayTypeId.Value(),
+                    *TypeInfo_GetName(*arr->typeInfo),
+                    TypeInfo_GetId(*arr->typeInfo).Value());
+
                 HYP_BREAKPOINT;
             }
-            return arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
+
+            return TypeInfo_GetId(*arr->typeInfo) == arrayTypeId;
         }
 
-        return value.GetTypeId() == TypeId::ForType<Array<T, AllocatorType>>();
+        return value.GetTypeId() == arrayTypeId;
     }
 
     HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const Any& value) const
     {
+        const TypeId arrayTypeId = TypeId::ForType<Array<T, AllocatorType>>();
+
+        // debug
+        HYP_CORE_ASSERT(this->Is(value));
+
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (arr->arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>())
-            {
-                return *static_cast<Array<T, AllocatorType>*>(arr->pInternalArray);
-            }
-        }
-        else if (value.GetTypeId() == TypeId::ForType<Array<T, AllocatorType>>())
-        {
-            return value.Get<Array<T, AllocatorType>>();
+            HYP_CORE_ASSERT(TypeInfo_GetId(*arr->typeInfo) == arrayTypeId);
+
+            return *static_cast<Array<T, AllocatorType>*>(arr->pInternalArray);
         }
 
-        HYP_UNREACHABLE();
-    }
+        HYP_CORE_ASSERT(value.GetTypeId() == arrayTypeId);
 
-    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
-    {
-        return value.arrayTypeId == TypeId::ForType<Array<T, AllocatorType>>();
-    }
-
-    HYP_FORCE_INLINE Array<T, AllocatorType>& Get(const GenericArrayWrapper& value) const
-    {
-        return *static_cast<Array<T, AllocatorType>*>(value.pInternalArray);
+        return value.Get<Array<T, AllocatorType>>();
     }
 
     HYP_FORCE_INLINE void Set(HypData& hypData, const Array<T, AllocatorType>& value) const
@@ -2135,6 +2135,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         return { FBOMResult::FBOM_OK };
     }
 };
+HYP_ENABLE_OPTIMIZATION;
 
 /// FixedArray
 
@@ -2152,7 +2153,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            return arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
+            return TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<FixedArray<T, Size>>();
         }
 
         return value.GetTypeId() == TypeId::ForType<FixedArray<T, Size>>();
@@ -2162,7 +2163,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (arr->arrayTypeId == TypeId::ForType<FixedArray<T, Size>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<FixedArray<T, Size>>())
             {
                 return *static_cast<FixedArray<T, Size>*>(arr->pInternalArray);
             }
@@ -2177,7 +2178,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return value.arrayTypeId == TypeId::ForType<FixedArray<T, Size>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<FixedArray<T, Size>>();
     }
 
     HYP_FORCE_INLINE FixedArray<T, Size>& Get(const GenericArrayWrapper& value) const
@@ -2484,7 +2485,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return array->arrayTypeId == TypeId::ForType<HashMap<K, V>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<HashMap<K, V>>();
         }
 
         return value.GetTypeId() == TypeId::ForType<HashMap<K, V>>();
@@ -2494,7 +2495,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (arr->arrayTypeId == TypeId::ForType<HashMap<K, V>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<HashMap<K, V>>())
             {
                 return *static_cast<HashMap<K, V>*>(arr->pInternalArray);
             }
@@ -2509,7 +2510,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return value.arrayTypeId == TypeId::ForType<HashMap<K, V>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<HashMap<K, V>>();
     }
 
     HYP_FORCE_INLINE HashMap<K, V>& Get(const GenericArrayWrapper& value) const
@@ -2610,7 +2611,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return array->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
         }
 
         return value.GetTypeId() == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
@@ -2620,7 +2621,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (arr->arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<HashSet<ValueType, KeyByFunction>>())
             {
                 return *static_cast<HashSet<ValueType, KeyByFunction>*>(arr->pInternalArray);
             }
@@ -2635,7 +2636,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return value.arrayTypeId == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<HashSet<ValueType, KeyByFunction>>();
     }
 
     HYP_FORCE_INLINE HashSet<ValueType, KeyByFunction>& Get(const GenericArrayWrapper& value) const
@@ -2736,7 +2737,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
         {
-            return array->arrayTypeId == TypeId::ForType<LinkedList<T>>();
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<LinkedList<T>>();
         }
 
         return value.GetTypeId() == TypeId::ForType<LinkedList<T>>();
@@ -2746,7 +2747,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
     {
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            if (arr->arrayTypeId == TypeId::ForType<LinkedList<T>>())
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<LinkedList<T>>())
             {
                 return *static_cast<LinkedList<T>*>(arr->pInternalArray);
             }
@@ -2761,7 +2762,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
     {
-        return value.arrayTypeId == TypeId::ForType<LinkedList<T>>();
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<LinkedList<T>>();
     }
 
     HYP_FORCE_INLINE LinkedList<T>& Get(const GenericArrayWrapper& value) const
@@ -3312,8 +3313,8 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         return FBOMResult::FBOM_OK;
     }
 
-    static constexpr std::add_pointer_t<FBOMResult(const Variant<Types...>&, FBOMData&)> elementSerializeFunctions[] = { &VariantElementSerializeHelper<Types>... };
-    static constexpr std::add_pointer_t<FBOMResult(FBOMLoadContext&, const FBOMData&, HypData&)> elementDeserializeFunctions[] = { &VariantElementDeserializeHelper<Types>... };
+    static constexpr std::add_pointer_t<FBOMResult(const Variant<Types...>&, FBOMData&)> ElementSerializeFunctions[] = { &VariantElementSerializeHelper<Types>... };
+    static constexpr std::add_pointer_t<FBOMResult(FBOMLoadContext&, const FBOMData&, HypData&)> ElementDeserializeFunctions[] = { &VariantElementDeserializeHelper<Types>... };
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
@@ -3373,7 +3374,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
             return FBOMResult::FBOM_OK;
         }
 
-        return elementSerializeFunctions[typeIndex](value, outData);
+        return ElementSerializeFunctions[typeIndex](value, outData);
     }
 
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
@@ -3408,7 +3409,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
             return { FBOMResult::FBOM_ERR, "Cannot deserialize variant - type not found" };
         }
 
-        return elementDeserializeFunctions[foundTypeIndex](context, data, out);
+        return ElementDeserializeFunctions[foundTypeIndex](context, data, out);
     }
 };
 
@@ -3557,6 +3558,8 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
 
 #include <core/object/HypDataArray.inl>
 
+HYP_DISABLE_OPTIMIZATION;
+
 #pragma region HypData_Is implementation
 
 template <class To, class From = To>
@@ -3564,10 +3567,10 @@ HYP_FORCE_INLINE static bool HypData_Is_Impl(const HypData::VariantType& value)
 {
     static_assert(HypData::canStoreDirectly<typename HypDataHelper<From>::StorageType>, "StorageType must be a type that can be stored directly in the HypData variant without allocating memory dynamically");
 
-    constexpr bool skipAdditionalCheck = std::is_same_v<To, typename HypDataHelper<From>::StorageType>;
+    constexpr bool ShouldDoAdditionalCheck = !std::is_same_v<To, typename HypDataHelper<From>::StorageType>;
 
     return value.Is<typename HypDataHelper<From>::StorageType>()
-        && (skipAdditionalCheck || HypDataHelper<To> {}.Is(value.GetUnchecked<typename HypDataHelper<From>::StorageType>()));
+        && (!ShouldDoAdditionalCheck || HypDataHelper<To> {}.Is(value.GetUnchecked<typename HypDataHelper<From>::StorageType>()));
 }
 
 template <class T, class... ConvertibleFrom>
@@ -3594,6 +3597,11 @@ HYP_FORCE_INLINE bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>
 
         static_assert(HypData::canStoreDirectly<typename HypDataHelper<NormalizedType<ReturnType>>::StorageType>);
 
+        if (!value.template Is<StorageType>())
+        {
+            return false;
+        }
+
         if constexpr (std::is_same_v<NormalizedType<ReturnType>, StorageType>)
         {
             outValue.Set(value.template Get<StorageType>());
@@ -3602,7 +3610,12 @@ HYP_FORCE_INLINE bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>
         {
             decltype(auto) internalValue = value.template Get<StorageType>();
 
-            outValue.Set(HypDataHelper<NormalizedType<ReturnType>> {}.Get(std::forward<decltype(internalValue)>(internalValue)));
+            if (!(HypDataHelper<NormalizedType<ReturnType>> {}.Is(internalValue)))
+            {
+                return false;
+            }
+
+            outValue.Set(HypDataHelper<NormalizedType<ReturnType>> {}.Get(internalValue));
         }
 
         return true;
@@ -3610,7 +3623,7 @@ HYP_FORCE_INLINE bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>
 
     using FirstType = typename TupleElement<0, Types...>::Type;
 
-    return ((HypData_Is_Impl<Types>(value) ? getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {}) : false) || ...)
+    return (getForTypeIndex(outValue, std::integral_constant<SizeType, Indices> {}) || ...)
         || (value.template Is<AnyRef>() && ((value.template GetUnchecked<AnyRef>().template Is<FirstType>() && (outValue.Set(value.template GetUnchecked<AnyRef>().template GetUnchecked<FirstType>()), true))));
 }
 
@@ -3627,6 +3640,7 @@ struct HypData_Get<ReturnType, T, Tuple<ConvertibleFrom...>>
         return HypData_Get_Impl<const HypData::VariantType&, ReturnType, T, ConvertibleFrom...>(value, outValue, std::index_sequence_for<T, ConvertibleFrom...> {});
     }
 };
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion HypData_Get implementation
 

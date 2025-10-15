@@ -93,10 +93,23 @@ namespace editor {
 
 #pragma region HyperionEditor
 
+HYP_DISABLE_OPTIMIZATION;
 HyperionEditor::HyperionEditor()
     : Game()
 {
+    // debug
+    const TypeId typeId1 = TypeId::ForType<Array<HypData, DynamicAllocator>>();
+    HypData hd = HypData(Array<HypData, DynamicAllocator> {});
+    Assert(hd.Get<GenericArrayWrapper>().typeInfo->id == typeId1);
+
+    const TypeId typeId2 = TypeInfo_ForType<Array<HypData, DynamicAllocator>>().id;
+    Assert(typeId1 == typeId2);
+
+    constexpr WeakName wn = "Array<HypData,DynamicAllocator>";
+
+    HYP_BREAKPOINT;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 HyperionEditor::~HyperionEditor()
 {
@@ -287,11 +300,11 @@ void HyperionEditor::Init()
                     HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
                 }
 
-                 // test
-                 const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
-                 project->SetName(NAME("NewProj2"));
-                 Result saveResult = project->Save();
-                 Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
+                // test
+                const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
+                project->SetName(NAME("NewProj2"));
+                Result saveResult = project->Save();
+                Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
             })
         .Detach();
 

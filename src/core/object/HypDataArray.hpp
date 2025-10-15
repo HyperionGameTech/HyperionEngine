@@ -5,7 +5,7 @@
 #include <core/containers/HashSet.hpp>
 #include <core/containers/LinkedList.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/AnyRef.hpp>
@@ -46,16 +46,17 @@ struct GenericArrayWrapper
     struct
     {
         void* pInternalArray;
-        void (*dtor)(void*);
-        void (*copyCtor)(void** pDst, void* src);
-        SerializeFunction serializeFunction;
     };
 
-    TypeId arrayTypeId;
-    TypeId elementTypeId;
+    const TypeInfo* typeInfo;
+    const TypeInfo* elementTypeInfo;
 
     struct FunctionTable
     {
+        void (*dtor)(void*);
+        void (*copyCtor)(void** pDst, void* src);
+        SerializeFunction serializeFunction;
+
         AnyRef (*pushBack)(GenericArrayWrapper& array, HypData&& value);
         bool (*getElementAt)(GenericArrayWrapper& array, SizeType index, HypData& out);
         bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, HypData&& value);
@@ -67,11 +68,8 @@ struct GenericArrayWrapper
 
     GenericArrayWrapper()
         : pInternalArray(nullptr),
-          dtor(nullptr),
-          copyCtor(nullptr),
-          arrayTypeId(TypeId::Void()),
-          elementTypeId(TypeId::Void()),
-          serializeFunction(nullptr)
+          typeInfo(&TypeInfo_Void()),
+          elementTypeInfo(&TypeInfo_Void())
     {
         Memory::MemSet(&functionTable, 0, sizeof(FunctionTable));
     }
@@ -79,20 +77,17 @@ struct GenericArrayWrapper
     GenericArrayWrapper(const GenericArrayWrapper& other)
         : GenericArrayWrapper()
     {
-        if (other.copyCtor)
+        if (other.functionTable.copyCtor)
         {
-            other.copyCtor(&pInternalArray, other.pInternalArray);
+            other.functionTable.copyCtor(&pInternalArray, other.pInternalArray);
         }
         else
         {
             pInternalArray = other.pInternalArray;
         }
 
-        copyCtor = other.copyCtor;
-        dtor = other.dtor;
-        arrayTypeId = other.arrayTypeId;
-        elementTypeId = other.elementTypeId;
-        serializeFunction = other.serializeFunction;
+        typeInfo = other.typeInfo;
+        elementTypeInfo = other.elementTypeInfo;
         functionTable = other.functionTable;
     }
 
@@ -103,25 +98,22 @@ struct GenericArrayWrapper
             return *this;
         }
 
-        if (dtor)
+        if (functionTable.dtor)
         {
-            dtor(pInternalArray);
+            functionTable.dtor(pInternalArray);
         }
 
-        if (other.copyCtor)
+        if (other.functionTable.copyCtor)
         {
-            other.copyCtor(&pInternalArray, other.pInternalArray);
+            other.functionTable.copyCtor(&pInternalArray, other.pInternalArray);
         }
         else
         {
             pInternalArray = other.pInternalArray;
         }
 
-        copyCtor = other.copyCtor;
-        dtor = other.dtor;
-        arrayTypeId = other.arrayTypeId;
-        elementTypeId = other.elementTypeId;
-        serializeFunction = other.serializeFunction;
+        typeInfo = other.typeInfo;
+        elementTypeInfo = other.elementTypeInfo;
         functionTable = other.functionTable;
 
         return *this;
@@ -129,19 +121,14 @@ struct GenericArrayWrapper
 
     GenericArrayWrapper(GenericArrayWrapper&& other) noexcept
         : pInternalArray(other.pInternalArray),
-          dtor(other.dtor),
-          copyCtor(other.copyCtor),
-          arrayTypeId(other.arrayTypeId),
-          elementTypeId(other.elementTypeId),
-          serializeFunction(other.serializeFunction),
+          typeInfo(other.typeInfo),
+          elementTypeInfo(other.elementTypeInfo),
           functionTable(other.functionTable)
     {
         other.pInternalArray = nullptr;
-        other.dtor = nullptr;
-        other.copyCtor = nullptr;
-        other.arrayTypeId = TypeId::Void();
-        other.elementTypeId = TypeId::Void();
-        other.serializeFunction = nullptr;
+        other.functionTable.copyCtor = nullptr;
+        other.typeInfo = &TypeInfo_Void();
+        other.elementTypeInfo = &TypeInfo_Void();
 
         Memory::MemSet(&other.functionTable, 0, sizeof(FunctionTable));
     }
@@ -153,25 +140,19 @@ struct GenericArrayWrapper
             return *this;
         }
 
-        if (dtor)
+        if (functionTable.dtor)
         {
-            dtor(pInternalArray);
+            functionTable.dtor(pInternalArray);
         }
 
         pInternalArray = other.pInternalArray;
-        dtor = other.dtor;
-        copyCtor = other.copyCtor;
-        arrayTypeId = other.arrayTypeId;
-        elementTypeId = other.elementTypeId;
-        serializeFunction = other.serializeFunction;
+        typeInfo = other.typeInfo;
+        elementTypeInfo = other.elementTypeInfo;
         functionTable = other.functionTable;
 
         other.pInternalArray = nullptr;
-        other.dtor = nullptr;
-        other.copyCtor = nullptr;
-        other.arrayTypeId = TypeId::Void();
-        other.elementTypeId = TypeId::Void();
-        other.serializeFunction = nullptr;
+        other.typeInfo = &TypeInfo_Void();
+        other.elementTypeInfo = &TypeInfo_Void();
 
         Memory::MemSet(&other.functionTable, 0, sizeof(FunctionTable));
 
@@ -235,15 +216,15 @@ struct GenericArrayWrapper
 
     ~GenericArrayWrapper()
     {
-        if (dtor)
+        if (functionTable.dtor)
         {
-            dtor(pInternalArray);
+            functionTable.dtor(pInternalArray);
         }
     }
 
     HYP_FORCE_INLINE bool OwnsArray() const
     {
-        return dtor != nullptr;
+        return functionTable.dtor != nullptr;
     }
 
     HYP_FORCE_INLINE bool IsValid() const
