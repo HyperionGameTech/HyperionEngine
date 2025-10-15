@@ -731,7 +731,7 @@ public:
     virtual ~Delegate() override
     {
         // Ensure that the delegate is not being used by any threads before deleting it
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockWriter();
 
         if (m_impl != nullptr)
@@ -754,7 +754,7 @@ public:
 
     virtual bool AnyBound() const override final
     {
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 
@@ -774,7 +774,7 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler Bind(Proc<ReturnType(Args...)>&& proc)
     {
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 
@@ -801,7 +801,7 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler BindThreaded(Proc<ReturnType(Args...)>&& proc, const ThreadId& callingThreadId)
     {
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 
@@ -824,7 +824,7 @@ public:
      *  \return The number of handlers removed. */
     int RemoveAllDetached() override
     {
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 
@@ -838,7 +838,7 @@ public:
 
     bool Remove(DelegateHandler&& handle) override
     {
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 
@@ -857,7 +857,7 @@ public:
     template <class... ArgTypes>
     ReturnType Broadcast(ArgTypes&&... args)
     {
-        Spinlock spinlock(&m_spinlock);
+        Spinlock<SPMC> spinlock(&m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 
@@ -952,7 +952,7 @@ public:
         }
 
         // lock the delegate object for reading
-        Spinlock spinlock(&delegate->m_spinlock);
+        Spinlock<SPMC> spinlock(&delegate->m_spinlock);
         spinlock.LockReader();
         HYP_DEFER({ spinlock.UnlockReader(); });
 

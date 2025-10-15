@@ -725,7 +725,11 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
             }
             else
             {
-                HYP_LOG(Core, Warning, "Failed to load AssetObject from AssetReference when deserializing JSON");
+                HYP_LOG(Core, Warning, "Failed to load AssetObject from AssetReference: {}", assetReference.GetAssetPath());
+
+                target = HypData(AnyHandle(targetClass, nullptr));
+
+                return false;
             }
         }
     }

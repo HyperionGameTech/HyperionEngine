@@ -420,7 +420,7 @@ public:
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
 
-        Spinlock spinlock(&this->m_promiseFulfillLockState);
+        Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
         spinlock.LockWriter();
 
         Base::m_resultValue.Set(std::move(value));
@@ -441,7 +441,7 @@ public:
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
         
-        Spinlock spinlock(&this->m_promiseFulfillLockState);
+        Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
         spinlock.LockWriter();
 
         Base::m_resultValue.Set(value);
@@ -501,7 +501,7 @@ public:
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
         
-        Spinlock spinlock(&this->m_promiseFulfillLockState);
+        Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
         spinlock.LockWriter();
 
         TaskCallbackChain& callbackChain = Base::GetCallbackChain();
@@ -804,7 +804,7 @@ protected:
             {
                 if (m_allowDeferredDeletion)
                 {
-                    Spinlock spinlock(&m_executor->m_promiseFulfillLockState);
+                    Spinlock<SPMC> spinlock(&m_executor->m_promiseFulfillLockState);
                     spinlock.LockReader();
 
                     // check again in case it completed while we were waiting for the lock
@@ -957,7 +957,7 @@ protected:
             {
                 if (m_allowDeferredDeletion)
                 {
-                    Spinlock spinlock(&m_executor->m_promiseFulfillLockState);
+                    Spinlock<SPMC> spinlock(&m_executor->m_promiseFulfillLockState);
                     spinlock.LockReader();
 
                     // check again in case it completed while we were waiting for the lock

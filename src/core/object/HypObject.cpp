@@ -71,6 +71,10 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
     AssertDebug(target->GetObjectHeader_Internal()->GetRefCountStrong() == 1);
 
+#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+    AssertDebug(target->GetScriptObjectResource() == nullptr);
+#endif
+
     if (!(ptr.GetClass()->GetFlags() & HypClassFlags::NO_SCRIPT_BINDINGS))
     {
         HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
@@ -84,6 +88,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
                 Assert(scriptObjectResource != nullptr);
                 scriptObjectResource->IncRef();
+                
+                if (g_logger)
+                    HYP_LOG_TEMP("CSHARP : Setting script object resource for {} from thread {}", target->Id(), Threads::CurrentThreadId().GetName());
 
                 target->SetScriptObjectResource(scriptObjectResource);
 
@@ -96,6 +103,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
             ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
             Assert(scriptObjectResource != nullptr);
+
+            if (g_logger)
+                HYP_LOG_TEMP("HYPSCRIPT : Setting script object resource for {} from thread {}", target->Id(), Threads::CurrentThreadId().GetName());
 
             target->SetScriptObjectResource(scriptObjectResource);
 

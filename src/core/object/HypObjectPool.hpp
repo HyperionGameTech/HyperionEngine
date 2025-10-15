@@ -45,22 +45,14 @@ class HypObjectContainerBase
 public:
     struct LockGuard
     {
-        Spinlock* lock = nullptr;
+        Spinlock<MPMC>* lock = nullptr;
         int flags = PF_NONE;
 
         HYP_FORCE_INLINE ~LockGuard()
         {
             if (lock)
             {
-                if (flags & PF_WRITER)
-                {
-                    // make sure lock is released on destruction
-                    lock->UnlockWriter();
-                }
-                else
-                {
-                    lock->UnlockReader();
-                }
+                lock->Unlock();
             }
         }
     };

@@ -320,7 +320,7 @@ public:
 private:
     struct LockGuard
     {
-        explicit LockGuard(Spinlock& l)
+        explicit LockGuard(Spinlock<SPMC>& l)
             : lock(l)
         {
             if constexpr (ThreadSafe)
@@ -337,7 +337,7 @@ private:
             }
         }
 
-        Spinlock& lock;
+        Spinlock<SPMC>& lock;
     };
 
     void NewSlabUnlocked()
@@ -451,7 +451,7 @@ private:
     SlabPage* m_full = nullptr;
     SlabPage* m_empty = nullptr;
 
-    mutable Spinlock m_lock;
+    mutable Spinlock<SPMC> m_lock;
     SlabStats m_stats;
 };
 

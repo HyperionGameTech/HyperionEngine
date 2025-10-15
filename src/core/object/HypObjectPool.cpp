@@ -121,10 +121,10 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
-static Spinlock& GetGlobalPoolLock()
+static Spinlock<MPMC>& GetGlobalPoolLock()
 {
     static volatile int64 s_globalPoolLockValue = 0;
-    static Spinlock s_globalPoolLock { &s_globalPoolLockValue };
+    static Spinlock<MPMC> s_globalPoolLock { &s_globalPoolLockValue };
 
     return s_globalPoolLock;
 }
@@ -174,15 +174,8 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(LockGuard& outGuard, int fla
     if ((int)poolName == 0)
     {
 #endif
-        Spinlock& lock = GetGlobalPoolLock();
-        if (flags & PF_WRITER)
-        {
-            lock.LockWriter();
-        }
-        else
-        {
-            lock.LockReader();
-        }
+        Spinlock<MPMC>& lock = GetGlobalPoolLock();
+        lock.Lock();
 
         outGuard.lock = &lock;
         outGuard.flags = flags;
