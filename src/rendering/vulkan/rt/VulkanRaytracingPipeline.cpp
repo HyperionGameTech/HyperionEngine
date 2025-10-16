@@ -26,7 +26,7 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
-static constexpr VkShaderStageFlags pushConstantStageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
+static constexpr VkShaderStageFlags PushConstantStageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
     | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
     | VK_SHADER_STAGE_MISS_BIT_KHR
@@ -97,7 +97,7 @@ RendererResult VulkanRaytracingPipeline::Create()
 
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        { .stageFlags = pushConstantStageFlags,
+        { .stageFlags = PushConstantStageFlags,
             .offset = 0,
             .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
@@ -165,7 +165,7 @@ void VulkanRaytracingPipeline::Bind(CommandBufferBase* commandBuffer)
         vkCmdPushConstants(
             VULKAN_CAST(commandBuffer)->GetVulkanHandle(),
             m_layout,
-            pushConstantStageFlags,
+            PushConstantStageFlags,
             0,
             m_pushConstants.Size(),
             m_pushConstants.Data());

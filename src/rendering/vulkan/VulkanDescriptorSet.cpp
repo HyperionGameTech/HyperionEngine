@@ -37,7 +37,6 @@ static inline VulkanRenderBackend* GetRenderBackend()
 }
 
 #ifdef HYP_DEBUG_MODE
-HYP_DISABLE_OPTIMIZATION;
 static inline void ValidateDynamicOffset(
     uint32 offset,
     const WeakName& dynamicElementName,
@@ -83,7 +82,6 @@ static inline void ValidateDynamicOffset(
         }
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 #endif
 
 #pragma region VulkanDescriptorSet

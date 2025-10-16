@@ -236,18 +236,6 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
 
 #pragma region VulkanDescriptorSetManager
 
-static const Array<VkDescriptorPoolSize> g_descriptorPoolSizes = {
-    { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-    { VK_DESCRIPTOR_TYPE_SAMPLER, 256 },
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
-    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32000 },
-    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32000 },
-    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64000 },
-    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64000 },
-    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32000 },
-    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32000 }
-};
-
 class VulkanDescriptorSetManager final : public IDescriptorSetManager
 {
 public:
@@ -344,6 +332,24 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool()
 
 RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool& outDescriptorPool)
 {
+    Array<VkDescriptorPoolSize> descriptorPoolSizes = {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 256 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32000 }
+    };
+
+    // only add acceleration structure descriptor type if raytracing is supported,
+    // otherwise we'll get an error when creating the descriptor pool
+    if (GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    {
+        descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 256 });
+    }
+
     outDescriptorPool = VK_NULL_HANDLE;
 
     VkDescriptorPool& descriptorPool = m_vkDescriptorPools.EmplaceBack(VK_NULL_HANDLE);
@@ -352,8 +358,8 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
     VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.maxSets = maxDescriptorSets;
-    poolInfo.poolSizeCount = uint32(g_descriptorPoolSizes.Size());
-    poolInfo.pPoolSizes = g_descriptorPoolSizes.Data();
+    poolInfo.poolSizeCount = uint32(descriptorPoolSizes.Size());
+    poolInfo.pPoolSizes = descriptorPoolSizes.Data();
 
     VULKAN_CHECK(vkCreateDescriptorPool(
         GetRenderBackend()->GetDevice()->GetDevice(),
