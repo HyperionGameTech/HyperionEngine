@@ -8,11 +8,8 @@ layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_screen_space_position;
 layout(location = 2) in vec2 v_texcoord0;
 layout(location = 3) in vec4 v_color;
-
-#ifdef INSTANCING
 layout(location = 4) in flat uint v_object_index;
 layout(location = 5) in flat uvec4 v_properties;
-#endif
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 5) out uint gbuffer_mask;
@@ -25,32 +22,20 @@ layout(location = 5) out uint gbuffer_mask;
 #include "../include/UIObject.glsl"
 #include "../include/scene.inc"
 
-// temp
+// clang-format off
+
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
-
-#ifdef INSTANCING
 
 HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
 {
     Object objects[];
 };
 
-#else
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
-{
-    Object object;
-};
-
-#endif
-
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear)
-uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest)
-uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
@@ -82,6 +67,8 @@ HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HY
 HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
 #endif
 #endif
+
+// clang-format on
 
 float RoundedRectangle(vec2 pos, vec2 size, float radius)
 {

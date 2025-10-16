@@ -9,11 +9,10 @@ layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_screen_space_position;
 layout(location = 2) out vec2 v_texcoord0;
 layout(location = 3) out vec4 v_color;
-
-#ifdef INSTANCING
 layout(location = 4) out flat uint v_object_index;
 layout(location = 5) out flat uvec4 v_properties;
-#endif
+
+// clang-format off
 
 HYP_ATTRIBUTE(0) vec3 a_position;
 HYP_ATTRIBUTE(2) vec2 a_texcoord0;
@@ -29,8 +28,6 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-#ifdef INSTANCING
-
 HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
 {
     Object objects[];
@@ -41,21 +38,13 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
     UIEntityInstanceBatch entity_instance_batch;
 };
 
+    // clang-format on
+
 #undef OBJECT_INDEX
 #define OBJECT_INDEX (entity_instance_batch.batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
 
-#else
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
-{
-    Object object;
-};
-
-#endif
-
 void main()
 {
-#ifdef INSTANCING
     vec2 clamped_offset = entity_instance_batch.offsets[gl_InstanceIndex].xy;
     vec2 size = entity_instance_batch.sizes[gl_InstanceIndex].xy;
     vec2 clamped_size = entity_instance_batch.sizes[gl_InstanceIndex].zw;
@@ -73,13 +62,6 @@ void main()
 
     v_object_index = OBJECT_INDEX;
     v_properties = entity_instance_batch.properties[gl_InstanceIndex];
-#else
-    // texcoord / clamping not implemented for non-instanced UI objects
-    vec4 position = object.model_matrix * vec4(a_position, 1.0);
-    vec4 ndc_position = camera.projection * camera.view * position;
-
-    v_texcoord0 = a_texcoord0;
-#endif
 
     v_position = position.xyz;
     v_screen_space_position = vec3(ndc_position.xy * 0.5 + 0.5, ndc_position.z);

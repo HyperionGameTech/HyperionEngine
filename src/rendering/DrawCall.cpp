@@ -282,8 +282,8 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
         {
             const uint32 entityIndex = batch->numEntities++;
 
-            drawCall.batch->indices[entityIndex] = uint32(entityId.ToIndex());
-            drawCall.batch->transforms[entityIndex] = Mat4f::identity;
+            batch->indices[entityIndex] = uint32(entity->Id().ToIndex());
+            batch->transforms[entityIndex] = Mat4f::identity;
 
             entityIdsArray[count++] = entity->Id();
 

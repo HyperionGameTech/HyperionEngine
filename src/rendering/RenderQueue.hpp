@@ -19,7 +19,8 @@
 #include <rendering/RenderCommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
 
-#define HYP_RHI_COMMAND_STACK_TRACE
+// Uncomment to enable trace collection for commands.
+// #define HYP_RHI_COMMAND_STACK_TRACE
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
 #include <core/debug/StackDump.hpp>
