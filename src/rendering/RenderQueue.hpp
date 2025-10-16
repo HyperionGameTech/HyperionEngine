@@ -35,6 +35,12 @@ public:
     static inline void PrepareStatic(CmdBase* cmd, FrameBase* frame)
     {
     }
+
+#ifdef HYP_RHI_COMMAND_STACK_TRACE
+    RawStackTrace trace;
+#else
+    CmdBase() = default;
+#endif
 };
 
 class BindVertexBuffer final : public CmdBase
@@ -43,7 +49,7 @@ public:
     BindVertexBuffer(GpuBufferBase* buffer)
         : m_buffer(buffer)
     {
-        Assert(buffer && buffer->IsCreated());
+        HYP_GFX_ASSERT(buffer && buffer->IsCreated());
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
@@ -66,7 +72,7 @@ public:
     BindIndexBuffer(GpuBufferBase* buffer)
         : m_buffer(buffer)
     {
-        Assert(buffer && buffer->IsCreated());
+        HYP_GFX_ASSERT(buffer && buffer->IsCreated());
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
@@ -529,9 +535,17 @@ public:
     {
     }
 
+#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
+    HYP_API void CheckNotInRenderPass(CommandBufferBase* commandBuffer) const;
+#endif
+
     static inline void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
     {
         InsertBarrier* cmdCasted = static_cast<InsertBarrier*>(cmd);
+
+#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
+        cmdCasted->CheckNotInRenderPass(commandBuffer);
+#endif
 
         if (cmdCasted->m_buffer)
         {
@@ -885,15 +899,17 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
-        static_assert(IsPodTypeV<CmdType>, "CmdType must be POD");
+        static_assert(std::is_trivially_copyable_v<CmdType>
+                && std::is_trivially_destructible_v<TCmd>,
+            "CmdType should be trivially copyable and destructible!");
 
-        constexpr SizeType cmdSize = sizeof(TCmd);
+        constexpr SizeType CmdSize = sizeof(TCmd);
 
         const uint32 alignedOffset = ByteUtil::AlignAs(m_offset, alignof(TCmd));
 
-        if (m_buffer.Size() < alignedOffset + cmdSize)
+        if (m_buffer.Size() < alignedOffset + CmdSize)
         {
-            m_buffer.SetSize(2 * (alignedOffset + cmdSize), /* zeroize */ false);
+            m_buffer.SetSize(MathUtil::Ceil<SizeType>(1.5 * (alignedOffset + CmdSize)), /* zeroize */ false);
         }
 
         void* startPtr = m_buffer.Data() + alignedOffset;
@@ -901,11 +917,11 @@ public:
 
         CmdHeader& header = m_cmdHeaders.EmplaceBack();
         header.offset = alignedOffset;
-        header.size = cmdSize;
+        header.size = CmdSize;
         header.invokeFnPtr = &TCmd::InvokeStatic;
         header.prepareFnPtr = &TCmd::PrepareStatic;
 
-        m_offset = alignedOffset + cmdSize;
+        m_offset = alignedOffset + CmdSize;
     }
 
     template <class CmdType>
@@ -925,7 +941,7 @@ public:
 
         if (m_buffer.GetCapacity() < newStartOffset + other.m_offset)
         {
-            m_buffer.SetSize(2 * (newStartOffset + other.m_offset), /* zeroize */ false);
+            m_buffer.SetSize(MathUtil::Ceil<SizeType>(1.5 * (newStartOffset + other.m_offset)), /* zeroize */ false);
         }
         else
         {

@@ -38,7 +38,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
 
-// #define HYP_SHADER_REFLECTION
+#define HYP_SHADER_REFLECTION
 
 #ifdef HYP_GLSLANG
 

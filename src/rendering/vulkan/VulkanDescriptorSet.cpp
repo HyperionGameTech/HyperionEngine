@@ -36,6 +36,56 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
+#ifdef HYP_DEBUG_MODE
+HYP_DISABLE_OPTIMIZATION;
+static inline void ValidateDynamicOffset(
+    uint32 offset,
+    const WeakName& dynamicElementName,
+    const DescriptorSetLayoutElement* layoutElement,
+    const DescriptorSetElement* element)
+{
+    AssertDebug(layoutElement != nullptr, "Invalid dynamic element: {}", Name(dynamicElementName));
+
+    const VkPhysicalDeviceLimits& limits = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
+
+    // Validate alignment based on buffer type
+    if (layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC)
+    {
+        AssertDebug(offset % limits.minUniformBufferOffsetAlignment == 0,
+            "Dynamic uniform buffer offset {} for element %s is not aligned to minUniformBufferOffsetAlignment ({})",
+            offset, Name(dynamicElementName), limits.minUniformBufferOffsetAlignment);
+    }
+    else if (layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
+    {
+        AssertDebug(offset % limits.minStorageBufferOffsetAlignment == 0,
+            "Dynamic storage buffer offset {} for element %s is not aligned to minStorageBufferOffsetAlignment ({})",
+            offset, Name(dynamicElementName), limits.minStorageBufferOffsetAlignment);
+    }
+
+    // Validate offset is within buffer bounds
+    if (element != nullptr && !element->values.Empty())
+    {
+        const auto firstValueIt = element->values.Begin();
+        if (firstValueIt != element->values.End())
+        {
+            const DescriptorSetElement::ValueType& value = firstValueIt->second;
+            const GpuBufferRef& bufferRef = value.Get<GpuBufferRef>();
+
+            if (bufferRef.IsValid())
+            {
+                const SizeType bufferSize = bufferRef->Size();
+                const SizeType elementSize = layoutElement->size != ~0u ? layoutElement->size : bufferSize;
+
+                AssertDebug(offset + elementSize <= bufferSize,
+                    "Dynamic offset {} + element size {} for element {} exceeds buffer size {}",
+                    offset, elementSize, Name(dynamicElementName), bufferSize);
+            }
+        }
+    }
+}
+HYP_ENABLE_OPTIMIZATION;
+#endif
+
 #pragma region VulkanDescriptorSet
 
 VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
@@ -379,7 +429,7 @@ RendererResult VulkanDescriptorSet::Create()
     {
         return result;
     }
-    
+
     HYP_GFX_ASSERT(m_vkDescriptorPool != VK_NULL_HANDLE);
 
 #ifdef HYP_DEBUG_MODE
@@ -483,7 +533,16 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
 
         if (idx != -1)
         {
-            cachedBinding.dynamicOffsets[i] = offsets.values[idx];
+            const uint32 offset = offsets.values[idx];
+            cachedBinding.dynamicOffsets[i] = offset;
+
+#ifdef HYP_DEBUG_MODE
+            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(Name(dynamicElementName));
+            const auto* pPair = m_elements.TryGet(Name(dynamicElementName));
+            const DescriptorSetElement* element = pPair != nullptr ? &pPair->second : nullptr;
+
+            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
+#endif
 
             usedOffsets.Insert(dynamicElementName);
         }
@@ -597,7 +656,16 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
 
         if (idx != -1)
         {
-            cachedBinding.dynamicOffsets[i] = offsets.values[idx];
+            const uint32 offset = offsets.values[idx];
+            cachedBinding.dynamicOffsets[i] = offset;
+
+#ifdef HYP_DEBUG_MODE
+            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(Name(dynamicElementName));
+            const auto* pPair = m_elements.TryGet(Name(dynamicElementName));
+            const DescriptorSetElement* element = pPair != nullptr ? &pPair->second : nullptr;
+
+            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
+#endif
 
             usedOffsets.Insert(dynamicElementName);
         }
@@ -711,7 +779,16 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
 
         if (idx != -1)
         {
-            cachedBinding.dynamicOffsets[i] = offsets.values[idx];
+            const uint32 offset = offsets.values[idx];
+            cachedBinding.dynamicOffsets[i] = offset;
+
+#ifdef HYP_DEBUG_MODE
+            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(Name(dynamicElementName));
+            const auto* pPair = m_elements.TryGet(Name(dynamicElementName));
+            const DescriptorSetElement* element = pPair != nullptr ? &pPair->second : nullptr;
+
+            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
+#endif
 
             usedOffsets.Insert(dynamicElementName);
         }

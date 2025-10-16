@@ -86,6 +86,7 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
 {
     preRenderQueue.Prepare(this);
     renderQueue.Prepare(this);
+    postRenderQueue.Prepare(this);
 
     UpdateUsedDescriptorSets();
 
@@ -98,6 +99,7 @@ RendererResult VulkanFrame::Submit(VulkanDeviceQueue* deviceQueue, VulkanCommand
     commandBuffer->Begin();
     preRenderQueue.Execute(commandBuffer);
     renderQueue.Execute(commandBuffer);
+    postRenderQueue.Execute(commandBuffer);
     commandBuffer->End();
 
     return commandBuffer->SubmitPrimary(deviceQueue, m_queueSubmitFence, &m_presentSemaphores);

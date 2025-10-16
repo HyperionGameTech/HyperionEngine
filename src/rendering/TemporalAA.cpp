@@ -123,9 +123,8 @@ void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& render
         Assert(cameraProxy != nullptr);
 
         m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));
+        m_uniformBuffer->SetDebugName(NAME("TAA_UniformBuffer"));
         HYP_GFX_ASSERT(m_uniformBuffer->Create());
-
-        m_uniformBuffer->SetDebugName(NAME("TaaUniforms"));
 
         TaaUniforms uniforms {};
         uniforms.dimensions = m_extent;

@@ -45,6 +45,7 @@ public:
 
     RenderQueue renderQueue;
     RenderQueue preRenderQueue;
+    RenderQueue postRenderQueue;
 
 protected:
     FrameBase(uint32 frameIndex)

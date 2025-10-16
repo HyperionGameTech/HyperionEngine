@@ -9,6 +9,7 @@
 // for debugging
 #include <rendering/vulkan/VulkanFramebuffer.hpp>
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
+#include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #endif
 
 #include <core/logging/Logger.hpp>
@@ -95,16 +96,30 @@ void BindDescriptorTable::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 
 #pragma endregion BindDescriptorTable
 
+#pragma region InsertBarrier
+
+#if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
+void InsertBarrier::CheckNotInRenderPass(CommandBufferBase* commandBuffer) const
+{
+    VulkanCommandBuffer* vulkanCommandBuffer = VULKAN_CAST(commandBuffer);
+    HYP_GFX_ASSERT(!vulkanCommandBuffer->IsInRenderPass());
+}
+#endif
+
+#pragma endregion InsertBarrier
+
 #pragma region BeginFramebuffer
 
 #ifdef HYP_DEBUG_MODE
-static FramebufferBase* g_activeFramebuffer = nullptr;
+thread_local int s_framebufferCount;
+thread_local FramebufferBase* s_currentFramebuffer;
 
 BeginFramebuffer::BeginFramebuffer(FramebufferBase* framebuffer)
     : m_framebuffer(framebuffer)
 {
-    Assert(!g_activeFramebuffer, "Cannot begin framebuffer: already in a framebuffer");
-    g_activeFramebuffer = framebuffer;
+    Assert(!s_framebufferCount, "Cannot begin framebuffer: already in a framebuffer");
+    s_framebufferCount++;
+    s_currentFramebuffer = framebuffer;
 }
 
 void BeginFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
@@ -121,9 +136,11 @@ void BeginFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
 EndFramebuffer::EndFramebuffer(FramebufferBase* framebuffer)
     : m_framebuffer(framebuffer)
 {
-    Assert(g_activeFramebuffer, "Cannot end framebuffer: not in a framebuffer");
-    Assert(g_activeFramebuffer == framebuffer, "Cannot end framebuffer: mismatched framebuffer");
-    g_activeFramebuffer = nullptr;
+    Assert(s_framebufferCount, "Cannot end framebuffer: not in a framebuffer");
+    s_framebufferCount--;
+
+    Assert(s_currentFramebuffer == framebuffer, "Cannot end framebuffer: mismatched framebuffer");
+    s_currentFramebuffer = nullptr;
 }
 
 void EndFramebuffer::PrepareStatic(CmdBase* cmd, FrameBase* frame)
@@ -142,13 +159,13 @@ BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i
       m_viewportOffset(viewportOffset),
       m_viewportExtent(viewportExtent)
 {
-    Assert(g_activeFramebuffer != nullptr, "Cannot bind graphics pipeline: not in a framebuffer");
+    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
 }
 
 BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipelineBase* pipeline)
     : m_pipeline(pipeline)
 {
-    Assert(g_activeFramebuffer != nullptr, "Cannot bind graphics pipeline: not in a framebuffer");
+    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
 }
 
 #endif

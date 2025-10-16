@@ -4,38 +4,70 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
+#include <core/containers/FixedArray.hpp>
+#include <core/memory/Pimpl.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {
 namespace debug {
 
+/*! \brief Lightweight stack trace that stores only raw frame pointers.
+ *  Trivially destructible and suitable for embedding in POD types.
+ *  Call ToStackDump() to convert to full string representation. */
+struct HYP_API RawStackTrace
+{
+    static constexpr uint32 MaxFrames = 20;
+
+    void* frames[MaxFrames];
+    uint32 numFrames;
+
+    RawStackTrace()
+        : RawStackTrace(MaxFrames)
+    {
+    }
+
+    explicit RawStackTrace(uint32 depth, uint32 offset = 0);
+
+    RawStackTrace(const RawStackTrace&) = default;
+    RawStackTrace& operator=(const RawStackTrace&) = default;
+
+    RawStackTrace(RawStackTrace&&) noexcept = default;
+    RawStackTrace& operator=(RawStackTrace&&) noexcept = default;
+
+    ~RawStackTrace() = default;
+
+    /*! \brief Convert to a StackDump with string representations of frames.
+     *   \note The returned StackDump must be deleted by the caller. */
+    class StackDump* ToStackDump() const;
+};
+
+static_assert(std::is_trivially_destructible_v<RawStackTrace>, "RawStackTrace must be trivially destructible");
+
 class HYP_API StackDump
 {
+    struct Impl;
+
 public:
     StackDump(uint32 depth = 20, uint32 offset = 0);
+    StackDump(const RawStackTrace& rawTrace);
 
-    StackDump(const StackDump& other) = default;
-    StackDump& operator=(const StackDump& other) = default;
+    StackDump(const StackDump& other);
+    StackDump& operator=(const StackDump& other);
     StackDump(StackDump&& other) noexcept = default;
     StackDump& operator=(StackDump&& other) noexcept = default;
-    ~StackDump() = default;
+    ~StackDump();
 
-    HYP_FORCE_INLINE const Array<String>& GetTrace() const
-    {
-        return m_trace;
-    }
+    const Array<String>& GetTrace() const;
 
-    HYP_FORCE_INLINE String ToString() const
-    {
-        return String::Join(m_trace, "\n");
-    }
+    String ToString() const;
 
 private:
-    Array<String> m_trace;
+    Pimpl<Impl> m_impl;
 };
 
 } // namespace debug
 
+using debug::RawStackTrace;
 using debug::StackDump;
 
 } // namespace hyperion

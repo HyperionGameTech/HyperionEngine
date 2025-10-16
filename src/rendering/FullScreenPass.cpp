@@ -285,7 +285,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
         return;
     }
 
-    // release handle
+    // throw away graphics pipeline cache handle to force recreation.
     m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
 
     SafeDelete(std::move(m_framebuffer));
@@ -297,7 +297,6 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
     CreateRenderTextureToScreenPass();
     CreateTemporalBlending();
     CreateDescriptors();
-    // CreatePipeline();
 }
 
 void FullScreenPass::CreateQuad()

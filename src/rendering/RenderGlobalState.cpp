@@ -1529,6 +1529,7 @@ void RenderGlobalState::CreateBlueNoiseBuffer()
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
     GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
     blueNoiseBuffer->SetRequireCpuAccessible(true);
     HYP_GFX_ASSERT(blueNoiseBuffer->Create());
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
@@ -1547,6 +1548,7 @@ void RenderGlobalState::CreateSphereSamplesBuffer()
     HYP_SCOPE;
 
     GpuBufferRef sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
+    sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
     HYP_GFX_ASSERT(sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];

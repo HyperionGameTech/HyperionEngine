@@ -153,16 +153,18 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
                 }
 
                 GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
+                stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", textureAsset->GetName().IsValid() ? textureAsset->GetName() : NAME("Invalid")));
                 HYP_GFX_CHECK(stagingBuffer->Create());
                 stagingBuffer->Copy(imageData->Size(), imageData->Data());
 
                 HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
 
                 FrameBase* frame = g_renderBackend->GetCurrentFrame();
-                RenderQueue& renderQueue = frame->renderQueue;
+
+                // Needs to be done after rendering; otherwise might try to insert barriers during a render pass.
+                RenderQueue& renderQueue = frame->postRenderQueue;
 
                 renderQueue << InsertBarrier(image, RS_COPY_DST);
-
                 renderQueue << CopyBufferToImage(stagingBuffer, image);
 
                 if (textureDesc.HasMipmaps())
@@ -175,7 +177,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
             else if (initialState != RS_UNDEFINED)
             {
                 FrameBase* frame = g_renderBackend->GetCurrentFrame();
-                RenderQueue& renderQueue = frame->renderQueue;
+                RenderQueue& renderQueue = frame->postRenderQueue;
 
                 // Transition to initial state
                 renderQueue << InsertBarrier(image, initialState);
@@ -378,6 +380,7 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
     AssertReady();
 
     GpuBufferRef gpuBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    gpuBuffer->SetDebugName(NAME_FMT("Texture_Readback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
     HYP_GFX_ASSERT(gpuBuffer->Create());
     gpuBuffer->Map();
 
@@ -441,6 +444,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
     GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    stagingBuffer->SetDebugName(NAME_FMT("Texture_EnqueueReadback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
     HYP_GFX_ASSERT(stagingBuffer->Create());
     stagingBuffer->Map();
 

@@ -175,6 +175,7 @@ void SSGI::CreateUniformBuffers()
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("SSGI_UniformBuffer_Frame{}", frameIndex));
     }
 
     PUSH_RENDER_COMMAND(CreateSSGIUniformBuffers, uniforms, m_uniformBuffers);

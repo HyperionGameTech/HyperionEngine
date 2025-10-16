@@ -202,6 +202,7 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.screenEdgeFadeEnd = m_config.screenEdgeFade.y;
 
     m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+    m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
 
     PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);
 }

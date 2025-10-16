@@ -205,34 +205,9 @@ DeferredPass::~DeferredPass()
 void DeferredPass::Create()
 {
     FullScreenPass::Create();
-}
-
-GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties& shaderProperties)
-{
-    HYP_SCOPE;
-
-    const RenderableAttributeSet renderableAttributes {
-        MeshAttributes { .vertexAttributes = shaderProperties.GetRequiredVertexAttributes() },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = m_blendFunction,
-            .flags = MAF_NONE }
-    };
-
-    if (m_mode == DPM_INDIRECT_LIGHTING)
-    {
-        m_shader = g_shaderManager->GetOrCreate(NAME("DeferredIndirect"), shaderProperties);
-        Assert(m_shader.IsValid());
-
-        return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
-            m_shader,
-            nullptr,
-            { &m_framebuffer, 1 },
-            renderableAttributes);
-    }
 
     // linear transform cosines texture data
-    if (!m_ltcSampler)
+    if (m_mode == DPM_DIRECT_LIGHTING && !m_ltcSampler)
     {
         m_ltcSampler = g_renderBackend->MakeSampler(
             TFM_NEAREST,
@@ -270,6 +245,31 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
         m_ltcMatrixTexture->SetName(NAME("LtcBrdfLut"));
         InitObject(m_ltcBrdfTexture);
     }
+}
+
+GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties& shaderProperties)
+{
+    HYP_SCOPE;
+
+    const RenderableAttributeSet renderableAttributes {
+        MeshAttributes { .vertexAttributes = shaderProperties.GetRequiredVertexAttributes() },
+        MaterialAttributes {
+            .fillMode = FM_FILL,
+            .blendFunction = m_blendFunction,
+            .flags = MAF_NONE }
+    };
+
+    if (m_mode == DPM_INDIRECT_LIGHTING)
+    {
+        m_shader = g_shaderManager->GetOrCreate(NAME("DeferredIndirect"), shaderProperties);
+        Assert(m_shader.IsValid());
+
+        return g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
+            m_shader,
+            nullptr,
+            { &m_framebuffer, 1 },
+            renderableAttributes);
+    }
 
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
     Assert(shader != nullptr);
@@ -301,8 +301,6 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
 void DeferredPass::Resize_Internal(Vec2u newSize)
 {
-    // NOTE: Don't bother discarding sampler, we don't recreate it if it already exists.
-
     FullScreenPass::Resize_Internal(newSize);
 }
 
