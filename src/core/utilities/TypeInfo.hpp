@@ -533,19 +533,12 @@ struct TypeInfo
 
             if (TypeInfo* cached = TypeInfo_FetchFromCache(typeId, uint16(sizeof(NormalizedT)), uint16(alignof(NormalizedT))))
             {
-                // debugging
-                constexpr const char* TypeName = TypeNameHelper<NormalizedT, true>::value.Data();
-                HYP_CORE_ASSERT(Memory::StrCmp(cached->name.LookupString(), TypeName) == 0,
-                    "cached type name '%s' does not match expected type name '%s'",
-                    cached->name.LookupString(),
-                    TypeName);
-
                 return *cached;
             }
 
             TypeInfo result;
             result.id = typeId;
-            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<T, true>::value>());
+            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<NormalizedT, true>::value>());
             result.size = uint16(sizeof(NormalizedT));
             result.alignment = uint16(alignof(NormalizedT));
             result.flags = TypeInfoFlags::NONE;
@@ -1816,14 +1809,19 @@ inline const TypeInfo& TypeInfo_ForHypClass(const HypClass* hypClass)
     return TypeInfo::ForHypClass(hypClass);
 }
 
-inline const TypeId& TypeInfo_GetId(const TypeInfo& type_info)
+inline const TypeId& TypeInfo_GetId(const TypeInfo& typeInfo)
 {
-    return type_info.id;
+    return typeInfo.id;
 }
 
-inline const Name& TypeInfo_GetName(const TypeInfo& type_info)
+inline const Name& TypeInfo_GetName(const TypeInfo& typeInfo)
 {
-    return type_info.name;
+    return typeInfo.name;
+}
+
+inline SizeType TypeInfo_GetSize(const TypeInfo& typeInfo)
+{
+    return typeInfo.size;
 }
 
 template <class T>

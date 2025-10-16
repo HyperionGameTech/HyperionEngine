@@ -10,6 +10,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/Range.hpp>
+#include <core/utilities/TypeInfoFwd.hpp>
 
 #include <core/Defines.hpp>
 
@@ -131,29 +132,18 @@ private:
 class GpuBufferHolderBase
 {
 protected:
-    template <class T>
-    GpuBufferHolderBase(TypeWrapper<T>)
-        : m_structTypeId(TypeId::ForType<T>()),
-          m_structSize(sizeof(T))
+    explicit GpuBufferHolderBase(const TypeInfo* structTypeInfo)
+        : m_structTypeInfo(structTypeInfo)
     {
+        AssertDebug(m_structTypeInfo != nullptr);
     }
 
 public:
     virtual ~GpuBufferHolderBase();
 
-    HYP_FORCE_INLINE TypeId GetStructTypeId() const
+    HYP_FORCE_INLINE const TypeInfo* GetStructTypeInfo() const
     {
-        return m_structTypeId;
-    }
-
-    HYP_FORCE_INLINE SizeType GetStructSize() const
-    {
-        return m_structSize;
-    }
-
-    HYP_FORCE_INLINE SizeType GetGpuBufferOffset(uint32 elementIndex) const
-    {
-        return m_structSize * elementIndex;
+        return m_structTypeInfo;
     }
 
     virtual SizeType Count() const = 0;
@@ -178,7 +168,7 @@ public:
 
     void WriteBufferData(uint32 index, const void* ptr, SizeType size)
     {
-        AssertDebug(size == m_structSize, "Size does not match the expected size! Size = {}, Expected = {}", size, m_structSize);
+        AssertDebug(size == TypeInfo_GetSize(*m_structTypeInfo), "Size does not match the expected size! Size = {}, Expected = {}", size, TypeInfo_GetSize(*m_structTypeInfo));
 
         WriteBufferData_Internal(index, ptr);
     }
@@ -186,10 +176,10 @@ public:
     static void WriteBufferData_Static(GpuBufferHolderBase* gpuBufferHolder, uint32 index, void* bufferDataPtr, SizeType bufferSize)
     {
         AssertDebug(gpuBufferHolder != nullptr);
-        AssertDebug(bufferSize == gpuBufferHolder->m_structSize,
+        AssertDebug(bufferSize == TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo),
             "Size does not match the expected size! Size = %llu, Expected = %llu",
             bufferSize,
-            gpuBufferHolder->m_structSize);
+            TypeInfo_GetSize(*gpuBufferHolder->m_structTypeInfo));
 
         gpuBufferHolder->WriteBufferData_Internal(index, bufferDataPtr);
     }
@@ -206,9 +196,7 @@ protected:
 
     virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
 
-    TypeId m_structTypeId;
-    SizeType m_structSize;
-
+    const TypeInfo* m_structTypeInfo;
     GpuBufferRef m_gpuBuffer;
 };
 
@@ -423,9 +411,9 @@ template <class StructType, GpuBufferType BufferType>
 class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
-    GpuBufferHolder(uint32 initialCount = 0)
-        : GpuBufferHolderBase(TypeWrapper<StructType> {}),
-          m_pool(CreateNameFromDynamicString(ANSIString("GfxBuffers_") + TypeNameWithoutNamespace<StructType>().Data()), initialCount)
+    explicit GpuBufferHolder(uint32 initialCount = 0)
+        : GpuBufferHolderBase(&TypeInfo_ForType<StructType>()),
+          m_pool(NAME_FMT("GpuBufferData_{}", TypeInfo_GetName(*m_structTypeInfo)), initialCount)
     {
         GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType));
     }

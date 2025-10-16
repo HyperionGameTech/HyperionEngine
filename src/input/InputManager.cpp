@@ -35,7 +35,7 @@ void InputEventSink::Push(SystemEvent&& evt)
     m_notifier.Produce(1);
 }
 
-bool InputEventSink::Poll(Array<SystemEvent>& outEvents)
+bool InputEventSink::Poll(SystemEvents& outEvents)
 {
     if (!m_notifier.IsInSignalState())
     {

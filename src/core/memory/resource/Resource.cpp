@@ -19,18 +19,18 @@ HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
 
 #pragma region Memory Pool
 
-static TypeMap<UniquePtr<IResourceMemoryPool>> g_resourceMemoryPools;
-static Mutex g_resourceMemoryPoolsMutex;
+static TypeMap<UniquePtr<IResourceMemoryPool>> s_resourceMemoryPools;
+static Mutex s_resourceMemoryPoolsMutex;
 
 IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId typeId, UniquePtr<IResourceMemoryPool> (*createFn)(void))
 {
-    Mutex::Guard guard(g_resourceMemoryPoolsMutex);
+    Mutex::Guard guard(s_resourceMemoryPoolsMutex);
 
-    auto it = g_resourceMemoryPools.Find(typeId);
+    auto it = s_resourceMemoryPools.Find(typeId);
 
-    if (it == g_resourceMemoryPools.End())
+    if (it == s_resourceMemoryPools.End())
     {
-        it = g_resourceMemoryPools.Set(typeId, createFn()).first;
+        it = s_resourceMemoryPools.Set(typeId, createFn()).first;
     }
 
     return it->second.Get();
@@ -72,7 +72,7 @@ int ResourceBase::IncRefNoInitialize()
 int ResourceBase::IncRef()
 {
     HYP_SCOPE;
-    
+
     int result = AtomicIncrement(&m_refCount);
 
     if (result == 1)
@@ -94,7 +94,7 @@ int ResourceBase::IncRef()
 int ResourceBase::DecRef()
 {
     HYP_SCOPE;
-    
+
     int result = AtomicDecrement(&m_refCount);
 
     if (result == 0)
@@ -117,8 +117,8 @@ int ResourceBase::DecRef()
     if (HYP_UNLIKELY(result < 0))
     {
         HYP_LOG(Resource, Fatal, "Resource ref count is negative! This is a bug in the code that uses this resource, please report it.\n\t"
-            "Resource ref count: {}, address: {}",
-            result, (void *)this);
+                                 "Resource ref count: {}, address: {}",
+            result, (void*)this);
     }
 
     return result;
@@ -138,13 +138,14 @@ void ResourceBase::WaitForFinalization() const
         do
         {
             Threads::Sleep(0);
-        } while (m_refCount != 0 && timer.ElapsedMs() < 30.0);
+        }
+        while (m_refCount != 0 && timer.ElapsedMs() < 30.0);
 
         if (m_refCount != 0)
         {
             HYP_LOG(Resource, Fatal, "Resource could not be finalized; must be locked elsewhere! "
-                "This is a bug in the code that uses this resource, please report it.\n\t"
-                "Resource ref count: {}, address: {}",
+                                     "This is a bug in the code that uses this resource, please report it.\n\t"
+                                     "Resource ref count: {}, address: {}",
                 m_refCount, (void*)this);
         }
     }

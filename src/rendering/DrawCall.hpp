@@ -209,8 +209,6 @@ struct InstancedDrawCallStorage
     }
 };
 
-/// TODO: Refactor to a basic desc struct for Batch size info,
-/// and use g_renderGlobalState to acquire batch holder / acquire and release batches.
 class IDrawCallCollectionImpl
 {
 public:
@@ -218,12 +216,12 @@ public:
 
     HYP_FORCE_INLINE SizeType GetStructSize() const
     {
-        return m_bufferHolder->GetStructSize();
+        return m_structSize;
     }
 
     HYP_FORCE_INLINE SizeType GetStructAlignment() const
     {
-        return m_bufferHolder->GetStructSize();
+        return m_structAlignment;
     }
 
     HYP_FORCE_INLINE void ReleaseBatch(EntityInstanceBatch* batch) const
@@ -239,12 +237,11 @@ public:
     virtual EntityInstanceBatch* AcquireBatch() const = 0;
 
 protected:
-    IDrawCallCollectionImpl(GpuBufferHolderBase* bufferHolder)
-        : m_bufferHolder(bufferHolder)
-    {
-    }
+    explicit IDrawCallCollectionImpl(GpuBufferHolderBase* bufferHolder);
 
     GpuBufferHolderBase* m_bufferHolder;
+    SizeType m_structSize;
+    SizeType m_structAlignment;
 };
 
 struct DrawCallCollection

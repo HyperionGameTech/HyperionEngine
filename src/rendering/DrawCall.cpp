@@ -308,6 +308,18 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 static TypeMap<UniquePtr<IDrawCallCollectionImpl>> s_drawCallCollectionImplMap = {};
 static Mutex s_drawCallCollectionImplMapMutex = {};
 
+IDrawCallCollectionImpl::IDrawCallCollectionImpl(GpuBufferHolderBase* bufferHolder)
+    : m_bufferHolder(bufferHolder)
+{
+    Assert(m_bufferHolder != nullptr);
+
+    const TypeInfo* structTypeInfo = m_bufferHolder->GetStructTypeInfo();
+    Assert(structTypeInfo != nullptr);
+
+    m_structSize = structTypeInfo->size;
+    m_structAlignment = structTypeInfo->alignment;
+}
+
 HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeId typeId)
 {
     Mutex::Guard guard(s_drawCallCollectionImplMapMutex);

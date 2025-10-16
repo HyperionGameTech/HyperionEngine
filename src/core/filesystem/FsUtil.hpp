@@ -20,13 +20,7 @@ class FilePath;
 
 class FileSystem
 {
-    static std::mutex s_mtx;
-    static Array<FilePath> s_filepaths;
-
 public:
-    HYP_DEPRECATED static void PushDirectory(const FilePath& path);
-    HYP_DEPRECATED static FilePath PopDirectory();
-
     static bool DirExists(const std::string& path);
     static int MkDir(const std::string& path);
     static std::string CurrentPath();

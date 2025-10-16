@@ -10,6 +10,8 @@
 
 namespace hyperion {
 
+using Script_Array = Array<HypData>;
+
 HYP_API const HypClass* g_clsScript_Array = nullptr;
 
 // clang-format off

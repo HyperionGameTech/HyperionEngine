@@ -29,41 +29,6 @@
 namespace hyperion {
 namespace filesystem {
 
-std::mutex FileSystem::s_mtx = std::mutex();
-Array<FilePath> FileSystem::s_filepaths = {};
-
-void FileSystem::PushDirectory(const FilePath& path)
-{
-    std::lock_guard guard(s_mtx);
-
-    s_filepaths.PushBack(FilePath::Current());
-
-#if defined(HYP_WINDOWS)
-    _chdir(path.Data());
-#elif defined(HYP_UNIX)
-    chdir(path.Data());
-#endif
-}
-
-FilePath FileSystem::PopDirectory()
-{
-    std::lock_guard guard(s_mtx);
-
-    HYP_CORE_ASSERT(s_filepaths.Any());
-
-    auto current = FilePath::Current();
-
-#if defined(HYP_WINDOWS)
-    _chdir(s_filepaths.Back().Data());
-#elif defined(HYP_UNIX)
-    chdir(s_filepaths.Back().Data());
-#endif
-
-    s_filepaths.PopBack();
-
-    return current;
-}
-
 bool FileSystem::DirExists(const std::string& path)
 {
     struct stat st;

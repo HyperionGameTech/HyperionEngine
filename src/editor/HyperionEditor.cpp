@@ -93,23 +93,22 @@ namespace editor {
 
 #pragma region HyperionEditor
 
-HYP_DISABLE_OPTIMIZATION;
 HyperionEditor::HyperionEditor()
     : Game()
 {
-    // debug
-    const TypeId typeId1 = TypeId::ForType<Array<HypData, DynamicAllocator>>();
-    HypData hd = HypData(Array<HypData, DynamicAllocator> {});
-    Assert(hd.Get<GenericArrayWrapper>().typeInfo->id == typeId1);
+    // // debug
+    // const TypeId typeId1 = TypeId::ForType<Array<HypData>>();
 
-    const TypeId typeId2 = TypeInfo_ForType<Array<HypData, DynamicAllocator>>().id;
-    Assert(typeId1 == typeId2);
+    // HypData hd = HypData(Array<HypData, DynamicAllocator> {});
+    // Assert(hd.Get<GenericArrayWrapper>().typeInfo->id == typeId1);
 
-    constexpr WeakName wn = "Array<HypData,DynamicAllocator>";
+    // const TypeId typeId2 = TypeInfo_ForType<Array<HypData, DynamicAllocator>>().id;
+    // Assert(typeId1 == typeId2);
 
-    HYP_BREAKPOINT;
+    // // constexpr WeakName wn = "Array<HypData,DynamicAllocator>";
+
+    // HYP_BREAKPOINT;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 HyperionEditor::~HyperionEditor()
 {

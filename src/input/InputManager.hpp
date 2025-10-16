@@ -48,6 +48,8 @@ class InputEventNotifier final : public Semaphore<int32, SemaphoreDirection::WAI
 {
 };
 
+using SystemEvents = Array<SystemEvent, DynamicAllocator>;
+
 class HYP_API InputEventSink
 {
 public:
@@ -59,11 +61,11 @@ public:
     ~InputEventSink();
 
     void Push(SystemEvent&& evt);
-    bool Poll(Array<SystemEvent>& outEvents);
+    bool Poll(SystemEvents& outEvents);
 
 private:
     InputEventNotifier m_notifier;
-    Array<SystemEvent, DynamicAllocator> m_events;
+    SystemEvents m_events;
     volatile int64 m_lockState;
 };
 

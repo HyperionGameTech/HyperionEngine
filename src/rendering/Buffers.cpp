@@ -8,6 +8,7 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
+#include <core/utilities/TypeInfo.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -108,6 +109,11 @@ struct StagingBufferPoolImpl
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
         newBuffer.buffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
+
+#ifdef HYP_DEBUG_MODE
+        newBuffer.buffer->SetDebugName(HYP_NAME("StagingBufferPoolTempBuffer"));
+#endif
+
         HYP_GFX_ASSERT(newBuffer.buffer->Create());
 
         auto insertResult = cachedBuffers[frameIndex].Insert(std::move(newBuffer));
@@ -166,11 +172,13 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
         initialCount = 1;
     }
 
-    AssertDebug(m_structSize > 0);
+    const SizeType structSize = TypeInfo_GetSize(*m_structTypeInfo);
+    AssertDebug(size == structSize, "Size does not match the expected size! Size = {}, Expected = {}", size, structSize);
 
-    const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, m_structSize);
+    const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
 
     m_gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, gpuBufferSize);
+    m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
     DeferCreate(m_gpuBuffer);
 }
 

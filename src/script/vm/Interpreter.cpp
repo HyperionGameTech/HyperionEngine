@@ -486,6 +486,8 @@
 
 namespace hyperion {
 
+using Script_Array = Array<HypData>;
+
 extern const char* LookupTypeName(TypeId typeId);
 
 using BCRegister = uint8;

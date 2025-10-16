@@ -485,7 +485,7 @@ public:
     HYP_NODISCARD String ReplaceAll(const String& search, const String& replace) const;
 
     template <class... SeparatorType>
-    HYP_NODISCARD Array<String> Split(SeparatorType... separators) const
+    HYP_NODISCARD auto Split(SeparatorType... separators) const
     {
         hyperion::FixedArray<WidestCharType, sizeof...(separators)> separatorValues { WidestCharType(separators)... };
 

@@ -47,7 +47,7 @@ void GameThread::SetGame(const Handle<Game>& game)
         GetScheduler().Enqueue([this, game = game, promise = future.Promise()]()
             {
                 m_game = game;
-                
+
                 Assert(m_game != nullptr);
 
                 InitObject(m_game);
@@ -72,7 +72,7 @@ void GameThread::operator()()
     InitObject(m_game);
 
     Queue<Scheduler::ScheduledTask> tasks;
-    Array<SystemEvent> events;
+    SystemEvents events;
 
     while (!m_stopRequested.Get(MemoryOrder::RELAXED))
     {
@@ -84,7 +84,7 @@ void GameThread::operator()()
 #endif
 
         HYP_PROFILE_BEGIN;
-        
+
         RenderApi_BeginFrame_GameThread();
 
         counter.NextTick();
@@ -107,7 +107,7 @@ void GameThread::operator()()
             for (SystemEvent& event : events)
             {
                 g_appContext->GetInputManager()->CheckEvent(&event);
-                
+
                 m_game->HandleEvent(std::move(event));
             }
 
