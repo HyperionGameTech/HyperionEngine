@@ -158,6 +158,37 @@ HYP_API extern void TypeInfo_Initialize();
 /*! \brief Free all allocated TypeInfo instances and clear the cache */
 HYP_API extern void TypeInfo_Shutdown();
 
+/*! \brief Iterator interface for traversing container elements
+ *  Provides a generic way to iterate over sets, maps, and other containers */
+class ITypeInfoIterator
+{
+public:
+    virtual ~ITypeInfoIterator() = default;
+
+    /*! \brief Check if there are more elements to iterate */
+    virtual bool HasNext() const = 0;
+
+    /*! \brief Advance to the next element
+     *  \return true if advanced successfully, false if at end */
+    virtual bool Next() = 0;
+
+    /*! \brief Get the current element value
+     *  For sets/arrays: returns the element
+     *  For maps: returns the value (use GetKey() for the key)
+     *  \return AnyRef to the current element, or empty AnyRef if invalid */
+    virtual AnyRef GetCurrent() const = 0;
+
+    /*! \brief Get the current key (for map iterators only)
+     *  \return AnyRef to the current key, or empty AnyRef if not a map iterator */
+    virtual AnyRef GetKey() const = 0;
+
+    /*! \brief Reset iterator to the beginning */
+    virtual void Reset() = 0;
+
+    /*! \brief Clone this iterator */
+    virtual ITypeInfoIterator* Clone() const = 0;
+};
+
 class ITypeInfoHandler
 {
 public:
@@ -167,6 +198,7 @@ public:
         TYPE_ARRAY,
         TYPE_LINKEDLIST,
         TYPE_MAP,
+        TYPE_SET,
         TYPE_STRING,
         TYPE_VECTOR,
         TYPE_MATRIX
@@ -245,6 +277,32 @@ public:
     virtual bool RemoveKey(const HypData& instance, const HypData& key) const = 0;
 
     virtual SizeType GetSize(const HypData& instance) const = 0;
+};
+
+class ITypeInfoSetHandler : public ITypeInfoHandler
+{
+public:
+    virtual ~ITypeInfoSetHandler() = default;
+
+    virtual ITypeInfoHandler* Clone() const override = 0;
+
+    virtual Type GetHandlerType() const override final
+    {
+        return TYPE_SET;
+    }
+
+    virtual bool CreateInstance(HypData& outInstance) const override = 0;
+
+    virtual bool Contains(const HypData& instance, const HypData& value) const = 0;
+    virtual bool Insert(const HypData& instance, const HypData& value) const = 0;
+    virtual bool Remove(const HypData& instance, const HypData& value) const = 0;
+
+    virtual SizeType GetSize(const HypData& instance) const = 0;
+
+    /*! \brief Create an iterator for the set
+     *  \param instance The set instance to iterate over
+     *  \return A new iterator (caller takes ownership and must delete) */
+    virtual ITypeInfoIterator* CreateIterator(const HypData& instance) const = 0;
 };
 
 class ITypeInfoStringHandler : public ITypeInfoHandler
@@ -725,17 +783,6 @@ struct TypeInfo
     HYP_FORCE_INLINE bool IsMatrixType() const
     {
         return flags & TypeInfoFlags::MATRIX_TYPE;
-    }
-
-    HYP_FORCE_INLINE bool IsContainerType() const
-    {
-        constexpr EnumFlags<TypeInfoFlags> Mask = TypeInfoFlags::ARRAY_TYPE
-            | TypeInfoFlags::STRING_TYPE
-            | TypeInfoFlags::LINKEDLIST_TYPE
-            | TypeInfoFlags::MAP_TYPE
-            | TypeInfoFlags::SET_TYPE;
-
-        return flags & Mask;
     }
 
     /*! \brief Get alternative type at index for Variant<Types...>
@@ -1422,18 +1469,227 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, HypDataType>::operator()(Typ
 template <class Value, class HypDataType>
 void TypeInfoImpl<containers::FlatSet<Value>, HypDataType>::operator()(TypeInfo& result) const
 {
+    using SetType = containers::FlatSet<Value>;
+
+    class FlatSetHandler final : public ITypeInfoSetHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new FlatSetHandler();
+        }
+
+        virtual bool CreateInstance(HypDataType& outInstance) const override
+        {
+            outInstance = HypDataType(SetType {});
+            return true;
+        }
+
+        virtual bool Contains(const HypDataType& instance, const HypDataType& value) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Contains(value.template Get<Value>());
+        }
+
+        virtual bool Insert(const HypDataType& instance, const HypDataType& value) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Insert(value.template Get<Value>()).second;
+        }
+
+        virtual bool Remove(const HypDataType& instance, const HypDataType& value) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Erase(value.template Get<Value>());
+        }
+
+        virtual SizeType GetSize(const HypDataType& instance) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Size();
+        }
+
+        virtual ITypeInfoIterator* CreateIterator(const HypDataType& instance) const override
+        {
+            class FlatSetIterator final : public ITypeInfoIterator
+            {
+                SetType* m_set;
+                typename SetType::Iterator m_current;
+                typename SetType::Iterator m_end;
+
+            public:
+                FlatSetIterator(SetType* set)
+                    : m_set(set),
+                      m_current(set->Begin()),
+                      m_end(set->End())
+                {
+                }
+
+                virtual ~FlatSetIterator() = default;
+
+                virtual bool HasNext() const override
+                {
+                    return m_current != m_end;
+                }
+
+                virtual bool Next() override
+                {
+                    if (m_current != m_end)
+                    {
+                        ++m_current;
+                        return true;
+                    }
+                    return false;
+                }
+
+                virtual AnyRef GetCurrent() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&(*m_current));
+                    }
+                    return AnyRef();
+                }
+
+                virtual AnyRef GetKey() const override
+                {
+                    // Sets don't have keys
+                    return AnyRef();
+                }
+
+                virtual void Reset() override
+                {
+                    m_current = m_set->Begin();
+                }
+
+                virtual ITypeInfoIterator* Clone() const override
+                {
+                    return new FlatSetIterator(m_set);
+                }
+            };
+
+            SetType& set = instance.template Get<SetType>();
+            return new FlatSetIterator(&set);
+        }
+    };
+
     result.flags |= TypeInfoFlags::SET_TYPE;
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+    result.extendedInfo.handler = new FlatSetHandler();
 }
 
 template <class Value, auto KeyBy, class NodeAllocatorType, class HypDataType>
 void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, HypDataType>::operator()(TypeInfo& result) const
 {
-    result.flags |= TypeInfoFlags::SET_TYPE;
+    using SetType = containers::HashSet<Value, KeyBy, NodeAllocatorType>;
 
+    class HashSetHandler final : public ITypeInfoSetHandler
+    {
+    public:
+        virtual ITypeInfoHandler* Clone() const override
+        {
+            return new HashSetHandler();
+        }
+
+        virtual bool CreateInstance(HypDataType& outInstance) const override
+        {
+            outInstance = HypDataType(SetType {});
+            return true;
+        }
+
+        virtual bool Contains(const HypDataType& instance, const HypDataType& value) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Contains(value.template Get<Value>());
+        }
+
+        virtual bool Insert(const HypDataType& instance, const HypDataType& value) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Insert(value.template Get<Value>()).second;
+        }
+
+        virtual bool Remove(const HypDataType& instance, const HypDataType& value) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Erase(value.template Get<Value>());
+        }
+
+        virtual SizeType GetSize(const HypDataType& instance) const override
+        {
+            SetType& set = instance.template Get<SetType>();
+            return set.Size();
+        }
+
+        virtual ITypeInfoIterator* CreateIterator(const HypDataType& instance) const override
+        {
+            class HashSetIterator final : public ITypeInfoIterator
+            {
+                SetType* m_set;
+                typename SetType::Iterator m_current;
+                typename SetType::Iterator m_end;
+
+            public:
+                HashSetIterator(SetType* set)
+                    : m_set(set),
+                      m_current(set->Begin()),
+                      m_end(set->End())
+                {
+                }
+
+                virtual ~HashSetIterator() = default;
+
+                virtual bool HasNext() const override
+                {
+                    return m_current != m_end;
+                }
+
+                virtual bool Next() override
+                {
+                    if (m_current != m_end)
+                    {
+                        ++m_current;
+                        return true;
+                    }
+                    return false;
+                }
+
+                virtual AnyRef GetCurrent() const override
+                {
+                    if (m_current != m_end)
+                    {
+                        return AnyRef(&(*m_current));
+                    }
+                    return AnyRef();
+                }
+
+                virtual AnyRef GetKey() const override
+                {
+                    // Sets don't have keys
+                    return AnyRef();
+                }
+
+                virtual void Reset() override
+                {
+                    m_current = m_set->Begin();
+                }
+
+                virtual ITypeInfoIterator* Clone() const override
+                {
+                    return new HashSetIterator(m_set);
+                }
+            };
+
+            SetType& set = instance.template Get<SetType>();
+            return new HashSetIterator(&set);
+        }
+    };
+
+    result.flags |= TypeInfoFlags::SET_TYPE;
     result.extendedInfo.data.typeInfo = &TypeInfo::ForType<Value>();
     result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+    result.extendedInfo.handler = new HashSetHandler();
 }
 
 template <class... Types, class HypDataType>
@@ -1848,11 +2104,13 @@ inline FixedArray<const TypeInfo*, sizeof...(Indices)> BuildVariantTypeArray(std
 } // namespace utilities
 
 using utilities::ITypeInfoHandler;
+using utilities::ITypeInfoIterator;
 
 using utilities::ITypeInfoArrayHandler;
 using utilities::ITypeInfoLinkedListHandler;
 using utilities::ITypeInfoMapHandler;
 using utilities::ITypeInfoMatrixHandler;
+using utilities::ITypeInfoSetHandler;
 using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVectorHandler;
 

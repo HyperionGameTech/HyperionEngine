@@ -96,18 +96,6 @@ namespace editor {
 HyperionEditor::HyperionEditor()
     : Game()
 {
-    // // debug
-    // const TypeId typeId1 = TypeId::ForType<Array<HypData>>();
-
-    // HypData hd = HypData(Array<HypData, DynamicAllocator> {});
-    // Assert(hd.Get<GenericArrayWrapper>().typeInfo->id == typeId1);
-
-    // const TypeId typeId2 = TypeInfo_ForType<Array<HypData, DynamicAllocator>>().id;
-    // Assert(typeId1 == typeId2);
-
-    // // constexpr WeakName wn = "Array<HypData,DynamicAllocator>";
-
-    // HYP_BREAKPOINT;
 }
 
 HyperionEditor::~HyperionEditor()

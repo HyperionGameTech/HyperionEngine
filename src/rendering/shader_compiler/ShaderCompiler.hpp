@@ -21,32 +21,43 @@
 
 namespace hyperion {
 
-using ShaderPropertyFlags = uint32;
-
-enum ShaderPropertyFlagBits : ShaderPropertyFlags
+HYP_ENUM()
+enum ShaderPropertyFlags : uint32
 {
-    SHADER_PROPERTY_FLAG_NONE = 0x0,
-    SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE = 0x1
+    SPF_NONE = 0x0,
+    SPF_VERTEX_ATTRIBUTE = 0x1
 };
 
-enum class ShaderLanguage
+HYP_ENUM()
+enum class ShaderLanguage : uint32
 {
     GLSL,
     HLSL
 };
 
-enum class ProcessShaderSourcePhase
+HYP_ENUM()
+enum class ProcessShaderSourcePhase : uint32
 {
     BEFORE_PREPROCESS,
     AFTER_PREPROCESS
 };
 
+HYP_STRUCT()
 struct VertexAttributeDefinition
 {
+    HYP_STRUCT_BODY(VertexAttributeDefinition);
+
+    HYP_FIELD()
     String name;
+    
+    HYP_FIELD()
     String typeClass;
+    
+    HYP_FIELD()
     int location = -1;
-    Optional<String> condition;
+    
+    HYP_FIELD()
+    String condition;
 };
 
 HYP_STRUCT()
@@ -73,20 +84,20 @@ struct ShaderProperty
 
     ShaderProperty()
         : isPermutation(false),
-          flags(SHADER_PROPERTY_FLAG_NONE)
+          flags(SPF_NONE)
     {
     }
 
-    ShaderProperty(Name name) = delete;
+    explicit ShaderProperty(Name name) = delete;
 
-    ShaderProperty(Name name, bool isPermutation, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
+    ShaderProperty(Name name, bool isPermutation, ShaderPropertyFlags flags = SPF_NONE)
         : name(name),
           isPermutation(isPermutation),
           flags(flags)
     {
     }
 
-    ShaderProperty(Name name, bool isPermutation, const Value& currentValue, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
+    ShaderProperty(Name name, bool isPermutation, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
         : name(name),
           isPermutation(isPermutation),
           flags(flags),
@@ -97,7 +108,7 @@ struct ShaderProperty
     explicit ShaderProperty(VertexAttribute::Type vertexAttribute)
         : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + VertexAttribute::mapping.Get(vertexAttribute).name)),
           isPermutation(false),
-          flags(SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE),
+          flags(SPF_VERTEX_ATTRIBUTE),
           currentValue(Value(String(VertexAttribute::mapping.Get(vertexAttribute).name)))
     {
     }
@@ -136,7 +147,7 @@ struct ShaderProperty
     {
         other.name = Name();
         other.isPermutation = false;
-        other.flags = SHADER_PROPERTY_FLAG_NONE;
+        other.flags = SPF_NONE;
     }
 
     ShaderProperty& operator=(ShaderProperty&& other) noexcept
@@ -153,7 +164,7 @@ struct ShaderProperty
 
         other.name = Name();
         other.isPermutation = false;
-        other.flags = SHADER_PROPERTY_FLAG_NONE;
+        other.flags = SPF_NONE;
 
         return *this;
     }
@@ -215,7 +226,7 @@ struct ShaderProperty
 
     HYP_FORCE_INLINE bool IsVertexAttribute() const
     {
-        return flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE;
+        return flags & SPF_VERTEX_ATTRIBUTE;
     }
 
     HYP_FORCE_INLINE bool IsOptionalVertexAttribute() const
@@ -301,8 +312,10 @@ public:
 
     ShaderProperties(const ShaderProperties& other) = default;
     ShaderProperties& operator=(const ShaderProperties& other) = default;
+
     ShaderProperties(ShaderProperties&& other) noexcept = default;
     ShaderProperties& operator=(ShaderProperties&& other) = default;
+
     ~ShaderProperties() = default;
 
     // HYP_FORCE_INLINE bool operator==(const ShaderProperties& other) const
@@ -530,9 +543,13 @@ private:
         return *this;
     }
 
+    HYP_FIELD()
     HashSet<ShaderProperty> m_props;
-
+    
+    HYP_FIELD()
     VertexAttributeSet m_requiredVertexAttributes;
+    
+    HYP_FIELD()
     VertexAttributeSet m_optionalVertexAttributes;
 
     mutable HashCode m_cachedHashCode;
@@ -540,10 +557,18 @@ private:
     mutable bool m_needsHashCodeRecalculation;
 };
 
+HYP_STRUCT()
 struct HashedShaderDefinition
 {
+    HYP_STRUCT_BODY(HashedShaderDefinition);
+
+    HYP_FIELD()
     Name name;
+
+    HYP_FIELD()
     HashCode propertySetHash;
+    
+    HYP_FIELD()
     VertexAttributeSet requiredVertexAttributes;
 
     HYP_FORCE_INLINE bool operator==(const HashedShaderDefinition& other) const

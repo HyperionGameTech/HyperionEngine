@@ -484,14 +484,13 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
         SetEntityManager(m_scene->GetEntityManager());
     }
 
-    EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr);
+    AssertDebug(m_entityManager != nullptr);
 
     for (const HypData& componentData : components)
     {
         const TypeInfo& componentTypeInfo = *componentData.GetTypeInfo();
 
-        if (!entityManager->IsValidComponentType(componentTypeInfo.id))
+        if (!m_entityManager->IsValidComponentType(componentTypeInfo.id))
         {
             HYP_LOG(Serialization, Warning, "{} is not a valid component type", componentTypeInfo.name);
 
@@ -529,7 +528,7 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
                 continue;
             }
 
-            if (!entityManager->IsEntityTagComponent(componentInterface->GetTypeInfo().id))
+            if (!m_entityManager->IsEntityTagComponent(componentInterface->GetTypeInfo().id))
             {
                 HYP_LOG(Serialization, Warning, "Component {} is not an entity tag component", componentInterface->GetTypeInfo().name);
 
@@ -540,23 +539,23 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
             switch (*entityTagOpt)
             {
             case EntityTag::STATIC:
-                entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+                m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
                 break;
             case EntityTag::DYNAMIC:
-                entityManager->RemoveTag<EntityTag::STATIC>(this);
+                m_entityManager->RemoveTag<EntityTag::STATIC>(this);
                 break;
             default:
                 break;
             }
 
-            entityManager->AddTag(this, *entityTagOpt);
+            m_entityManager->AddTag(this, *entityTagOpt);
 
             continue;
         }
 
         HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", componentTypeInfo.name);
 
-        if (entityManager->HasComponent(componentTypeInfo.id, this))
+        if (m_entityManager->HasComponent(componentTypeInfo.id, this))
         {
             HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentTypeInfo.name);
 
@@ -568,7 +567,7 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
             InstanceClass()->GetName(),
             Id());
 
-        entityManager->AddComponent(this, componentData);
+        m_entityManager->AddComponent(this, componentData);
     }
 }
 

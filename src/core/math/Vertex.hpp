@@ -71,12 +71,12 @@ struct VertexAttribute
 /*! \brief Represents a set of vertex attributes used in mesh input.
  *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
  *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
-HYP_STRUCT()
+HYP_STRUCT(Serialize = "bitwise")
 struct VertexAttributeSet
 {
     HYP_STRUCT_BODY(VertexAttributeSet);
 
-    HYP_FIELD(Property = "FlagMask", Serialize = true)
+    HYP_FIELD()
     uint64 flagMask;
 
     constexpr VertexAttributeSet()

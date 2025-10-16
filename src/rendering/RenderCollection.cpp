@@ -107,6 +107,8 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyM
         attributes.SetMaterialAttributes(newMaterialAttributes);
     }
 
+    AssertDebug(attributes.GetMeshAttributes().vertexAttributes != 0);
+
     return attributes;
 }
 
@@ -1010,6 +1012,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             RenderableAttributeSet newAttributes = GetRenderableAttributesForProxy(*meshProxy, overrideAttributes);
             UpdateRenderableAttributesDynamic(meshProxy, newAttributes);
+
+            AssertDebug(newAttributes.GetMeshAttributes().vertexAttributes != 0);
 
             if (newAttributes == *cachedAttributes)
             {

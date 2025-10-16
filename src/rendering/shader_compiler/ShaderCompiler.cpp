@@ -1931,12 +1931,11 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     {
                         result.processedSource += "#if defined(" + attributeCondition.Get() + ") && " + attributeCondition.Get() + "\n";
 
-                        attributeDefinition.condition = attributeCondition;
+                        attributeDefinition.condition = *attributeCondition;
                     }
                     else
                     {
-                        result.processedSource +=
-                            "#ifdef HYP_ATTRIBUTE_" + attributeDefinition.name + "\n";
+                        result.processedSource += "#ifdef HYP_ATTRIBUTE_" + attributeDefinition.name + "\n";
                     }
                 }
                 else
@@ -2608,8 +2607,7 @@ CompiledShader ShaderCompiler::GetCompiledShader(Name name)
     return GetCompiledShader(name, properties);
 }
 
-CompiledShader
-ShaderCompiler::GetCompiledShader(Name name,
+CompiledShader ShaderCompiler::GetCompiledShader(Name name,
     const ShaderProperties& properties)
 {
     CompiledShader compiledShader;

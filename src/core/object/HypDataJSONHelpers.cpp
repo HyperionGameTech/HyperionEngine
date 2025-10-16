@@ -258,6 +258,64 @@ bool HypDataToJSON(
         return true;
     }
 
+    if (typeInfo.IsSetType())
+    {
+        Assert(typeInfo.extendedInfo.handler && typeInfo.extendedInfo.handler->GetHandlerType() == ITypeInfoHandler::TYPE_SET);
+
+        ITypeInfoSetHandler* handler = static_cast<ITypeInfoSetHandler*>(typeInfo.extendedInfo.handler);
+
+        const SizeType size = handler->GetSize(value);
+
+        json::JSONArray jsonArray;
+        jsonArray.Reserve(size);
+
+        // Use iterator to traverse set elements
+        ITypeInfoIterator* iterator = handler->CreateIterator(value);
+        HYP_DEFER({ delete iterator; });
+
+        if (!iterator)
+        {
+            HYP_LOG(Core, Warning, "Failed to create iterator for set of type {}", typeInfo.name);
+            return false;
+        }
+
+        while (iterator->HasNext())
+        {
+            AnyRef element = iterator->GetCurrent();
+
+            if (!element.HasValue())
+            {
+                HYP_LOG(Core, Warning, "Failed to get current element from set iterator of type {}", typeInfo.name);
+                iterator->Next();
+                continue;
+            }
+
+            ToJSONOptions newOpts = opts;
+            newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
+
+            HypData elementData(element);
+
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetHypClass() != elementData.GetTypeInfo()->GetHypClass())
+            {
+                newOpts.writeClassNames = true;
+            }
+
+            json::JSONValue jsonValue;
+            if (!HypDataToJSON(elementData, jsonValue, newOpts))
+            {
+                return false;
+            }
+
+            jsonArray.PushBack(std::move(jsonValue));
+
+            iterator->Next();
+        }
+
+        outJson = std::move(jsonArray);
+
+        return true;
+    }
+
     if (typeInfo.IsEnum() || typeInfo.IsEnumFlags())
     {
         const TypeInfo* underlyingTypeInfo = typeInfo.GetUnderlyingType();
@@ -416,6 +474,13 @@ bool ObjectToJSON(
             if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
+            }
+
+            // temp
+            if (member.GetName() == "Props")
+            {
+                Assert(member.GetTypeInfo().IsSetType());
+                HYP_BREAKPOINT;
             }
 
             if (usedMembers.Contains(member.GetName()))
@@ -1217,6 +1282,64 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
         }
 
         outHypData = std::move(arrayInstance);
+
+        return true;
+    }
+
+    if (typeInfo.IsSetType())
+    {
+        if (!jsonValue.IsArray())
+        {
+            HYP_LOG(Core, Warning, "Expected JSON array for set type {}, but got JSON value: {}", typeInfo.name, jsonValue.ToString());
+
+            return false;
+        }
+
+        const json::JSONArray& jsonArray = jsonValue.AsArray();
+
+        const TypeInfo* elementTypeInfo = typeInfo.extendedInfo.GetElementType();
+
+        if (!elementTypeInfo)
+        {
+            HYP_LOG(Core, Warning, "Set type {} does not have a valid element type", typeInfo.name);
+
+            return false;
+        }
+
+        ITypeInfoHandler* handler = typeInfo.extendedInfo.handler;
+        Assert(handler && handler->GetHandlerType() == ITypeInfoHandler::TYPE_SET);
+
+        ITypeInfoSetHandler* setHandler = static_cast<ITypeInfoSetHandler*>(handler);
+
+        HypData setInstance;
+        if (!setHandler->CreateInstance(setInstance))
+        {
+            HYP_LOG(Core, Warning, "Failed to create instance of set type {}", typeInfo.name);
+
+            return false;
+        }
+
+        for (SizeType i = 0; i < jsonArray.Size(); i++)
+        {
+            HypData elementData;
+
+            if (!JSONToHypData(jsonArray[i], *elementTypeInfo, elementData))
+            {
+                HYP_LOG(Core, Warning, "Failed to deserialize set element at index {} for type: {}", i, typeInfo.name);
+
+                return false;
+            }
+
+            if (!setHandler->Insert(setInstance, elementData))
+            {
+                HYP_LOG(Core, Warning, "Failed to insert set element at index {} for type: {} (may be duplicate)", i, typeInfo.name);
+
+                // Continue anyway - duplicates are expected behavior for sets
+                continue;
+            }
+        }
+
+        outHypData = std::move(setInstance);
 
         return true;
     }
