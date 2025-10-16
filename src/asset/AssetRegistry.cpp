@@ -1035,6 +1035,28 @@ void AssetPackage::AddDependency(const AssetPath& dependency)
             return;
         }
 
+        // Check for circular dependency
+        Handle<AssetRegistry> registry = m_registry.Lock();
+        if (registry.IsValid())
+        {
+            Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(dependency.ToString(), /* createIfNotExist */ false);
+
+            if (dependencyPackage.IsValid())
+            {
+                // Check if the dependency package depends on us (circular dependency)
+                const AssetPath thisPath = AssetPath(BuildPackagePath());
+
+                for (const AssetPath& subDependency : dependencyPackage->m_dependencies)
+                {
+                    if (subDependency == thisPath)
+                    {
+                        HYP_LOG(Assets, Warning, "Circular dependency detected: Package '{}' and '{}' depend on each other. Skipping dependency.", thisPath.ToString(), dependency.ToString());
+                        return;
+                    }
+                }
+            }
+        }
+
         if (!m_dependencies.Contains(dependency))
         {
             m_dependencies.PushBack(dependency);
@@ -1072,6 +1094,8 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
 
         const AssetPath thisPackagePath = AssetPath(BuildPackagePath());
 
+        Handle<AssetRegistry> registry = m_registry.Lock();
+
         for (const String& path : relativePaths)
         {
             HYP_LOG_TEMP("Setting dependency for package '{}': {}", thisPackagePath, path);
@@ -1082,7 +1106,32 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
 
             if (dependencyPath.chain && dependencyPath.chain[0] != Name::Invalid() && dependencyPath != thisPackagePath)
             {
-                m_dependencies.PushBack(dependencyPath);
+                // Check for circular dependency
+                bool isCircular = false;
+
+                if (registry.IsValid())
+                {
+                    Handle<AssetPackage> dependencyPackage = registry->GetPackageFromPath(dependencyPath.ToString(), /* createIfNotExist */ false);
+
+                    if (dependencyPackage.IsValid())
+                    {
+                        // Check if the dependency package depends on us (circular dependency)
+                        for (const AssetPath& depOfDep : dependencyPackage->m_dependencies)
+                        {
+                            if (depOfDep == thisPackagePath)
+                            {
+                                HYP_LOG(Assets, Warning, "Circular dependency detected: Package '{}' and '{}' depend on each other. Skipping dependency.", thisPackagePath.ToString(), dependencyPath.ToString());
+                                isCircular = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!isCircular)
+                {
+                    m_dependencies.PushBack(dependencyPath);
+                }
             }
         }
     }
@@ -1708,7 +1757,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
             {
                 saveOutputDir = parentPackage->m_packageDir;
             }
-                
+
             parentPackage->m_subpackages.Insert(subpackage);
             parentPackage->OnSubpackageAdded(subpackage);
 
@@ -2101,7 +2150,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
                 {
                     Mutex::Guard guard(parentPackage->m_mutex);
-                    
+
                     InitObject(outPackage);
 
                     parentPackage->m_subpackages.Insert(outPackage);
@@ -2237,6 +2286,7 @@ Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Hand
     return future;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void AssetRegistry::RegisterAssetsRecursively(
     const UTF8StringView& packagePath,
     const HypData& target,
@@ -2395,9 +2445,15 @@ void AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
-            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
+            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 // skip non-property members if they have the 'property' attribute (synthetic property)
+                continue;
+            }
+
+            if (member.GetAttribute(Attributes::g_attrTransient).GetBool()
+                || !member.GetAttribute(Attributes::g_attrSerialize).GetBool(true))
+            {
                 continue;
             }
 
@@ -2426,6 +2482,13 @@ void AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
+            const HypClass* memberClass = memberData.GetTypeInfo()->GetHypClass();
+            if (memberClass != nullptr && !memberClass->GetAttribute(Attributes::g_attrSerialize).GetBool(true))
+            {
+                // skip members with Serialize=false on class
+                continue;
+            }
+
             iterate(parentPackage, memberData);
         }
 
@@ -2446,6 +2509,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     iterate(rootPackage, target);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 Handle<AssetObject> AssetRegistry::GetAssetFromPath(const UTF8StringView& path) const
 {

@@ -25,7 +25,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Console, Core);
 
 static ANSIStringView ConsoleCommand_KeyByFunction(const Handle<ConsoleCommandBase>& command)
 {
-    return command->InstanceClass()->GetAttribute("command").GetString().Data();
+    return command->InstanceClass()->GetAttribute(Attributes::g_attrCommand).GetString().Data();
 }
 
 class ConsoleCommandManagerImpl
@@ -128,7 +128,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
 
     for (const Handle<ConsoleCommandBase>& command : commands)
     {
-        if (!command->InstanceClass()->GetAttribute("command"))
+        if (!command->InstanceClass()->GetAttribute(Attributes::g_attrCommand))
         {
             HYP_LOG(Console, Error, "Command must have a `command` attribute");
 
@@ -138,7 +138,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
         command->m_definitions = command->GetDefinitions_Internal();
 
         HYP_LOG(Console, Info, "Registering command: {}\tClass: {}",
-            command->InstanceClass()->GetAttribute("command").GetString(),
+            command->InstanceClass()->GetAttribute(Attributes::g_attrCommand).GetString(),
             command->InstanceClass()->GetName());
 
         m_impl->m_commands.Set(std::move(command));
@@ -156,7 +156,7 @@ void ConsoleCommandManager::RegisterCommand(const Handle<ConsoleCommandBase>& co
         return;
     }
 
-    if (!command->InstanceClass()->GetAttribute("command"))
+    if (!command->InstanceClass()->GetAttribute(Attributes::g_attrCommand))
     {
         HYP_LOG(Console, Error, "Command must have a `command` attribute");
 

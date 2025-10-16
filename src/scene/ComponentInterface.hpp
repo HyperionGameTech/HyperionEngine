@@ -49,6 +49,10 @@ enum class ComponentInterfaceFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
 
+namespace Attributes {
+HYP_API extern const Name g_attrSerialize;
+} // namespace Attributes
+
 class HYP_API IComponentInterface
 {
 public:
@@ -128,7 +132,7 @@ public:
 
     virtual bool GetShouldSerialize() const override
     {
-        return ShouldSerialize && GetClass() && GetClass()->GetAttribute("serialize") != false;
+        return ShouldSerialize && GetClass() && GetClass()->GetAttribute(Attributes::g_attrSerialize) != false;
     }
 
     virtual bool IsEntityTag() const override

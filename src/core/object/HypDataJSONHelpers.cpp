@@ -401,13 +401,13 @@ bool ObjectToJSON(
         {
             if (opts.skipTransientProperties)
             {
-                if (const HypClassAttributeValue& attribute = member.GetAttribute("transient"); attribute.IsValid() && attribute.GetBool())
+                if (const HypClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrTransient); attribute.IsValid() && attribute.GetBool())
                 {
                     continue;
                 }
             }
 
-            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
+            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 //  skip fields that are marked as properties otherwise they will be serialized twice
                 continue;
@@ -685,7 +685,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
                 continue;
             }
 
-            if (member->GetMemberType() != HypMemberType::TYPE_PROPERTY && member->GetAttribute("property").IsValid())
+            if (member->GetMemberType() != HypMemberType::TYPE_PROPERTY && member->GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 //  skip fields that are marked as properties
                 continue;

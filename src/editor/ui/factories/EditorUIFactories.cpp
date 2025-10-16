@@ -169,7 +169,7 @@ public:
         {
             if (HypProperty* property = dynamic_cast<HypProperty*>(&*it))
             {
-                if (!property->GetAttribute("editor"))
+                if (!property->GetAttribute(Attributes::g_attrEditor))
                 {
                     continue;
                 }

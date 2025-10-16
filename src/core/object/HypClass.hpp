@@ -98,9 +98,9 @@ HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 template <class T, class U>
 static inline int GetSubclassIndex()
 {
-    static const int idx = GetSubclassIndex(TypeId::ForType<T>(), TypeId::ForType<U>());
+    static const int s_subclassIndex = GetSubclassIndex(TypeId::ForType<T>(), TypeId::ForType<U>());
 
-    return idx;
+    return s_subclassIndex;
 }
 
 template <class T>
@@ -971,5 +971,22 @@ protected:
 
     volatile int32 m_refCount;
 };
+
+// Shared global attributes
+namespace Attributes {
+
+HYP_API extern const Name g_attrSerialize;
+HYP_API extern const Name g_attrTransient;
+HYP_API extern const Name g_attrComponent;
+HYP_API extern const Name g_attrSize;
+HYP_API extern const Name g_attrNoScriptBindings;
+HYP_API extern const Name g_attrCommand;
+HYP_API extern const Name g_attrAbstract;
+HYP_API extern const Name g_attrDescription;
+HYP_API extern const Name g_attrCompressed;
+HYP_API extern const Name g_attrEditor;
+HYP_API extern const Name g_attrProperty;
+
+} // namespace Attributes
 
 } // namespace hyperion

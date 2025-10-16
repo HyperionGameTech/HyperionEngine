@@ -3,6 +3,7 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/Array.hpp>
 
+#include <core/object/HypData.hpp>
 #include <core/object/HypClassUtils.hpp>
 #include <core/object/HypClassRegistry.hpp>
 
@@ -10,7 +11,7 @@
 
 namespace hyperion {
 
-using Script_Array = Array<HypData>;
+using Script_Array = Array<HypData, DynamicAllocator>;
 
 HYP_API const HypClass* g_clsScript_Array = nullptr;
 

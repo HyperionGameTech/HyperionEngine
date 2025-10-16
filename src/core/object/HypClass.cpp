@@ -30,11 +30,28 @@
 
 #endif
 
+#include <core/containers/ArrayMap.hpp>
+
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 
 namespace hyperion {
+namespace Attributes {
+
+HYP_API const Name g_attrSerialize = NAME("serialize");
+HYP_API const Name g_attrTransient = NAME("transient");
+HYP_API const Name g_attrComponent = NAME("component");
+HYP_API const Name g_attrSize = NAME("size");
+HYP_API const Name g_attrNoScriptBindings = NAME("noscriptbindings");
+HYP_API const Name g_attrCommand = NAME("command");
+HYP_API const Name g_attrAbstract = NAME("abstract");
+HYP_API const Name g_attrDescription = NAME("description");
+HYP_API const Name g_attrCompressed = NAME("compressed");
+HYP_API const Name g_attrEditor = NAME("editor");
+HYP_API const Name g_attrProperty = NAME("property");
+
+} // namespace Attributes
 
 #pragma region Helpers
 
@@ -193,7 +210,7 @@ HypProperty* MakeHypProperty(const HypField* field)
 
     Name propertyName;
 
-    if (const HypClassAttributeValue& attr = field->GetAttribute("property"); attr.IsString())
+    if (const HypClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty); attr.IsString())
     {
         propertyName = CreateNameFromDynamicString(attr.GetString());
     }
@@ -255,7 +272,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
     if (hasGetter)
     {
-        if (const HypClassAttributeValue& attr = getter->GetAttribute("property"))
+        if (const HypClassAttributeValue& attr = getter->GetAttribute(Attributes::g_attrProperty))
         {
             propertyAttributeOpt = attr.GetString();
         }
@@ -270,7 +287,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     {
         if (!propertyAttributeOpt)
         {
-            if (const HypClassAttributeValue& attr = field->GetAttribute("property"))
+            if (const HypClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty))
             {
                 propertyAttributeOpt = attr.GetString();
             }
@@ -302,7 +319,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     {
         if (!propertyAttributeOpt)
         {
-            if (const HypClassAttributeValue& attr = setter->GetAttribute("property"))
+            if (const HypClassAttributeValue& attr = setter->GetAttribute(Attributes::g_attrProperty))
             {
                 propertyAttributeOpt = attr.GetString();
             }
@@ -650,9 +667,11 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
     m_enginePoolName = (EnginePoolName)0;
 #endif
 
-    static const HashMap<Name, HypClassFlags> s_attributeToFlags = {
-        { NAME("abstract"), HypClassFlags::ABSTRACT },
-        { NAME("noscriptbindings"), HypClassFlags::NO_SCRIPT_BINDINGS }
+    // @NOTE: Can't reliably use the Attributes namespace values, as they might noe be
+    // initialized yet by the time this constructor is called (static init order fiasco)
+    static const ArrayMap<WeakName, HypClassFlags> s_attributeToFlags = {
+        { "abstract", HypClassFlags::ABSTRACT },
+        { "noscriptbindings", HypClassFlags::NO_SCRIPT_BINDINGS }
     };
 
     // Apply flags for all values in s_attributeToFlags
@@ -773,7 +792,7 @@ void HypClass::Initialize()
     }
 #endif
 
-    if (const HypClassAttributeValue& serializeAttribute = GetAttribute("serialize"))
+    if (const HypClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize))
     {
         if (serializeAttribute.IsString())
         {
@@ -832,7 +851,7 @@ void HypClass::Initialize()
 
     for (IHypMember& member : GetMembers(/* includeProperties */ false, /* deep */ false))
     {
-        if (const HypClassAttributeValue& attr = member.GetAttribute("property"))
+        if (const HypClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrProperty))
         {
             const String& attrString = attr.GetString();
 

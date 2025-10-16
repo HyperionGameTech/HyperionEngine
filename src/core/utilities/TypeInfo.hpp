@@ -610,6 +610,12 @@ struct TypeInfo
 
             DebugLog(LogType::Debug, "Registered type info: %s : %u\n", pTypeInfo->name.LookupString(), pTypeInfo->id.Value());
 
+            if (!Memory::StrCmp(pTypeInfo->name.LookupString(), "Array<HypData>"))
+            {
+                // debug breakpoint
+                HYP_BREAKPOINT;
+            }
+
             guardStorage.GetPointer()->~Guard();
 
             return *pTypeInfo;

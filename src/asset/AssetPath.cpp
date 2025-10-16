@@ -46,7 +46,24 @@ AssetPath::AssetPath(const UTF8StringView& path)
         {
             if (index != 0)
             {
-                names.PushBack(CreateNameFromDynamicString(substr.Substr(0, index)));
+                UTF8StringView segment = substr.Substr(0, index);
+
+                // Normalize the path by handling ".." and "." segments
+                if (segment == "..")
+                {
+                    if (names.Any())
+                    {
+                        names.PopBack();
+                    }
+                    else
+                    {
+                        HYP_LOG(Assets, Warning, "Attempted to navigate above root when parsing asset path '{}'", path);
+                    }
+                }
+                else if (segment != ".")
+                {
+                    names.PushBack(CreateNameFromDynamicString(segment));
+                }
             }
 
             substr = substr.Substr(index + 1, SizeType(-1));
@@ -56,7 +73,22 @@ AssetPath::AssetPath(const UTF8StringView& path)
 
     if (substr.Size() > 0)
     {
-        names.PushBack(CreateNameFromDynamicString(substr));
+        // Handle the last segment
+        if (substr == "..")
+        {
+            if (names.Any())
+            {
+                names.PopBack();
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "Attempted to navigate above root when parsing asset path '{}'", path);
+            }
+        }
+        else if (substr != ".")
+        {
+            names.PushBack(CreateNameFromDynamicString(substr));
+        }
     }
 
     if (names.Empty())
@@ -129,9 +161,12 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
     Array<Name> fromChain = from.GetChain();
     Array<Name> toChain = to.GetChain();
 
+    HYP_LOG(Assets, Debug, "MakeRelativePath: from='{}' to='{}'", from.ToString(), to.ToString());
+
+    // Find common prefix length
     const SizeType minSize = MathUtil::Min(fromChain.Size(), toChain.Size());
 
-    SizeType len = 0;
+    SizeType commonPrefixLen = 0;
 
     for (SizeType i = 0; i < minSize; i++)
     {
@@ -140,13 +175,40 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
             break;
         }
 
-        len++;
+        commonPrefixLen++;
+    }
+
+    // If the paths are identical, return "."
+    if (commonPrefixLen == fromChain.Size() && commonPrefixLen == toChain.Size())
+    {
+        return String(".");
+    }
+
+    // If 'to' is a direct child/descendant of 'from', just return the relative portion
+    if (commonPrefixLen == fromChain.Size())
+    {
+        String result;
+
+        for (SizeType i = commonPrefixLen; i < toChain.Size(); i++)
+        {
+            if (result.Length() > 0)
+            {
+                result.Append('/');
+            }
+
+            result.Append(*toChain[i]);
+        }
+
+        return result;
     }
 
     String result;
 
-    // add ".." for each remaining element in from_chain
-    for (SizeType i = len; i < fromChain.Size(); i++)
+    // Add ".." for each segment we need to go up from 'from' to reach the common ancestor
+    // We need to go up (fromChain.Size() - commonPrefixLen) levels
+    const SizeType levelsUp = fromChain.Size() - commonPrefixLen;
+
+    for (SizeType i = 0; i < levelsUp; i++)
     {
         if (result.Length() > 0)
         {
@@ -156,8 +218,8 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
         result.Append("..");
     }
 
-    // add remaining elements in to_chain
-    for (SizeType i = len; i < toChain.Size(); i++)
+    // Add remaining elements from 'to' path after the common prefix
+    for (SizeType i = commonPrefixLen; i < toChain.Size(); i++)
     {
         if (result.Length() > 0)
         {
@@ -167,12 +229,16 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
         result.Append(*toChain[i]);
     }
 
+    HYP_LOG(Assets, Debug, "MakeRelativePath result: '{}'", result);
+
     return result;
 }
 
 AssetPath AssetPath::FromRelativePath(const AssetPath& from, const String& relativePath)
 {
     HYP_SCOPE;
+
+    HYP_LOG(Assets, Debug, "FromRelativePath: from='{}' relativePath='{}'", from.ToString(), relativePath);
 
     if (!from.IsValid() || relativePath.Empty())
     {
@@ -236,7 +302,11 @@ AssetPath AssetPath::FromRelativePath(const AssetPath& from, const String& relat
         }
     }
 
-    return AssetPath(resultChain);
+    AssetPath result(resultChain);
+
+    HYP_LOG(Assets, Debug, "FromRelativePath result: '{}'", result.ToString());
+
+    return result;
 }
 
 String AssetPath::ToString() const

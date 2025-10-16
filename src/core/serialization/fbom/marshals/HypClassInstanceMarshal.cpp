@@ -46,7 +46,7 @@ static void CollectAssetReferenceMembers(
 
     for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD))
     {
-        if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
+        if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
         {
             // skip fields with synthetic properties
             continue;
@@ -165,7 +165,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
     assetReference = AssetReference();
 #endif
 
-    const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute("serialize");
+    const HypClassAttributeValue& serializeAttribute = hypClass->GetAttribute(Attributes::g_attrSerialize);
 
     if (!serializeAttribute.GetBool(true))
     {
@@ -230,13 +230,13 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
                 continue;
             }
 
-            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute("property").IsValid())
+            if (member.GetMemberType() != HypMemberType::TYPE_PROPERTY && member.GetAttribute(Attributes::g_attrProperty).IsValid())
             {
                 // skip fields with synthetic properties (we'll serialize the property instead)
                 continue;
             }
 
-            if (!member.GetAttribute("serialize").GetBool(true) || member.GetAttribute("transient").GetBool(false))
+            if (!member.GetAttribute(Attributes::g_attrSerialize).GetBool(true) || member.GetAttribute(Attributes::g_attrTransient).GetBool(false))
             {
                 continue;
             }
@@ -259,7 +259,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
                 continue;
             }
 
-            if (member.GetAttribute("compressed").GetBool())
+            if (member.GetAttribute(Attributes::g_attrCompressed).GetBool())
             {
                 flags |= FBOMDataFlags::COMPRESSED;
             }
@@ -352,7 +352,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     continue;
                 }
 
-                if (!pMember->GetAttribute("serialize").GetBool(true) || pMember->GetAttribute("transient").GetBool(false))
+                if (!pMember->GetAttribute(Attributes::g_attrSerialize).GetBool(true) || pMember->GetAttribute(Attributes::g_attrTransient).GetBool(false))
                 {
                     continue;
                 }

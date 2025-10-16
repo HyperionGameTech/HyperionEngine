@@ -486,7 +486,7 @@
 
 namespace hyperion {
 
-using Script_Array = Array<HypData>;
+using Script_Array = Array<HypData, DynamicAllocator>;
 
 extern const char* LookupTypeName(TypeId typeId);
 

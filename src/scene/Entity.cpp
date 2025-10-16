@@ -477,20 +477,15 @@ void Entity::DeserializeComponents(const Array<HypData, DynamicAllocator>& compo
 {
     HYP_SCOPE;
 
-    if (!m_scene)
+    AssertDebug(m_scene != nullptr);
+
+    if (!m_entityManager)
     {
-        SetScene(GetDetachedSceneForCurrentThread());
+        SetEntityManager(m_scene->GetEntityManager());
     }
 
     EntityManager* entityManager = GetEntityManager();
     AssertDebug(entityManager != nullptr);
-
-    if (!entityManager)
-    {
-        HYP_LOG(Serialization, Error, "EntityManager is null while deserializing components for Entity {} (id: {})", GetName(), Id());
-
-        return;
-    }
 
     for (const HypData& componentData : components)
     {

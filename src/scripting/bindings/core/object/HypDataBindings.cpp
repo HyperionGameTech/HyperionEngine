@@ -171,20 +171,22 @@ extern "C"
 
     HYP_EXPORT int8 HypData_GetArray(HypData* hypData, HypData** outArray, uint32* outSize)
     {
-        if (!hypData || !outArray || !outSize)
-        {
-            return false;
-        }
+        HYP_NOT_IMPLEMENTED();
 
-        if (hypData->Is<Array<HypData>>())
-        {
-            Array<HypData>& array = hypData->Get<Array<HypData>>();
+        // if (!hypData || !outArray || !outSize)
+        // {
+        //     return false;
+        // }
 
-            *outArray = array.Data();
-            *outSize = uint32(array.Size());
+        // if (hypData->Is<Array<HypData>>())
+        // {
+        //     Array<HypData>& array = hypData->Get<Array<HypData>>();
 
-            return true;
-        }
+        //     *outArray = array.Data();
+        //     *outSize = uint32(array.Size());
+
+        //     return true;
+        // }
 
         return false;
     }
@@ -449,7 +451,7 @@ extern "C"
         }
 
         const HypStruct* hypStruct = static_cast<const HypStruct*>(hypClass);
-        
+
         if (size != hypStruct->GetSize())
         {
             HYP_LOG(Object, Error, "Given a buffer size of {} but HypClass {} has a size of {}",
