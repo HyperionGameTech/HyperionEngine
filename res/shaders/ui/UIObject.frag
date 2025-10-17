@@ -14,6 +14,8 @@ layout(location = 5) in flat uvec4 v_properties;
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 5) out uint gbuffer_mask;
 
+#define INSTANCING
+
 #include "../include/defines.inc"
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"

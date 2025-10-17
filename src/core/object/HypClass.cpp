@@ -50,6 +50,9 @@ HYP_API const Name g_attrDescription = NAME("description");
 HYP_API const Name g_attrCompressed = NAME("compressed");
 HYP_API const Name g_attrEditor = NAME("editor");
 HYP_API const Name g_attrProperty = NAME("property");
+HYP_API const Name g_attrLoadOrder = NAME("loadorder");
+HYP_API const Name g_attrJsonPath = NAME("jsonpath");
+HYP_API const Name g_attrJsonIgnore = NAME("jsonignore");
 
 } // namespace Attributes
 

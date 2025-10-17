@@ -378,40 +378,6 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     InitObject(project);
 
-    HYP_LOG_TEMP("Loaded project '{}' from '{}'", project->GetName(), projectFilepath);
-    HYP_LOG_TEMP("  Package: '{}'", rootPackage->GetName());
-    HYP_LOG_TEMP("  Scenes:");
-    for (const Handle<Scene>& scene : project->m_scenes)
-    {
-        HYP_LOG_TEMP("    - {}", scene->GetName());
-
-        // log nodes
-        if (scene->GetRoot().IsValid())
-        {
-            auto log_node = [](const Handle<Node>& node, int indent, const auto& log_node_ref) -> void
-            {
-                String str;
-                for (int i = 0; i < indent; i++)
-                {
-                    str += " ";
-                }
-
-                str += HYP_FORMAT("{}", (node->GetName().IsValid() ? *node->GetName() : "(unnamed)"));
-
-                HYP_LOG_TEMP("{}", str);
-
-                for (const Handle<Node>& child : node->GetChildren())
-                {
-                    log_node_ref(child, indent + 1, log_node_ref);
-                }
-            };
-
-            log_node(scene->GetRoot(), 2, log_node);
-        }
-    }
-
-    HYP_BREAKPOINT;
-
     return project;
 }
 

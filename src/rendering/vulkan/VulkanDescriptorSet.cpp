@@ -84,6 +84,54 @@ static inline void ValidateDynamicOffset(
 }
 #endif
 
+template <class AllocatorType>
+static inline void PopulateDynamicOffsets(
+    const DescriptorSetLayout& layout,
+    const HashMap<Name, DescriptorSetElement>& elements,
+    const DescriptorSetOffsetMap& offsets,
+    Array<uint32, AllocatorType>& outDynamicOffsets)
+{
+    outDynamicOffsets.ResizeZeroed(layout.GetDynamicElements().Size());
+
+    for (SizeType i = 0; i < layout.GetDynamicElements().Size(); i++)
+    {
+        const WeakName dynamicElementName = layout.GetDynamicElements()[i];
+
+        int idx = -1;
+
+        for (uint32 j = 0; j < offsets.count; j++)
+        {
+            if (offsets.keys[j] == dynamicElementName)
+            {
+                idx = int(j);
+                break;
+            }
+        }
+
+        if (idx != -1)
+        {
+            const uint32 offset = offsets.values[idx];
+            outDynamicOffsets[i] = offset;
+
+#ifdef HYP_DEBUG_MODE
+            const DescriptorSetLayoutElement* layoutElement = layout.GetElement(Name(dynamicElementName));
+            const auto it = elements.Find(Name(dynamicElementName));
+            const DescriptorSetElement* element = it != elements.End() ? &it->second : nullptr;
+
+            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
+#endif
+        }
+        else
+        {
+            outDynamicOffsets[i] = 0;
+
+#if defined(HYP_DEBUG_MODE) && false
+            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", Name(dynamicElementName));
+#endif
+        }
+    }
+}
+
 #pragma region VulkanDescriptorSet
 
 VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
@@ -509,50 +557,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const GraphicsP
     cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
     cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
 
-    HashSet<WeakName> usedOffsets;
-
-    cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
-
-    // TODO: optimize
-    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
-    {
-        const WeakName dynamicElementName = m_layout.GetDynamicElements()[i];
-
-        int idx = -1;
-
-        for (uint32 j = 0; j < offsets.count; j++)
-        {
-            if (offsets.keys[j] == dynamicElementName)
-            {
-                idx = int(j);
-                break;
-            }
-        }
-
-        if (idx != -1)
-        {
-            const uint32 offset = offsets.values[idx];
-            cachedBinding.dynamicOffsets[i] = offset;
-
-#ifdef HYP_DEBUG_MODE
-            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(Name(dynamicElementName));
-            const auto* pPair = m_elements.TryGet(Name(dynamicElementName));
-            const DescriptorSetElement* element = pPair != nullptr ? &pPair->second : nullptr;
-
-            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
-#endif
-
-            usedOffsets.Insert(dynamicElementName);
-        }
-        else
-        {
-            cachedBinding.dynamicOffsets[i] = 0;
-
-#if defined(HYP_DEBUG_MODE) && false
-            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", Name(dynamicElementName));
-#endif
-        }
-    }
+    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
 
     auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
 
@@ -632,50 +637,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const ComputePi
     cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
     cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
 
-    HashSet<WeakName> usedOffsets;
-
-    cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
-
-    // TODO: optimize
-    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
-    {
-        const WeakName dynamicElementName = m_layout.GetDynamicElements()[i];
-
-        int idx = -1;
-
-        for (uint32 j = 0; j < offsets.count; j++)
-        {
-            if (offsets.keys[j] == dynamicElementName)
-            {
-                idx = int(j);
-                break;
-            }
-        }
-
-        if (idx != -1)
-        {
-            const uint32 offset = offsets.values[idx];
-            cachedBinding.dynamicOffsets[i] = offset;
-
-#ifdef HYP_DEBUG_MODE
-            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(Name(dynamicElementName));
-            const auto* pPair = m_elements.TryGet(Name(dynamicElementName));
-            const DescriptorSetElement* element = pPair != nullptr ? &pPair->second : nullptr;
-
-            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
-#endif
-
-            usedOffsets.Insert(dynamicElementName);
-        }
-        else
-        {
-            cachedBinding.dynamicOffsets[i] = 0;
-
-#if defined(HYP_DEBUG_MODE) && false
-            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", Name(dynamicElementName));
-#endif
-        }
-    }
+    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
 
     auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
 
@@ -755,50 +717,7 @@ void VulkanDescriptorSet::Bind(CommandBufferBase* commandBuffer, const Raytracin
     cachedBinding.pipeline = VULKAN_CAST(pipeline)->GetVulkanHandle();
     cachedBinding.pipelineLayout = VULKAN_CAST(pipeline)->GetVulkanPipelineLayout();
 
-    HashSet<WeakName> usedOffsets;
-
-    cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
-
-    // TODO: optimize
-    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
-    {
-        const WeakName dynamicElementName = m_layout.GetDynamicElements()[i];
-
-        int idx = -1;
-
-        for (uint32 j = 0; j < offsets.count; j++)
-        {
-            if (offsets.keys[j] == dynamicElementName)
-            {
-                idx = int(j);
-                break;
-            }
-        }
-
-        if (idx != -1)
-        {
-            const uint32 offset = offsets.values[idx];
-            cachedBinding.dynamicOffsets[i] = offset;
-
-#ifdef HYP_DEBUG_MODE
-            const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(Name(dynamicElementName));
-            const auto* pPair = m_elements.TryGet(Name(dynamicElementName));
-            const DescriptorSetElement* element = pPair != nullptr ? &pPair->second : nullptr;
-
-            ValidateDynamicOffset(offset, dynamicElementName, layoutElement, element);
-#endif
-
-            usedOffsets.Insert(dynamicElementName);
-        }
-        else
-        {
-            cachedBinding.dynamicOffsets[i] = 0;
-
-#if defined(HYP_DEBUG_MODE) && false
-            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", Name(dynamicElementName));
-#endif
-        }
-    }
+    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
 
     auto& boundDescriptorSets = VULKAN_CAST(commandBuffer)->m_boundDescriptorSets;
 

@@ -140,7 +140,7 @@ private:
     HYP_METHOD(Property = "Components", NoScriptBindings)
     Array<HypData, DynamicAllocator> SerializeComponents() const;
 
-    HYP_METHOD(Property = "Components", NoScriptBindings)
+    HYP_METHOD(Property = "Components", NoScriptBindings, LoadOrder = 100)
     void DeserializeComponents(const Array<HypData, DynamicAllocator>& components);
 
     World* m_world;

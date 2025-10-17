@@ -345,9 +345,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         AssertDebug(lightProxy->shadowViews[0]->GetViewDesc().outputTargetDesc.numViews == 1,
             "Combining static and dynamic shadow maps does not support cubemap targets!");
 
-        RenderSetup rs = renderSetup;
-        // FullScreenPass::Render needs a View set
-        rs.view = lightProxy->shadowViews[0];
+        const RenderSetup& rs = renderSetup;
 
         // Combine passes into one
         combineShadowMapsPass->Render(frame, rs);

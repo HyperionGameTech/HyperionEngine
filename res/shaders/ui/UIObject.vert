@@ -12,6 +12,8 @@ layout(location = 3) out vec4 v_color;
 layout(location = 4) out flat uint v_object_index;
 layout(location = 5) out flat uvec4 v_properties;
 
+#define INSTANCING
+
 // clang-format off
 
 HYP_ATTRIBUTE(0) vec3 a_position;

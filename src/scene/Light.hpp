@@ -320,7 +320,6 @@ protected:
     Handle<Material> m_material;
 
     Vec2u m_shadowMapDimensions;
-    Handle<Camera> m_shadowMapCamera;
     Array<Handle<View>> m_shadowViews;
     BoundingBox m_shadowAabb;
 

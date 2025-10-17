@@ -56,7 +56,7 @@ ConfigurationTable::ConfigurationTable(const String& configName)
 }
 
 ConfigurationTable::ConfigurationTable(const String& configName, const HypClass* hypClass)
-    : ConfigurationTable(configName, hypClass ? hypClass->GetAttribute("jsonpath").GetString() : String::empty)
+    : ConfigurationTable(configName, hypClass ? hypClass->GetAttribute(Attributes::g_attrJsonPath).GetString() : String::empty)
 {
 }
 

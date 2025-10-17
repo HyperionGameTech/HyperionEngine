@@ -16,11 +16,6 @@ layout(location = 0) out vec4 color_output;
 
 #include "include/scene.inc"
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
-{
-    Camera camera;
-};
-
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;

@@ -429,7 +429,7 @@ namespace hyperion {
 
 HYP_BEGIN_CLASS(Entity, 133, 12, NAME("Node"))
     HypMethod(NAME(HYP_STR(SerializeComponents)), &Entity::SerializeComponents, Span<const HypClassAttribute> { {HypClassAttribute("property", "Components"), HypClassAttribute("noscriptbindings", true) } }),
-    HypMethod(NAME(HYP_STR(DeserializeComponents)), &Entity::DeserializeComponents, Span<const HypClassAttribute> { {HypClassAttribute("property", "Components"), HypClassAttribute("noscriptbindings", true) } })
+    HypMethod(NAME(HYP_STR(DeserializeComponents)), &Entity::DeserializeComponents, Span<const HypClassAttribute> { {HypClassAttribute("property", "Components"), HypClassAttribute("noscriptbindings", true), HypClassAttribute("loadorder", 100) } })
 HYP_END_CLASS
 
 #pragma endregion Entity Reflection Data
@@ -924,7 +924,7 @@ HYP_BEGIN_CLASS(Node, 132, 14, NAME("HypObjectBase"), HypClassAttribute("postloa
     HypMethod(NAME(HYP_STR(FindChildByUUID)), &Node::FindChildByUUID),
     HypField(NAME(HYP_STR(Name)), &Node::m_name, offsetof(Node, m_name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("editor", true), HypClassAttribute("label", "Name"), HypClassAttribute("description", "The name of the node.") } }),
     HypField(NAME(HYP_STR(ParentNode)), &Node::m_parentNode, offsetof(Node, m_parentNode), Span<const HypClassAttribute> { {HypClassAttribute("property", "Parent"), HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(ChildNodes)), &Node::m_childNodes, offsetof(Node, m_childNodes), Span<const HypClassAttribute> { {HypClassAttribute("property", "Children") } }),
+    HypField(NAME(HYP_STR(ChildNodes)), &Node::m_childNodes, offsetof(Node, m_childNodes), Span<const HypClassAttribute> { {HypClassAttribute("property", "Children"), HypClassAttribute("loadorder", -1) } }),
     HypField(NAME(HYP_STR(LocalTransform)), &Node::m_localTransform, offsetof(Node, m_localTransform), Span<const HypClassAttribute> { {HypClassAttribute("property", "LocalTransform") } }),
     HypField(NAME(HYP_STR(WorldTransform)), &Node::m_worldTransform, offsetof(Node, m_worldTransform), Span<const HypClassAttribute> { {HypClassAttribute("property", "LocalTransform") } }),
     HypField(NAME(HYP_STR(EntityAabb)), &Node::m_entityAabb, offsetof(Node, m_entityAabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "Aabb") } }),

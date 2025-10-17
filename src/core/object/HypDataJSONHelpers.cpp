@@ -126,12 +126,12 @@ bool HypDataToJSON(
 
         ITypeInfoVectorHandler* handler = static_cast<ITypeInfoVectorHandler*>(typeInfo.extendedInfo.handler);
 
-        const SizeType size = handler->GetNumComponents();
+        const int size = handler->GetNumComponents();
 
         json::JSONArray jsonArray;
         jsonArray.Reserve(size);
 
-        for (SizeType i = 0; i < size; i++)
+        for (int i = 0; i < size; i++)
         {
             const AnyRef element = handler->GetComponent(value, i);
 
@@ -471,16 +471,9 @@ bool ObjectToJSON(
                 continue;
             }
 
-            if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+            if (const HypClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
-            }
-
-            // temp
-            if (member.GetName() == "Props")
-            {
-                Assert(member.GetTypeInfo().IsSetType());
-                HYP_BREAKPOINT;
             }
 
             if (usedMembers.Contains(member.GetName()))
@@ -518,7 +511,7 @@ bool ObjectToJSON(
 
                 String path = *property->GetName();
 
-                if (const HypClassAttributeValue& pathAttribute = property->GetAttribute("jsonpath"); pathAttribute.IsValid())
+                if (const HypClassAttributeValue& pathAttribute = property->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -560,7 +553,7 @@ bool ObjectToJSON(
 
                 String path = *field->GetName();
 
-                if (const HypClassAttributeValue& pathAttribute = field->GetAttribute("jsonpath"); pathAttribute.IsValid())
+                if (const HypClassAttributeValue& pathAttribute = field->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -604,7 +597,7 @@ bool ObjectToJSON(
 
                 String path = *constant->GetName();
 
-                if (const HypClassAttributeValue& pathAttribute = constant->GetAttribute("jsonpath"); pathAttribute.IsValid())
+                if (const HypClassAttributeValue& pathAttribute = constant->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -643,7 +636,6 @@ bool ObjectToJSON(
     return true;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClass, HypData& target)
 {
     auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
@@ -705,15 +697,18 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
 #endif
 
+        // members with LoadOrder attribute get binned and put here first
+        SortedArray<KeyValuePair<int, const IHypMember*>> sortedMembers;
+
         // reoslve jsonpath members first
         for (const IHypMember& member : instanceClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
         {
-            if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+            if (const HypClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
             }
 
-            const HypClassAttributeValue& pathAttribute = member.GetAttribute("jsonpath");
+            const HypClassAttributeValue& pathAttribute = member.GetAttribute(Attributes::g_attrJsonPath);
 
             if (!pathAttribute.IsValid())
             {
@@ -731,13 +726,27 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
                 continue;
             }
 
-            if (!resolveMember(member, value.Get()))
+            if (const HypClassAttributeValue& sortOrderAttribute = member.GetAttribute(Attributes::g_attrLoadOrder); sortOrderAttribute.IsValid())
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, instanceClass->GetName());
+                sortedMembers.Insert({ sortOrderAttribute.GetInt(), &member });
 
                 continue;
             }
+
+            // not sorted
+            sortedMembers.Insert({ 0, &member });
         }
+
+        for (const KeyValuePair<int, const IHypMember*>& pair : sortedMembers)
+        {
+            if (!resolveMember(*pair.second, *jsonObjectValue.Get(pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString()).value))
+            {
+                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString(), instanceClass->GetName());
+                continue;
+            }
+        }
+
+        sortedMembers.Clear();
 
         // resolve data from json object to members by name
         for (const auto& [key, value] : jsonObject)
@@ -757,21 +766,33 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
             }
 
             // skip members with jsonpath attribute - they were already resolved
-            if (member->GetAttribute("jsonpath").IsValid())
+            if (member->GetAttribute(Attributes::g_attrJsonPath).IsValid())
             {
                 continue;
             }
 
             // skip if jsonignore is set
-            if (const HypClassAttributeValue& attribute = member->GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+            if (const HypClassAttributeValue& attribute = member->GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
             }
-
-            if (!resolveMember(*member, value))
+            
+            if (const HypClassAttributeValue& sortOrderAttribute = member->GetAttribute(Attributes::g_attrLoadOrder); sortOrderAttribute.IsValid())
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", key, instanceClass->GetName());
+                sortedMembers.Insert({ sortOrderAttribute.GetInt(), member });
 
+                continue;
+            }
+
+            // not sorted
+            sortedMembers.Insert({ 0, member });
+        }
+
+        for (const KeyValuePair<int, const IHypMember*>& pair : sortedMembers)
+        {
+            if (!resolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
+            {
+                HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for HypClass \"{}\"", pair.second->GetName(), instanceClass->GetName());
                 continue;
             }
         }
@@ -808,7 +829,6 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
 
     return true;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, HypData& outHypData)
 {
@@ -1147,7 +1167,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             return false;
         }
 
-        for (SizeType i = 0; i < jsonArray.Size(); i++)
+        for (int i = 0; i < int(jsonArray.Size()); i++)
         {
             HypData elementData;
 

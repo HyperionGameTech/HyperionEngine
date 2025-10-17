@@ -517,7 +517,7 @@ namespace hyperion {
 
 #pragma region TransformComponent Reflection Data
 
-HYP_BEGIN_STRUCT(TransformComponent, 391, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Transform Component"),HypClassAttribute("description", "Controls the translation, rotation, and scale of an object."),HypClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(TransformComponent, 391, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Transform Component"),HypClassAttribute("description", "Controls the translation, rotation, and scale of an object."),HypClassAttribute("editor", false),HypClassAttribute("serialize", false))
     HypField(NAME(HYP_STR(Transform)), &TransformComponent::transform, offsetof(TransformComponent, transform), Span<const HypClassAttribute> { {HypClassAttribute("property", "Transform") } })
 HYP_END_STRUCT
 

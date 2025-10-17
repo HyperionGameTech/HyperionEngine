@@ -532,7 +532,6 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
     Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -553,25 +552,6 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
     {
         // render previous frame's result to screen
         frame->renderQueue << BindGraphicsPipeline(m_renderTextureToScreenPass->GetGraphicsPipeline());
-    }
-
-    frame->renderQueue << BindDescriptorTable(
-        m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable(),
-        m_renderTextureToScreenPass->GetGraphicsPipeline(),
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
-        frameIndex);
-
-    const uint32 viewDescriptorSetIndex = m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex("View");
-
-    if (viewDescriptorSetIndex != ~0u)
-    {
-        Assert(renderSetup.passData != nullptr);
-
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-            m_renderTextureToScreenPass->GetGraphicsPipeline(),
-            {},
-            viewDescriptorSetIndex);
     }
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
@@ -618,7 +598,6 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& renderSetup)
     Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -650,7 +629,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.IsValid());
-    AssertDebug(renderSetup.HasView());
 
     // render previous frame's result to screen
     if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
@@ -679,23 +657,29 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
         frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
     }
 
-    frame->renderQueue << BindDescriptorTable(
-        graphicsPipeline->GetDescriptorTable(),
-        graphicsPipeline,
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
-        frame->GetFrameIndex());
-
-    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
-
-    if (viewDescriptorSetIndex != ~0u)
+    if (renderSetup.view != nullptr)
     {
-        Assert(renderSetup.passData != nullptr);
+        if (renderSetup.view->GetCamera() != nullptr)
+        {
+            frame->renderQueue << BindDescriptorTable(
+                graphicsPipeline->GetDescriptorTable(),
+                graphicsPipeline,
+                { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+                frame->GetFrameIndex());
+        }
 
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-            graphicsPipeline,
-            {},
-            viewDescriptorSetIndex);
+        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+
+        if (viewDescriptorSetIndex != ~0u)
+        {
+            Assert(renderSetup.passData != nullptr);
+
+            frame->renderQueue << BindDescriptorSet(
+                renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
+                graphicsPipeline,
+                {},
+                viewDescriptorSetIndex);
+        }
     }
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());

@@ -954,7 +954,7 @@ protected:
     HYP_FIELD(Property = "Parent", Transient)
     Node* m_parentNode;
 
-    HYP_FIELD(Property = "Children")
+    HYP_FIELD(Property = "Children", LoadOrder = -1)
     NodeList m_childNodes;
 
     HYP_FIELD(Property = "LocalTransform")

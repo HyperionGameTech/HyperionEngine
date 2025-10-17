@@ -114,11 +114,6 @@ Light::~Light()
         SafeDelete(std::move(m_shadowViews));
     }
 
-    if (m_shadowMapCamera != nullptr)
-    {
-        SafeDelete(std::move(m_shadowMapCamera));
-    }
-
     if (m_material != nullptr)
     {
         SafeDelete(std::move(m_material));
@@ -127,6 +122,8 @@ Light::~Light()
 
 void Light::Init()
 {
+    HYP_SCOPE;
+
     Entity::Init();
 
     if (m_material.IsValid())
@@ -145,6 +142,8 @@ void Light::Init()
 
 void Light::CreateShadowViews()
 {
+    HYP_SCOPE;
+
     for (Handle<View>& shadowView : m_shadowViews)
     {
         if (!shadowView.IsValid())
@@ -244,24 +243,40 @@ void Light::CreateShadowViews()
 
     AssertDebug(shaderDefinition.IsValid(), "Shader definition is not valid for light type {}", EnumToString(m_type));
 
-    m_shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
-    m_shadowMapCamera->SetName(Name::Unique("ShadowMapCamera"));
+    Handle<Camera> shadowMapCamera;
 
-    switch (m_type)
+    // Check existing immediate children for Camera instances (used for deserialization)
+    auto shadowMapCameraIt = FindIf(m_childNodes, [](const Handle<Node>& node)
+        {
+            return node->IsA<Camera>();
+        });
+
+    if (shadowMapCameraIt != m_childNodes.End())
     {
-    case LT_DIRECTIONAL:
-        m_shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
-        break;
-    case LT_POINT:
-        m_shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
-        m_shadowMapCamera->SetFar(m_radius);
-        break;
-    default:
-        break;
+        shadowMapCamera = ObjCast<Camera>(*shadowMapCameraIt);
     }
 
-    InitObject(m_shadowMapCamera);
-    AddChild(m_shadowMapCamera);
+    if (!shadowMapCamera)
+    {
+        shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
+        shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", GetName()));
+
+        switch (m_type)
+        {
+        case LT_DIRECTIONAL:
+            shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+            break;
+        case LT_POINT:
+            shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
+            shadowMapCamera->SetFar(m_radius);
+            break;
+        default:
+            break;
+        }
+
+        InitObject(shadowMapCamera);
+        AddChild(shadowMapCamera);
+    }
 
     AssertDebug(shadowViewFlags.Size() >= 1);
     m_shadowViews.Resize(shadowViewFlags.Size());
@@ -279,7 +294,7 @@ void Light::CreateShadowViews()
             .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
             .outputTargetDesc = outputTargetDesc,
             .scenes = {},
-            .camera = m_shadowMapCamera,
+            .camera = shadowMapCamera,
             .overrideAttributes = overrideAttributes
         };
 
@@ -296,6 +311,8 @@ void Light::CreateShadowViews()
 
 void Light::UpdateShadowViews()
 {
+    HYP_SCOPE;
+
     for (int i = 0; i < int(m_shadowViews.Size()); i++)
     {
         const Handle<View>& shadowView = m_shadowViews[i];
@@ -326,23 +343,31 @@ void Light::UpdateShadowViews()
 
 void Light::OnAttachedToNode(Node* node)
 {
+    HYP_SCOPE;
+
     Entity::OnAttachedToNode(node);
 }
 
 void Light::OnDetachedFromNode(Node* node)
 {
+    HYP_SCOPE;
+
     Entity::OnDetachedFromNode(node);
 }
 
 void Light::OnAddedToScene(Scene* scene)
 {
+    HYP_SCOPE;
+
     Entity::OnAddedToScene(scene);
 
     if (m_flags & LF_SHADOW)
     {
         for (const Handle<View>& shadowView : m_shadowViews)
         {
-            if (!shadowView.IsValid())
+            AssertDebug(shadowView != nullptr);
+
+            if (!shadowView)
             {
                 continue;
             }
@@ -354,13 +379,17 @@ void Light::OnAddedToScene(Scene* scene)
 
 void Light::OnRemovedFromScene(Scene* scene)
 {
+    HYP_SCOPE;
+
     Entity::OnRemovedFromScene(scene);
 
     if (m_flags & LF_SHADOW)
     {
         for (const Handle<View>& shadowView : m_shadowViews)
         {
-            if (!shadowView.IsValid())
+            AssertDebug(shadowView != nullptr);
+
+            if (!shadowView)
             {
                 continue;
             }
@@ -372,6 +401,8 @@ void Light::OnRemovedFromScene(Scene* scene)
 
 void Light::OnTransformUpdated(const Transform& transform)
 {
+    HYP_SCOPE;
+
     Entity::OnTransformUpdated(transform);
 
     m_position = transform.GetTranslation();
@@ -391,6 +422,8 @@ void Light::OnTransformUpdated(const Transform& transform)
 
 void Light::Update(float delta)
 {
+    HYP_SCOPE;
+
     if (m_flags & LF_SHADOW)
     {
         for (int i = 0; i < int(m_shadowViews.Size()); i++)
@@ -404,6 +437,8 @@ void Light::Update(float delta)
 
 void Light::SetPosition(const Vec3f& position)
 {
+    HYP_SCOPE;
+
     if (m_position == position)
     {
         return;
@@ -546,6 +581,8 @@ void Light::SetMaterial(Handle<Material> material)
 
 Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
 {
+    HYP_SCOPE;
+
     Vec3f tangent;
     Vec3f bitangent;
     MathUtil::ComputeOrthonormalBasis(m_normal, tangent, bitangent);
@@ -600,6 +637,8 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
 
 BoundingBox Light::GetAABB() const
 {
+    HYP_SCOPE;
+
     if (m_type == LT_DIRECTIONAL)
     {
         return BoundingBox::Infinity();
@@ -625,6 +664,8 @@ BoundingBox Light::GetAABB() const
 
 BoundingSphere Light::GetBoundingSphere() const
 {
+    HYP_SCOPE;
+
     if (m_type == LT_DIRECTIONAL)
     {
         return BoundingSphere::infinity;
@@ -635,6 +676,8 @@ BoundingSphere Light::GetBoundingSphere() const
 
 void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 {
+    HYP_SCOPE;
+
     proxy->light = WeakHandleFromThis();
     proxy->lightMaterial = m_material.Get();
 
