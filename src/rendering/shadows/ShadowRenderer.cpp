@@ -261,7 +261,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
 
     const bool useVsm = shadowMap->GetFilterMode() == SMF_VSM;
 
-    Array<RenderProxyList*> renderProxyLists;
+    Array<RenderProxyList*, InlineAllocator<2>> renderProxyLists;
     renderProxyLists.Reserve(lightProxy->shadowViews.Size());
 
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });

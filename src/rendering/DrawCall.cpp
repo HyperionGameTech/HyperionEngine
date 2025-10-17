@@ -36,7 +36,7 @@ DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
       renderGroup(other.renderGroup),
       drawCalls(std::move(other.drawCalls)),
       instancedDrawCalls(std::move(other.instancedDrawCalls)),
-      instancedDrawCallIndexMap(std::move(other.instancedDrawCallIndexMap))
+      indexMap(std::move(other.indexMap))
 {
 }
 
@@ -53,7 +53,7 @@ DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) no
     renderGroup = other.renderGroup;
     drawCalls = std::move(other.drawCalls);
     instancedDrawCalls = std::move(other.instancedDrawCalls);
-    instancedDrawCallIndexMap = std::move(other.instancedDrawCallIndexMap);
+    indexMap = std::move(other.indexMap);
 
     return *this;
 }
@@ -68,6 +68,9 @@ DrawCallCollection::~DrawCallCollection()
 
 void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
     AssertDebug(renderProxy.mesh != nullptr && renderProxy.material != nullptr);
 
     drawCalls.Push(
@@ -81,12 +84,15 @@ void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& r
 
 void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxyMesh& renderProxy)
 {
-    // Auto-instancing: check if we already have a drawcall we can use for the given DrawCallID.
-    auto indexMapIt = instancedDrawCallIndexMap.Find(uint64(id));
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
-    if (indexMapIt == instancedDrawCallIndexMap.End())
+    // Auto-instancing: check if we already have a drawcall we can use for the given DrawCallID.
+    auto indexMapIt = indexMap.Find(uint64(id));
+
+    if (indexMapIt == indexMap.End())
     {
-        indexMapIt = instancedDrawCallIndexMap.Insert(uint64(id), {}).first;
+        indexMapIt = indexMap.Insert(uint64(id), {}).first;
     }
 
     const uint32 initialIndexMapSize = uint32(indexMapIt->second.Size());
@@ -153,9 +159,12 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 
 EntityInstanceBatch* DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
 {
-    const auto it = instancedDrawCallIndexMap.Find(id.Value());
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
-    if (it != instancedDrawCallIndexMap.End())
+    const auto it = indexMap.Find(id.Value());
+
+    if (it != indexMap.End())
     {
         for (SizeType drawCallIndex : it->second)
         {
@@ -177,6 +186,9 @@ EntityInstanceBatch* DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
 
 void DrawCallCollection::ResetDrawCalls()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
     AssertDebug(impl != nullptr);
 
     GpuBufferHolderBase* entityInstanceBatches = impl->GetGpuBufferHolder();
@@ -201,11 +213,14 @@ void DrawCallCollection::ResetDrawCalls()
 
     drawCalls.Clear();
     instancedDrawCalls.Clear();
-    instancedDrawCallIndexMap.Clear();
+    indexMap.Clear();
 }
 
 uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
 #ifdef HYP_DEBUG_MODE // Sanity checks
     // type check - cannot be a subclass of Entity, indices would get messed up
     Assert(entity->InstanceClass() == Entity::Class(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());

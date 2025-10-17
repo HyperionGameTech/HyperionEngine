@@ -1547,9 +1547,14 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     RenderStatsCounts counts {};
 
-    Array<RenderProxyList*> renderProxyLists;
+    Array<RenderProxyList*, InlineAllocator<3, RenderAllocator>> renderProxyLists;
 
-    HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
+    HYP_DEFER({
+        for (RenderProxyList* rpl : renderProxyLists)
+        {
+            rpl->EndRead();
+        }
+    });
 
     // Collect view-independent renderable types from all views, binned
     /// @TODO: We could use the existing binning by subclass that ResourceTracker now provides.

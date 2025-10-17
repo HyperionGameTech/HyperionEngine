@@ -126,6 +126,8 @@ void ShadowMapAllocator::Destroy()
 
 ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, ShadowMapFilter filterMode, const Vec2u& dimensions)
 {
+    HYP_SCOPE;
+
     if (shadowMapType == SMT_OMNI)
     {
         const uint32 pointLightIndex = m_pointLightShadowMapIdGenerator.Next() - 1;

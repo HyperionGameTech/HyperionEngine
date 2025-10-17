@@ -20,11 +20,10 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderStats.hpp>
 #include <rendering/IndirectDraw.hpp>
-
+#include <rendering/RenderMemory.hpp>
 #include <rendering/RenderQueue.hpp>
-
-#include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 
 #include <core/Types.hpp>
 
@@ -57,7 +56,7 @@ struct DrawCallRange
 
 struct ParallelRenderingState
 {
-    static constexpr uint32 maxBatches = NumAsyncCommandBuffers;
+    static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
     TaskBatch* taskBatch = nullptr;
 
@@ -67,13 +66,13 @@ struct ParallelRenderingState
     RenderQueue rootQueue;
 
     // per-thread RenderQueue
-    FixedArray<RenderQueue, maxBatches> localQueues {};
+    FixedArray<RenderQueue, MaxBatches> localQueues {};
 
-    FixedArray<RenderStatsCounts, maxBatches> renderStatsCounts {};
+    FixedArray<RenderStatsCounts, MaxBatches> renderStatsCounts {};
 
     // Temporary storage for data that will be executed in parallel during the frame
-    Array<DrawCallRange, FixedAllocator<maxBatches>> drawCalls;
-    Array<DrawCallRange, FixedAllocator<maxBatches>> instancedDrawCalls;
+    Array<DrawCallRange, FixedAllocator<MaxBatches>> drawCalls;
+    Array<DrawCallRange, FixedAllocator<MaxBatches>> instancedDrawCalls;
     Array<Proc<void(DrawCallRange, uint32, uint32)>, FixedAllocator<1>> drawCallProcs;
     Array<Proc<void(DrawCallRange, uint32, uint32)>, FixedAllocator<1>> instancedDrawCallProcs;
 
@@ -85,7 +84,7 @@ struct DrawCallCollectionMapping
 {
     Handle<RenderGroup> renderGroup;
     // map entity id to mesh proxy
-    SparsePagedArray<RenderProxyMesh*, 128> meshProxies;
+    SparsePagedArray<RenderProxyMesh*, 128, RenderAllocator> meshProxies;
     DrawCallCollection drawCallCollection;
     IndirectRenderer* indirectRenderer = nullptr;
 
@@ -236,23 +235,7 @@ public:
     ~RenderCollector();
 
 #ifdef HYP_DEBUG_MODE
-    HYP_FORCE_INLINE SizeType NumDrawCallsCollected() const
-    {
-        SizeType numDrawCalls = 0;
-
-        for (const auto& mappings : mappingsByBucket)
-        {
-            for (const KeyValuePair<RenderableAttributeSet, DrawCallCollectionMapping>& it : mappings)
-            {
-                const DrawCallCollectionMapping& mapping = it.second;
-
-                numDrawCalls += mapping.drawCallCollection.drawCalls.Size()
-                    + mapping.drawCallCollection.instancedDrawCalls.Size();
-            }
-        }
-
-        return numDrawCalls;
-    }
+    SizeType NumDrawCallsCollected() const;
 #endif
 
     void Clear(bool freeMemory = true);

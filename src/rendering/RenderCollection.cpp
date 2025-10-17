@@ -56,6 +56,11 @@ static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 #endif
 #endif
 
+//DrawCallCollectionMapping::~DrawCallCollectionMapping()
+//{
+//    Threads::AssertOnThread(g_renderThread);
+//}
+
 #pragma region RenderProxyList
 
 static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyMesh& proxy, const RenderableAttributeSet* overrideAttributes = nullptr)
@@ -586,6 +591,24 @@ RenderCollector::~RenderCollector()
     Clear(true);
 }
 
+SizeType RenderCollector::NumDrawCallsCollected() const
+{
+    SizeType numDrawCalls = 0;
+
+    for (const auto& mappings : mappingsByBucket)
+    {
+        for (const KeyValuePair<RenderableAttributeSet, DrawCallCollectionMapping>& it : mappings)
+        {
+            const DrawCallCollectionMapping& mapping = it.second;
+
+            numDrawCalls += mapping.drawCallCollection.drawCalls.Size()
+                + mapping.drawCallCollection.instancedDrawCalls.Size();
+        }
+    }
+
+    return numDrawCalls;
+}
+
 void RenderCollector::Clear(bool freeMemory)
 {
     HYP_SCOPE;
@@ -634,7 +657,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
             taskBatch->pool = &pool;
 
             parallelRenderingStateHead->taskBatch = taskBatch;
-            parallelRenderingStateHead->numBatches = ParallelRenderingState::maxBatches;
+            parallelRenderingStateHead->numBatches = ParallelRenderingState::MaxBatches;
         }
 
         curr = parallelRenderingStateHead;
@@ -651,7 +674,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
             taskBatch->pool = &pool;
 
             newParallelRenderingState->taskBatch = taskBatch;
-            newParallelRenderingState->numBatches = ParallelRenderingState::maxBatches;
+            newParallelRenderingState->numBatches = ParallelRenderingState::MaxBatches;
 
             curr->next = newParallelRenderingState;
         }

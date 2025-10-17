@@ -291,7 +291,8 @@ struct DrawCallCollection
     InstancedDrawCallStorage instancedDrawCalls;
 
     // Map from draw call id to the index in instancedDrawCalls
-    HashMap<uint64, Array<SizeType>> instancedDrawCallIndexMap;
+    using InstancedDrawCallIndexMap = HashMap<uint64, Array<SizeType, InlineAllocator<3, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
+    InstancedDrawCallIndexMap indexMap;
 };
 
 template <class EntityInstanceBatchType>

@@ -7,6 +7,7 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -36,14 +37,14 @@ static constexpr uint32 GraphicsPipelineDiscardFrames = 32;
 
 #pragma region CachedPipelinesMap
 
-class CachedPipelinesMap : public SparsePagedArray<GraphicsPipelineRef, 1024>
+class CachedPipelinesMap : public SparsePagedArray<GraphicsPipelineRef, 1024, RenderAllocator>
 {
 public:
-    using Base = SparsePagedArray<GraphicsPipelineRef, 1024>;
-    using RefCountMap = SparsePagedArray<int, 1024>;
+    using Base = SparsePagedArray<GraphicsPipelineRef, 1024, RenderAllocator>;
+    using RefCountMap = SparsePagedArray<int, 1024, RenderAllocator>;
 
-    using AttrMap = HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef*, InlineAllocator<1>>>;
-    using ReverseAttrMap = HashMap<uint32, RenderableAttributeSet>;
+    using AttrMap = HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
+    using ReverseAttrMap = HashMap<uint32, RenderableAttributeSet, NodeAllocator<RenderAllocator>>;
 
     CachedPipelinesMap()
         : Base()
@@ -87,7 +88,7 @@ public:
         Assert(attrMapIt != attrMap.End());
 
         // Remove the graphics pipeline from the attribute map
-        Array<GraphicsPipelineRef*, InlineAllocator<1>>& pipelines = attrMapIt->second;
+        auto& pipelines = attrMapIt->second;
 
         auto it = pipelines.Find(pGraphicsPipeline);
         Assert(it != pipelines.end(), "Graphics pipeline not found in attribute map!");
@@ -357,7 +358,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         DeferCreate(table);
     }
 
-    Proc<void(GraphicsPipelineBase * graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
+    Proc<void(GraphicsPipelineBase* graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
         {
             Mutex::Guard guard(m_mutex);
 
@@ -453,11 +454,11 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
-                                                                            {
-                                                                                return static_cast<const FramebufferBase*>(framebuffer.Get());
-                                                                            }),
-                attributes))
+        if ((*pPipeline)->MatchesSignature(
+            shader,
+            descriptorTableDecl,
+            Map(framebuffers, [](const FramebufferRef& framebuffer) { return static_cast<const FramebufferBase*>(framebuffer.Get()); }),
+            attributes))
         {
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 
