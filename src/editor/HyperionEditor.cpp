@@ -227,7 +227,7 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-#if 0
+#if 1
                 Handle<LegacyEnvGrid> envGridEntity = CreateObject<LegacyEnvGrid>(node->GetWorldAABB() * 1.2f, EnvGridOptions { EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, Vec3u { 10, 3, 10 } });
                 envGridEntity->SetName(NAME("EnvGrid2"));
                 scene->GetRoot()->AddChild(envGridEntity);

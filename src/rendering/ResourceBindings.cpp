@@ -26,6 +26,20 @@
 
 namespace hyperion {
 
+#pragma region RenderProxyEx
+
+struct RenderProxyEx
+{
+};
+
+struct RenderProxyEnvProbeEx : public RenderProxyEx
+{
+    // For reflection / sky probes
+    uint32 textureIndex = ~0u;
+};
+
+#pragma endregion RenderProxyEx
+
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
     AssertDebug(entity->InstanceClass() == Entity::Class(),
@@ -73,15 +87,12 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     AssertDebug(envProbe->IsReady());
 
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
-        "EnvProbe must be a SkyProbe or ReflectionProbe, but is: %s", envProbe->InstanceClass()->GetName());
+        "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
 
-    if (!envProbe->GetPrefilteredEnvMap().IsValid())
-    {
-        HYP_LOG(Rendering, Error, "EnvProbe {} (class: {}) has no prefiltered env map set!\n", envProbe->Id(),
-            envProbe->InstanceClass()->GetName());
+    IRenderProxy* proxy = RenderApi_GetRenderProxy(envProbe);
+    AssertDebug(proxy != nullptr);
 
-        return;
-    }
+    RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
 
     if (prev != ~0u)
     {
@@ -92,19 +103,59 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         }
     }
 
-    RenderApi_AssignResourceBinding(envProbe, next);
-
     if (next != ~0u)
     {
         AssertDebug(envProbe->GetPrefilteredEnvMap().IsValid());
         AssertDebug(envProbe->GetPrefilteredEnvMap()->IsReady());
 
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        // Create ext if it doesn't exist
+        if (!proxyCasted->ext)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-                ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(envProbe->GetPrefilteredEnvMap()));
+            proxyCasted->ext = g_renderPool->Alloc<RenderProxyEnvProbeEx>();
+            new (proxyCasted->ext) RenderProxyEnvProbeEx();
+        }
+
+        // set the texture index in ext data
+        RenderProxyEnvProbeEx* ext = static_cast<RenderProxyEnvProbeEx*>(proxyCasted->ext);
+        ext->textureIndex = next;
+
+        HYP_BREAKPOINT;
+
+        if (envProbe->GetPrefilteredEnvMap())
+        {
+
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                    ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(envProbe->GetPrefilteredEnvMap()));
+            }
+        }
+        else
+        {
+
+            HYP_LOG(Rendering, Error, "EnvProbe {} (class: {}) has no prefiltered env map set!\n", envProbe->Id(),
+                envProbe->InstanceClass()->GetName());
         }
     }
+    else
+    {
+        // deallocate ext data on unbinding
+        if (proxyCasted->ext != nullptr)
+        {
+            g_renderPool->Free(proxyCasted->ext);
+            proxyCasted->ext = nullptr;
+        }
+    }
+}
+
+void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
+{
+    AssertDebug(envProbe != nullptr);
+    AssertDebug(envProbe->IsReady());
+
+    HYP_LOG_TEMP("Binding EnvProbe {} to index {}", envProbe->Id(), next);
+
+    RenderApi_AssignResourceBinding(envProbe, next);
 }
 
 void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -115,26 +166,21 @@ void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, 
     RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
     AssertDebug(proxyCasted != nullptr);
 
+#ifdef HYP_DEBUG_MODE
     if (proxyCasted->envProbe.GetUnsafe()->IsA<SkyProbe>() || proxyCasted->envProbe.GetUnsafe()->IsA<ReflectionProbe>())
     {
-        proxyCasted->bufferData.textureIndex = idx;
+        AssertDebug(proxyCasted->ext != nullptr,
+            "RenderProxyEnvProbeEx must exist for SkyProbe and ReflectionProbe! Id: {}",
+            proxyCasted->envProbe.GetUnsafe()->Id());
     }
-    else
+#endif
+
+    if (RenderProxyEnvProbeEx* ext = static_cast<RenderProxyEnvProbeEx*>(proxyCasted->ext))
     {
-        proxyCasted->bufferData.textureIndex = ~0u;
+        proxyCasted->bufferData.textureIndex = ext->textureIndex;
     }
 
     gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
-}
-
-void OnBindingChanged_AmbientProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
-{
-    AssertDebug(envProbe != nullptr);
-    AssertDebug(envProbe->IsReady());
-
-    AssertDebug(envProbe->GetEnvProbeType() == EPT_AMBIENT);
-
-    RenderApi_AssignResourceBinding(envProbe, next);
 }
 
 void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)

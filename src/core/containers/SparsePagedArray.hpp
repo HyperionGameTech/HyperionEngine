@@ -65,69 +65,84 @@ public:
         std::conditional_t<IsConst, const SparsePagedArray*, SparsePagedArray*> array;
         uint32 page;
         uint32 elem;
+        bool lazyInit;
 
-        IteratorBase()
+        HYP_FORCE_INLINE IteratorBase()
             : array(nullptr),
               page(~0u),
-              elem(PageSize)
+              elem(PageSize),
+              lazyInit(false)
         {
         }
 
         template <class ArrayType>
-        IteratorBase(ArrayType* array, uint32 pageIndex, uint32 elementIndex)
-            : array(array),
+        HYP_FORCE_INLINE IteratorBase(ArrayType* a, uint32 pageIndex, uint32 elementIndex)
+            : array(a),
               page(pageIndex),
-              elem(elementIndex)
+              elem(elementIndex),
+              lazyInit(true)
         {
-            HYP_CORE_ASSERT(array);
+            HYP_CORE_ASSERT(array != nullptr);
 
             if (page >= uint32(array->m_pages.Size()))
             {
                 page = uint32(array->m_pages.Size());
                 elem = PageSize;
+                lazyInit = false;
+            }
+        }
 
+        void EnsureReady() const
+        {
+            if (HYP_LIKELY(!lazyInit))
+            {
                 return;
             }
 
-            while (page != ~0u)
+            IteratorBase* self = const_cast<IteratorBase*>(this);
+
+            uint32 p = self->page;
+            uint32 e = self->elem;
+
+            while (p != ~0u)
             {
-                if (array->m_validPages.Test(page))
+                if (self->array->m_validPages.Test(p))
                 {
-                    Bitset::BitIndex nextBit = array->m_pages[page]->initializedBits.NextSetBitIndex(elem);
-
-                    if (nextBit < PageSize)
+                    Bitset::BitIndex next = self->array->m_pages[p]->initializedBits.NextSetBitIndex(e);
+                    if (next < PageSize)
                     {
-                        elem = nextBit;
-
-                        break;
+                        self->page = p;
+                        self->elem = next;
+                        self->lazyInit = false;
+                        return;
                     }
                 }
 
-                page = array->m_validPages.NextSetBitIndex(page + 1);
+                p = self->array->m_validPages.NextSetBitIndex(p + 1);
 
-                // no valid pages remaining after this
-                if (page == ~0u)
+                if (p == ~0u)
                 {
-                    page = uint32(array->m_pages.Size());
-                    elem = PageSize;
-
+                    self->page = uint32(self->array->m_pages.Size());
+                    self->elem = PageSize;
+                    self->lazyInit = false;
                     return;
                 }
 
-                // reset for next iter
-                elem = 0;
+                e = 0;
             }
+
+            self->page = uint32(self->array->m_pages.Size());
+            self->elem = PageSize;
+            self->lazyInit = false;
         }
 
         HYP_FORCE_INLINE T& operator*() const
         {
+            EnsureReady();
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(array->m_validPages.Test(page));
             Page* pg = array->m_pages[page];
-
-            HYP_CORE_ASSERT(pg != nullptr);
-            HYP_CORE_ASSERT(pg->initializedBits.Test(elem));
-
+            HYP_CORE_ASSERT(pg && pg->initializedBits.Test(elem));
             return pg->storage.GetPointer()[elem];
 #else
             return array->m_pages[page]->storage.GetPointer()[elem];
@@ -136,14 +151,12 @@ public:
 
         HYP_FORCE_INLINE T* operator->() const
         {
+            EnsureReady();
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(array->m_validPages.Test(page));
             Page* pg = array->m_pages[page];
-
-            HYP_CORE_ASSERT(pg != nullptr);
-            HYP_CORE_ASSERT(pg->initializedBits.Test(elem));
-
-            return &pg->storage.GetPointer() + elem;
+            HYP_CORE_ASSERT(pg && pg->initializedBits.Test(elem));
+            return pg->storage.GetPointer() + elem;
 #else
             return array->m_pages[page]->storage.GetPointer() + elem;
 #endif
@@ -151,26 +164,25 @@ public:
 
         Derived& operator++()
         {
-            HYP_CORE_ASSERT(page < array->m_pages.Size());
+            if (HYP_UNLIKELY(lazyInit))
+            {
+                EnsureReady();
+            }
 
             while (true)
             {
                 if (page != ~0u && array->m_validPages.Test(page))
                 {
-                    Bitset::BitIndex nextBit = array->m_pages[page]->initializedBits.NextSetBitIndex(elem + 1);
-
-                    if (nextBit < PageSize)
+                    Bitset::BitIndex next = array->m_pages[page]->initializedBits.NextSetBitIndex(elem + 1);
+                    if (next < PageSize)
                     {
-                        elem = nextBit;
-
+                        elem = next;
                         break;
                     }
                 }
 
-                // try to move to next page
                 page = array->m_validPages.NextSetBitIndex(page + 1);
 
-                // No more valid pages
                 if (page == ~0u)
                 {
                     page = uint32(array->m_pages.Size());
@@ -178,8 +190,7 @@ public:
                     break;
                 }
 
-                // Flip back around for next page (~0u + 1 == 0)
-                elem = ~0u;
+                elem = ~0u; // so elem+1 == 0 on next loop
             }
 
             return static_cast<Derived&>(*this);
@@ -192,12 +203,24 @@ public:
             return tmp;
         }
 
-        bool operator==(const Derived& other) const
+        HYP_FORCE_INLINE bool operator==(const Derived& other) const
         {
+            HYP_CORE_ASSERT(array == other.array); // comparing iterators from different containers, bad!
+
+            if (HYP_UNLIKELY(lazyInit))
+            {
+                EnsureReady();
+            }
+
+            if (HYP_UNLIKELY(other.lazyInit))
+            {
+                other.EnsureReady();
+            }
+
             return page == other.page && elem == other.elem;
         }
 
-        bool operator!=(const Derived& other) const
+        HYP_FORCE_INLINE bool operator!=(const Derived& other) const
         {
             return !(*this == other);
         }
@@ -208,12 +231,12 @@ public:
         Iterator() = default;
 
         template <class ArrayType>
-        Iterator(ArrayType* array, uint32 pageIndex, uint32 elementIndex)
+        HYP_FORCE_INLINE Iterator(ArrayType* array, uint32 pageIndex, uint32 elementIndex)
             : IteratorBase<Iterator, false>(array, pageIndex, elementIndex)
         {
         }
 
-        Iterator(const Iterator& other)
+        HYP_FORCE_INLINE Iterator(const Iterator& other)
             : IteratorBase<Iterator, false>(other.array, other.page, other.elem)
         {
         }
@@ -517,7 +540,16 @@ public:
         Page* page = GetOrAllocatePage(pageIndex);
         HYP_CORE_ASSERT(page != nullptr);
 
-        if (page->initializedBits.Test(elementIndex))
+        if constexpr (std::is_copy_assignable_v<T>)
+        {
+            if (page->initializedBits.Test(elementIndex))
+            {
+                // copy assign instead of reconstructing
+                page->storage.GetPointer()[elementIndex] = value;
+                return Iterator(this, pageIndex, elementIndex);
+            }
+        }
+        else if (!std::is_trivially_destructible_v<T> && page->initializedBits.Test(elementIndex))
         {
             page->storage.DestructElement(elementIndex);
         }
@@ -536,7 +568,16 @@ public:
         Page* page = GetOrAllocatePage(pageIndex);
         HYP_CORE_ASSERT(page != nullptr);
 
-        if (page->initializedBits.Test(elementIndex))
+        if constexpr (std::is_move_assignable_v<T>)
+        {
+            if (page->initializedBits.Test(elementIndex))
+            {
+                // move assign instead of reconstructing
+                page->storage.GetPointer()[elementIndex] = std::move(value);
+                return Iterator(this, pageIndex, elementIndex);
+            }
+        }
+        else if (!std::is_trivially_destructible_v<T> && page->initializedBits.Test(elementIndex))
         {
             page->storage.DestructElement(elementIndex);
         }

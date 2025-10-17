@@ -353,17 +353,10 @@ constexpr inline FixedArray<T, N> MakeFixedArray(const T (&values)[N])
     return result;
 }
 
-template <class T, SizeType N>
-constexpr inline FixedArray<T, N> MakeFixedArray(T* _begin, T* _end)
+template <class... Ts>
+constexpr inline auto MakeFixedArray(Ts&&... values)
 {
-    FixedArray<T, N> result;
-
-    for (SizeType i = 0; i < N && _begin != _end; i++, ++_begin)
-    {
-        result[i] = *_begin;
-    }
-
-    return result;
+    return FixedArray<std::common_type_t<Ts...>, sizeof...(Ts)> { std::forward<Ts>(values)... };
 }
 
 template <class T, SizeType Sz>

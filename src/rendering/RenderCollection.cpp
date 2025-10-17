@@ -56,10 +56,10 @@ static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 #endif
 #endif
 
-//DrawCallCollectionMapping::~DrawCallCollectionMapping()
+// DrawCallCollectionMapping::~DrawCallCollectionMapping()
 //{
-//    Threads::AssertOnThread(g_renderThread);
-//}
+//     Threads::AssertOnThread(g_renderThread);
+// }
 
 #pragma region RenderProxyList
 
@@ -287,6 +287,7 @@ static inline void UpdateRefs_Impl(ResourceTracker<ObjId<ElementType>, ElementTy
             if (!pProxy)
             {
                 pProxy = resourceTracker.SetProxy(ObjId<ElementType>(resource->Id()), ProxyType());
+                HYP_LOG_TEMP("Created new proxy for resource {}", resource->Id());
             }
 
             AssertDebug(pProxy != nullptr);

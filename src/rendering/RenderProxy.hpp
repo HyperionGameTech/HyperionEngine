@@ -22,7 +22,7 @@
 #include <rendering/MeshInstanceData.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <util/ResourceTracker.hpp>
+#include <rendering/util/ResourceTracker.hpp>
 
 namespace hyperion {
 
@@ -50,10 +50,17 @@ struct MeshRaytracingData
     ~MeshRaytracingData();
 };
 
+// Render side only data for RenderProxy types (optional)
+// NOTE: MUST BE TRIVIALLY DESTRUCTIBLE! No destructor gets called.
+struct RenderProxyEx;
+
 class IRenderProxy
 {
 protected:
-    ~IRenderProxy() = default;
+    ~IRenderProxy() = default; // NOTE: non-virtual since we don't intend to delete via base pointer and to avoid vtable overhead.
+
+public:
+    RenderProxyEx* ext = nullptr;
 };
 
 class NullProxy final : public IRenderProxy

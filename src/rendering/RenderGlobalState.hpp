@@ -13,8 +13,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>
-
-#include <util/ResourceTracker.hpp>
+#include <rendering/util/ResourceTracker.hpp>
 
 namespace hyperion {
 

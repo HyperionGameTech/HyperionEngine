@@ -22,6 +22,7 @@ HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class NullProxy;
+struct RenderProxyEx;
 
 struct ResourceTrackerDiff
 {
@@ -39,6 +40,9 @@ class ResourceTrackerBase
 {
 public:
     virtual ~ResourceTrackerBase() = default;
+
+protected:
+    static void FreeRenderProxyEx(RenderProxyEx* ext);
 };
 
 template <class IdType, class ElementType, class ProxyType = NullProxy>
@@ -294,7 +298,7 @@ public:
     ResourceTracker(ResourceTracker&& other) noexcept = delete;
     ResourceTracker& operator=(ResourceTracker&& other) noexcept = delete;
 
-    virtual ~ResourceTracker() = default;
+    ~ResourceTracker() override = default;
 
     uint32 NumCurrent() const
     {
@@ -778,6 +782,24 @@ public:
         {
         }
 
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
+
+        Impl(Impl&& other) noexcept = delete;
+        Impl& operator=(Impl&& other) noexcept = delete;
+
+        ~Impl()
+        {
+            for (ProxyType& proxy : proxies)
+            {
+                if (proxy.ext)
+                {
+                    ResourceTrackerBase::FreeRenderProxyEx(proxy.ext);
+                    proxy.ext = nullptr;
+                }
+            }
+        }
+
         /*! \brief Checks if it already has a proxy for the given Id from the previous frame */
         HYP_FORCE_INLINE bool HasElement(IdType id) const
         {
@@ -1155,13 +1177,29 @@ public:
 
             AssertDebug(id.GetTypeId() == typeId);
             AssertDebug(elements.HasIndex(idx));
+            AssertDebug(proxy.ext == nullptr); // ext should be null when setting
 
             if (id.GetTypeId() != typeId)
             {
                 return nullptr;
             }
 
-            return &*proxies.Emplace(idx, proxy);
+            ProxyType* pExistingProxy = proxies.TryGet(idx);
+
+            if (pExistingProxy)
+            {
+                // Keep the previous `ext` pointer if it exists, since that is render side only data we need to preserve
+                RenderProxyEx* pExt = pExistingProxy->ext;
+                (*pExistingProxy) = proxy;
+
+                pExistingProxy->ext = pExt;
+
+                return pExistingProxy;
+            }
+            else
+            {
+                return &*proxies.Emplace(idx, proxy);
+            }
         }
 
         ProxyType* SetProxy(IdType id, ProxyType&& proxy)
@@ -1172,13 +1210,29 @@ public:
 
             AssertDebug(id.GetTypeId() == typeId);
             AssertDebug(elements.HasIndex(idx));
+            AssertDebug(proxy.ext == nullptr); // ext should be null when setting
 
             if (id.GetTypeId() != typeId)
             {
                 return nullptr;
             }
 
-            return &*proxies.Emplace(idx, std::move(proxy));
+            ProxyType* pExistingProxy = proxies.TryGet(idx);
+
+            if (pExistingProxy)
+            {
+                // Keep the previous `ext` pointer if it exists, since that is render side only data we need to preserve
+                RenderProxyEx* pExt = pExistingProxy->ext;
+                (*pExistingProxy) = std::move(proxy);
+
+                pExistingProxy->ext = pExt;
+
+                return pExistingProxy;
+            }
+            else
+            {
+                return &*proxies.Emplace(idx, proxy);
+            }
         }
 
         void RemoveProxy(IdType id)
@@ -1188,6 +1242,18 @@ public:
             if (id.GetTypeId() != typeId)
             {
                 return;
+            }
+
+            ProxyType* pProxy = proxies.TryGet(id.ToIndex());
+            if (!pProxy)
+            {
+                return;
+            }
+
+            if (pProxy->ext)
+            {
+                ResourceTrackerBase::FreeRenderProxyEx(pProxy->ext);
+                pProxy->ext = nullptr;
             }
 
             proxies.EraseAt(id.ToIndex());
@@ -1227,6 +1293,16 @@ public:
         /*! \brief Total reset of the list, including clearing the previous state. */
         void Reset()
         {
+            // destruct all proxy ext data
+            for (ProxyType& proxy : proxies)
+            {
+                if (proxy.ext)
+                {
+                    ResourceTrackerBase::FreeRenderProxyEx(proxy.ext);
+                    proxy.ext = nullptr;
+                }
+            }
+
             elements.Clear();
             versions.Clear();
 
