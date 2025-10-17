@@ -12,7 +12,7 @@
 namespace hyperion {
 
 namespace dotnet {
-class Class;
+class ManagedClass;
 } // namespace dotnet
 
 namespace serialization {

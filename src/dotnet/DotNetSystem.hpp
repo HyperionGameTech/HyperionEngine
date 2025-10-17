@@ -15,12 +15,12 @@ namespace hyperion {
 namespace dotnet {
 
 struct ObjectReference;
-class Class;
+class ManagedClass;
 
 class DotNetImplBase;
 class DotNetImpl;
 
-using AddObjectToCacheFunction = void (*)(void* ptr, Class** outClassObjectPtr, ObjectReference* outObjectReference, int8 isWeak);
+using AddObjectToCacheFunction = void (*)(void* ptr, ManagedClass** outClass, ObjectReference* outObjectReference, int8 isWeak);
 using SetKeepAliveFunction = void (*)(ObjectReference* objectReference, int32* keepAlive);
 using TriggerGCFunction = void (*)();
 using GetAssemblyPointerFunction = void (*)(ObjectReference* assemblyObjectReference, Assembly** outAssemblyPtr);

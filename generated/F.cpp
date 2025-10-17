@@ -2,7 +2,7 @@
  * Source: editor/EditorCamera.hpp
  */
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/reflection/HypClassUtils.hpp>
 /* Generated from: editor/EditorCamera.hpp */
 
 #include <editor/EditorCamera.hpp>
@@ -78,8 +78,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -125,7 +125,7 @@ Name EditorProject::GetNextDefaultProjectName(const String & defaultProjectName)
         constexpr HashCode hash_code = HashCode::GetHashCode("GetNextDefaultProjectName");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Name>(method_ptr, defaultProjectName);
         }
@@ -145,8 +145,8 @@ Name EditorProject::GetNextDefaultProjectName(const String & defaultProjectName)
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -169,7 +169,7 @@ Name EditorActionBase::GetName() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetName");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Name>(method_ptr);
         }
@@ -183,7 +183,7 @@ void EditorActionBase::Execute(EditorSubsystem * editorSubsystem, EditorProject 
         constexpr HashCode hash_code = HashCode::GetHashCode("Execute");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, editorSubsystem, project);
             return;
@@ -198,7 +198,7 @@ void EditorActionBase::Revert(EditorSubsystem * editorSubsystem, EditorProject *
         constexpr HashCode hash_code = HashCode::GetHashCode("Revert");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, editorSubsystem, project);
             return;
@@ -249,8 +249,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -275,7 +275,7 @@ void LongRunningEditorTask::Cancel()
         constexpr HashCode hash_code = HashCode::GetHashCode("Cancel");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -290,7 +290,7 @@ bool LongRunningEditorTask::IsCompleted() const
         constexpr HashCode hash_code = HashCode::GetHashCode("IsCompleted");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -304,7 +304,7 @@ void LongRunningEditorTask::Process()
         constexpr HashCode hash_code = HashCode::GetHashCode("Process");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -341,7 +341,7 @@ void TickableEditorTask::Cancel()
         constexpr HashCode hash_code = HashCode::GetHashCode("Cancel");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -356,7 +356,7 @@ bool TickableEditorTask::IsCompleted() const
         constexpr HashCode hash_code = HashCode::GetHashCode("IsCompleted");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -370,7 +370,7 @@ void TickableEditorTask::Process()
         constexpr HashCode hash_code = HashCode::GetHashCode("Process");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -385,7 +385,7 @@ void TickableEditorTask::Tick(float delta)
         constexpr HashCode hash_code = HashCode::GetHashCode("Tick");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -514,8 +514,8 @@ HYP_END_CLASS
 #include <editor/ui/EditorPropertyPanel.hpp>
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -536,7 +536,7 @@ void EditorPropertyPanelBase::Build(const HypData & hypData, const HypProperty *
         constexpr HashCode hash_code = HashCode::GetHashCode("Build");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, hypData, property);
             return;
@@ -595,8 +595,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -626,7 +626,7 @@ int EditorDebugOverlayBase::GetPlacement() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetPlacement");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<int>(method_ptr);
         }
@@ -640,7 +640,7 @@ void EditorDebugOverlayBase::Update(float delta)
         constexpr HashCode hash_code = HashCode::GetHashCode("Update");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -655,7 +655,7 @@ Handle<UIObject> EditorDebugOverlayBase::CreateUIObject(UIObject * spawnParent)
         constexpr HashCode hash_code = HashCode::GetHashCode("CreateUIObject");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Handle<UIObject>>(method_ptr, spawnParent);
         }
@@ -669,7 +669,7 @@ Name EditorDebugOverlayBase::GetName() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetName");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Name>(method_ptr);
         }
@@ -683,7 +683,7 @@ bool EditorDebugOverlayBase::IsEnabled() const
         constexpr HashCode hash_code = HashCode::GetHashCode("IsEnabled");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -702,8 +702,8 @@ bool EditorDebugOverlayBase::IsEnabled() const
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -724,7 +724,7 @@ Result ConsoleCommandBase::Execute(const CommandLineArguments & args)
         constexpr HashCode hash_code = HashCode::GetHashCode("Execute");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Result>(method_ptr, args);
         }

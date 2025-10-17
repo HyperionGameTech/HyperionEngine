@@ -24,8 +24,8 @@
 #include <ui/UIObject.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

@@ -9,12 +9,12 @@
 
 namespace hyperion::dotnet {
 
-class Object;
-class Class;
+class ManagedObject;
+class ManagedClass;
 
 struct Attribute
 {
-    UniquePtr<Object> object;
+    UniquePtr<ManagedObject> object;
 };
 
 class HYP_API AttributeSet

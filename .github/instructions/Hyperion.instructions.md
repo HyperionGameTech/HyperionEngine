@@ -314,7 +314,7 @@ if (instance) {
 ### C# Scripting Alternative
 - .NET Core integration for C# scripts
 - `ScriptComponent` can use either HypScript or C# via `ScriptLanguage` enum
-- Managed-native interop through `dotnet::Object` and reflection bindings
+- Managed-native interop through `dotnet::ManagedObject` and reflection bindings
 
 ### Delegates & Functional Programming
 The engine provides a robust delegate system for callbacks and event handling:

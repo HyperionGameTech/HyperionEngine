@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <dotnet/Attribute.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 namespace hyperion::dotnet {
 

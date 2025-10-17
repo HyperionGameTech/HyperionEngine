@@ -16,8 +16,8 @@
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
 #ifdef HYP_DOTNET
-#include <dotnet/Class.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/ManagedObject.hpp>
 #endif
 
 #ifdef HYP_SCRIPT
@@ -82,7 +82,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
         if ((!context || !(context->flags & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !hypClass->IsAbstract())
         {
 #ifdef HYP_DOTNET
-            if (RC<dotnet::Class> managedClass = hypClass->GetManagedClass())
+            if (RC<dotnet::ManagedClass> managedClass = hypClass->GetManagedClass())
             {
                 ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(ptr, managedClass);
 
@@ -212,7 +212,7 @@ const HypClass* HypObjectBase::Class()
 }
 
 #ifdef HYP_DOTNET
-dotnet::Object* HypObjectBase::GetManagedObject() const
+dotnet::ManagedObject* HypObjectBase::GetManagedObject() const
 {
     return m_scriptObjectResource ? m_scriptObjectResource->GetManagedObject() : nullptr;
 }

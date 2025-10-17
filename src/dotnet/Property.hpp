@@ -16,7 +16,7 @@
 
 namespace hyperion::dotnet {
 
-class Object;
+class ManagedObject;
 
 class Property
 {
@@ -53,26 +53,26 @@ public:
     }
 
     template <class ReturnType>
-    ReturnType InvokeGetter(const Object* objectPtr)
+    ReturnType InvokeGetter(const ManagedObject* pManagedObject)
     {
         HypData returnHypData;
-        InvokeGetter_Internal(objectPtr, &returnHypData);
+        InvokeGetter_Internal(pManagedObject, &returnHypData);
 
         return std::move(returnHypData.Get<ReturnType>());
     }
 
     template <class T>
-    void InvokeSetter(const Object* objectPtr, T&& value)
+    void InvokeSetter(const ManagedObject* pManagedObject, T&& value)
     {
         HypData valueHypData(std::forward<T>(value));
         const HypData* valueHypDataPtr = &valueHypData;
 
-        return InvokeSetter_Internal(objectPtr, &valueHypDataPtr);
+        return InvokeSetter_Internal(pManagedObject, &valueHypDataPtr);
     }
 
 private:
-    void InvokeGetter_Internal(const Object* objectPtr, HypData* outReturnHypData);
-    void InvokeSetter_Internal(const Object* objectPtr, const HypData** valueHypData);
+    void InvokeGetter_Internal(const ManagedObject* pManagedObject, HypData* outReturnHypData);
+    void InvokeSetter_Internal(const ManagedObject* pManagedObject, const HypData** valueHypData);
 
     ManagedGuid m_guid;
     AttributeSet m_attributes;

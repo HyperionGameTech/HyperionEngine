@@ -2,7 +2,7 @@
  * Source: asset/AssetPath.hpp
  */
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/reflection/HypClassUtils.hpp>
 /* Generated from: asset/AssetPath.hpp */
 
 #include <asset/AssetPath.hpp>
@@ -128,8 +128,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -156,7 +156,7 @@ bool AssetCollector::IsWatching() const
         constexpr HashCode hash_code = HashCode::GetHashCode("IsWatching");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -170,7 +170,7 @@ void AssetCollector::StartWatching()
         constexpr HashCode hash_code = HashCode::GetHashCode("StartWatching");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -185,7 +185,7 @@ void AssetCollector::StopWatching()
         constexpr HashCode hash_code = HashCode::GetHashCode("StopWatching");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -200,7 +200,7 @@ void AssetCollector::OnAssetChanged(const FilePath & path, AssetChangeType chang
         constexpr HashCode hash_code = HashCode::GetHashCode("OnAssetChanged");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, path, changeType);
             return;
@@ -620,8 +620,8 @@ HYP_END_ENUM
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -657,7 +657,7 @@ bool InputHandlerBase::OnKeyDown(const KeyboardEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnKeyDown");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -671,7 +671,7 @@ bool InputHandlerBase::OnKeyUp(const KeyboardEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnKeyUp");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -685,7 +685,7 @@ bool InputHandlerBase::OnMouseDown(const MouseEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseDown");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -699,7 +699,7 @@ bool InputHandlerBase::OnMouseUp(const MouseEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseUp");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -713,7 +713,7 @@ bool InputHandlerBase::OnMouseMove(const MouseEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseMove");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -727,7 +727,7 @@ bool InputHandlerBase::OnMouseDrag(const MouseEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseDrag");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -741,7 +741,7 @@ bool InputHandlerBase::OnMouseLeave(const MouseEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseLeave");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -755,7 +755,7 @@ bool InputHandlerBase::OnClick(const MouseEvent & evt)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnClick");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, evt);
         }
@@ -805,8 +805,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -835,7 +835,7 @@ BoundingBox StreamableBase::GetBoundingBox() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetBoundingBox");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<BoundingBox>(method_ptr);
         }
@@ -849,7 +849,7 @@ void StreamableBase::OnStreamStart()
         constexpr HashCode hash_code = HashCode::GetHashCode("OnStreamStart");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -864,7 +864,7 @@ void StreamableBase::OnLoaded()
         constexpr HashCode hash_code = HashCode::GetHashCode("OnLoaded");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -879,7 +879,7 @@ void StreamableBase::OnRemoved()
         constexpr HashCode hash_code = HashCode::GetHashCode("OnRemoved");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -942,8 +942,8 @@ static_assert(sizeof(StreamingCellInfo) == 80, "Expected sizeof(StreamingCellInf
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -967,7 +967,7 @@ void StreamingCell::Update(float delta)
         constexpr HashCode hash_code = HashCode::GetHashCode("Update");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -1041,8 +1041,8 @@ HYP_END_ENUM
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -1071,7 +1071,7 @@ StreamingVolumeShape StreamingVolumeBase::GetShape() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetShape");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<StreamingVolumeShape>(method_ptr);
         }
@@ -1085,7 +1085,7 @@ bool StreamingVolumeBase::GetBoundingBox(BoundingBox & outAabb) const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetBoundingBox");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, outAabb);
         }
@@ -1099,7 +1099,7 @@ bool StreamingVolumeBase::GetBoundingSphere(BoundingSphere & outSphere) const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetBoundingSphere");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, outSphere);
         }
@@ -1113,7 +1113,7 @@ bool StreamingVolumeBase::ContainsPoint(const Vec3f & point) const
         constexpr HashCode hash_code = HashCode::GetHashCode("ContainsPoint");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr, point);
         }

@@ -6,8 +6,8 @@
 #include <core/threading/Threads.hpp>
 
 #include <dotnet/Assembly.hpp>
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -31,10 +31,10 @@ public:
         RC<dotnet::Assembly> managedAssembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("Hyperion.NET.Scripting.dll");
         Assert(managedAssembly != nullptr, "Failed to load Hyperion.NET.Scripting assembly");
 
-        RC<dotnet::Class> classPtr = managedAssembly->FindClassByName("ScriptTracker");
+        RC<dotnet::ManagedClass> classPtr = managedAssembly->FindClassByName("ScriptTracker");
         Assert(classPtr != nullptr, "Failed to load ScriptTracker class from Hyperion.NET.Scripting assembly");
 
-        object = UniquePtr<dotnet::Object>(classPtr->NewObject());
+        object = UniquePtr<dotnet::ManagedObject>(classPtr->NewObject());
         assembly = std::move(managedAssembly);
     }
 
@@ -49,7 +49,7 @@ public:
     }
 
     RC<dotnet::Assembly> assembly;
-    UniquePtr<dotnet::Object> object;
+    UniquePtr<dotnet::ManagedObject> object;
 };
 
 #pragma endregion ScriptTracker

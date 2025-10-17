@@ -11,13 +11,13 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 namespace hyperion {
 
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* objectPtr);
+HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr);
 
 class IScriptableDelegate : public virtual IDelegate
 {
@@ -26,7 +26,7 @@ public:
 
     virtual DelegateHandler BindManaged(const String& methodName, Proc<ScriptObjectResource*()>&& getFn) = 0;
     virtual DelegateHandler BindManaged(const String& methodName, ScriptObjectResource* scriptObjectResource) = 0;
-    virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::Object>&& object) = 0;
+    virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::ManagedObject>&& object) = 0;
 };
 
 /*! \brief A delegate that can be bound to a managed .NET object.
@@ -66,7 +66,7 @@ public:
 
                 scriptObjectResource->IncRef();
 
-                dotnet::Object* object = scriptObjectResource->GetManagedObject();
+                dotnet::ManagedObject* object = scriptObjectResource->GetManagedObject();
                 HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
                 HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
@@ -119,7 +119,7 @@ public:
 
                 scriptObjectResource->IncRef();
 
-                dotnet::Object* object = scriptObjectResource->GetManagedObject();
+                dotnet::ManagedObject* object = scriptObjectResource->GetManagedObject();
                 HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
                 HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
@@ -169,7 +169,7 @@ public:
                 scriptObjectResource->IncRef();
                 HYP_DEFER({ scriptObjectResource->DecRef(); });
 
-                dotnet::Object* object = scriptObjectResource->GetManagedObject();
+                dotnet::ManagedObject* object = scriptObjectResource->GetManagedObject();
                 HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
                 HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
@@ -195,7 +195,7 @@ public:
                 scriptObjectResource->IncRef();
                 HYP_DEFER({ scriptObjectResource->DecRef(); });
 
-                dotnet::Object* object = scriptObjectResource->GetManagedObject();
+                dotnet::ManagedObject* object = scriptObjectResource->GetManagedObject();
                 HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
                 HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
@@ -208,7 +208,7 @@ public:
             });
     }
 
-    HYP_NODISCARD virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::Object>&& object) override
+    HYP_NODISCARD virtual DelegateHandler BindManaged(const String& methodName, UniquePtr<dotnet::ManagedObject>&& object) override
     {
         if (!object)
         {
@@ -260,7 +260,7 @@ struct IsDelegate<ScriptableDelegate<ReturnType, Args...>> : std::true_type
 
 } // namespace functional
 
-using functional::ScriptableDelegate;
 using functional::IScriptableDelegate;
+using functional::ScriptableDelegate;
 
 } // namespace hyperion

@@ -15,8 +15,8 @@
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <core/Types.hpp>
 
@@ -53,7 +53,7 @@ extern "C"
         return HypClassRegistry::GetInstance().GetClass(*typeId);
     }
 
-    HYP_EXPORT const HypClass* HypClass_GetClassForManagedClass(const dotnet::Class* managedClass)
+    HYP_EXPORT const HypClass* HypClass_GetClassForManagedClass(const dotnet::ManagedClass* managedClass)
     {
         if (!managedClass)
         {
@@ -67,7 +67,7 @@ extern "C"
     {
         Assert(assembly != nullptr);
 
-        RC<dotnet::Class> managedClass = assembly->FindClassByTypeHash(typeHash);
+        RC<dotnet::ManagedClass> managedClass = assembly->FindClassByTypeHash(typeHash);
 
         if (!managedClass)
         {

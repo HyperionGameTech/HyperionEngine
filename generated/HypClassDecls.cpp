@@ -2,7 +2,7 @@
  * Source: <no source file>
  */
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 namespace hyperion {
 

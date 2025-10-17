@@ -5,16 +5,16 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-// needed by dotnet/Class.hpp
+// needed by dotnet/ManagedClass.hpp
 #include <core/reflection/HypData.hpp>
 
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 namespace hyperion {
 
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* objectPtr)
+HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObject* objectPtr)
 {
     if (objectPtr)
     {

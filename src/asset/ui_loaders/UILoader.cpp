@@ -9,7 +9,7 @@
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <ui/UIStage.hpp>
 #include <ui/UIObject.hpp>

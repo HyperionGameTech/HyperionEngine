@@ -663,17 +663,6 @@ struct TypeInfo
 
             new (pTypeInfo) TypeInfo(std::move(result));
 
-            // sanity check
-            HYP_CORE_ASSERT(pTypeInfo->id == typeId);
-
-            DebugLog(LogType::Debug, "Registered type info: %s : %u\n", pTypeInfo->name.LookupString(), pTypeInfo->id.Value());
-
-            if (!Memory::StrCmp(pTypeInfo->name.LookupString(), "Array<HypData>"))
-            {
-                // debug breakpoint
-                HYP_BREAKPOINT;
-            }
-
             guardStorage.GetPointer()->~Guard();
 
             return *pTypeInfo;

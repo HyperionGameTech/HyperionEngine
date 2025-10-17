@@ -20,8 +20,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <dotnet/Class.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/ManagedObject.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
 #include <scripting/ScriptingService.hpp>
@@ -49,7 +49,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     {
         AssertDebug(sor->GetManagedObject() != nullptr);
 
-        if (dotnet::Class* classPtr = sor->GetManagedObject()->GetClass())
+        if (dotnet::ManagedClass* classPtr = sor->GetManagedObject()->GetClass())
         {
             if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
             {

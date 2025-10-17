@@ -8,8 +8,8 @@
 namespace hyperion {
 
 namespace dotnet {
-class Class;
-class Object;
+class ManagedClass;
+class ManagedObject;
 class Method;
 struct ObjectReference;
 } // namespace dotnet

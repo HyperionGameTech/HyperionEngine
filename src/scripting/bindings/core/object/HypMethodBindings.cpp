@@ -11,7 +11,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 #include <core/Types.hpp>
 

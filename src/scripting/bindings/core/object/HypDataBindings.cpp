@@ -9,8 +9,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
 
@@ -421,7 +421,7 @@ extern "C"
             return false;
         }
 
-        if (RC<dotnet::Class> managedClass = hypClass->GetManagedClass())
+        if (RC<dotnet::ManagedClass> managedClass = hypClass->GetManagedClass())
         {
             Assert(managedClass->GetMarshalObjectFunction() != nullptr);
 

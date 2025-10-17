@@ -26,7 +26,7 @@ HYP_MAKE_ENUM_FLAGS(AssemblyFlags)
 
 namespace dotnet {
 
-class Class;
+class ManagedClass;
 class Assembly;
 class Method;
 
@@ -56,9 +56,9 @@ public:
         return m_flags;
     }
 
-    RC<Class> NewClass(const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, Class* parentClass, uint32 flags);
-    RC<Class> FindClassByName(const char* typeName);
-    RC<Class> FindClassByTypeHash(int32 typeHash);
+    RC<ManagedClass> NewClass(const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
+    RC<ManagedClass> FindClassByName(const char* typeName);
+    RC<ManagedClass> FindClassByTypeHash(int32 typeHash);
 
     HYP_FORCE_INLINE InvokeGetterFunction GetInvokeGetterFunction() const
     {
@@ -92,7 +92,7 @@ private:
 
     ManagedGuid m_guid;
 
-    HashMap<int32, RC<Class>> m_classObjects;
+    HashMap<int32, RC<ManagedClass>> m_classObjects;
 
     // Function pointer to invoke a managed method
     InvokeGetterFunction m_invokeGetterFptr;

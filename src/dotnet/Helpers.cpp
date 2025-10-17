@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <dotnet/Helpers.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 

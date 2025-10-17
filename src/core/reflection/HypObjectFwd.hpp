@@ -16,8 +16,8 @@
 namespace hyperion {
 
 namespace dotnet {
-class Object;
-class Class;
+class ManagedObject;
+class ManagedClass;
 } // namespace dotnet
 
 class ScriptObjectResource;

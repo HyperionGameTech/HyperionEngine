@@ -5,7 +5,7 @@
 #include <ui/UIDataSource.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <ui/UIScriptDelegate.hpp> // must be included after dotnet headers
 

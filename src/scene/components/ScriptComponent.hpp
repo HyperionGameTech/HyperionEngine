@@ -14,7 +14,7 @@
 namespace hyperion {
 
 namespace dotnet {
-class Object;
+class ManagedObject;
 class Assembly;
 } // namespace dotnet
 

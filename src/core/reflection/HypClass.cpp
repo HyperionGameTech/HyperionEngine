@@ -17,8 +17,8 @@
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
 #ifdef HYP_DOTNET
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
 #endif
 
@@ -1288,7 +1288,7 @@ bool HypClass::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& 
 #pragma region DynamicHypClassInstance
 
 #ifdef HYP_DOTNET
-DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::ManagedClass* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
@@ -1458,7 +1458,7 @@ bool DynamicHypClassInstance::GetManagedObject(const void* objectPtr, dotnet::Ob
 bool DynamicHypClassInstance::CanCreateInstance() const
 {
 #ifdef HYP_DOTNET
-    RC<dotnet::Class> managedClass = GetManagedClass();
+    RC<dotnet::ManagedClass> managedClass = GetManagedClass();
 
     if (managedClass != nullptr)
     {
@@ -1497,7 +1497,7 @@ void DynamicHypClassInstance::PostLoad_Internal(void* objectPtr) const
 bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 {
 #ifdef HYP_DOTNET
-    RC<dotnet::Class> managedClass = GetManagedClass();
+    RC<dotnet::ManagedClass> managedClass = GetManagedClass();
 
     if (managedClass != nullptr)
     {

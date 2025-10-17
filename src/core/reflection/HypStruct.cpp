@@ -6,8 +6,8 @@
 #include <core/reflection/TypeInfo.hpp>
 
 #ifdef HYP_DOTNET
-#include <dotnet/Class.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/ManagedObject.hpp>
 #endif
 
 namespace hyperion {
@@ -25,7 +25,7 @@ bool HypStruct::CreateStructInstance(dotnet::ObjectReference& outObjectReference
     HYP_CORE_ASSERT(objectPtr != nullptr);
 
 #ifdef HYP_DOTNET
-    if (dotnet::Class* managedClass = HypClass::GetManagedClass())
+    if (dotnet::ManagedClass* managedClass = HypClass::GetManagedClass())
     {
         ManagedStructInitializerContext context;
         context.ptr = objectPtr;
@@ -72,7 +72,7 @@ DynamicHypStructInstance::DynamicHypStructInstance(
     m_size = size;
     m_alignment = alignof(void*);
 
-    // @TODO Register the ManagedClass (dotnet::Class) for this. We need the assembly.
+    // @TODO Register the ManagedClass (dotnet::ManagedClass) for this. We need the assembly.
     HypClassRegistry::GetInstance().RegisterClass(typeId, this);
 }
 

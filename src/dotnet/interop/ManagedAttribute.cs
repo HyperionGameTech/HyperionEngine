@@ -7,7 +7,7 @@ namespace Hyperion
     public struct ManagedAttribute
     {
         [FieldOffset(0)]
-        public IntPtr classObjectPtr;
+        public IntPtr pClass;
 
         [FieldOffset(8)]
         public ObjectReference objectReference;

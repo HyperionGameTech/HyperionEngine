@@ -25,8 +25,8 @@
 namespace hyperion {
 
 namespace dotnet {
-class Class;
-class Object;
+class ManagedClass;
+class ManagedObject;
 } // namespace dotnet
 
 class HypClass;
@@ -137,8 +137,8 @@ private:
     mutable Mutex m_mutex;
     HashMap<TypeId, HypClass*> m_dynamicClasses;
 
-    HashMap<HypClass*, RC<dotnet::Class>> m_managedClasses;
-    HashMap<dotnet::Class*, HypClass*> m_managedClassesReverseMapping;
+    HashMap<HypClass*, RC<dotnet::ManagedClass>> m_managedClasses;
+    HashMap<dotnet::ManagedClass*, HypClass*> m_managedClassesReverseMapping;
     mutable Mutex m_managedClassesMutex;
 
     bool m_isInitialized : 1;

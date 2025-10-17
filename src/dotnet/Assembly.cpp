@@ -2,7 +2,7 @@
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -47,7 +47,7 @@ bool Assembly::Unload()
 
     for (const auto& it : m_classObjects)
     {
-        const RC<Class>& classObject = it.second;
+        const RC<ManagedClass>& classObject = it.second;
 
         if (!classObject)
         {
@@ -66,7 +66,7 @@ bool Assembly::Unload()
 #endif
 }
 
-RC<Class> Assembly::NewClass(const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, Class* parentClass, uint32 flags)
+RC<ManagedClass> Assembly::NewClass(const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);
@@ -78,7 +78,7 @@ RC<Class> Assembly::NewClass(const HypClass* hypClass, int32 typeHash, const cha
         return it->second;
     }
 
-    it = m_classObjects.Insert(typeHash, MakeRefCountedPtr<Class>(WeakRefCountedPtrFromThis(), typeName, typeSize, typeId, hypClass, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
+    it = m_classObjects.Insert(typeHash, MakeRefCountedPtr<ManagedClass>(WeakRefCountedPtrFromThis(), typeName, typeSize, typeId, hypClass, parentClass, EnumFlags<ManagedClassFlags>(flags))).first;
 
     if (hypClass != nullptr)
     {
@@ -91,7 +91,7 @@ RC<Class> Assembly::NewClass(const HypClass* hypClass, int32 typeHash, const cha
 #endif
 }
 
-RC<Class> Assembly::FindClassByName(const char* typeName)
+RC<ManagedClass> Assembly::FindClassByName(const char* typeName)
 {
 #ifdef HYP_DOTNET
     for (auto& pair : m_classObjects)
@@ -108,7 +108,7 @@ RC<Class> Assembly::FindClassByName(const char* typeName)
 #endif
 }
 
-RC<Class> Assembly::FindClassByTypeHash(int32 typeHash)
+RC<ManagedClass> Assembly::FindClassByTypeHash(int32 typeHash)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);

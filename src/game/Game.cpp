@@ -21,8 +21,8 @@
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
-#include <dotnet/Class.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/ManagedObject.hpp>
 #include <dotnet/Assembly.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -57,7 +57,7 @@ Game::~Game()
 void Game::Update(float delta)
 {
     HYP_SCOPE;
-    
+
     g_engineDriver->SetCurrentWorld(m_world);
 
     g_engineDriver->GetScriptingService()->Update();
@@ -81,7 +81,7 @@ void Game::Init()
     {
         if (RC<dotnet::Assembly> managedAssembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managedGameInfo->assemblyName.Data()))
         {
-            if (RC<dotnet::Class> classPtr = managedAssembly->FindClassByName(m_managedGameInfo->className.Data()))
+            if (RC<dotnet::ManagedClass> classPtr = managedAssembly->FindClassByName(m_managedGameInfo->className.Data()))
             {
                 m_managedGameObject = classPtr->NewObject();
             }
@@ -89,12 +89,12 @@ void Game::Init()
             m_managedAssembly = std::move(managedAssembly);
         }
     }
-    
+
     m_world = CreateObject<World>();
     InitObject(m_world);
 
     Handle<UIStage> uiStage = CreateObject<UIStage>(g_gameThread);
-    
+
     m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
 
     if (m_managedGameObject && m_managedGameObject->IsValid())

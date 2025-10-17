@@ -26,7 +26,7 @@ using filesystem::FilePath;
 
 namespace hyperion::dotnet {
 
-class Object;
+class ManagedObject;
 
 // Conditionally construct or reference existing HypData
 template <class T>

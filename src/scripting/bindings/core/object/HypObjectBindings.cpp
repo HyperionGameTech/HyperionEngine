@@ -8,9 +8,8 @@
 
 #include <core/reflection/HypObjectPool.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
-#include <dotnet/interop/ManagedObject.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <core/Types.hpp>
 
@@ -31,10 +30,10 @@ extern "C"
 
 #pragma region HypObject
 
-    HYP_EXPORT void HypObject_Initialize(const HypClass* hypClass, dotnet::Class* classObjectPtr, dotnet::ObjectReference* objectReference, void** outInstancePtr)
+    HYP_EXPORT void HypObject_Initialize(const HypClass* hypClass, dotnet::ManagedClass* pClass, dotnet::ObjectReference* objectReference, void** outInstancePtr)
     {
         Assert(hypClass != nullptr);
-        Assert(classObjectPtr != nullptr);
+        Assert(pClass != nullptr);
         Assert(objectReference != nullptr);
         Assert(outInstancePtr != nullptr);
 
@@ -68,7 +67,7 @@ extern "C"
 
         ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(
             ptr,
-            classObjectPtr->RefCountedPtrFromThis(),
+            pClass->RefCountedPtrFromThis(),
             *objectReference,
             ObjectFlags::CREATED_FROM_MANAGED);
 

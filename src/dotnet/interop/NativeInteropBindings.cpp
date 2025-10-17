@@ -18,13 +18,12 @@
 #include <core/reflection/HypClass.hpp>
 #include <core/reflection/HypClassRegistry.hpp>
 
-#include <dotnet/Class.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/ManagedObject.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/Method.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
-#include <dotnet/interop/ManagedObject.hpp>
 #include <dotnet/interop/ManagedAttribute.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
@@ -51,7 +50,7 @@ static AttributeSet InternManagedAttributeHolder(ManagedAttributeHolder* managed
         Assert(managedAttributeHolderPtr->managedAttributesPtr[i].classPtr != nullptr);
 
         attributes.PushBack(Attribute {
-            MakeUnique<Object>(
+            MakeUnique<ManagedObject>(
                 managedAttributeHolderPtr->managedAttributesPtr[i].classPtr->RefCountedPtrFromThis(),
                 managedAttributeHolderPtr->managedAttributesPtr[i].objectReference,
                 ObjectFlags::CREATED_FROM_MANAGED) });
@@ -134,16 +133,16 @@ extern "C"
         DotNetSystem::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction(assemblyObjectReference, outAssemblyPtr);
     }
 
-    HYP_EXPORT void NativeInterop_AddObjectToCache(void* ptr, Class** outClassObjectPtr, ObjectReference* outObjectReference, int8 weak)
+    HYP_EXPORT void NativeInterop_AddObjectToCache(void* ptr, ManagedClass** outClass, ObjectReference* outObjectReference, int8 weak)
     {
         Assert(ptr != nullptr);
-        Assert(outClassObjectPtr != nullptr);
+        Assert(outClass != nullptr);
         Assert(outObjectReference != nullptr);
 
-        DotNetSystem::GetInstance().GetGlobalFunctions().addObjectToCacheFunction(ptr, outClassObjectPtr, outObjectReference, weak);
+        DotNetSystem::GetInstance().GetGlobalFunctions().addObjectToCacheFunction(ptr, outClass, outObjectReference, weak);
     }
 
-    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, Class* parentClass, uint32 flags, ManagedClass* outManagedClass)
+    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* assemblyPtr, const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
     {
 #ifdef HYP_DOTNET
         Assert(assemblyGuid != nullptr);
@@ -151,7 +150,7 @@ extern "C"
 
         HYP_LOG(DotNET, Info, "Registering .NET managed class {}", typeName);
 
-        RC<Class> classObject = assemblyPtr->NewClass(hypClass, typeHash, typeName, typeSize, typeId, parentClass, flags);
+        RC<ManagedClass> classObject = assemblyPtr->NewClass(hypClass, typeHash, typeName, typeSize, typeId, parentClass, flags);
 
         if (hypClass != nullptr && hypClass->IsDynamic())
         {
@@ -170,31 +169,31 @@ extern "C"
             HypClassRegistry::GetInstance().RegisterClass(typeId, dynamicHypClassNonConst);
         }
 
-        ManagedClass& managedClass = *outManagedClass;
-        managedClass = {};
-        managedClass.typeHash = typeHash;
-        managedClass.classObject = classObject.Get();
-        managedClass.assemblyGuid = *assemblyGuid;
-        managedClass.flags = flags;
+        ManagedClassDesc& desc = *outDesc;
+        desc = {};
+        desc.typeHash = typeHash;
+        desc.pClass = classObject.Get();
+        desc.assemblyGuid = *assemblyGuid;
+        desc.flags = flags;
 #endif
     }
 
-    HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly* assemblyPtr, int32 typeHash, Class** outManagedClassObjectPtr)
+    HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly* assemblyPtr, int32 typeHash, ManagedClass** outClass)
     {
         Assert(assemblyPtr != nullptr);
 
-        Assert(outManagedClassObjectPtr != nullptr);
+        Assert(outClass != nullptr);
 
-        RC<Class> classObject = assemblyPtr->FindClassByTypeHash(typeHash);
+        RC<ManagedClass> classObject = assemblyPtr->FindClassByTypeHash(typeHash);
 
         if (!classObject)
         {
-            *outManagedClassObjectPtr = nullptr;
+            *outClass = nullptr;
 
             return 0;
         }
 
-        *outManagedClassObjectPtr = classObject;
+        *outClass = classObject;
 
         return 1;
     }
@@ -203,14 +202,14 @@ extern "C"
     {
         Assert(managedClass != nullptr);
 
-        if (!managedClass->classObject || !managedAttributeHolderPtr)
+        if (!managedAttributeHolderPtr)
         {
             return;
         }
 
         AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
-        managedClass->classObject->SetAttributes(std::move(attributes));
+        managedClass->SetAttributes(std::move(attributes));
     }
 
     HYP_EXPORT void ManagedClass_AddMethod(ManagedClass* managedClass, const char* methodName, ManagedGuid guid, InvokeMethodFunction invokeFptr, ManagedAttributeHolder* managedAttributeHolderPtr)
@@ -218,21 +217,21 @@ extern "C"
         Assert(managedClass != nullptr);
         Assert(invokeFptr != nullptr);
 
-        if (!managedClass->classObject || !methodName)
+        if (!methodName)
         {
             return;
         }
 
         AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
-        if (managedClass->classObject->HasMethod(methodName))
+        if (managedClass->HasMethod(methodName))
         {
-            HYP_LOG(DotNET, Error, "Class '{}' already has a method named '{}'!", managedClass->classObject->GetName(), methodName);
+            HYP_LOG(DotNET, Error, "Class '{}' already has a method named '{}'!", managedClass->GetName(), methodName);
 
             return;
         }
 
-        managedClass->classObject->AddMethod(
+        managedClass->AddMethod(
             methodName,
             Method(guid, invokeFptr, std::move(attributes)));
     }
@@ -241,39 +240,37 @@ extern "C"
     {
         Assert(managedClass != nullptr);
 
-        if (!managedClass->classObject || !propertyName)
+        if (!propertyName)
         {
             return;
         }
 
         AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
-        if (managedClass->classObject->HasProperty(propertyName))
+        if (managedClass->HasProperty(propertyName))
         {
-            HYP_LOG(DotNET, Error, "Class '{}' already has a property named '{}'!", managedClass->classObject->GetName(), propertyName);
+            HYP_LOG(DotNET, Error, "Class '{}' already has a property named '{}'!", managedClass->GetName(), propertyName);
 
             return;
         }
 
-        managedClass->classObject->AddProperty(
+        managedClass->AddProperty(
             propertyName,
             Property(guid, std::move(attributes)));
     }
 
-    HYP_EXPORT void ManagedClass_SetNewObjectFunction(ManagedClass* managedClass, Class::NewObjectFunction newObjectFptr)
+    HYP_EXPORT void ManagedClass_SetNewObjectFunction(ManagedClass* managedClass, ManagedClass::NewObjectFunction newObjectFptr)
     {
         Assert(managedClass != nullptr);
-        Assert(managedClass->classObject != nullptr);
 
-        managedClass->classObject->SetNewObjectFunction(newObjectFptr);
+        managedClass->SetNewObjectFunction(newObjectFptr);
     }
 
-    HYP_EXPORT void ManagedClass_SetMarshalObjectFunction(ManagedClass* managedClass, Class::MarshalObjectFunction marshalObjectFptr)
+    HYP_EXPORT void ManagedClass_SetMarshalObjectFunction(ManagedClass* managedClass, ManagedClass::MarshalObjectFunction marshalObjectFptr)
     {
         Assert(managedClass != nullptr);
-        Assert(managedClass->classObject != nullptr);
 
-        managedClass->classObject->SetMarshalObjectFunction(marshalObjectFptr);
+        managedClass->SetMarshalObjectFunction(marshalObjectFptr);
     }
 
 } // extern "C"

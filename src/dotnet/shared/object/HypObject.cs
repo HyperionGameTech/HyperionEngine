@@ -42,15 +42,15 @@ namespace Hyperion
                     IntPtr objectWrapperPtr = (IntPtr)Unsafe.AsPointer(ref objectWrapper);
                     IntPtr objectReferencePtr = (IntPtr)Unsafe.AsPointer(ref objectReference);
 
-                    IntPtr classObjectPtr = IntPtr.Zero;
+                    IntPtr pClass = IntPtr.Zero;
 
-                    NativeInterop_AddObjectToCache(objectWrapperPtr, out classObjectPtr, objectReferencePtr, isWeak: true);
+                    NativeInterop_AddObjectToCache(objectWrapperPtr, out pClass, objectReferencePtr, isWeak: true);
 
 #if DEBUG
-                    if (classObjectPtr == IntPtr.Zero)
+                    if (pClass == IntPtr.Zero)
                     {
                         gcHandle.Free();
-                        throw new Exception("Failed to add object to cache -- classObjectPtr is null");
+                        throw new Exception("Failed to add object to cache -- pClass is null");
                     }
 
                     if (!objectReference.IsValid)
@@ -62,7 +62,7 @@ namespace Hyperion
 
                     _hypClassPtr = hypClass.Address;
                     
-                    HypObject_Initialize(_hypClassPtr, classObjectPtr, ref objectReference, out _nativeAddress);
+                    HypObject_Initialize(_hypClassPtr, pClass, ref objectReference, out _nativeAddress);
                 }
 
                 gcHandle.Free();
@@ -262,7 +262,7 @@ namespace Hyperion
         }
         
         [DllImport("hyperion", EntryPoint = "HypObject_Initialize")]
-        private static extern void HypObject_Initialize([In] IntPtr hypClassPtr, [In] IntPtr classObjectPtr, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
+        private static extern void HypObject_Initialize([In] IntPtr hypClassPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
 
         [DllImport("hyperion", EntryPoint = "HypObject_GetRefCountStrong")]
         private static extern uint HypObject_GetRefCountStrong([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);

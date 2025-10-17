@@ -99,10 +99,10 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct ManagedClass
+    public struct ManagedClassDesc
     {
         internal int typeHash;
-        internal IntPtr classObjectPtr;
+        internal IntPtr pClass;
         internal Guid assemblyGuid;
         internal Guid newObjectGuid;
         internal Guid freeObjectGuid;
@@ -115,7 +115,7 @@ namespace Hyperion
             {
                 fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
                 {
-                    ManagedClass_SetAttributes(ref this, (IntPtr)managedAttributeHolderPtr);
+                    ManagedClass_SetAttributes(pClass, (IntPtr)managedAttributeHolderPtr);
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace Hyperion
             {
                 fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
                 {
-                    ManagedClass_AddMethod(ref this, methodNamePtr, guid, functionPointer, (IntPtr)managedAttributeHolderPtr);
+                    ManagedClass_AddMethod(pClass, methodNamePtr, guid, functionPointer, (IntPtr)managedAttributeHolderPtr);
                 }
             }
 
@@ -143,7 +143,7 @@ namespace Hyperion
             {
                 fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
                 {
-                    ManagedClass_AddProperty(ref this, propertyNamePtr, guid, (IntPtr)managedAttributeHolderPtr);
+                    ManagedClass_AddProperty(pClass, propertyNamePtr, guid, (IntPtr)managedAttributeHolderPtr);
                 }
             }
 
@@ -151,13 +151,13 @@ namespace Hyperion
         }
 
         /// <summary>
-        /// Pointer to the C++ dotnet::Class object
+        /// Pointer to the C++ dotnet::ManagedClass object
         /// </summary>
         public IntPtr ClassObjectPtr
         {
             get
             {
-                return classObjectPtr;
+                return pClass;
             }
         }
 
@@ -171,7 +171,7 @@ namespace Hyperion
             GCHandle handle = GCHandle.Alloc(value);
             DelegateCache.Instance.Add(assemblyGuid, newObjectGuid, handle);
 
-            ManagedClass_SetNewObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
+            ManagedClass_SetNewObjectFunction(pClass, Marshal.GetFunctionPointerForDelegate(value));
         }
 
         public void SetMarshalObjectFunction(Guid assemblyGuid, MarshalObjectDelegate value)
@@ -184,22 +184,22 @@ namespace Hyperion
             GCHandle handle = GCHandle.Alloc(value);
             DelegateCache.Instance.Add(assemblyGuid, marshalObjectGuid, handle);
 
-            ManagedClass_SetMarshalObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
+            ManagedClass_SetMarshalObjectFunction(pClass, Marshal.GetFunctionPointerForDelegate(value));
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetAttributes")]
-        private static extern void ManagedClass_SetAttributes([In] ref ManagedClass managedClass, IntPtr managedAttributeHolderPtr);
+        private static extern void ManagedClass_SetAttributes([In] IntPtr managedClass, IntPtr managedAttributeHolderPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_AddMethod")]
-        private static extern void ManagedClass_AddMethod([In] ref ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, IntPtr functionPointer, IntPtr managedAttributeHolderPtr);
+        private static extern void ManagedClass_AddMethod([In] IntPtr managedClass, IntPtr methodNamePtr, Guid guid, IntPtr functionPointer, IntPtr managedAttributeHolderPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_AddProperty")]
-        private static extern void ManagedClass_AddProperty([In] ref ManagedClass managedClass, IntPtr propertyNamePtr, Guid guid, IntPtr managedAttributeHolderPtr);
+        private static extern void ManagedClass_AddProperty([In] IntPtr managedClass, IntPtr propertyNamePtr, Guid guid, IntPtr managedAttributeHolderPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
-        private static extern void ManagedClass_SetNewObjectFunction([In] ref ManagedClass managedClass, IntPtr newObjectFunctionPtr);
+        private static extern void ManagedClass_SetNewObjectFunction([In] IntPtr managedClass, IntPtr newObjectFunctionPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetMarshalObjectFunction")]
-        private static extern void ManagedClass_SetMarshalObjectFunction([In] ref ManagedClass managedClass, IntPtr marshalObjectFunctionPtr);
+        private static extern void ManagedClass_SetMarshalObjectFunction([In] IntPtr managedClass, IntPtr marshalObjectFunctionPtr);
     }
 }

@@ -76,7 +76,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #include <scripting/ScriptingService.hpp>
 

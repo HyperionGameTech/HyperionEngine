@@ -5,20 +5,20 @@
 #include <core/memory/UniquePtr.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
-#include <dotnet/interop/ManagedObject.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 #include <core/Types.hpp>
 
 namespace hyperion::dotnet {
 
-class Class;
+class ManagedClass;
 
 extern "C"
 {
 
     struct ManagedAttribute
     {
-        Class* classPtr;
+        ManagedClass* classPtr;
         ObjectReference objectReference;
     };
 

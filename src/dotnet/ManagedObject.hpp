@@ -10,7 +10,6 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <dotnet/interop/ManagedObject.hpp>
 #include <dotnet/Helpers.hpp>
 
 #include <type_traits>
@@ -31,34 +30,45 @@ HYP_MAKE_ENUM_FLAGS(ObjectFlags)
 
 namespace hyperion::dotnet {
 
-class Class;
-class Object;
+class ManagedClass;
+class ManagedObject;
 class Assembly;
 class Method;
 class Property;
 
+struct ObjectReference
+{
+    void* weakHandle;
+    void* strongHandle;
+
+    bool operator==(const ObjectReference& other) const = default;
+    bool operator!=(const ObjectReference& other) const = default;
+};
+
+static_assert(sizeof(ObjectReference) == 16, "ObjectReference size mismatch with C#");
+
 /*! \brief References a managed object in the .NET runtime.
- *  By default, the managed object this Object is associated with will be allowed to be released by the .NET runtime upon this object's destruction.
+ *  By default, the managed object this ManagedObject is associated with will be allowed to be released by the .NET runtime upon this object's destruction.
  *  To allow the managed object to live beyond the lifetime of this object, use the ObjectFlags::CREATED_FROM_MANAGED flag.
  *
- *  \details To create a new Object, use the Class::NewObject method.
+ *  \details To create a new ManagedObject, use the ManagedClass::NewObject method.
  * */
-class HYP_API Object final
+class HYP_API ManagedObject final
 {
 public:
-    Object();
-    Object(const RC<Class>& classPtr, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags = ObjectFlags::NONE);
+    ManagedObject();
+    ManagedObject(const RC<ManagedClass>& classPtr, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags = ObjectFlags::NONE);
 
-    Object(const Object&) = delete;
-    Object& operator=(const Object&) = delete;
+    ManagedObject(const ManagedObject&) = delete;
+    ManagedObject& operator=(const ManagedObject&) = delete;
 
-    Object(Object&& other) noexcept = delete;
-    Object& operator=(Object&& other) noexcept = delete;
+    ManagedObject(ManagedObject&& other) noexcept = delete;
+    ManagedObject& operator=(ManagedObject&& other) noexcept = delete;
 
     // Destructor frees the managed object unless CREATED_FROM_MANAGED is set.
-    ~Object();
+    ~ManagedObject();
 
-    HYP_FORCE_INLINE const RC<Class>& GetClass() const
+    HYP_FORCE_INLINE const RC<ManagedClass>& GetClass() const
     {
         return m_classPtr;
     }
@@ -111,7 +121,7 @@ public:
     }
 
 private:
-    /*! \brief Reset the Object to an invalid state.
+    /*! \brief Reset the ManagedObject to an invalid state.
      *  This will free the managed object if it is still alive unless the ObjectFlags::CREATED_FROM_MANAGED flag is set.
      * */
     void Reset();
@@ -170,7 +180,7 @@ private:
 
     const Property* GetProperty(UTF8StringView methodName) const;
 
-    RC<Class> m_classPtr;
+    RC<ManagedClass> m_classPtr;
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
     RC<Assembly> m_assembly; // Keep a reference to the assembly to prevent it from being unloaded while this object is alive.
 #else

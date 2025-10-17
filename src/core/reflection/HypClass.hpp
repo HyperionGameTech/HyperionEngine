@@ -20,8 +20,8 @@
 namespace hyperion {
 
 namespace dotnet {
-class Class;
-class Object;
+class ManagedClass;
+class ManagedObject;
 struct ObjectReference;
 } // namespace dotnet
 
@@ -591,14 +591,14 @@ public:
     Array<HypConstant*> GetConstantsInherited() const;
 
 #ifdef HYP_DOTNET
-    HYP_FORCE_INLINE RC<dotnet::Class> GetManagedClass() const
+    HYP_FORCE_INLINE RC<dotnet::ManagedClass> GetManagedClass() const
     {
         Mutex::Guard guard(m_managedClassMutex);
 
         return m_managedClass.Lock();
     }
 
-    HYP_FORCE_INLINE void SetManagedClass(const RC<dotnet::Class>& managedClass) const
+    HYP_FORCE_INLINE void SetManagedClass(const RC<dotnet::ManagedClass>& managedClass) const
     {
         Mutex::Guard guard(m_managedClassMutex);
 
@@ -706,7 +706,7 @@ protected:
 #endif
 
 private:
-    mutable Weak<dotnet::Class> m_managedClass;
+    mutable Weak<dotnet::ManagedClass> m_managedClass;
     mutable Mutex m_managedClassMutex;
 };
 
@@ -926,7 +926,7 @@ class DynamicHypClassInstance final : public HypClass
 {
 public:
 #ifdef HYP_DOTNET
-    DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::Class* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::ManagedClass* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
 #endif
 
 #ifdef HYP_SCRIPT

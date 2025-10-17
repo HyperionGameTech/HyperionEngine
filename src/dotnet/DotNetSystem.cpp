@@ -19,7 +19,7 @@
 #include <system/AppContext.hpp>
 #include <system/App.hpp>
 
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnetcore/hostfxr.h>

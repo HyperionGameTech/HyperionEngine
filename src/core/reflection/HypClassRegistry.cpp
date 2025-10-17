@@ -11,7 +11,7 @@
 #include <core/logging/LogChannels.hpp>
 
 #ifdef HYP_DOTNET
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/DotNetSystem.hpp>
 #endif

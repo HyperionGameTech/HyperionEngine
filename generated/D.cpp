@@ -2,7 +2,7 @@
  * Source: rendering/rt/RenderRaytracingPipeline.hpp
  */
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/reflection/HypClassUtils.hpp>
 /* Generated from: rendering/rt/RenderRaytracingPipeline.hpp */
 
 #include <rendering/rt/RenderRaytracingPipeline.hpp>
@@ -1308,8 +1308,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -1345,7 +1345,7 @@ bool ScriptableSystem::AllowParallelExecution() const
         constexpr HashCode hash_code = HashCode::GetHashCode("AllowParallelExecution");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -1359,7 +1359,7 @@ bool ScriptableSystem::RequiresGameThread() const
         constexpr HashCode hash_code = HashCode::GetHashCode("RequiresGameThread");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -1373,7 +1373,7 @@ bool ScriptableSystem::AllowUpdate() const
         constexpr HashCode hash_code = HashCode::GetHashCode("AllowUpdate");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -1387,7 +1387,7 @@ void ScriptableSystem::OnEntityAdded(Entity * entity)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnEntityAdded");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, entity);
             return;
@@ -1402,7 +1402,7 @@ void ScriptableSystem::OnEntityRemoved(Entity * entity)
         constexpr HashCode hash_code = HashCode::GetHashCode("OnEntityRemoved");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, entity);
             return;
@@ -1417,7 +1417,7 @@ void ScriptableSystem::Init()
         constexpr HashCode hash_code = HashCode::GetHashCode("Init");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -1432,7 +1432,7 @@ void ScriptableSystem::Shutdown()
         constexpr HashCode hash_code = HashCode::GetHashCode("Shutdown");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -1447,7 +1447,7 @@ void ScriptableSystem::Process(float delta)
         constexpr HashCode hash_code = HashCode::GetHashCode("Process");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -1462,7 +1462,7 @@ Array<ComponentInfo> ScriptableSystem::GetComponentInfos() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetComponentInfos");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Array<ComponentInfo>>(method_ptr);
         }
@@ -1606,21 +1606,6 @@ HYP_BEGIN_CLASS(PerspectiveCameraController, 185, 4, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion PerspectiveCameraController Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: scene/camera/CameraTrackController.hpp */
-
-#include <scene/camera/CameraTrackController.hpp>
-
-namespace hyperion {
-
-#pragma region CameraTrackController Reflection Data
-
-HYP_BEGIN_CLASS(CameraTrackController, 186, 0, NAME("PerspectiveCameraController"))
-HYP_END_CLASS
-
-#pragma endregion CameraTrackController Reflection Data
 
 } // namespace hyperion
 

@@ -2,7 +2,7 @@
  * Source: rendering/Shared.hpp
  */
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/reflection/HypClassUtils.hpp>
 /* Generated from: rendering/Shared.hpp */
 
 #include <rendering/Shared.hpp>

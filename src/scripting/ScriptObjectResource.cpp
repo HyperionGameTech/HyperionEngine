@@ -9,8 +9,8 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
@@ -25,7 +25,7 @@ HYP_DECLARE_LOG_CHANNEL(Object);
 
 ScriptObjectResource::ScriptObjectResource() = default;
 
-ScriptObjectResource::ScriptObjectResource(dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass)
+ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
 {
 #ifdef HYP_DOTNET
     ScriptObjectData_DotNet& data = m_scriptObjectData.Emplace<ScriptObjectData_DotNet>();
@@ -34,12 +34,12 @@ ScriptObjectResource::ScriptObjectResource(dotnet::Object* objectPtr, const RC<d
 #endif
 }
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass)
+ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass)
     : ScriptObjectResource(ptr, managedClass, {}, ObjectFlags::NONE)
 {
 }
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass)
+ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
@@ -49,7 +49,7 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, dotnet::Object* obj
 #endif
 }
 
-ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
+ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_ptr(ptr)
 {
 #ifdef HYP_DOTNET
@@ -63,7 +63,7 @@ ScriptObjectResource::ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Cl
 
         if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)
         {
-            data.objectPtr = new dotnet::Object(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
+            data.objectPtr = new dotnet::ManagedObject(managedClass->RefCountedPtrFromThis(), objectReference, ObjectFlags::CREATED_FROM_MANAGED);
         }
         else
         {
@@ -176,7 +176,7 @@ void ScriptObjectResource::Initialize()
 
         if (dotNetData->managedClass)
         {
-            dotnet::Object* newManagedObject = dotNetData->managedClass->NewObject(hypClass, m_ptr.GetPointer());
+            dotnet::ManagedObject* newManagedObject = dotNetData->managedClass->NewObject(hypClass, m_ptr.GetPointer());
 
             if (!newManagedObject)
             {

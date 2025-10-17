@@ -1,17 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
 namespace hyperion::dotnet {
 
-Class::~Class() = default;
+ManagedClass::~ManagedClass() = default;
 
-RC<Assembly> Class::GetAssembly() const
+RC<Assembly> ManagedClass::GetAssembly() const
 {
     RC<Assembly> assembly = m_assembly.Lock();
 
@@ -23,37 +23,37 @@ RC<Assembly> Class::GetAssembly() const
     return assembly;
 }
 
-Object* Class::NewObject()
+ManagedObject* ManagedClass::NewObject()
 {
     Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
     ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, nullptr, nullptr, nullptr, nullptr);
 
-    return new Object(RefCountedPtrFromThis(), objectReference);
+    return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
 
-Object* Class::NewObject(const HypClass* hypClass, void* owningObjectPtr)
+ManagedObject* ManagedClass::NewObject(const HypClass* hypClass, void* pOwner)
 {
     Assert(hypClass != nullptr);
-    Assert(owningObjectPtr != nullptr);
+    Assert(pOwner != nullptr);
 
     Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
-    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, hypClass, owningObjectPtr, nullptr, nullptr);
+    ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, hypClass, pOwner, nullptr, nullptr);
 
-    return new Object(RefCountedPtrFromThis(), objectReference);
+    return new ManagedObject(RefCountedPtrFromThis(), objectReference);
 }
 
-ObjectReference Class::NewManagedObject(void* contextPtr, InitializeObjectCallbackFunction callback)
+ObjectReference ManagedClass::NewManagedObject(void* contextPtr, InitializeObjectCallbackFunction callback)
 {
     Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
     return m_newObjectFptr(/* keepAlive */ false, nullptr, nullptr, contextPtr, callback);
 }
 
-bool Class::HasParentClass(UTF8StringView parentClassName) const
+bool ManagedClass::HasParentClass(UTF8StringView parentClassName) const
 {
-    const Class* parentClass = m_parentClass;
+    const ManagedClass* parentClass = m_parentClass;
 
     while (parentClass)
     {
@@ -68,9 +68,9 @@ bool Class::HasParentClass(UTF8StringView parentClassName) const
     return false;
 }
 
-bool Class::HasParentClass(const Class* parentClass) const
+bool ManagedClass::HasParentClass(const ManagedClass* parentClass) const
 {
-    const Class* currentParentClass = m_parentClass;
+    const ManagedClass* currentParentClass = m_parentClass;
 
     while (currentParentClass)
     {
@@ -85,7 +85,7 @@ bool Class::HasParentClass(const Class* parentClass) const
     return false;
 }
 
-void Class::InvokeStaticMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
+void ManagedClass::InvokeStaticMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
 {
     RC<Assembly> assembly = m_assembly.Lock();
 

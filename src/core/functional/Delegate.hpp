@@ -26,7 +26,7 @@
 namespace hyperion {
 
 namespace dotnet {
-class Object;
+class ManagedObject;
 } // namespace dotnet
 
 namespace functional {

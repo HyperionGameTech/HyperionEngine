@@ -112,9 +112,9 @@ namespace Hyperion
                 IntPtr objectWrapperPtr = (IntPtr)Unsafe.AsPointer(ref objectWrapper);
                 IntPtr objectReferencePtr = (IntPtr)Unsafe.AsPointer(ref objectReference);
 
-                IntPtr classObjectPtr = IntPtr.Zero;
+                IntPtr pClass = IntPtr.Zero;
 
-                NativeInterop_AddObjectToCache(objectWrapperPtr, out classObjectPtr, objectReferencePtr, isWeak: true);
+                NativeInterop_AddObjectToCache(objectWrapperPtr, out pClass, objectReferencePtr, isWeak: true);
 
 #if DEBUG
                 if (!objectReference.IsValid)
@@ -123,7 +123,7 @@ namespace Hyperion
                 }
 #endif
 
-                IntPtr delegateHandlerPtr = ScriptableDelegate_Bind(ptr, classObjectPtr, objectReferencePtr);
+                IntPtr delegateHandlerPtr = ScriptableDelegate_Bind(ptr, pClass, objectReferencePtr);
 
                 return new DelegateHandler(delegateHandlerPtr);
             }
@@ -159,7 +159,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ScriptableDelegate_Bind")]
-        private static extern IntPtr ScriptableDelegate_Bind([In] IntPtr ptr, [In] IntPtr classObjectPtr, [In] IntPtr objectReferencePtr);
+        private static extern IntPtr ScriptableDelegate_Bind([In] IntPtr ptr, [In] IntPtr pClass, [In] IntPtr objectReferencePtr);
 
         [DllImport("hyperion", EntryPoint = "ScriptableDelegate_RemoveAllDetached")]
         private static extern int ScriptableDelegate_RemoveAllDetached([In] IntPtr ptr);

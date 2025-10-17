@@ -37,8 +37,8 @@ struct ScriptObjectData_DotNet final
 {
     static constexpr ScriptLanguage Language = SL_CSHARP;
 
-    dotnet::Object* objectPtr = nullptr;
-    RC<dotnet::Class> managedClass = nullptr;
+    dotnet::ManagedObject* objectPtr = nullptr;
+    RC<dotnet::ManagedClass> managedClass = nullptr;
 };
 
 #endif
@@ -57,10 +57,10 @@ class HYP_API ScriptObjectResource final : public ResourceBase
 {
 public:
     ScriptObjectResource();
-    ScriptObjectResource(dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass);
-    ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass);
-    ScriptObjectResource(HypObjectPtr ptr, dotnet::Object* objectPtr, const RC<dotnet::Class>& managedClass);
-    ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
+    ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(HypObjectPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
+    ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
     ScriptObjectResource(Script_Instance* hypScriptInstance, HypData&& hypScriptValue);
@@ -76,7 +76,7 @@ public:
 
     ScriptLanguage GetScriptLanguage() const;
 
-    HYP_FORCE_INLINE dotnet::Object* GetManagedObject() const
+    HYP_FORCE_INLINE dotnet::ManagedObject* GetManagedObject() const
     {
 #ifdef HYP_DOTNET
         if (ScriptObjectData_DotNet* data = GetScriptObjectData_DotNet())
@@ -88,7 +88,7 @@ public:
         return nullptr;
     }
 
-    const RC<dotnet::Class> GetManagedClass() const
+    const RC<dotnet::ManagedClass> GetManagedClass() const
     {
 #ifdef HYP_DOTNET
         if (ScriptObjectData_DotNet* data = GetScriptObjectData_DotNet())

@@ -41,7 +41,7 @@ struct WeakHandle;
 
 #ifdef HYP_DOTNET
 namespace dotnet {
-class Class;
+class ManagedClass;
 } // namespace dotnet
 #endif
 
@@ -113,7 +113,7 @@ public:
     }
 
 #ifdef HYP_DOTNET
-    dotnet::Object* GetManagedObject() const;
+    dotnet::ManagedObject* GetManagedObject() const;
 #endif
 #endif
 

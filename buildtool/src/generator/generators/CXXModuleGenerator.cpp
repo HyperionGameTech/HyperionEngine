@@ -282,8 +282,8 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         {
             addInclude("scripting/ScriptObjectResource.hpp");
             writer.WriteString("\n");
-            addInclude("dotnet/Object.hpp");
-            addInclude("dotnet/Class.hpp");
+            addInclude("dotnet/ManagedObject.hpp");
+            addInclude("dotnet/ManagedClass.hpp");
             addInclude("dotnet/Method.hpp");
         }
 
@@ -492,7 +492,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
                         writer.WriteString("            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);\n");
-                        writer.WriteString("            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();\n");
+                        writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
                         writer.WriteString("\n");
                         writer.WriteString(HYP_FORMAT("            managed_object->InvokeMethod<void>(method_ptr{});\n", methodArgsStringCall.Any() ? ", " + methodArgsStringCall : ""));
                         writer.WriteString("            return;\n");
@@ -512,7 +512,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
                         writer.WriteString("            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);\n");
-                        writer.WriteString("            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();\n");
+                        writer.WriteString("            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();\n");
                         writer.WriteString("\n");
                         writer.WriteString(HYP_FORMAT("            return managed_object->InvokeMethod<{}>(method_ptr{});\n", returnTypeString, methodArgsStringCall.Any() ? ", " + methodArgsStringCall : ""));
                         writer.WriteString("        }\n");

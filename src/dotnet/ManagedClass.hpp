@@ -17,8 +17,8 @@
 #include <dotnet/Method.hpp>
 #include <dotnet/Property.hpp>
 #include <dotnet/Attribute.hpp>
+#include <dotnet/ManagedObject.hpp>
 
-#include <dotnet/interop/ManagedObject.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
 
 namespace hyperion {
@@ -40,32 +40,27 @@ HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)
 } // namespace hyperion
 
 namespace hyperion::dotnet {
-class Object;
-class Class;
+class ManagedObject;
+class ManagedClass;
 class Assembly;
 
-extern "C"
+struct ManagedClassDesc
 {
+    int32 typeHash;
+    ManagedClass* pClass;
+    ManagedGuid assemblyGuid;
+    ManagedGuid newObjectGuid;
+    ManagedGuid freeObjectGuid;
+    ManagedGuid marshalObjectGuid;
+    uint32 flags;
+};
 
-    struct ManagedClass
-    {
-        int32 typeHash;
-        Class* classObject;
-        ManagedGuid assemblyGuid;
-        ManagedGuid newObjectGuid;
-        ManagedGuid freeObjectGuid;
-        ManagedGuid marshalObjectGuid;
-        uint32 flags;
-    };
-
-} // extern "C"
-
-class HYP_API Class : public EnableRefCountedPtrFromThis<Class>
+class HYP_API ManagedClass : public EnableRefCountedPtrFromThis<ManagedClass>
 {
 public:
     /*! \brief Function to create a new object of this class.
      *  If keepAlive is true, the object will have a strong GCHandle allocated for it, and it will not be collected by the .NET runtime
-     *  until the object is released via \ref{Class::~Class}.
+     *  until the object is released via \ref{ManagedClass::~ManagedClass}.
      *  If false, only a weak GCHandle will be created.
      *
      *  If hypClass is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
@@ -76,7 +71,7 @@ public:
     using NewObjectFunction = ObjectReference (*)(bool keepAlive, const HypClass* hypClass, void* nativeObjectPtr, void* contextPtr, InitializeObjectCallbackFunction callback);
     using MarshalObjectFunction = ObjectReference (*)(const void* intptr, uint32 size);
 
-    Class(const Weak<Assembly>& assembly, String name, uint32 size, TypeId typeId, const HypClass* hypClass, Class* parentClass, EnumFlags<ManagedClassFlags> flags)
+    ManagedClass(const Weak<Assembly>& assembly, String name, uint32 size, TypeId typeId, const HypClass* hypClass, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
         : m_assembly(assembly),
           m_name(std::move(name)),
           m_size(size),
@@ -89,11 +84,11 @@ public:
     {
     }
 
-    Class(const Class&) = delete;
-    Class& operator=(const Class&) = delete;
-    Class(Class&&) noexcept = delete;
-    Class& operator=(Class&&) noexcept = delete;
-    ~Class();
+    ManagedClass(const ManagedClass&) = delete;
+    ManagedClass& operator=(const ManagedClass&) = delete;
+    ManagedClass(ManagedClass&&) noexcept = delete;
+    ManagedClass& operator=(ManagedClass&&) noexcept = delete;
+    ~ManagedClass();
 
     HYP_FORCE_INLINE const String& GetName() const
     {
@@ -115,7 +110,7 @@ public:
         return m_hypClass;
     }
 
-    HYP_FORCE_INLINE Class* GetParentClass() const
+    HYP_FORCE_INLINE ManagedClass* GetParentClass() const
     {
         return m_parentClass;
     }
@@ -325,7 +320,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD Object* NewObject();
+    HYP_NODISCARD ManagedObject* NewObject();
 
     /*! \brief Create a new managed object of this class.
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
@@ -333,7 +328,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD Object* NewObject(const HypClass* hypClass, void* owningObjectPtr);
+    HYP_NODISCARD ManagedObject* NewObject(const HypClass* hypClass, void* pOwner);
 
     /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
      *  A struct containing the object's GUID and .NET object address will be returned.
@@ -356,7 +351,7 @@ public:
      *
      *  \return True if this class has the parent class, otherwise false.
      */
-    bool HasParentClass(const Class* parentClass) const;
+    bool HasParentClass(const ManagedClass* parentClass) const;
 
     template <class ReturnType, class... Args>
     ReturnType InvokeStaticMethod(UTF8StringView methodName, Args&&... args)
@@ -421,7 +416,7 @@ private:
     uint32 m_size;
     TypeId m_typeId;
     const HypClass* m_hypClass;
-    Class* m_parentClass;
+    ManagedClass* m_parentClass;
     EnumFlags<ManagedClassFlags> m_flags;
     HashMap<String, Method> m_methods;
     HashMap<String, Property> m_properties;

@@ -11,8 +11,8 @@
 
 #include <asset/ScriptAsset.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
@@ -46,7 +46,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     {
         AssertDebug(sor->GetManagedObject() != nullptr);
 
-        if (dotnet::Class* classPtr = sor->GetManagedObject()->GetClass())
+        if (dotnet::ManagedClass* classPtr = sor->GetManagedObject()->GetClass())
         {
             if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
             {
@@ -190,7 +190,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 }
             }
 
-            if (RC<dotnet::Class> classPtr = scriptComponent.assembly->FindClassByName(scriptData->className.Data()))
+            if (RC<dotnet::ManagedClass> classPtr = scriptComponent.assembly->FindClassByName(scriptData->className.Data()))
             {
                 HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
 
@@ -201,7 +201,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     return;
                 }
 
-                dotnet::Object* object = classPtr->NewObject();
+                dotnet::ManagedObject* object = classPtr->NewObject();
                 Assert(object != nullptr);
 
                 sor = AllocateResource<ScriptObjectResource>(object, classPtr);

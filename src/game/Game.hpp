@@ -25,7 +25,7 @@ namespace hyperion {
 
 namespace dotnet {
 class Assembly;
-class Object;
+class ManagedObject;
 } // namespace dotnet
 
 class UISubsystem;
@@ -73,7 +73,7 @@ protected:
     Handle<UISubsystem> m_uiSubsystem;
 
     RC<dotnet::Assembly> m_managedAssembly;
-    dotnet::Object* m_managedGameObject;
+    dotnet::ManagedObject* m_managedGameObject;
 
     Handle<World> m_world;
 

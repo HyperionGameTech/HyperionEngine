@@ -87,10 +87,10 @@ public:
         scriptComponent->scriptObjectResource->IncRef();
         HYP_DEFER({ scriptComponent->scriptObjectResource->DecRef(); });
 
-        dotnet::Object* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
+        dotnet::ManagedObject* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
         Assert(managedObject != nullptr);
 
-        if (dotnet::Class* classPtr = managedObject->GetClass())
+        if (dotnet::ManagedClass* classPtr = managedObject->GetClass())
         {
             if (dotnet::Method* methodPtr = classPtr->GetMethod(m_methodName))
             {

@@ -2,7 +2,7 @@
  * Source: <no source file>
  */
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/reflection/HypClassUtils.hpp>
 
 namespace hyperion {
 
@@ -262,8 +262,8 @@ HYP_END_CLASS
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Method.hpp>
 
 namespace hyperion {
@@ -286,7 +286,7 @@ TypeId UIElementFactoryBase::GetElementTypeId() const
         constexpr HashCode hash_code = HashCode::GetHashCode("GetElementTypeId");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<TypeId>(method_ptr);
         }
@@ -300,7 +300,7 @@ Handle<UIObject> UIElementFactoryBase::CreateUIObject(UIObject * parent, const H
         constexpr HashCode hash_code = HashCode::GetHashCode("CreateUIObject");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<Handle<UIObject>>(method_ptr, parent, value, context);
         }
@@ -314,7 +314,7 @@ void UIElementFactoryBase::UpdateUIObject(UIObject * uiObject, const HypData & v
         constexpr HashCode hash_code = HashCode::GetHashCode("UpdateUIObject");
         if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, uiObject, value, context);
             return;

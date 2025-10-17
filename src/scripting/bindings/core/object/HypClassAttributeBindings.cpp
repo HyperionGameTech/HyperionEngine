@@ -4,7 +4,7 @@
 
 #include <core/Name.hpp>
 
-#include <dotnet/Object.hpp>
+#include <dotnet/ManagedObject.hpp>
 
 #include <core/Types.hpp>
 

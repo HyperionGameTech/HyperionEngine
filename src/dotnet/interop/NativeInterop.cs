@@ -204,7 +204,7 @@ namespace Hyperion
 
                 Type attributeType = attribute.GetType();
 
-                IntPtr attributeManagedClassObjectPtr = InitManagedClass(attributeType, isCoreAssembly: false);
+                IntPtr pClass = InitManagedClass(attributeType, isCoreAssembly: false);
 
                 ObjectReference attributeObjectReference = new ObjectReference {
                     weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(attribute, GCHandleType.Weak)),
@@ -212,7 +212,7 @@ namespace Hyperion
                 };
 
                 ref ManagedAttribute managedAttribute = ref Unsafe.AsRef<ManagedAttribute>((void*)(managedAttributeHolder.managedAttributesPtr + (i * Marshal.SizeOf<ManagedAttribute>())));
-                managedAttribute.classObjectPtr = attributeManagedClassObjectPtr;
+                managedAttribute.pClass = pClass;
                 managedAttribute.objectReference = attributeObjectReference;
             }
 
@@ -335,7 +335,7 @@ namespace Hyperion
 
             Logger.Log(LogType.Debug, "Initializing managed class for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
 
-            ManagedClass managedClass = new ManagedClass();
+            ManagedClassDesc managedClassDesc = new ManagedClassDesc();
 
             string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
@@ -437,12 +437,12 @@ namespace Hyperion
                 managedClassFlags |= ManagedClassFlags.Abstract;
             }
 
-            ManagedClass_Create(ref assemblyGuid, assemblyPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
+            ManagedClass_Create(ref assemblyGuid, assemblyPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClassDesc);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
             ManagedAttributeHolder managedAttributeHolder = AllocAttributeHolder(assemblyGuid, assemblyPtr, type.GetCustomAttributes().ToArray());
-            managedClass.SetAttributes(ref managedAttributeHolder);
+            managedClassDesc.SetAttributes(ref managedAttributeHolder);
             managedAttributeHolder.Dispose();
             
             foreach (var item in CollectMethods(type))
@@ -505,7 +505,7 @@ namespace Hyperion
                 IntPtr functionPointer = Marshal.GetFunctionPointerForDelegate(invokeMethodDelegate);
                 ManagedMethodCache.Instance.Add(assemblyGuid, methodGuid, methodInfo, invokeMethodDelegate);
 
-                managedClass.AddMethod(item.Key, methodGuid, functionPointer, ref managedAttributeHolder);
+                managedClassDesc.AddMethod(item.Key, methodGuid, functionPointer, ref managedAttributeHolder);
 
                 managedAttributeHolder.Dispose();
             }
@@ -517,7 +517,7 @@ namespace Hyperion
                 managedAttributeHolder = AllocAttributeHolder(assemblyGuid, assemblyPtr, propertyInfo.GetCustomAttributes(false));
 
                 Guid propertyGuid = Guid.NewGuid();
-                managedClass.AddProperty(item.Key, propertyGuid, ref managedAttributeHolder);
+                managedClassDesc.AddProperty(item.Key, propertyGuid, ref managedAttributeHolder);
 
                 BasicCache<PropertyInfo>.Instance.Add(assemblyGuid, propertyGuid, propertyInfo);
 
@@ -525,7 +525,7 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            managedClass.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
+            managedClassDesc.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
@@ -590,7 +590,7 @@ namespace Hyperion
                 };
             }));
 
-            managedClass.SetMarshalObjectFunction(assemblyGuid, new MarshalObjectDelegate((IntPtr ptr, uint size) =>
+            managedClassDesc.SetMarshalObjectFunction(assemblyGuid, new MarshalObjectDelegate((IntPtr ptr, uint size) =>
             {
                 if (ptr == IntPtr.Zero)
                     throw new ArgumentNullException(nameof(ptr));
@@ -608,7 +608,7 @@ namespace Hyperion
                 };
             }));
 
-            return managedClass.ClassObjectPtr;
+            return managedClassDesc.ClassObjectPtr;
         }
 
         private static unsafe void HandleParameters(IntPtr argsHypDataPtr, MethodInfo methodInfo, out object[] parameters)
@@ -756,13 +756,13 @@ namespace Hyperion
             IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
 
             // ManagedClass must be registered for the given object's type.
-            IntPtr classObjectPtr;
-            if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out classObjectPtr))
+            IntPtr pClass;
+            if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out pClass))
             {
                 throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
             }
 
-            Marshal.WriteIntPtr(outClassObjectPtr, classObjectPtr);
+            Marshal.WriteIntPtr(outClassObjectPtr, pClass);
 
             GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
             GCHandle? gcHandleStrong = null;
@@ -872,7 +872,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClassDesc outDesc);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -885,7 +885,7 @@ namespace Hyperion
         private static extern IntPtr HypClass_GetClassByTypeId([In] ref TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassForManagedClass")]
-        private static extern IntPtr HypClass_GetClassForManagedClass([In] IntPtr classObjectPtr);
+        private static extern IntPtr HypClass_GetClassForManagedClass([In] IntPtr pClass);
 
         [DllImport("hyperion", EntryPoint = "HypClass_CreateDynamicHypClass")]
         private static extern IntPtr HypClass_CreateDynamicHypClass([In] ref TypeId typeId, [MarshalAs(UnmanagedType.LPStr)] string name, [In] IntPtr parentHypClassClassPtr);

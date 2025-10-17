@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <dotnet/Object.hpp>
-#include <dotnet/Class.hpp>
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
@@ -10,7 +10,7 @@
 
 namespace hyperion::dotnet {
 
-Object::Object()
+ManagedObject::ManagedObject()
     : m_classPtr(nullptr),
       m_objectReference { nullptr, nullptr },
       m_objectFlags(ObjectFlags::NONE),
@@ -18,7 +18,7 @@ Object::Object()
 {
 }
 
-Object::Object(const RC<Class>& classPtr, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags)
+ManagedObject::ManagedObject(const RC<ManagedClass>& classPtr, ObjectReference objectReference, EnumFlags<ObjectFlags> objectFlags)
     : m_classPtr(classPtr),
       m_objectReference(objectReference),
       m_objectFlags(objectFlags),
@@ -46,12 +46,12 @@ Object::Object(const RC<Class>& classPtr, ObjectReference objectReference, EnumF
     }
 }
 
-Object::~Object()
+ManagedObject::~ManagedObject()
 {
     Reset();
 }
 
-void Object::Reset()
+void ManagedObject::Reset()
 {
     if (IsValid() && m_keepAlive.Get(MemoryOrder::ACQUIRE))
     {
@@ -65,7 +65,7 @@ void Object::Reset()
     m_keepAlive.Set(false, MemoryOrder::RELEASE);
 }
 
-void Object::InvokeMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
+void ManagedObject::InvokeMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
 {
     Assert(IsValid());
 
@@ -80,7 +80,7 @@ void Object::InvokeMethod_Internal(const Method* methodPtr, const HypData** args
     methodPtr->Invoke(&m_objectReference, argsHypData, outReturnHypData);
 }
 
-const Method* Object::GetMethod(UTF8StringView methodName) const
+const Method* ManagedObject::GetMethod(UTF8StringView methodName) const
 {
     if (!IsValid())
     {
@@ -97,7 +97,7 @@ const Method* Object::GetMethod(UTF8StringView methodName) const
     return &it->second;
 }
 
-const Property* Object::GetProperty(UTF8StringView propertyName) const
+const Property* ManagedObject::GetProperty(UTF8StringView propertyName) const
 {
     if (!IsValid())
     {
@@ -114,7 +114,7 @@ const Property* Object::GetProperty(UTF8StringView propertyName) const
     return &it->second;
 }
 
-bool Object::SetKeepAlive(bool keepAlive)
+bool ManagedObject::SetKeepAlive(bool keepAlive)
 {
     if (!IsValid())
     {
