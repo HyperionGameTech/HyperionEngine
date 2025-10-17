@@ -35,11 +35,11 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/String.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypDataJSONHelpers.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypDataJSONHelpers.hpp>
 
 #include <core/functional/Delegate.hpp>
 

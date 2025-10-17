@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>

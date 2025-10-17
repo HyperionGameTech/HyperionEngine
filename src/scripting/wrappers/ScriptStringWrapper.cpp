@@ -3,8 +3,8 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/String.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClassUtils.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/debug/Debug.hpp>
 

@@ -4,14 +4,14 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypConstant.hpp>
-#include <core/object/HypDataJSONHelpers.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypConstant.hpp>
+#include <core/reflection/HypDataJSONHelpers.hpp>
 
 #include <core/utilities/Format.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>

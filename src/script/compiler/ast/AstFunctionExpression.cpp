@@ -26,7 +26,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/object/HypMethod.hpp>
+#include <core/reflection/HypMethod.hpp>
 
 #include <core/debug/Debug.hpp>
 

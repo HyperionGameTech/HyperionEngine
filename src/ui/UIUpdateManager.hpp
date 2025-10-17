@@ -5,7 +5,7 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/IdGenerator.hpp>
 #include <ui/UIObject.hpp>

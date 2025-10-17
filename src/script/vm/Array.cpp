@@ -1,6 +1,6 @@
 #include <script/vm/Array.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 namespace hyperion {
 

@@ -4,7 +4,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <rendering/Buffers.hpp>
 

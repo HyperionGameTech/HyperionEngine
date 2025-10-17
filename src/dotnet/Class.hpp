@@ -12,7 +12,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <dotnet/Method.hpp>
 #include <dotnet/Property.hpp>

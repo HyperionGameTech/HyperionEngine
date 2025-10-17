@@ -13,7 +13,7 @@
 
 #include <core/math/BoundingBox.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -42,4 +42,3 @@ private:
 };
 
 } // namespace hyperion
-

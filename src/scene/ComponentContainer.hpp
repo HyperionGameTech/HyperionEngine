@@ -7,7 +7,7 @@
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/utilities/Optional.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
@@ -15,9 +15,9 @@
 
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
-#include <core/object/ObjId.hpp>
+#include <core/reflection/ObjId.hpp>
 #include <core/Util.hpp>
 
 namespace hyperion {

@@ -6,13 +6,13 @@
 #include <script/vm/GC.hpp>
 #include <script/vm/Exception.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypClass.hpp>
-#include <core/object/HypMember.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypMethod.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypMember.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
 
@@ -20,7 +20,7 @@
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/debug/Debug.hpp>
 #include <core/HashCode.hpp>

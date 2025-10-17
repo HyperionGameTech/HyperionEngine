@@ -9,7 +9,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>

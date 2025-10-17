@@ -6,7 +6,7 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Ray.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/HashCode.hpp>
 

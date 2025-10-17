@@ -2,9 +2,9 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 namespace hyperion {
 namespace memory {

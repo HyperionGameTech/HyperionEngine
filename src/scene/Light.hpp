@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Bitset.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/Color.hpp>
 #include <core/math/Vector3.hpp>

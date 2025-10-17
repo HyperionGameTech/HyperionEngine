@@ -7,7 +7,7 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/Transform.hpp>
 

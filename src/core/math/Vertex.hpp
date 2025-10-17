@@ -16,7 +16,7 @@
 #include <core/math/Vector3.hpp>
 #include <core/math/Transform.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/Defines.hpp>
 #include <core/HashCode.hpp>

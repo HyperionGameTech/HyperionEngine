@@ -10,7 +10,7 @@
 #include <core/io/BufferedByteReader.hpp>
 #include <core/io/ByteWriter.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/memory/Memory.hpp>
 

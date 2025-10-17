@@ -25,9 +25,9 @@
 
 #include <core/threading/Task.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
-#include <core/object/HypProperty.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypProperty.hpp>
 
 #include <core/logging/Logger.hpp>
 

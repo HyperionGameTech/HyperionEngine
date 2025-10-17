@@ -4,7 +4,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
 #include <core/math/BoundingBox.hpp>

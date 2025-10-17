@@ -13,7 +13,7 @@
 #include <core/debug/Debug.hpp>
 
 // for EnumToString
-#include <core/object/HypEnum.hpp>
+#include <core/reflection/HypEnum.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -277,9 +277,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
             { { TF_R10G10B10A2, TF_R11G11B10F, TF_RGBA16F } },
             [this](VkSurfaceFormatKHR format)
             {
-                if (format.colorSpace != VK_COLOR_SPACE_HDR10_ST2084_EXT &&
-                    format.colorSpace != VK_COLOR_SPACE_BT2020_LINEAR_EXT &&
-                    format.colorSpace != VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
+                if (format.colorSpace != VK_COLOR_SPACE_HDR10_ST2084_EXT && format.colorSpace != VK_COLOR_SPACE_BT2020_LINEAR_EXT && format.colorSpace != VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
                 {
                     return false;
                 }

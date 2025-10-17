@@ -6,7 +6,7 @@
 #include <core/Constants.hpp>
 #include <core/Traits.hpp>
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <type_traits>
 #include <bit>

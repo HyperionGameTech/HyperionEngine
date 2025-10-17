@@ -3,8 +3,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <scene/Node.hpp>
 
@@ -30,7 +30,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
     HYP_NAMED_SCOPE("TransformEditorPropertyPanel::Build");
 
     Assert(hypData.IsValid());
-    
+
     const Handle<Node>& node = hypData.Get<Handle<Node>>();
     Assert(node != nullptr);
 
@@ -39,26 +39,26 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
 
     HypData resultData = property->Get(hypData);
     Assert(resultData.IsValid());
-    
+
     Transform transform = resultData.Get<Transform>();
     m_currentValue = std::move(resultData);
-    
+
     OnValueChange
         .Bind([nodeWeak = node.ToWeak(), property](const HypData& value) -> UIEventHandlerResult
-        {
-            Handle<Node> node = nodeWeak.Lock();
-            if (!node)
             {
-                return UIEventHandlerResult::ERR;
-            }
-            
-            NodeUnlockTransformScope scope(*node);
-            
-            HypData targetData(node.ToRef());
-            property->Set(targetData, value);
-            
-            return UIEventHandlerResult::OK;
-        })
+                Handle<Node> node = nodeWeak.Lock();
+                if (!node)
+                {
+                    return UIEventHandlerResult::ERR;
+                }
+
+                NodeUnlockTransformScope scope(*node);
+
+                HypData targetData(node.ToRef());
+                property->Set(targetData, value);
+
+                return UIEventHandlerResult::OK;
+            })
         .Detach();
 
     Handle<UIGrid> grid = CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
@@ -78,22 +78,22 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
         {
             Handle<UIObject> translationElement = factory->CreateUIObject(this, HypData(transform.GetTranslation()), {});
-            
+
             AddDelegateHandler(translationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
-            {
-                Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
-                if (!strongThis)
                 {
+                    Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
+                    if (!strongThis)
+                    {
+                        return UIEventHandlerResult::OK;
+                    }
+
+                    Transform currentValue = GetCurrentValue().Get<Transform>();
+                    currentValue.SetTranslation(value.Get<Vec3f>());
+                    SetCurrentValue(HypData(currentValue));
+
                     return UIEventHandlerResult::OK;
-                }
-                
-                Transform currentValue = GetCurrentValue().Get<Transform>();
-                currentValue.SetTranslation(value.Get<Vec3f>());
-                SetCurrentValue(HypData(currentValue));
-                
-                return UIEventHandlerResult::OK;
-            }));
-            
+                }));
+
             translationValueColumn->AddChildUIObject(translationElement);
         }
     }
@@ -112,22 +112,22 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Quaternion>())
         {
             Handle<UIObject> rotationElement = factory->CreateUIObject(this, HypData(transform.GetRotation()), {});
-            
+
             AddDelegateHandler(rotationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
-            {
-                Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
-                if (!strongThis)
                 {
+                    Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
+                    if (!strongThis)
+                    {
+                        return UIEventHandlerResult::OK;
+                    }
+
+                    Transform currentValue = GetCurrentValue().Get<Transform>();
+                    currentValue.SetRotation(value.Get<Quaternion>());
+                    SetCurrentValue(HypData(currentValue));
+
                     return UIEventHandlerResult::OK;
-                }
-                
-                Transform currentValue = GetCurrentValue().Get<Transform>();
-                currentValue.SetRotation(value.Get<Quaternion>());
-                SetCurrentValue(HypData(currentValue));
-                
-                return UIEventHandlerResult::OK;
-            }));
-            
+                }));
+
             rotationValueColumn->AddChildUIObject(rotationElement);
         }
     }
@@ -146,22 +146,22 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
         if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
         {
             Handle<UIObject> scaleElement = factory->CreateUIObject(this, HypData(transform.GetScale()), {});
-            
+
             AddDelegateHandler(scaleElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
-            {
-                Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
-                if (!strongThis)
                 {
+                    Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
+                    if (!strongThis)
+                    {
+                        return UIEventHandlerResult::OK;
+                    }
+
+                    Transform currentValue = GetCurrentValue().Get<Transform>();
+                    currentValue.SetScale(value.Get<Vec3f>());
+                    SetCurrentValue(HypData(currentValue));
+
                     return UIEventHandlerResult::OK;
-                }
-                
-                Transform currentValue = GetCurrentValue().Get<Transform>();
-                currentValue.SetScale(value.Get<Vec3f>());
-                SetCurrentValue(HypData(currentValue));
-                
-                return UIEventHandlerResult::OK;
-            }));
-            
+                }));
+
             scaleValueColumn->AddChildUIObject(scaleElement);
         }
     }

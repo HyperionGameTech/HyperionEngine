@@ -2,7 +2,7 @@
 
 #include <core/serialization/fbom/FBOMBaseTypes.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 namespace hyperion::serialization {
 

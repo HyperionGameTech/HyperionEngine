@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/utilities/UserData.hpp>
 #include <core/utilities/Uuid.hpp>

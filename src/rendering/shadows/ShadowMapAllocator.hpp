@@ -9,7 +9,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/IdGenerator.hpp>
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <util/AtlasPacker.hpp>
 

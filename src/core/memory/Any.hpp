@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/utilities/TypeInfoFwd.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
+#include <core/reflection/TypeId.hpp>
 #include <core/utilities/ByteUtil.hpp>
 
 #include <core/memory/AnyRef.hpp>

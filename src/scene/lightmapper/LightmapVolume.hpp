@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/BoundingBox.hpp>
 
 #include <core/utilities/Uuid.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <scene/Entity.hpp>
 

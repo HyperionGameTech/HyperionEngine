@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/object/HypConstant.hpp>
+#include <core/reflection/HypConstant.hpp>
 
 #include <core/Name.hpp>
 

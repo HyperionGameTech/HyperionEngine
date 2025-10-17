@@ -15,7 +15,7 @@
 #include <scene/animation/Skeleton.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/utilities/TypeId.hpp>
-#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/reflection/TypeId.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -23,8 +23,8 @@
 #include <core/math/Mat4f.hpp>
 #include <core/math/Quaternion.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <scene/ComponentFactory.hpp>
 #include <scene/ComponentContainer.hpp>

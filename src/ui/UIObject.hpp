@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>

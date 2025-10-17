@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/math/Ray.hpp>
 
@@ -186,18 +186,18 @@ public:
     /*! \brief Get the Viewport of this View.
      *  Thread-safe but only callable from the Game thread or Render thread as it is buffered over multiple frames. */
     const Viewport& GetViewport() const;
-    
+
     /*! \brief Set the Viewport of this View.
      *  Only callable on the Game thread. */
     void SetViewport(const Viewport& viewport);
-    
+
     HYP_FORCE_INLINE const Handle<Texture>& GetReadbackTexture() const
     {
         Threads::AssertOnThread(g_gameThread);
-        
+
         return m_readbackTexture;
     }
-    
+
     GpuImageBase* GetReadbackTextureGpuImage() const;
 
     HYP_METHOD()
@@ -228,7 +228,7 @@ public:
 
     /*! \brief Sync changes to the Viewport so the render thread can see updates to it for the next frame */
     void UpdateViewport();
-    
+
     /*! \brief Computes visibility states for all Scenes this View has using the Camera */
     void UpdateVisibility();
 
@@ -239,12 +239,12 @@ public:
 
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
-    
+
     Delegate<void, const Handle<Texture>&> OnReadbackTextureChanged;
 
 protected:
     void Init() override;
-    
+
     void CreateReadbackTexture();
 
     void CollectCameras(RenderProxyList& rpl);
@@ -267,14 +267,14 @@ protected:
     WeakHandle<View> m_raytracingView;
 
     RenderProxyList* m_renderProxyLists[NumMultiBuffers];
-    
+
     Viewport m_viewport;
     Viewport m_viewportBuffered[NumMultiBuffers];
 
     // ViewID m_viewId; // unique Id for this view in the current frame
 
     int m_priority;
-    
+
     Handle<Texture> m_readbackTexture;
     GpuImageBase* m_readbackTextureGpuImages[NumMultiBuffers];
 
@@ -284,4 +284,3 @@ protected:
 };
 
 } // namespace hyperion
-

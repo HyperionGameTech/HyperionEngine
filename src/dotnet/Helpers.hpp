@@ -3,13 +3,13 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/object/Handle.hpp>
-#include <core/object/ObjId.hpp>
+#include <core/reflection/Handle.hpp>
+#include <core/reflection/ObjId.hpp>
 
 #include <type_traits>
 

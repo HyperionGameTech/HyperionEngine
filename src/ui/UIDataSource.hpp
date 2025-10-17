@@ -17,8 +17,8 @@
 
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/Util.hpp>
 

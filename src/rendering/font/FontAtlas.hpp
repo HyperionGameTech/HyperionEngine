@@ -4,8 +4,8 @@
 
 #include <core/Defines.hpp>
 
-#include <core/object/Handle.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/Handle.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/containers/Array.hpp>

@@ -8,7 +8,7 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

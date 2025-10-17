@@ -6,7 +6,7 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 

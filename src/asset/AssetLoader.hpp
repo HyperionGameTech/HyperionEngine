@@ -5,11 +5,11 @@
 #include <asset/AssetPath.hpp>
 #include <asset/Loader.hpp>
 
-#include <core/object/ObjId.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/ObjId.hpp>
+#include <core/reflection/Handle.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Proc.hpp>
 

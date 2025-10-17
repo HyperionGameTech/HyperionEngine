@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Defines.hpp>
@@ -189,7 +189,7 @@ public:
 
         return ptr;
     }
-    
+
     template <class T>
     T* AllocCustom(void (*destructFn)(void*))
     {

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/object/HypField.hpp>
+#include <core/reflection/HypField.hpp>
 
 #include <core/Name.hpp>
 

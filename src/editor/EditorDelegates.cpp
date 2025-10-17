@@ -7,7 +7,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 

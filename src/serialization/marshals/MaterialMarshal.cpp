@@ -4,7 +4,7 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -218,13 +218,12 @@ public:
             HYP_BREAKPOINT;
             return err;
         }
-        
+
         Handle<Material> newMaterial = g_materialSystem->GetOrCreate(
             material->GetName(),
             material->GetRenderAttributes(),
             material->GetParameters(),
-            material->GetTextures()
-        );
+            material->GetTextures());
         material.Reset();
 
         materialData = HypData(std::move(newMaterial));

@@ -21,7 +21,7 @@ All HypClasses must derive from `HypObjectBase`. To register a class, you need t
 Subclasses of `HypObjectBase` must place a `HYP_CLASS()` macro invocation at the top of the class definition, as well as a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata.
 
 ### Handle
-A [`Handle`](../src/core/object/Handle.hpp) is a strong reference to a `HypObject`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `HypObject` rather than a strong reference.
+A [`Handle`](../src/core/reflection/Handle.hpp) is a strong reference to a `HypObject`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `HypObject` rather than a strong reference.
 
 To create a new `Handle`, use `CreateObject<T>()` where `T` is the type of the object you want to create. This will return a `Handle<T>` that can be used to access the object. The object will be automatically destroyed when the last handle to it is released.
 

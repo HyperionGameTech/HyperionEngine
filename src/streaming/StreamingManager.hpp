@@ -4,14 +4,14 @@
 
 #include <streaming/Streamable.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/containers/Array.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -75,4 +75,3 @@ private:
 };
 
 } // namespace hyperion
-

@@ -19,10 +19,10 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/Defines.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <input/Mouse.hpp>
 #include <input/InputManager.hpp>

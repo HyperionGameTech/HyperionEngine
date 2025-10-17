@@ -13,7 +13,7 @@
 #include <asset/MeshAsset.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 

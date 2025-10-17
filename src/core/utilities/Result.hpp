@@ -12,7 +12,7 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/Types.hpp>
 
@@ -130,8 +130,8 @@ public:
     }
 
 protected:
-    char* m_message;                // owned
-    const char* m_currentFunction;  // not owned
+    char* m_message;               // owned
+    const char* m_currentFunction; // not owned
 };
 
 #define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(HYP_FUNCTION_NAME_LIT), ValueWrapper<HYP_STATIC_STRING(message)>(), ##__VA_ARGS__)

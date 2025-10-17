@@ -11,9 +11,9 @@
 
 #include <core/Types.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -69,10 +69,10 @@ public:
 
     HYP_METHOD()
     const Handle<World>& GetCurrentWorld() const;
-    
+
     HYP_METHOD()
     void SetCurrentWorld(const Handle<World>& world);
-    
+
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetDefaultWorld() const
     {
@@ -133,7 +133,7 @@ private:
     UniquePtr<FinalPass> m_finalPass;
 
     UniquePtr<ScriptingService> m_scriptingService;
-    
+
     FixedArray<Handle<World>, NumMultiBuffers> m_currentWorldBuffered;
     Handle<World> m_defaultWorld;
 
@@ -144,4 +144,3 @@ private:
 };
 
 } // namespace hyperion
-

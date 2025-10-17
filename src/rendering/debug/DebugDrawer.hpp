@@ -10,7 +10,7 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 

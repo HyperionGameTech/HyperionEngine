@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/object/ObjId.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/ObjId.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
@@ -110,4 +110,3 @@ private:
 };
 
 } // namespace hyperion
-

@@ -14,7 +14,7 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <rendering/RenderObject.hpp>
 

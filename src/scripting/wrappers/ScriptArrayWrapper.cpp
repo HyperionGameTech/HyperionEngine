@@ -3,9 +3,9 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/Array.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypClassUtils.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypClassUtils.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/debug/Debug.hpp>
 

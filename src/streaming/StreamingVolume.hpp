@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
 #include <core/containers/Array.hpp>
@@ -10,7 +10,7 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/threading/Semaphore.hpp>
 
@@ -54,7 +54,8 @@ public:
 
     void UnregisterNotifier(StreamingNotifier* notifier)
     {
-        if (!notifier) {
+        if (!notifier)
+        {
             return;
         }
 
@@ -108,4 +109,3 @@ private:
 };
 
 } // namespace hyperion
-

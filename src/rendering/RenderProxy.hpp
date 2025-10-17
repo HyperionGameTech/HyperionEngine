@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/object/ObjId.hpp>
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/ObjId.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/utilities/UserData.hpp>
 #include <core/utilities/EnumFlags.hpp>

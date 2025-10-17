@@ -10,8 +10,8 @@
 
 #include <core/io/BufferedByteReader.hpp>
 
-#include <core/object/HypClassAttribute.hpp>
-#include <core/object/HypMemberFwd.hpp>
+#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/HypMemberFwd.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/Types.hpp>

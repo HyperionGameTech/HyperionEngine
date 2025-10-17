@@ -5,7 +5,7 @@
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>
 
-#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/debug/Debug.hpp>
 

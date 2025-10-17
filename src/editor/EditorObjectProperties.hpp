@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 namespace hyperion {
 

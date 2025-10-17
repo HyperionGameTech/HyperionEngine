@@ -11,8 +11,8 @@
 
 #include <core/utilities/StringView.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/logging/Logger.hpp>
 

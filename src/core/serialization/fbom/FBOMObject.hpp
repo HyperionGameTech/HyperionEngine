@@ -13,7 +13,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Uuid.hpp>
-#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 

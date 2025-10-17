@@ -4,7 +4,7 @@
 
 #include <ui/UIPanel.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -80,7 +80,7 @@ public:
 
     virtual void AddChildUIObject(const Handle<UIObject>& uiObject) override;
     virtual bool RemoveChildUIObject(UIObject* uiObject) override;
-    
+
     void UpdateDropDownMenu();
     void UpdateSubItemsDropDownMenu();
 
@@ -96,7 +96,6 @@ protected:
     virtual MaterialParameters GetMaterialParameters() const override;
 
 private:
-
     Array<Handle<UIObject>> m_menuItems;
 
     Handle<UIText> m_textElement;
@@ -219,4 +218,3 @@ private:
 #pragma endregion UIMenuBar
 
 } // namespace hyperion
-

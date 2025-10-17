@@ -12,7 +12,7 @@
 #include <core/containers/ArrayMap.hpp>
 #include <core/containers/FixedArray.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/utilities/Range.hpp>
 

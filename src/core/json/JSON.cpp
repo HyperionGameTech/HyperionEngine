@@ -12,7 +12,7 @@
 #include <core/io/BufferedByteReader.hpp>
 
 // needed for TypeInfo
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 namespace hyperion {
 namespace json {

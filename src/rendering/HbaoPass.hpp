@@ -9,7 +9,7 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
 

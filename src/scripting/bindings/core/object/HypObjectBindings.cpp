@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/object/HypObjectPool.hpp>
+#include <core/reflection/HypObjectPool.hpp>
 
 #include <dotnet/Object.hpp>
 #include <dotnet/Class.hpp>

@@ -6,7 +6,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>

@@ -20,11 +20,11 @@
 
 #include <script/vm/Interpreter.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypMethod.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypMemberFwd.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
 

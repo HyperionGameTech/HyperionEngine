@@ -9,7 +9,7 @@
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/utilities/Format.hpp>
 #include <core/logging/Logger.hpp>

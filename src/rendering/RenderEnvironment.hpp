@@ -5,7 +5,7 @@
 #include <rendering/RenderObject.hpp>
 
 #include <core/Name.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/utilities/Pair.hpp>
 

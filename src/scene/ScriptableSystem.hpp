@@ -4,7 +4,7 @@
 
 #include <scene/System.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 namespace hyperion {
 
@@ -111,4 +111,3 @@ private:
 };
 
 } // namespace hyperion
-

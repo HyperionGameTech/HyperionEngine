@@ -7,7 +7,7 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/resource/Resource.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/utilities/Optional.hpp>
 
@@ -49,7 +49,7 @@ public:
     Game();
     Game(Optional<ManagedGameInfo> managedGameInfo);
     virtual ~Game();
-    
+
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
     {
@@ -74,7 +74,7 @@ protected:
 
     RC<dotnet::Assembly> m_managedAssembly;
     dotnet::Object* m_managedGameObject;
-    
+
     Handle<World> m_world;
 
 private:
@@ -82,4 +82,3 @@ private:
 };
 
 } // namespace hyperion
-

@@ -8,7 +8,7 @@
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/math/Transform.hpp>
 #include <core/math/Mat4f.hpp>

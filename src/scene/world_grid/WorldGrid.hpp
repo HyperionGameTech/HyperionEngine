@@ -6,7 +6,7 @@
 
 #include <scene/Entity.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/FlatSet.hpp>

@@ -14,7 +14,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <util/GameCounter.hpp>
 #include <core/Types.hpp>
@@ -157,4 +157,3 @@ protected:
 };
 
 } // namespace hyperion
-

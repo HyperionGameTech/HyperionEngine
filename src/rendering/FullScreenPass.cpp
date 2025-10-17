@@ -21,7 +21,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -656,7 +656,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     {
         frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
     }
-    
+
     if (renderSetup.view != nullptr && renderSetup.view->GetCamera() != nullptr)
     {
         frame->renderQueue << BindDescriptorTable(

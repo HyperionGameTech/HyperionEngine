@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 

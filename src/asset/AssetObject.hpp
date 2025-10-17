@@ -9,7 +9,7 @@
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 

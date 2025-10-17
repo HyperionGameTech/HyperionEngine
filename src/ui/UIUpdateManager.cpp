@@ -4,7 +4,7 @@
 #include <ui/UIObject.hpp>
 
 // for EnumToString
-#include <core/object/HypEnum.hpp>
+#include <core/reflection/HypEnum.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -33,7 +33,7 @@ void UIUpdateManager::RegisterForUpdate(UIObject* uiObject, EnumFlags<UIObjectUp
     }
 
     WeakHandle<UIObject> weakHandle = uiObject->WeakHandleFromThis();
-    
+
     auto pendingIt = m_pendingObjects.Find(weakHandle);
     if (pendingIt != m_pendingObjects.End())
     {
@@ -93,7 +93,7 @@ void UIUpdateManager::UnregisterFromUpdate(UIObject* uiObject)
     }
 
     WeakHandle<UIObject> weakHandle = uiObject->WeakHandleFromThis();
-    
+
     if (!m_pendingObjects.Erase(weakHandle))
     {
         return; // Not registered
@@ -109,15 +109,15 @@ void UIUpdateManager::UnregisterFromUpdate(UIObject* uiObject)
         }
 
         auto it = entries.FindIf([&weakHandle](const UpdateEntry* entry)
-        {
-            return entry->object == weakHandle;
-        });
+            {
+                return entry->object == weakHandle;
+            });
 
         if (it != entries.End())
         {
             UpdateEntry* entry = *it;
             const int entryIndex = entry->index;
-            
+
             entries.Erase(it);
 
             if (entryIndex != -1)
@@ -160,7 +160,7 @@ void UIUpdateManager::ProcessUpdateType(UIObjectUpdateType updateType, float del
 
     // copy the array so we can modify the original while processing
     Array<UpdateEntry*> entries = it->second;
-    
+
     SortByDepth(entries);
 
     for (const UpdateEntry* entry : entries)
@@ -226,7 +226,7 @@ void UIUpdateManager::SortByDepth(Array<UpdateEntry*>& entries)
 void UIUpdateManager::Clear()
 {
     HYP_SCOPE;
-    
+
     m_entryPool.Clear(/* freeMemory */ false);
     m_entryIdGenerator.Reset();
     m_pendingObjects.Clear();

@@ -2,7 +2,7 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/Types.hpp>
 

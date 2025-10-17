@@ -7,16 +7,16 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/utilities/Format.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
-#include <core/object/HypClassRegistry.hpp>
-#include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

@@ -2,8 +2,8 @@
 
 #include <ui/UIObject.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

@@ -13,7 +13,7 @@
 
 #include <core/utilities/Span.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/Types.hpp>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Types.hpp>

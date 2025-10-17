@@ -243,7 +243,7 @@ HYP_END_CLASS
 /* Generated from: ui/UIDataSource.hpp */
 
 #include <ui/UIDataSource.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 #include <ui/UIObject.hpp>
 
 
@@ -1184,45 +1184,6 @@ HYP_END_STRUCT
 static_assert(sizeof(Result) == 8, "Expected sizeof(Result) to be 8 bytes");
 } // namespace hyperion
 
-/* Generated from: core/utilities/TypeId.hpp */
-
-#include <core/utilities/TypeId.hpp>
-
-namespace hyperion {
-
-#pragma region TypeId Reflection Data
-
-HYP_BEGIN_STRUCT(TypeId, 253, 0, {})
-HYP_END_STRUCT
-
-#pragma endregion TypeId Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: core/object/HypClass.hpp */
-
-#include <core/object/HypClass.hpp>
-
-namespace hyperion {
-
-#pragma region HypClassFlags Reflection Data
-
-HYP_BEGIN_ENUM(HypClassFlags, 254, 0, {})
-    HypConstant(NAME(HYP_STR(NONE)), HypClassFlags::NONE),
-    HypConstant(NAME(HYP_STR(CLASS_TYPE)), HypClassFlags::CLASS_TYPE),
-    HypConstant(NAME(HYP_STR(STRUCT_TYPE)), HypClassFlags::STRUCT_TYPE),
-    HypConstant(NAME(HYP_STR(ENUM_TYPE)), HypClassFlags::ENUM_TYPE),
-    HypConstant(NAME(HYP_STR(ABSTRACT)), HypClassFlags::ABSTRACT),
-    HypConstant(NAME(HYP_STR(POD_TYPE)), HypClassFlags::POD_TYPE),
-    HypConstant(NAME(HYP_STR(DYNAMIC)), HypClassFlags::DYNAMIC),
-    HypConstant(NAME(HYP_STR(NO_SCRIPT_BINDINGS)), HypClassFlags::NO_SCRIPT_BINDINGS),
-    HypConstant(NAME(HYP_STR(ANONYMOUS)), HypClassFlags::ANONYMOUS)
-HYP_END_ENUM
-
-#pragma endregion HypClassFlags Reflection Data
-
-} // namespace hyperion
-
 /* Generated from: core/dll/DynamicLibrary.hpp */
 
 #include <core/dll/DynamicLibrary.hpp>
@@ -1231,7 +1192,7 @@ namespace hyperion {
 
 #pragma region DynamicLibrary Reflection Data
 
-HYP_BEGIN_STRUCT(DynamicLibrary, 255, 0, {}, HypClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(DynamicLibrary, 253, 0, {}, HypClassAttribute("size", 8))
     HypMethod(NAME(HYP_STR(GetPath)), &DynamicLibrary::GetPath),
     HypMethod(NAME(HYP_STR(SetPath)), &DynamicLibrary::SetPath),
     HypMethod(NAME(HYP_STR(Load)), &DynamicLibrary::Load),
@@ -1265,7 +1226,7 @@ namespace hyperion {
 
 #pragma region LogChannel Reflection Data
 
-HYP_BEGIN_STRUCT(LogChannel, 256, 0, {})
+HYP_BEGIN_STRUCT(LogChannel, 254, 0, {})
     HypField(NAME(HYP_STR(Id)), &LogChannel::id, offsetof(LogChannel, id)),
     HypField(NAME(HYP_STR(Name)), &LogChannel::name, offsetof(LogChannel, name)),
     HypField(NAME(HYP_STR(ParentChannel)), &LogChannel::parentChannel, offsetof(LogChannel, parentChannel)),
@@ -1273,6 +1234,45 @@ HYP_BEGIN_STRUCT(LogChannel, 256, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion LogChannel Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: core/reflection/HypClass.hpp */
+
+#include <core/reflection/HypClass.hpp>
+
+namespace hyperion {
+
+#pragma region HypClassFlags Reflection Data
+
+HYP_BEGIN_ENUM(HypClassFlags, 255, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), HypClassFlags::NONE),
+    HypConstant(NAME(HYP_STR(CLASS_TYPE)), HypClassFlags::CLASS_TYPE),
+    HypConstant(NAME(HYP_STR(STRUCT_TYPE)), HypClassFlags::STRUCT_TYPE),
+    HypConstant(NAME(HYP_STR(ENUM_TYPE)), HypClassFlags::ENUM_TYPE),
+    HypConstant(NAME(HYP_STR(ABSTRACT)), HypClassFlags::ABSTRACT),
+    HypConstant(NAME(HYP_STR(POD_TYPE)), HypClassFlags::POD_TYPE),
+    HypConstant(NAME(HYP_STR(DYNAMIC)), HypClassFlags::DYNAMIC),
+    HypConstant(NAME(HYP_STR(NO_SCRIPT_BINDINGS)), HypClassFlags::NO_SCRIPT_BINDINGS),
+    HypConstant(NAME(HYP_STR(ANONYMOUS)), HypClassFlags::ANONYMOUS)
+HYP_END_ENUM
+
+#pragma endregion HypClassFlags Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: core/reflection/TypeId.hpp */
+
+#include <core/reflection/TypeId.hpp>
+
+namespace hyperion {
+
+#pragma region TypeId Reflection Data
+
+HYP_BEGIN_STRUCT(TypeId, 256, 0, {})
+HYP_END_STRUCT
+
+#pragma endregion TypeId Reflection Data
 
 } // namespace hyperion
 

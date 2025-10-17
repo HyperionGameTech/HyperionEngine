@@ -7,7 +7,7 @@
 
 #include <core/math/Vector2.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/Pimpl.hpp>
@@ -28,7 +28,7 @@ public:
     InputHandlerBase(InputHandlerBase&& other) noexcept = delete;
     InputHandlerBase& operator=(InputHandlerBase&& other) noexcept = delete;
     virtual ~InputHandlerBase();
-    
+
     HYP_FORCE_INLINE void SetDeltaTime(double deltaTime)
     {
         m_deltaTime = deltaTime;
@@ -51,18 +51,18 @@ public:
 
     HYP_METHOD(Scriptable)
     bool OnMouseDrag(const MouseEvent& evt);
-    
+
     HYP_METHOD(Scriptable)
     bool OnMouseLeave(const MouseEvent& evt);
 
     HYP_METHOD(Scriptable)
     bool OnClick(const MouseEvent& evt);
-    
+
     const Bitset& GetKeyStates() const;
 
     bool IsKeyDown(KeyCode key) const;
     bool IsKeyUp(KeyCode key) const;
-    
+
     bool IsMouseButtonDown(MouseButtonKey btn) const;
     bool IsMouseButtonUp(MouseButtonKey btn) const;
 
@@ -84,7 +84,7 @@ protected:
 
     HYP_METHOD()
     virtual bool OnMouseDrag_Impl(const MouseEvent& evt) = 0;
-    
+
     HYP_METHOD()
     virtual bool OnMouseLeave_Impl(const MouseEvent& evt) = 0;
 
@@ -93,7 +93,7 @@ protected:
 
 private:
     Pimpl<InputState> m_inputState;
-    
+
 protected:
     double m_deltaTime;
 };
@@ -142,7 +142,7 @@ private:
     {
         return false;
     }
-    
+
     virtual bool OnMouseLeave_Impl(const MouseEvent& evt) override
     {
         return false;
@@ -155,4 +155,3 @@ private:
 };
 
 } // namespace hyperion
-

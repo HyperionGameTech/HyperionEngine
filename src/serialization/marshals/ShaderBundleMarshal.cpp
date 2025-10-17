@@ -5,7 +5,7 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 

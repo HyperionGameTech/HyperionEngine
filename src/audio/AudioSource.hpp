@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/Vector3.hpp>
 
@@ -133,4 +133,3 @@ private:
 };
 
 } // namespace hyperion
-

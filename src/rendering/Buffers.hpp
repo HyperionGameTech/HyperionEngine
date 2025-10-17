@@ -10,7 +10,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/Range.hpp>
-#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/Defines.hpp>
 

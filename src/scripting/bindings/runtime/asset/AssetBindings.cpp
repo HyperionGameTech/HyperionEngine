@@ -2,7 +2,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 using namespace hyperion;
 

@@ -4,12 +4,12 @@
 
 #include <core/Defines.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/Any.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>

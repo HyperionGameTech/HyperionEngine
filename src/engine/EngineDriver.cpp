@@ -44,7 +44,7 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/object/HypEnum.hpp> // For EnumValue()
+#include <core/reflection/HypEnum.hpp> // For EnumValue()
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -88,9 +88,9 @@ ValueStorage<Pool> s_enginePools[EPN_MAX];
 HYP_API bool g_enginePoolsInitialized = false;
 
 static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
-    &ThreadId::Invalid(),   // EPN_CORE <-- not tied to any thread
-    &g_renderThread,        // EPN_RENDER
-    &g_gameThread           // EPN_SCENE
+    &ThreadId::Invalid(), // EPN_CORE <-- not tied to any thread
+    &g_renderThread,      // EPN_RENDER
+    &g_gameThread         // EPN_SCENE
 };
 
 constexpr SizeType EnginePoolSizes[EPN_MAX] = {

@@ -72,7 +72,7 @@
 #include <console/ui/ConsoleUI.hpp>
 
 // for EnumToString
-#include <core/object/HypEnum.hpp>
+#include <core/reflection/HypEnum.hpp>
 
 #include <core/math/MathUtil.hpp>
 

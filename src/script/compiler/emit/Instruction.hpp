@@ -9,9 +9,9 @@
 
 #include <core/memory/Memory.hpp>
 #include <core/containers/String.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
-#include <core/object/HypClassAttribute.hpp>
+#include <core/reflection/HypClassAttribute.hpp>
 
 namespace hyperion {
 enum class HypMethodFlags : uint8;

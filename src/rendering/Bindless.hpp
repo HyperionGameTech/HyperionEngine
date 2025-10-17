@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/ObjId.hpp>
+#include <core/reflection/ObjId.hpp>
 
 #include <core/containers/HashMap.hpp>
 

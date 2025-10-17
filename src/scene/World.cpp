@@ -12,7 +12,7 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/utilities/Format.hpp>
 

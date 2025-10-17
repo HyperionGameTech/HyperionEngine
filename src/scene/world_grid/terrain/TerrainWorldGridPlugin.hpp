@@ -4,7 +4,7 @@
 
 #include <scene/world_grid/WorldGridLayer.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 
@@ -73,4 +73,3 @@ protected:
 };
 
 } // namespace hyperion
-

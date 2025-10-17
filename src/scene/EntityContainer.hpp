@@ -11,10 +11,10 @@
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Spinlock.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
-#include <core/object/ObjId.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/ObjId.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <scene/ComponentContainer.hpp>
 

@@ -12,15 +12,15 @@
 #include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/threading/Scheduler.hpp>
 
-#include <core/object/HypDataJSONHelpers.hpp>
-#include <core/object/HypData.hpp>
-#include <core/object/HypClass.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypProperty.hpp>
+#include <core/reflection/HypDataJSONHelpers.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypProperty.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>

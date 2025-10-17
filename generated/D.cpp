@@ -904,7 +904,7 @@ HYP_END_CLASS
 /* Generated from: scene/ComponentContainer.hpp */
 
 #include <scene/ComponentContainer.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 
 namespace hyperion {
@@ -1279,7 +1279,7 @@ HYP_END_STRUCT
 #include <scene/Scene.hpp>
 #include <scene/Entity.hpp>
 #include <scene/System.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 
 namespace hyperion {

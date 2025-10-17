@@ -4,8 +4,8 @@
 
 #include <core/Name.hpp>
 
-#include <core/object/Handle.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/Handle.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 

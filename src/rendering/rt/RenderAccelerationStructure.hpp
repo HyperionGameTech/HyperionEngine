@@ -4,7 +4,7 @@
 #pragma once
 
 #include <core/Defines.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/util/SafeDeleter.hpp>

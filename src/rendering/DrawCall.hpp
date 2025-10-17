@@ -3,8 +3,8 @@
 #pragma once
 
 #include <core/Defines.hpp>
-#include <core/object/ObjId.hpp>
-#include <core/object/Handle.hpp>
+#include <core/reflection/ObjId.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 

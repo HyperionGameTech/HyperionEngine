@@ -153,7 +153,7 @@ Result CXXModuleGenerator::GenerateHypClassDeclHeader(const Analyzer& analyzer, 
 Result CXXModuleGenerator::GenerateHypClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
-    writer.WriteString("#include <core/object/HypClass.hpp>\n\n");
+    writer.WriteString("#include <core/reflection/HypClass.hpp>\n\n");
 
     writer.WriteString("namespace hyperion {\n\n");
     writer.WriteString("#include <HypClassDecls.inc>\n");

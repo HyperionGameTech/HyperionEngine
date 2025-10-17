@@ -5,8 +5,8 @@
 #include <core/math/Mat3f.hpp>
 #include <core/math/Mat4f.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClassUtils.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <cmath>
 

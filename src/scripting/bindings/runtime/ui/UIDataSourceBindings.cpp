@@ -2,8 +2,8 @@
 
 #include <ui/UIDataSource.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/Types.hpp>
 

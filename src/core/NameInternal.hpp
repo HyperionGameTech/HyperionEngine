@@ -5,9 +5,9 @@
 #include <core/Defines.hpp>
 #include <core/containers/StaticString.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/HashCode.hpp>
 

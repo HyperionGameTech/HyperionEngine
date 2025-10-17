@@ -35,7 +35,7 @@
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -52,7 +52,7 @@
 #include <core/logging/Logger.hpp>
 
 // for EnumToString
-#include <core/object/HypEnum.hpp>
+#include <core/reflection/HypEnum.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

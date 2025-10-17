@@ -24,12 +24,12 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/ForEach.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/profiling/PerformanceClock.hpp>
 
-#include <core/object/Handle.hpp>
-#include <core/object/ObjId.hpp>
+#include <core/reflection/Handle.hpp>
+#include <core/reflection/ObjId.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EntitySet.hpp>

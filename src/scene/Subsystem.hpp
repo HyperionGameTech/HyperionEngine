@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -45,7 +45,9 @@ public:
 
     virtual void OnAddedToWorld() = 0;
     virtual void OnRemovedFromWorld() = 0;
-    virtual void PreUpdate(float delta) { }
+    virtual void PreUpdate(float delta)
+    {
+    }
     virtual void Update(float delta) = 0;
     virtual void OnSceneAttached(const Handle<Scene>& scene) { };
     virtual void OnSceneDetached(Scene* scene) { };
@@ -66,4 +68,3 @@ private:
 };
 
 } // namespace hyperion
-

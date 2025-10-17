@@ -6,8 +6,8 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/Mat4f.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClassUtils.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 namespace hyperion {
 

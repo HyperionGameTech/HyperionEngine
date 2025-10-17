@@ -4,7 +4,7 @@
 
 #include <core/math/Transform.hpp>
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/HashCode.hpp>
 

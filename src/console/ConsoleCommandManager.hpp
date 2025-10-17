@@ -4,11 +4,11 @@
 
 #include <core/Defines.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/utilities/Result.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 namespace hyperion {
 

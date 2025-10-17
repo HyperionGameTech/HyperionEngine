@@ -719,7 +719,7 @@ private:
             cxxModuleWriter->WriteString(GetGeneratedFilePreamble(String::empty));
 
             // add main required header that is shared across all generated modules.
-            cxxModuleWriter->WriteString("#include <core/object/HypClassUtils.hpp>\n");
+            cxxModuleWriter->WriteString("#include <core/reflection/HypClassUtils.hpp>\n");
 
             if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, *cxxModuleWriter); res.HasError())
             {
@@ -749,7 +749,7 @@ private:
                 cxxModuleWriter->WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod->GetPath(), m_analyzer.GetSourceDirectory())));
 
                 // add main required header that is shared across all generated modules.
-                cxxModuleWriter->WriteString("#include <core/object/HypClassUtils.hpp>\n");
+                cxxModuleWriter->WriteString("#include <core/reflection/HypClassUtils.hpp>\n");
             }
 
             if (Result res = cxxModuleGenerator->Generate(m_analyzer, *mod, *cxxModuleWriter); res.HasError())

@@ -1,15 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
-#include <core/object/HypObject.hpp>
-#include <core/object/HypData.hpp>
-#include <core/object/HypMethod.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypMethod.hpp>
 
 #include <core/logging/LogChannels.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
-#include <core/utilities/TypeInfoFwd.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/Name.hpp>
 

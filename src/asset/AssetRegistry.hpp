@@ -14,7 +14,7 @@
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
 

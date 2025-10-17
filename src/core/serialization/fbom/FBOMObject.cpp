@@ -6,8 +6,8 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/object/HypClassRegistry.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/HypData.hpp>
 
 namespace hyperion::serialization {
 

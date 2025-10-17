@@ -9,7 +9,7 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>

@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/object/HypStruct.hpp>
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypStruct.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/Defines.hpp>
 

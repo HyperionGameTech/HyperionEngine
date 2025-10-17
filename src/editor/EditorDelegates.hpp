@@ -16,7 +16,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Scheduler.hpp>
 
-#include <core/object/HypProperty.hpp>
+#include <core/reflection/HypProperty.hpp>
 
 #include <core/math/Transform.hpp>
 

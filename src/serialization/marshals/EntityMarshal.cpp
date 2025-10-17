@@ -6,9 +6,9 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/utilities/Format.hpp>
 

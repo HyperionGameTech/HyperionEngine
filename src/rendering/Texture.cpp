@@ -20,7 +20,7 @@
 #include <core/utilities/DeferredScope.hpp>
 
 // for EnumToString
-#include <core/object/HypEnum.hpp>
+#include <core/reflection/HypEnum.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

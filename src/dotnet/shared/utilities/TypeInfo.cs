@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     /// <summary>
-    ///  Wraps a pointer to a native (C++) TypeInfo (see core/utilities/TypeInfoFwd.hpp)
+    ///  Wraps a pointer to a native (C++) TypeInfo (see core/reflection/TypeInfoFwd.hpp)
     /// </summary>
 
     [StructLayout(LayoutKind.Sequential)]

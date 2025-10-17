@@ -3,15 +3,15 @@
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypStruct.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypMethod.hpp>
-#include <core/object/HypObjectBase.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypStruct.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/HypObjectBase.hpp>
 
 #include <core/utilities/Format.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

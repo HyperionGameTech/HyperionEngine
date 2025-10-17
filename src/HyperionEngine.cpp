@@ -8,9 +8,9 @@
 
 #include <core/Core.hpp>
 
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -44,7 +44,7 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <script/HypScript.hpp>
 

@@ -6,7 +6,7 @@
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

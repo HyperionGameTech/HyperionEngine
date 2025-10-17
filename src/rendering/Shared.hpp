@@ -14,7 +14,7 @@
 #include <core/math/Extent.hpp>
 #include <core/math/Vector2.hpp>
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Types.hpp>

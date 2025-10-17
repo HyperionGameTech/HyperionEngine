@@ -12,7 +12,7 @@
 
 #include <core/utilities/Time.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/containers/Stack.hpp>
 
@@ -834,7 +834,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
                 if (type->isStruct())
                 {
                     for (auto it = type->getStruct()->begin();
-                         it != type->getStruct()->end(); ++it)
+                        it != type->getStruct()->end(); ++it)
                     {
                         String fieldTypeName;
 
@@ -1051,11 +1051,11 @@ ForEachPermutation(const ShaderProperties& versions,
         currentGroupCombinations.Resize(valueGroup.enumValues.Size() * allCombinations.Size());
 
         for (SizeType existingCombinationIndex = 0;
-             existingCombinationIndex < allCombinations.Size();
-             existingCombinationIndex++)
+            existingCombinationIndex < allCombinations.Size();
+            existingCombinationIndex++)
         {
             for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size();
-                 valueIndex++)
+                valueIndex++)
             {
                 ShaderProperty newProperty(NAME_FMT("{}_{}", valueGroup.name,
                                                valueGroup.enumValues[valueIndex]),
@@ -1903,15 +1903,15 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 }
 
                 for (SizeType index = 0;
-                     index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_');
-                     index++)
+                    index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_');
+                    index++)
                 {
                     attributeType.Append(ch);
                 }
 
                 for (SizeType index = 0;
-                     index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_');
-                     index++)
+                    index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_');
+                    index++)
                 {
                     attributeName.Append(ch);
                 }

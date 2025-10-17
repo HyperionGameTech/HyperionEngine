@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
 
 #include <core/memory/AnyRef.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/Mat4f.hpp>
 

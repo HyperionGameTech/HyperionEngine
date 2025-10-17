@@ -6,7 +6,7 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 namespace hyperion {
 

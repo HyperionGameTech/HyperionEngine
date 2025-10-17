@@ -5,7 +5,7 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/TypeMap.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderGpuImage.hpp>

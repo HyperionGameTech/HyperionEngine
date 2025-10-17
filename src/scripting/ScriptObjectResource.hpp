@@ -6,7 +6,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -17,7 +17,7 @@
 #include <core/Types.hpp>
 
 #ifdef HYP_SCRIPT
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 #endif
 
 namespace hyperion {

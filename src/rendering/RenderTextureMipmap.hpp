@@ -4,7 +4,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/HypObjectMacros.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/HashCode.hpp>
 

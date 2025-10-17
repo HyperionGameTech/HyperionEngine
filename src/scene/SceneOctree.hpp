@@ -12,7 +12,7 @@
 
 #include <core/utilities/Pair.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/VisibilityState.hpp>

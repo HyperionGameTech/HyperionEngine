@@ -14,7 +14,7 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/HashSet.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/MemoryPool.hpp>
 

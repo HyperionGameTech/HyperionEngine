@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <rendering/RenderObject.hpp>
 
@@ -48,4 +48,3 @@ private:
 };
 
 } // namespace hyperion
-

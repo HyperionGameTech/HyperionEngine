@@ -1,9 +1,9 @@
 #include <scripting/ScriptObjectResource.hpp>
 #include <scripting/Script.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/logging/Logger.hpp>
 

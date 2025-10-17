@@ -5,8 +5,8 @@
 #include <core/Defines.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/TypeId.hpp>
-#include <core/utilities/TypeInfo.hpp>
+#include <core/reflection/TypeId.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>

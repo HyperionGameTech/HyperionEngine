@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
 
@@ -10,7 +10,7 @@
 
 #include <core/utilities/Uuid.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/HashCode.hpp>
 

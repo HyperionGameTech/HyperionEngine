@@ -23,8 +23,8 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
@@ -588,7 +588,7 @@ Array<Node*> Node::GetDescendantsArray() const
     // add all children to the list
     Array<Node*> descendants;
 
-    typedef void (*CollectFunc)(Array<Node*> & descendants, const Node& target, void* collectFunc);
+    typedef void (*CollectFunc)(Array<Node*>& descendants, const Node& target, void* collectFunc);
 
     CollectFunc collectFunc = [](Array<Node*>& descendants, const Node& target, void* collectFunc)
     {

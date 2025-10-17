@@ -1,7 +1,7 @@
 
 #include <console/ConsoleCommand.hpp>
 
-#include <core/object/HypClassUtils.hpp>
+#include <core/reflection/HypClassUtils.hpp>
 
 #include <core/threading/Task.hpp>
 

@@ -2,8 +2,8 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/debug/Debug.hpp>
 

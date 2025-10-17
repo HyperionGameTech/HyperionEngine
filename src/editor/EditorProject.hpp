@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
 #include <core/functional/ScriptableDelegate.hpp>

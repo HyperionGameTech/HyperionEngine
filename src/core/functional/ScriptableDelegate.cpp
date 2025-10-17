@@ -6,7 +6,7 @@
 #include <core/logging/LogChannels.hpp>
 
 // needed by dotnet/Class.hpp
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <dotnet/Class.hpp>
 

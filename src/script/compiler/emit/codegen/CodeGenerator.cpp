@@ -1,11 +1,11 @@
 #include <script/compiler/emit/codegen/CodeGenerator.hpp>
 
 #include <core/HashCode.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypMethod.hpp>
-#include <core/object/HypConstant.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypClassAttribute.hpp>
+#include <core/reflection/HypField.hpp>
+#include <core/reflection/HypMethod.hpp>
+#include <core/reflection/HypConstant.hpp>
+#include <core/reflection/HypProperty.hpp>
+#include <core/reflection/HypClassAttribute.hpp>
 
 #include <iostream>
 

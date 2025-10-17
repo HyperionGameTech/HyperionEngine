@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <ui/UIPanel.hpp>
 
@@ -42,4 +42,3 @@ protected:
 };
 
 } // namespace hyperion
-

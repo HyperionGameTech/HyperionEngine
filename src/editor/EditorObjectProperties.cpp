@@ -8,8 +8,8 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UITextbox.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

@@ -9,7 +9,7 @@
 
 #include <core/Types.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 namespace hyperion {
 

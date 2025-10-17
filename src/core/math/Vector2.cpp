@@ -4,8 +4,8 @@
 #include <core/math/Vector4.hpp>
 #include <core/math/MathUtil.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClassUtils.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 namespace hyperion {
 

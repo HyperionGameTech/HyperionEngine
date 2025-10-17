@@ -9,7 +9,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Semaphore.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Uuid.hpp>

@@ -6,7 +6,7 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -75,4 +75,3 @@ private:
 };
 
 } // namespace hyperion
-

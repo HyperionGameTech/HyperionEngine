@@ -6,7 +6,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuImage.hpp>

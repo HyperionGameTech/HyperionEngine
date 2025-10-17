@@ -5,7 +5,7 @@
 #include <core/containers/ContainerBase.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/FlatSet.hpp>
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 #include <core/Defines.hpp>
 
 #include <core/Types.hpp>

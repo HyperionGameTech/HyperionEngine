@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 #include <core/utilities/Optional.hpp>
 
 #include <core/containers/String.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
 

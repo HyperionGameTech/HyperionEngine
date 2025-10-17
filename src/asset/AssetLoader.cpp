@@ -3,7 +3,7 @@
 #include <asset/AssetLoader.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 

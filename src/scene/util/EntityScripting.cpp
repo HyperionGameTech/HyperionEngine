@@ -21,8 +21,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/object/HypClass.hpp>
-#include <core/object/HypClassRegistry.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypClassRegistry.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>

@@ -6,7 +6,7 @@
 #include <scene/Subsystem.hpp>
 #include <scene/GameState.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
 #include <core/functional/Proc.hpp>

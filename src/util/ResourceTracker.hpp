@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/object/ObjId.hpp>
+#include <core/reflection/ObjId.hpp>
 #include <core/Defines.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
@@ -10,7 +10,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

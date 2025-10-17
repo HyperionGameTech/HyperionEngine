@@ -7,7 +7,7 @@
 
 #include <core/containers/FixedArray.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/memory/Pimpl.hpp>
 

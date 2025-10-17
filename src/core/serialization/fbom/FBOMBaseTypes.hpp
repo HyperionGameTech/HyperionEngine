@@ -4,7 +4,7 @@
 
 #include <core/Name.hpp>
 
-#include <core/utilities/TypeId.hpp>
+#include <core/reflection/TypeId.hpp>
 
 #include <core/containers/String.hpp>
 

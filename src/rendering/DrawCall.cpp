@@ -12,7 +12,7 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 

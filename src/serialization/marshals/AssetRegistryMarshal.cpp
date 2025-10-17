@@ -4,7 +4,7 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <core/object/HypData.hpp>
+#include <core/reflection/HypData.hpp>
 
 #include <core/utilities/Format.hpp>
 

@@ -3,9 +3,9 @@
 #include <script/vm/String.hpp>
 #include <script/vm/HashMap.hpp>
 
-#include <core/object/HypData.hpp>
-#include <core/object/HypClass.hpp>
-#include <core/object/HypMethod.hpp>
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypClass.hpp>
+#include <core/reflection/HypMethod.hpp>
 
 #include <core/debug/Debug.hpp>
 

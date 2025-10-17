@@ -4,7 +4,7 @@
 
 #include <editor/ui/EditorPropertyPanel.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 namespace hyperion {
 
@@ -21,4 +21,3 @@ public:
 };
 
 } // namespace hyperion
-

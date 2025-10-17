@@ -4,7 +4,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/object/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectFwd.hpp>
 
 namespace hyperion {
 

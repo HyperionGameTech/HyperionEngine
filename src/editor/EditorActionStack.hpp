@@ -13,7 +13,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/Defines.hpp>
 
@@ -93,4 +93,3 @@ private:
 };
 
 } // namespace hyperion
-

@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/object/HypObject.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/math/Color.hpp>
 
-#include <core/object/Handle.hpp>
+#include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
 #include <ui/UIObject.hpp>
@@ -37,7 +37,7 @@ public:
 
     HYP_METHOD(Scriptable)
     int GetPlacement() const; // 0 = top-left, 1 = bottom-left, 2 = top-right, 3 = bottom-right
-    
+
     HYP_METHOD(Scriptable)
     void Update(float delta);
 
@@ -122,4 +122,3 @@ protected:
 };
 
 } // namespace hyperion
-

@@ -28,7 +28,7 @@
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
-#include <core/object/HypClass.hpp>
+#include <core/reflection/HypClass.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

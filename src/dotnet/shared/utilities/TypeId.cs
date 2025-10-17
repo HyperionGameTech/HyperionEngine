@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     /// <summary>
-    ///  Represents a native (C++) TypeId (see core/utilities/TypeId.hpp)
+    ///  Represents a native (C++) TypeId (see core/reflection/TypeId.hpp)
     /// </summary>
     
     [StructLayout(LayoutKind.Sequential, Size = 4)]
