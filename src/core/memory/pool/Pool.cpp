@@ -289,5 +289,23 @@ void Pool::Reset()
     m_blocks.Clear();
 }
 
+MemoryMetrics Pool::GetMemoryMetrics() const
+{
+    MemoryMetrics metrics;
+
+    for (const auto& block : m_blocks)
+    {
+        const SizeType blockCapacity = block.buffer.GetCapacity();
+
+#if defined(HYP_POOL_USE_TLSF_ALLOCATOR) && HYP_POOL_USE_TLSF_ALLOCATOR
+        // With TLSF allocator, we can get accurate statistics from the allocator itself
+        MemoryMetrics blockMetrics = block.allocator.GetMemoryMetrics();
+        metrics += blockMetrics;
+#endif
+    }
+
+    return metrics;
+}
+
 } // namespace memory
 } // namespace hyperion

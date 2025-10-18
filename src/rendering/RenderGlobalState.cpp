@@ -546,7 +546,7 @@ static ViewData* GetViewData(View* view)
     {
         HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}", view->Id());
 
-        ViewData* vd = new ViewData;
+        ViewData* vd = PoolNew<ViewData>(*g_renderPool);
         vd->view = view;
 
         if (view->GetViewDesc().drawCallCollectionImpl != nullptr)
@@ -646,7 +646,7 @@ void RenderApi_Shutdown()
             continue;
         }
 
-        delete vd;
+        PoolDelete(*g_renderPool, vd);
     }
 
     s_viewData.Clear();
@@ -716,10 +716,9 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     return vfd;
 }
-HYP_DISABLE_OPTIMIZATION;
 
 template <class ElementType, class ProxyType>
-static void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* pNewProxy)
+static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<ElementType>& id, ProxyType* pNewProxy)
 {
     AssertDebug(pNewProxy != nullptr);
 
@@ -730,25 +729,9 @@ static void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<Elemen
         LookupTypeName(id.GetTypeId()),
         subtypeData.typeInfo->name);
 
-    /// TEMP
-    if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
-    {
-        /*IRenderProxy** ppExistingProxy = subtypeData.proxies.TryGet(idx);
-        if (ppExistingProxy)
-        {
-            RenderProxyEnvGrid* pExistingProxy = static_cast<RenderProxyEnvGrid*>(*ppExistingProxy);
-            Assert(pExistingProxy != nullptr);
-            Assert(pExistingProxy->envGrid.GetUnsafe() == pNewProxy->envGrid.GetUnsafe());
-        }*/
-
-        HYP_BREAKPOINT;
-        Assert(pNewProxy->envGrid.GetUnsafe() != nullptr);
-    }
-
     subtypeData.proxies.Set(idx, static_cast<IRenderProxy*>(pNewProxy));
     subtypeData.indicesPendingUpdate.Set(idx, true);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 template <class ElementType, class ProxyType>
 static HYP_FORCE_INLINE void SyncResourcesImpl(
@@ -768,7 +751,7 @@ static HYP_FORCE_INLINE void SyncResourcesImpl(
         resourceTracker.Track(elem->Id(), elem, &version);
     }
 }
-HYP_DISABLE_OPTIMIZATION;
+
 template <class ElementType, class ProxyType>
 static void SyncResources(
     ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& dst,
@@ -822,26 +805,7 @@ static void SyncResources(
             const ProxyType* pSrcProxy = src.GetProxy(resourceId);
             AssertDebug(pSrcProxy != nullptr);
 
-            if (!pSrcProxy)
-            {
-                continue;
-            }
-            
-                // temp debug
-                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
-                {
-                    Assert(pSrcProxy->envGrid.GetUnsafe() != nullptr);
-                }
-
             ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
-            AssertDebug(pDstProxy != nullptr);
-            
-                // temp debug
-                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
-                {
-                    Assert(pDstProxy->envGrid.GetUnsafe() != nullptr);
-                }
-
             CopyRenderProxy(subtypeData, resourceId, pDstProxy);
         }
     }
@@ -887,28 +851,9 @@ static void SyncResources(
                 const ProxyType* pSrcProxy = src.GetProxy(resourceId);
                 AssertDebug(pSrcProxy != nullptr);
 
-                if (!pSrcProxy)
-                {
-                    continue;
-                }
-
-                // temp debug
-                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
-                {
-                    Assert(pSrcProxy->envGrid.GetUnsafe() != nullptr);
-                }
-
-                ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
-                AssertDebug(pDstProxy != nullptr);
-            
-                // temp debug
-                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
-                {
-                    Assert(pDstProxy->envGrid.GetUnsafe() != nullptr);
-                }
-
                 ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(pResource->InstanceClass());
-
+                
+                ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
                 CopyRenderProxy(subtypeData, resourceId, pDstProxy);
             }
         }
@@ -921,7 +866,6 @@ static void SyncResources(
     //            added.Size(), removed.Size(), changedIds.Size());
     //    }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 template <SizeType... Indices>
 static HYP_FORCE_INLINE void SyncResourcesT(
@@ -1338,7 +1282,7 @@ void RenderApi_EndFrame_RenderThread()
 
                 s_viewData.Erase(viewDataIt);
 
-                delete &vd;
+                PoolDelete(*g_renderPool, &vd);
             }
 
 #ifdef HYP_DEBUG_MODE

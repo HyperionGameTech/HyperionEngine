@@ -10,6 +10,7 @@
 #include <core/containers/SortedArray.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/MemoryMetrics.hpp>
 
 #include <core/Defines.hpp>
 
@@ -100,6 +101,8 @@ public:
 
     /*! \brief Frees all memory allocated by the pool and resets it to its initial state. */
     void Reset();
+
+    MemoryMetrics GetMemoryMetrics() const;
 
 protected:
     LinkedList<Block> m_blocks;

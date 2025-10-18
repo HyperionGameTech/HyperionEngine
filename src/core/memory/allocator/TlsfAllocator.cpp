@@ -446,5 +446,42 @@ TlsfAllocator::Block* TlsfAllocator::CarveFront(Block* b, SizeType frontSize)
     return rest;
 }
 
+MemoryMetrics TlsfAllocator::GetMemoryMetrics() const
+{
+    MemoryMetrics metrics;
+
+    for (const Pool& pool : m_pools)
+    {
+        metrics[MemoryMetrics::MM_BYTES_COMMITTED] += pool.size;
+
+        // Walk the physical block chain to calculate used/free bytes
+        const Block* current = pool.first;
+        const Block* sentinel = pool.sentinel;
+
+        while (current != sentinel)
+        {
+            const SizeType blockSize = current->Size();
+
+            if (current->IsUsed())
+            {
+                // Subtract header size to get actual usable bytes
+                const SizeType usableSize = blockSize - sizeof(Block);
+                metrics[MemoryMetrics::MM_BYTES_USED] += usableSize;
+                ++metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE];
+            }
+            else
+            {
+                metrics[MemoryMetrics::MM_BYTES_FREE] += blockSize;
+            }
+
+            current = current->NextPhys();
+        }
+
+        ++metrics[MemoryMetrics::MM_BLOCKS_TOTAL];
+    }
+
+    return metrics;
+}
+
 } // namespace memory
 } // namespace hyperion

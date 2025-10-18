@@ -6,6 +6,7 @@
 #include <core/Types.hpp>
 
 #include <core/threading/Spinlock.hpp>
+#include <core/memory/MemoryMetrics.hpp>
 
 namespace hyperion {
 namespace memory {
@@ -271,6 +272,20 @@ public:
     {
         LockGuard guard(m_lock);
         return m_stats;
+    }
+
+    MemoryMetrics GetMemoryMetrics() const
+    {
+        LockGuard guard(m_lock);
+
+        MemoryMetrics metrics;
+        metrics[MemoryMetrics::MM_BYTES_COMMITTED] = m_stats.bytesCommitted;
+        metrics[MemoryMetrics::MM_BYTES_USED] = m_stats.blocksInUse * m_blockSize;
+        metrics[MemoryMetrics::MM_BYTES_FREE] = metrics.bytesCommitted - metrics.bytesUsed;
+        metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE] = m_stats.blocksInUse;
+        metrics[MemoryMetrics::MM_BLOCKS_TOTAL] = m_stats.slabsTotal;
+
+        return metrics;
     }
 
     template <typename T>

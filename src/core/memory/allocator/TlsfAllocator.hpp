@@ -6,6 +6,7 @@
 #include <core/Types.hpp>
 
 #include <core/containers/Array.hpp>
+#include <core/memory/MemoryMetrics.hpp>
 
 namespace hyperion {
 namespace memory {
@@ -39,6 +40,10 @@ public:
     void Free(void* ptr);
 
     SizeType GetUsableSize(void* ptr) const;
+
+    /*! \brief Returns memory usage metrics for this allocator.
+     *  This provides standardized statistics about memory consumption, utilization, and fragmentation. */
+    MemoryMetrics GetMemoryMetrics() const;
 
     struct Block
     {
