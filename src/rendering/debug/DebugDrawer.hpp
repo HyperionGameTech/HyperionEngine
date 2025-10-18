@@ -27,6 +27,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderMemory.hpp>
 #include <rendering/Shared.hpp>
 
 #include <core/Types.hpp>
@@ -272,7 +273,7 @@ private:
     HashMap<RenderableAttributeSet, GraphicsPipelineCacheHandle> m_graphicsPipelines;
 
     FixedArray<Array<DebugDrawCommandHeader>, NumMultiBuffers> m_headers;
-    FixedArray<ByteBuffer, NumMultiBuffers> m_buffers;
+    FixedArray<TByteBuffer<FrameAllocator>, NumMultiBuffers> m_buffers;
     FixedArray<uint32, NumMultiBuffers> m_bufferOffsets;
 
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer

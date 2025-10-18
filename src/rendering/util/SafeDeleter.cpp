@@ -22,7 +22,7 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
     return g_safeDeleter;
 }
 
-#pragma region SafeDeleterEntry<HypObjectBase*>
+#pragma region SafeDeleterEntry < HypObjectBase*>
 
 SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag)
     : ptr(ptr)
@@ -59,7 +59,7 @@ SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
     }
 }
 
-#pragma region SafeDeleterEntry<HypObjectBase*>
+#pragma region SafeDeleterEntry < HypObjectBase*>
 
 #pragma region SafeDeleter
 
@@ -272,26 +272,38 @@ void SafeDeleter::UpdateEntryListQueue()
     }
 
     Mutex::Guard guard(m_mutex);
-    for (EntryList& it : m_tempEntryLists)
+    for (auto it = m_tempEntryLists.Begin(); it != m_tempEntryLists.End();)
     {
-        if (it.bufferPos == 0)
+        EntryList& entryList = *it;
+
+        if (entryList.desiredIdx != ~0u && entryList.desiredIdx != bufferIndex)
         {
-            // no data in buffers, skip
+            // not desired index, skip for now (will be picked up by next iter that matches)
+            ++it;
             continue;
         }
 
-        AssertDebug(it.currHeaders == &it.headers[0]);
-        AssertDebug(it.headers[1].Empty());
+        if (entryList.bufferPos == 0)
+        {
+            // no data in buffers, skip
+            it = m_tempEntryLists.Erase(it);
+            AtomicDecrement(&m_tempEntryListCount);
 
-        Array<EntryHeader>& itHeaders = *it.currHeaders;
-        it.SwapHeaderBuffers();
+            continue;
+        }
+
+        AssertDebug(entryList.currHeaders == &entryList.headers[0]);
+        AssertDebug(entryList.headers[1].Empty());
+
+        Array<EntryHeader>& itHeaders = *entryList.currHeaders;
+        entryList.SwapHeaderBuffers();
 
         // concat all lists and take ownership of the data
         for (EntryHeader& header : itHeaders)
         {
             const uint32 newAlignedOffset = ByteUtil::AlignAs(currentEntryList.bufferPos, 16);
 
-            void* vp = it.buffer.Data() + header.offset;
+            void* vp = entryList.buffer.Data() + header.offset;
 
             if (currentEntryList.buffer.Size() < newAlignedOffset + header.size)
             {
@@ -319,16 +331,16 @@ void SafeDeleter::UpdateEntryListQueue()
             currentEntryList.currHeaders->PushBack(header);
         }
 
-        it.currHeaders->Clear();
-        it.currHeaders = &it.headers[0];
+        entryList.currHeaders->Clear();
+        entryList.currHeaders = &entryList.headers[0];
 
-        it.buffer = ByteBuffer();
-        it.bufferPos = 0;
+        entryList.buffer = ByteBuffer();
+        entryList.bufferPos = 0;
+
+        it = m_tempEntryLists.Erase(it);
+
+        AtomicDecrement(&m_tempEntryListCount);
     }
-
-    m_tempEntryLists.Clear();
-
-    AtomicExchange(&m_tempEntryListCount, 0);
 
     UpdateCounter(bufferIndex);
 }
@@ -337,16 +349,20 @@ void SafeDeleter::UpdateEntryListQueue()
 
 #pragma region SafeDeleter::EntryList
 
-SafeDeleter::EntryList::EntryList()
+SafeDeleter::EntryList::EntryList(uint32 desiredIdx)
     : buffer(),
       currHeaders(&headers[0]),
-      bufferPos(0)
+      bufferPos(0),
+      desiredIdx(desiredIdx)
 {
 }
 
-SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
+SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGuard)
 {
     HYP_SCOPE;
+
+    AssertDebug(ppGuard != nullptr);
+    *ppGuard = nullptr;
 
     if (Threads::IsOnThread(g_gameThread | g_renderThread))
     {
@@ -356,13 +372,32 @@ SafeDeleter::EntryList& SafeDeleter::GetCurrentEntryList()
         return m_entryLists[bufferIndex];
     }
 
-    // @FIXME: Race condition if render thread deletes it while we
-    // hold a reference. need to add a new method UnlockCurrentEntryList() which manually
-    // calls m_mutex.Unlock() and have the caller do that when done with the entry list.
-    Mutex::Guard guard(m_mutex);
+    *ppGuard = new Mutex::Guard(m_mutex);
 
     AtomicIncrement(&m_tempEntryListCount);
     SafeDeleter::EntryList& entryList = m_tempEntryLists.EmplaceBack();
+
+    return entryList;
+}
+
+SafeDeleter::EntryList& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx)
+{
+    // If:
+    //  - desiredIdx == ~0u (not specified) OR
+    //  - On game or render thread and desiredIdx == CURRENT idx
+    // we use the CURRENT entry list
+    if (desiredIdx == ~0u || (Threads::IsOnThread(g_gameThread | g_renderThread) && desiredIdx == RenderApi_GetFrameIndex()))
+    {
+        return GetCurrentEntryList(ppGuard);
+    }
+
+    // if desiredIdx is specified (wants to be deleted on a specific frame),
+    // we need to create a new entry list.
+
+    *ppGuard = new Mutex::Guard(m_mutex);
+
+    AtomicIncrement(&m_tempEntryListCount);
+    SafeDeleter::EntryList& entryList = m_tempEntryLists.EmplaceBack(desiredIdx);
 
     return entryList;
 }
@@ -394,6 +429,9 @@ void* SafeDeleter::EntryList::Alloc(uint32 size, uint32 alignment, EntryHeader& 
 void SafeDeleter::EntryList::Push(const EntryHeader& header)
 {
     HYP_SCOPE;
+
+    AssertDebug(currHeaders == &headers[0] || currHeaders == &headers[1]);
+
     currHeaders->PushBack(header);
 }
 

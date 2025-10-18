@@ -17,18 +17,4 @@ HYP_API const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass)
     return *hypClass.GetTypeInfo();
 }
 
-void ResourceTrackerBase::FreeRenderProxyEx(RenderProxyEx* ext)
-{
-    if (!ext)
-    {
-        return;
-    }
-
-    // Clean up render side only data
-    Threads::AssertOnThread(g_renderThread);
-
-    g_renderPool->Free(ext);
-    HYP_BREAKPOINT;
-}
-
 } // namespace hyperion

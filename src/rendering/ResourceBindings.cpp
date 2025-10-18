@@ -79,6 +79,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     AssertDebug(proxy != nullptr);
 
     RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
+    AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
 
     if (prev != ~0u)
     {

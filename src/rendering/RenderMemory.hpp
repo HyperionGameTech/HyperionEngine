@@ -30,6 +30,13 @@ static inline Pool* GetFramePool()
     return g_framePools[RenderApi_GetFrameIndex()];
 }
 
+template <int FrameIndex>
+static inline Pool* GetFramePoolT()
+{
+    static_assert(FrameIndex < NumMultiBuffers, "FrameIndex must be < NumMultiBuffers!");
+    return g_framePools[FrameIndex];
+}
+
 using RenderAllocator = PoolAllocator<&GetRenderPool>;
 using FrameAllocator = PoolAllocator<&GetFramePool>;
 

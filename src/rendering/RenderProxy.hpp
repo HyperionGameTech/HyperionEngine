@@ -50,17 +50,10 @@ struct MeshRaytracingData
     ~MeshRaytracingData();
 };
 
-// Render side only data for RenderProxy types (optional)
-// NOTE: MUST BE TRIVIALLY DESTRUCTIBLE! No destructor gets called.
-struct RenderProxyEx;
-
 class IRenderProxy
 {
 protected:
     ~IRenderProxy() = default; // NOTE: non-virtual since we don't intend to delete via base pointer and to avoid vtable overhead.
-
-public:
-    RenderProxyEx* ext = nullptr;
 };
 
 class NullProxy final : public IRenderProxy

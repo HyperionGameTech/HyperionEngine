@@ -244,7 +244,7 @@ public:
     ParallelRenderingState* parallelRenderingStateTail;
 
     // map entity id to previous attribute set (for draw call collection)
-    SparsePagedArray<RenderableAttributeSet, 128> previousAttributes;
+    SparsePagedArray<RenderableAttributeSet, 128, RenderAllocator> previousAttributes;
 
     FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, RB_MAX> mappingsByBucket;
 

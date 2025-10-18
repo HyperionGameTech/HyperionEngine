@@ -12,6 +12,8 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/LinkedList.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/threading/Mutex.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
@@ -115,8 +117,14 @@ public:
         // current headers to iterate over (changed by calling SwapHeaderBuffers())
         Array<EntryHeader>* currHeaders;
         uint32 bufferPos;
+        uint32 desiredIdx; // only for temp entry lists when we request a specific index!
 
-        EntryList();
+        EntryList()
+            : EntryList(~0u)
+        {
+        }
+
+        explicit EntryList(uint32 desiredIdx);
 
         void SwapHeaderBuffers()
         {
@@ -154,7 +162,9 @@ public:
     {
         EntryHeader header;
 
-        EntryList& list = GetCurrentEntryList();
+        Mutex::Guard* pGuard;
+        EntryList& list = GetCurrentEntryList(&pGuard);
+        HYP_DEFER({ if (pGuard) delete pGuard; });
 
         SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
 
@@ -190,14 +200,18 @@ public:
         return ptr;
     }
 
+    /*! \brief Allocate storage for custom deleter of type T. The instance will need to be constructed using placement new by the caller.
+     *  Allows for an optional frame index for the deleter to be called on. If ~0u, will be called on the next frame. */
     template <class T>
-    T* AllocCustom(void (*destructFn)(void*))
+    T* AllocCustom(void (*destructFn)(void*), uint32 desiredIdx = ~0u)
     {
         static_assert(IsPodTypeV<T>, "T must be a POD type");
 
         EntryHeader header;
 
-        EntryList& list = GetCurrentEntryList();
+        Mutex::Guard* pGuard;
+        EntryList& list = GetEntryList(&pGuard, desiredIdx);
+        HYP_DEFER({ if (pGuard) delete pGuard; });
 
         T* ptr = reinterpret_cast<T*>(list.Alloc(sizeof(T), alignof(T), header));
 
@@ -217,7 +231,8 @@ private:
         uint32 numTotalBytes = 0;
     };
 
-    EntryList& GetCurrentEntryList();
+    EntryList& GetCurrentEntryList(Mutex::Guard** ppGuard);
+    EntryList& GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u);
     void UpdateCounter(uint32 bufferIndex);
 
     // for calling on another thread than game thread / render thread.

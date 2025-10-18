@@ -261,7 +261,6 @@ const TypeInfo& TypeInfo::Void()
     return s_voidTypeInfo;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
 {
     if (!hypClass)
@@ -321,8 +320,6 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
 
     return *pTypeInfo;
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion TypeInfo
 

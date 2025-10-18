@@ -259,6 +259,9 @@ void UIRenderer::Shutdown()
 
 void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
     const Handle<UIPassData>& pd = ObjCast<UIPassData>(FetchViewPassData(m_view));
     AssertDebug(pd != nullptr);
 

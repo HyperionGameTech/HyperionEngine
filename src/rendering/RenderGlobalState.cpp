@@ -82,6 +82,7 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 static constexpr int FrameCleanupBudget = 16;
 
 static constexpr SizeType RenderPoolBlockSize = 16 * 1024 * 1024; // 16 MiB
+static constexpr SizeType FramePoolBlockSize = 8 * 1024 * 1024;   // 8 MiB
 
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
@@ -233,7 +234,7 @@ struct SubtypeResourceBindings
 
     SubtypeResourceBindings(const HypClass* resourceClass, GpuBufferHolderBase* gpuBufferHolder)
         : resourceClass(resourceClass),
-            gpuBufferHolder(gpuBufferHolder)
+          gpuBufferHolder(gpuBufferHolder)
     {
         AssertDebug(resourceClass != nullptr);
     }
@@ -504,7 +505,7 @@ public:
 struct ViewData
 {
     View* view = nullptr;
-    RenderProxyList rplRender { /* isShared */ false, /* refCounting */ false };
+    RenderProxyList rplRender { /* isShared */ false, /* useRefCounting */ false };
     RenderCollector renderCollector;
     uint32 framesSinceUsed = 0;
     uint32 numRefs = 0; // number of ViewFrameData holding refs to this
@@ -535,18 +536,17 @@ static ResourceContainer s_resources;
 
 static ViewData* GetViewData(View* view)
 {
-    AssertDebug(view != nullptr);
-
-#ifdef HYP_DEBUG_MODE
+    HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
-#endif
-
+    
+    AssertDebug(view != nullptr);
+    
     auto viewDataIt = s_viewData.Find(view);
     if (viewDataIt == s_viewData.End())
     {
         HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}", view->Id());
 
-        ViewData* vd = new ViewData();
+        ViewData* vd = new ViewData;
         vd->view = view;
 
         if (view->GetViewDesc().drawCallCollectionImpl != nullptr)
@@ -584,7 +584,7 @@ void RenderApi_Init()
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
-        g_framePools[i] = new Pool();
+        g_framePools[i] = new Pool(FramePoolBlockSize);
     }
 
     for (ResourceBinderBase* resourceBinder : s_resourceBinders)
@@ -639,7 +639,14 @@ void RenderApi_Shutdown()
 
     for (auto& it : s_viewData)
     {
-        delete it.second;
+        ViewData* vd = it.second;
+
+        if (!vd)
+        {
+            continue;
+        }
+
+        delete vd;
     }
 
     s_viewData.Clear();
@@ -673,7 +680,7 @@ static inline int RenderApi_CurrentThreadType()
 
 uint32 RenderApi_GetFrameIndex()
 {
-    if (!s_threadFrameIndex)
+    if (HYP_UNLIKELY(!s_threadFrameIndex))
     {
         const int threadType = RenderApi_CurrentThreadType();
         Assert(threadType >= 0, "RenderApi_GetFrameIndex called from an invalid thread!");
@@ -709,7 +716,6 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     return vfd;
 }
-
 HYP_DISABLE_OPTIMIZATION;
 
 template <class ElementType, class ProxyType>
@@ -724,15 +730,19 @@ static void CopyRenderProxy(ResourceSubtypeData& subtypeData, const ObjId<Elemen
         LookupTypeName(id.GetTypeId()),
         subtypeData.typeInfo->name);
 
-    // temp debug
-    auto** ppExistingProxy = subtypeData.proxies.TryGet(idx);
-    if (ppExistingProxy != nullptr)
+    /// TEMP
+    if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
     {
-        IRenderProxy* pExistingProxy = *ppExistingProxy;
-        if (pExistingProxy != nullptr)
+        /*IRenderProxy** ppExistingProxy = subtypeData.proxies.TryGet(idx);
+        if (ppExistingProxy)
         {
-            Assert(pExistingProxy->ext == nullptr || pExistingProxy->ext == pNewProxy->ext);
-        }
+            RenderProxyEnvGrid* pExistingProxy = static_cast<RenderProxyEnvGrid*>(*ppExistingProxy);
+            Assert(pExistingProxy != nullptr);
+            Assert(pExistingProxy->envGrid.GetUnsafe() == pNewProxy->envGrid.GetUnsafe());
+        }*/
+
+        HYP_BREAKPOINT;
+        Assert(pNewProxy->envGrid.GetUnsafe() != nullptr);
     }
 
     subtypeData.proxies.Set(idx, static_cast<IRenderProxy*>(pNewProxy));
@@ -758,11 +768,9 @@ static HYP_FORCE_INLINE void SyncResourcesImpl(
         resourceTracker.Track(elem->Id(), elem, &version);
     }
 }
-
 HYP_DISABLE_OPTIMIZATION;
-
 template <class ElementType, class ProxyType>
-static inline void SyncResources(
+static void SyncResources(
     ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& dst,
     const ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& src)
 {
@@ -818,16 +826,21 @@ static inline void SyncResources(
             {
                 continue;
             }
-
-            // temp debug
-            ProxyType* pExistingProxy = dst.GetProxy(resourceId);
-            if (pExistingProxy != nullptr)
-            {
-                AssertDebug(pExistingProxy->ext == nullptr || pExistingProxy->ext == pSrcProxy->ext);
-            }
+            
+                // temp debug
+                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
+                {
+                    Assert(pSrcProxy->envGrid.GetUnsafe() != nullptr);
+                }
 
             ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
             AssertDebug(pDstProxy != nullptr);
+            
+                // temp debug
+                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
+                {
+                    Assert(pDstProxy->envGrid.GetUnsafe() != nullptr);
+                }
 
             CopyRenderProxy(subtypeData, resourceId, pDstProxy);
         }
@@ -880,14 +893,19 @@ static inline void SyncResources(
                 }
 
                 // temp debug
-                ProxyType* pExistingProxy = dst.GetProxy(resourceId);
-                if (pExistingProxy != nullptr)
+                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
                 {
-                    AssertDebug(pExistingProxy->ext == nullptr || pExistingProxy->ext == pSrcProxy->ext);
+                    Assert(pSrcProxy->envGrid.GetUnsafe() != nullptr);
                 }
 
                 ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
                 AssertDebug(pDstProxy != nullptr);
+            
+                // temp debug
+                if constexpr (std::is_same_v<ProxyType, RenderProxyEnvGrid>)
+                {
+                    Assert(pDstProxy->envGrid.GetUnsafe() != nullptr);
+                }
 
                 ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(pResource->InstanceClass());
 
@@ -944,7 +962,7 @@ RenderProxyList& RenderApi_GetProducerProxyList(View* view)
 RenderProxyList& RenderApi_GetConsumerProxyList(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(view != nullptr);
 
@@ -1252,8 +1270,8 @@ void RenderApi_BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                i != Bitset::notFound;
-                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                 i != Bitset::notFound;
+                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1411,8 +1429,8 @@ void RenderApi_EndFrame_RenderThread()
 
     g_safeDeleter->Iterate();
 
-    // deallocate all frame allocations for this frame
-    g_framePools[slot]->Reset();
+    //// deallocate all frame allocations for this frame
+    //g_framePools[slot]->Reset();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
 

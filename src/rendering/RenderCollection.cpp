@@ -556,6 +556,33 @@ void RenderProxyList::EndRead()
 
 #pragma region RenderCollector
 
+/*! \brief Force function to be called on render thread. If we're currently on the render thread, executes inline. Otherwise, will enqueue custom deleter to be called on the render thread.  */
+template <class Func>
+static inline void DeleteOnRenderThread(Func&& function)
+{
+    if (Threads::IsOnThread(g_renderThread))
+    {
+        function();
+        return;
+    }
+
+    using Payload = Proc<void()>;
+
+    Payload** ppPayload = GetSafeDeleterInstance()->AllocCustom<Payload*>([](void* ptr)
+        {
+            Threads::AssertOnThread(g_renderThread);
+
+            Payload* pPayload = *reinterpret_cast<Payload**>(ptr);
+            AssertDebug(pPayload != nullptr && pPayload->IsValid());
+
+            (*pPayload)();
+
+            delete pPayload;
+        });
+
+    *ppPayload = new Payload(std::forward<Func>(function));
+}
+
 RenderCollector::RenderCollector()
     : parallelRenderingStateHead(nullptr),
       parallelRenderingStateTail(nullptr),
@@ -568,28 +595,55 @@ RenderCollector::~RenderCollector()
 {
     HYP_SCOPE;
 
-    if (parallelRenderingStateHead)
-    {
-        ParallelRenderingState* state = parallelRenderingStateHead;
-
-        while (state != nullptr)
+    DeleteOnRenderThread([attrs = std::move(previousAttributes),
+                             m = std::move(mappingsByBucket),
+                             prsHead = parallelRenderingStateHead]() mutable
         {
-            if (state->taskBatch != nullptr)
-            {
-                state->taskBatch->AwaitCompletion();
+            attrs.Clear(/* freeMemory */ true);
 
-                delete state->taskBatch;
+            if (prsHead)
+            {
+                ParallelRenderingState* state = prsHead;
+
+                while (state != nullptr)
+                {
+                    if (state->taskBatch != nullptr)
+                    {
+                        state->taskBatch->AwaitCompletion();
+
+                        delete state->taskBatch;
+                    }
+
+                    ParallelRenderingState* nextState = state->next;
+
+                    PoolDelete(*g_renderPool, state);
+
+                    state = nextState;
+                }
             }
 
-            ParallelRenderingState* nextState = state->next;
+            for (auto& mappings : m)
+            {
+                for (auto& it : mappings)
+                {
+                    DrawCallCollectionMapping& mapping = it.second;
+                    mapping.meshProxies.Clear(/* freeMemory */ true);
 
-            PoolDelete(*g_renderPool, state);
+                    if (mapping.indirectRenderer)
+                    {
+                        PoolDelete(*g_renderPool, mapping.indirectRenderer);
+                        mapping.indirectRenderer = nullptr;
+                    }
 
-            state = nextState;
-        }
-    }
+                    SafeDelete(std::move(mapping.renderGroup));
+                }
 
-    Clear(true);
+                mappings.Clear();
+            }
+        });
+
+    parallelRenderingStateHead = nullptr;
+    parallelRenderingStateTail = nullptr;
 }
 
 SizeType RenderCollector::NumDrawCallsCollected() const
@@ -613,13 +667,14 @@ SizeType RenderCollector::NumDrawCallsCollected() const
 void RenderCollector::Clear(bool freeMemory)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     for (auto& mappings : mappingsByBucket)
     {
         for (auto& it : mappings)
         {
             DrawCallCollectionMapping& mapping = it.second;
-            mapping.meshProxies.Clear(/* deletePages */ freeMemory);
+            mapping.meshProxies.Clear(/* freeMemory */ freeMemory);
 
             if (freeMemory)
             {

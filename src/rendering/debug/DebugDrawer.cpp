@@ -429,9 +429,55 @@ DebugDrawer::~DebugDrawer()
         m_commandLists[i].Clear();
     }
 
+    // @TODO need custom safe delete
     for (uint32 i = 0; i < uint32(m_buffers.Size()); i++)
     {
-        ClearCommands(i);
+        if (m_buffers[i].GetCapacity() == 0)
+        {
+            continue;
+        }
+
+        struct DebugDrawBufferDeleterPayload
+        {
+            Array<DebugDrawCommandHeader> headers;
+            TByteBuffer<FrameAllocator> buffer;
+        };
+
+        struct DebugDrawBufferDeleter
+        {
+            uint32 idx;
+            DebugDrawBufferDeleterPayload* payload;
+        };
+
+        // safely destroy the buffer data on the correct frame
+        DebugDrawBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
+            {
+                Threads::AssertOnThread(g_renderThread);
+
+                DebugDrawBufferDeleter* del = reinterpret_cast<DebugDrawBufferDeleter*>(ptr);
+                AssertDebug(del->idx == RenderApi_GetFrameIndex());
+
+                DebugDrawBufferDeleterPayload* payload = del->payload;
+                AssertDebug(payload != nullptr);
+
+                // invoke destructors
+                for (DebugDrawCommandHeader& header : payload->headers)
+                {
+                    if (header.destructFn)
+                    {
+                        header.destructFn(reinterpret_cast<void*>(payload->buffer.Data() + header.offset));
+                    }
+                }
+
+                delete del->payload;
+            },
+            /* desiredIdx */ i);
+
+        deleter->idx = i;
+        deleter->payload = new DebugDrawBufferDeleterPayload {
+            .headers = std::move(m_headers[i]),
+            .buffer = std::move(m_buffers[i])
+        };
     }
 
     m_shader.Reset();
@@ -495,7 +541,7 @@ void DebugDrawer::Update(float delta)
         return;
     }
 
-    ByteBuffer& buffer = m_buffers[idx];
+    TByteBuffer<FrameAllocator>& buffer = m_buffers[idx];
     uint32& bufferOffset = m_bufferOffsets[idx];
 
     for (DebugDrawCommandList& it : m_commandLists[idx])
@@ -515,7 +561,7 @@ void DebugDrawer::Update(float delta)
 
             if (buffer.Size() < newAlignedOffset + header.size)
             {
-                ByteBuffer newBuffer;
+                TByteBuffer<FrameAllocator> newBuffer;
                 newBuffer.SetSize(MathUtil::Ceil<double, SizeType>((newAlignedOffset + header.size) * 1.5));
 
                 // have to move all current commands since the buffer will realloc
@@ -561,7 +607,7 @@ void DebugDrawer::Update(float delta)
         }
 
         it.m_headers.Clear();
-        it.m_buffer = ByteBuffer();
+        it.m_buffer.Clear();
         it.m_bufferOffset = 0;
     }
 }
@@ -786,6 +832,9 @@ void DebugDrawer::ClearCommands(uint32 idx)
 {
     HYP_SCOPE;
     AssertDebug(idx < m_commandLists.Size());
+
+    // would cause issues if we try to free from pool being used by wrong thread..
+    Assert(idx == RenderApi_GetFrameIndex());
 
     for (DebugDrawCommandHeader& header : m_headers[idx])
     {

@@ -24,7 +24,6 @@ HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 HYP_API extern const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass);
 
 class NullProxy;
-struct RenderProxyEx;
 
 struct ResourceTrackerDiff
 {
@@ -42,9 +41,6 @@ class ResourceTrackerBase
 {
 public:
     virtual ~ResourceTrackerBase() = default;
-
-protected:
-    static void FreeRenderProxyEx(RenderProxyEx* ext);
 };
 
 template <class IdType, class ElementType, class ProxyType = NullProxy>
@@ -801,17 +797,7 @@ public:
         Impl(Impl&& other) noexcept = delete;
         Impl& operator=(Impl&& other) noexcept = delete;
 
-        ~Impl()
-        {
-            for (ProxyType& proxy : proxies)
-            {
-                if (proxy.ext)
-                {
-                    ResourceTrackerBase::FreeRenderProxyEx(proxy.ext);
-                    proxy.ext = nullptr;
-                }
-            }
-        }
+        ~Impl() = default;
 
         /*! \brief Checks if it already has a proxy for the given Id from the previous frame */
         HYP_FORCE_INLINE bool HasElement(IdType id) const
@@ -1190,18 +1176,13 @@ public:
 
             AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
             AssertDebug(elements.HasIndex(idx));
-            AssertDebug(proxy.ext == nullptr); // ext should be null when setting
 
             ProxyType* pExistingProxy = proxies.TryGet(idx);
             AssertDebug(pExistingProxy != std::addressof(proxy));
 
-            if (pExistingProxy && pExistingProxy->ext)
+            if (pExistingProxy)
             {
-                // Keep the previous `ext` pointer if it exists, since that is render side only data we need to preserve
-                RenderProxyEx* pExt = pExistingProxy->ext;
                 (*pExistingProxy) = proxy;
-
-                pExistingProxy->ext = pExt;
 
                 return pExistingProxy;
             }
@@ -1219,24 +1200,19 @@ public:
 
             AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
             AssertDebug(elements.HasIndex(idx));
-            AssertDebug(proxy.ext == nullptr); // ext should be null when setting
 
             ProxyType* pExistingProxy = proxies.TryGet(idx);
             AssertDebug(pExistingProxy != std::addressof(proxy));
 
-            if (pExistingProxy && pExistingProxy->ext)
+            if (pExistingProxy)
             {
-                // Keep the previous `ext` pointer if it exists, since that is render side only data we need to preserve
-                RenderProxyEx* pExt = pExistingProxy->ext;
-                (*pExistingProxy) = std::move(proxy);
-
-                pExistingProxy->ext = pExt;
+                (*pExistingProxy) = proxy;
 
                 return pExistingProxy;
             }
             else
             {
-                return &*proxies.Set(idx, std::move(proxy));
+                return &*proxies.Set(idx, proxy);
             }
         }
 
@@ -1253,12 +1229,6 @@ public:
             if (!pProxy)
             {
                 return;
-            }
-
-            if (pProxy->ext)
-            {
-                ResourceTrackerBase::FreeRenderProxyEx(pProxy->ext);
-                pProxy->ext = nullptr;
             }
 
             proxies.EraseAt(id.ToIndex());
@@ -1298,16 +1268,6 @@ public:
         /*! \brief Total reset of the list, including clearing the previous state. */
         void Reset()
         {
-            // destruct all proxy ext data
-            for (ProxyType& proxy : proxies)
-            {
-                if (proxy.ext)
-                {
-                    ResourceTrackerBase::FreeRenderProxyEx(proxy.ext);
-                    proxy.ext = nullptr;
-                }
-            }
-
             elements.Clear();
             versions.Clear();
 
