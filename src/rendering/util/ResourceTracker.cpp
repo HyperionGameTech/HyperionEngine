@@ -2,6 +2,8 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 
+#include <core/reflection/HypClass.hpp>
+
 #include <core/threading/Threads.hpp>
 
 #include <core/memory/pool/Pool.hpp>
@@ -9,6 +11,11 @@
 #include <rendering/RenderMemory.hpp>
 
 namespace hyperion {
+
+HYP_API const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass)
+{
+    return *hypClass.GetTypeInfo();
+}
 
 void ResourceTrackerBase::FreeRenderProxyEx(RenderProxyEx* ext)
 {
@@ -21,6 +28,7 @@ void ResourceTrackerBase::FreeRenderProxyEx(RenderProxyEx* ext)
     Threads::AssertOnThread(g_renderThread);
 
     g_renderPool->Free(ext);
+    HYP_BREAKPOINT;
 }
 
 } // namespace hyperion

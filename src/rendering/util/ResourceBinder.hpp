@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/reflection/Handle.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
 
@@ -19,12 +20,12 @@ struct ResourceBindingAllocatorBase
 {
     static constexpr uint32 invalidBinding = ~0u;
 
-    ResourceBindingAllocatorBase(uint32 maxSize)
+    explicit ResourceBindingAllocatorBase(uint32 maxSize)
         : maxSize(maxSize)
     {
     }
 
-    uint32 AllocateIndex()
+    HYP_FORCE_INLINE uint32 AllocateIndex()
     {
         const uint32 freeIndex = usedIndices.FirstZeroBitIndex();
 
@@ -39,7 +40,7 @@ struct ResourceBindingAllocatorBase
         return freeIndex;
     }
 
-    void FreeIndex(uint32 index)
+    HYP_FORCE_INLINE void FreeIndex(uint32 index)
     {
         if (!usedIndices.Test(index))
         {
@@ -83,11 +84,15 @@ public:
         return m_bindingAllocator;
     }
 
+    virtual void Initialize() = 0;
+
     // Mark the object to be considered to be a bound resource for the current frame
     virtual void Consider(HypObjectBase* object) = 0;
 
     // Remove the object from being considered to be bound
     virtual void Deconsider(HypObjectBase* object) = 0;
+
+    virtual uint32 GetBindingForObject(HypObjectBase* object) const = 0;
 
     // Assign / remove bindings for resources (call after all Consider()/Deconsider() calls)
     virtual void ApplyUpdates() = 0;
@@ -115,8 +120,8 @@ class ResourceBinder : public ResourceBinderBase
 {
     struct Impl final
     {
-        Impl(TypeId typeId)
-            : typeId(typeId)
+        explicit Impl(const TypeInfo* typeInfo)
+            : typeInfo(typeInfo)
         {
         }
 
@@ -125,7 +130,7 @@ class ResourceBinder : public ResourceBinderBase
             // Unbind all objects that were bound in the last frame
             for (Bitset::BitIndex i : lastFrameIds)
             {
-                const ObjId<T> id = ObjId<T>(ObjIdBase { typeId, uint32(i + 1) });
+                const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const auto it = bindings.FindAs(id);
                 AssertDebug(it != bindings.End());
@@ -157,7 +162,7 @@ class ResourceBinder : public ResourceBinderBase
                 return;
             }
 
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
 
             currentFrameIds.Set(id.ToIndex(), true);
         }
@@ -171,7 +176,7 @@ class ResourceBinder : public ResourceBinderBase
                 return;
             }
 
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
 
             currentFrameIds.Set(id.ToIndex(), false);
         }
@@ -192,7 +197,7 @@ class ResourceBinder : public ResourceBinderBase
 
                 for (Bitset::BitIndex i : removed)
                 {
-                    const ObjId<T> id = ObjId<T>(ObjIdBase { typeId, uint32(i + 1) });
+                    const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                     auto it = bindings.FindAs(id);
                     AssertDebug(it != bindings.End());
@@ -222,7 +227,7 @@ class ResourceBinder : public ResourceBinderBase
 
             for (Bitset::BitIndex i : newlyAdded)
             {
-                const ObjId<T> id = ObjId<T>(ObjIdBase { typeId, uint32(i + 1) });
+                const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 if (bindings.FindAs(id) != bindings.End())
                 {
@@ -266,7 +271,7 @@ class ResourceBinder : public ResourceBinderBase
             return Bitset(lastFrameIds).SetNumBits(count) & ~Bitset(currentFrameIds).SetNumBits(count);
         }
 
-        TypeId typeId;
+        const TypeInfo* typeInfo;
         // these bitsets are used to track which objects were bound in the last frame with bitwise operations
         Bitset lastFrameIds;
         Bitset currentFrameIds;
@@ -274,21 +279,15 @@ class ResourceBinder : public ResourceBinderBase
     };
 
 public:
-    ResourceBinder(ResourceBindingAllocatorBase* bindingAllocator)
+    explicit ResourceBinder(ResourceBindingAllocatorBase* bindingAllocator)
         : ResourceBinderBase(bindingAllocator),
-          m_impl(TypeId::ForType<T>())
+          m_impl(&TypeInfo_ForType<T>())
     {
-        AssertDebug(m_bindingAllocator != nullptr);
-
-        const SizeType numDescendants = GetNumDescendants(TypeId::ForType<T>());
-
-        // Create storage for subclass implementations
-        // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized
-        m_subclassImpls.Resize(numDescendants);
     }
 
     ResourceBinder(const ResourceBinder&) = delete;
     ResourceBinder& operator=(const ResourceBinder&) = delete;
+
     ResourceBinder(ResourceBinder&&) noexcept = delete;
     ResourceBinder& operator=(ResourceBinder&&) noexcept = delete;
 
@@ -306,6 +305,17 @@ public:
 
             m_subclassImpls[i].Destruct();
         }
+    }
+
+    virtual void Initialize() override
+    {
+        AssertDebug(m_bindingAllocator != nullptr);
+
+        const SizeType numDescendants = GetNumDescendants(TypeId::ForType<T>());
+
+        // Create storage for subclass implementations
+        // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized
+        m_subclassImpls.Resize(numDescendants);
     }
 
     virtual void Consider(HypObjectBase* object) override
@@ -332,12 +342,11 @@ public:
 
         if (!m_subclassImplsInitialized.Test(subclassIndex))
         {
-            m_subclassImpls[subclassIndex].Construct(objectTypeId);
+            m_subclassImpls[subclassIndex].Construct(object->InstanceClass()->GetTypeInfo());
             m_subclassImplsInitialized.Set(subclassIndex, true);
         }
 
         Impl& impl = m_subclassImpls[subclassIndex].Get();
-
         impl.Consider(m_bindingAllocator, object);
     }
 
@@ -368,6 +377,49 @@ public:
             Impl& impl = m_subclassImpls[subclassIndex].Get();
             impl.Deconsider(m_bindingAllocator, object);
         }
+    }
+
+    virtual uint32 GetBindingForObject(HypObjectBase* object) const override
+    {
+        AssertDebug(object != nullptr);
+
+        constexpr TypeId typeId = TypeId::ForType<T>();
+        const TypeId objectTypeId = GetTypeIdForClass(object->InstanceClass());
+
+        if (objectTypeId == typeId)
+        {
+            const ObjIdBase id = object->Id();
+            const auto it = m_impl.bindings.FindAs(ObjId<T>(id));
+
+            if (it != m_impl.bindings.End())
+            {
+                return it->second;
+            }
+        }
+        else
+        {
+            const int subclassIndex = GetSubclassIndex(typeId, objectTypeId);
+
+            AssertDebug(subclassIndex >= 0 && subclassIndex < int(m_subclassImpls.Size()),
+                "ResourceBinder<{}>: Attempted to get binding for object with TypeId {} which is not a subclass of the expected TypeId ({}) or has no static index",
+                TypeNameWithoutNamespace<T>().Data(), objectTypeId.Value(), typeId.Value());
+
+            if (!m_subclassImplsInitialized.Test(subclassIndex))
+            {
+                return ResourceBindingAllocatorBase::invalidBinding;
+            }
+
+            const Impl& impl = m_subclassImpls[subclassIndex].Get();
+            const ObjIdBase id = object->Id();
+            const auto it = impl.bindings.FindAs(ObjId<T>(id));
+
+            if (it != impl.bindings.End())
+            {
+                return it->second;
+            }
+        }
+
+        return ResourceBindingAllocatorBase::invalidBinding;
     }
 
     virtual void ApplyUpdates() override

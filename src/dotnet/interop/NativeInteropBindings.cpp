@@ -207,6 +207,8 @@ extern "C"
             return;
         }
 
+        HYP_LOG(DotNET, Debug, "Setting attributes for managed class '{}'", managedClass->GetName());
+
         AttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 
         managedClass->SetAttributes(std::move(attributes));

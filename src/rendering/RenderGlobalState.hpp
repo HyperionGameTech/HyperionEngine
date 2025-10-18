@@ -42,6 +42,18 @@ struct RenderStats;
 struct RenderStatsCounts;
 struct Viewport;
 
+extern ResourceBinderBase* g_meshEntityBinder;
+extern ResourceBinderBase* g_meshBinder;
+extern ResourceBinderBase* g_cameraBinder;
+extern ResourceBinderBase* g_envProbeBinder;
+extern ResourceBinderBase* g_reflectionProbeTextureBinder;
+extern ResourceBinderBase* g_envGridBinder;
+extern ResourceBinderBase* g_lightBinder;
+extern ResourceBinderBase* g_lightmapVolumeBinder;
+extern ResourceBinderBase* g_materialBinder;
+extern ResourceBinderBase* g_textureBinder;
+extern ResourceBinderBase* g_skeletonBinder;
+
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
@@ -100,8 +112,6 @@ RenderStats* RenderApi_GetRenderStats();
 void RenderApi_AddRenderStats(const RenderStatsCounts& counts);
 void RenderApi_SuppressRenderStats();
 void RenderApi_UnsuppressRenderStats();
-
-struct ResourceBindings;
 
 HYP_ENUM()
 enum GlobalRenderBuffer : uint8
@@ -172,7 +182,6 @@ public:
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
     GlobalGpuBuffers gpuBuffers;
-    ResourceBindings* resourceBindings;
 
     MaterialDescriptorSetManager* materialDescriptorSetManager;
 

@@ -3,14 +3,15 @@
 #pragma once
 
 #include <core/reflection/ObjId.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
+#include <core/reflection/TypeId.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 #include <core/containers/HashMap.hpp>
 
 #include <core/memory/Pimpl.hpp>
-
-#include <core/reflection/TypeId.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -20,6 +21,7 @@ namespace hyperion {
 
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+HYP_API extern const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass);
 
 class NullProxy;
 struct RenderProxyEx;
@@ -284,7 +286,7 @@ public:
     static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 
     ResourceTracker()
-        : baseImpl(IdType::typeIdStatic), // default impl for base class
+        : baseImpl(&TypeInfo_ForType<typename IdType::ObjectType>()), // default impl for base class
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used
@@ -323,7 +325,7 @@ public:
             return baseImpl.next.Count();
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -337,14 +339,14 @@ public:
 
     const ElementArrayType& GetElements(TypeId typeId) const
     {
-        static const ElementArrayType emptyArray {};
+        static const ElementArrayType s_emptyArray {};
 
         if (typeId == IdType::typeIdStatic)
         {
             return baseImpl.elements;
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -353,7 +355,7 @@ public:
             return subclassImpls[subclassIndex]->elements;
         }
 
-        return emptyArray;
+        return s_emptyArray;
     }
 
     template <class T>
@@ -427,19 +429,22 @@ public:
 
         cachedDiffNeedsUpdate = true;
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             baseImpl.Track(id, element, versionPtr, allowDuplicatesInSameFrame);
             return;
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
         if (!subclassIndices.Test(subclassIndex))
         {
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(typeId);
+            const HypClass* hypClass = GetClass(typeId);
+            AssertDebug(hypClass != nullptr);
+
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass));
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -455,12 +460,12 @@ public:
 
         cachedDiffNeedsUpdate = true;
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             return baseImpl.MarkToKeep(id);
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -479,14 +484,14 @@ public:
 
         cachedDiffNeedsUpdate = true;
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             baseImpl.MarkToRemove(id);
 
             return;
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -621,12 +626,12 @@ public:
 
         TypeId typeId = id.GetTypeId();
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             return baseImpl.GetElement(id);
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -649,12 +654,12 @@ public:
 
         TypeId typeId = id.GetTypeId();
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             return baseImpl.GetProxy(id);
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -677,23 +682,27 @@ public:
 
         TypeId typeId = id.GetTypeId();
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             return baseImpl.SetProxy(id, proxy);
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
         if (!subclassIndices.Test(subclassIndex))
         {
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(typeId);
+            const HypClass* hypClass = GetClass(typeId);
+            AssertDebug(hypClass != nullptr, "HypClass for TypeId {} not found", typeId.Value());
+
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass));
             subclassIndices.Set(subclassIndex, true);
         }
 
-        AssertDebug(subclassImpls[subclassIndex]->typeId == typeId,
-            "TypeId mismatch: expected {}, got {}", typeId.Value(), subclassImpls[subclassIndex]->typeId.Value());
+        AssertDebug(TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo) == typeId,
+            "TypeId mismatch: expected {}, got {}", typeId.Value(), TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo).Value());
+
         return subclassImpls[subclassIndex]->SetProxy(id, proxy);
     }
 
@@ -703,23 +712,27 @@ public:
 
         TypeId typeId = id.GetTypeId();
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             return baseImpl.SetProxy(id, std::move(proxy));
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
         if (!subclassIndices.Test(subclassIndex))
         {
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(typeId);
+            const HypClass* hypClass = GetClass(typeId);
+            AssertDebug(hypClass != nullptr, "HypClass for TypeId {} not found", typeId.Value());
+
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass));
             subclassIndices.Set(subclassIndex, true);
         }
 
-        AssertDebug(subclassImpls[subclassIndex]->typeId == typeId,
-            "TypeId mismatch: expected {}, got {}", typeId.Value(), subclassImpls[subclassIndex]->typeId.Value());
+        AssertDebug(TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo) == typeId,
+            "TypeId mismatch: expected {}, got {}", typeId.Value(), TypeInfo_GetId(*subclassImpls[subclassIndex]->typeInfo).Value());
+
         return subclassImpls[subclassIndex]->SetProxy(id, std::move(proxy));
     }
 
@@ -729,13 +742,13 @@ public:
 
         TypeId typeId = id.GetTypeId();
 
-        if (typeId == baseImpl.typeId)
+        if (typeId == TypeInfo_GetId(*baseImpl.typeInfo))
         {
             baseImpl.RemoveProxy(id);
             return;
         }
 
-        const int subclassIndex = GetSubclassIndex(baseImpl.typeId, typeId);
+        const int subclassIndex = GetSubclassIndex(TypeInfo_GetId(*baseImpl.typeInfo), typeId);
         AssertDebug(subclassIndex >= 0, "Invalid subclass index");
         AssertDebug(subclassIndex < subclassImpls.Size(), "Invalid subclass index");
 
@@ -777,8 +790,8 @@ public:
 
     struct Impl final
     {
-        Impl(TypeId typeId)
-            : typeId(typeId)
+        explicit Impl(const TypeInfo* typeInfo)
+            : typeInfo(typeInfo)
         {
         }
 
@@ -803,7 +816,7 @@ public:
         /*! \brief Checks if it already has a proxy for the given Id from the previous frame */
         HYP_FORCE_INLINE bool HasElement(IdType id) const
         {
-            AssertDebug(id.GetTypeId() == typeId, "ResourceTracker typeid mismatch");
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo), "ResourceTracker typeid mismatch");
 
             return previous.Test(id.ToIndex());
         }
@@ -953,7 +966,7 @@ public:
 
             for (Bitset::BitIndex i : removedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 outIds.PushBack(id);
             }
@@ -975,7 +988,7 @@ public:
 
             for (Bitset::BitIndex i : removedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1000,7 +1013,7 @@ public:
 
             for (Bitset::BitIndex i : removedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1025,7 +1038,7 @@ public:
 
             for (Bitset::BitIndex i : newlyAddedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 outIds.PushBack(id);
             }
@@ -1047,7 +1060,7 @@ public:
 
             for (Bitset::BitIndex i : newlyAddedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1072,7 +1085,7 @@ public:
 
             for (Bitset::BitIndex i : newlyAddedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1092,7 +1105,7 @@ public:
 
             for (Bitset::BitIndex i : changedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 outIds.PushBack(id);
             }
@@ -1109,7 +1122,7 @@ public:
 
             for (Bitset::BitIndex i : changedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1129,7 +1142,7 @@ public:
 
             for (Bitset::BitIndex i : changedBits)
             {
-                const IdType id = IdType(ObjIdBase { typeId, uint32(i + 1) });
+                const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1140,9 +1153,9 @@ public:
 
         ElementType* GetElement(IdType id)
         {
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
 
-            if (id.GetTypeId() != typeId)
+            if (id.GetTypeId() != TypeInfo_GetId(*typeInfo))
             {
                 return nullptr;
             }
@@ -1152,9 +1165,9 @@ public:
 
         ProxyType* GetProxy(IdType id)
         {
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
 
-            if (id.GetTypeId() != typeId)
+            if (id.GetTypeId() != TypeInfo_GetId(*typeInfo))
             {
                 return nullptr;
             }
@@ -1175,18 +1188,14 @@ public:
 
             const uint32 idx = id.ToIndex();
 
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
             AssertDebug(elements.HasIndex(idx));
             AssertDebug(proxy.ext == nullptr); // ext should be null when setting
 
-            if (id.GetTypeId() != typeId)
-            {
-                return nullptr;
-            }
-
             ProxyType* pExistingProxy = proxies.TryGet(idx);
+            AssertDebug(pExistingProxy != std::addressof(proxy));
 
-            if (pExistingProxy)
+            if (pExistingProxy && pExistingProxy->ext)
             {
                 // Keep the previous `ext` pointer if it exists, since that is render side only data we need to preserve
                 RenderProxyEx* pExt = pExistingProxy->ext;
@@ -1198,7 +1207,7 @@ public:
             }
             else
             {
-                return &*proxies.Emplace(idx, proxy);
+                return &*proxies.Set(idx, proxy);
             }
         }
 
@@ -1208,18 +1217,14 @@ public:
 
             const uint32 idx = id.ToIndex();
 
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
             AssertDebug(elements.HasIndex(idx));
             AssertDebug(proxy.ext == nullptr); // ext should be null when setting
 
-            if (id.GetTypeId() != typeId)
-            {
-                return nullptr;
-            }
-
             ProxyType* pExistingProxy = proxies.TryGet(idx);
+            AssertDebug(pExistingProxy != std::addressof(proxy));
 
-            if (pExistingProxy)
+            if (pExistingProxy && pExistingProxy->ext)
             {
                 // Keep the previous `ext` pointer if it exists, since that is render side only data we need to preserve
                 RenderProxyEx* pExt = pExistingProxy->ext;
@@ -1231,15 +1236,15 @@ public:
             }
             else
             {
-                return &*proxies.Emplace(idx, proxy);
+                return &*proxies.Set(idx, std::move(proxy));
             }
         }
 
         void RemoveProxy(IdType id)
         {
-            AssertDebug(id.GetTypeId() == typeId);
+            AssertDebug(id.GetTypeId() == TypeInfo_GetId(*typeInfo));
 
-            if (id.GetTypeId() != typeId)
+            if (id.GetTypeId() != TypeInfo_GetId(*typeInfo))
             {
                 return;
             }
@@ -1313,7 +1318,7 @@ public:
             changed.Clear();
         }
 
-        TypeId typeId;
+        const TypeInfo* typeInfo;
 
         ElementArrayType elements;
         // per-element version identifier array - mirrors elements array
@@ -1357,7 +1362,7 @@ static inline void GetAddedElements(ResourceTracker<IdType, ElementType, ProxyTy
 
         for (Bitset::BitIndex i : addedBits)
         {
-            const IdType id = IdType(ObjIdBase { rhsImpl.typeId, uint32(i + 1) });
+            const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*rhsImpl.typeInfo), uint32(i + 1) });
 
             ElementType* elem = rhsImpl.elements.TryGet(id.ToIndex());
             AssertDebug(elem != nullptr);
@@ -1372,7 +1377,7 @@ static inline void GetAddedElements(ResourceTracker<IdType, ElementType, ProxyTy
     {
         if (!lhs.subclassIndices.Test(i))
         {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeId);
+            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
             lhs.subclassIndices.Set(i, true);
         }
 
@@ -1400,7 +1405,7 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
 
         for (Bitset::BitIndex i : removedBits)
         {
-            const IdType id = IdType(ObjIdBase { lhsImpl.typeId, uint32(i + 1) });
+            const IdType id = IdType(ObjIdBase { TypeInfo_GetId(*lhsImpl.typeInfo), uint32(i + 1) });
 
             ElementType* elem = lhsImpl.elements.TryGet(id.ToIndex());
             AssertDebug(elem != nullptr);
@@ -1415,7 +1420,7 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
     {
         if (!rhs.subclassIndices.Test(i))
         {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeId);
+            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
             lhs.subclassIndices.Set(i, true);
         }
 
