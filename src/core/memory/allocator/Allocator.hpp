@@ -29,9 +29,19 @@ struct AllocationBase
 {
 };
 
+// Allocator interface (CRTP)
 template <class Derived>
 struct Allocator
 {
+    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    {
+        return static_cast<Derived*>(this)->Allocate(size, alignment);
+    }
+
+    HYP_FORCE_INLINE void Free(void* ptr)
+    {
+        static_cast<Derived*>(this)->Free(ptr);
+    }
 };
 
 struct DynamicAllocator : Allocator<DynamicAllocator>
@@ -184,19 +194,19 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
         }
     };
 
-    void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
     {
         HYP_CORE_ASSERT(size > 0);
         HYP_CORE_ASSERT(alignment > 0);
 
-        return HYP_ALLOC_ALIGNED(size, alignment);
+        return std::malloc(size);
     }
 
-    void Free(void* ptr)
+    HYP_FORCE_INLINE void Free(void* ptr)
     {
         HYP_CORE_ASSERT(ptr != nullptr);
 
-        HYP_FREE_ALIGNED(ptr);
+        std::free(ptr);
     }
 };
 
@@ -395,6 +405,18 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
         bool isDynamic : 1 = false;
     };
 
+    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    {
+        // Inline allocations should be handled by the Allocation struct itself
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    HYP_FORCE_INLINE void Free(void* ptr)
+    {
+        // Inline allocations should be handled by the Allocation struct itself
+        HYP_NOT_IMPLEMENTED();
+    }
+
     DynamicAllocatorType dynamicAllocator;
 };
 
@@ -561,10 +583,22 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
         uint32 magic : 31 = 0xBADA55u;
         bool isDynamic : 1 = false;
     };
+
+    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    {
+        // Fixed allocations should be handled by the Allocation struct itself
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    HYP_FORCE_INLINE void Free(void* ptr)
+    {
+        // Fixed allocations should be handled by the Allocation struct itself
+        HYP_NOT_IMPLEMENTED();
+    }
 };
 
-template <class AllocatorType, AllocatorType* (*GetGlobalAllocator)(void) = nullptr>
-struct TAllocator : Allocator<TAllocator<AllocatorType, GetGlobalAllocator>>
+template <class AllocatorType, AllocatorType** GlobalAllocator = nullptr, AllocatorType* (*GetGlobalAllocator)() = nullptr>
+struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlobalAllocator>>
 {
     template <class T>
     struct Allocation : AllocationBase<Allocation<T>>
@@ -714,28 +748,39 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GetGlobalAllocator>>
     };
 
     TAllocator()
+        : pAllocator(nullptr)
     {
-        HYP_CORE_ASSERT(GetGlobalAllocator != nullptr);
-        pAllocator = GetGlobalAllocator();
-        HYP_CORE_ASSERT(pAllocator != nullptr);
+        if (GetGlobalAllocator != nullptr)
+        {
+            pAllocator = GetGlobalAllocator();
+            HYP_CORE_ASSERT(pAllocator != nullptr);
+        }
+        else if (GlobalAllocator != nullptr)
+        {
+            pAllocator = *GlobalAllocator;
+            HYP_CORE_ASSERT(pAllocator != nullptr);
+        }
     }
 
     explicit TAllocator(AllocatorType* pAllocator)
         : pAllocator(pAllocator)
     {
-        HYP_CORE_ASSERT(pAllocator != nullptr);
     }
 
-    void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
     {
+        HYP_CORE_ASSERT(pAllocator != nullptr);
+
         HYP_CORE_ASSERT(size > 0);
         HYP_CORE_ASSERT(alignment > 0);
 
         return pAllocator->Alloc(size, alignment);
     }
 
-    void Free(void* ptr)
+    HYP_FORCE_INLINE void Free(void* ptr)
     {
+        HYP_CORE_ASSERT(pAllocator != nullptr);
+
         HYP_CORE_ASSERT(ptr != nullptr);
 
         pAllocator->Free(ptr);

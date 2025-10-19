@@ -64,6 +64,8 @@
 
 #include <HyperionEngine.hpp>
 
+#include <rendering/util/ResourceBinder.hpp>
+
 #include <semaphore>
 
 namespace hyperion {
@@ -80,9 +82,6 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
-
-static constexpr SizeType RenderPoolBlockSize = 16 * 1024 * 1024; // 16 MiB
-static constexpr SizeType FramePoolBlockSize = 8 * 1024 * 1024;   // 8 MiB
 
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
@@ -105,13 +104,6 @@ enum
 };
 
 extern void CoreApi_UpdateGlobalConfig(const ConfigurationTable& mergeValues);
-
-#pragma region Memory Pools
-
-HYP_API Pool* g_renderPool;
-HYP_API Pool* g_framePools[NumMultiBuffers];
-
-#pragma endregion MemoryPools
 
 #pragma region ResourceBindings
 
@@ -538,9 +530,9 @@ static ViewData* GetViewData(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
-    
+
     AssertDebug(view != nullptr);
-    
+
     auto viewDataIt = s_viewData.Find(view);
     if (viewDataIt == s_viewData.End())
     {
@@ -579,13 +571,6 @@ void RenderApi_Init()
 
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
     Assert(g_renderBackend != nullptr);
-
-    g_renderPool = new Pool(RenderPoolBlockSize);
-
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
-    {
-        g_framePools[i] = new Pool(FramePoolBlockSize);
-    }
 
     for (ResourceBinderBase* resourceBinder : s_resourceBinders)
     {
@@ -632,9 +617,6 @@ void RenderApi_Shutdown()
         }
 
         s_frameData[i].viewFrameData.Clear();
-
-        delete g_framePools[i];
-        g_framePools[i] = nullptr;
     }
 
     for (auto& it : s_viewData)
@@ -653,9 +635,6 @@ void RenderApi_Shutdown()
 
     delete g_renderGlobalState;
     g_renderGlobalState = nullptr;
-
-    delete g_renderPool;
-    g_renderPool = nullptr;
 
     Assert(g_renderBackend->Destroy());
 }
@@ -852,7 +831,7 @@ static void SyncResources(
                 AssertDebug(pSrcProxy != nullptr);
 
                 ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(pResource->InstanceClass());
-                
+
                 ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
                 CopyRenderProxy(subtypeData, resourceId, pDstProxy);
             }
@@ -1214,8 +1193,8 @@ void RenderApi_BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::notFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::notFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1374,7 +1353,7 @@ void RenderApi_EndFrame_RenderThread()
     g_safeDeleter->Iterate();
 
     //// deallocate all frame allocations for this frame
-    //g_framePools[slot]->Reset();
+    // g_framePools[slot]->Reset();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
 

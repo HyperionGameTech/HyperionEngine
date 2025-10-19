@@ -19,8 +19,10 @@
 
 namespace hyperion {
 
+HYP_API extern const HypClass* GetClass(TypeId typeId);
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+
 HYP_API extern const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass);
 
 class NullProxy;

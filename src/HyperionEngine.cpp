@@ -58,6 +58,32 @@
 
 namespace hyperion {
 
+#pragma region Memory Pools
+
+static constexpr SizeType RenderPoolBlockSize = 32 * 1024 * 1024; // 32 MiB
+static constexpr SizeType FramePoolBlockSize = 8 * 1024 * 1024;   // 8 MiB
+
+HYP_API Pool* g_renderPool;
+HYP_API Pool* g_framePools[NumMultiBuffers];
+
+static TAllocator<Pool>* s_frameAllocators[NumMultiBuffers];
+
+HYP_API TAllocator<Pool>& GetCurrentFrameAllocator()
+{
+    const uint32 currentFrameIndex = RenderApi_GetFrameIndex();
+
+    return *s_frameAllocators[currentFrameIndex];
+}
+
+HYP_API TAllocator<Pool>& GetFrameAllocator(uint32 frameIndex)
+{
+    AssertDebug(frameIndex < NumMultiBuffers, "Invalid frame index!");
+
+    return *s_frameAllocators[frameIndex];
+}
+
+#pragma endregion MemoryPools
+
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
 Handle<EngineDriver> g_engineDriver;
@@ -120,6 +146,14 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     Threads::SetCurrentThreadId(g_mainThread);
 
     EngineMemory_Initialize();
+
+    g_renderPool = new Pool(RenderPoolBlockSize);
+
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    {
+        g_framePools[i] = new Pool(FramePoolBlockSize);
+        s_frameAllocators[i] = PoolNew<TAllocator<Pool>>(*g_renderPool, g_framePools[i]);
+    }
 
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
@@ -261,6 +295,18 @@ HYP_API void DestroyEngine()
 
     delete g_renderBackend;
     g_renderBackend = nullptr;
+
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    {
+        PoolDelete(*g_renderPool, s_frameAllocators[i]);
+        s_frameAllocators[i] = nullptr;
+
+        delete g_framePools[i];
+        g_framePools[i] = nullptr;
+    }
+
+    delete g_renderPool;
+    g_renderPool = nullptr;
 
     EngineMemory_Shutdown();
 }

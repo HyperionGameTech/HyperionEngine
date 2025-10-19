@@ -112,7 +112,6 @@
   </Type>
 
   <Type Name="hyperion::containers::String&lt;*&gt;">
-    <!-- FIXME - new allocators has broken this -->
     <DisplayString Condition="m_allocation.allocationType == 1 || m_allocation.isDynamic == true &amp;&amp; $T1 == 2">{{ {((CharType *)m_allocation.buffer + m_startOffset), s8} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocationType == 2 &amp;&amp; m_allocation.isDynamic == false &amp;&amp; $T1 == 2">{{ {(((CharType *)&amp;m_allocation.storage.dataBuffer[0]) + m_startOffset), s8} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocationType == 1 || m_allocation.isDynamic == true &amp;&amp; $T1 == 1 &amp;&amp; isAnsi">{{ {((CharType *)m_allocation.buffer + m_startOffset), s} }}</DisplayString>

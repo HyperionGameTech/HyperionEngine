@@ -12,7 +12,6 @@
 #include <rendering/RenderShader.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 
-#include <rendering/util/ResourceBinder.hpp>
 #include <rendering/util/ResourceTracker.hpp>
 
 namespace hyperion {
@@ -41,6 +40,7 @@ struct WorldShaderData;
 struct RenderStats;
 struct RenderStatsCounts;
 struct Viewport;
+class ResourceBinderBase;
 
 extern ResourceBinderBase* g_meshEntityBinder;
 extern ResourceBinderBase* g_meshBinder;

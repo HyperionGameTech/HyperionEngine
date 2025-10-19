@@ -45,7 +45,7 @@ class PassData;
 struct RenderSetup;
 struct ImmediateDrawShaderData;
 
-static constexpr int g_maxDebugDrawShapeTypes = 8; // increase if needed
+static constexpr int MaxDebugDrawShapeTypes = 8;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.debug.debugDrawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
@@ -273,7 +273,7 @@ private:
     HashMap<RenderableAttributeSet, GraphicsPipelineCacheHandle> m_graphicsPipelines;
 
     FixedArray<Array<DebugDrawCommandHeader>, NumMultiBuffers> m_headers;
-    FixedArray<TByteBuffer<FrameAllocator>, NumMultiBuffers> m_buffers;
+    FixedArray<TByteBuffer<TAllocator<Pool>>, NumMultiBuffers> m_buffers;
     FixedArray<uint32, NumMultiBuffers> m_bufferOffsets;
 
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer
@@ -283,7 +283,7 @@ private:
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;
 
-    typedef Array<ImmediateDrawShaderData, DynamicAllocator> CachedPartitionedShaderData[g_maxDebugDrawShapeTypes];
+    typedef Array<ImmediateDrawShaderData, DynamicAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];
 
     CachedPartitionedShaderData m_cachedPartitionedShaderData;
 };

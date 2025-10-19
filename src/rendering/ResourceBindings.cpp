@@ -24,6 +24,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <rendering/util/ResourceBinder.hpp>
+
 namespace hyperion {
 
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
@@ -133,7 +135,7 @@ void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, 
     {
         const uint32 textureBinding = g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
         Assert(textureBinding != ~0u);
-        
+
         proxyCasted->bufferData.textureIndex = textureBinding;
     }
 

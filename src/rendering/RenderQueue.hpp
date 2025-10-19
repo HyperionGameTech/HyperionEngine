@@ -2,13 +2,6 @@
 
 #pragma once
 
-#include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/Variant.hpp>
-
-#include <core/containers/TypeMap.hpp>
-
-#include <core/threading/Mutex.hpp>
-
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/rt/RenderRaytracingPipeline.hpp>

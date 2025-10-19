@@ -677,6 +677,7 @@ RenderCollector::~RenderCollector()
             if (prsHead)
             {
                 ParallelRenderingState* state = prsHead;
+                ParallelRenderingState_Shared* sharedData = prsHead ? prsHead->sharedData : nullptr;
 
                 while (state != nullptr)
                 {
@@ -694,7 +695,10 @@ RenderCollector::~RenderCollector()
                     state = nextState;
                 }
 
-                PoolDelete(*g_renderPool, prsHead->sharedData);
+                if (sharedData)
+                {
+                    PoolDelete(*g_renderPool, sharedData);
+                }
             }
 
             for (auto& mappings : m)
@@ -1209,8 +1213,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
-            Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
+            Assert(id.GetTypeId() == TypeId::ForType<Entity>(), "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
 
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);

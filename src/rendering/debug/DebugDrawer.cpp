@@ -92,12 +92,12 @@ MeshDebugDrawShapeBase::MeshDebugDrawShapeBase(DebugDrawCommandList& list)
 // Global counter that is incremented the first time a debug draw shape class is constructed.
 // This number is assigned to each debug draw shape type so we can use it to cache render data on a
 // per-shape basis. It's not meant to be a stable ID but just needs to be unique
-static int g_debugDrawShapeIdCounter = 0;
+static int s_debugDrawShapeIdCounter = 0;
 
 static inline int NextShapeId()
 {
-    int shapeId = g_debugDrawShapeIdCounter++;
-    AssertDebug(shapeId < g_maxDebugDrawShapeTypes);
+    int shapeId = s_debugDrawShapeIdCounter++;
+    AssertDebug(shapeId < MaxDebugDrawShapeTypes);
 
     return shapeId;
 }
@@ -420,6 +420,10 @@ DebugDrawer::DebugDrawer()
       m_bufferSizeHistory {},
       m_isInitialized(false)
 {
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    {
+        m_buffers[i] = TByteBuffer<TAllocator<Pool>>(&GetFrameAllocator(i));
+    }
 }
 
 DebugDrawer::~DebugDrawer()
@@ -429,7 +433,6 @@ DebugDrawer::~DebugDrawer()
         m_commandLists[i].Clear();
     }
 
-    // @TODO need custom safe delete
     for (uint32 i = 0; i < uint32(m_buffers.Size()); i++)
     {
         if (m_buffers[i].GetCapacity() == 0)
@@ -440,7 +443,7 @@ DebugDrawer::~DebugDrawer()
         struct DebugDrawBufferDeleterPayload
         {
             Array<DebugDrawCommandHeader> headers;
-            TByteBuffer<FrameAllocator> buffer;
+            TByteBuffer<TAllocator<Pool>> buffer;
         };
 
         struct DebugDrawBufferDeleter
@@ -541,7 +544,7 @@ void DebugDrawer::Update(float delta)
         return;
     }
 
-    TByteBuffer<FrameAllocator>& buffer = m_buffers[idx];
+    TByteBuffer<TAllocator<Pool>>& buffer = m_buffers[idx];
     uint32& bufferOffset = m_bufferOffsets[idx];
 
     for (DebugDrawCommandList& it : m_commandLists[idx])
@@ -561,7 +564,7 @@ void DebugDrawer::Update(float delta)
 
             if (buffer.Size() < newAlignedOffset + header.size)
             {
-                TByteBuffer<FrameAllocator> newBuffer;
+                TByteBuffer<TAllocator<Pool>> newBuffer;
                 newBuffer.SetSize(MathUtil::Ceil<double, SizeType>((newAlignedOffset + header.size) * 1.5));
 
                 // have to move all current commands since the buffer will realloc
@@ -674,7 +677,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     // It's simply here because it's faster to cache the pointers to each shape by its shape id,
     // and we're only using stuff that doesn't use the shape's debug draw list at all.
     // if we want to use more stuff on each shape, we'll need to devise a different solutoin.
-    IDebugDrawShape* currShapes[g_maxDebugDrawShapeTypes] { nullptr };
+    IDebugDrawShape* currShapes[MaxDebugDrawShapeTypes] { nullptr };
 
     for (SizeType drawCommandIdx = 0; drawCommandIdx < m_headers[idx].Size(); drawCommandIdx++)
     {
@@ -694,7 +697,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
         const int shapeIdx = drawCommand->shape->shapeId;
 
-        AssertDebug(shapeIdx >= 0 && shapeIdx < g_maxDebugDrawShapeTypes);
+        AssertDebug(shapeIdx >= 0 && shapeIdx < MaxDebugDrawShapeTypes);
 
         auto& shaderData = partitionedShaderData[shapeIdx];
         currShapes[shapeIdx] = drawCommand->shape;

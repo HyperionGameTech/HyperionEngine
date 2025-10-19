@@ -1,3 +1,5 @@
+#include <core/reflection/HypClass.hpp>
+
 #include <rendering/util/ResourceBinder.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
