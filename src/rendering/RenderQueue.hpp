@@ -878,7 +878,7 @@ protected:
 
     RenderQueueBase() = default;
 };
-
+HYP_DISABLE_OPTIMIZATION;
 template <class AllocatorType>
 class TRenderQueue : public RenderQueueBase
 {
@@ -893,15 +893,15 @@ class TRenderQueue : public RenderQueueBase
     using Base::PrepareCmdFnPtr;
 
 public:
+    volatile int64 token = 0; // for debugging temp
+
     TRenderQueue();
 
     explicit TRenderQueue(AllocatorType* pAllocator)
-        : m_offset(0)
+        : m_cmdHeaders(pAllocator),
+          m_buffer(pAllocator),
+          m_offset(0)
     {
-        HYP_CORE_ASSERT(pAllocator != nullptr);
-
-        m_cmdHeaders = Array<CmdHeader, AllocatorType>(pAllocator);
-        m_buffer = TByteBuffer<AllocatorType>(pAllocator);
     }
 
     TRenderQueue(const TRenderQueue& other) = delete;
@@ -995,8 +995,7 @@ public:
 
         m_offset = newStartOffset + other.m_offset;
 
-        // clear out allocation
-        other.m_buffer = {};
+        other.m_buffer.Clear();
         other.m_cmdHeaders.Clear();
         other.m_offset = 0;
     }
@@ -1009,6 +1008,7 @@ private:
     TByteBuffer<AllocatorType> m_buffer;
     uint32 m_offset;
 };
+HYP_ENABLE_OPTIMIZATION;
 
 template <class AllocatorType>
 TRenderQueue<AllocatorType>::TRenderQueue()
@@ -1020,37 +1020,6 @@ template <class AllocatorType>
 TRenderQueue<AllocatorType>::~TRenderQueue()
 {
     Assert(m_cmdHeaders.Empty(), "RenderQueue destroyed with pending commands!");
-}
-
-template <class AllocatorType>
-void TRenderQueue<AllocatorType>::Prepare(FrameBase* frame)
-{
-    Assert(frame != nullptr);
-
-    for (CmdHeader& cmdHeader : m_cmdHeaders)
-    {
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
-        AssertDebug(cmdHeader.offset < m_buffer.Size());
-
-        cmdHeader.prepareFnPtr(cmdDataPtr, frame);
-    }
-}
-
-template <class AllocatorType>
-void TRenderQueue<AllocatorType>::Execute(CommandBufferBase* commandBuffer)
-{
-    AssertDebug(commandBuffer != nullptr);
-
-    for (CmdHeader& cmdHeader : m_cmdHeaders)
-    {
-        AssertDebug(cmdHeader.offset < m_buffer.Size());
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
-
-        cmdHeader.invokeFnPtr(cmdDataPtr, commandBuffer);
-    }
-
-    m_cmdHeaders.Clear();
-    m_offset = 0;
 }
 
 /*! \brief A RenderQueue that uses the render pool allocator. Only to be used on the render thread. */

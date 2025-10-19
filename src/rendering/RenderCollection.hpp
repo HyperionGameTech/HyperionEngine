@@ -61,7 +61,6 @@ struct ParallelRenderingState_Shared;
 struct ParallelRenderingState
 {
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
-    static constexpr SizeType LocalQueueArenaSize = 4 * 1024 * 1024; // 4 MB
 
     using LocalQueue = TRenderQueue<TAllocator<TLinearArena<RenderAllocator>>>;
 

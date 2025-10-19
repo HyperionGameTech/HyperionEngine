@@ -20,6 +20,38 @@
 namespace hyperion {
 
 #pragma region RenderQueue
+HYP_DISABLE_OPTIMIZATION;
+template <>
+void TRenderQueue<RenderAllocator>::Prepare(FrameBase* frame)
+{
+    Assert(frame != nullptr);
+
+    for (CmdHeader& cmdHeader : m_cmdHeaders)
+    {
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
+        AssertDebug(cmdHeader.offset < m_buffer.Size());
+
+        cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+    }
+}
+
+template <>
+void TRenderQueue<RenderAllocator>::Execute(CommandBufferBase* commandBuffer)
+{
+    AssertDebug(commandBuffer != nullptr);
+
+    for (CmdHeader& cmdHeader : m_cmdHeaders)
+    {
+        AssertDebug(cmdHeader.offset < m_buffer.Size());
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
+
+        cmdHeader.invokeFnPtr(cmdDataPtr, commandBuffer);
+    }
+
+    m_cmdHeaders.Clear();
+    m_offset = 0;
+}
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion RenderQueue
 

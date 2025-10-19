@@ -528,14 +528,21 @@ static void RenderAll_Parallel(
     {
         DivideDrawCalls(drawCallCollection.drawCalls.Size(), parallelRenderingState->numBatches, parallelRenderingState->drawCalls);
 
-        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->drawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, &pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32)
+        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->drawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, &pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32 batchIndex)
             {
                 if (range.count == 0)
                 {
                     return;
                 }
 
-                auto& renderQueue = *parallelRenderingState->localQueues[index];
+                auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
+                Assert(AtomicIncrement(&renderQueue.token) == 1);
+                HYP_DEFER({
+                    HYP_LOG_TEMP("DONE Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
+                    Assert(AtomicDecrement(&renderQueue.token) == 0);
+                    });
+
+                HYP_LOG_TEMP("Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
 
                 const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
                 const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
@@ -606,14 +613,20 @@ static void RenderAll_Parallel(
     {
         DivideDrawCalls(drawCallCollection.instancedDrawCalls.Size(), parallelRenderingState->numBatches, parallelRenderingState->instancedDrawCalls);
 
-        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->instancedDrawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, &pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32)
+        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->instancedDrawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, &pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32 batchIndex)
             {
                 if (range.count == 0)
                 {
                     return;
                 }
 
-                auto& renderQueue = *parallelRenderingState->localQueues[index];
+                auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
+                Assert(AtomicIncrement(&renderQueue.token) == 1);
+                HYP_DEFER({
+                    HYP_LOG_TEMP("DONE Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
+                    Assert(AtomicDecrement(&renderQueue.token) == 0);
+                    });
+                HYP_LOG_TEMP("Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
 
                 const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
                 const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);

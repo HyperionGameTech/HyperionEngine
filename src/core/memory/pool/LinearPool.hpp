@@ -55,15 +55,10 @@ public:
         return m_buffer.Size() - m_offset;
     }
 
-    /*! \brief Resets the arena offset to 0 and frees up memory if freeMemory is passed as true */
-    HYP_FORCE_INLINE void Reset(bool freeMemory = false)
+    /*! \brief Resets the arena, allowing all memory to be re-allocated. */
+    HYP_FORCE_INLINE void Reset()
     {
         m_offset = 0;
-
-        if (freeMemory)
-        {
-            m_buffer.SetCapacity(0);
-        }
     }
 
     /*! \brief Allocates memory from the arena.

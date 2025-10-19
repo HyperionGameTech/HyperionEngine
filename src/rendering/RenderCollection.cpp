@@ -67,20 +67,18 @@ static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 struct ParallelRenderingState_Shared
 {
     static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
-    static constexpr SizeType LocalQueueArenaSize = ParallelRenderingState::LocalQueueArenaSize;
+    static constexpr SizeType LocalQueueArenaSize = 16 * 1024 * 1024;
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
     FixedArray<TLinearArena<RenderAllocator>*, MaxBatches> arenas;
     FixedArray<TAllocator<TLinearArena<RenderAllocator>>*, MaxBatches> allocators;
     FixedArray<LocalQueue*, MaxBatches> localQueues;
-    uint32 useCount;
 
     ParallelRenderingState_Shared()
         : arenas {},
           allocators {},
-          localQueues {},
-          useCount(0)
+          localQueues {}
     {
         Threads::AssertOnThread(g_renderThread);
 
@@ -130,7 +128,13 @@ ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sh
     }
 }
 
-ParallelRenderingState::~ParallelRenderingState() = default;
+ParallelRenderingState::~ParallelRenderingState()
+{
+    if (sharedData)
+    {
+        PoolDelete(*g_renderPool, sharedData);
+    }
+}
 
 #pragma endregion ParallelRenderingState
 
@@ -677,7 +681,6 @@ RenderCollector::~RenderCollector()
             if (prsHead)
             {
                 ParallelRenderingState* state = prsHead;
-                ParallelRenderingState_Shared* sharedData = prsHead ? prsHead->sharedData : nullptr;
 
                 while (state != nullptr)
                 {
@@ -693,11 +696,6 @@ RenderCollector::~RenderCollector()
                     PoolDelete(*g_renderPool, state);
 
                     state = nextState;
-                }
-
-                if (sharedData)
-                {
-                    PoolDelete(*g_renderPool, sharedData);
                 }
             }
 
@@ -777,6 +775,7 @@ void RenderCollector::Clear(bool freeMemory)
 ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     ParallelRenderingState* curr = parallelRenderingStateTail;
 
@@ -801,9 +800,13 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     }
     else
     {
-        if (!curr->next)
+        ParallelRenderingState*& next = curr->next;
+
+        if (!next)
         {
-            ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool, curr->sharedData);
+            ParallelRenderingState_Shared* sharedData = PoolNew<ParallelRenderingState_Shared>(*g_renderPool); // temp
+
+            ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool, sharedData);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
@@ -813,10 +816,10 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
             newParallelRenderingState->taskBatch = taskBatch;
             newParallelRenderingState->numBatches = ParallelRenderingState::MaxBatches;
 
-            curr->next = newParallelRenderingState;
+            next = newParallelRenderingState;
         }
 
-        curr = curr->next;
+        curr = next;
     }
 
     parallelRenderingStateTail = curr;
@@ -842,9 +845,9 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 
         renderQueue.Concat(std::move(state->rootQueue));
 
-        for (auto* localQueue : state->localQueues)
+        for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
-            renderQueue.Concat(std::move(*localQueue));
+            renderQueue.Concat(std::move(*state->localQueues[i]));
         }
 
         // Add render stats counts to the engine's render stats
@@ -853,6 +856,12 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             RenderApi_AddRenderStats(counts);
 
             counts = RenderStatsCounts(); // Reset counts after adding for next use
+        }
+
+        // reset arena memory offsets
+        for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
+        {
+            state->sharedData->arenas[i]->Reset();
         }
 
         state->drawCalls.Clear();
