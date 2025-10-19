@@ -56,20 +56,26 @@ struct DrawCallRange
     SizeType count;
 };
 
+struct ParallelRenderingState_Shared;
+
 struct ParallelRenderingState
 {
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
+    static constexpr SizeType LocalQueueArenaSize = 4 * 1024 * 1024; // 4 MB
+
+    using LocalQueue = TRenderQueue<TAllocator<TLinearArena<RenderAllocator>>>;
 
     TaskBatch* taskBatch = nullptr;
 
     uint32 numBatches = 0;
 
+    ParallelRenderingState_Shared* sharedData = nullptr;
+
     // Non-async rendering command list - used for binding state at the start of the pass before async stuff (can only be written to from render thread)
     RenderQueue rootQueue;
 
     // per-thread RenderQueue
-    using LocalQueue = TRenderQueue<ArenaAllocator>;
-    FixedArray<TaskRenderQueue, MaxBatches> localQueues {};
+    FixedArray<LocalQueue*, MaxBatches> localQueues {};
 
     FixedArray<RenderStatsCounts, MaxBatches> renderStatsCounts {};
 
@@ -80,6 +86,16 @@ struct ParallelRenderingState
     Array<Proc<void(DrawCallRange, uint32, uint32)>, FixedAllocator<1>> instancedDrawCallProcs;
 
     ParallelRenderingState* next = nullptr;
+
+    explicit ParallelRenderingState(ParallelRenderingState_Shared* sharedData);
+
+    ParallelRenderingState(const ParallelRenderingState&) = delete;
+    ParallelRenderingState& operator=(const ParallelRenderingState&) = delete;
+
+    ParallelRenderingState(ParallelRenderingState&&) noexcept = delete;
+    ParallelRenderingState& operator=(ParallelRenderingState&&) noexcept = delete;
+
+    ~ParallelRenderingState();
 };
 
 // Utility struct that maps attribute sets -> draw call collections that have been written to already and had render groups created.

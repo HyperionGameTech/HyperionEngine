@@ -61,6 +61,79 @@ static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 //     Threads::AssertOnThread(g_renderThread);
 // }
 
+#pragma region ParallelRenderingState
+
+// Holds shared data for ParallelRenderingState instances to reduce memory usage
+struct ParallelRenderingState_Shared
+{
+    static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
+    static constexpr SizeType LocalQueueArenaSize = ParallelRenderingState::LocalQueueArenaSize;
+
+    using LocalQueue = ParallelRenderingState::LocalQueue;
+
+    FixedArray<TLinearArena<RenderAllocator>*, MaxBatches> arenas;
+    FixedArray<TAllocator<TLinearArena<RenderAllocator>>*, MaxBatches> allocators;
+    FixedArray<LocalQueue*, MaxBatches> localQueues;
+    uint32 useCount;
+
+    ParallelRenderingState_Shared()
+        : arenas {},
+          allocators {},
+          localQueues {},
+          useCount(0)
+    {
+        Threads::AssertOnThread(g_renderThread);
+
+        for (uint32 i = 0; i < MaxBatches; i++)
+        {
+            TLinearArena<RenderAllocator>* arena = PoolNew<TLinearArena<RenderAllocator>>(*g_renderPool, LocalQueueArenaSize);
+            arenas[i] = arena;
+
+            allocators[i] = PoolNew<TAllocator<TLinearArena<RenderAllocator>>>(*g_renderPool, arena);
+
+            localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, allocators[i]);
+        }
+    }
+
+    ~ParallelRenderingState_Shared()
+    {
+        Threads::AssertOnThread(g_renderThread);
+
+        for (uint32 i = 0; i < MaxBatches; i++)
+        {
+            if (localQueues[i])
+            {
+                PoolDelete(*g_renderPool, localQueues[i]);
+            }
+
+            if (allocators[i])
+            {
+                PoolDelete(*g_renderPool, allocators[i]);
+            }
+
+            if (arenas[i])
+            {
+                PoolDelete(*g_renderPool, arenas[i]);
+            }
+        }
+    }
+};
+
+ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sharedData)
+    : sharedData(sharedData)
+{
+    Assert(sharedData != nullptr);
+
+    for (uint32 i = 0; i < MaxBatches; i++)
+    {
+        localQueues[i] = sharedData->localQueues[i];
+    }
+}
+
+ParallelRenderingState::~ParallelRenderingState() = default;
+
+#pragma endregion ParallelRenderingState
+
 #pragma region RenderProxyList
 
 static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyMesh& proxy, const RenderableAttributeSet* overrideAttributes = nullptr)
@@ -117,10 +190,10 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxyM
     return attributes;
 }
 
-static const Name g_nameInstancing = NAME("INSTANCING");
-static const Name g_nameForwardLighting = NAME("FORWARD_LIGHTING");
-static const Name g_nameAlphaDiscard = NAME("ALPHA_DISCARD");
-static const Name g_nameSkinning = NAME("SKINNING");
+static const Name s_nameInstancing = NAME("INSTANCING");
+static const Name s_nameForwardLighting = NAME("FORWARD_LIGHTING");
+static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
+static const Name s_nameSkinning = NAME("SKINNING");
 
 static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, RenderableAttributeSet& attributes)
 {
@@ -161,27 +234,27 @@ static void UpdateRenderableAttributesDynamic(const RenderProxyMesh* proxy, Rend
     bool shaderDefinitionChanged = false;
     ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
 
-    if (hasInstancing && !shaderDefinition.GetProperties().Has(g_nameInstancing))
+    if (hasInstancing && !shaderDefinition.GetProperties().Has(s_nameInstancing))
     {
-        shaderDefinition.GetProperties().Set(g_nameInstancing);
+        shaderDefinition.GetProperties().Set(s_nameInstancing);
         shaderDefinitionChanged = true;
     }
 
-    if (hasForwardLighting && !shaderDefinition.GetProperties().Has(g_nameForwardLighting))
+    if (hasForwardLighting && !shaderDefinition.GetProperties().Has(s_nameForwardLighting))
     {
-        shaderDefinition.GetProperties().Set(g_nameForwardLighting);
+        shaderDefinition.GetProperties().Set(s_nameForwardLighting);
         shaderDefinitionChanged = true;
     }
 
-    if (hasAlphaDiscard && !shaderDefinition.GetProperties().Has(g_nameAlphaDiscard))
+    if (hasAlphaDiscard && !shaderDefinition.GetProperties().Has(s_nameAlphaDiscard))
     {
-        shaderDefinition.GetProperties().Set(g_nameAlphaDiscard);
+        shaderDefinition.GetProperties().Set(s_nameAlphaDiscard);
         shaderDefinitionChanged = true;
     }
 
-    if (hasSkinning && !shaderDefinition.GetProperties().Has(g_nameSkinning))
+    if (hasSkinning && !shaderDefinition.GetProperties().Has(s_nameSkinning))
     {
-        shaderDefinition.GetProperties().Set(g_nameSkinning);
+        shaderDefinition.GetProperties().Set(s_nameSkinning);
         shaderDefinitionChanged = true;
     }
 
@@ -620,6 +693,8 @@ RenderCollector::~RenderCollector()
 
                     state = nextState;
                 }
+
+                PoolDelete(*g_renderPool, prsHead->sharedData);
             }
 
             for (auto& mappings : m)
@@ -705,7 +780,9 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     {
         if (!parallelRenderingStateHead)
         {
-            parallelRenderingStateHead = PoolNew<ParallelRenderingState>(*g_renderPool);
+            ParallelRenderingState_Shared* sharedData = PoolNew<ParallelRenderingState_Shared>(*g_renderPool);
+
+            parallelRenderingStateHead = PoolNew<ParallelRenderingState>(*g_renderPool, sharedData);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
@@ -722,7 +799,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     {
         if (!curr->next)
         {
-            ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool);
+            ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool, curr->sharedData);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
@@ -761,9 +838,9 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 
         renderQueue.Concat(std::move(state->rootQueue));
 
-        for (auto& localQueue : state->localQueues)
+        for (auto* localQueue : state->localQueues)
         {
-            renderQueue.Concat(std::move(localQueue));
+            renderQueue.Concat(std::move(*localQueue));
         }
 
         // Add render stats counts to the engine's render stats

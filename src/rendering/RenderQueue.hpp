@@ -896,11 +896,20 @@ class TRenderQueue : public RenderQueueBase
 
     using Base::CmdHeader;
     using Base::InvokeCmdFnPtr;
-    using Base::PrepareCmdFnPtr;
     using Base::MoveCmdFnPtr;
+    using Base::PrepareCmdFnPtr;
 
 public:
     TRenderQueue();
+
+    explicit TRenderQueue(AllocatorType* pAllocator)
+        : m_offset(0)
+    {
+        HYP_CORE_ASSERT(pAllocator != nullptr);
+
+        m_cmdHeaders = Array<CmdHeader, AllocatorType>(pAllocator);
+        m_buffer = TByteBuffer<AllocatorType>(pAllocator);
+    }
 
     TRenderQueue(const TRenderQueue& other) = delete;
     TRenderQueue& operator=(const TRenderQueue& other) = delete;
@@ -921,8 +930,7 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
-        static_assert(std::is_trivially_copyable_v<CmdType>
-                && std::is_trivially_destructible_v<TCmd>,
+        static_assert(std::is_trivially_copyable_v<CmdType> && std::is_trivially_destructible_v<TCmd>,
             "CmdType should be trivially copyable and destructible!");
 
         constexpr SizeType CmdSize = sizeof(TCmd);

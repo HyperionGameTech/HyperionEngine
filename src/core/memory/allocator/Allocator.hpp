@@ -16,7 +16,6 @@ namespace hyperion {
 namespace memory {
 
 class Pool;
-class LinearArena;
 
 // Helper metadata for natvis navigation
 enum AllocationType : uint32
@@ -65,7 +64,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             } storage;
         };
 
-        void Allocate(SizeType count)
+        void Allocate(DynamicAllocator* allocator, SizeType count)
         {
             HYP_CORE_ASSERT(buffer == nullptr);
 
@@ -76,32 +75,17 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
 
             static_assert(sizeof(T) % alignof(T) == 0, "Type T must be aligned to its size");
 
-            if constexpr (alignof(T) <= alignof(std::max_align_t))
-            {
-                // Use standard allocation if alignment is not greater than max alignment
-                buffer = static_cast<T*>(Memory::Allocate(count * sizeof(T)));
-            }
-            else
-            {
-                buffer = static_cast<T*>(HYP_ALLOC_ALIGNED(count * sizeof(T), alignof(T)));
-                HYP_CORE_ASSERT(buffer != nullptr, "Aligned allocation failed! Size: %zu, Alignment: %zu", count * sizeof(T), alignof(T));
-            }
+            buffer = static_cast<T*>(allocator->Allocate(sizeof(T) * count, alignof(T)));
+            HYP_CORE_ASSERT(buffer != nullptr);
 
             capacity = count;
         }
 
-        void Free()
+        void Free(DynamicAllocator* allocator)
         {
             if (buffer != nullptr)
             {
-                if constexpr (alignof(T) <= alignof(std::max_align_t))
-                {
-                    Memory::Free(buffer);
-                }
-                else
-                {
-                    HYP_FREE_ALIGNED(buffer);
-                }
+                allocator->Free(buffer);
             }
 
             SetToInitialState();
@@ -245,7 +229,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             return isDynamic ? dynamicAllocation.GetCapacity() : Count;
         }
 
-        HYP_FORCE_INLINE void Allocate(SizeType count)
+        HYP_FORCE_INLINE void Allocate(InlineAllocator<Count, DynamicAllocatorType>* allocator, SizeType count)
         {
             HYP_CORE_ASSERT(!isDynamic);
 
@@ -256,18 +240,18 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 
             dynamicAllocation = typename DynamicAllocatorType::template Allocation<T>();
             dynamicAllocation.SetToInitialState();
-            dynamicAllocation.Allocate(count);
+            dynamicAllocation.Allocate(&allocator->dynamicAllocator, count);
 
             isDynamic = true;
 
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        HYP_FORCE_INLINE void Free()
+        HYP_FORCE_INLINE void Free(InlineAllocator<Count, DynamicAllocatorType>* allocator)
         {
             if (isDynamic)
             {
-                dynamicAllocation.Free();
+                dynamicAllocation.Free(&allocator->dynamicAllocator);
             }
 
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
@@ -410,6 +394,8 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
         uint32 magic : 31 = 0xBADA55u;
         bool isDynamic : 1 = false;
     };
+
+    DynamicAllocatorType dynamicAllocator;
 };
 
 template <SizeType Count>
@@ -441,14 +427,14 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             return Count;
         }
 
-        HYP_FORCE_INLINE void Allocate(SizeType count)
+        HYP_FORCE_INLINE void Allocate(FixedAllocator<Count>* allocator, SizeType count)
         {
             HYP_CORE_ASSERT(count <= Count, "Allocation size exceeds fixed capacity!");
 
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        HYP_FORCE_INLINE void Free()
+        HYP_FORCE_INLINE void Free(FixedAllocator<Count>* allocator)
         {
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
 
@@ -577,8 +563,8 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
     };
 };
 
-template <auto GetPoolFunction>
-struct PoolAllocator : Allocator<PoolAllocator<GetPoolFunction>>
+template <class AllocatorType, AllocatorType* (*GetGlobalAllocator)(void) = nullptr>
+struct TAllocator : Allocator<TAllocator<AllocatorType, GetGlobalAllocator>>
 {
     template <class T>
     struct Allocation : AllocationBase<Allocation<T>>
@@ -607,7 +593,7 @@ struct PoolAllocator : Allocator<PoolAllocator<GetPoolFunction>>
             } storage;
         };
 
-        void Allocate(SizeType count)
+        void Allocate(TAllocator* allocator, SizeType count)
         {
             HYP_CORE_ASSERT(buffer == nullptr);
 
@@ -618,17 +604,17 @@ struct PoolAllocator : Allocator<PoolAllocator<GetPoolFunction>>
 
             static_assert(sizeof(T) % alignof(T) == 0, "Type T must be aligned to its size");
 
-            buffer = static_cast<T*>(GetPoolFunction()->Alloc(count * sizeof(T), alignof(T)));
+            buffer = static_cast<T*>(allocator->Allocate(count * sizeof(T), alignof(T)));
             HYP_CORE_ASSERT(buffer != nullptr, "Pool allocation failed! Size: %zu, Alignment: %zu", count * sizeof(T), alignof(T));
 
             capacity = count;
         }
 
-        void Free()
+        void Free(TAllocator* allocator)
         {
             if (buffer != nullptr)
             {
-                GetPoolFunction()->Free(buffer);
+                allocator->Free(buffer);
             }
 
             SetToInitialState();
@@ -727,29 +713,64 @@ struct PoolAllocator : Allocator<PoolAllocator<GetPoolFunction>>
         }
     };
 
+    TAllocator()
+    {
+        HYP_CORE_ASSERT(GetGlobalAllocator != nullptr);
+        pAllocator = GetGlobalAllocator();
+        HYP_CORE_ASSERT(pAllocator != nullptr);
+    }
+
+    explicit TAllocator(AllocatorType* pAllocator)
+        : pAllocator(pAllocator)
+    {
+        HYP_CORE_ASSERT(pAllocator != nullptr);
+    }
+
     void* Allocate(SizeType size, SizeType alignment)
     {
         HYP_CORE_ASSERT(size > 0);
         HYP_CORE_ASSERT(alignment > 0);
 
-        return GetPoolFunction()->Alloc(size, alignment);
+        return pAllocator->Alloc(size, alignment);
     }
 
     void Free(void* ptr)
     {
         HYP_CORE_ASSERT(ptr != nullptr);
 
-        GetPoolFunction()->Free(ptr);
+        pAllocator->Free(ptr);
+    }
+
+    AllocatorType* pAllocator;
+};
+
+template <class T, class T2 = void>
+struct DefaultAllocatorInstanceHelper;
+
+template <class Derived>
+struct DefaultAllocatorInstanceHelper<Derived, typename std::enable_if_t<std::is_base_of_v<Allocator<Derived>, Derived>>>
+{
+    static Derived& Get()
+    {
+        static Derived s_instance;
+        return s_instance;
     }
 };
+
+template <class T>
+static T& GetDefaultAllocatorInstance()
+{
+    return DefaultAllocatorInstanceHelper<T>::Get();
+}
 
 } // namespace memory
 
 using memory::Allocator;
 using memory::DynamicAllocator;
 using memory::FixedAllocator;
+using memory::GetDefaultAllocatorInstance;
 using memory::InlineAllocator;
-using memory::PoolAllocator;
+using memory::TAllocator;
 
 template <class T, class AllocatorType>
 using Allocation = typename AllocatorType::template Allocation<T>;

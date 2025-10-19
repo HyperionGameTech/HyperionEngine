@@ -37,7 +37,7 @@ static inline Pool* GetFramePoolT()
     return g_framePools[FrameIndex];
 }
 
-using RenderAllocator = PoolAllocator<&GetRenderPool>;
-using FrameAllocator = PoolAllocator<&GetFramePool>;
+using RenderAllocator = TAllocator<Pool, &GetRenderPool>;
+using FrameAllocator = TAllocator<Pool, &GetFramePool>;
 
 } // namespace hyperion

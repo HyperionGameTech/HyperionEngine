@@ -55,8 +55,6 @@ namespace Hyperion
 
                 cache[guid].GCHandle.Free();
                 cache.Remove(guid);
-
-                return true;
             }
 
             return true;
@@ -111,9 +109,6 @@ namespace Hyperion
 
         public void SetAttributes(ref ManagedAttributeHolder managedAttributeHolder)
         {
-            Console.WriteLine("Setting attributes for ManagedClassDesc");
-            Console.WriteLine($"TypeHash: {typeHash}");
-            Console.WriteLine($"AssemblyGuid: {assemblyGuid}");
             unsafe
             {
                 fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)

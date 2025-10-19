@@ -37,7 +37,7 @@ namespace Hyperion
         {
             if (hypData != null)
             {
-                ((HypData)hypData).Dispose();
+                hypData.Dispose();
                 hypData = null;
             }
         }
@@ -46,7 +46,7 @@ namespace Hyperion
         {
             get
             {
-                return hypData != null && !((HypData)hypData).IsNull;
+                return hypData != null && !hypData.IsNull;
             }
         }
 
@@ -59,7 +59,7 @@ namespace Hyperion
                     return null;
                 }
 
-                return ((HypData)hypData).GetValue();
+                return hypData.GetValue();
             }
         }
     }
@@ -98,7 +98,7 @@ namespace Hyperion
         {
             get
             {
-                return hypData != null && !((HypData)hypData).IsNull;
+                return hypData != null && !hypData.IsNull;
             }
         }
 
@@ -111,7 +111,7 @@ namespace Hyperion
                     return default(T);
                 }
 
-                return (T?)((HypData)hypData).GetValue();
+                return (T?)hypData.GetValue();
             }
         }
     }

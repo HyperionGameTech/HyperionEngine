@@ -34,7 +34,7 @@ namespace Hyperion
         private Dictionary<Guid, StoredManagedMethod> cache = new Dictionary<Guid, StoredManagedMethod>();
         private object lockObject = new object();
 
-        public MethodInfo Get(Guid guid)
+        public MethodInfo? Get(Guid guid)
         {
             lock (lockObject)
             {
@@ -44,7 +44,7 @@ namespace Hyperion
                 }
             }
 
-            return default(MethodInfo);
+            return default;
         }
 
         public void Add(Guid assemblyGuid, Guid guid, MethodInfo methodInfo, InvokeMethodDelegate invokeMethodDelegate)

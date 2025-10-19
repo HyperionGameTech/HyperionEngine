@@ -17,12 +17,12 @@ struct MeshInstanceData;
 
 extern void MeshInstanceData_OnPostLoad(MeshInstanceData&);
 
-HYP_STRUCT(PostLoad = "MeshInstanceData_OnPostLoad", Size = 104)
+HYP_STRUCT(PostLoad = "MeshInstanceData_OnPostLoad", Size = 88)
 struct MeshInstanceData
 {
     HYP_STRUCT_BODY(MeshInstanceData);
 
-    static constexpr uint32 maxBuffers = 8;
+    static constexpr uint32 maxBuffers = 5;
 
     HYP_FIELD(Property = "NumInstances", Serialize = true, Editor = true, Description = "The number of instances of this mesh. This is used to determine how many instances to render in a single draw call. If this is set to 1, the mesh will be rendered as a single instance. If this is greater than 1, the mesh will be rendered as multiple instances.")
     uint32 numInstances = 1;

@@ -327,7 +327,6 @@ HYP_REGISTER_COMPONENT(LightmapVolumeComponent);
 #include <scene/animation/Skeleton.hpp>
 #include <rendering/MeshInstanceData.hpp>
 #include <core/math/Mat4f.hpp>
-#include <rendering/RenderProxy.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <core/utilities/Uuid.hpp>
 
@@ -337,15 +336,12 @@ namespace hyperion {
 
 #pragma region MeshComponent Reflection Data
 
-HYP_BEGIN_STRUCT(MeshComponent, 383, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 288),HypClassAttribute("label", "Mesh Component"),HypClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(MeshComponent, 383, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 240),HypClassAttribute("label", "Mesh Component"),HypClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(Mesh)), &MeshComponent::mesh, offsetof(MeshComponent, mesh), Span<const HypClassAttribute> { {HypClassAttribute("property", "Mesh"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Material)), &MeshComponent::material, offsetof(MeshComponent, material), Span<const HypClassAttribute> { {HypClassAttribute("property", "Material"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Skeleton)), &MeshComponent::skeleton, offsetof(MeshComponent, skeleton), Span<const HypClassAttribute> { {HypClassAttribute("property", "Skeleton"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(InstanceData)), &MeshComponent::instanceData, offsetof(MeshComponent, instanceData), Span<const HypClassAttribute> { {HypClassAttribute("property", "InstanceData"), HypClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(UNUSEDProxy)), &MeshComponent::UNUSED_proxy, offsetof(MeshComponent, UNUSED_proxy), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(UNUSEDFlags)), &MeshComponent::UNUSED_flags, offsetof(MeshComponent, UNUSED_flags), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(PreviousModelMatrix)), &MeshComponent::previousModelMatrix, offsetof(MeshComponent, previousModelMatrix), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(UNUSEDRaytracingData)), &MeshComponent::UNUSED_raytracingData, offsetof(MeshComponent, UNUSED_raytracingData), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(UserData)), &MeshComponent::userData, offsetof(MeshComponent, userData), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(LightmapVolume)), &MeshComponent::lightmapVolume, offsetof(MeshComponent, lightmapVolume), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(LightmapVolumeUuid)), &MeshComponent::lightmapVolumeUuid, offsetof(MeshComponent, lightmapVolumeUuid), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
@@ -355,7 +351,7 @@ HYP_END_STRUCT
 #pragma endregion MeshComponent Reflection Data
 
 HYP_REGISTER_COMPONENT(MeshComponent);
-static_assert(sizeof(MeshComponent) == 288, "Expected sizeof(MeshComponent) to be 288 bytes");
+static_assert(sizeof(MeshComponent) == 240, "Expected sizeof(MeshComponent) to be 240 bytes");
 } // namespace hyperion
 
 /* Generated from: scene\components\NodeLinkComponent.hpp */

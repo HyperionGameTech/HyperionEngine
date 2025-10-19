@@ -85,7 +85,7 @@ namespace Hyperion
             try
             {
                 // Create a managed string from the pointer
-                string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
+                string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr) ?? string.Empty;
 
                 Logger.Log(LogType.Info, "Initializing assembly {0}...", assemblyPath);
 
@@ -115,12 +115,12 @@ namespace Hyperion
                     return (int)LoadAssemblyResult.NotFound;
                 }
 
-                AssemblyName hyperionSharedDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "Hyperion.NET.Shared");
+                AssemblyName? hyperionSharedDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "Hyperion.NET.Shared");
 
                 if (hyperionSharedDependency != null)
                 {
                     // Verify the engine version (major, minor)
-                    if (!VerifyEngineVersion(hyperionSharedDependency.Version.ToString(), true, true, false))
+                    if (!VerifyEngineVersion(hyperionSharedDependency.Version?.ToString() ?? string.Empty, true, true, false))
                     {
                         Logger.Log(LogType.Error, "Assembly version does not match engine version");
 
@@ -202,7 +202,7 @@ namespace Hyperion
                 object attribute = attributes[i];
                 Assert.Throw(attribute != null);
 
-                Type attributeType = attribute.GetType();
+                Type attributeType = attribute!.GetType();
 
                 IntPtr pClass = InitManagedClass(attributeType, isCoreAssembly: false);
 
@@ -346,7 +346,7 @@ namespace Hyperion
             TypeId typeId = TypeId.ForType(type);
 
             // Use dynamic since we don't know the actual type - it is loaded from another assembly
-            dynamic hypClassBindingAttribute = TryGetHypClassBindingAttribute(type);
+            dynamic? hypClassBindingAttribute = TryGetHypClassBindingAttribute(type);
 
             if (hypClassBindingAttribute != null)
             {
@@ -369,12 +369,12 @@ namespace Hyperion
 
                         while (parentType != null)
                         {
-                            dynamic parentHypClassBindingAttribute = TryGetHypClassBindingAttribute(parentType);
+                            dynamic? parentHypClassBindingAttribute = TryGetHypClassBindingAttribute(parentType);
 
                             if (parentHypClassBindingAttribute != null)
                             {
                                 // Call the GetClass method
-                                dynamic parentHypClass = parentHypClassBindingAttribute.GetClass(parentType);
+                                dynamic? parentHypClass = parentHypClassBindingAttribute.GetClass(parentType);
                                 parentHypClassPtr = parentHypClass?.Address ?? IntPtr.Zero;
 
                                 if (parentHypClassPtr != IntPtr.Zero)
@@ -478,7 +478,7 @@ namespace Hyperion
                             thisObject = objectReferenceRef.LoadObject();
 
                             if (thisObject == null)
-                                throw new InvalidOperationException("Failed to get object reference for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name);
+                                throw new InvalidOperationException("Failed to get object reference for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name);
                         }
 
                         if (methodInfo.ReturnType == typeof(void))
@@ -496,7 +496,7 @@ namespace Hyperion
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogType.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType.Name, ex);
+                        Logger.Log(LogType.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType?.Name, ex);
                         
                         throw;
                     }
@@ -540,7 +540,10 @@ namespace Hyperion
                     if (nativeAddress == IntPtr.Zero)
                         throw new ArgumentNullException(nameof(nativeAddress));
 
-                    Type objType = obj.GetType();
+                    Type? objType = obj!.GetType();
+
+                    if (objType == null)
+                        throw new InvalidOperationException("Failed to get object type for object of type: " + type.Name);
 
                     FieldInfo? hypClassPtrField = objType.GetField("_hypClassPtr", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
                     FieldInfo? nativeAddressField = objType.GetField("_nativeAddress", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
@@ -599,7 +602,7 @@ namespace Hyperion
                     throw new ArgumentException("Size does not match type size", nameof(size));
 
                 // Marshal object from pointer
-                object obj = Marshal.PtrToStructure(ptr, type);
+                object? obj = Marshal.PtrToStructure(ptr, type);
                 Assert.Throw(obj != null, "Failed to marshal object from pointer");
 
                 return new ObjectReference {
@@ -670,11 +673,11 @@ namespace Hyperion
                         }
                         catch (Exception ex)
                         {
-                            throw new Exception("Failed to get params element value at index: " + paramElementIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name, ex);
+                            throw new Exception("Failed to get params element value at index: " + paramElementIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name, ex);
                         }
 
                         if (paramValue == null)
-                            throw new InvalidOperationException("Failed to get parameter value for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name);
+                            throw new InvalidOperationException("Failed to get parameter value for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name);
 
                         paramArray.SetValue(paramValue, paramElementIndex);
 
@@ -695,7 +698,7 @@ namespace Hyperion
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Failed to get parameter value at index: " + paramIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name, ex);
+                    throw new Exception("Failed to get parameter value at index: " + paramIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name, ex);
                 }
 
                 paramsOffset += sizeof(IntPtr);
@@ -707,13 +710,10 @@ namespace Hyperion
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
-            Type returnType = propertyInfo.PropertyType;
-            Type thisType = propertyInfo.DeclaringType;
-
             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
             object? thisObject = objectReferenceRef.LoadObject();
-            object? returnValue = propertyInfo.GetValue((object)thisObject);
+            object? returnValue = propertyInfo.GetValue((object?)thisObject);
 
             ((HypDataBuffer*)outReturnHypDataPtr)->SetValue(returnValue);
         }
@@ -722,15 +722,12 @@ namespace Hyperion
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
-            Type returnType = propertyInfo.PropertyType;
-            Type thisType = propertyInfo.DeclaringType;
-
             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
             object? thisObject = objectReferenceRef.LoadObject();
             object? value = (*(HypDataBuffer**)argsHypDataPtr)->GetValue();
 
-            propertyInfo.SetValue((object)thisObject, value);
+            propertyInfo.SetValue((object?)thisObject, value);
         }
 
         public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak)

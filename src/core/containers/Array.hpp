@@ -77,6 +77,18 @@ public:
 
     Array();
 
+    explicit Array(AllocatorType* pAllocator, SizeType size = 0)
+        : Array()
+    {
+        HYP_CORE_ASSERT(pAllocator != nullptr);
+        m_pAllocator = pAllocator;
+
+        if (size != 0)
+        {
+            Resize(size);
+        }
+    }
+
     explicit Array(SizeType size)
         : Array()
     {
@@ -203,7 +215,7 @@ public:
     {
         m_size = other.Size();
 
-        m_allocation.Allocate(m_size);
+        m_allocation.Allocate(m_pAllocator, m_size);
         m_allocation.InitFromRangeCopy(other.Begin(), other.End());
     }
 
@@ -216,11 +228,11 @@ public:
         m_size = other.m_size - other.m_startOffset;
         m_startOffset = 0;
 
-        m_allocation.Allocate(m_size);
+        m_allocation.Allocate(m_pAllocator, m_size);
         m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
         other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-        other.m_allocation.Free();
+        other.m_allocation.Free(other.m_pAllocator);
 
         other.m_size = 0;
         other.m_startOffset = 0;
@@ -664,13 +676,15 @@ protected:
 protected:
     SizeType m_startOffset;
 
+    AllocatorType* m_pAllocator;
     Allocation<T, AllocatorType> m_allocation;
 };
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array()
     : m_size(0),
-      m_startOffset(0)
+      m_startOffset(0),
+      m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>())
 {
     m_allocation.SetToInitialState();
 }
@@ -678,17 +692,19 @@ Array<T, AllocatorType>::Array()
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(const Array& other)
     : m_size(other.m_size - other.m_startOffset),
-      m_startOffset(0)
+      m_startOffset(0),
+      m_pAllocator(other.m_pAllocator)
 {
     m_allocation.SetToInitialState();
-    m_allocation.Allocate(m_size);
+    m_allocation.Allocate(m_pAllocator, m_size);
     m_allocation.InitFromRangeCopy(other.Begin(), other.End());
 }
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(Array&& other) noexcept
     : m_size(0),
-      m_startOffset(0)
+      m_startOffset(0),
+      m_pAllocator(other.m_pAllocator)
 {
     m_allocation.SetToInitialState();
 
@@ -709,11 +725,11 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
         m_size = other.m_size - other.m_startOffset;
         m_startOffset = 0;
 
-        m_allocation.Allocate(m_size);
+        m_allocation.Allocate(m_pAllocator, m_size);
         m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
         other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-        other.m_allocation.Free();
+        other.m_allocation.Free(other.m_pAllocator);
 
         other.m_size = 0;
         other.m_startOffset = 0;
@@ -724,7 +740,7 @@ template <class T, class AllocatorType>
 Array<T, AllocatorType>::~Array()
 {
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free();
+    m_allocation.Free(m_pAllocator);
 }
 
 template <class T, class AllocatorType>
@@ -736,12 +752,13 @@ auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
     }
 
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free();
+    m_allocation.Free(m_pAllocator);
 
     m_size = other.m_size - other.m_startOffset;
     m_startOffset = 0;
+    m_pAllocator = other.m_pAllocator;
 
-    m_allocation.Allocate(m_size);
+    m_allocation.Allocate(m_pAllocator, m_size);
     m_allocation.InitFromRangeCopy(other.Begin(), other.End());
 
     return *this;
@@ -756,7 +773,9 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
     }
 
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free();
+    m_allocation.Free(m_pAllocator);
+
+    m_pAllocator = other.m_pAllocator;
 
     if (other.m_allocation.IsDynamic())
     {
@@ -775,11 +794,11 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
         m_size = other.m_size - other.m_startOffset;
         m_startOffset = 0;
 
-        m_allocation.Allocate(m_size);
+        m_allocation.Allocate(m_pAllocator, m_size);
         m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
         other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-        other.m_allocation.Free();
+        other.m_allocation.Free(other.m_pAllocator);
 
         other.m_size = 0;
         other.m_startOffset = 0;
@@ -833,12 +852,12 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
     // delete and copy all over again
     Allocation<T, AllocatorType> newAllocation;
     newAllocation.SetToInitialState();
-    newAllocation.Allocate(capacity);
+    newAllocation.Allocate(m_pAllocator, capacity);
 
     newAllocation.InitFromRangeMove(Begin(), End(), offset);
 
     m_allocation.DestructInRange(m_startOffset, m_size);
-    m_allocation.Free();
+    m_allocation.Free(m_pAllocator);
 
     m_size -= m_startOffset;
     m_size += offset;
@@ -1233,7 +1252,7 @@ void Array<T, AllocatorType>::Concat(Array&& other)
     }
 
     other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-    other.m_allocation.Free();
+    other.m_allocation.Free(other.m_pAllocator);
 
     other.m_size = 0;
     other.m_startOffset = 0;

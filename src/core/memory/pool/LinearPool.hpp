@@ -19,13 +19,15 @@ struct DynamicAllocator;
 
 /*! \brief A fixed-size, bump-allocator arena for temporary allocations.
     \details Allocates memory from a fixed buffer using a simple offset pointer (bump allocation) */
-template <class AllocatorType = DynamicAllocator>
+template <class AllocatorType>
 class TLinearArena
 {
 public:
     /*! \brief Creates a TLinearArena with the specified fixed size.
         \param size Total size of the arena in bytes. Must be > 0. */
     explicit TLinearArena(SizeType size);
+
+    TLinearArena(AllocatorType* pAllocator, SizeType size);
 
     TLinearArena(const TLinearArena& other) = delete;
     TLinearArena& operator=(const TLinearArena& other) = delete;
@@ -70,15 +72,32 @@ public:
         \return Pointer to allocated memory, or nullptr if out of space */
     void* Alloc(SizeType size, SizeType alignment);
 
+    /*! \brief Does nothing as individual allocations from Arena cannot be freed. This method is only here to confirm to Allocator interface. */
+    void Free(void* ptr)
+    {
+        // Do nothing; can't free from Arena
+    }
+
 private:
     TByteBuffer<AllocatorType> m_buffer;
-    SizeType m_offset = 0;
+    SizeType m_offset;
 };
 
 template <class AllocatorType>
 TLinearArena<AllocatorType>::TLinearArena(SizeType size)
     : m_offset(0)
 {
+    HYP_CORE_ASSERT(size > 0, "LinearArena size must be greater than 0");
+
+    m_buffer.SetSize(size);
+}
+
+template <class AllocatorType>
+TLinearArena<AllocatorType>::TLinearArena(AllocatorType* pAllocator, SizeType size)
+    : m_buffer(pAllocator),
+      m_offset(0)
+{
+    HYP_CORE_ASSERT(pAllocator != nullptr);
     HYP_CORE_ASSERT(size > 0, "LinearArena size must be greater than 0");
 
     m_buffer.SetSize(size);

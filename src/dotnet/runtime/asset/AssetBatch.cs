@@ -11,9 +11,7 @@ namespace Hyperion
 
         public AssetBatch()
         {
-            Console.WriteLine("Creating AssetBatch");
             this.ptr = AssetBatch_Create();
-            Console.WriteLine("Created AssetBatch");
         }
 
         ~AssetBatch()

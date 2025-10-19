@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="MeshComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 288)]
+    [StructLayout(LayoutKind.Explicit, Size = 240, Pack = 16)]
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -19,29 +19,20 @@ namespace Hyperion
         [FieldOffset(24)]
         private MeshInstanceData instanceData;
 
-        [FieldOffset(128)]
-        private IntPtr proxyPtr;
-
-        [FieldOffset(136)]
-        private uint UNUSED_flags;
-
-        [FieldOffset(144)]
+        [FieldOffset(112)]
         private Mat4f previousModelMatrix;
 
-        [FieldOffset(208)]
-        private IntPtr UNUSED_rayTracingDataPtr;
-
-        [FieldOffset(224)]
+        [FieldOffset(176)] // aligned by 16
         private fixed byte userData[32];
 
-        [FieldOffset(256)]
+        [FieldOffset(208)]
         private WeakHandle<LightmapVolume> lightmapVolumeHandle;
 
-        [FieldOffset(264)]
+        [FieldOffset(216)]
         private Uuid lightmapVolumeUUID;
 
-        [FieldOffset(280)]
-        private uint lightmapElementIndex;
+        [FieldOffset(232)]
+        private uint lightmapElementId;
 
         public void Dispose()
         {

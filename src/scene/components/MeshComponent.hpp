@@ -23,7 +23,7 @@ class LightmapVolume;
 
 using MeshComponentUserData = UserData<32, 16>;
 
-HYP_STRUCT(Component, Size = 288, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
+HYP_STRUCT(Component, Size = 240, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
 struct MeshComponent
 {
     HYP_STRUCT_BODY(MeshComponent);
@@ -46,42 +46,27 @@ struct MeshComponent
     HYP_FIELD(Property = "InstanceData", Editor = true)
     MeshInstanceData instanceData;
 
-    // 128
-
-    HYP_FIELD(NoScriptBindings, Transient)
-    RenderProxyMesh* UNUSED_proxy = nullptr;
-
-    // 136
-
-    HYP_FIELD(Transient)
-    uint32 UNUSED_flags = 0;
-
-    // 140 + 4 padding
+    // 112
 
     HYP_FIELD(Transient)
     Mat4f previousModelMatrix;
 
-    // 208
-
-    HYP_FIELD(NoScriptBindings, Transient)
-    MeshRaytracingData* UNUSED_raytracingData = nullptr;
-
-    // 224
+    // 176
 
     HYP_FIELD(NoScriptBindings, Transient)
     MeshComponentUserData userData;
 
-    // 256
+    // 208
 
     HYP_FIELD(Transient)
     WeakHandle<LightmapVolume> lightmapVolume;
 
-    // 264
+    // 216
 
     HYP_FIELD(Transient)
     Uuid lightmapVolumeUuid = Uuid::Invalid();
 
-    // 280
+    // 232
 
     HYP_FIELD(Transient)
     uint32 lightmapElementId = ~0u;
