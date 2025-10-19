@@ -761,7 +761,7 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 
         renderQueue.Concat(std::move(state->rootQueue));
 
-        for (RenderQueue& localQueue : state->localQueues)
+        for (auto& localQueue : state->localQueues)
         {
             renderQueue.Concat(std::move(localQueue));
         }

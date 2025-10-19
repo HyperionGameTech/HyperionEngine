@@ -2,121 +2,137 @@
 
 #pragma once
 
-#include <core/memory/Pimpl.hpp>
+#include <core/memory/ByteBuffer.hpp>
 #include <core/memory/Memory.hpp>
+
+#include <core/utilities/ByteUtil.hpp>
 
 #include <core/debug/Debug.hpp>
 
 #include <core/Types.hpp>
 #include <core/Defines.hpp>
 
-#include <type_traits>
-
 namespace hyperion {
 namespace memory {
 
-/*! \brief An allocator that allocates memory as it needs, but does not allow freeing individual allocations.
-    \details All memory is freed when the pool is destroyed or Reset() is called.
-    This is useful for allocating many small objects that have the same lifetime as the pool itself.
-    It is also useful for temporary allocations that are only needed for a short period of time.
+struct DynamicAllocator;
 
-    The LinearPool also supports types with non-trivial destructors and move constructors and are called as needed. */
-class HYP_API LinearPool
+/*! \brief A fixed-size, bump-allocator arena for temporary allocations.
+    \details Allocates memory from a fixed buffer using a simple offset pointer (bump allocation) */
+template <class AllocatorType = DynamicAllocator>
+class TLinearArena
 {
 public:
-    LinearPool();
+    /*! \brief Creates a TLinearArena with the specified fixed size.
+        \param size Total size of the arena in bytes. Must be > 0. */
+    explicit TLinearArena(SizeType size);
 
-    LinearPool(const LinearPool& other) = delete;
-    LinearPool& operator=(const LinearPool& other) = delete;
+    TLinearArena(const TLinearArena& other) = delete;
+    TLinearArena& operator=(const TLinearArena& other) = delete;
 
-    LinearPool(LinearPool&& other) noexcept
-        : m_pImpl(std::move(other.m_pImpl))
+    TLinearArena(TLinearArena&& other) noexcept;
+    TLinearArena& operator=(TLinearArena&& other) noexcept;
+
+    ~TLinearArena() = default;
+
+    /*! \brief Returns the total capacity of the arena in bytes. */
+    HYP_FORCE_INLINE SizeType GetCapacity() const
     {
+        return m_buffer.Size();
     }
 
-    LinearPool& operator=(LinearPool&& other) noexcept
+    /*! \brief Returns the current offset (number of bytes allocated). */
+    HYP_FORCE_INLINE SizeType GetOffset() const
     {
-        if (this == &other)
+        return m_offset;
+    }
+
+    /*! \brief Returns the number of bytes remaining in the arena. */
+    HYP_FORCE_INLINE SizeType GetRemaining() const
+    {
+        return m_buffer.Size() - m_offset;
+    }
+
+    /*! \brief Resets the arena offset to 0 and frees up memory if freeMemory is passed as true */
+    HYP_FORCE_INLINE void Reset(bool freeMemory = false)
+    {
+        m_offset = 0;
+
+        if (freeMemory)
         {
-            return *this;
+            m_buffer.SetCapacity(0);
         }
+    }
 
-        Reset();
+    /*! \brief Allocates memory from the arena.
+        \param size Number of bytes to allocate
+        \param alignment Alignment requirement (must be <= 16)
+        \return Pointer to allocated memory, or nullptr if out of space */
+    void* Alloc(SizeType size, SizeType alignment);
 
-        m_pImpl = std::move(other.m_pImpl);
+private:
+    TByteBuffer<AllocatorType> m_buffer;
+    SizeType m_offset = 0;
+};
 
+template <class AllocatorType>
+TLinearArena<AllocatorType>::TLinearArena(SizeType size)
+    : m_offset(0)
+{
+    HYP_CORE_ASSERT(size > 0, "LinearArena size must be greater than 0");
+
+    m_buffer.SetSize(size);
+}
+
+template <class AllocatorType>
+TLinearArena<AllocatorType>::TLinearArena(TLinearArena&& other) noexcept
+    : m_buffer(std::move(other.m_buffer)),
+      m_offset(other.m_offset)
+{
+    other.m_offset = 0;
+}
+template <class AllocatorType>
+TLinearArena<AllocatorType>& TLinearArena<AllocatorType>::operator=(TLinearArena&& other) noexcept
+{
+    if (this == &other)
+    {
         return *this;
     }
 
-    ~LinearPool();
+    m_buffer = std::move(other.m_buffer);
+    m_offset = other.m_offset;
 
-    void Reserve(SizeType size);
-    void Reset();
+    other.m_offset = 0;
 
-    void* Alloc(SizeType size, SizeType alignment);
+    return *this;
+}
 
-    template <class T, class... Args>
-    HYP_NODISCARD T* New(Args&&... args)
+template <class AllocatorType>
+void* TLinearArena<AllocatorType>::Alloc(SizeType size, SizeType alignment)
+{
+    HYP_CORE_ASSERT(alignment <= 16, "LinearArena only supports alignment up to 16 bytes");
+
+    const SizeType alignedOffset = ByteUtil::AlignAs(m_offset, alignment);
+
+    if (alignedOffset + size > m_buffer.Size())
     {
-        static_assert(
-            std::is_trivially_destructible_v<T> || !std::is_trivially_move_constructible_v<T>,
-            "Types with non-trivial destructors must have non-trivial move constructors (ownership-transferring) "
-            "to be safely stored in LinearPool.");
+        HYP_CORE_ASSERT(false, "LinearArena out of memory: tried to allocate %llu bytes (aligned to %llu), but only %llu bytes remaining",
+            size, alignment, m_buffer.Size() - alignedOffset);
 
-        if constexpr (std::is_trivially_move_constructible_v<T> && std::is_trivially_destructible_v<T>)
-        {
-            void* mem = Alloc(sizeof(T), alignof(T));
-            HYP_CORE_ASSERT(mem != nullptr);
-
-            return new (mem) T(std::forward<Args>(args)...);
-        }
-        else
-        {
-            void (*moveFn)(void*, void*) = nullptr;
-            void (*destructFn)(void*) = nullptr;
-
-            if constexpr (!std::is_trivially_move_constructible_v<T>)
-            {
-                moveFn = [](void* dst, void* src)
-                {
-                    new (dst) T(std::move(*reinterpret_cast<T*>(src)));
-                };
-            }
-
-            if constexpr (!std::is_trivially_destructible_v<T>)
-            {
-                destructFn = &Memory::Destruct<T>;
-            }
-
-            void* mem = AllocWithDeleter(sizeof(T), alignof(T), moveFn, destructFn);
-            HYP_CORE_ASSERT(mem != nullptr);
-
-            return new (mem) T(std::forward<Args>(args)...);
-        }
+        return nullptr;
     }
 
-private:
-    void* AllocWithDeleter(SizeType size, SizeType alignment, void (*moveFn)(void*, void*), void (*destructFn)(void*));
+    void* ptr = m_buffer.Data() + alignedOffset;
+    m_offset = alignedOffset + size;
 
-    Pimpl<class LinearPoolImpl> m_pImpl;
-};
-
-template <class T, class... Args>
-static inline HYP_NODISCARD T* PoolNew(LinearPool& pool, Args&&... args)
-{
-    return pool.New<T>(std::forward<Args>(args)...);
+    return ptr;
 }
 
-template <class T>
-static inline HYP_NODISCARD T* PoolAlloc(LinearPool& pool)
-{
-    return reinterpret_cast<T*>(pool.Alloc(sizeof(T), alignof(T)));
-}
+using LinearArena = TLinearArena<DynamicAllocator>;
 
 } // namespace memory
 
-using memory::LinearPool;
-using memory::PoolAlloc;
-using memory::PoolNew;
+using memory::LinearArena;
+using memory::TLinearArena;
 
 } // namespace hyperion

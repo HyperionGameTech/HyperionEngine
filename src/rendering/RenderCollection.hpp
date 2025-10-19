@@ -7,6 +7,8 @@
 
 #include <core/memory/resource/Resource.hpp>
 
+#include <core/memory/pool/LinearPool.hpp>
+
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Task.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -62,11 +64,12 @@ struct ParallelRenderingState
 
     uint32 numBatches = 0;
 
-    // Non-async rendering command list - used for binding state at the start of the pass before async stuff
+    // Non-async rendering command list - used for binding state at the start of the pass before async stuff (can only be written to from render thread)
     RenderQueue rootQueue;
 
     // per-thread RenderQueue
-    FixedArray<RenderQueue, MaxBatches> localQueues {};
+    using LocalQueue = TRenderQueue<ArenaAllocator>;
+    FixedArray<TaskRenderQueue, MaxBatches> localQueues {};
 
     FixedArray<RenderStatsCounts, MaxBatches> renderStatsCounts {};
 
@@ -224,7 +227,7 @@ public:
     uint32 readDepth = 0;
 };
 
-class RenderCollector
+class HYP_API RenderCollector
 {
 public:
     RenderCollector();

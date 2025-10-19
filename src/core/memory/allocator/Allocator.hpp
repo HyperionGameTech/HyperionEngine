@@ -16,7 +16,7 @@ namespace hyperion {
 namespace memory {
 
 class Pool;
-class LinearPool;
+class LinearArena;
 
 // Helper metadata for natvis navigation
 enum AllocationType : uint32

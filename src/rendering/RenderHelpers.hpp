@@ -7,12 +7,17 @@
 #include <core/functional/Proc.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <core/Types.hpp>
 
 namespace hyperion {
 
-class RenderQueue;
+template <class AllocatorType>
+class TRenderQueue;
+
+using RenderQueue = TRenderQueue<RenderAllocator>;
+
 namespace helpers {
 
 uint32 MipmapSize(uint32 srcSize, int lod);

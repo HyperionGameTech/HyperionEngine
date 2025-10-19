@@ -21,45 +21,6 @@ namespace hyperion {
 
 #pragma region RenderQueue
 
-RenderQueue::RenderQueue()
-    : m_offset(0)
-{
-}
-
-RenderQueue::~RenderQueue()
-{
-    Assert(m_cmdHeaders.Empty(), "RenderQueue destroyed with pending commands!");
-}
-
-void RenderQueue::Prepare(FrameBase* frame)
-{
-    Assert(frame != nullptr);
-
-    for (CmdHeader& cmdHeader : m_cmdHeaders)
-    {
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
-        AssertDebug(cmdHeader.offset < m_buffer.Size());
-
-        cmdHeader.prepareFnPtr(cmdDataPtr, frame);
-    }
-}
-
-void RenderQueue::Execute(CommandBufferBase* commandBuffer)
-{
-    AssertDebug(commandBuffer != nullptr);
-
-    for (CmdHeader& cmdHeader : m_cmdHeaders)
-    {
-        AssertDebug(cmdHeader.offset < m_buffer.Size());
-        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
-
-        cmdHeader.invokeFnPtr(cmdDataPtr, commandBuffer);
-    }
-
-    m_cmdHeaders.Clear();
-    m_offset = 0;
-}
-
 #pragma endregion RenderQueue
 
 #pragma region BindDescriptorSet

@@ -18,6 +18,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderCommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderMemory.hpp>
 
 // Uncomment to enable trace collection for commands.
 // #define HYP_RHI_COMMAND_STACK_TRACE
@@ -867,8 +868,9 @@ private:
     Vec3u m_workgroupCount;
 };
 
-class RenderQueue
+class RenderQueueBase
 {
+protected:
     using InvokeCmdFnPtr = void (*)(CmdBase*, CommandBufferBase*);
     using PrepareCmdFnPtr = void (*)(CmdBase*, FrameBase* frame);
     using MoveCmdFnPtr = void (*)(CmdBase*, void* where);
@@ -881,13 +883,32 @@ class RenderQueue
         PrepareCmdFnPtr prepareFnPtr;
     };
 
+    RenderQueueBase() = default;
+};
+
+template <class AllocatorType>
+class TRenderQueue : public RenderQueueBase
+{
+    template <class OtherAllocatorType>
+    friend class TRenderQueue;
+
+    using Base = RenderQueueBase;
+
+    using Base::CmdHeader;
+    using Base::InvokeCmdFnPtr;
+    using Base::PrepareCmdFnPtr;
+    using Base::MoveCmdFnPtr;
+
 public:
-    RenderQueue();
-    RenderQueue(const RenderQueue& other) = delete;
-    RenderQueue& operator=(const RenderQueue& other) = delete;
-    RenderQueue(RenderQueue&& other) noexcept = delete;
-    RenderQueue& operator=(RenderQueue&& other) noexcept = delete;
-    ~RenderQueue();
+    TRenderQueue();
+
+    TRenderQueue(const TRenderQueue& other) = delete;
+    TRenderQueue& operator=(const TRenderQueue& other) = delete;
+
+    TRenderQueue(TRenderQueue&& other) noexcept = delete;
+    TRenderQueue& operator=(TRenderQueue&& other) noexcept = delete;
+
+    ~TRenderQueue();
 
     HYP_FORCE_INLINE bool IsEmpty() const
     {
@@ -926,14 +947,15 @@ public:
     }
 
     template <class CmdType>
-    RenderQueue& operator<<(CmdType&& cmd)
+    TRenderQueue& operator<<(CmdType&& cmd)
     {
         Add(std::forward<CmdType>(cmd));
 
         return *this;
     }
 
-    void Concat(RenderQueue&& other)
+    template <class OtherAllocatorType>
+    void Concat(TRenderQueue<OtherAllocatorType>&& other)
     {
         m_cmdHeaders.Reserve(m_cmdHeaders.Size() + other.m_cmdHeaders.Size());
 
@@ -973,7 +995,7 @@ public:
         m_offset = newStartOffset + other.m_offset;
 
         // clear out allocation
-        other.m_buffer = ByteBuffer();
+        other.m_buffer = {};
         other.m_cmdHeaders.Clear();
         other.m_offset = 0;
     }
@@ -982,9 +1004,58 @@ public:
     void Execute(CommandBufferBase* commandBuffer);
 
 private:
-    Array<CmdHeader> m_cmdHeaders;
-    ByteBuffer m_buffer;
+    Array<CmdHeader, AllocatorType> m_cmdHeaders;
+    TByteBuffer<AllocatorType> m_buffer;
     uint32 m_offset;
 };
+
+template <class AllocatorType>
+TRenderQueue<AllocatorType>::TRenderQueue()
+    : m_offset(0)
+{
+}
+
+template <class AllocatorType>
+TRenderQueue<AllocatorType>::~TRenderQueue()
+{
+    Assert(m_cmdHeaders.Empty(), "RenderQueue destroyed with pending commands!");
+}
+
+template <class AllocatorType>
+void TRenderQueue<AllocatorType>::Prepare(FrameBase* frame)
+{
+    Assert(frame != nullptr);
+
+    for (CmdHeader& cmdHeader : m_cmdHeaders)
+    {
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
+        AssertDebug(cmdHeader.offset < m_buffer.Size());
+
+        cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+    }
+}
+
+template <class AllocatorType>
+void TRenderQueue<AllocatorType>::Execute(CommandBufferBase* commandBuffer)
+{
+    AssertDebug(commandBuffer != nullptr);
+
+    for (CmdHeader& cmdHeader : m_cmdHeaders)
+    {
+        AssertDebug(cmdHeader.offset < m_buffer.Size());
+        CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
+
+        cmdHeader.invokeFnPtr(cmdDataPtr, commandBuffer);
+    }
+
+    m_cmdHeaders.Clear();
+    m_offset = 0;
+}
+
+/*! \brief A RenderQueue that uses the render pool allocator. Only to be used on the render thread. */
+using RenderQueue = TRenderQueue<RenderAllocator>;
+
+/*! \brief A RenderQueue that is safe to use on a render task thread (doesn't use the render pool allocator). */
+using TaskRenderQueue = TRenderQueue<DynamicAllocator>;
 
 } // namespace hyperion

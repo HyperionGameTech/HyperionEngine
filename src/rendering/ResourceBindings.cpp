@@ -62,7 +62,6 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 
     if (next != ~0u && prev == ~0u && !mesh->gpuUploadFence.IsSignaled())
     {
-        HYP_LOG(Rendering, Warning, "Uploading GPU data for mesh {}", mesh->Id());
         mesh->UploadGpuData();
     }
 }
@@ -116,8 +115,6 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 {
     AssertDebug(envProbe != nullptr);
     AssertDebug(envProbe->IsReady());
-
-    HYP_LOG_TEMP("Binding EnvProbe {} to index {}", envProbe->Id(), next);
 
     RenderApi_AssignResourceBinding(envProbe, next);
 }

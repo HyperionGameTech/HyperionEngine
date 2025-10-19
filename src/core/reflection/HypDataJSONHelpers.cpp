@@ -106,12 +106,36 @@ bool HypDataToJSON(
         return true;
     }
 
-    if (value.Is<double>(/* strict */ false))
-    {
-        outJson = json::JSONNumber(value.Get<double>());
-
-        return true;
+#define DO_NUMERIC_TYPE(T)                          \
+    if (value.Is<T>(/* strict */ true))             \
+    {                                               \
+        outJson = json::JSONNumber(value.Get<T>()); \
+                                                    \
+        return true;                                \
     }
+
+    DO_NUMERIC_TYPE(int8);
+    DO_NUMERIC_TYPE(int16);
+    DO_NUMERIC_TYPE(int32);
+    DO_NUMERIC_TYPE(int64);
+
+    DO_NUMERIC_TYPE(uint8);
+    DO_NUMERIC_TYPE(uint16);
+    DO_NUMERIC_TYPE(uint32);
+    DO_NUMERIC_TYPE(uint64);
+
+    DO_NUMERIC_TYPE(Float16);
+    DO_NUMERIC_TYPE(float);
+    DO_NUMERIC_TYPE(double);
+
+#ifdef HYP_WINDOWS
+    if constexpr (!std::is_same_v<SizeType, uint64> && !std::is_same_v<SizeType, uint32>)
+    {
+        DO_NUMERIC_TYPE(SizeType);
+    }
+#endif
+
+#undef DO_NUMERIC_TYPE
 
     if (value.Is<String>())
     {
@@ -321,8 +345,8 @@ bool HypDataToJSON(
         const TypeInfo* underlyingTypeInfo = typeInfo.GetUnderlyingType();
         AssertDebug(underlyingTypeInfo != nullptr, "Enum type must have an underlying type");
 
-        constexpr int64 MaxDblValue = (1LL << 53) - 1;
-        constexpr uint64 MaxDblValueUnsigned = (1ULL << 53) - 1;
+        constexpr int64 MaxDblValue = std::bit_cast<int64>(DBL_MAX);
+        constexpr uint64 MaxDblValueUnsigned = std::bit_cast<uint64>(DBL_MAX);
 
         if (underlyingTypeInfo->id == TypeId::ForType<uint8>()
             || underlyingTypeInfo->id == TypeId::ForType<uint16>()

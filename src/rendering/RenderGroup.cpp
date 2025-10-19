@@ -535,7 +535,7 @@ static void RenderAll_Parallel(
                     return;
                 }
 
-                RenderQueue& renderQueue = parallelRenderingState->localQueues[index];
+                auto& renderQueue = parallelRenderingState->localQueues[index];
 
                 const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
                 const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
@@ -613,7 +613,7 @@ static void RenderAll_Parallel(
                     return;
                 }
 
-                RenderQueue& renderQueue = parallelRenderingState->localQueues[index];
+                auto& renderQueue = parallelRenderingState->localQueues[index];
 
                 const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
                 const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
