@@ -878,7 +878,7 @@ protected:
 
     RenderQueueBase() = default;
 };
-HYP_DISABLE_OPTIMIZATION;
+
 template <class AllocatorType>
 class TRenderQueue : public RenderQueueBase
 {
@@ -956,7 +956,7 @@ public:
     }
 
     template <class OtherAllocatorType>
-    void Concat(TRenderQueue<OtherAllocatorType>&& other)
+    void Concat(TRenderQueue<OtherAllocatorType>& other)
     {
         m_cmdHeaders.Reserve(m_cmdHeaders.Size() + other.m_cmdHeaders.Size());
 
@@ -994,21 +994,22 @@ public:
         //        m_buffer.Write(other.m_offset, newStartOffset, other.m_buffer.Data());
 
         m_offset = newStartOffset + other.m_offset;
-
-        other.m_buffer.Clear();
-        other.m_cmdHeaders.Clear();
-        other.m_offset = 0;
     }
 
     void Prepare(FrameBase* frame);
     void Execute(CommandBufferBase* commandBuffer);
+
+    void Clear()
+    {
+        m_cmdHeaders.Clear();
+        m_offset = 0;
+    }
 
 private:
     Array<CmdHeader, AllocatorType> m_cmdHeaders;
     TByteBuffer<AllocatorType> m_buffer;
     uint32 m_offset;
 };
-HYP_ENABLE_OPTIMIZATION;
 
 template <class AllocatorType>
 TRenderQueue<AllocatorType>::TRenderQueue()

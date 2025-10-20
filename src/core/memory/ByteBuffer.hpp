@@ -177,8 +177,6 @@ public:
 
         m_allocation.Free(m_pAllocator);
 
-        m_pAllocator = other.m_pAllocator;
-
         if (newSize != 0)
         {
             m_allocation.Allocate(m_pAllocator, newSize);
@@ -226,7 +224,7 @@ public:
 
         m_allocation.Free(m_pAllocator);
 
-        other.m_pAllocator = other.m_pAllocator;
+        m_pAllocator = other.m_pAllocator;
 
         if (other.m_allocation.IsDynamic())
         {

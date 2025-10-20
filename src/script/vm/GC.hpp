@@ -4,7 +4,7 @@
 
 #include <core/Types.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <core/memory/allocator/SlabAllocator.hpp>
 
 #include <core/utilities/IdGenerator.hpp>
 
@@ -26,7 +26,7 @@ public:
     void MoveToTrackedMemory(HypData& inOutRefValue);
 
 private:
-    Pool m_pool;
+    SlabAllocator m_allocator;
     IdGenerator m_idGenerator;
 };
 

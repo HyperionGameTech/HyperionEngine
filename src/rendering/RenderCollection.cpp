@@ -843,11 +843,13 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
 
         state->taskBatch->AwaitCompletion();
 
-        renderQueue.Concat(std::move(state->rootQueue));
+        renderQueue.Concat(state->rootQueue);
+        state->rootQueue.Clear();
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
-            renderQueue.Concat(std::move(*state->localQueues[i]));
+            renderQueue.Concat(*state->localQueues[i]);
+            state->localQueues[i]->Clear();
         }
 
         // Add render stats counts to the engine's render stats
@@ -858,7 +860,15 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             counts = RenderStatsCounts(); // Reset counts after adding for next use
         }
 
-        // reset arena memory offsets
+        // for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
+        // {
+        //     AssertDebug(state->localQueues[i]->IsEmpty(), "Queue must be empty before arena reset!");
+
+        //     // Force deallocation of internal storage before arena is reset
+        //     PoolDelete(*g_renderPool, state->localQueues[i]);
+        //     state->localQueues[i] = PoolNew<ParallelRenderingState::LocalQueue>(*g_renderPool, state->sharedData->allocators[i]);
+        // }
+
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
             state->sharedData->arenas[i]->Reset();

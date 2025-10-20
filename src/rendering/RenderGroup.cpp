@@ -330,10 +330,8 @@ static void RenderAll(
         {
             AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-            DescriptorSetOffsetMap offsets({
-                { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
-            });
+            DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
+                { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) } });
 
             if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
@@ -384,9 +382,7 @@ static void RenderAll(
 
         if (entityDescriptorSet.IsValid())
         {
-            DescriptorSetOffsetMap offsets({
-                { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) }
-            });
+            DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) } });
 
             if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
@@ -536,13 +532,6 @@ static void RenderAll_Parallel(
                 }
 
                 auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
-                Assert(AtomicIncrement(&renderQueue.token) == 1);
-                HYP_DEFER({
-                    HYP_LOG_TEMP("DONE Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
-                    Assert(AtomicDecrement(&renderQueue.token) == 0);
-                    });
-
-                HYP_LOG_TEMP("Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
 
                 const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
                 const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
@@ -557,10 +546,8 @@ static void RenderAll_Parallel(
                     {
                         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-                        DescriptorSetOffsetMap offsets({
-                            { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                            { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
-                        });
+                        DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
+                            { "CurrentObject", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) } });
 
                         if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {
@@ -621,12 +608,6 @@ static void RenderAll_Parallel(
                 }
 
                 auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
-                Assert(AtomicIncrement(&renderQueue.token) == 1);
-                HYP_DEFER({
-                    HYP_LOG_TEMP("DONE Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
-                    Assert(AtomicDecrement(&renderQueue.token) == 0);
-                    });
-                HYP_LOG_TEMP("Thread {} writing to queue {} on frame {}", Threads::CurrentThreadId().GetName(), (void*)&renderQueue, RenderApi_GetFrameCounter());
 
                 const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
                 const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
@@ -647,9 +628,7 @@ static void RenderAll_Parallel(
 
                     if (entityDescriptorSet.IsValid())
                     {
-                        DescriptorSetOffsetMap offsets({
-                            { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) }
-                        });
+                        DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) } });
 
                         if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {
@@ -730,13 +709,13 @@ void RenderGroup::PerformRendering(
     AssertDebug(renderSetup.IsValid(), "RenderSetup must be valid for rendering");
     AssertDebug(renderSetup.HasView(), "RenderSetup must have a valid View for rendering");
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
-    
+
     static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = isIndirectRenderingEnabled
         && m_flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
-    
+
     if (drawCallCollection.drawCalls.Empty() && drawCallCollection.instancedDrawCalls.Empty())
     {
         // No draw calls to render; skip pipeline / cache fetch

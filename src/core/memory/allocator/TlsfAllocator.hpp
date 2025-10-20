@@ -8,8 +8,34 @@
 #include <core/containers/Array.hpp>
 #include <core/memory/MemoryMetrics.hpp>
 
+#define HYP_USE_THIRD_PARTY_TLSF 0
+
 namespace hyperion {
 namespace memory {
+
+#if HYP_USE_THIRD_PARTY_TLSF
+
+class HYP_API TlsfAllocator
+{
+public:
+    TlsfAllocator();
+    ~TlsfAllocator();
+
+    void AddPool(void* memory, SizeType bytes);
+    void RemovePool(void* memory);
+
+    void* Allocate(SizeType bytes, SizeType alignment = 16);
+    void* Reallocate(void* ptr, SizeType newSize, SizeType alignment = 16);
+    void Free(void* ptr);
+
+    MemoryMetrics GetMemoryMetrics() const;
+
+private:
+    void* m_tlsf;
+    void* m_mem;
+};
+
+#else
 
 class HYP_API TlsfAllocator
 {
@@ -198,6 +224,7 @@ private:
 
     Pool* FindOwningPool(const Block* b);
 };
+#endif
 
 } // namespace memory
 

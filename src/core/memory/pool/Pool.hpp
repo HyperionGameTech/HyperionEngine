@@ -67,11 +67,6 @@ public:
         void Free(void* ptr);
     };
 
-    Pool()
-        : m_blockSize(1024 * 1024) // 1 MiB
-    {
-    }
-
     explicit Pool(SizeType blockSize)
         : m_blockSize(blockSize)
     {

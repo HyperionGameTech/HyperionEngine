@@ -5,8 +5,95 @@
 
 #include <core/utilities/ByteUtil.hpp>
 
+#if defined(HYP_USE_THIRD_PARTY_TLSF) && HYP_USE_THIRD_PARTY_TLSF
+#include <thirdparty/tlsf/tlsf.h>
+#endif
+
 namespace hyperion {
 namespace memory {
+
+#if HYP_USE_THIRD_PARTY_TLSF
+
+TlsfAllocator::TlsfAllocator()
+    : m_tlsf(nullptr),
+      m_mem(nullptr)
+{
+    const SizeType poolSize = tlsf_size();
+
+    m_mem = std::malloc(tlsf_size());
+    HYP_CORE_ASSERT(m_mem != nullptr, "Failed to allocate memory for TLSF allocator");
+
+    m_tlsf = tlsf_create(m_mem);
+    HYP_CORE_ASSERT(m_tlsf != nullptr, "Failed to create TLSF allocator");
+}
+
+TlsfAllocator::~TlsfAllocator()
+{
+    if (m_tlsf != nullptr)
+    {
+        tlsf_destroy((tlsf_t)m_tlsf);
+        m_tlsf = nullptr;
+    }
+
+    if (m_mem != nullptr)
+    {
+        std::free(m_mem);
+        m_mem = nullptr;
+    }
+}
+
+void TlsfAllocator::AddPool(void* memory, SizeType bytes)
+{
+    AssertDebug(m_tlsf != nullptr);
+    AssertDebug(bytes >= tlsf_pool_overhead() + tlsf_block_size_min());
+
+    tlsf_add_pool((tlsf_t)m_tlsf, memory, bytes);
+}
+
+void TlsfAllocator::RemovePool(void* memory)
+{
+    // TLSF does not support removing pools in this implementation
+    (void)memory;
+}
+
+void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
+{
+    AssertDebug(m_tlsf != nullptr);
+    AssertDebug(bytes > 0 && alignment > 0 && (alignment & (alignment - 1)) == 0); // power of two
+
+    return tlsf_memalign((tlsf_t)m_tlsf, alignment, bytes);
+}
+
+void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
+{
+    AssertDebug(m_tlsf != nullptr);
+    AssertDebug(ptr != nullptr);
+
+    return tlsf_realloc((tlsf_t)m_tlsf, ptr, newSize);
+}
+
+void TlsfAllocator::Free(void* ptr)
+{
+    AssertDebug(m_tlsf != nullptr);
+    AssertDebug(ptr != nullptr);
+
+    tlsf_free((tlsf_t)m_tlsf, ptr);
+}
+
+MemoryMetrics TlsfAllocator::GetMemoryMetrics() const
+{
+    MemoryMetrics metrics = {};
+    metrics[MemoryMetrics::MM_BYTES_COMMITTED] = 0;    // Not tracked
+    metrics[MemoryMetrics::MM_BYTES_USED] = 0;         // Not tracked
+    metrics[MemoryMetrics::MM_BYTES_FREE] = 0;         // Not tracked
+    metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE] = 0; // Not tracked
+    metrics[MemoryMetrics::MM_BLOCKS_TOTAL] = 0;       // Not tracked
+    metrics[MemoryMetrics::MM_BYTES_PEAK] = 0;         // Not tracked
+
+    return metrics;
+}
+
+#else
 
 TlsfAllocator::TlsfAllocator()
     : m_flBitmap(0)
@@ -33,15 +120,27 @@ void TlsfAllocator::AddPool(void* memory, SizeType bytes)
         return;
     }
 
-    uint8* base = reinterpret_cast<uint8*>(memory);
+    uintptr_t rawBase = reinterpret_cast<uintptr_t>(memory);
+    uintptr_t baseAligned = ByteUtil::AlignAs(rawBase, DefaultAlign);
+    SizeType headLoss = static_cast<SizeType>(baseAligned - rawBase);
+
+    if (bytes <= headLoss + sizeof(Block))
+    {
+        return;
+    }
+
+    SizeType usable = bytes - headLoss;
+    usable -= (usable % DefaultAlign); // align down
+
+    ubyte* base = reinterpret_cast<ubyte*>(baseAligned);
 
     Pool p {};
     p.base = base;
-    p.size = bytes;
+    p.size = usable;
 
-    // first block covers the whole area minus the trailing sentinel
     Block* first = reinterpret_cast<Block*>(base);
-    SizeType firstSize = ByteUtil::AlignAs(bytes - sizeof(Block), DefaultAlign);
+    SizeType firstSize = usable - sizeof(Block); // sentinel at end
+
     first->sizeAndFlags = 0;
     first->SetSize(firstSize);
     first->SetUsed(false);
@@ -61,7 +160,6 @@ void TlsfAllocator::AddPool(void* memory, SizeType bytes)
     p.sentinel = sentinel;
 
     m_pools.PushBack(p);
-
     InsertFree(first);
 }
 
@@ -195,29 +293,22 @@ TlsfAllocator::Block* TlsfAllocator::Split(Block* b, SizeType size)
         return b;
     }
 
-    RemoveFree(b);
+    // b stays as the first piece
+    Block* rem = reinterpret_cast<Block*>(reinterpret_cast<ubyte*>(b) + size);
 
-    Block* rem = reinterpret_cast<Block*>(reinterpret_cast<uint8*>(b) + size);
     rem->sizeAndFlags = 0;
     rem->SetSize(total - size);
     rem->SetUsed(false);
-    rem->SetPrevPhysUsed(true); // b will be used after split
+    rem->SetPrevPhysUsed(true); // previous (b) will be used
     rem->prevPhys = b;
+
+    b->SetSize(size);
 
     Block* next = rem->NextPhys();
     next->prevPhys = rem;
-    if (!next->IsUsed())
-    {
-        next->SetPrevPhysUsed(false);
-    }
-    else
-    {
-        next->SetPrevPhysUsed(true);
-    }
+    next->SetPrevPhysUsed(false); // previous is free (rem)
 
-    b->SetSize(size);
     InsertFree(rem);
-
     return b;
 }
 
@@ -286,23 +377,32 @@ SizeType TlsfAllocator::AdjustRequest(SizeType bytes, SizeType alignment)
 void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
 {
     if (bytes == 0)
+    {
         return nullptr;
+    }
+
     const SizeType needed = AdjustRequest(bytes, alignment);
 
     uint32 fli = 0, sli = 0;
     Block* b = FindSuitable(needed, fli, sli);
     if (!b)
+    {
         return nullptr;
+    }
 
     RemoveFree(b, fli, sli);
 
     if (alignment > DefaultAlign)
     {
-        uint8* payload = reinterpret_cast<uint8*>(b) + sizeof(Block);
-        uint8* aligned = reinterpret_cast<uint8*>(ByteUtil::AlignAs(reinterpret_cast<SizeType>(payload), alignment));
-        SizeType frontPad = static_cast<SizeType>(aligned - reinterpret_cast<uint8*>(b));
-        if (frontPad >= MinBlockSize)
-            b = CarveFront(b, frontPad);
+        uintptr_t payloadAddr = reinterpret_cast<uintptr_t>(b) + sizeof(Block);
+        uintptr_t alignedPayload = ByteUtil::AlignAs(payloadAddr, alignment);
+        SizeType frontSize = static_cast<SizeType>((alignedPayload - sizeof(Block)) - reinterpret_cast<uintptr_t>(b));
+
+        if (frontSize >= MinBlockSize)
+        {
+            // front free, remainder candidate
+            b = CarveFront(b, frontSize);
+        }
     }
 
     b = Split(b, needed);
@@ -482,6 +582,7 @@ MemoryMetrics TlsfAllocator::GetMemoryMetrics() const
 
     return metrics;
 }
+#endif
 
 } // namespace memory
 } // namespace hyperion

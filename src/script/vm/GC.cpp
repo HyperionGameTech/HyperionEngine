@@ -7,6 +7,7 @@ namespace hyperion {
 extern HypData ScriptApi_MakeValue(const Script_VMData& data);
 
 Script_GC::Script_GC()
+    : m_allocator(sizeof(HypData), 256, alignof(HypData))
 {
 }
 
@@ -21,7 +22,7 @@ void Script_GC::MoveToTrackedMemory(HypData& inOutRefValue)
     Assert(inOutRefValue.extData.scriptGcIndex == INVALID_GC_INDEX);
     Assert(!IsRef(inOutRefValue));
 
-    HypData* ptr = PoolAlloc<HypData>(m_pool);
+    HypData* ptr = (HypData*)m_allocator.Allocate();
     uint32 gcIndex = m_idGenerator.Next(); // starts at 1
 
     new (ptr) HypData(std::move(inOutRefValue));

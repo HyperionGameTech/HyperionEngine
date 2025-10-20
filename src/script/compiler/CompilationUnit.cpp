@@ -6,7 +6,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <core/memory/allocator/SlabAllocator.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -22,7 +22,7 @@ class SymbolTypeCache
 {
 public:
     SymbolTypeCache()
-        : pool(new Pool())
+        : allocator(sizeof(SymbolTypeRegistration), 256, alignof(SymbolTypeRegistration))
     {
         ptrs.Reserve(1024);
     }
@@ -38,14 +38,10 @@ public:
         for (SizeType i = ptrs.Size(); i > 0; i--)
         {
             ptrs[i - 1]->~SymbolTypeRegistration();
-            pool->Free(ptrs[i - 1]);
+            allocator.Free(ptrs[i - 1]);
         }
 
         ptrs.Clear();
-
-        // pool frees itself
-        delete pool;
-        pool = nullptr;
     }
 
     SymbolTypeRegistration* Register(SymbolType* symbolType)
@@ -53,7 +49,7 @@ public:
         Assert(symbolType != nullptr);
         Assert(!symbolType->IsRegistered());
 
-        SymbolTypeRegistration* pRegistration = pool->Alloc<SymbolTypeRegistration>();
+        SymbolTypeRegistration* pRegistration = (SymbolTypeRegistration*)allocator.Allocate();
         new (pRegistration) SymbolTypeRegistration(symbolType);
 
         ptrs.PushBack(pRegistration);
@@ -61,7 +57,7 @@ public:
         return pRegistration;
     }
 
-    Pool* pool;
+    SlabAllocator allocator;
     Array<SymbolTypeRegistration*> ptrs;
 };
 

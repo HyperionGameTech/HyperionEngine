@@ -20,7 +20,7 @@
 namespace hyperion {
 
 #pragma region RenderQueue
-HYP_DISABLE_OPTIMIZATION;
+
 template <>
 void TRenderQueue<RenderAllocator>::Prepare(FrameBase* frame)
 {
@@ -51,7 +51,6 @@ void TRenderQueue<RenderAllocator>::Execute(CommandBufferBase* commandBuffer)
     m_cmdHeaders.Clear();
     m_offset = 0;
 }
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion RenderQueue
 

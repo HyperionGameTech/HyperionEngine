@@ -10,48 +10,49 @@
 #include <core/containers/HashMap.hpp>
 
 #include <core/memory/pool/Pool.hpp>
+#include <core/memory/allocator/SlabAllocator.hpp>
 
 namespace hyperion {
 namespace utilities {
 
 #pragma region Cache
 
-using TypeAttributeCache = HashMap<TypeId, TypeInfo*>;
+using TypeInfoCache = HashMap<TypeId, TypeInfo*>;
 
 static bool s_typeInfoSystemInitialized = false;
-static TypeAttributeCache* s_typeAttributeCache = nullptr;
-static Pool* s_typeAttributePool = nullptr;
+static TypeInfoCache* s_typeInfoCache = nullptr;
+static SlabAllocator* s_typeInfoAllocator = nullptr;
 
-static Mutex& GetTypeAttributeCacheMutex()
+static Mutex& GetTypeInfoCacheMutex()
 {
-    static Mutex s_typeAttributeCacheMutex;
-    return s_typeAttributeCacheMutex;
+    static Mutex s_typeInfoCacheMutex;
+    return s_typeInfoCacheMutex;
 }
 
-static HashMap<TypeId, TypeInfo*>& GetTypeAttributeCache()
+static HashMap<TypeId, TypeInfo*>& GetTypeInfoCache()
 {
     static struct Initializer
     {
         Initializer()
         {
-            s_typeAttributeCache = new TypeAttributeCache();
+            s_typeInfoCache = new TypeInfoCache();
         }
     } s_initializer;
 
-    return *s_typeAttributeCache;
+    return *s_typeInfoCache;
 }
 
-static Pool& GetTypeAttributePool()
+static SlabAllocator& GetTypeInfoAllocator()
 {
     static struct Initializer
     {
         Initializer()
         {
-            s_typeAttributePool = new Pool(16 * 1024); // 16 kib blocks (~292 TypeInfo per block)
+            s_typeInfoAllocator = new SlabAllocator(sizeof(TypeInfo), 256, alignof(TypeInfo));
         }
     } s_initializer;
 
-    return *s_typeAttributePool;
+    return *s_typeInfoAllocator;
 }
 
 HYP_API TypeInfo* TypeInfo_Alloc(
@@ -62,10 +63,10 @@ HYP_API TypeInfo* TypeInfo_Alloc(
 
     if (outPGuard) // otherwise assumed to be called from a context where the mutex is already held
     {
-        new (outPGuard) Mutex::Guard(GetTypeAttributeCacheMutex());
+        new (outPGuard) Mutex::Guard(GetTypeInfoCacheMutex());
     }
 
-    TypeAttributeCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeAttributeCache : GetTypeAttributeCache();
+    TypeInfoCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeInfoCache : GetTypeInfoCache();
 
     const auto it = typeAttributeCache.Find(typeId);
     if (it != typeAttributeCache.End())
@@ -73,7 +74,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
         return it->second;
     }
 
-    TypeInfo* pTypeInfo = PoolAlloc<TypeInfo>(GetTypeAttributePool());
+    TypeInfo* pTypeInfo = (TypeInfo*)GetTypeInfoAllocator().Allocate();
     HYP_CORE_ASSERT(pTypeInfo != nullptr);
 
     typeAttributeCache.Insert({ typeId, pTypeInfo });
@@ -85,9 +86,9 @@ HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 ali
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
-    Mutex::Guard guard(GetTypeAttributeCacheMutex());
+    Mutex::Guard guard(GetTypeInfoCacheMutex());
 
-    TypeAttributeCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeAttributeCache : GetTypeAttributeCache();
+    TypeInfoCache& typeAttributeCache = s_typeInfoSystemInitialized ? *s_typeInfoCache : GetTypeInfoCache();
 
     const auto it = typeAttributeCache.Find(typeId);
     if (it != typeAttributeCache.End())
@@ -104,11 +105,11 @@ HYP_API void TypeInfo_Initialize()
 
     HYP_CORE_ASSERT(!s_typeInfoSystemInitialized, "TypeInfo system is already initialized");
 
-    Mutex::Guard guard(GetTypeAttributeCacheMutex());
+    Mutex::Guard guard(GetTypeInfoCacheMutex());
 
     // ensure the cache and pool are created
-    (void)GetTypeAttributeCache();
-    (void)GetTypeAttributePool();
+    (void)GetTypeInfoCache();
+    (void)GetTypeInfoAllocator();
 
     s_typeInfoSystemInitialized = true;
 }
@@ -117,21 +118,21 @@ HYP_API void TypeInfo_Shutdown()
 {
     Threads::AssertOnThread(g_mainThread, "TypeInfo system must be shutdown on the main thread");
 
-    Mutex::Guard guard(GetTypeAttributeCacheMutex());
+    Mutex::Guard guard(GetTypeInfoCacheMutex());
 
     HYP_CORE_ASSERT(s_typeInfoSystemInitialized, "TypeInfo system is not initialized");
     s_typeInfoSystemInitialized = false;
 
-    for (auto& pair : *s_typeAttributeCache)
+    for (auto& pair : *s_typeInfoCache)
     {
         pair.second->~TypeInfo();
     }
 
-    delete s_typeAttributeCache;
-    s_typeAttributeCache = nullptr;
+    delete s_typeInfoCache;
+    s_typeInfoCache = nullptr;
 
-    delete s_typeAttributePool;
-    s_typeAttributePool = nullptr;
+    delete s_typeInfoAllocator;
+    s_typeInfoAllocator = nullptr;
 }
 
 #pragma endregion Cache
@@ -268,10 +269,10 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
         return Void();
     }
 
-    Mutex::Guard guard(GetTypeAttributeCacheMutex());
+    Mutex::Guard guard(GetTypeInfoCacheMutex());
 
-    const auto it = GetTypeAttributeCache().Find(hypClass->GetTypeId());
-    if (it != GetTypeAttributeCache().End())
+    const auto it = GetTypeInfoCache().Find(hypClass->GetTypeId());
+    if (it != GetTypeInfoCache().End())
     {
         if (s_typeInfoSystemInitialized) // don't check during static initialization
         {
