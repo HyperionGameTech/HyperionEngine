@@ -67,12 +67,12 @@ static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 struct ParallelRenderingState_Shared
 {
     static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
-    static constexpr SizeType LocalQueueArenaSize = 16 * 1024 * 1024;
+    static constexpr SizeType LocalQueueArenaSize = 1 * 1024 * 1024;
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
-    FixedArray<TLinearArena<RenderAllocator>*, MaxBatches> arenas;
-    FixedArray<TAllocator<TLinearArena<RenderAllocator>>*, MaxBatches> allocators;
+    FixedArray<TLinearArena<DynamicAllocator>*, MaxBatches> arenas;
+    FixedArray<TAllocator<TLinearArena<DynamicAllocator>>*, MaxBatches> allocators;
     FixedArray<LocalQueue*, MaxBatches> localQueues;
 
     ParallelRenderingState_Shared()
@@ -84,10 +84,10 @@ struct ParallelRenderingState_Shared
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            TLinearArena<RenderAllocator>* arena = PoolNew<TLinearArena<RenderAllocator>>(*g_renderPool, LocalQueueArenaSize);
+            TLinearArena<DynamicAllocator>* arena = PoolNew<TLinearArena<DynamicAllocator>>(*g_renderPool, LocalQueueArenaSize);
             arenas[i] = arena;
 
-            allocators[i] = PoolNew<TAllocator<TLinearArena<RenderAllocator>>>(*g_renderPool, arena);
+            allocators[i] = PoolNew<TAllocator<TLinearArena<DynamicAllocator>>>(*g_renderPool, arena);
 
             localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, allocators[i]);
         }

@@ -16,7 +16,7 @@ namespace hyperion {
 template <class AllocatorType>
 class TRenderQueue;
 
-using RenderQueue = TRenderQueue<RenderAllocator>;
+using RenderQueue = TRenderQueue<DynamicAllocator>;
 
 namespace helpers {
 

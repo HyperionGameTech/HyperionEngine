@@ -13,7 +13,7 @@
 namespace hyperion {
 namespace memory {
 
-template <class Allocator>
+template <class Allocator, SizeType BufferAlignment = 16>
 class TByteBuffer
 {
 public:
@@ -50,7 +50,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
 
         if (zeroize)
         {
@@ -70,7 +70,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + m_size);
     }
 
@@ -87,7 +87,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
@@ -104,7 +104,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(view.Begin(), view.End());
     }
 
@@ -119,7 +119,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(other.Data(), other.Data() + m_size);
     }
 
@@ -135,7 +135,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, m_size);
+        m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(other.Data(), other.Data() + m_size);
     }
 
@@ -155,7 +155,7 @@ public:
 
         if (newSize != 0)
         {
-            m_allocation.Allocate(m_pAllocator, newSize);
+            m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
             m_allocation.InitFromRangeCopy(other.Data(), other.Data() + newSize);
         }
 
@@ -179,7 +179,7 @@ public:
 
         if (newSize != 0)
         {
-            m_allocation.Allocate(m_pAllocator, newSize);
+            m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
             m_allocation.InitFromRangeCopy(other.Data(), other.Data() + newSize);
         }
 
@@ -204,7 +204,7 @@ public:
         {
             if (m_size != 0)
             {
-                m_allocation.Allocate(m_pAllocator, m_size);
+                m_allocation.Allocate(m_pAllocator, m_size, /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + m_size);
             }
         }
@@ -236,7 +236,7 @@ public:
         {
             if (newSize != 0)
             {
-                m_allocation.Allocate(m_pAllocator, newSize);
+                m_allocation.Allocate(m_pAllocator, newSize, /* alignment */ BufferAlignment);
                 m_allocation.InitFromRangeMove(other.Data(), other.Data() + newSize);
             }
         }
@@ -339,7 +339,7 @@ public:
             return;
         }
 
-        m_allocation.Allocate(m_pAllocator, count);
+        m_allocation.Allocate(m_pAllocator, count, /* alignment */ BufferAlignment);
         m_allocation.InitFromRangeCopy(reinterpret_cast<const ubyte*>(data), reinterpret_cast<const ubyte*>(data) + count);
     }
 
@@ -400,7 +400,7 @@ public:
 
         if (newCapacity != 0)
         {
-            newAllocation.Allocate(m_pAllocator, newCapacity);
+            newAllocation.Allocate(m_pAllocator, newCapacity, /* alignment */ BufferAlignment);
 
             const SizeType minCapacity = currentCapacity <= newCapacity ? currentCapacity : newCapacity;
 

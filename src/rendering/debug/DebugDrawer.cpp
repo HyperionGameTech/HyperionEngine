@@ -414,16 +414,25 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const C
 
 #pragma region DebugDrawer
 
+static FixedArray<TByteBuffer<TAllocator<Pool>>, NumMultiBuffers> CreateDebugDrawBuffers()
+{
+    ValueStorage<FixedArray<TByteBuffer<TAllocator<Pool>>, NumMultiBuffers>> buffers;
+
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    {
+        new (buffers.GetPointer()->Data() + i) TByteBuffer<TAllocator<Pool>>(&GetFrameAllocator(i));
+    }
+
+    return std::move(buffers).Get();
+}
+
 DebugDrawer::DebugDrawer()
     : m_config(DebugDrawerConfig::FromConfig()),
+      m_buffers(CreateDebugDrawBuffers()),
       m_bufferOffsets {},
       m_bufferSizeHistory {},
       m_isInitialized(false)
 {
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
-    {
-        m_buffers[i] = TByteBuffer<TAllocator<Pool>>(&GetFrameAllocator(i));
-    }
 }
 
 DebugDrawer::~DebugDrawer()

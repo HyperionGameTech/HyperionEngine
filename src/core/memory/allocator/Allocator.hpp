@@ -17,6 +17,9 @@ namespace memory {
 
 class Pool;
 
+template <class T>
+T& GetDefaultAllocatorInstance();
+
 // Helper metadata for natvis navigation
 enum AllocationType : uint32
 {
@@ -43,6 +46,21 @@ struct Allocator
         static_cast<Derived*>(this)->Free(ptr);
     }
 };
+
+template <class T, class T2 = void>
+struct DefaultAllocatorInstanceHelper;
+
+template <class Derived>
+struct DefaultAllocatorInstanceHelper<Derived, typename std::enable_if_t<std::is_base_of_v<Allocator<Derived>, Derived>>>
+{
+    Derived& operator()() const;
+};
+
+template <class T>
+T& GetDefaultAllocatorInstance()
+{
+    return DefaultAllocatorInstanceHelper<T> {}();
+}
 
 struct DynamicAllocator : Allocator<DynamicAllocator>
 {
@@ -74,7 +92,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             } storage;
         };
 
-        void Allocate(DynamicAllocator* allocator, SizeType count)
+        HYP_FORCE_INLINE void Allocate(DynamicAllocator* allocator, SizeType count, SizeType alignment = alignof(T))
         {
             HYP_CORE_ASSERT(buffer == nullptr);
 
@@ -83,15 +101,15 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
                 return;
             }
 
-            static_assert(sizeof(T) % alignof(T) == 0, "Type T must be aligned to its size");
+            HYP_CORE_ASSERT(alignment >= alignof(T));
 
-            buffer = static_cast<T*>(allocator->Allocate(sizeof(T) * count, alignof(T)));
+            buffer = static_cast<T*>(allocator->Allocate(sizeof(T) * count, alignment));
             HYP_CORE_ASSERT(buffer != nullptr);
 
             capacity = count;
         }
 
-        void Free(DynamicAllocator* allocator)
+        HYP_FORCE_INLINE void Free(DynamicAllocator* allocator)
         {
             if (buffer != nullptr)
             {
@@ -101,7 +119,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             SetToInitialState();
         }
 
-        void TakeOwnership(T* begin, T* end)
+        HYP_FORCE_INLINE void TakeOwnership(T* begin, T* end)
         {
             HYP_CORE_ASSERT(buffer == nullptr);
             HYP_CORE_ASSERT(end >= begin);
@@ -110,7 +128,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             capacity = end - begin;
         }
 
-        void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+        HYP_FORCE_INLINE void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
@@ -131,7 +149,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             }
         }
 
-        void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+        HYP_FORCE_INLINE void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
@@ -152,14 +170,14 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             }
         }
 
-        void InitZeroed(SizeType count, SizeType offset = 0)
+        HYP_FORCE_INLINE void InitZeroed(SizeType count, SizeType offset = 0)
         {
             HYP_CORE_ASSERT(capacity >= count + offset);
 
             Memory::MemSet(buffer + offset, 0, count * sizeof(T));
         }
 
-        void DestructInRange(SizeType startIndex, SizeType lastIndex)
+        HYP_FORCE_INLINE void DestructInRange(SizeType startIndex, SizeType lastIndex)
         {
             HYP_CORE_ASSERT(lastIndex <= capacity);
 
@@ -172,7 +190,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             }
         }
 
-        void SetToInitialState()
+        HYP_FORCE_INLINE void SetToInitialState()
         {
             buffer = nullptr;
             capacity = 0;
@@ -239,7 +257,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             return isDynamic ? dynamicAllocation.GetCapacity() : Count;
         }
 
-        HYP_FORCE_INLINE void Allocate(InlineAllocator<Count, DynamicAllocatorType>* allocator, SizeType count)
+        HYP_FORCE_INLINE void Allocate(InlineAllocator<Count, DynamicAllocatorType>* allocator, SizeType count, SizeType alignment = alignof(T))
         {
             HYP_CORE_ASSERT(!isDynamic);
 
@@ -250,7 +268,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 
             dynamicAllocation = typename DynamicAllocatorType::template Allocation<T>();
             dynamicAllocation.SetToInitialState();
-            dynamicAllocation.Allocate(&allocator->dynamicAllocator, count);
+            dynamicAllocation.Allocate(&allocator->dynamicAllocator, count, alignment);
 
             isDynamic = true;
 
@@ -449,7 +467,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             return Count;
         }
 
-        HYP_FORCE_INLINE void Allocate(FixedAllocator<Count>* allocator, SizeType count)
+        HYP_FORCE_INLINE void Allocate(FixedAllocator<Count>* allocator, SizeType count, SizeType alignment = alignof(T))
         {
             HYP_CORE_ASSERT(count <= Count, "Allocation size exceeds fixed capacity!");
 
@@ -597,8 +615,8 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
     }
 };
 
-template <class AllocatorType, AllocatorType** GlobalAllocator = nullptr, AllocatorType* (*GetGlobalAllocator)() = nullptr>
-struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlobalAllocator>>
+template <class AllocatorType, AllocatorType** GlobalAllocator = nullptr>
+struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator>>
 {
     template <class T>
     struct Allocation : AllocationBase<Allocation<T>>
@@ -627,7 +645,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
             } storage;
         };
 
-        void Allocate(TAllocator* allocator, SizeType count)
+        HYP_FORCE_INLINE void Allocate(TAllocator* allocator, SizeType count, SizeType alignment = alignof(T))
         {
             HYP_CORE_ASSERT(buffer == nullptr);
 
@@ -636,15 +654,15 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
                 return;
             }
 
-            static_assert(sizeof(T) % alignof(T) == 0, "Type T must be aligned to its size");
+            HYP_CORE_ASSERT(alignment >= alignof(T));
 
-            buffer = static_cast<T*>(allocator->Allocate(count * sizeof(T), alignof(T)));
-            HYP_CORE_ASSERT(buffer != nullptr, "Pool allocation failed! Size: %zu, Alignment: %zu", count * sizeof(T), alignof(T));
+            buffer = static_cast<T*>(allocator->Allocate(count * sizeof(T), alignment));
+            HYP_CORE_ASSERT(buffer != nullptr, "Pool allocation failed! Size: %zu, Alignment: %zu", count * sizeof(T), alignment);
 
             capacity = count;
         }
 
-        void Free(TAllocator* allocator)
+        HYP_FORCE_INLINE void Free(TAllocator* allocator)
         {
             if (buffer != nullptr)
             {
@@ -654,7 +672,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
             SetToInitialState();
         }
 
-        void TakeOwnership(T* begin, T* end)
+        HYP_FORCE_INLINE void TakeOwnership(T* begin, T* end)
         {
             HYP_CORE_ASSERT(buffer == nullptr);
             HYP_CORE_ASSERT(end >= begin);
@@ -663,7 +681,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
             capacity = end - begin;
         }
 
-        void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+        HYP_FORCE_INLINE void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
@@ -684,7 +702,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
             }
         }
 
-        void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+        HYP_FORCE_INLINE void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
@@ -705,14 +723,14 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
             }
         }
 
-        void InitZeroed(SizeType count, SizeType offset = 0)
+        HYP_FORCE_INLINE void InitZeroed(SizeType count, SizeType offset = 0)
         {
             HYP_CORE_ASSERT(capacity >= count + offset);
 
             Memory::MemSet(buffer + offset, 0, count * sizeof(T));
         }
 
-        void DestructInRange(SizeType startIndex, SizeType lastIndex)
+        HYP_FORCE_INLINE void DestructInRange(SizeType startIndex, SizeType lastIndex)
         {
             HYP_CORE_ASSERT(lastIndex <= capacity);
 
@@ -725,7 +743,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
             }
         }
 
-        void SetToInitialState()
+        HYP_FORCE_INLINE void SetToInitialState()
         {
             buffer = nullptr;
             capacity = 0;
@@ -750,15 +768,17 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
     TAllocator()
         : pAllocator(nullptr)
     {
-        if (GetGlobalAllocator != nullptr)
-        {
-            pAllocator = GetGlobalAllocator();
-            HYP_CORE_ASSERT(pAllocator != nullptr);
-        }
-        else if (GlobalAllocator != nullptr)
+        if constexpr (GlobalAllocator != nullptr)
         {
             pAllocator = *GlobalAllocator;
             HYP_CORE_ASSERT(pAllocator != nullptr);
+        }
+        else
+        {
+            static AllocatorType s_defaultInstance;
+            pAllocator = &s_defaultInstance;
+
+            HYP_CORE_ASSERT(pAllocator, "No global allocator provided for TAllocator!");
         }
     }
 
@@ -789,23 +809,11 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator, GetGlob
     AllocatorType* pAllocator;
 };
 
-template <class T, class T2 = void>
-struct DefaultAllocatorInstanceHelper;
-
 template <class Derived>
-struct DefaultAllocatorInstanceHelper<Derived, typename std::enable_if_t<std::is_base_of_v<Allocator<Derived>, Derived>>>
+Derived& DefaultAllocatorInstanceHelper<Derived, typename std::enable_if_t<std::is_base_of_v<Allocator<Derived>, Derived>>>::operator()() const
 {
-    static Derived& Get()
-    {
-        static Derived s_instance;
-        return s_instance;
-    }
-};
-
-template <class T>
-static T& GetDefaultAllocatorInstance()
-{
-    return DefaultAllocatorInstanceHelper<T>::Get();
+    static Derived s_instance;
+    return s_instance;
 }
 
 } // namespace memory

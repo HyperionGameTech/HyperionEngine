@@ -22,7 +22,7 @@ namespace hyperion {
 #pragma region RenderQueue
 
 template <>
-void TRenderQueue<RenderAllocator>::Prepare(FrameBase* frame)
+void RenderQueue::Prepare(FrameBase* frame)
 {
     Assert(frame != nullptr);
 
@@ -36,7 +36,7 @@ void TRenderQueue<RenderAllocator>::Prepare(FrameBase* frame)
 }
 
 template <>
-void TRenderQueue<RenderAllocator>::Execute(CommandBufferBase* commandBuffer)
+void RenderQueue::Execute(CommandBufferBase* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
 

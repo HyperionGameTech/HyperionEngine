@@ -90,6 +90,11 @@ struct alignas(Alignment) ValueStorage<T, 1, Alignment, std::enable_if_t<!std::i
         return *reinterpret_cast<const T*>(&dataBuffer[0]);
     }
 
+    HYP_FORCE_INLINE T Get() &&
+    {
+        return std::move(*reinterpret_cast<T*>(&dataBuffer[0]));
+    }
+
     HYP_FORCE_INLINE T* GetPointer() &
     {
         return reinterpret_cast<T*>(&dataBuffer[0]);

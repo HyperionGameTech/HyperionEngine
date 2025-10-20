@@ -902,6 +902,7 @@ public:
           m_buffer(pAllocator),
           m_offset(0)
     {
+        AssertDebug(pAllocator != nullptr);
     }
 
     TRenderQueue(const TRenderQueue& other) = delete;
@@ -1023,10 +1024,6 @@ TRenderQueue<AllocatorType>::~TRenderQueue()
     Assert(m_cmdHeaders.Empty(), "RenderQueue destroyed with pending commands!");
 }
 
-/*! \brief A RenderQueue that uses the render pool allocator. Only to be used on the render thread. */
-using RenderQueue = TRenderQueue<RenderAllocator>;
-
-/*! \brief A RenderQueue that is safe to use on a render task thread (doesn't use the render pool allocator). */
-using TaskRenderQueue = TRenderQueue<DynamicAllocator>;
+using RenderQueue = TRenderQueue<DynamicAllocator>;
 
 } // namespace hyperion

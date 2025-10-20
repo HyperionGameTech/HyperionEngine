@@ -124,21 +124,26 @@ TLinearArena<AllocatorType>& TLinearArena<AllocatorType>::operator=(TLinearArena
 template <class AllocatorType>
 void* TLinearArena<AllocatorType>::Alloc(SizeType size, SizeType alignment)
 {
-    HYP_CORE_ASSERT(alignment <= 16, "LinearArena only supports alignment up to 16 bytes");
+    HYP_CORE_ASSERT(alignment != 0 && ((alignment & (alignment - 1)) == 0),
+        "LinearArena requires power-of-two, non-zero alignment");
 
-    const SizeType alignedOffset = ByteUtil::AlignAs(m_offset, alignment);
+    ubyte* base = static_cast<ubyte*>(static_cast<void*>(m_buffer.Data()));
+    const uintptr_t baseAddr = reinterpret_cast<uintptr_t>(base);
+    const uintptr_t current = baseAddr + static_cast<uintptr_t>(m_offset);
+    const uintptr_t aligned = ByteUtil::AlignAs(current, static_cast<uintptr_t>(alignment));
+    const SizeType alignedOffset = static_cast<SizeType>(aligned - baseAddr);
 
-    if (alignedOffset + size > m_buffer.Size())
+    // Use subtraction form to avoid overflow.
+    if (size > m_buffer.Size() - alignedOffset)
     {
-        HYP_CORE_ASSERT(false, "LinearArena out of memory: tried to allocate %llu bytes (aligned to %llu), but only %llu bytes remaining",
+        HYP_CORE_ASSERT(false,
+            "LinearArena out of memory: requested=%llu, align=%llu, remaining=%llu",
             size, alignment, m_buffer.Size() - alignedOffset);
-
         return nullptr;
     }
 
-    void* ptr = m_buffer.Data() + alignedOffset;
+    void* ptr = base + alignedOffset;
     m_offset = alignedOffset + size;
-
     return ptr;
 }
 
