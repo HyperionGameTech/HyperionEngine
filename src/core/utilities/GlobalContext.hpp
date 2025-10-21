@@ -142,7 +142,7 @@ public:
     template <class... Args>
     void Push(Args&&... args)
     {
-        void* mem = m_pool->Alloc(sizeof(ContextType), alignof(ContextType));
+        void* mem = m_pool->Allocate(sizeof(ContextType), alignof(ContextType));
         HYP_CORE_ASSERT(mem != nullptr);
 
         m_stack.PushBack(new (mem) ContextType(std::forward<Args>(args)...));

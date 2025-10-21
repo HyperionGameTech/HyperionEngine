@@ -294,7 +294,7 @@ public:
         LockGuard guard;
         LockPoolOrThreadAssert(guard, PF_WRITER | PF_ALLOCATE);
 
-        void* mem = m_pool->Alloc(totalSize, MaxObjectAlignment);
+        void* mem = m_pool->Allocate(totalSize, MaxObjectAlignment);
 
         // header needs to have padding in front of it so we can get the header from the object pointer
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) - sizeof(HypObjectHeader);

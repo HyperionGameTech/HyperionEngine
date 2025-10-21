@@ -171,7 +171,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
 
         if (IsProxyClass())
         {
-            newType->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
+            newType->GetFlags() |= STF_PROXY;
         }
     }
 

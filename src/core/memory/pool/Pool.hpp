@@ -82,13 +82,13 @@ public:
     ~Pool();
 
     /*! \brief Allocates memory from the pool with the given size and alignment. */
-    HYP_NODISCARD void* Alloc(SizeType size, SizeType alignment = 16);
+    HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment = 16);
 
     /*! \brief Allocates an object of type T from the pool. */
     template <class T>
-    HYP_FORCE_INLINE HYP_NODISCARD T* Alloc()
+    HYP_FORCE_INLINE HYP_NODISCARD T* Allocate()
     {
-        return reinterpret_cast<T*>(Alloc(sizeof(T), alignof(T)));
+        return reinterpret_cast<T*>(Allocate(sizeof(T), alignof(T)));
     }
 
     /*! \brief Frees a pointer previously allocated by this pool. */
@@ -107,7 +107,7 @@ protected:
 template <class T>
 static inline HYP_NODISCARD T* PoolAlloc(Pool& pool)
 {
-    return pool.Alloc<T>();
+    return pool.Allocate<T>();
 }
 
 static inline void PoolFree(Pool& pool, void* ptr)
@@ -118,7 +118,7 @@ static inline void PoolFree(Pool& pool, void* ptr)
 template <class T, class... Args>
 static inline HYP_NODISCARD T* PoolNew(Pool& pool, Args&&... args)
 {
-    T* ptr = pool.Alloc<T>();
+    T* ptr = pool.Allocate<T>();
 
     if (HYP_UNLIKELY(!ptr))
     {

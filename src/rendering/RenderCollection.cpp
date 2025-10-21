@@ -860,22 +860,6 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             counts = RenderStatsCounts(); // Reset counts after adding for next use
         }
 
-        // // Recreate per-batch queues so no internal buffers point into the arena we are about to Reset().
-        // // This prevents use-after-reset of arena-backed storage held by TRenderQueue's internal buffers.
-        // for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
-        // {
-        //     AssertDebug(state->localQueues[i]->IsEmpty(), "Queue must be empty before arena reset!");
-
-        //     // Force deallocation of internal storage before arena is reset by destroying the queue instance.
-        //     PoolDelete(*g_renderPool, state->localQueues[i]);
-
-        //     ParallelRenderingState::LocalQueue* newQueue = PoolNew<ParallelRenderingState::LocalQueue>(*g_renderPool, state->sharedData->allocators[i]);
-        //     state->localQueues[i] = newQueue;
-
-        //     // Keep sharedData's mirror in sync to avoid dangling pointers elsewhere.
-        //     state->sharedData->localQueues[i] = newQueue;
-        // }
-
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
             state->sharedData->arenas[i]->Reset();

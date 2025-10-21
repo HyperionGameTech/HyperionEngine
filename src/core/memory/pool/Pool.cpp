@@ -222,7 +222,7 @@ Pool::~Pool()
     m_blocks.Clear();
 }
 
-HYP_NODISCARD void* Pool::Alloc(SizeType size, SizeType alignment)
+HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
 {
     for (auto& block : m_blocks)
     {

@@ -791,7 +791,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator>>
         HYP_CORE_ASSERT(size > 0);
         HYP_CORE_ASSERT(alignment > 0);
 
-        return pAllocator->Alloc(size, alignment);
+        return pAllocator->Allocate(size, alignment);
     }
 
     HYP_FORCE_INLINE void Free(void* ptr)

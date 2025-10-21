@@ -1,9 +1,12 @@
 #pragma once
 
 #include <core/memory/RefCountedPtr.hpp>
+#include <core/memory/allocator/SlabAllocator.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
 #include <core/containers/String.hpp>
+
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -14,12 +17,15 @@ namespace hyperion {
 extern void CheckUnfreedSymbolTypes();
 #endif
 
-// forward declaration
+// forward declarations
 class SymbolType;
 class AstExpression;
 class AstArgument;
 struct Scope;
 class CompilationUnit;
+
+using SymbolTypeAllocator = TAllocator<SlabAllocator>;
+extern SymbolTypeAllocator& GetSymbolTypeAllocator();
 
 class SymbolTypeMember final
 {
@@ -120,14 +126,14 @@ static inline constexpr const char* SymbolTypeClassToString(SymbolTypeClass type
     }
 }
 
-using SymbolTypeFlags = uint32;
-
-enum SymbolTypeFlagsBits : SymbolTypeFlags
+enum SymbolTypeFlags : uint32
 {
-    SYMBOL_TYPE_FLAGS_NONE = 0x0,
-    SYMBOL_TYPE_FLAGS_PROXY = 0x1,
-    SYMBOL_TYPE_FLAGS_NATIVE = 0x4
+    STF_NONE = 0x0,
+    STF_PROXY = 0x1,
+    STF_NATIVE = 0x4
 };
+
+HYP_MAKE_ENUM_FLAGS(SymbolTypeFlags)
 
 enum SymbolTypeIncompatibilityType : uint32
 {
@@ -311,6 +317,18 @@ class SymbolType
     SymbolType();
 
 public:
+    void* operator new(size_t size)
+    {
+        HYP_CORE_ASSERT(size == sizeof(SymbolType));
+
+        return GetSymbolTypeAllocator().Allocate(size, alignof(SymbolType));
+    }
+
+    void operator delete(void* ptr)
+    {
+        GetSymbolTypeAllocator().Free(ptr);
+    }
+
     /*! \brief Create a temporary type to be filled in later. */
     static HYP_NODISCARD SymbolType* Temp()
     {
@@ -507,17 +525,17 @@ public:
         return m_genericParamInfo;
     }
 
-    HYP_FORCE_INLINE SymbolTypeFlags GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<SymbolTypeFlags> GetFlags() const
     {
         return m_flags;
     }
 
-    HYP_FORCE_INLINE SymbolTypeFlags& GetFlags()
+    HYP_FORCE_INLINE EnumFlags<SymbolTypeFlags>& GetFlags()
     {
         return m_flags;
     }
 
-    HYP_FORCE_INLINE void SetFlags(SymbolTypeFlags flags)
+    HYP_FORCE_INLINE void SetFlags(EnumFlags<SymbolTypeFlags> flags)
     {
         m_flags = flags;
     }
@@ -630,17 +648,17 @@ public:
     /*! \brief Is this an enum type? */
     bool IsEnumType() const;
 
-    bool IsProxyClass() const
+    HYP_FORCE_INLINE bool IsProxyClass() const
     {
-        return m_flags & SYMBOL_TYPE_FLAGS_PROXY;
+        return m_flags[STF_PROXY];
     }
 
-    ConstantBitSize GetConstantBitSize() const
+    HYP_FORCE_INLINE ConstantBitSize GetConstantBitSize() const
     {
         return m_constantBitSize;
     }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashSet<String> duplicateNames;
 
@@ -702,7 +720,7 @@ private:
     GenericParameterTypeInfo m_genericParamInfo;
 
     ConstantBitSize m_constantBitSize;
-    SymbolTypeFlags m_flags;
+    EnumFlags<SymbolTypeFlags> m_flags;
     Scope* m_declScope;
 
     // set to default empty registration upon creation so we can delete all unregistered types

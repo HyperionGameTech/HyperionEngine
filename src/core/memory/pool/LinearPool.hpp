@@ -65,7 +65,7 @@ public:
         \param size Number of bytes to allocate
         \param alignment Alignment requirement (must be <= 16)
         \return Pointer to allocated memory, or nullptr if out of space */
-    void* Alloc(SizeType size, SizeType alignment);
+    void* Allocate(SizeType size, SizeType alignment);
 
     /*! \brief Does nothing as individual allocations from Arena cannot be freed. This method is only here to confirm to Allocator interface. */
     void Free(void* ptr)
@@ -122,7 +122,7 @@ TLinearArena<AllocatorType>& TLinearArena<AllocatorType>::operator=(TLinearArena
 }
 
 template <class AllocatorType>
-void* TLinearArena<AllocatorType>::Alloc(SizeType size, SizeType alignment)
+void* TLinearArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
 {
     HYP_CORE_ASSERT(alignment != 0 && ((alignment & (alignment - 1)) == 0),
         "LinearArena requires power-of-two, non-zero alignment");

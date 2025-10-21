@@ -10,12 +10,26 @@
 
 #include <core/threading/Mutex.hpp>
 
+#include <core/memory/allocator/SlabAllocator.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/debug/StackDump.hpp>
 
 #include <core/logging/Logger.hpp>
 
 namespace hyperion {
+
+SymbolTypeAllocator& GetSymbolTypeAllocator()
+{
+    static SlabAllocator g_symbolTypeSlabAllocator(
+        sizeof(SymbolType),
+        1024,
+        alignof(SymbolType));
+
+    static SymbolTypeAllocator s_allocator { &g_symbolTypeSlabAllocator };
+
+    return s_allocator;
+}
 
 #if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
 
@@ -115,9 +129,7 @@ SymbolTypeRegistration::~SymbolTypeRegistration()
     {
         Assert(symbolType->m_registration == this);
 
-        symbolType->~SymbolType();
-        Memory::Garble(symbolType, sizeof(SymbolType));
-        Memory::Free(symbolType);
+        delete symbolType;
 
 #if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
         // will not be unfreed if we own it:
@@ -137,7 +149,7 @@ SymbolType::SymbolType()
       m_base(nullptr),
       m_defaultValue(nullptr),
       m_constantBitSize(CBS_INVALID),
-      m_flags(SYMBOL_TYPE_FLAGS_NONE),
+      m_flags(STF_NONE),
       m_declScope(nullptr),
       m_registration(nullptr),
       m_cacheCounter(0)
@@ -161,7 +173,7 @@ SymbolType::SymbolType(
       m_defaultValue(nullptr),
       m_base(base ? base->GetUnaliased() : nullptr),
       m_constantBitSize(CBS_INVALID),
-      m_flags(SYMBOL_TYPE_FLAGS_NONE),
+      m_flags(STF_NONE),
       m_declScope(nullptr),
       m_registration(nullptr),
       m_cacheCounter(0)
@@ -190,7 +202,7 @@ SymbolType::SymbolType(
       m_staticMembers(std::move(staticMembers)),
       m_base(base ? base->GetUnaliased() : nullptr),
       m_constantBitSize(CBS_INVALID),
-      m_flags(SYMBOL_TYPE_FLAGS_NONE),
+      m_flags(STF_NONE),
       m_declScope(nullptr),
       m_registration(nullptr),
       m_cacheCounter(0)
@@ -1398,9 +1410,14 @@ SymbolType* SymbolType::GenericInstance(
         std::move(allMembers),
         std::move(allStaticMembers));
 
-    RC<AstExpression> defaultValue = genericType ? CloneAstNode(genericType->GetDefaultValue()) : nullptr;
-    result->SetDefaultValue(defaultValue);
-    result->SetFlags(genericType ? genericType->GetFlags() : SYMBOL_TYPE_FLAGS_NONE);
+    if (genericType)
+    {
+        RC<AstExpression> defaultValue = CloneAstNode(genericType->GetDefaultValue());
+        result->SetDefaultValue(defaultValue);
+
+        result->SetFlags(genericType->GetFlags());
+    }
+
     result->m_genericInstanceInfo = info;
 
     return result;
