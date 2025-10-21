@@ -338,7 +338,11 @@ public:
         HYP_CORE_ASSERT(index != ~0u, "Invalid index");
 
         m_idGenerator.ReleaseId(index + 1);
-        m_pool->Free(header);
+
+        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), 16) - sizeof(HypObjectHeader);
+
+        void* mem = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(header) - HeaderOffset);
+        m_pool->Free(mem);
 
         m_headers.EraseAt(index);
     }

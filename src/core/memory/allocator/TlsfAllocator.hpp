@@ -8,7 +8,7 @@
 #include <core/containers/Array.hpp>
 #include <core/memory/MemoryMetrics.hpp>
 
-#define HYP_USE_THIRD_PARTY_TLSF 0
+#define HYP_USE_THIRD_PARTY_TLSF 1
 
 namespace hyperion {
 namespace memory {

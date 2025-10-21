@@ -852,12 +852,14 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
 
     HYP_CORE_ASSERT(capacity <= SIZE_MAX / sizeof(T));
 
-    // delete and copy all over again
     Allocation<T, AllocatorType> newAllocation;
     newAllocation.SetToInitialState();
-    newAllocation.Allocate(m_pAllocator, capacity);
 
-    newAllocation.InitFromRangeMove(Begin(), End(), offset);
+    if (capacity > 0)
+    {
+        newAllocation.Allocate(m_pAllocator, capacity);
+        newAllocation.InitFromRangeMove(Begin(), End(), offset);
+    }
 
     m_allocation.DestructInRange(m_startOffset, m_size);
     m_allocation.Free(m_pAllocator);

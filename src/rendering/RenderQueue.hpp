@@ -1003,6 +1003,10 @@ public:
     void Clear()
     {
         m_cmdHeaders.Clear();
+        m_cmdHeaders.Refit();
+
+        m_buffer.Clear();
+
         m_offset = 0;
     }
 
@@ -1024,6 +1028,6 @@ TRenderQueue<AllocatorType>::~TRenderQueue()
     Assert(m_cmdHeaders.Empty(), "RenderQueue destroyed with pending commands!");
 }
 
-using RenderQueue = TRenderQueue<DynamicAllocator>;
+using RenderQueue = TRenderQueue<RenderAllocator>;
 
 } // namespace hyperion
