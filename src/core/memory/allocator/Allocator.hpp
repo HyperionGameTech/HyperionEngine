@@ -625,13 +625,9 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
     }
 };
 
-// Wrapper for allocators to provide a global instance
-struct AllocatorInstanceBase
-{
-};
-
+/*! \brief Binds a pointer-to-pointer of a given AllocatorType, allowing the instance to be passed as an allocator to other structures. */
 template <class AllocatorType, AllocatorType** GlobalInstance = nullptr>
-struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInstance>>, AllocatorInstanceBase
+struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInstance>>
 {
     static AllocatorType** s_globalInstance;
 

@@ -100,13 +100,13 @@ struct DrawCallID
 /*! \brief Struct of Arrays layout for non-instanced draw calls for better cache performance */
 struct DrawCallStorage
 {
-    Array<DrawCallID> ids;
-    Array<Mesh*> meshes;
-    Array<Material*> materials;
-    Array<Skeleton*> skeletons;
-    Array<uint32> drawCommandIndices;
-    Array<uint32> numIndices;
-    Array<ObjId<Entity>> entityIds;
+    Array<DrawCallID, RenderAllocator> ids;
+    Array<Mesh*, RenderAllocator> meshes;
+    Array<Material*, RenderAllocator> materials;
+    Array<Skeleton*, RenderAllocator> skeletons;
+    Array<uint32, RenderAllocator> drawCommandIndices;
+    Array<uint32, RenderAllocator> numIndices;
+    Array<ObjId<Entity>, RenderAllocator> entityIds;
 
     HYP_FORCE_INLINE SizeType Size() const
     {
@@ -153,15 +153,15 @@ struct DrawCallStorage
 /*! \brief Struct of Arrays layout for instanced draw calls for better cache performance */
 struct InstancedDrawCallStorage
 {
-    Array<DrawCallID> ids;
-    Array<Mesh*> meshes;
-    Array<Material*> materials;
-    Array<Skeleton*> skeletons;
-    Array<uint32> drawCommandIndices;
-    Array<uint32> numIndices;
-    Array<EntityInstanceBatch*> batches;
-    Array<uint32> counts;
-    Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>> entityIds;
+    Array<DrawCallID, RenderAllocator> ids;
+    Array<Mesh*, RenderAllocator> meshes;
+    Array<Material*, RenderAllocator> materials;
+    Array<Skeleton*, RenderAllocator> skeletons;
+    Array<uint32, RenderAllocator> drawCommandIndices;
+    Array<uint32, RenderAllocator> numIndices;
+    Array<EntityInstanceBatch*, RenderAllocator> batches;
+    Array<uint32, RenderAllocator> counts;
+    Array<FixedArray<ObjId<Entity>, MaxEntitiesPerBatch>, RenderAllocator> entityIds;
 
     HYP_FORCE_INLINE SizeType Size() const
     {
