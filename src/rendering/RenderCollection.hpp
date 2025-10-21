@@ -62,7 +62,7 @@ struct ParallelRenderingState
 {
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
-    using LocalQueue = TRenderQueue<TAllocator<TLinearArena<DynamicAllocator>>>;
+    using LocalQueue = TRenderQueue<TAllocator<TLinearArena<RenderAllocator>>>;
 
     TaskBatch* taskBatch = nullptr;
 

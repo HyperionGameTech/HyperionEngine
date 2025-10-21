@@ -71,8 +71,8 @@ struct ParallelRenderingState_Shared
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
-    FixedArray<TLinearArena<DynamicAllocator>*, MaxBatches> arenas;
-    FixedArray<TAllocator<TLinearArena<DynamicAllocator>>*, MaxBatches> allocators;
+    FixedArray<TLinearArena<RenderAllocator>*, MaxBatches> arenas;
+    FixedArray<TAllocator<TLinearArena<RenderAllocator>>*, MaxBatches> allocators;
     FixedArray<LocalQueue*, MaxBatches> localQueues;
 
     ParallelRenderingState_Shared()
@@ -84,10 +84,10 @@ struct ParallelRenderingState_Shared
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            TLinearArena<DynamicAllocator>* arena = PoolNew<TLinearArena<DynamicAllocator>>(*g_renderPool, LocalQueueArenaSize);
+            TLinearArena<RenderAllocator>* arena = PoolNew<TLinearArena<RenderAllocator>>(*g_renderPool, LocalQueueArenaSize);
             arenas[i] = arena;
 
-            allocators[i] = PoolNew<TAllocator<TLinearArena<DynamicAllocator>>>(*g_renderPool, arena);
+            allocators[i] = PoolNew<TAllocator<TLinearArena<RenderAllocator>>>(*g_renderPool, arena);
 
             localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, allocators[i]);
         }
