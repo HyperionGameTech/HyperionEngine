@@ -2,15 +2,18 @@
 
 namespace hyperion {
 
-const SourceLocation SourceLocation::eof(-1, -1, "<eof>");
+const SourceLocation& SourceLocation::Eof()
+{
+    static const SourceLocation s_eofLocation { -1, -1, "<eof>" };
+    return s_eofLocation;
+}
 
 SourceLocation::SourceLocation()
-    : SourceLocation(SourceLocation::eof)
+    : SourceLocation(Eof())
 {
 }
 
-SourceLocation::SourceLocation(int line, int column,
-    const String& filename)
+SourceLocation::SourceLocation(int line, int column, const String& filename)
     : m_line(line),
       m_column(column),
       m_filename(filename)

@@ -7,6 +7,7 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
+#include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/RenderBackend.hpp>
@@ -250,11 +251,12 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 #ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> layers {
+    static const Array<const char*> layers
+    {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
-        ,
-        "VK_LAYER_LUNARG_monitor"
+            ,
+            "VK_LAYER_LUNARG_monitor"
 #endif
     };
 

@@ -8,7 +8,7 @@ namespace hyperion {
 class SourceLocation
 {
 public:
-    static const SourceLocation eof;
+    static const SourceLocation& Eof();
 
     SourceLocation();
     SourceLocation(int line, int column, const String& filename);

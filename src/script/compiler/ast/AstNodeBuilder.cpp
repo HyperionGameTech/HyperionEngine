@@ -43,14 +43,14 @@ RC<AstModuleAccess> ModuleBuilder::Build(const RC<AstExpression>& expr)
         return RC<AstModuleAccess>(new AstModuleAccess(
             m_name,
             m_parent->Build(expr),
-            SourceLocation::eof));
+            SourceLocation::Eof()));
     }
     else
     {
         return RC<AstModuleAccess>(new AstModuleAccess(
             m_name,
             expr,
-            SourceLocation::eof));
+            SourceLocation::Eof()));
     }
 }
 
@@ -74,10 +74,10 @@ RC<AstExpression> FunctionBuilder::Call(const Array<RC<AstArgument>>& args)
     RC<AstCallExpression> call(new AstCallExpression(
         RC<AstVariable>(new AstVariable(
             m_name,
-            SourceLocation::eof)),
+            SourceLocation::Eof())),
         args,
         false,
-        SourceLocation::eof));
+        SourceLocation::Eof()));
 
     if (m_parent != nullptr)
     {

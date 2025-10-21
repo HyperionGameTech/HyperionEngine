@@ -359,7 +359,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             { // do first part of expression
                 bool folded = false;
                 // attempt to constant fold the values
-                RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
+                RC<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
 
                 if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
                 {
@@ -399,7 +399,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             {
                 bool folded = false;
                 // attempt to constant fold the values
-                RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
+                RC<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
 
                 if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
                 {
@@ -461,7 +461,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             { // do first part of expression
                 bool folded = false;
                 // attempt to constant fold the values
-                RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
+                RC<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
 
                 if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(first, tmp, Operators::OP_equals, visitor))
                 {
@@ -497,7 +497,7 @@ UniquePtr<Buildable> AstBinaryExpression::Build(AstVisitor* visitor, Module* mod
             {
                 bool folded = false;
                 { // attempt to constant fold the values
-                    RC<AstExpression> tmp(new AstFalse(SourceLocation::eof));
+                    RC<AstExpression> tmp(new AstFalse(SourceLocation::Eof()));
 
                     if (RC<AstConstant> constantFolded = Optimizer::ConstantFold(second, tmp, Operators::OP_equals, visitor))
                     {

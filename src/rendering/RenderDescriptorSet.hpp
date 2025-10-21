@@ -57,14 +57,14 @@ struct ShaderDataOffset
 {
     static_assert(IsPodTypeV<T>, "T must be POD to use with ShaderDataOffset");
 
-    static constexpr uint32 invalidIndex = ~0u;
+    static constexpr uint32 InvalidIndex = ~0u;
 
     explicit ShaderDataOffset(uint32 index)
         : index(index)
     {
     }
 
-    explicit ShaderDataOffset(const HypObjectBase* resource, uint32 indexIfNull = invalidIndex)
+    explicit ShaderDataOffset(const HypObjectBase* resource, uint32 indexIfNull = InvalidIndex)
         : index(indexIfNull)
     {
         if (uint32 idx = RenderApi_RetrieveResourceBinding(resource); idx != ~0u)
@@ -75,7 +75,7 @@ struct ShaderDataOffset
 
     HYP_FORCE_INLINE operator uint32() const
     {
-        AssertDebug(index != invalidIndex, "Index was ~0u when converting to uint32 for ShaderDataOffset<{}>", TypeName<T>().Data());
+        AssertDebug(index != InvalidIndex, "Index was ~0u when converting to uint32 for ShaderDataOffset<{}>", TypeName<T>().Data());
 
         return uint32(sizeof(T) * index);
     }
@@ -106,10 +106,10 @@ struct DescriptorSetOffsetMap
 {
     HYP_STRUCT_BODY(DescriptorSetOffsetMap);
 
-    static constexpr uint32 g_maxOffsets = 8;
+    static constexpr uint32 MaxOffsets = 8;
 
-    WeakName keys[g_maxOffsets];
-    uint32 values[g_maxOffsets];
+    WeakName keys[MaxOffsets];
+    uint32 values[MaxOffsets];
     uint32 count;
 
     DescriptorSetOffsetMap()
@@ -124,7 +124,7 @@ struct DescriptorSetOffsetMap
           values(),
           count(v.size())
     {
-        AssertDebug(v.size() <= g_maxOffsets, "too many values provided to constructor!");
+        AssertDebug(v.size() <= MaxOffsets, "too many values provided to constructor!");
 
         for (auto it = v.begin(); it != v.end(); ++it)
         {
@@ -139,7 +139,7 @@ struct DescriptorSetOffsetMap
           values(),
           count(Count)
     {
-        static_assert(Count <= g_maxOffsets, "too many values provided to constructor!");
+        static_assert(Count <= MaxOffsets, "too many values provided to constructor!");
 
         for (uint32 i = 0; i < Count; i++)
         {
@@ -151,7 +151,7 @@ struct DescriptorSetOffsetMap
     HYP_FORCE_INLINE void Add(WeakName key, uint32 value)
     {
         uint32 idx = count++;
-        AssertDebug(idx < g_maxOffsets, "too many offsets!");
+        AssertDebug(idx < MaxOffsets, "too many offsets!");
 
         keys[idx] = key;
         values[idx] = value;
@@ -163,10 +163,10 @@ struct DescriptorTableOffsetMap
 {
     HYP_STRUCT_BODY(DescriptorTableOffsetMap);
 
-    static constexpr uint32 g_maxSets = 4;
+    static constexpr uint32 MaxSets = 4;
 
-    WeakName setNames[g_maxSets];
-    DescriptorSetOffsetMap setOffsets[g_maxSets];
+    WeakName setNames[MaxSets];
+    DescriptorSetOffsetMap setOffsets[MaxSets];
     uint32 count;
 
     DescriptorTableOffsetMap()
@@ -181,7 +181,7 @@ struct DescriptorTableOffsetMap
           setOffsets(),
           count(v.size())
     {
-        AssertDebug(v.size() <= g_maxSets, "too many values provided to constructor!");
+        AssertDebug(v.size() <= MaxSets, "too many values provided to constructor!");
 
         for (auto it = v.begin(); it != v.end(); ++it)
         {
@@ -196,7 +196,7 @@ struct DescriptorTableOffsetMap
           setOffsets(),
           count(Count)
     {
-        static_assert(Count <= g_maxSets, "too many values provided to constructor!");
+        static_assert(Count <= MaxSets, "too many values provided to constructor!");
 
         for (uint32 i = 0; i < Count; i++)
         {
@@ -208,7 +208,7 @@ struct DescriptorTableOffsetMap
     HYP_FORCE_INLINE DescriptorSetOffsetMap& Add(WeakName setName)
     {
         uint32 idx = count++;
-        AssertDebug(idx < g_maxSets, "too many offsets!");
+        AssertDebug(idx < MaxSets, "too many offsets!");
 
         setNames[idx] = setName;
 

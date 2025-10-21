@@ -1,6 +1,7 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
@@ -53,6 +54,9 @@
     while (0)
 
 namespace hyperion {
+
+static constexpr SizeType VulkanArenaSize = 8 * 1024 * 1024;
+TArena<RenderAllocator>* g_vulkanArena;
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -683,7 +687,9 @@ RendererResult VulkanRenderBackend::Initialize()
     const bool enableDebugLayers = false;
 #endif
 
-    m_instance = new VulkanInstance();
+    g_vulkanArena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, VulkanArenaSize);
+
+    m_instance = PoolNew<VulkanInstance>(*g_renderPool);
     HYP_GFX_CHECK(m_instance->Initialize(enableDebugLayers));
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
@@ -730,8 +736,11 @@ RendererResult VulkanRenderBackend::Destroy()
 
     HYP_GFX_CHECK(m_instance->GetDevice()->Wait());
 
-    delete m_instance;
+    PoolDelete(*g_renderPool, m_instance);
     m_instance = nullptr;
+
+    PoolDelete(*g_renderPool, g_vulkanArena);
+    g_vulkanArena = nullptr;
 
     return {};
 }
@@ -743,6 +752,9 @@ FrameBase* VulkanRenderBackend::GetCurrentFrame() const
 
 FrameBase* VulkanRenderBackend::PrepareNextFrame()
 {
+    // reset transient memory for the next frame
+    g_vulkanArena->Reset();
+
     CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PrepareFrame(m_shouldRecreateSwapchain));
 
     VulkanFrame* frame = m_instance->GetSwapchain()->GetCurrentFrame();

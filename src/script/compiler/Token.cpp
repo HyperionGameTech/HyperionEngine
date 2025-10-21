@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-const Token Token::EMPTY = Token(TK_EMPTY, "", SourceLocation::eof);
+const Token Token::EMPTY = Token(TK_EMPTY, "", SourceLocation::Eof());
 
 String Token::TokenTypeToString(TokenClass tokenClass)
 {

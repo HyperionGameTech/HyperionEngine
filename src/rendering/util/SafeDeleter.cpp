@@ -384,9 +384,9 @@ SafeDeleter::EntryList& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, uint32
 {
     // If:
     //  - desiredIdx == ~0u (not specified) OR
-    //  - On game or render thread and desiredIdx == CURRENT idx
+    //  - On render thread and desiredIdx == CURRENT idx
     // we use the CURRENT entry list
-    if (desiredIdx == ~0u || (Threads::IsOnThread(g_gameThread | g_renderThread) && desiredIdx == RenderApi_GetFrameIndex()))
+    if (desiredIdx == ~0u || (Threads::IsOnThread(g_renderThread) && desiredIdx == RenderApi_GetFrameIndex()))
     {
         return GetCurrentEntryList(ppGuard);
     }
