@@ -102,8 +102,8 @@ class HYP_API VoxelOctree : public OctreeBase<VoxelOctree, VoxelOctreePayload>
     }
 
 public:
-    static constexpr uint8 g_maxDepth = 8;
-    static constexpr EnumFlags<OctreeFlags> g_flags = OctreeFlags::OF_INSERT_ON_OVERLAP;
+    static constexpr uint8 MaxDepth = 8;
+    static constexpr EnumFlags<OctreeFlags> Flags = OctreeFlags::OF_INSERT_ON_OVERLAP;
 
     VoxelOctree()
     {

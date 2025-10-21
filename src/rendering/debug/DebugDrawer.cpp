@@ -414,13 +414,13 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const C
 
 #pragma region DebugDrawer
 
-static FixedArray<TByteBuffer<TAllocator<Pool>>, NumMultiBuffers> CreateDebugDrawBuffers()
+static FixedArray<ByteBuffer, NumMultiBuffers> CreateDebugDrawBuffers()
 {
-    ValueStorage<FixedArray<TByteBuffer<TAllocator<Pool>>, NumMultiBuffers>> buffers;
+    ValueStorage<FixedArray<ByteBuffer, NumMultiBuffers>> buffers;
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
-        new (buffers.GetPointer()->Data() + i) TByteBuffer<TAllocator<Pool>>(&GetFrameAllocator(i));
+        new (buffers.GetPointer()->Data() + i) ByteBuffer;
     }
 
     return std::move(buffers).Get();
@@ -452,7 +452,7 @@ DebugDrawer::~DebugDrawer()
         struct DebugDrawBufferDeleterPayload
         {
             Array<DebugDrawCommandHeader> headers;
-            TByteBuffer<TAllocator<Pool>> buffer;
+            ByteBuffer buffer;
         };
 
         struct DebugDrawBufferDeleter
@@ -553,7 +553,7 @@ void DebugDrawer::Update(float delta)
         return;
     }
 
-    TByteBuffer<TAllocator<Pool>>& buffer = m_buffers[idx];
+    auto& buffer = m_buffers[idx];
     uint32& bufferOffset = m_bufferOffsets[idx];
 
     for (DebugDrawCommandList& it : m_commandLists[idx])
@@ -573,7 +573,7 @@ void DebugDrawer::Update(float delta)
 
             if (buffer.Size() < newAlignedOffset + header.size)
             {
-                TByteBuffer<TAllocator<Pool>> newBuffer;
+                ByteBuffer newBuffer;
                 newBuffer.SetSize(MathUtil::Ceil<double, SizeType>((newAlignedOffset + header.size) * 1.5));
 
                 // have to move all current commands since the buffer will realloc

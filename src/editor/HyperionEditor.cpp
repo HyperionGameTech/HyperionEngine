@@ -303,38 +303,38 @@ void HyperionEditor::Init()
 
 void HyperionEditor::Logic(float delta)
 {
-    if (g_voxelOctree != nullptr)
-    {
-        DebugDrawCommandList& debugDrawCommands = g_engineDriver->GetDebugDrawer()->CreateCommandList();
+    // if (g_voxelOctree != nullptr)
+    // {
+    //     DebugDrawCommandList& debugDrawCommands = g_engineDriver->GetDebugDrawer()->CreateCommandList();
 
-        //        PerformanceClock clock;
-        //        clock.Start();
+    //     PerformanceClock clock;
+    //     clock.Start();
 
-        // Proc<void(const VoxelOctree&, int)> drawOctant;
+    //     Proc<void(const VoxelOctree&, int)> drawOctant;
 
-        // drawOctant = [&](const VoxelOctree& octree, int depth)
-        // {
-        //     if (octree.GetPayload().occupiedBit)
-        //     {
-        //         AssertDebug(!octree.IsDivided());
-        //         debugDrawCommands.box(octree.GetAABB().GetCenter(), octree.GetAABB().GetExtent(), Color::Cyan());
-        //     }
+    //     drawOctant = [&](const VoxelOctree& octree, int depth)
+    //     {
+    //         if (octree.GetPayload().occupiedBit)
+    //         {
+    //             AssertDebug(!octree.IsDivided());
+    //             debugDrawCommands.box(octree.GetAABB().GetCenter(), octree.GetAABB().GetExtent(), Color::Cyan());
+    //         }
 
-        //     if (octree.IsDivided())
-        //     {
-        //         for (const auto& it : octree.GetOctants())
-        //         {
-        //             drawOctant(static_cast<const VoxelOctree&>(*it.octree), depth + 1);
-        //         }
-        //     }
-        // };
+    //         if (octree.IsDivided())
+    //         {
+    //             for (const auto& it : octree.GetOctants())
+    //             {
+    //                 drawOctant(static_cast<const VoxelOctree&>(*it.octree), depth + 1);
+    //             }
+    //         }
+    //     };
 
-        // drawOctant(*g_voxelOctree, 0);
-        // //
-        //        clock.Stop();
-        //
-        //        HYP_LOG_TEMP("Time to draw boxes: {}", clock.ElapsedMs());
-    }
+    //     drawOctant(*g_voxelOctree, 0);
+    //     //
+    //     clock.Stop();
+
+    //     HYP_LOG_TEMP("Time to draw boxes: {}", clock.ElapsedMs());
+    // }
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent& event)

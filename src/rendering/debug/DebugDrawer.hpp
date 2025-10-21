@@ -273,7 +273,7 @@ private:
     HashMap<RenderableAttributeSet, GraphicsPipelineCacheHandle> m_graphicsPipelines;
 
     FixedArray<Array<DebugDrawCommandHeader>, NumMultiBuffers> m_headers;
-    FixedArray<TByteBuffer<TAllocator<Pool>>, NumMultiBuffers> m_buffers;
+    FixedArray<ByteBuffer, NumMultiBuffers> m_buffers;
     FixedArray<uint32, NumMultiBuffers> m_bufferOffsets;
 
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer

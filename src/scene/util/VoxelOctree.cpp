@@ -132,7 +132,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     BoundingBox newAabb = BoundingBox::Empty();
 
-    Array<Tuple<VoxelOctreeElement, MeshData*, ResourceHandle>> meshDatas;
+    Array<Tuple<VoxelOctreeElement, MeshDesc, MeshData*, ResourceHandle>> meshDatas;
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -174,7 +174,11 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         }
 
         ResourceHandle resourceHandle(*meshComponent.mesh->GetAsset()->GetResource());
-        meshDatas.EmplaceBack(element, meshComponent.mesh->GetAsset()->GetMeshData(), resourceHandle);
+        meshDatas.EmplaceBack(
+            element,
+            meshComponent.mesh->GetAsset()->GetMeshDesc(),
+            meshComponent.mesh->GetAsset()->GetMeshData(),
+            resourceHandle);
     }
 
     if (!newAabb.IsValid() || !newAabb.IsFinite())
@@ -193,11 +197,11 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     m_aabb = newAabb;
     InitOctants();
 
-    Proc<bool(const VoxelOctreeElement&, const MeshData&)> insertIntoOctree;
+    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const MeshData&)> insertIntoOctree;
 
-    insertIntoOctree = [&](const VoxelOctreeElement& element, const MeshData& meshData) -> bool
+    insertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const MeshData& meshData) -> bool
     {
-        if (meshData.indexData.Size() != 0)
+        if (meshDesc.numIndices > 0)
         {
             Span<const uint32> meshIndices = Span<const uint32>(
                 reinterpret_cast<const uint32*>(meshData.indexData.Data()),
@@ -225,11 +229,12 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     for (const auto& tup : meshDatas)
     {
         const VoxelOctreeElement& element = tup.GetElement<0>();
-        const MeshData* meshData = tup.GetElement<1>();
+        const MeshDesc& meshDesc = tup.GetElement<1>();
+        const MeshData* meshData = tup.GetElement<2>();
 
         Assert(meshData != nullptr);
 
-        insertIntoOctree(element, *meshData);
+        insertIntoOctree(element, meshDesc, *meshData);
     }
 
     return {};

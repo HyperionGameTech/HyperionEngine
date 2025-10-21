@@ -13,14 +13,9 @@
 #include <core/memory/MemoryMetrics.hpp>
 
 #include <core/Defines.hpp>
-
 #include <core/Types.hpp>
 
-#define HYP_POOL_USE_TLSF_ALLOCATOR 1
-
-#if defined(HYP_POOL_USE_TLSF_ALLOCATOR) && HYP_POOL_USE_TLSF_ALLOCATOR
 #include <core/memory/allocator/TlsfAllocator.hpp>
-#endif
 
 namespace hyperion {
 namespace memory {
@@ -53,12 +48,7 @@ public:
         };
 
         ByteBuffer buffer;
-
-#if defined(HYP_POOL_USE_TLSF_ALLOCATOR) && HYP_POOL_USE_TLSF_ALLOCATOR
         TlsfAllocator allocator;
-#else
-        Array<Range> freeRanges;
-#endif
 
         explicit Block(SizeType capacity);
         ~Block() = default;
