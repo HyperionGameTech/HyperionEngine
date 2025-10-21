@@ -78,10 +78,13 @@ public:
     Array();
 
     explicit Array(AllocatorType* pAllocator, SizeType size = 0)
-        : Array()
+        : m_size(0),
+          m_startOffset(0),
+          m_pAllocator(pAllocator)
     {
         HYP_CORE_ASSERT(pAllocator != nullptr);
-        m_pAllocator = pAllocator;
+
+        m_allocation.SetToInitialState();
 
         if (size != 0)
         {

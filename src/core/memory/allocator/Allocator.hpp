@@ -775,10 +775,7 @@ struct TAllocator : Allocator<TAllocator<AllocatorType, GlobalAllocator>>
         }
         else
         {
-            static AllocatorType s_defaultInstance;
-            pAllocator = &s_defaultInstance;
-
-            HYP_CORE_ASSERT(pAllocator, "No global allocator provided for TAllocator!");
+            HYP_CORE_ASSERT(false, "No global allocator provided for TAllocator!");
         }
     }
 
