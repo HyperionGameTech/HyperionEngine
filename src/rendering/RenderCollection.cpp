@@ -71,25 +71,21 @@ struct ParallelRenderingState_Shared
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
-    FixedArray<TLinearArena<RenderAllocator>*, MaxBatches> arenas;
-    FixedArray<TAllocator<TLinearArena<RenderAllocator>>*, MaxBatches> allocators;
+    FixedArray<TArena<RenderAllocator>*, MaxBatches> arenas;
     FixedArray<LocalQueue*, MaxBatches> localQueues;
 
     ParallelRenderingState_Shared()
         : arenas {},
-          allocators {},
           localQueues {}
     {
         Threads::AssertOnThread(g_renderThread);
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            TLinearArena<RenderAllocator>* arena = PoolNew<TLinearArena<RenderAllocator>>(*g_renderPool, LocalQueueArenaSize);
+            TArena<RenderAllocator>* arena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, LocalQueueArenaSize);
             arenas[i] = arena;
 
-            allocators[i] = PoolNew<TAllocator<TLinearArena<RenderAllocator>>>(*g_renderPool, arena);
-
-            localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, allocators[i]);
+            localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, arena);
         }
     }
 
@@ -102,11 +98,6 @@ struct ParallelRenderingState_Shared
             if (localQueues[i])
             {
                 PoolDelete(*g_renderPool, localQueues[i]);
-            }
-
-            if (allocators[i])
-            {
-                PoolDelete(*g_renderPool, allocators[i]);
             }
 
             if (arenas[i])

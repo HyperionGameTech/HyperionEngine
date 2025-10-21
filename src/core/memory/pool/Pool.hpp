@@ -15,6 +15,7 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
+#include <core/memory/allocator/Allocator.hpp>
 #include <core/memory/allocator/TlsfAllocator.hpp>
 
 namespace hyperion {
@@ -23,6 +24,11 @@ namespace memory {
 class HYP_API Pool
 {
 public:
+    template <class T>
+    struct Allocation : DynamicAllocationBase<T>
+    {
+    };
+
     struct Block
     {
         struct Range

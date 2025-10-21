@@ -1,6 +1,6 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/memory/pool/LinearPool.hpp>
+#include <core/memory/allocator/ArenaAllocator.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/Memory.hpp>
 

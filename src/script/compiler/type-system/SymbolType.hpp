@@ -24,8 +24,7 @@ class AstArgument;
 struct Scope;
 class CompilationUnit;
 
-using SymbolTypeAllocator = TAllocator<SlabAllocator>;
-extern SymbolTypeAllocator& GetSymbolTypeAllocator();
+extern SlabAllocator& GetSymbolTypeAllocator();
 
 class SymbolTypeMember final
 {

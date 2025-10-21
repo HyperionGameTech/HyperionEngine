@@ -4,8 +4,12 @@
 
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
+
 #include <core/containers/Array.hpp>
+
 #include <core/memory/MemoryMetrics.hpp>
+
+#include <core/memory/allocator/Allocator.hpp>
 
 #include <new>
 #include <limits>
@@ -19,6 +23,11 @@ enum AllocationType : uint32;
 class SlabAllocator
 {
 public:
+    template <class T>
+    struct Allocation : DynamicAllocationBase<T>
+    {
+    };
+
     SlabAllocator(
         SizeType blockSize,
         uint32 blocksPerSlab = 256,

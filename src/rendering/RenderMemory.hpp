@@ -20,9 +20,8 @@ HYP_API extern Pool* g_framePools[NumMultiBuffers];
 
 HYP_API extern uint32 RenderApi_GetFrameIndex();
 
-using RenderAllocator = TAllocator<Pool, &g_renderPool>;
+using RenderAllocator = AllocatorInstance<Pool, &g_renderPool>;
 
-HYP_API extern TAllocator<Pool>& GetCurrentFrameAllocator();
-HYP_API extern TAllocator<Pool>& GetFrameAllocator(uint32 frameIndex);
+HYP_API extern Pool* GetCurrentFramePool();
 
 } // namespace hyperion

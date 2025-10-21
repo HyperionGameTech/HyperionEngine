@@ -90,7 +90,7 @@ SafeDeleter::~SafeDeleter()
         }
 
         entryList.currHeaders = &entryList.headers[0];
-        entryList.buffer = ByteBuffer();
+        entryList.buffer = {};
         entryList.bufferPos = 0;
     };
 
@@ -168,7 +168,7 @@ int SafeDeleter::Iterate(int maxIter)
     if (headers.Empty())
     {
         // clear buffer if all entries have been deleted
-        entryList.buffer = ByteBuffer();
+        entryList.buffer = {};
         entryList.bufferPos = 0;
     }
     else
@@ -232,7 +232,7 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
     }
 
     // clear buffer if all entries have been deleted
-    entryList.buffer = ByteBuffer();
+    entryList.buffer = {};
     entryList.bufferPos = 0;
 
     return iterCount;
@@ -334,7 +334,7 @@ void SafeDeleter::UpdateEntryListQueue()
         entryList.currHeaders->Clear();
         entryList.currHeaders = &entryList.headers[0];
 
-        entryList.buffer = ByteBuffer();
+        entryList.buffer = {};
         entryList.bufferPos = 0;
 
         it = m_tempEntryLists.Erase(it);

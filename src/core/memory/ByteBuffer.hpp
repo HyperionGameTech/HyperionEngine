@@ -16,14 +16,19 @@ namespace memory {
 template <class Allocator, SizeType BufferAlignment = 16>
 class TByteBuffer
 {
+    template <class OtherAllocator, SizeType OtherBufferAlignment>
+    friend class TByteBuffer;
+
 public:
     using AllocatorType = Allocator;
 
     /*! \brief Constructs an empty ByteBuffer, no memory is allocated. */
     TByteBuffer()
-        : m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>()),
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(0)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
     }
 
@@ -40,9 +45,11 @@ public:
      *  \param count The size of the ByteBuffer in bytes. If count is zero, no memory is allocated and the ByteBuffer is set to an empty state.
      *  \param zeroize If true, the memory is initialized to zero. */
     explicit TByteBuffer(SizeType count, bool zeroize = true)
-        : m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>()),
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(count)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -60,9 +67,11 @@ public:
 
     /*! \brief Constructs a ByteBuffer with the given size and data, allocating memory on the heap if \ref{count} != 0 and copies the data into the buffer. */
     explicit TByteBuffer(SizeType count, const void* data)
-        : m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>()),
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(count)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -77,9 +86,11 @@ public:
     /*! \brief Constructs a ByteBuffer from a \ref{ByteView}, allocating memory on the heap if the view is not empty and copies the data into the buffer.
      *  \param view The ByteView to copy to the ByteBuffer. */
     explicit TByteBuffer(const ByteView& view)
-        : m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>()),
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(view.Size())
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -94,9 +105,11 @@ public:
     /*! \brief Constructs a ByteBuffer from a \ref{ConstByteView}, allocating memory on the heap if the view is not empty and copies the data into the buffer.
      *  \param view The ConstByteView to copy to the ByteBuffer. */
     explicit TByteBuffer(const ConstByteView& view)
-        : m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>()),
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(view.Size())
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -112,6 +125,8 @@ public:
         : m_pAllocator(other.m_pAllocator),
           m_size(other.m_size)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -125,9 +140,11 @@ public:
 
     template <class OtherAllocator>
     TByteBuffer(const TByteBuffer<OtherAllocator>& other)
-        : m_pAllocator(other.m_pAllocator),
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
           m_size(other.m_size)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (m_size == 0)
@@ -152,6 +169,7 @@ public:
         m_allocation.Free(m_pAllocator);
 
         m_pAllocator = other.m_pAllocator;
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
 
         if (newSize != 0)
         {
@@ -192,6 +210,8 @@ public:
         : m_pAllocator(other.m_pAllocator),
           m_size(other.m_size)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         m_allocation.SetToInitialState();
 
         if (other.m_allocation.IsDynamic())
@@ -225,6 +245,7 @@ public:
         m_allocation.Free(m_pAllocator);
 
         m_pAllocator = other.m_pAllocator;
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
 
         if (other.m_allocation.IsDynamic())
         {

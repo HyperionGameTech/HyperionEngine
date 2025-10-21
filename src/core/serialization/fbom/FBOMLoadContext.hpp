@@ -4,7 +4,7 @@
 
 #include <core/containers/HashMap.hpp>
 
-#include <core/memory/pool/LinearPool.hpp>
+#include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/utilities/Uuid.hpp>
 
@@ -13,7 +13,7 @@
 namespace hyperion {
 namespace serialization {
 
-// @TODO: Use GlobalContext interface so we can use LinearPool while loading
+// @TODO: Use GlobalContext interface so we can use ArenaAllocator while loading
 class FBOMLoadContext
 {
 public:

@@ -687,8 +687,10 @@ template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array()
     : m_size(0),
       m_startOffset(0),
-      m_pAllocator(&GetDefaultAllocatorInstance<AllocatorType>())
+      m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>())
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
     m_allocation.SetToInitialState();
 }
 
@@ -698,6 +700,8 @@ Array<T, AllocatorType>::Array(const Array& other)
       m_startOffset(0),
       m_pAllocator(other.m_pAllocator)
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
     m_allocation.SetToInitialState();
     m_allocation.Allocate(m_pAllocator, m_size);
     m_allocation.InitFromRangeCopy(other.Begin(), other.End());
@@ -709,6 +713,8 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
       m_startOffset(0),
       m_pAllocator(other.m_pAllocator)
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
     m_allocation.SetToInitialState();
 
     if (other.m_allocation.IsDynamic())

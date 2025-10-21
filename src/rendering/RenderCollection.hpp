@@ -7,7 +7,7 @@
 
 #include <core/memory/resource/Resource.hpp>
 
-#include <core/memory/pool/LinearPool.hpp>
+#include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Task.hpp>
@@ -62,7 +62,7 @@ struct ParallelRenderingState
 {
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
-    using LocalQueue = TRenderQueue<TAllocator<TLinearArena<RenderAllocator>>>;
+    using LocalQueue = TRenderQueue<TArena<RenderAllocator>>;
 
     TaskBatch* taskBatch = nullptr;
 

@@ -5,6 +5,8 @@
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/Memory.hpp>
 
+#include <core/memory/allocator/Allocator.hpp>
+
 #include <core/utilities/ByteUtil.hpp>
 
 #include <core/debug/Debug.hpp>
@@ -20,22 +22,27 @@ struct DynamicAllocator;
 /*! \brief A fixed-size, bump-allocator arena for temporary allocations.
     \details Allocates memory from a fixed buffer using a simple offset pointer (bump allocation) */
 template <class AllocatorType>
-class TLinearArena
+class TArena
 {
 public:
-    /*! \brief Creates a TLinearArena with the specified fixed size.
+    template <class T>
+    struct Allocation : DynamicAllocationBase<T>
+    {
+    };
+
+    /*! \brief Creates a TArena with the specified fixed size.
         \param size Total size of the arena in bytes. Must be > 0. */
-    explicit TLinearArena(SizeType size);
+    explicit TArena(SizeType size);
 
-    TLinearArena(AllocatorType* pAllocator, SizeType size);
+    TArena(AllocatorType* pAllocator, SizeType size);
 
-    TLinearArena(const TLinearArena& other) = delete;
-    TLinearArena& operator=(const TLinearArena& other) = delete;
+    TArena(const TArena& other) = delete;
+    TArena& operator=(const TArena& other) = delete;
 
-    TLinearArena(TLinearArena&& other) noexcept;
-    TLinearArena& operator=(TLinearArena&& other) noexcept;
+    TArena(TArena&& other) noexcept;
+    TArena& operator=(TArena&& other) noexcept;
 
-    ~TLinearArena() = default;
+    ~TArena() = default;
 
     /*! \brief Returns the total capacity of the arena in bytes. */
     HYP_FORCE_INLINE SizeType GetCapacity() const
@@ -79,34 +86,35 @@ private:
 };
 
 template <class AllocatorType>
-TLinearArena<AllocatorType>::TLinearArena(SizeType size)
+TArena<AllocatorType>::TArena(SizeType size)
     : m_offset(0)
 {
-    HYP_CORE_ASSERT(size > 0, "LinearArena size must be greater than 0");
+    HYP_CORE_ASSERT(size > 0, "Arena size must be greater than 0");
 
     m_buffer.SetSize(size);
 }
 
 template <class AllocatorType>
-TLinearArena<AllocatorType>::TLinearArena(AllocatorType* pAllocator, SizeType size)
+TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType size)
     : m_buffer(pAllocator),
       m_offset(0)
 {
     HYP_CORE_ASSERT(pAllocator != nullptr);
-    HYP_CORE_ASSERT(size > 0, "LinearArena size must be greater than 0");
+    HYP_CORE_ASSERT(size > 0, "Arena size must be greater than 0");
 
     m_buffer.SetSize(size);
 }
 
 template <class AllocatorType>
-TLinearArena<AllocatorType>::TLinearArena(TLinearArena&& other) noexcept
+TArena<AllocatorType>::TArena(TArena&& other) noexcept
     : m_buffer(std::move(other.m_buffer)),
       m_offset(other.m_offset)
 {
     other.m_offset = 0;
 }
+
 template <class AllocatorType>
-TLinearArena<AllocatorType>& TLinearArena<AllocatorType>::operator=(TLinearArena&& other) noexcept
+TArena<AllocatorType>& TArena<AllocatorType>::operator=(TArena&& other) noexcept
 {
     if (this == &other)
     {
@@ -122,10 +130,10 @@ TLinearArena<AllocatorType>& TLinearArena<AllocatorType>::operator=(TLinearArena
 }
 
 template <class AllocatorType>
-void* TLinearArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
+void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
 {
     HYP_CORE_ASSERT(alignment != 0 && ((alignment & (alignment - 1)) == 0),
-        "LinearArena requires power-of-two, non-zero alignment");
+        "Arena requires power-of-two, non-zero alignment");
 
     ubyte* base = static_cast<ubyte*>(static_cast<void*>(m_buffer.Data()));
     const uintptr_t baseAddr = reinterpret_cast<uintptr_t>(base);
@@ -137,7 +145,7 @@ void* TLinearArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
     if (size > m_buffer.Size() - alignedOffset)
     {
         HYP_CORE_ASSERT(false,
-            "LinearArena out of memory: requested=%llu, align=%llu, remaining=%llu",
+            "Arena out of memory: requested=%llu, align=%llu, remaining=%llu",
             size, alignment, m_buffer.Size() - alignedOffset);
         return nullptr;
     }
@@ -147,11 +155,11 @@ void* TLinearArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
     return ptr;
 }
 
-using LinearArena = TLinearArena<DynamicAllocator>;
+using Arena = TArena<DynamicAllocator>;
 
 } // namespace memory
 
-using memory::LinearArena;
-using memory::TLinearArena;
+using memory::Arena;
+using memory::TArena;
 
 } // namespace hyperion

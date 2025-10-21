@@ -19,16 +19,14 @@
 
 namespace hyperion {
 
-SymbolTypeAllocator& GetSymbolTypeAllocator()
+SlabAllocator& GetSymbolTypeAllocator()
 {
-    static SlabAllocator g_symbolTypeSlabAllocator(
+    static SlabAllocator g_symbolTypeAllocator(
         sizeof(SymbolType),
         1024,
         alignof(SymbolType));
 
-    static SymbolTypeAllocator s_allocator { &g_symbolTypeSlabAllocator };
-
-    return s_allocator;
+    return g_symbolTypeAllocator;
 }
 
 #if defined(HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG) && HYP_SYMBOL_TYPE_UNFREED_PTR_DEBUG
