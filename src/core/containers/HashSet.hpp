@@ -76,6 +76,16 @@ struct HashSetBucket
             return element != other.element;
         }
 
+        HYP_FORCE_INLINE bool operator<(const ConstIterator& other) const
+        {
+            if (bucket != other.bucket)
+            {
+                return bucket < other.bucket;
+            }
+
+            return element < other.element;
+        }
+
         HYP_FORCE_INLINE bool operator==(const Iterator& other) const
         {
             return element == other.element;
@@ -84,6 +94,16 @@ struct HashSetBucket
         HYP_FORCE_INLINE bool operator!=(const Iterator& other) const
         {
             return element != other.element;
+        }
+
+        HYP_FORCE_INLINE bool operator<(const Iterator& other) const
+        {
+            if (bucket != other.bucket)
+            {
+                return bucket < other.bucket;
+            }
+
+            return element < other.element;
         }
 
         HYP_FORCE_INLINE operator ConstIterator() const
@@ -128,6 +148,16 @@ struct HashSetBucket
             return element != other.element;
         }
 
+        HYP_FORCE_INLINE bool operator<(const ConstIterator& other) const
+        {
+            if (bucket != other.bucket)
+            {
+                return bucket < other.bucket;
+            }
+
+            return element < other.element;
+        }
+
         HYP_FORCE_INLINE bool operator==(const Iterator& other) const
         {
             return element == other.element;
@@ -136,6 +166,16 @@ struct HashSetBucket
         HYP_FORCE_INLINE bool operator!=(const Iterator& other) const
         {
             return element != other.element;
+        }
+
+        HYP_FORCE_INLINE bool operator<(const Iterator& other) const
+        {
+            if (bucket != other.bucket)
+            {
+                return bucket < other.bucket;
+            }
+
+            return element < other.element;
         }
     };
 
@@ -548,6 +588,11 @@ public:
             return bucketIter != other.bucketIter;
         }
 
+        HYP_FORCE_INLINE bool operator<(const Iterator& other) const
+        {
+            return bucketIter < other.bucketIter;
+        }
+
         HYP_FORCE_INLINE bool operator==(const ConstIterator& other) const
         {
             return bucketIter == other.bucketIter;
@@ -556,6 +601,11 @@ public:
         HYP_FORCE_INLINE bool operator!=(const ConstIterator& other) const
         {
             return bucketIter != other.bucketIter;
+        }
+
+        HYP_FORCE_INLINE bool operator<(const ConstIterator& other) const
+        {
+            return bucketIter < other.bucketIter;
         }
 
         HYP_FORCE_INLINE operator ConstIterator() const
@@ -617,6 +667,11 @@ public:
             return bucketIter != other.bucketIter;
         }
 
+        HYP_FORCE_INLINE bool operator<(const Iterator& other) const
+        {
+            return bucketIter < other.bucketIter;
+        }
+
         HYP_FORCE_INLINE bool operator==(const ConstIterator& other) const
         {
             return bucketIter == other.bucketIter;
@@ -625,6 +680,11 @@ public:
         HYP_FORCE_INLINE bool operator!=(const ConstIterator& other) const
         {
             return bucketIter != other.bucketIter;
+        }
+
+        HYP_FORCE_INLINE bool operator<(const ConstIterator& other) const
+        {
+            return bucketIter < other.bucketIter;
         }
     };
 

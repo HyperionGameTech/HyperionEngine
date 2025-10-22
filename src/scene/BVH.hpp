@@ -5,6 +5,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/LinkedList.hpp>
 
+#include <core/utilities/EnumFlags.hpp>
+
 #include <core/memory/ByteBuffer.hpp>
 
 #include <core/math/BoundingBox.hpp>
@@ -18,6 +20,15 @@ namespace hyperion {
 
 /// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
 
+HYP_ENUM()
+enum BvhFlags : uint32
+{
+    BF_NONE = 0x0,
+    BF_IS_LEAF_NODE = 0x1 //<! Is a leaf node
+};
+
+HYP_MAKE_ENUM_FLAGS(BvhFlags)
+
 HYP_STRUCT()
 struct HYP_API BVHNode
 {
@@ -29,18 +40,17 @@ struct HYP_API BVHNode
     HYP_FIELD(Serialize)
     Array<BVHNode, DynamicAllocator> children;
 
-    // triangles replaced: store references (triangle IDs into the mesh index buffer)
     HYP_FIELD(Serialize)
     Array<uint32, DynamicAllocator> triangleIds;
 
     HYP_FIELD(Serialize)
-    bool isLeafNode = false;
+    EnumFlags<BvhFlags> flags = BF_NONE;
 
     BVHNode() = default;
 
     BVHNode(const BoundingBox& aabb)
         : aabb(aabb),
-          isLeafNode(true)
+          flags(BF_IS_LEAF_NODE)
     {
     }
 
@@ -49,13 +59,16 @@ struct HYP_API BVHNode
         return aabb.IsValid() && aabb.IsFinite();
     }
 
-    // triId = triangle index in [0 .. numTriangles)
+    HYP_FORCE_INLINE bool IsLeafNode() const
+    {
+        return flags[BF_IS_LEAF_NODE];
+    }
+
     HYP_FORCE_INLINE void AddTriangleId(uint32 triId)
     {
         triangleIds.PushBack(triId);
     }
 
-    // split using mesh data to test overlap against child AABBs
     void Split(int maxDepth,
         Span<const Vertex> vertices,
         Span<const uint32> indices)
@@ -80,7 +93,7 @@ struct HYP_API BVHNode
             return results;
         }
 
-        if (isLeafNode)
+        if (IsLeafNode())
         {
             for (SizeType t = 0; t < triangleIds.Size(); ++t)
             {
@@ -138,7 +151,7 @@ private:
         Span<const Vertex> vertices,
         Span<const uint32> indices)
     {
-        if (isLeafNode && triangleIds.Any() && depth < maxDepth)
+        if (IsLeafNode() && triangleIds.Any() && depth < maxDepth)
         {
             const Vec3f center = aabb.GetCenter();
             const Vec3f extent = aabb.GetExtent();
@@ -182,7 +195,7 @@ private:
             triangleIds.Clear();
             triangleIds.Refit();
 
-            isLeafNode = false;
+            flags[BF_IS_LEAF_NODE] = false;
         }
 
         for (BVHNode& node : children)
@@ -193,7 +206,7 @@ private:
 
     void Shake_Internal()
     {
-        if (isLeafNode)
+        if (IsLeafNode())
         {
             return;
         }
@@ -202,7 +215,7 @@ private:
         {
             BVHNode& node = *it;
 
-            if (node.isLeafNode)
+            if (node.IsLeafNode())
             {
                 if (node.triangleIds.Empty())
                 {
@@ -220,7 +233,7 @@ private:
 
         if (children.Empty())
         {
-            isLeafNode = true;
+            flags[BF_IS_LEAF_NODE] = true;
         }
     }
 };

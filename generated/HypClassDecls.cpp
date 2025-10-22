@@ -327,6 +327,7 @@ const HypClass* g_clsPointLight = nullptr;
 const HypClass* g_clsLight = nullptr;
 const HypClass* g_clsView = nullptr;
 const HypClass* g_clsBVHNode = nullptr;
+const HypClass* g_clsBvhFlags = nullptr;
 const HypClass* g_clsEntityManager = nullptr;
 const HypClass* g_clsScriptableSystem = nullptr;
 const HypClass* g_clsScene = nullptr;

@@ -1228,8 +1228,7 @@ void EditorSubsystem::OnRemovedFromWorld()
 void EditorSubsystem::Update(float delta)
 {
     HYP_SCOPE;
-
-    Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    Threads::AssertOnThread(g_gameThread);
 
     m_editorDelegates->Update();
 
@@ -1264,6 +1263,43 @@ void EditorSubsystem::Update(float delta)
         //                }
         //            }
         //        ));
+    }
+
+    RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
+    pickRpl.GetMeshes().Advance();
+
+    for (const Handle<View>& view : m_views)
+    {
+        if (!(view->GetViewDesc().flags & ViewFlags::GBUFFER))
+        {
+            continue; // skip non-primary views
+        }
+
+        for (Mesh* mesh : view->GetRenderProxyList(RenderApi_GetFrameIndex())->GetMeshes())
+        {
+            pickRpl.GetMeshes().Track(mesh->Id(), mesh);
+        }
+    }
+
+    if (pickRpl.GetMeshes().GetDiff().NeedsUpdate())
+    {
+        Array<Mesh*> addedMeshes;
+        pickRpl.GetMeshes().GetAdded(addedMeshes, /* includeChanged */ false);
+
+        Array<Mesh*> removedMeshes;
+        pickRpl.GetMeshes().GetRemoved(removedMeshes, /* includeChanged */ false);
+
+        for (Mesh* mesh : addedMeshes)
+        {
+            HYP_LOG_TEMP("\tAdded mesh to be picked: {}", *mesh->GetName());
+
+            g_editorState->GetPickCache().PutEntry(mesh);
+        }
+
+        for (Mesh* mesh : removedMeshes)
+        {
+            HYP_LOG_TEMP("\tRemoved mesh to be picked: {}", *mesh->GetName());
+        }
     }
 }
 

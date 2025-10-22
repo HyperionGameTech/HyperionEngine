@@ -43,6 +43,7 @@ HYP_API extern const HypClass* g_clsBoundingBox;
 HYP_API extern const HypClass* g_clsBoundingBoxComponent;
 HYP_API extern const HypClass* g_clsBoundingSphere;
 HYP_API extern const HypClass* g_clsBoxPhysicsShape;
+HYP_API extern const HypClass* g_clsBvhFlags;
 HYP_API extern const HypClass* g_clsCamera;
 HYP_API extern const HypClass* g_clsCameraController;
 HYP_API extern const HypClass* g_clsCameraFlags;

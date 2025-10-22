@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <editor/EditorPickCache.hpp>
 
+#include <core/reflection/Handle.hpp>
 #include <core/reflection/HypObject.hpp>
 
 #include <core/threading/Mutex.hpp>
@@ -22,13 +23,26 @@ class HYP_API EditorState : public HypObjectBase
     HYP_OBJECT_BODY(EditorState);
 
 public:
-    ~EditorState() override = default;
+    EditorState();
+    ~EditorState() override;
+
+    HYP_FORCE_INLINE EditorPickCache& GetPickCache()
+    {
+        return m_pickCache;
+    }
+
+    HYP_FORCE_INLINE const EditorPickCache& GetPickCache() const
+    {
+        return m_pickCache;
+    }
 
     HYP_METHOD()
     Handle<EditorProject> GetCurrentProject() const;
 
     HYP_METHOD()
     void SetCurrentProject(const Handle<EditorProject>& project);
+
+    void Update(float delta);
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorProject>> OnCurrentProjectChanged;
@@ -39,6 +53,7 @@ private:
     void ImportAssetsOrSetCallback(const Handle<EditorProject>& project);
 
     Handle<EditorProject> m_currentProject;
+    EditorPickCache m_pickCache;
     mutable Mutex m_mutex;
 };
 

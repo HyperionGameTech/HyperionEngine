@@ -18,6 +18,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
+HYP_API Pool* g_editorPickCachePool;
+
 static Handle<AssetPackage> GetImportsPackage()
 {
     return AssetManager::GetInstance()->GetAssetRegistry()->GetPackageFromPath("$Import", true);
@@ -84,6 +86,20 @@ static void RegisterPackageAssets(const Handle<EditorProject>& project, const Ha
 
             return IterationResult::CONTINUE;
         });
+}
+
+EditorState::EditorState()
+{
+    AssertDebug(g_editorPickCachePool == nullptr);
+    g_editorPickCachePool = new Pool(64 * 1024 * 1024);
+}
+
+EditorState::~EditorState()
+{
+    AssertDebug(g_editorPickCachePool != nullptr);
+
+    delete g_editorPickCachePool;
+    g_editorPickCachePool = nullptr;
 }
 
 void EditorState::Init()
@@ -184,6 +200,13 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
     }
 
     OnCurrentProjectChanged(project);
+}
+
+void EditorState::Update(float delta)
+{
+    HYP_SCOPE;
+
+    m_pickCache.Update(delta);
 }
 
 } // namespace hyperion

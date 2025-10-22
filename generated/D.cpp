@@ -1262,10 +1262,24 @@ HYP_BEGIN_STRUCT(BVHNode, 382, 0, {})
     HypField(NAME(HYP_STR(Aabb)), &BVHNode::aabb, offsetof(BVHNode, aabb), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Children)), &BVHNode::children, offsetof(BVHNode, children), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(TriangleIds)), &BVHNode::triangleIds, offsetof(BVHNode, triangleIds), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(IsLeafNode)), &BVHNode::isLeafNode, offsetof(BVHNode, isLeafNode), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
+    HypField(NAME(HYP_STR(Flags)), &BVHNode::flags, offsetof(BVHNode, flags), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion BVHNode Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region BvhFlags Reflection Data
+
+HYP_BEGIN_ENUM(BvhFlags, 383, 0, {})
+    HypConstant(NAME(HYP_STR(BF_NONE)), BvhFlags::BF_NONE),
+    HypConstant(NAME(HYP_STR(BF_IS_LEAF_NODE)), BvhFlags::BF_IS_LEAF_NODE)
+HYP_END_ENUM
+
+#pragma endregion BvhFlags Reflection Data
 
 } // namespace hyperion
 
@@ -1521,7 +1535,7 @@ namespace hyperion {
 
 #pragma region SceneFlags Reflection Data
 
-HYP_BEGIN_ENUM(SceneFlags, 383, 0, {})
+HYP_BEGIN_ENUM(SceneFlags, 384, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), SceneFlags::NONE),
     HypConstant(NAME(HYP_STR(FOREGROUND)), SceneFlags::FOREGROUND),
     HypConstant(NAME(HYP_STR(DETACHED)), SceneFlags::DETACHED),
@@ -1618,50 +1632,6 @@ HYP_BEGIN_CLASS(CameraTrackController, 186, 0, NAME("PerspectiveCameraController
 HYP_END_CLASS
 
 #pragma endregion CameraTrackController Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: scene/camera/FirstPersonCamera.hpp */
-
-#include <scene/camera/FirstPersonCamera.hpp>
-
-namespace hyperion {
-
-#pragma region FirstPersonCameraInputHandler Reflection Data
-
-HYP_BEGIN_CLASS(FirstPersonCameraInputHandler, 60, 0, NAME("InputHandlerBase"))
-HYP_END_CLASS
-
-#pragma endregion FirstPersonCameraInputHandler Reflection Data
-
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region FirstPersonCameraControllerMode Reflection Data
-
-HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 384, 0, {})
-    HypConstant(NAME(HYP_STR(MOUSE_LOCKED)), FirstPersonCameraControllerMode::MOUSE_LOCKED),
-    HypConstant(NAME(HYP_STR(MOUSE_FREE)), FirstPersonCameraControllerMode::MOUSE_FREE)
-HYP_END_ENUM
-
-#pragma endregion FirstPersonCameraControllerMode Reflection Data
-
-} // namespace hyperion
-
-
-namespace hyperion {
-
-#pragma region FirstPersonCameraController Reflection Data
-
-HYP_BEGIN_CLASS(FirstPersonCameraController, 187, 1, NAME("PerspectiveCameraController"))
-    HypMethod(NAME(HYP_STR(GetMode)), &FirstPersonCameraController::GetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
-    HypMethod(NAME(HYP_STR(SetMode)), &FirstPersonCameraController::SetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
-    HypMethod(NAME(HYP_STR(IsMouseLockAllowed)), &FirstPersonCameraController::IsMouseLockAllowed)
-HYP_END_CLASS
-
-#pragma endregion FirstPersonCameraController Reflection Data
 
 } // namespace hyperion
 

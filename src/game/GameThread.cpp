@@ -25,6 +25,10 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#ifdef HYP_EDITOR
+#include <editor/EditorState.hpp>
+#endif
+
 // #define HYP_GAME_THREAD_LOCKED 1
 
 namespace hyperion {
@@ -100,7 +104,7 @@ void GameThread::operator()()
             }
         }
 
-        AssetManager::GetInstance()->Update(counter.delta);
+        g_assetManager->Update(counter.delta);
 
         if (g_appContext->GetMainWindow()->GetInputEventSink().Poll(events))
         {
@@ -113,6 +117,10 @@ void GameThread::operator()()
 
             events.Clear();
         }
+
+#ifdef HYP_EDITOR
+        g_editorState->Update(counter.delta);
+#endif
 
         if (m_game.IsValid())
         {
