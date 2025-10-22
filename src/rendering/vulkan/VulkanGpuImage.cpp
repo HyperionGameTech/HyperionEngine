@@ -32,7 +32,7 @@ namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;
 
-static const SizeType s_maxImageBytes = 1024 * 1024 * 1024; // 1 GiB
+static constexpr SizeType MaxImageBytes = 1024 * 1024 * 1024; // 1 GiB
 
 static inline VulkanRenderBackend* GetRenderBackend()
 {
@@ -199,9 +199,9 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         HYPERION_RETURN_OK;
     }
 
-    if (GetByteSize() > s_maxImageBytes)
+    if (GetByteSize() > MaxImageBytes)
     {
-        return HYP_MAKE_ERROR(RendererError, "Image size exceeds maximum supported size of %llu bytes", s_maxImageBytes);
+        return HYP_MAKE_ERROR(RendererError, "Image size exceeds maximum supported size of %llu bytes", MaxImageBytes);
     }
 
     const Vec3u extent = GetExtent();

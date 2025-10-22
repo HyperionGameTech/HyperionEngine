@@ -995,7 +995,11 @@ const GpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Tex
     return imageView;
 }
 
-void VulkanRenderBackend::PopulateIndirectDrawCommandsBuffer(const GpuBufferRef& vertexBuffer, const GpuBufferRef& indexBuffer, uint32 instanceOffset, ByteBuffer& outByteBuffer)
+void VulkanRenderBackend::PopulateIndirectDrawCommandsBuffer(
+    const GpuBufferRef& vertexBuffer,
+    const GpuBufferRef& indexBuffer,
+    uint32 instanceOffset,
+    TByteBuffer<RenderAllocator>& outByteBuffer)
 {
     const SizeType requiredSize = (SizeType(instanceOffset) + 1) * sizeof(VkDrawIndexedIndirectCommand);
 

@@ -9,6 +9,7 @@
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
@@ -46,10 +47,10 @@ struct DrawCommandData
 class IndirectDrawState
 {
 public:
-    static constexpr uint32 batchSize = 256u;
-    static constexpr uint32 initialCount = batchSize;
+    static constexpr uint32 BatchSize = 256;
+    static constexpr uint32 InitialCount = BatchSize;
     // should sizes be scaled up to the next power of 2?
-    static constexpr bool useNextPow2Size = true;
+    static constexpr bool UseNextPow2Size = true;
 
     IndirectDrawState();
     ~IndirectDrawState();
@@ -64,7 +65,7 @@ public:
         return m_indirectBuffers[frameIndex];
     }
 
-    HYP_FORCE_INLINE const Array<ObjectInstance>& GetInstances() const
+    HYP_FORCE_INLINE const Array<ObjectInstance, RenderAllocator>& GetInstances() const
     {
         return m_objectInstances;
     }
@@ -79,8 +80,8 @@ public:
     void UpdateBufferData(FrameBase* frame, bool* outWasResized);
 
 private:
-    Array<ObjectInstance> m_objectInstances;
-    ByteBuffer m_drawCommandsBuffer;
+    Array<ObjectInstance, RenderAllocator> m_objectInstances;
+    TByteBuffer<RenderAllocator> m_drawCommandsBuffer;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_instanceBuffers;

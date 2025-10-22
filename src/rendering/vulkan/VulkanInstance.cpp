@@ -251,12 +251,11 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 #ifdef HYP_DEBUG_MODE
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> layers
-    {
+    static const Array<const char*> layers {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
-            ,
-            "VK_LAYER_LUNARG_monitor"
+        ,
+        "VK_LAYER_LUNARG_monitor"
 #endif
     };
 
@@ -370,7 +369,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 #endif
 #endif
 
-    HYP_LOG(RenderingBackend, Info, "Found %llu extensions:", extensionNames.Size());
+    HYP_LOG(RenderingBackend, Info, "Found {} extensions:", extensionNames.Size());
 
     for (const char* extensionName : extensionNames)
     {
@@ -385,7 +384,6 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
-    /* Create our renderable surface from SDL */
     HYP_GFX_ASSERT(g_appContext->GetMainWindow() != nullptr);
     m_surface = GetRenderBackend()->CreateVkSurface(g_appContext->GetMainWindow(), this);
 

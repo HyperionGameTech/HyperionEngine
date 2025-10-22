@@ -325,10 +325,10 @@ void FullScreenPass::CreateFramebuffer()
 
     if (ShouldRenderHalfRes())
     {
-        constexpr double resolutionScale = 0.5;
+        static constexpr double ResolutionScale = 0.5;
 
         const uint32 numPixels = framebufferExtent.x * framebufferExtent.y;
-        const int numPixelsScaled = MathUtil::Ceil(numPixels * resolutionScale);
+        const int numPixelsScaled = MathUtil::Ceil(numPixels * ResolutionScale);
 
         const Vec2i reshapedExtent = MathUtil::ReshapeExtent(Vec2i { numPixelsScaled, 1 });
 

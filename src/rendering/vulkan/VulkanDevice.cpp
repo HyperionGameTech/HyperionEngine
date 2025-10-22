@@ -65,7 +65,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 {
     QueueFamilyIndices indices {};
 
-    uint32_t queueFamilyCount = 0;
+    uint32 queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 
     Array<VkQueueFamilyProperties> families;
@@ -80,7 +80,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
     const auto predicate = [&](uint32 index, VkQueueFlagBits expectedBits, bool expectDedicated) -> bool
     {
-        const auto maskedBits = families[index].queueFlags & possibleFlags;
+        const uint32 maskedBits = families[index].queueFlags & possibleFlags;
 
         /* When looking for a dedicate graphics queue, we'll make sure it supports presentation.
          * Some devices appear only to compute and are not graphical,
@@ -211,7 +211,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
                                          "\tGraphics: %d\n"
                                          "\tTransfer: %d\n"
                                          "\tPresent: %d\n"
-        "\tCompute: %d\n",
+                                         "\tCompute: %d\n",
         indices.graphicsFamily.GetOr(0xBEEF),
         indices.transferFamily.GetOr(0xBEEF),
         indices.presentFamily.GetOr(0xBEEF),

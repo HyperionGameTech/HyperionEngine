@@ -27,9 +27,9 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
-static const bool g_useSrgbFormat = true;
-static const bool g_useHdrFormat = true;
-static const VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+static constexpr bool UseSrgbFormat = true;
+static constexpr bool UseHdrFormat = true;
+static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult HandleNextFrame(
     VulkanSwapchain* swapchain,
@@ -183,7 +183,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
     createInfo.imageExtent = { m_extent.x, m_extent.y };
     createInfo.imageArrayLayers = 1; /* This is always 1 unless we make a stereoscopic/VR application */
-    createInfo.imageUsage = imageUsageFlags;
+    createInfo.imageUsage = ImageUsageFlags;
 
     /* Graphics computations and presentation are done on separate hardware */
     const QueueFamilyIndices& qfIndices = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices();
@@ -269,7 +269,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
 {
     m_surfaceFormat = {};
 
-    if (g_useHdrFormat)
+    if (UseHdrFormat)
     {
         /* look for hdr format */
         m_imageFormat = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
@@ -300,7 +300,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         }
     }
 
-    if (g_useSrgbFormat)
+    if (UseSrgbFormat)
     {
         /* look for srgb format */
         m_imageFormat = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(

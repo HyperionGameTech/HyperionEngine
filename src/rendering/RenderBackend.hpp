@@ -6,6 +6,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/RenderMemory.hpp>
 
 #include <core/functional/Proc.hpp>
 #include <core/functional/Delegate.hpp>
@@ -119,7 +120,7 @@ public:
 
     virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 faceIndex = 0, uint32 numFaces = ~0u) = 0;
 
-    virtual void PopulateIndirectDrawCommandsBuffer(const GpuBufferRef& vertexBuffer, const GpuBufferRef& indexBuffer, uint32 instanceOffset, ByteBuffer& outByteBuffer) = 0;
+    virtual void PopulateIndirectDrawCommandsBuffer(const GpuBufferRef& vertexBuffer, const GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) = 0;
 
     virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const = 0;
 

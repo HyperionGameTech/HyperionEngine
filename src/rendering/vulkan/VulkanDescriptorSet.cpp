@@ -10,6 +10,7 @@
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
 #include <rendering/vulkan/VulkanComputePipeline.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
+#include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/rt/VulkanRaytracingPipeline.hpp>
 #include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
 
@@ -382,7 +383,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             m_vkDescriptorElementInfos.Concat(localDescriptorElementInfos);
         }
-        
+
         localDescriptorElementInfos.Clear();
     }
 

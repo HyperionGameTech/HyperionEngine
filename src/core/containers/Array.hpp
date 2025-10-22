@@ -478,7 +478,7 @@ public:
     template <class OtherAllocatorType>
     void Concat(const Array<T, OtherAllocatorType>& other)
     {
-        if (this == &other)
+        if ((void*)this == (void*)&other)
         {
             return;
         }

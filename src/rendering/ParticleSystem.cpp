@@ -315,7 +315,7 @@ void ParticleSystem::Init()
 
 void ParticleSystem::CreateBuffers()
 {
-    ByteBuffer indirectDrawCommandsBuffer;
+    TByteBuffer<RenderAllocator> indirectDrawCommandsBuffer;
     g_renderBackend->PopulateIndirectDrawCommandsBuffer(
         m_quadMesh->GetVertexBuffer(),
         m_quadMesh->GetIndexBuffer(),

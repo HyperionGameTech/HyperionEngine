@@ -157,7 +157,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)
 
     virtual RendererResult operator()() override
     {
-        ByteBuffer byteBuffer;
+        TByteBuffer<RenderAllocator> byteBuffer;
         g_renderBackend->PopulateIndirectDrawCommandsBuffer(quadMesh->GetVertexBuffer(), quadMesh->GetIndexBuffer(), 0, byteBuffer);
 
         if (!stagingBuffer->IsCreated())
