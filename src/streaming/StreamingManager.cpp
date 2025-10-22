@@ -294,7 +294,8 @@ public:
     {
         Threads::AssertOnThread(g_gameThread);
 
-        out.Concat(std::move(m_cellUpdatesGameThread));
+        out.Concat(m_cellUpdatesGameThread);
+        m_cellUpdatesGameThread.Clear();
     }
 
     HYP_FORCE_INLINE StreamingNotifier& GetNotifier()

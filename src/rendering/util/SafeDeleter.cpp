@@ -160,7 +160,8 @@ int SafeDeleter::Iterate(int maxIter)
     }
 
     // concat any headers that were added while iterating to our list
-    headers.Concat(std::move(*entryList.currHeaders));
+    headers.Concat(*entryList.currHeaders);
+    entryList.currHeaders->Clear();
 
     // swap the buffers back to original state now that we are done iterating
     entryList.currHeaders = &headers;

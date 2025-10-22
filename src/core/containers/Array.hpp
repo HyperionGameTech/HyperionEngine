@@ -475,12 +475,60 @@ public:
     HYP_NODISCARD Array<T, AllocatorType> Slice(int first, int last) const;
 
     /*! \brief Modify the array by appending all items in \ref{other} to the current array. */
-    void Concat(const Array& other);
+    template <class OtherAllocatorType>
+    void Concat(const Array<T, OtherAllocatorType>& other)
+    {
+        if (this == &other)
+        {
+            return;
+        }
 
-    /*! \brief Modify the array by appending all items in \ref{other} to the current array.
-     *  All items from the other array are moved over, thus \ref{other} will be empty after the call.
-     */
-    void Concat(Array&& other);
+        if (other.Empty())
+        {
+            return;
+        }
+
+        Concat(Span<const T>(other.Data(), other.Size()));
+    }
+
+    void Concat(Span<const T> span)
+    {
+        const SizeType spanSize = span.Size();
+
+        if (spanSize == 0)
+        {
+            return;
+        }
+
+        if (m_size + spanSize >= Capacity())
+        {
+            if (Capacity() >= Size() + spanSize)
+            {
+                ResetOffsets();
+            }
+            else
+            {
+                SetCapacity(CalculateDesiredCapacity(Size() + spanSize));
+            }
+        }
+
+        T* buffer = GetBuffer();
+
+        if constexpr (std::is_fundamental_v<T> || std::is_trivially_copy_constructible_v<T>)
+        {
+            Memory::MemCpy(&buffer[m_size], span.Data(), spanSize * sizeof(T));
+
+            m_size += spanSize;
+        }
+        else
+        {
+            for (SizeType i = 0; i < spanSize; ++i)
+            {
+                // copy construct item at index
+                Memory::Construct<T>(&buffer[m_size++], span.Data()[i]);
+            }
+        }
+    }
 
     /*! \brief Reverse the order of the elements in the array in place. */
     void Reverse();
@@ -1171,102 +1219,6 @@ auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
     Memory::Construct<T>(element, std::move(value));
 
     return *element;
-}
-
-template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Concat(const Array& other)
-{
-    if (this == &other)
-    {
-        return;
-    }
-
-    if (other.Empty())
-    {
-        return;
-    }
-
-    const SizeType otherSize = other.Size();
-
-    if (m_size + otherSize >= Capacity())
-    {
-        if (Capacity() >= Size() + otherSize)
-        {
-            ResetOffsets();
-        }
-        else
-        {
-            SetCapacity(CalculateDesiredCapacity(Size() + otherSize));
-        }
-    }
-
-    T* buffer = GetBuffer();
-
-    if constexpr (std::is_fundamental_v<T> || std::is_trivially_copy_constructible_v<T>)
-    {
-        Memory::MemCpy(&buffer[m_size], other.Data(), otherSize * sizeof(T));
-
-        m_size += otherSize;
-    }
-    else
-    {
-        for (SizeType i = 0; i < otherSize; ++i)
-        {
-            // copy construct item at index
-            Memory::Construct<T>(&buffer[m_size++], other.Data()[i]);
-        }
-    }
-}
-
-template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Concat(Array&& other)
-{
-    if (this == &other)
-    {
-        return;
-    }
-
-    if (other.Empty())
-    {
-        return;
-    }
-
-    const SizeType otherSize = other.Size();
-
-    if (m_size + otherSize >= Capacity())
-    {
-        if (Capacity() >= Size() + otherSize)
-        {
-            ResetOffsets();
-        }
-        else
-        {
-            SetCapacity(CalculateDesiredCapacity(Size() + otherSize));
-        }
-    }
-
-    T* buffer = GetBuffer();
-
-    if constexpr (std::is_fundamental_v<T> || std::is_trivially_move_constructible_v<T>)
-    {
-        Memory::MemCpy(&buffer[m_size], other.Data(), otherSize * sizeof(T));
-
-        m_size += otherSize;
-    }
-    else
-    {
-        for (SizeType i = 0; i < otherSize; ++i)
-        {
-            // set item at index
-            Memory::Construct<T>(&buffer[m_size++], std::move(other.Data()[i]));
-        }
-    }
-
-    other.m_allocation.DestructInRange(other.m_startOffset, other.m_size);
-    other.m_allocation.Free(other.m_pAllocator);
-
-    other.m_size = 0;
-    other.m_startOffset = 0;
 }
 
 template <class T, class AllocatorType>

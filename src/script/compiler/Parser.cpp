@@ -2791,8 +2791,8 @@ RC<AstClass> Parser::ParseClass(
 
     Array<RC<AstVariableDeclaration>> allFunctions;
     allFunctions.Reserve(staticFunctions.Size() + memberFunctions.Size());
-    allFunctions.Concat(std::move(staticFunctions));
-    allFunctions.Concat(std::move(memberFunctions));
+    allFunctions.Concat(staticFunctions);
+    allFunctions.Concat(memberFunctions);
 
     return RC<AstClass>(new AstClass(
         typeName,

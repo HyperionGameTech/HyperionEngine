@@ -229,7 +229,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         Array<VulkanDescriptorElementInfo>& cachedValues = cachedIt->second;
         HYP_GFX_ASSERT(cachedValues.Size() == element.values.Size());
 
-        Array<VulkanDescriptorElementInfo> localDescriptorElementInfos;
+        Array<VulkanDescriptorElementInfo, VulkanAllocator> localDescriptorElementInfos;
         localDescriptorElementInfos.Reserve(element.values.Size());
 
         switch (layoutElement->type)
@@ -380,8 +380,10 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             // mark the element as dirty
             element.dirtyRange |= localDirtyRange;
 
-            m_vkDescriptorElementInfos.Concat(std::move(localDescriptorElementInfos));
+            m_vkDescriptorElementInfos.Concat(localDescriptorElementInfos);
         }
+        
+        localDescriptorElementInfos.Clear();
     }
 
     if (outIsDirty)

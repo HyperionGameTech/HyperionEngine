@@ -80,7 +80,8 @@ public:
             m_dataSource->Push(entry.uuid, HypData(entry), Uuid::Invalid());
         }
 
-        m_entries.Concat(std::move(localQueuedEntries));
+        m_entries.Concat(localQueuedEntries);
+        localQueuedEntries.Clear();
 
         while (m_entries.Any() && int(m_entries.Size()) > m_maxHistorySize)
         {

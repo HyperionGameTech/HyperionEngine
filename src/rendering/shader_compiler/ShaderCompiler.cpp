@@ -1084,7 +1084,7 @@ ForEachPermutation(const ShaderProperties& versions,
                     }));
         }
 
-        allCombinations.Concat(std::move(currentGroupCombinations));
+        allCombinations.Concat(currentGroupCombinations);
     }
 
     // #ifdef HYP_SHADER_COMPILER_LOGGING
@@ -2513,7 +2513,7 @@ bool ShaderCompiler::CompileBundle(Bundle& bundle,
                         item.file.path, properties.GetHashCode().Value());
 
                     Mutex::Guard guard(errorMessagesMutex);
-                    out.errorMessages.Concat(std::move(errorMessages));
+                    out.errorMessages.Concat(errorMessages);
 
                     anyFilesErrored.Set(true, MemoryOrder::RELAXED);
 

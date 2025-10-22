@@ -161,7 +161,7 @@ public:
         }
 
         // unique per thread; fine outside of mutex
-        jsonValuesArray->Concat(std::move(values));
+        jsonValuesArray->Concat(values);
     }
 
     bool StartConnection()

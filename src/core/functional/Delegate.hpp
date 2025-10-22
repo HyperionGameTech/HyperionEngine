@@ -585,7 +585,7 @@ public:
         // Append any remaining elements that were added while we were broadcasting
         ProcList& otherList = LockList(1);
 
-        list.Concat(std::move(otherList));
+        list.Concat(otherList);
         otherList.Clear();
 
         UnlockList(otherList);

@@ -28,7 +28,7 @@ void AstIterator::Prepend(AstIterator&& other, bool resetPosition)
     }
 
     Array<RC<AstStatement>> newList = std::move(other.m_list);
-    newList.Concat(std::move(m_list));
+    newList.Concat(m_list);
     m_list = std::move(newList);
 
     other.m_position = 0;
