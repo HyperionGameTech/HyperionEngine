@@ -60,8 +60,8 @@ namespace hyperion {
 
 #pragma region Memory Pools
 
-static constexpr SizeType RenderPoolBlockSize = 32 * 1024 * 1024; // 32 MiB
-static constexpr SizeType FramePoolBlockSize = 8 * 1024 * 1024;   // 8 MiB
+static constexpr SizeType RenderPoolBlockSize = 16 * 1024 * 1024;
+static constexpr SizeType FramePoolBlockSize = 4 * 1024 * 1024;
 
 HYP_API Pool* g_renderPool;
 HYP_API Pool* g_framePools[NumMultiBuffers];

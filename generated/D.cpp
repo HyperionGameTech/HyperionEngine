@@ -1252,7 +1252,6 @@ HYP_END_CLASS
 
 #include <scene/BVH.hpp>
 #include <core/math/BoundingBox.hpp>
-#include <core/math/Triangle.hpp>
 
 
 namespace hyperion {
@@ -1262,9 +1261,7 @@ namespace hyperion {
 HYP_BEGIN_STRUCT(BVHNode, 382, 0, {})
     HypField(NAME(HYP_STR(Aabb)), &BVHNode::aabb, offsetof(BVHNode, aabb), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Children)), &BVHNode::children, offsetof(BVHNode, children), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Triangles)), &BVHNode::triangles, offsetof(BVHNode, triangles), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(VertexData)), &BVHNode::vertexData, offsetof(BVHNode, vertexData), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } }),
-    HypField(NAME(HYP_STR(IndexData)), &BVHNode::indexData, offsetof(BVHNode, indexData), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } }),
+    HypField(NAME(HYP_STR(TriangleIds)), &BVHNode::triangleIds, offsetof(BVHNode, triangleIds), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(IsLeafNode)), &BVHNode::isLeafNode, offsetof(BVHNode, isLeafNode), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -1606,6 +1603,65 @@ HYP_BEGIN_CLASS(PerspectiveCameraController, 185, 4, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion PerspectiveCameraController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene/camera/CameraTrackController.hpp */
+
+#include <scene/camera/CameraTrackController.hpp>
+
+namespace hyperion {
+
+#pragma region CameraTrackController Reflection Data
+
+HYP_BEGIN_CLASS(CameraTrackController, 186, 0, NAME("PerspectiveCameraController"))
+HYP_END_CLASS
+
+#pragma endregion CameraTrackController Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: scene/camera/FirstPersonCamera.hpp */
+
+#include <scene/camera/FirstPersonCamera.hpp>
+
+namespace hyperion {
+
+#pragma region FirstPersonCameraInputHandler Reflection Data
+
+HYP_BEGIN_CLASS(FirstPersonCameraInputHandler, 60, 0, NAME("InputHandlerBase"))
+HYP_END_CLASS
+
+#pragma endregion FirstPersonCameraInputHandler Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region FirstPersonCameraControllerMode Reflection Data
+
+HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 384, 0, {})
+    HypConstant(NAME(HYP_STR(MOUSE_LOCKED)), FirstPersonCameraControllerMode::MOUSE_LOCKED),
+    HypConstant(NAME(HYP_STR(MOUSE_FREE)), FirstPersonCameraControllerMode::MOUSE_FREE)
+HYP_END_ENUM
+
+#pragma endregion FirstPersonCameraControllerMode Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region FirstPersonCameraController Reflection Data
+
+HYP_BEGIN_CLASS(FirstPersonCameraController, 187, 1, NAME("PerspectiveCameraController"))
+    HypMethod(NAME(HYP_STR(GetMode)), &FirstPersonCameraController::GetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
+    HypMethod(NAME(HYP_STR(SetMode)), &FirstPersonCameraController::SetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
+    HypMethod(NAME(HYP_STR(IsMouseLockAllowed)), &FirstPersonCameraController::IsMouseLockAllowed)
+HYP_END_CLASS
+
+#pragma endregion FirstPersonCameraController Reflection Data
 
 } // namespace hyperion
 

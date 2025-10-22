@@ -428,33 +428,32 @@ void MeshData::CalculateTangents()
 }
 
 #undef ADD_TANGENTS
-
 bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
-    const BoundingBox aabb = CalculateAABB();
+    const BoundingBox meshAabb = CalculateAABB();
 
     Assert(indexData.Size() % sizeof(uint32) == 0);
     Assert((indexData.Size() / sizeof(uint32)) % 3 == 0);
 
     const SizeType numIndices = indexData.Size() / sizeof(uint32);
-    const SizeType numVertices = vertexData.Size();
-
-    Assert(numIndices == indexData.Size() / sizeof(uint32));
+    const SizeType numTriangles = numIndices / 3;
 
     const uint32* indexDataU32 = reinterpret_cast<const uint32*>(indexData.Data());
 
-    bvhNode = BVHNode(aabb);
-    bvhNode.triangles.Reserve(numIndices / 3);
+    bvhNode = BVHNode(meshAabb);
+    bvhNode.triangleIds.Reserve(numTriangles);
 
-    for (uint32 i = 0; i < numIndices; i += 3)
+    for (uint32 triangleId = 0; triangleId < numTriangles; triangleId++)
     {
-        bvhNode.triangles.PushBack(Triangle {
-            vertexData[indexDataU32[i + 0]],
-            vertexData[indexDataU32[i + 1]],
-            vertexData[indexDataU32[i + 2]] });
+        bvhNode.AddTriangleId(triangleId);
     }
 
-    bvhNode.Split(maxDepth);
+    // pass mesh spans so Split can do AABB/triangle overlap without copying triangles
+    bvhNode.Split(
+        maxDepth,
+        Span<const Vertex>(vertexData.Data(), vertexData.Size()),
+        Span<const uint32>(indexDataU32, numIndices));
+
     bvhNode.Shake();
 
     return true;

@@ -1015,7 +1015,16 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, bool useBv
                         localSpaceRay = invModelMatrix * ray;
                     }
 
-                    RayTestResults localBvhResults = meshComponent->mesh->GetBVH().TestRay(localSpaceRay);
+                    const Handle<MeshAsset>& meshAsset = meshComponent->mesh->GetAsset();
+                    AssertDebug(meshAsset != nullptr);
+
+                    ResourceHandle resourceHandle(*meshAsset->GetResource());
+                    const MeshData& meshData = *meshAsset->GetMeshData();
+
+                    RayTestResults localBvhResults = meshComponent->mesh->GetBVH().TestRay(
+                        localSpaceRay,
+                        meshData.vertexData.ToSpan(),
+                        Span<const uint32>(reinterpret_cast<const uint32*>(meshData.indexData.Data()), meshData.indexData.Size() / sizeof(uint32)));
 
                     if (localBvhResults.Any())
                     {

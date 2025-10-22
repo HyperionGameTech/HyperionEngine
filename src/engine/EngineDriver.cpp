@@ -94,9 +94,9 @@ static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
 };
 
 constexpr SizeType EnginePoolSizes[EPN_MAX] = {
-    32 * 1024 * 1024,  // EPN_CORE
-    128 * 1024 * 1024, // EPN_RENDER
-    128 * 1024 * 1024  // EPN_SCENE
+    8 * 1024 * 1024,  // EPN_CORE
+    4 * 1024 * 1024,  // EPN_RENDER
+    4 * 1024 * 1024   // EPN_SCENE
 };
 
 HYP_API void EngineMemory_Initialize()

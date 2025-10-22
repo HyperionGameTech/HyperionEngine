@@ -853,6 +853,9 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
     {
         if (InstanceClass() == Entity::Class())
         {
+            ResourceHandle resourceHandle;
+            MeshAsset* meshAsset = nullptr;
+
             const Entity* entity = static_cast<const Entity*>(this);
 
             const BVHNode* bvh = nullptr;
@@ -862,9 +865,16 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
             {
                 if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh.IsValid())
                 {
+
                     if (meshComponent->mesh->GetBVH().IsValid())
                     {
                         bvh = &meshComponent->mesh->GetBVH();
+                        meshAsset = meshComponent->mesh->GetAsset();
+
+                        if (meshAsset != nullptr)
+                        {
+                            resourceHandle = ResourceHandle(*meshAsset->GetResource());
+                        }
                     }
                 }
 
@@ -876,9 +886,16 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
 
             if (bvh)
             {
+                AssertDebug(meshAsset != nullptr);
+
+                const MeshData& meshData = *meshAsset->GetMeshData();
+
                 const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 
-                RayTestResults localBvhResults = bvh->TestRay(localSpaceRay);
+                RayTestResults localBvhResults = bvh->TestRay(
+                    localSpaceRay,
+                    meshData.vertexData.ToSpan(),
+                    Span<const uint32>(reinterpret_cast<const uint32*>(meshData.indexData.Data()), meshData.indexData.Size() / sizeof(uint32)));
 
                 if (localBvhResults.Any())
                 {

@@ -1352,9 +1352,6 @@ void RenderApi_EndFrame_RenderThread()
 
     g_safeDeleter->Iterate();
 
-    //// deallocate all frame allocations for this frame
-    // g_framePools[slot]->Reset();
-
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
 
     AtomicIncrement(&s_frameCounter);

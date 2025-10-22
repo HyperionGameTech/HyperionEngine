@@ -31,8 +31,16 @@ public:
     MemoryMetrics GetMemoryMetrics() const;
 
 private:
+    struct PoolInfo
+    {
+        void* pool;    // pool_t handle from tlsf_add_pool
+        void* memory;  // base memory pointer
+        SizeType size; // total pool size
+    };
+
     void* m_tlsf;
     void* m_mem;
+    Array<PoolInfo> m_pools;
 };
 
 #else

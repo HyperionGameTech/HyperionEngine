@@ -55,7 +55,7 @@
 
 namespace hyperion {
 
-static constexpr SizeType VulkanArenaSize = 8 * 1024 * 1024;
+static constexpr SizeType VulkanArenaSize = 4 * 1024 * 1024; // 4 MB for general transient allocations
 TArena<RenderAllocator>* g_vulkanArena;
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();

@@ -18,6 +18,8 @@
 
 #include <core/memory/ByteBuffer.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
 
@@ -107,9 +109,47 @@ public:
         void (*destructFn)(void*) = nullptr;
     };
 
-    struct EntryList
+    class EntryListBase
     {
-        ByteBuffer buffer;
+    public:
+        EntryListBase()
+            : EntryListBase(~0u)
+        {
+        }
+
+        explicit EntryListBase(uint32 desiredIdx)
+            : currHeaders(&headers[0]),
+              bufferPos(0),
+              desiredIdx(desiredIdx)
+        {
+        }
+
+        EntryListBase(const EntryListBase&) = delete;
+        EntryListBase& operator=(const EntryListBase&) = delete;
+
+        EntryListBase(EntryListBase&&) noexcept = delete;
+        EntryListBase& operator=(EntryListBase&&) noexcept = delete;
+
+        virtual ~EntryListBase() = default;
+
+        void SwapHeaderBuffers()
+        {
+            currHeaders = (currHeaders == &headers[0]) ? &headers[1] : &headers[0];
+        }
+
+        virtual void* Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader) = 0;
+        virtual void ResizeBuffer(SizeType newMinSize) = 0;
+
+        void Push(const EntryHeader& header)
+        {
+            HYP_SCOPE;
+
+            AssertDebug(currHeaders == &headers[0] || currHeaders == &headers[1]);
+
+            currHeaders->PushBack(header);
+        }
+
+
         // double-buffered to allow adding new entries while iterating.
         // we only actually iterate from headers[0] and move the entries that were added to headers[1] to headers[0] after iterating.
         Array<EntryHeader> headers[2];
@@ -119,21 +159,61 @@ public:
         uint32 bufferPos;
         uint32 desiredIdx; // only for temp entry lists when we request a specific index!
 
+    };
+
+    template <class AllocatorType>
+    class EntryList final : public EntryListBase
+    {
+    public:
+        TByteBuffer<AllocatorType> buffer;
+        
         EntryList()
             : EntryList(~0u)
         {
         }
 
-        explicit EntryList(uint32 desiredIdx);
-
-        void SwapHeaderBuffers()
+        explicit EntryList(AllocatorType* pAllocator)
+            : EntryListBase(~0u),
+              buffer(pAllocator)
         {
-            currHeaders = (currHeaders == &headers[0]) ? &headers[1] : &headers[0];
         }
 
-        void* Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader);
-        void Push(const EntryHeader& header);
-        void ResizeBuffer(SizeType newMinSize);
+        explicit EntryList(uint32 desiredIdx)
+            : EntryListBase(desiredIdx),
+              buffer()
+        {
+        }
+
+        virtual void* Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader) override
+        {
+            HYP_SCOPE;
+
+            AssertDebug(alignment <= 16);
+
+            const uint32 alignedOffset = ByteUtil::AlignAs(bufferPos, alignment);
+
+            if (buffer.Size() < alignedOffset + size)
+            {
+                ResizeBuffer(alignedOffset + size);
+            }
+
+            void* ptr = buffer.Data() + alignedOffset;
+
+            bufferPos = alignedOffset + size;
+
+            outHeader = {};
+            outHeader.offset = alignedOffset;
+            outHeader.size = size;
+
+            return ptr;
+        }
+
+        virtual void ResizeBuffer(SizeType newMinSize) override
+        {
+            HYP_SCOPE;
+
+            buffer.SetSize(newMinSize, /* zeroize */ false);
+        }
     };
 
     SafeDeleter();
@@ -163,7 +243,7 @@ public:
         EntryHeader header;
 
         Mutex::Guard* pGuard;
-        EntryList& list = GetCurrentEntryList(&pGuard);
+        EntryListBase& list = GetCurrentEntryList(&pGuard);
         HYP_DEFER({ if (pGuard) delete pGuard; });
 
         SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
@@ -210,7 +290,7 @@ public:
         EntryHeader header;
 
         Mutex::Guard* pGuard;
-        EntryList& list = GetEntryList(&pGuard, desiredIdx);
+        EntryListBase& list = GetEntryList(&pGuard, desiredIdx);
         HYP_DEFER({ if (pGuard) delete pGuard; });
 
         T* ptr = reinterpret_cast<T*>(list.Alloc(sizeof(T), alignof(T), header));
@@ -231,18 +311,19 @@ private:
         uint32 numTotalBytes = 0;
     };
 
-    EntryList& GetCurrentEntryList(Mutex::Guard** ppGuard);
-    EntryList& GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u);
+    EntryListBase& GetCurrentEntryList(Mutex::Guard** ppGuard);
+    EntryListBase& GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx = ~0u);
     void UpdateCounter(uint32 bufferIndex);
 
     // for calling on another thread than game thread / render thread.
     Mutex m_mutex;
 
-    LinkedList<EntryList> m_tempEntryLists;
+    LinkedList<EntryList<DynamicAllocator>> m_tempEntryLists;
     volatile int32 m_tempEntryListCount = 0;
 
-    EntryList m_entryLists[NumMultiBuffers];
+    FixedArray<EntryList<Pool>*, NumMultiBuffers> m_entryLists;
     Counter m_counters[NumMultiBuffers];
+
 };
 
 extern HYP_API SafeDeleter* GetSafeDeleterInstance();

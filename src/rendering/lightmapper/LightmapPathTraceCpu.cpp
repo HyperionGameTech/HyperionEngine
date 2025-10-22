@@ -145,12 +145,17 @@ using LightmapRayTestResults = FlatSet<LightmapRayHit>;
 class LightmapBottomLevelAccelerationStructure
 {
 public:
-    LightmapBottomLevelAccelerationStructure(const LightmapSubElement* subElement, const BVHNode* bvh)
+    LightmapBottomLevelAccelerationStructure(
+        const LightmapSubElement* subElement,
+        BVHNode&& bvh,
+        Array<Vertex>&& vertices,
+        Array<uint32>&& indices)
         : m_subElement(subElement),
-          m_root(bvh)
+          m_root(std::move(bvh)),
+          m_cachedVertices(std::move(vertices)),
+          m_cachedIndices(std::move(indices))
     {
         Assert(m_subElement != nullptr);
-        Assert(m_root != nullptr);
     }
 
     LightmapBottomLevelAccelerationStructure(const LightmapBottomLevelAccelerationStructure& other) = delete;
@@ -158,10 +163,11 @@ public:
 
     LightmapBottomLevelAccelerationStructure(LightmapBottomLevelAccelerationStructure&& other) noexcept
         : m_subElement(other.m_subElement),
-          m_root(other.m_root)
+          m_root(std::move(other.m_root)),
+          m_cachedVertices(std::move(other.m_cachedVertices)),
+          m_cachedIndices(std::move(other.m_cachedIndices))
     {
         other.m_subElement = nullptr;
-        other.m_root = nullptr;
     }
 
     LightmapBottomLevelAccelerationStructure& operator=(LightmapBottomLevelAccelerationStructure&& other) noexcept
@@ -173,9 +179,10 @@ public:
 
         m_subElement = other.m_subElement;
         m_root = std::move(other.m_root);
+        m_cachedVertices = std::move(other.m_cachedVertices);
+        m_cachedIndices = std::move(other.m_cachedIndices);
 
         other.m_subElement = nullptr;
-        other.m_root = nullptr;
 
         return *this;
     }
@@ -194,15 +201,13 @@ public:
 
     LightmapRayTestResults TestRay(const Ray& ray) const
     {
-        Assert(m_root != nullptr);
-
         LightmapRayTestResults results;
 
         const Mat4f& modelMatrix = m_subElement->transform.GetMatrix();
 
         const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 
-        RayTestResults localBvhResults = m_root->TestRay(localSpaceRay);
+        RayTestResults localBvhResults = m_root.TestRay(localSpaceRay, m_cachedVertices, m_cachedIndices);
 
         if (localBvhResults.Any())
         {
@@ -231,7 +236,19 @@ public:
 
                 const BVHNode* bvhNode = static_cast<const BVHNode*>(rayHit.userData);
 
-                const Triangle& triangle = bvhNode->triangles[rayHit.id];
+                const uint32 triangleId = bvhNode->triangleIds[rayHit.id];
+
+                AssertDebug(triangleId < m_cachedIndices.Size() / 3);
+
+                const uint32 i0 = m_cachedIndices[triangleId * 3 + 0];
+                const uint32 i1 = m_cachedIndices[triangleId * 3 + 1];
+                const uint32 i2 = m_cachedIndices[triangleId * 3 + 2];
+
+                const Triangle triangle {
+                    m_cachedVertices[i0].position,
+                    m_cachedVertices[i1].position,
+                    m_cachedVertices[i2].position
+                };
 
                 results.Emplace(rayHit, m_subElement->entity, triangle);
             }
@@ -240,14 +257,17 @@ public:
         return results;
     }
 
-    HYP_FORCE_INLINE const BVHNode* GetRoot() const
+    HYP_FORCE_INLINE const BVHNode& GetRoot() const
     {
         return m_root;
     }
 
 private:
     const LightmapSubElement* m_subElement;
-    const BVHNode* m_root;
+
+    BVHNode m_root;
+    Array<Vertex> m_cachedVertices;
+    Array<uint32> m_cachedIndices;
 };
 
 class LightmapTopLevelAccelerationStructure
@@ -266,7 +286,7 @@ public:
 
         for (const LightmapBottomLevelAccelerationStructure& accelerationStructure : m_accelerationStructures)
         {
-            if (!ray.TestAABB(accelerationStructure.GetTransform() * accelerationStructure.GetRoot()->aabb))
+            if (!ray.TestAABB(accelerationStructure.GetTransform() * accelerationStructure.GetRoot().aabb))
             {
                 continue;
             }
@@ -277,9 +297,13 @@ public:
         return results;
     }
 
-    void Add(const LightmapSubElement* subElement, const BVHNode* bvh)
+    void Add(
+        const LightmapSubElement* subElement,
+        BVHNode&& bvh,
+        Array<Vertex>&& vertices,
+        Array<uint32>&& indices)
     {
-        m_accelerationStructures.EmplaceBack(subElement, bvh);
+        m_accelerationStructures.EmplaceBack(subElement, std::move(bvh), std::move(vertices), std::move(indices));
     }
 
     void RemoveAll()
@@ -750,14 +774,38 @@ void Lightmapper_CpuPathTracing::BuildAccelerationStructures()
 
     for (LightmapSubElement& subElement : m_subElements)
     {
-        if (!subElement.mesh->BuildBVH())
+        const Handle<MeshAsset>& meshAsset = subElement.mesh->GetAsset();
+
+        if (!meshAsset)
+        {
+            HYP_LOG(Lightmap, Error, "Mesh asset is invalid for entity {} in lightmapper", subElement.entity.Id());
+            continue;
+        }
+
+        ResourceHandle resourceHandle(*meshAsset->GetResource());
+
+        const MeshData& meshData = *meshAsset->GetMeshData();
+
+        BVHNode bvhNode;
+
+        if (!meshData.BuildBVH(bvhNode, /* maxDepth */ 3))
         {
             HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", subElement.entity.Id());
 
             continue;
         }
 
-        m_accelerationStructure->Add(&subElement, &subElement.mesh->GetBVH());
+        Array<Vertex> vertices = meshData.vertexData;
+
+        Array<uint32> indices;
+        indices.Resize(meshData.indexData.Size() / sizeof(uint32));
+        Memory::MemCpy(indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+
+        m_accelerationStructure->Add(
+            &subElement,
+            std::move(bvhNode),
+            std::move(vertices),
+            std::move(indices));
     }
 }
 
