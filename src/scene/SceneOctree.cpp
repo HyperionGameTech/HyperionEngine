@@ -21,7 +21,16 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#ifdef HYP_EDITOR
+#include <editor/EditorState.hpp>
+#include <editor/EditorPickCache.hpp>
+#endif
+
 namespace hyperion {
+
+#ifdef HYP_EDITOR
+extern Handle<EditorState> g_editorState;
+#endif
 
 SceneOctree::SceneOctree(const Handle<EntityManager>& entityManager)
     : OctreeBase(),
@@ -977,7 +986,7 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
     }
 }
 
-bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) const
+bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
     HYP_SCOPE;
 
@@ -994,7 +1003,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, bool useBv
 
             RayTestResults aabbResult;
 
-            if (useBvh)
+            if (flags & RTF_USE_BVH)
             {
                 // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
                 if (MeshComponent* meshComponent = m_entityManager->TryGetComponent<MeshComponent>(entry.value);
@@ -1015,16 +1024,40 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, bool useBv
                         localSpaceRay = invModelMatrix * ray;
                     }
 
-                    const Handle<MeshAsset>& meshAsset = meshComponent->mesh->GetAsset();
-                    AssertDebug(meshAsset != nullptr);
+                    RayTestResults localBvhResults;
 
-                    ResourceHandle resourceHandle(*meshAsset->GetResource());
-                    const MeshData& meshData = *meshAsset->GetMeshData();
+#ifdef HYP_EDITOR
+                    bool usedPickCache = false;
 
-                    RayTestResults localBvhResults = meshComponent->mesh->GetBVH().TestRay(
-                        localSpaceRay,
-                        meshData.vertexData.ToSpan(),
-                        Span<const uint32>(reinterpret_cast<const uint32*>(meshData.indexData.Data()), meshData.indexData.Size() / sizeof(uint32)));
+                    if (flags & RTF_EDITOR_PICK)
+                    {
+                        auto* pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
+
+                        if (pickCacheEntry)
+                        {
+                            localBvhResults = meshComponent->mesh->GetBVH().TestRay(
+                                localSpaceRay,
+                                pickCacheEntry->positions.ToSpan(),
+                                pickCacheEntry->indices.ToSpan());
+
+                            usedPickCache = true;
+                        }
+                    }
+
+                    if (!usedPickCache)
+#endif
+                    {
+                        const Handle<MeshAsset>& meshAsset = meshComponent->mesh->GetAsset();
+                        AssertDebug(meshAsset != nullptr);
+
+                        ResourceHandle resourceHandle(*meshAsset->GetResource());
+                        const MeshData& meshData = *meshAsset->GetMeshData();
+
+                        localBvhResults = meshComponent->mesh->GetBVH().TestRay(
+                            localSpaceRay,
+                            meshData.vertexData.ToSpan(),
+                            Span<const uint32>(reinterpret_cast<const uint32*>(meshData.indexData.Data()), meshData.indexData.Size() / sizeof(uint32)));
+                    }
 
                     if (localBvhResults.Any())
                     {
@@ -1075,7 +1108,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, bool useBv
             {
                 Assert(octant.octree != nullptr);
 
-                if (octant.octree->TestRay(ray, outResults))
+                if (octant.octree->TestRay(ray, outResults, flags))
                 {
                     hasHit = true;
                 }

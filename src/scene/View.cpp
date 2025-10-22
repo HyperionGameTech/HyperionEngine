@@ -250,7 +250,7 @@ void View::Init()
     SetReady(true);
 }
 
-bool View::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) const
+bool View::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -261,7 +261,7 @@ bool View::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
     {
         Assert(scene.IsValid());
 
-        if (scene->GetOctree().TestRay(ray, outResults, useBvh))
+        if (scene->GetOctree().TestRay(ray, outResults, flags))
         {
             hasHits = true;
         }

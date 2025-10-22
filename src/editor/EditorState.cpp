@@ -91,7 +91,7 @@ static void RegisterPackageAssets(const Handle<EditorProject>& project, const Ha
 EditorState::EditorState()
 {
     AssertDebug(g_editorPickCachePool == nullptr);
-    g_editorPickCachePool = new Pool(64 * 1024 * 1024);
+    g_editorPickCachePool = new Pool(EditorPickCache::MaxMemoryUsageBytes);
 }
 
 EditorState::~EditorState()

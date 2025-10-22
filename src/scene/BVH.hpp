@@ -122,6 +122,47 @@ struct HYP_API BVHNode
         return results;
     }
 
+    HYP_NODISCARD RayTestResults TestRay(
+        const Ray& ray,
+        Span<const Vec3f> positions,
+        Span<const uint32> indices) const
+    {
+        RayTestResults results;
+
+        if (!ray.TestAABB(aabb))
+        {
+            return results;
+        }
+
+        if (IsLeafNode())
+        {
+            for (SizeType t = 0; t < triangleIds.Size(); ++t)
+            {
+                const uint32 triangleId = triangleIds[t];
+                const uint32 i0 = indices[triangleId * 3 + 0];
+                const uint32 i1 = indices[triangleId * 3 + 1];
+                const uint32 i2 = indices[triangleId * 3 + 2];
+
+                const Triangle tri {
+                    positions[i0],
+                    positions[i1],
+                    positions[i2]
+                };
+
+                ray.TestTriangle(tri, triangleId, this, results);
+            }
+        }
+        else
+        {
+            for (const BVHNode& node : children)
+            {
+                results.Merge(node.TestRay(ray, positions, indices));
+            }
+        }
+
+        return results;
+    }
+
 private:
     static bool AabbOverlapsTriangleId(const BoundingBox& box,
         Span<const Vertex> vertices,

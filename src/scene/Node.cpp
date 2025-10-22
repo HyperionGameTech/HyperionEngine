@@ -29,6 +29,8 @@
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
 #include <editor/EditorSubsystem.hpp>
+#include <editor/EditorState.hpp>
+#include <editor/EditorPickCache.hpp>
 #endif
 
 #include <engine/EngineGlobals.hpp>
@@ -39,6 +41,10 @@
 #include <cstring>
 
 namespace hyperion {
+
+#ifdef HYP_EDITOR
+extern Handle<EditorState> g_editorState;
+#endif
 
 void Node_OnPostLoad(Node& node)
 {
@@ -843,7 +849,7 @@ uint32 Node::FindSelfIndex() const
     return uint32(it - m_parentNode->GetChildren().Begin());
 }
 
-bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) const
+bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
     const BoundingBox worldAabb = GetWorldAABB();
 
@@ -856,25 +862,37 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
             ResourceHandle resourceHandle;
             MeshAsset* meshAsset = nullptr;
 
+#ifdef HYP_EDITOR
+            EditorPickCacheEntry* pickCacheEntry = nullptr;
+#endif
+
             const Entity* entity = static_cast<const Entity*>(this);
 
             const BVHNode* bvh = nullptr;
             Mat4f modelMatrix = Mat4f::Identity();
 
-            if (useBvh)
+            if (flags & RTF_USE_BVH)
             {
                 if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh.IsValid())
                 {
-
                     if (meshComponent->mesh->GetBVH().IsValid())
                     {
                         bvh = &meshComponent->mesh->GetBVH();
                         meshAsset = meshComponent->mesh->GetAsset();
 
-                        if (meshAsset != nullptr)
+#ifdef HYP_EDITOR
+                        if (flags & RTF_EDITOR_PICK)
                         {
-                            resourceHandle = ResourceHandle(*meshAsset->GetResource());
+                            pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
                         }
+
+                        if (!pickCacheEntry)
+#endif
+
+                            if (meshAsset != nullptr)
+                            {
+                                resourceHandle = ResourceHandle(*meshAsset->GetResource());
+                            }
                     }
                 }
 
@@ -886,16 +904,31 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
 
             if (bvh)
             {
-                AssertDebug(meshAsset != nullptr);
-
-                const MeshData& meshData = *meshAsset->GetMeshData();
+                RayTestResults localBvhResults;
 
                 const Ray localSpaceRay = modelMatrix.Inverted() * ray;
 
-                RayTestResults localBvhResults = bvh->TestRay(
-                    localSpaceRay,
-                    meshData.vertexData.ToSpan(),
-                    Span<const uint32>(reinterpret_cast<const uint32*>(meshData.indexData.Data()), meshData.indexData.Size() / sizeof(uint32)));
+#ifdef HYP_EDITOR
+                if ((flags & RTF_EDITOR_PICK) && pickCacheEntry)
+                {
+                    localBvhResults = bvh->TestRay(
+                        localSpaceRay,
+                        pickCacheEntry->positions.ToSpan(),
+                        pickCacheEntry->indices.ToSpan());
+                }
+
+                else
+#endif
+                {
+                    AssertDebug(resourceHandle && meshAsset);
+
+                    const MeshData& meshData = *meshAsset->GetMeshData();
+
+                    localBvhResults = bvh->TestRay(
+                        localSpaceRay,
+                        meshData.vertexData.ToSpan(),
+                        Span<const uint32>(reinterpret_cast<const uint32*>(meshData.indexData.Data()), meshData.indexData.Size() / sizeof(uint32)));
+                }
 
                 if (localBvhResults.Any())
                 {
@@ -939,7 +972,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
                 continue;
             }
 
-            if (childNode->TestRay(ray, outResults, useBvh))
+            if (childNode->TestRay(ray, outResults, flags))
             {
                 hasEntityHit = true;
             }

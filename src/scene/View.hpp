@@ -224,7 +224,7 @@ public:
         return m_raytracingView;
     }
 
-    bool TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh = true) const;
+    bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RTF_USE_BVH) const;
 
     /*! \brief Sync changes to the Viewport so the render thread can see updates to it for the next frame */
     void UpdateViewport();

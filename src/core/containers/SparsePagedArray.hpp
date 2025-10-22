@@ -203,6 +203,74 @@ public:
             return tmp;
         }
 
+        Derived operator+(SizeType offset) const
+        {
+            if (offset == 0)
+            {
+                return static_cast<const Derived&>(*this);
+            }
+
+            if (HYP_UNLIKELY(lazyInit))
+            {
+                EnsureReady();
+            }
+
+            Derived result;
+            result.array = array;
+            result.page = page;
+            result.elem = elem;
+            result.lazyInit = false;
+
+            SizeType remaining = offset;
+
+            while (remaining > 0)
+            {
+                if (result.page >= uint32(array->m_pages.Size()))
+                {
+                    // Already at end
+                    return result;
+                }
+
+                if (result.page != ~0u && array->m_validPages.Test(result.page))
+                {
+                    const Bitset& bits = array->m_pages[result.page]->initializedBits;
+
+                    // Count how many set bits are after current elem in this page
+                    uint32 bitsInPage = 0;
+                    Bitset::BitIndex nextBit = bits.NextSetBitIndex(result.elem + 1);
+
+                    while (nextBit < PageSize && bitsInPage < remaining)
+                    {
+                        ++bitsInPage;
+                        if (bitsInPage == remaining)
+                        {
+                            result.elem = nextBit;
+                            return result;
+                        }
+                        nextBit = bits.NextSetBitIndex(nextBit + 1);
+                    }
+
+                    remaining -= bitsInPage;
+                }
+
+                // Move to next valid page
+                result.page = array->m_validPages.NextSetBitIndex(result.page + 1);
+
+                if (result.page == ~0u)
+                {
+                    // Reached the end
+                    result.page = uint32(array->m_pages.Size());
+                    result.elem = PageSize;
+                    return result;
+                }
+
+                // Start at beginning of new page
+                result.elem = ~0u; // Will be incremented to 0 when searching
+            }
+
+            return result;
+        }
+
         HYP_FORCE_INLINE bool operator==(const Derived& other) const
         {
             HYP_CORE_ASSERT(array == other.array); // comparing iterators from different containers, bad!
@@ -223,6 +291,34 @@ public:
         HYP_FORCE_INLINE bool operator!=(const Derived& other) const
         {
             return !(*this == other);
+        }
+
+        HYP_FORCE_INLINE bool operator<(const Derived& other) const
+        {
+            HYP_CORE_ASSERT(array == other.array); // comparing iterators from different containers, bad!
+
+            if (HYP_UNLIKELY(lazyInit))
+            {
+                EnsureReady();
+            }
+
+            if (HYP_UNLIKELY(other.lazyInit))
+            {
+                other.EnsureReady();
+            }
+
+            if (page < other.page)
+            {
+                return true;
+            }
+            else if (page > other.page)
+            {
+                return false;
+            }
+            else
+            {
+                return elem < other.elem;
+            }
         }
     };
 

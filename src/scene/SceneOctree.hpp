@@ -161,7 +161,7 @@ public:
     void NextVisibilityState();
     void CalculateVisibility(const Handle<Camera>& camera);
 
-    bool TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh = true) const;
+    bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RTF_USE_BVH) const;
 
     void Collect(Array<Entity*>& outEntities) const;
     void Collect(const BoundingSphere& bounds, Array<Entity*>& outEntities) const;

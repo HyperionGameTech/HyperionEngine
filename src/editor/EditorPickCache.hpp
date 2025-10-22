@@ -34,6 +34,8 @@ struct EditorPickCacheEntry
 class HYP_API EditorPickCache
 {
 public:
+    static constexpr SizeType MaxMemoryUsageBytes = (32 * 1024 * 1024); // 32 MiB
+
     EditorPickCache();
     EditorPickCache(const EditorPickCache&) = delete;
     EditorPickCache& operator=(const EditorPickCache&) = delete;
@@ -46,11 +48,14 @@ public:
     bool HasEntry(const Mesh* mesh) const;
     void PutEntry(const Mesh* mesh);
     void RemoveEntry(const Mesh* mesh);
+    EditorPickCacheEntry* GetEntry(const Mesh* mesh);
     void Clear();
 
     void Update(float delta);
 
 private:
+    bool EvictEntries(SizeType bytesNeeded);
+
     Pimpl<struct EditorPickCacheImpl> m_pImpl;
 };
 

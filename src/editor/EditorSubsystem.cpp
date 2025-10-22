@@ -1281,25 +1281,10 @@ void EditorSubsystem::Update(float delta)
         }
     }
 
-    if (pickRpl.GetMeshes().GetDiff().NeedsUpdate())
+    // @TODO: Prioritize based on distance from camera
+    for (Mesh* mesh : pickRpl.GetMeshes())
     {
-        Array<Mesh*> addedMeshes;
-        pickRpl.GetMeshes().GetAdded(addedMeshes, /* includeChanged */ false);
-
-        Array<Mesh*> removedMeshes;
-        pickRpl.GetMeshes().GetRemoved(removedMeshes, /* includeChanged */ false);
-
-        for (Mesh* mesh : addedMeshes)
-        {
-            HYP_LOG_TEMP("\tAdded mesh to be picked: {}", *mesh->GetName());
-
-            g_editorState->GetPickCache().PutEntry(mesh);
-        }
-
-        for (Mesh* mesh : removedMeshes)
-        {
-            HYP_LOG_TEMP("\tRemoved mesh to be picked: {}", *mesh->GetName());
-        }
+        g_editorState->GetPickCache().PutEntry(mesh);
     }
 }
 
@@ -1575,7 +1560,7 @@ void EditorSubsystem::InitViewport()
                 bool hasHits = false;
                 for (const Handle<View>& view : m_views)
                 {
-                    if (view->TestRay(ray, results, /* useBvh */ true))
+                    if (view->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
                     {
                         hasHits = true;
                     }
@@ -1687,7 +1672,7 @@ void EditorSubsystem::InitViewport()
                 EditorManipulationWidgetBase& manipulationWidget = m_manipulationWidgetHolder.GetSelectedManipulationWidget();
                 bool hitManipulationWidget = false;
 
-                if (manipulationWidget.GetNode()->TestRay(ray, results, /* useBvh */ true))
+                if (manipulationWidget.GetNode()->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
                 {
                     for (const RayHit& rayHit : results)
                     {
@@ -1747,7 +1732,7 @@ void EditorSubsystem::InitViewport()
 
                     RayTestResults results;
 
-                    if (node->TestRay(ray, results, /* useBvh */ true))
+                    if (node->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
                     {
                         for (const RayHit& rayHit : results)
                         {

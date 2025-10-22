@@ -6,6 +6,7 @@
 #include <core/containers/FlatSet.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
+#include <core/containers/SparsePagedArray.hpp>
 
 #include <rendering/RenderCollection.hpp>
 #include <rendering/Mesh.hpp>
@@ -23,18 +24,25 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
 
-// amount of headroom to leave in the memory pool before we start evicting entries
-constexpr SizeType IdealHeadroom = 8 * 1024 * 1024;
+// amount of headroom to leave in the memory pool before we start forcefully evicting entries
+constexpr SizeType IdealHeadroom = 1 * 1024 * 1024;
 
 struct EditorPickCacheImpl
 {
-    using Cache = HashMap<const Mesh*, EditorPickCacheEntry, NodeAllocator<EpcAllocator>>;
-    using ResidencySet = FlatSet<typename Cache::Iterator>;
+    // uses SparsePagedArray so iterators remain valid even when entries are evicted
+    using Cache = SparsePagedArray<EditorPickCacheEntry, 32, EpcAllocator>;
+
+    using ResidencySet = Bitset;
 
     Cache cache;
-    FlatMap<int, ResidencySet> residencyMap;
+    FixedArray<ResidencySet, MaxResidency + 1> residencyMap;
     RenderProxyList renderProxyList { /* isShared */ false, /* useRefCounting */ false };
-    LockstepGameCounter residencyUpdateCounter { 1000.0 }; // to track time until we update residencies
+
+    LockstepGameCounter updateCounter { 1.0 }; // per second
+
+    EditorPickCacheImpl()
+    {
+    }
 };
 
 static int ComputeResidency(const EditorPickCacheEntry& entry)
@@ -77,10 +85,6 @@ static int ComputeResidency(const EditorPickCacheEntry& entry)
 EditorPickCache::EditorPickCache()
     : m_pImpl(MakePimpl<EditorPickCacheImpl>())
 {
-    for (int i = MinResidency; i <= MaxResidency; ++i)
-    {
-        m_pImpl->residencyMap.Emplace(i);
-    }
 }
 
 EditorPickCache::~EditorPickCache()
@@ -94,7 +98,12 @@ RenderProxyList& EditorPickCache::GetRenderProxyList() const
 
 bool EditorPickCache::HasEntry(const Mesh* mesh) const
 {
-    return m_pImpl->cache.Contains(mesh);
+    if (!mesh)
+    {
+        return false;
+    }
+
+    return m_pImpl->cache.HasIndex(mesh->Id().ToIndex());
 }
 
 void EditorPickCache::PutEntry(const Mesh* mesh)
@@ -102,35 +111,45 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
+    if (!mesh)
+    {
+        HYP_LOG(Editor, Error, "Cannot add null mesh to editor pick cache");
+
+        return;
+    }
+
+    AssertDebug(std::is_final_v<Mesh> || mesh->InstanceClass() == Mesh::Class());
+
     const uint32 fc = RenderApi_GetFrameCounter();
 
-    auto it = m_pImpl->cache.Find(mesh);
-    if (it != m_pImpl->cache.End())
+    if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        const int currResidency = it->second.residency;
+        EditorPickCacheEntry& entry = m_pImpl->cache[mesh->Id().ToIndex()];
+
+        const int currResidency = entry.residency;
 
         // update last frame visible
-        it->second.frameVisible = fc;
+        entry.frameVisible = fc;
 
-        const int newResidency = ComputeResidency(it->second);
+        const int newResidency = ComputeResidency(entry);
 
         if (newResidency != currResidency)
         {
             // update residency map
-            auto resIt = m_pImpl->residencyMap.Find(currResidency);
-            if (resIt != m_pImpl->residencyMap.End())
-            {
-                auto& arr = resIt->second;
-                arr.Erase(it);
-            }
+            AssertDebug(currResidency < m_pImpl->residencyMap.Size() && newResidency < m_pImpl->residencyMap.Size());
 
-            it->second.residency = newResidency;
+            auto& arr = m_pImpl->residencyMap[currResidency];
+            arr.Set(mesh->Id().ToIndex(), false);
 
-            m_pImpl->residencyMap[newResidency].Insert(it);
+            entry.residency = newResidency;
+
+            m_pImpl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
         }
 
         return; // already exists
     }
+
+    HYP_LOG(Editor, Debug, "Adding mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
     // Load the stuff in
     if (!mesh->GetAsset())
@@ -144,15 +163,24 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     if (!resourceHandle)
     {
+        HYP_LOG(Editor, Error, "Failed to get resource handle for mesh asset {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
+
         return;
     }
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
     const MeshData& meshData = *mesh->GetAsset()->GetMeshData();
 
+    // make sure we have enough memory
+    if (!EvictEntries(meshData.vertexData.ByteSize() + meshData.indexData.Size() + IdealHeadroom))
+    {
+        HYP_LOG(Editor, Error, "Failed to evict enough entries to add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+
+        return;
+    }
+
     EditorPickCacheEntry entry {};
     entry.frameVisible = fc;
-    entry.residency = ComputeResidency(entry);
 
     entry.positions.Resize(meshData.vertexData.Size());
     for (SizeType i = 0; i < meshData.vertexData.Size(); ++i)
@@ -163,32 +191,129 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
     Memory::MemCpy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
 
-    auto insertResult = m_pImpl->cache.Insert({ mesh, std::move(entry) });
-    m_pImpl->residencyMap[insertResult.first->second.residency].Insert(insertResult.first);
+    entry.residency = ComputeResidency(entry);
+
+    auto& set = m_pImpl->residencyMap[entry.residency];
+    auto iter = m_pImpl->cache.Emplace(mesh->Id().ToIndex(), std::move(entry));
+    set.Set(mesh->Id().ToIndex(), true);
 }
 
 void EditorPickCache::RemoveEntry(const Mesh* mesh)
 {
-    auto it = m_pImpl->cache.Find(mesh);
-    if (it != m_pImpl->cache.End())
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
+    if (!mesh)
     {
-        const int residency = it->second.residency;
+        HYP_LOG(Editor, Error, "Cannot remove null mesh from editor pick cache");
 
-        auto resIt = m_pImpl->residencyMap.Find(residency);
-        if (resIt != m_pImpl->residencyMap.End())
-        {
-            auto& arr = resIt->second;
-            arr.Erase(it);
-        }
-
-        m_pImpl->cache.Erase(it);
+        return;
     }
+
+    if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
+    {
+        EditorPickCacheEntry& entry = m_pImpl->cache[mesh->Id().ToIndex()];
+
+        const int residency = entry.residency;
+
+        auto& arr = m_pImpl->residencyMap[residency];
+        arr.Set(mesh->Id().ToIndex(), false);
+
+        m_pImpl->cache.EraseAt(mesh->Id().ToIndex());
+    }
+}
+
+EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
+    if (!mesh)
+    {
+        HYP_LOG(Editor, Error, "Cannot get entry for null mesh from editor pick cache");
+
+        return nullptr;
+    }
+
+    if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
+    {
+        return &m_pImpl->cache.Get(mesh->Id().ToIndex());
+    }
+
+    return nullptr;
 }
 
 void EditorPickCache::Clear()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     m_pImpl->cache.Clear();
-    m_pImpl->residencyMap.Clear();
+
+    for (auto& it : m_pImpl->residencyMap)
+    {
+        it.Clear();
+    }
+}
+
+bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
+{
+    const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
+
+    if (metrics[MemoryMetrics::MM_BYTES_USED] <= MaxMemoryUsageBytes - bytesNeeded)
+    {
+        // we have enough headroom, no need to evict entries
+        return true;
+    }
+
+    SizeType currentMemoryUsageBytes = metrics[MemoryMetrics::MM_BYTES_USED];
+    const SizeType targetMemoryUsageBytes = MaxMemoryUsageBytes - bytesNeeded;
+
+    for (int residency = MinResidency; residency <= MaxResidency; ++residency)
+    {
+        if (currentMemoryUsageBytes <= targetMemoryUsageBytes)
+        {
+            break;
+        }
+
+        auto& entrySet = m_pImpl->residencyMap[residency];
+
+        Array<Pair<EditorPickCacheEntry*, uint32>> sortedEntries;
+        sortedEntries.Reserve(entrySet.Count());
+
+        for (Bitset::BitIndex bit : entrySet)
+        {
+            AssertDebug(m_pImpl->cache.HasIndex(bit));
+
+            sortedEntries.EmplaceBack(&m_pImpl->cache.Get(bit), bit);
+        }
+
+        // sort by size in this bucket (largest first)
+        std::sort(sortedEntries.Begin(), sortedEntries.End(), [](const Pair<EditorPickCacheEntry*, uint32>& a, const Pair<EditorPickCacheEntry*, uint32>& b)
+            {
+                const SizeType aSize = a.first->positions.ByteSize() + a.first->indices.ByteSize();
+                const SizeType bSize = b.first->positions.ByteSize() + b.first->indices.ByteSize();
+
+                return aSize > bSize;
+            });
+
+        for (const Pair<EditorPickCacheEntry*, uint32>& pair : sortedEntries)
+        {
+            if (currentMemoryUsageBytes <= targetMemoryUsageBytes)
+            {
+                break;
+            }
+
+            // evict
+            const SizeType infoSize = pair.first->positions.ByteSize() + pair.first->indices.ByteSize();
+            currentMemoryUsageBytes -= infoSize;
+
+            entrySet.Set(pair.second, false);
+            m_pImpl->cache.EraseAt(pair.second);
+        }
+    }
+
+    return currentMemoryUsageBytes <= targetMemoryUsageBytes;
 }
 
 void EditorPickCache::Update(float delta)
@@ -196,77 +321,54 @@ void EditorPickCache::Update(float delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    m_pImpl->residencyUpdateCounter.NextTick();
-
-    if (!m_pImpl->residencyUpdateCounter.Waiting())
+    if (m_pImpl->updateCounter.Waiting())
     {
-        // update residencies
-
-        for (auto& [residency, entrySet] : m_pImpl->residencyMap)
-        {
-            for (auto it = entrySet.Begin(); it != entrySet.End();)
-            {
-                EditorPickCacheEntry& entry = (*it)->second;
-
-                const int newResidency = ComputeResidency(entry);
-
-                if (newResidency != residency)
-                {
-                    // update residency map
-                    it = entrySet.Erase(it);
-
-                    entry.residency = newResidency;
-                    m_pImpl->residencyMap[newResidency].Insert(*it);
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-        }
-
-        m_pImpl->residencyUpdateCounter.Reset();
+        return;
     }
 
-    const SizeType maxMemoryUsageBytes = (64 * 1024 * 1024);
+    m_pImpl->updateCounter.NextTick();
 
-    if (g_editorPickCachePool->GetMemoryMetrics()[MemoryMetrics::MM_BYTES_USED] <= maxMemoryUsageBytes - IdealHeadroom)
+    // update residencies
+    for (int residency = MinResidency; residency <= MaxResidency; ++residency)
+    {
+        auto& entrySet = m_pImpl->residencyMap[residency];
+
+        for (Bitset::BitIndex bit : entrySet)
+        {
+            AssertDebug(m_pImpl->cache.HasIndex(bit));
+            EditorPickCacheEntry& entry = m_pImpl->cache.Get(bit);
+
+            const int newResidency = ComputeResidency(entry);
+
+            if (newResidency != residency)
+            {
+                // update residency map
+                entrySet.Set(bit, false);
+
+                entry.residency = newResidency;
+
+                m_pImpl->residencyMap[newResidency].Set(bit, true);
+            }
+        }
+    }
+
+    const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
+
+    if (metrics[MemoryMetrics::MM_BYTES_USED] <= MaxMemoryUsageBytes - IdealHeadroom)
     {
         // we have enough headroom, no need to evict entries
         return;
     }
 
-    SizeType currentMemoryUsageBytes = 0; // @TODO: Start at current allocated amount, sort elemsn by size, and subtract until we reach the target
-
-    for (int residency = MaxResidency; residency >= MinResidency; --residency)
+    if (!EvictEntries(IdealHeadroom))
     {
-        auto resIt = m_pImpl->residencyMap.Find(residency);
-        if (resIt == m_pImpl->residencyMap.End())
-        {
-            continue;
-        }
-
-        auto& entrySet = resIt->second;
-
-        for (auto it = entrySet.Begin(); it != entrySet.End();)
-        {
-            const EditorPickCacheEntry& entry = (*it)->second;
-
-            const SizeType entryMemoryUsageBytes = entry.positions.ByteSize() + entry.indices.ByteSize();
-
-            if (currentMemoryUsageBytes + entryMemoryUsageBytes > maxMemoryUsageBytes)
-            {
-                // evict this entry
-                it = entrySet.Erase(it);
-                m_pImpl->cache.Erase(*it);
-            }
-            else
-            {
-                currentMemoryUsageBytes += entryMemoryUsageBytes;
-                ++it;
-            }
-        }
+        HYP_LOG(Editor, Warning, "Failed to evict enough entries to maintain ideal headroom in editor pick cache (used: {} bytes, ideal: {} bytes)",
+            g_editorPickCachePool->GetMemoryMetrics()[MemoryMetrics::MM_BYTES_USED],
+            MaxMemoryUsageBytes - IdealHeadroom);
     }
+
+    HYP_LOG_TEMP("Memory usage after editor pick cache update: {} bytes",
+        g_editorPickCachePool->GetMemoryMetrics()[MemoryMetrics::MM_BYTES_USED]);
 }
 
 } // namespace hyperion

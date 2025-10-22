@@ -867,7 +867,7 @@ public:
     HYP_METHOD()
     uint32 FindSelfIndex() const;
 
-    bool TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh = true) const;
+    bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RTF_USE_BVH) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()

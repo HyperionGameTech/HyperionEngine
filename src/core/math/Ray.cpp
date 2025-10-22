@@ -63,8 +63,9 @@ bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outR
 bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, const void* userData, RayTestResults& outResults) const
 {
     if (!aabb.IsValid())
-    { // drop out early
-        return RayHit::noHit;
+    {
+        // drop out early
+        return false;
     }
 
     const float t1 = (aabb.min.x - position.x) / direction.x;

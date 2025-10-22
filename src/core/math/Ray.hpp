@@ -12,6 +12,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/Span.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/reflection/HypObject.hpp>
 
@@ -27,6 +28,21 @@ struct RayHit;
 class Mat4f;
 
 using RayHitID = uint32;
+
+HYP_ENUM()
+enum RayTestFlags : uint32
+{
+    RTF_NONE = 0x0,
+    RTF_USE_BVH = 0x1,
+
+#ifdef HYP_EDITOR
+    RTF_EDITOR_PICK = 0x2,
+#endif
+
+    RTF_MAX = 0xFFFFFFFFu
+};
+
+HYP_MAKE_ENUM_FLAGS(RayTestFlags)
 
 HYP_STRUCT(Size = 32, Serialize = "bitwise")
 struct HYP_API Ray
@@ -130,8 +146,6 @@ HYP_API Ray operator*(const Mat4f& transform, const Ray& ray);
 
 struct RayHit
 {
-    static constexpr bool noHit = false;
-
     Vec3f hitpoint;
     Vec3f normal;
     Vec3f barycentricCoords;
