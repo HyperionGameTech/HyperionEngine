@@ -32,7 +32,7 @@ HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 #pragma region DrawCallCollection
 
 DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
-    : impl(other.impl),
+    : batchAllocator(other.batchAllocator),
       renderGroup(other.renderGroup),
       drawCalls(std::move(other.drawCalls)),
       instancedDrawCalls(std::move(other.instancedDrawCalls)),
@@ -49,7 +49,7 @@ DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) no
 
     ResetDrawCalls();
 
-    impl = other.impl;
+    batchAllocator = other.batchAllocator;
     renderGroup = other.renderGroup;
     drawCalls = std::move(other.drawCalls);
     instancedDrawCalls = std::move(other.instancedDrawCalls);
@@ -60,7 +60,7 @@ DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) no
 
 DrawCallCollection::~DrawCallCollection()
 {
-    if (impl != nullptr)
+    if (batchAllocator != nullptr)
     {
         ResetDrawCalls();
     }
@@ -105,7 +105,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 
     AssertDebug(initialNumInstances > 0);
 
-    GpuBufferHolderBase* entityInstanceBatches = impl->GetGpuBufferHolder();
+    GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
     Assert(entityInstanceBatches != nullptr);
 
     while (numInstances != 0)
@@ -125,7 +125,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
             // check if we need to allocate new batch (if it has not been provided as first argument)
             if (batch == nullptr)
             {
-                batch = impl->AcquireBatch();
+                batch = batchAllocator->AcquireBatch();
             }
 
             AssertDebug(batch->batchIndex != ~0u);
@@ -153,7 +153,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
     if (batch != nullptr)
     {
         // ticket has not been used at this point (always gets set to 0 after used) - need to release it
-        impl->ReleaseBatch(batch);
+        batchAllocator->ReleaseBatch(batch);
     }
 }
 
@@ -189,9 +189,9 @@ void DrawCallCollection::ResetDrawCalls()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    AssertDebug(impl != nullptr);
+    AssertDebug(batchAllocator != nullptr);
 
-    GpuBufferHolderBase* entityInstanceBatches = impl->GetGpuBufferHolder();
+    GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
     AssertDebug(entityInstanceBatches != nullptr);
 
     for (SizeType i = 0; i < instancedDrawCalls.Size(); i++)
@@ -205,7 +205,7 @@ void DrawCallCollection::ResetDrawCalls()
 
             *batch = EntityInstanceBatch { batchIndex };
 
-            impl->ReleaseBatch(batch);
+            batchAllocator->ReleaseBatch(batch);
 
             instancedDrawCalls.batches[i] = nullptr;
         }
@@ -235,7 +235,7 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
     }
 #endif
 
-    const SizeType batchSizeof = impl->GetStructSize();
+    const SizeType batchStructSize = batchAllocator->GetStructSize();
 
     EntityInstanceBatch* batch = instancedDrawCalls.batches[drawCallIndex];
     uint32& count = instancedDrawCalls.counts[drawCallIndex];
@@ -270,9 +270,10 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
                 void* srcPtr = reinterpret_cast<void*>(UIntPtr(meshInstanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
 
                 // sanity checks
-                AssertDebug((UIntPtr(dstPtr) + bufferStructSize) - UIntPtr(batch) <= batchSizeof,
+                AssertDebug((UIntPtr(dstPtr) + bufferStructSize) - UIntPtr(batch) <= batchStructSize,
                     "Buffer struct size is larger than batch size! Buffer struct size: %u, Buffer struct alignment: %u, Batch size: %u, Entity index: %u, Field offset: %u",
-                    bufferStructSize, bufferStructAlignment, batchSizeof, entityIndex, fieldOffset);
+                    bufferStructSize, bufferStructAlignment, batchStructSize, entityIndex, fieldOffset);
+
                 AssertDebug(meshInstanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,
                     "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
                     meshInstanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
@@ -310,7 +311,7 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 
     if (dirty)
     {
-        impl->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
+        batchAllocator->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
     }
 
     return numInstances;

@@ -6,6 +6,8 @@
 #include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
@@ -13,30 +15,61 @@ namespace hyperion {
 // false while in static initialization to disable mutex locking; set to true on engine startup
 static bool s_isNameRegistryInitialized = false;
 
+static constexpr SizeType NamePoolBlockSize = 1024 * 1024; // 1 MB
+
+static Pool* s_namePool;
+
+static Pool& GetNamePool()
+{
+    static struct Initializer
+    {
+        Initializer()
+        {
+            if (s_namePool != nullptr)
+            {
+                return;
+            }
+
+            // Not PF_THREAD_SAFE, since we use mutexes in NameRegistry for all places that need it anyway
+            s_namePool = new Pool(NamePoolBlockSize, PF_NONE, ThreadId::Invalid());
+        }
+    } s_initializer;
+
+    return *s_namePool;
+}
+
+using NameAllocator = AllocatorInstance<Pool, &s_namePool>;
+
 #pragma region NameRegistry
 
 class NameRegistry
 {
 public:
-    using Bucket = typename HashMap<NameID, Pair<ANSIString, uint32>>::Bucket;
-    using Node = typename HashMap<NameID, Pair<ANSIString, uint32>>::Node;
+    using CharBuffer = Array<char, NameAllocator>;
+    using MapType = HashMap<NameID, Pair<CharBuffer, uint32>, NodeAllocator<NameAllocator>>;
+
+    using Bucket = typename MapType::Bucket;
+    using Node = typename MapType::Node;
 
     static Bucket* g_nullBucket;
     static Node* g_nullNode;
 
     NameRegistry() = default;
+
     NameRegistry(const NameRegistry& other) = delete;
     NameRegistry& operator=(const NameRegistry& other) = delete;
+
     NameRegistry(NameRegistry&& other) noexcept = delete;
     NameRegistry& operator=(NameRegistry&& other) noexcept = delete;
+
     ~NameRegistry() = default;
 
     Name RegisterName(NameID id, const ANSIString& str, bool lock);
     Name RegisterUniqueName(const ANSIString& str, bool lock);
-    const ANSIString& LookupStringForName(Name name) const;
+    const CharBuffer& LookupStringForName(Name name) const;
 
 private:
-    HashMap<NameID, Pair<ANSIString, uint32>, DynamicNodeAllocator> m_nameMap;
+    MapType m_nameMap;
     mutable Mutex m_mutex;
 };
 
@@ -47,8 +80,9 @@ Name NameRegistry::RegisterName(NameID id, const ANSIString& str, bool lock)
 {
     Name name(id);
 
-    if (!s_isNameRegistryInitialized)
+    if (HYP_UNLIKELY(!s_isNameRegistryInitialized))
     {
+        (void)GetNamePool(); // ensure name pool is initialized
         lock = false;
     }
 
@@ -61,13 +95,13 @@ Name NameRegistry::RegisterName(NameID id, const ANSIString& str, bool lock)
 
     if (it != m_nameMap.End())
     {
-        Pair<ANSIString, uint32>& stringCountPair = it->second;
+        Pair<CharBuffer, uint32>& p = it->second;
 
-        ++stringCountPair.second;
+        ++p.second;
     }
     else
     {
-        m_nameMap.Insert({ id, Pair<ANSIString, uint32> { str, 1 } });
+        m_nameMap.Insert({ id, Pair<CharBuffer, uint32> { CharBuffer(str.Data(), str.Data() + str.Size() + 1), 1 } });
     }
 
     if (lock)
@@ -84,8 +118,9 @@ Name NameRegistry::RegisterUniqueName(const ANSIString& str, bool lock)
     bool inserted = false;
     int suffix = 0;
 
-    if (!s_isNameRegistryInitialized)
+    if (HYP_UNLIKELY(!s_isNameRegistryInitialized))
     {
+        (void)GetNamePool(); // ensure name pool is initialized
         lock = false;
     }
 
@@ -109,8 +144,7 @@ Name NameRegistry::RegisterUniqueName(const ANSIString& str, bool lock)
 
         if (it == m_nameMap.End())
         {
-            m_nameMap.Insert({ nameIdWithSuffix,
-                Pair<ANSIString, uint32> { strWithSuffix, 1 } });
+            m_nameMap.Insert({ nameIdWithSuffix, Pair<CharBuffer, uint32> { CharBuffer(strWithSuffix.Data(), strWithSuffix.Data() + strWithSuffix.Size() + 1), 1 } });
 
             name = Name(nameIdWithSuffix);
 
@@ -128,11 +162,13 @@ Name NameRegistry::RegisterUniqueName(const ANSIString& str, bool lock)
     return name;
 }
 
-const ANSIString& NameRegistry::LookupStringForName(Name name) const
+const NameRegistry::CharBuffer& NameRegistry::LookupStringForName(Name name) const
 {
+    static const CharBuffer s_emptyString { '\0' };
+
     if (!name.IsValid())
     {
-        return ANSIString::empty;
+        return s_emptyString;
     }
 
     bool locked = false;
@@ -154,7 +190,7 @@ const ANSIString& NameRegistry::LookupStringForName(Name name) const
 
     if (it == m_nameMap.End())
     {
-        return ANSIString::empty;
+        return s_emptyString;
     }
 
     return it->second.first;
@@ -165,7 +201,7 @@ Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, 
     return nameRegistry->RegisterName(id, str, lock);
 }
 
-const ANSIString& LookupStringForName(const NameRegistry* nameRegistry, Name name)
+const NameRegistry::CharBuffer& LookupStringForName(const NameRegistry* nameRegistry, Name name)
 {
     return nameRegistry->LookupStringForName(name);
 }
@@ -175,9 +211,25 @@ bool ShouldLockNameRegistry()
     return s_isNameRegistryInitialized;
 }
 
-void InitializeNameRegistry()
+void NameRegistry_Initialize()
 {
+    HYP_CORE_ASSERT(!s_isNameRegistryInitialized, "NameRegistry is already initialized");
+
     s_isNameRegistryInitialized = true;
+    (void)GetNamePool(); // ensure name pool is initialized
+}
+
+void NameRegistry_Shutdown()
+{
+    HYP_CORE_ASSERT(s_isNameRegistryInitialized, "NameRegistry is not initialized");
+
+    s_isNameRegistryInitialized = false;
+
+    if (s_namePool != nullptr)
+    {
+        delete s_namePool;
+        s_namePool = nullptr;
+    }
 }
 
 #pragma endregion NameRegistry
@@ -188,9 +240,9 @@ NameRegistry* Name::s_registry = nullptr;
 
 NameRegistry* Name::GetRegistry()
 {
-    static NameRegistry nameRegistry;
+    static NameRegistry s_nameRegistry;
 
-    return (s_registry = &nameRegistry);
+    return (s_registry = &s_nameRegistry);
 }
 
 Name Name::Unique(const ANSIStringView& prefix)

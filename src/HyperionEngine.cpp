@@ -166,7 +166,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 
-    InitializeNameRegistry();
+    NameRegistry_Initialize();
 
     HypClassRegistry::GetInstance().Initialize();
     HypScript::GetInstance().Initialize();
@@ -280,6 +280,8 @@ HYP_API void DestroyEngine()
     {
         TaskSystem::GetInstance().Stop();
     }
+
+    NameRegistry_Shutdown();
 
     CoreApi_Shutdown();
 

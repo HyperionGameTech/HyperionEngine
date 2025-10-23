@@ -72,7 +72,7 @@ struct RENDER_COMMAND(AddUIRendererForView)
         }
 
         UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
-        uiRenderer->renderCollector.drawCallCollectionImpl = view->GetViewDesc().drawCallCollectionImpl;
+        uiRenderer->renderCollector.batchAllocator = view->GetViewDesc().batchAllocator;
 
         g_renderGlobalState->AddRenderer(GRT_UI, uiRenderer);
 
@@ -185,7 +185,7 @@ void UISubsystem::Init()
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
-        .drawCallCollectionImpl = GetOrCreateEntityBatchAllocator<UIEntityInstanceBatch>()
+        .batchAllocator = GetOrCreateEntityBatchAllocator<UIEntityInstanceBatch>()
     };
 
     m_view = CreateObject<View>(viewDesc);

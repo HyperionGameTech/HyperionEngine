@@ -97,10 +97,13 @@ public:
     friend struct RenderCommand_DestroyIndirectRenderer;
 
     IndirectRenderer();
+
     IndirectRenderer(const IndirectRenderer&) = delete;
     IndirectRenderer& operator=(const IndirectRenderer&) = delete;
+
     IndirectRenderer(IndirectRenderer&&) noexcept = delete;
     IndirectRenderer& operator=(IndirectRenderer&&) noexcept = delete;
+
     ~IndirectRenderer();
 
     HYP_FORCE_INLINE IndirectDrawState& GetDrawState()
@@ -113,7 +116,7 @@ public:
         return m_indirectDrawState;
     }
 
-    void Create(EntityBatchAllocatorBase* impl);
+    void Create(EntityBatchAllocatorBase* batchAllocator);
 
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection);
@@ -127,7 +130,7 @@ private:
     ComputePipelineRef m_objectVisibility;
     CullData m_cachedCullData;
     uint8 m_cachedCullDataUpdatedBits;
-    EntityBatchAllocatorBase* m_drawCallCollectionImpl;
+    EntityBatchAllocatorBase* m_batchAllocator;
 };
 
 } // namespace hyperion

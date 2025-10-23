@@ -291,10 +291,10 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
         AssertDebug(mapping.indirectRenderer == nullptr, "Indirect renderer already exists on mapping");
 
         mapping.indirectRenderer = PoolNew<IndirectRenderer>(*g_renderPool);
-        mapping.indirectRenderer->Create(renderCollector->drawCallCollectionImpl);
+        mapping.indirectRenderer->Create(renderCollector->batchAllocator);
     }
 
-    mapping.drawCallCollection.impl = renderCollector->drawCallCollectionImpl;
+    mapping.drawCallCollection.batchAllocator = renderCollector->batchAllocator;
 
     InitObject(rg);
 
@@ -604,7 +604,7 @@ static inline void DeleteOnRenderThread(Func&& function)
 RenderCollector::RenderCollector()
     : parallelRenderingStateHead(nullptr),
       parallelRenderingStateTail(nullptr),
-      drawCallCollectionImpl(GetOrCreateEntityBatchAllocator<EntityInstanceBatch>()),
+      batchAllocator(GetOrCreateEntityBatchAllocator<EntityInstanceBatch>()),
       renderGroupFlags(RenderGroupFlags::DEFAULT)
 {
 }
@@ -1286,7 +1286,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         DrawCallCollection previousDrawState = std::move(mapping.drawCallCollection);
 
         DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
-        drawCallCollection.impl = drawCallCollectionImpl;
+        drawCallCollection.batchAllocator = batchAllocator;
         drawCallCollection.renderGroup = mapping.renderGroup;
 
         for (RenderProxyMesh* meshProxy : mapping.meshProxies)
@@ -1330,7 +1330,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
                     // Reset it
                     *batch = EntityInstanceBatch { batchIndex };
 
-                    // drawCallCollection.impl->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
+                    // drawCallCollection.batchAllocator->GetGpuBufferHolder()->MarkDirty(batch->batchIndex);
                 }
             }
 

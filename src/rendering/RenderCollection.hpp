@@ -269,7 +269,7 @@ public:
 
     FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, RB_MAX> mappingsByBucket;
 
-    EntityBatchAllocatorBase* drawCallCollectionImpl;
+    EntityBatchAllocatorBase* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;
 
     ParallelRenderingState* AcquireNextParallelRenderingState();

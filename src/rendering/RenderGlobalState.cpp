@@ -543,16 +543,16 @@ static ViewData* GetViewData(View* view)
         ViewData* vd = PoolNew<ViewData>(*g_renderPool);
         vd->view = view;
 
-        if (view->GetViewDesc().drawCallCollectionImpl != nullptr)
+        if (view->GetViewDesc().batchAllocator != nullptr)
         {
-            vd->renderCollector.drawCallCollectionImpl = view->GetViewDesc().drawCallCollectionImpl;
+            vd->renderCollector.batchAllocator = view->GetViewDesc().batchAllocator;
         }
         else
         {
-            vd->renderCollector.drawCallCollectionImpl = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
+            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
         }
 
-        AssertDebug(vd->renderCollector.drawCallCollectionImpl != nullptr);
+        AssertDebug(vd->renderCollector.batchAllocator != nullptr);
 
         viewDataIt = s_viewData.Insert(view, vd).first;
     }

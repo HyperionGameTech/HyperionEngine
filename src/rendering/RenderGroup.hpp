@@ -101,7 +101,7 @@ private:
 
     GraphicsPipelineCacheHandle CreateGraphicsPipeline(
         PassData* pd,
-        EntityBatchAllocatorBase* drawCallCollectionImpl) const;
+        EntityBatchAllocatorBase* batchAllocator) const;
 
     EnumFlags<RenderGroupFlags> m_flags;
     ShaderRef m_shader;

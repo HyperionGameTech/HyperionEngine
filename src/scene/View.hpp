@@ -100,7 +100,7 @@ struct ViewDesc
     Camera* camera = nullptr;
     int priority = 0;
     Optional<RenderableAttributeSet> overrideAttributes;
-    EntityBatchAllocatorBase* drawCallCollectionImpl = nullptr;
+    EntityBatchAllocatorBase* batchAllocator = nullptr;
     TextureFormat readbackTextureFormat = TF_RGBA8; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
 };
 

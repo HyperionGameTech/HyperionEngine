@@ -1662,6 +1662,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
                 return;
             }
 
+            // Add different permutations for different vertex attribute sets.
             if (bundle.HasVertexShader())
             {
                 bundle.versions.Merge(ShaderProperties(staticMeshVertexAttributes));
@@ -1673,8 +1674,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
                 [&](const ShaderProperties& properties)
                 {
                     CompiledShader compiledShader;
-                    bool result =
-                        GetCompiledShader(bundle.name, properties, compiledShader);
+                    bool result = GetCompiledShader(bundle.name, properties, compiledShader);
 
                     Mutex::Guard guard(resultsMutex);
                     results[&bundle] = result;
@@ -1916,7 +1916,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     attributeName.Append(ch);
                 }
 
-                VertexAttributeDefinition attributeDefinition;
+                VertexAttributeDefinition attributeDefinition {};
                 attributeDefinition.name = attributeName;
                 attributeDefinition.typeClass = attributeType;
                 attributeDefinition.location = attributeLocation.Any()

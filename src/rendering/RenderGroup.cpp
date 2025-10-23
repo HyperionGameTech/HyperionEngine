@@ -118,12 +118,14 @@ void RenderGroup::Init()
     SetReady(true);
 }
 
-GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(PassData* pd, EntityBatchAllocatorBase* drawCallCollectionImpl) const
+GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
+    PassData* pd,
+    EntityBatchAllocatorBase* batchAllocator) const
 {
     HYP_SCOPE;
 
     Assert(pd != nullptr);
-    Assert(drawCallCollectionImpl != nullptr);
+    Assert(batchAllocator != nullptr);
 
     PerformanceClock clock;
     clock.Start();
@@ -150,7 +152,7 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(PassData* pd, En
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                const GpuBufferRef& gpuBuffer = drawCallCollectionImpl->GetGpuBufferHolder()->GetBuffer(frameIndex);
+                const GpuBufferRef& gpuBuffer = batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex);
                 Assert(gpuBuffer.IsValid());
 
                 const DescriptorSetRef& instancingDescriptorSet = descriptorTable->GetDescriptorSet("Instancing", frameIndex);
@@ -408,7 +410,7 @@ static void RenderAll(
                 materialDescriptorSetIndex);
         }
 
-        const SizeType offset = entityInstanceBatch->batchIndex * drawCallCollection.impl->GetStructSize();
+        const SizeType offset = entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize();
 
         frame->renderQueue << BindDescriptorSet(
             instancingDescriptorSet,
@@ -654,7 +656,7 @@ static void RenderAll_Parallel(
                             materialDescriptorSetIndex);
                     }
 
-                    const SizeType offset = entityInstanceBatch->batchIndex * drawCallCollection.impl->GetStructSize();
+                    const SizeType offset = entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize();
 
                     renderQueue << BindDescriptorSet(
                         instancingDescriptorSet,
@@ -730,14 +732,14 @@ void RenderGroup::PerformRendering(
 
         *cacheEntry = PassData::RenderGroupCacheEntry {
             WeakHandleFromThis(),
-            CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.impl)
+            CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator)
         };
     }
 
     if (!cacheEntry->cacheHandle.IsAlive())
     {
         // fetch a new graphics pipeline if it is dead
-        cacheEntry->cacheHandle = CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.impl);
+        cacheEntry->cacheHandle = CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator);
     }
 
     if (useIndirectRendering)

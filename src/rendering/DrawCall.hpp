@@ -328,7 +328,7 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 {
     if (EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(TypeId::ForType<EntityInstanceBatchType>()))
     {
-        return impl;
+        return batchAllocator;
     }
 
     return SetEntityBatchAllocator(TypeId::ForType<EntityInstanceBatchType>(), MakeUnique<TEntityBatchAllocator<EntityInstanceBatchType>>());
