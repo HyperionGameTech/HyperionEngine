@@ -13,11 +13,11 @@ namespace hyperion {
 class RenderProxyList;
 struct GpuLightmapperReadyNotification;
 
-class HYP_API LightmapJob_GpuPathTracing : public LightmapJob
+class HYP_API LightmapJob_GpuPathTracing : public LightmapJobBase
 {
 public:
     LightmapJob_GpuPathTracing(LightmapJobParams&& params)
-        : LightmapJob(std::move(params))
+        : LightmapJobBase(std::move(params))
     {
     }
 
@@ -30,7 +30,7 @@ public:
 class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
-    LightmapRenderer_GpuPathTracing(Lightmapper* lightmapper, const Handle<Scene>& scene, LightmapShadingType shadingType);
+    LightmapRenderer_GpuPathTracing(LightmapperBase* lightmapper, const Handle<Scene>& scene, LightmapShadingType shadingType);
     LightmapRenderer_GpuPathTracing(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing& operator=(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
@@ -57,7 +57,7 @@ public:
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) override;
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJob* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
     void CreateUniformBuffer();
@@ -80,7 +80,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Lightmapper_GpuPathTracing : public Lightmapper
+class HYP_API Lightmapper_GpuPathTracing : public LightmapperBase
 {
     HYP_OBJECT_BODY(Lightmapper_GpuPathTracing);
 
@@ -89,7 +89,7 @@ public:
     virtual ~Lightmapper_GpuPathTracing() override = default;
 
 protected:
-    virtual UniquePtr<LightmapJob> CreateJob(LightmapJobParams&& params)
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob_GpuPathTracing>(std::move(params));
     }

@@ -21,7 +21,7 @@
 namespace hyperion {
 
 template <class... Args>
-static Handle<Lightmapper> CreateLightmapper(LightmapperConfig&& config, Args&&... args)
+static Handle<LightmapperBase> CreateLightmapper(LightmapperConfig&& config, Args&&... args)
 {
     switch (config.traceMode)
     {
@@ -117,7 +117,7 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, 
         return nullptr;
     }
 
-    Handle<Lightmapper> lightmapper = CreateLightmapper(LightmapperConfig::FromConfig(), scene, aabb);
+    Handle<LightmapperBase> lightmapper = CreateLightmapper(LightmapperConfig::FromConfig(), scene, aabb);
     InitObject(lightmapper);
 
     Task<void>& task = m_tasks.EmplaceBack();

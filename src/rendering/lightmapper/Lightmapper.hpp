@@ -34,9 +34,9 @@ using threading::TaskBatch;
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
 class ILightmapAccelerationStructure;
-class LightmapJob;
+class LightmapJobBase;
 class LightmapVolume;
-class Lightmapper;
+class LightmapperBase;
 struct LightmapElement;
 class AssetObject;
 
@@ -155,14 +155,14 @@ struct LightmapRayHitPayload
 class ILightmapRenderer
 {
 protected:
-    ILightmapRenderer(Lightmapper* lightmapper)
+    ILightmapRenderer(LightmapperBase* lightmapper)
         : m_lightmapper(lightmapper)
     {
         AssertDebug(lightmapper != nullptr);
     }
 
 public:
-    friend class Lightmapper;
+    friend class LightmapperBase;
 
     virtual ~ILightmapRenderer() = default;
 
@@ -176,13 +176,13 @@ public:
     }
 
     virtual void Create() = 0;
-    virtual void PrepareJob(LightmapJob* job) { };
+    virtual void PrepareJob(LightmapJobBase* job) { };
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) = 0;
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJob* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
+    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
 
 protected:
-    Lightmapper* m_lightmapper;
+    LightmapperBase* m_lightmapper;
 };
 
 struct LightmapJobParams
@@ -200,15 +200,18 @@ struct LightmapJobParams
     Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
-class HYP_API LightmapJob
+class HYP_API LightmapJobBase
 {
 public:
-    LightmapJob(LightmapJobParams&& params);
-    LightmapJob(const LightmapJob& other) = delete;
-    LightmapJob& operator=(const LightmapJob& other) = delete;
-    LightmapJob(LightmapJob&& other) noexcept = delete;
-    LightmapJob& operator=(LightmapJob&& other) noexcept = delete;
-    virtual ~LightmapJob();
+    explicit LightmapJobBase(LightmapJobParams&& params);
+
+    LightmapJobBase(const LightmapJobBase& other) = delete;
+    LightmapJobBase& operator=(const LightmapJobBase& other) = delete;
+
+    LightmapJobBase(LightmapJobBase&& other) noexcept = delete;
+    LightmapJobBase& operator=(LightmapJobBase&& other) noexcept = delete;
+
+    virtual ~LightmapJobBase();
 
     HYP_FORCE_INLINE const LightmapJobParams& GetParams() const
     {
@@ -356,17 +359,20 @@ protected:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API Lightmapper : public HypObjectBase
+class HYP_API LightmapperBase : public HypObjectBase
 {
-    HYP_OBJECT_BODY(Lightmapper);
+    HYP_OBJECT_BODY(LightmapperBase);
 
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
-    Lightmapper(const Lightmapper& other) = delete;
-    Lightmapper& operator=(const Lightmapper& other) = delete;
-    Lightmapper(Lightmapper&& other) noexcept = delete;
-    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
-    virtual ~Lightmapper();
+    LightmapperBase(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
+
+    LightmapperBase(const LightmapperBase& other) = delete;
+    LightmapperBase& operator=(const LightmapperBase& other) = delete;
+
+    LightmapperBase(LightmapperBase&& other) noexcept = delete;
+    LightmapperBase& operator=(LightmapperBase&& other) noexcept = delete;
+
+    virtual ~LightmapperBase() override;
 
     HYP_FORCE_INLINE const LightmapperConfig& GetConfig() const
     {
@@ -403,7 +409,7 @@ protected:
     {
     }
 
-    virtual UniquePtr<LightmapJob> CreateJob(LightmapJobParams&& params) = 0;
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) = 0;
 
     LightmapperConfig m_config;
@@ -423,7 +429,7 @@ private:
 
     LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
-    void AddJob(UniquePtr<LightmapJob>&& job)
+    void AddJob(UniquePtr<LightmapJobBase>&& job)
     {
         Mutex::Guard guard(m_queueMutex);
 
@@ -432,11 +438,11 @@ private:
         m_numJobs.Increment(1, MemoryOrder::RELEASE);
     }
 
-    void HandleCompletedJob(LightmapJob* job);
+    void HandleCompletedJob(LightmapJobBase* job);
 
     Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
 
-    Queue<UniquePtr<LightmapJob>> m_queue;
+    Queue<UniquePtr<LightmapJobBase>> m_queue;
     Mutex m_queueMutex;
     AtomicVar<uint32> m_numJobs;
 };

@@ -42,7 +42,7 @@ static void InitThreadLocalCache()
 
     if (thisThread)
     {
-        g_pThreadLocalCache = (ThreadLocalCacheMap*)thisThread->GetTLS().Alloc(sizeof(ThreadLocalCacheMap), alignof(ThreadLocalCacheMap));
+        g_pThreadLocalCache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
 
         if (g_pThreadLocalCache)
         {

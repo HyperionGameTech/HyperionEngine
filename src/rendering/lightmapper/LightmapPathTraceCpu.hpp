@@ -12,7 +12,7 @@ namespace hyperion {
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
 class LightmapTopLevelAccelerationStructure;
-class LightmapJob;
+class LightmapJobBase;
 class LightmapVolume;
 class AssetObject;
 class Light;
@@ -46,11 +46,11 @@ private:
     static uint32 NumThreadsToCreate();
 };
 
-class HYP_API LightmapJob_CpuPathTracing : public LightmapJob
+class HYP_API LightmapJob_CpuPathTracing : public LightmapJobBase
 {
 public:
     LightmapJob_CpuPathTracing(LightmapJobParams&& params)
-        : LightmapJob(std::move(params))
+        : LightmapJobBase(std::move(params))
     {
     }
 
@@ -63,7 +63,7 @@ public:
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {
 public:
-    LightmapRenderer_CpuPathTracing(Lightmapper* lightmapper, LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType);
+    LightmapRenderer_CpuPathTracing(LightmapperBase* lightmapper, LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType);
     LightmapRenderer_CpuPathTracing(const LightmapRenderer_CpuPathTracing& other) = delete;
     LightmapRenderer_CpuPathTracing& operator=(const LightmapRenderer_CpuPathTracing& other) = delete;
     LightmapRenderer_CpuPathTracing(LightmapRenderer_CpuPathTracing&& other) noexcept = delete;
@@ -83,7 +83,7 @@ public:
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) override;
-    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJob* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) override;
 
 private:
     struct SharedCpuData
@@ -92,9 +92,9 @@ private:
         HashMap<EnvProbe*, EnvProbeShaderData> envProbeData;
     };
 
-    void TraceSingleRayOnCPU(LightmapJob* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload);
-    float TraceShadowRay(LightmapJob* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi);
-    Vec3f EvaluateDiffuseLighting(LightmapJob* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal);
+    void TraceSingleRayOnCPU(LightmapJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload);
+    float TraceShadowRay(LightmapJobBase* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi);
+    Vec3f EvaluateDiffuseLighting(LightmapJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal);
 
     static SharedCpuData* CreateSharedCpuData(RenderProxyList& rpl);
 
@@ -112,7 +112,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Lightmapper_CpuPathTracing : public Lightmapper
+class HYP_API Lightmapper_CpuPathTracing : public LightmapperBase
 {
     HYP_OBJECT_BODY(Lightmapper_CpuPathTracing);
 
@@ -169,7 +169,7 @@ public:
     virtual ~Lightmapper_CpuPathTracing() override;
 
 private:
-    virtual UniquePtr<LightmapJob> CreateJob(LightmapJobParams&& params)
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
     {
         return MakeUnique<LightmapJob_CpuPathTracing>(std::move(params));
     }

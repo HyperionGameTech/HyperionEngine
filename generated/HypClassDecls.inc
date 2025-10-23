@@ -177,7 +177,7 @@ HYP_API extern const HypClass* g_clsLightmapTraceMode;
 HYP_API extern const HypClass* g_clsLightmapVolume;
 HYP_API extern const HypClass* g_clsLightmapVolumeAtlas;
 HYP_API extern const HypClass* g_clsLightmapVolumeComponent;
-HYP_API extern const HypClass* g_clsLightmapper;
+HYP_API extern const HypClass* g_clsLightmapperBase;
 HYP_API extern const HypClass* g_clsLightmapperConfig;
 HYP_API extern const HypClass* g_clsLightmapperSubsystem;
 HYP_API extern const HypClass* g_clsLightmapper_CpuPathTracing;

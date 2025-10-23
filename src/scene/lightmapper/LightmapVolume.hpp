@@ -20,7 +20,7 @@ namespace hyperion {
 
 class Texture;
 struct LightmapUVMap;
-class LightmapJob;
+class LightmapJobBase;
 class RenderProxyLightmapVolume;
 
 HYP_ENUM()

@@ -18,7 +18,7 @@
 
 namespace hyperion {
 
-class Lightmapper;
+class LightmapperBase;
 class Scene;
 
 HYP_CLASS()
@@ -37,7 +37,7 @@ public:
     Task<void>* GenerateLightmaps(const Handle<Scene>& scene, const BoundingBox& aabb);
 
 private:
-    HashMap<ObjId<Scene>, Handle<Lightmapper>> m_lightmappers;
+    HashMap<ObjId<Scene>, Handle<LightmapperBase>> m_lightmappers;
     LinkedList<Task<void>> m_tasks;
 };
 

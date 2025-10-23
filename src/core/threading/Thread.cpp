@@ -60,7 +60,7 @@ HYP_API void OnCurrentThreadExit()
     if (g_onThreadExit)
     {
         (*g_onThreadExit)();
-        
+
         delete g_onThreadExit;
         g_onThreadExit = nullptr;
     }
@@ -91,12 +91,12 @@ ThreadLocalStorage& ThreadBase::GetTLS() const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_id);
-    
-    if (!m_tls)
+
+    if (HYP_UNLIKELY(!m_tls))
     {
         m_tls = new ThreadLocalStorage();
     }
-    
+
     return *m_tls;
 }
 
@@ -104,12 +104,12 @@ void ThreadBase::AtExit(Proc<void()>&& proc)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_id);
-    
+
     if (!g_onThreadExit)
     {
         g_onThreadExit = new Delegate<void>();
     }
-    
+
     g_onThreadExit->Bind(std::move(proc)).Detach();
 }
 

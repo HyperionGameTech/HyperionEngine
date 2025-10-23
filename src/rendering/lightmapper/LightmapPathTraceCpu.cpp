@@ -372,7 +372,7 @@ void LightmapJob_CpuPathTracing::IntegrateRayHits(Span<const LightmapRay> rays, 
 #pragma region LightmapRenderer_CpuPathTracing
 
 LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(
-    Lightmapper* lightmapper,
+    LightmapperBase* lightmapper,
     LightmapTopLevelAccelerationStructure* accelerationStructure,
     LightmapThreadPool* threadPool,
     const Handle<Scene>& scene,
@@ -412,7 +412,7 @@ void LightmapRenderer_CpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<Ligh
     Memory::MemCpy(outHits.Data(), m_hitsBuffer.Data(), m_hitsBuffer.ByteSize());
 }
 
-Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(LightmapJob* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal)
+Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(LightmapJobBase* job, Light* light, const LightShaderData& bufferData, const Vec3f& albedo, const Vec3f& position, const Vec3f& normal)
 {
     Assert(light != nullptr);
 
@@ -492,7 +492,7 @@ LightmapRenderer_CpuPathTracing::SharedCpuData* LightmapRenderer_CpuPathTracing:
     return sharedCpuData;
 }
 
-void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJob* job, Span<const LightmapRay> rays, uint32 rayOffset)
+void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     Threads::AssertOnThread(g_renderThread);
 
@@ -644,7 +644,7 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
     job->AddTask(taskBatch);
 }
 
-void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJob* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload)
+void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJobBase* job, const LightmapRay& ray, LightmapRayHitPayload& outPayload)
 {
     outPayload.albedo = Vec3f(0.0f);
     outPayload.emissive = Vec3f(0.0f);
@@ -717,7 +717,7 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJob* job, cons
     }
 }
 
-float LightmapRenderer_CpuPathTracing::TraceShadowRay(LightmapJob* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi)
+float LightmapRenderer_CpuPathTracing::TraceShadowRay(LightmapJobBase* job, const Vec3f& pos, const Vec3f& dir, const Vec3f& wi)
 {
     const float eps = 1e-3f;
     const float sign = dir.Dot(wi) > 0.0f ? 1.0f : -1.0f;
@@ -739,7 +739,7 @@ float LightmapRenderer_CpuPathTracing::TraceShadowRay(LightmapJob* job, const Ve
 #pragma region Lightmapper_CpuPathTracing
 
 Lightmapper_CpuPathTracing::Lightmapper_CpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
-    : Lightmapper(std::move(config), scene, aabb)
+    : LightmapperBase(std::move(config), scene, aabb)
 {
 }
 

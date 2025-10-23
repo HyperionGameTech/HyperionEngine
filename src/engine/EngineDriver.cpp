@@ -82,50 +82,6 @@ extern const GlobalConfig& CoreApi_GetGlobalConfig();
 extern FilePath CoreApi_GetExecutablePath();
 extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
-#pragma region EngineMemory
-
-Pool* s_enginePools[EPN_MAX];
-HYP_API bool g_enginePoolsInitialized = false;
-
-static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
-    &ThreadId::Invalid(), // EPN_CORE
-    &g_renderThread,      // EPN_RENDER
-    &ThreadId::Invalid()  // EPN_SCENE
-};
-
-HYP_API void EngineMemory_Initialize()
-{
-    // init pools
-    s_enginePools[EPN_CORE] = g_objectPool;
-    s_enginePools[EPN_RENDER] = g_renderPool;
-    s_enginePools[EPN_SCENE] = g_scenePool;
-
-    g_enginePoolsInitialized = true;
-}
-
-HYP_API void EngineMemory_Shutdown()
-{
-}
-
-HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName)
-{
-    AssertDebug(poolName < EPN_MAX && poolName >= 0);
-    return *s_enginePoolThreadIds[poolName];
-}
-
-HYP_API Pool* EngineMemory_GetPool(EnginePoolName poolName)
-{
-    AssertDebug(poolName < EPN_MAX && poolName >= 0);
-    return s_enginePools[poolName];
-}
-
-HYP_API EnginePoolName EngineMemory_GetPoolName(const char* str)
-{
-    return EnumValue<EnginePoolName>(str, EPN_INVALID);
-}
-
-#pragma endregion EngineMemory
-
 #pragma region RenderThread
 
 class RenderThread final : public Thread<Scheduler>

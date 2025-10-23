@@ -171,11 +171,11 @@ View::View(const ViewDesc& viewDesc)
             continue;
         }
 
-        Pool* pool = (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
-            ? g_scenePool
-            : g_framePools[std::distance(std::begin(m_renderProxyLists), it)];
+        // Pool* pool = (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
+        //     ? g_scenePool
+        //     : g_framePools[std::distance(std::begin(m_renderProxyLists), it)];
 
-        *it = new RenderProxyList(pool, /* isShared */ true, /* useRefCounting */ true);
+        *it = new RenderProxyList(g_scenePool, /* isShared */ true, /* useRefCounting */ true);
     }
 }
 
@@ -185,27 +185,27 @@ View::~View()
 
     for (uint32 i = 0; i < HYP_ARRAY_SIZE(m_renderProxyLists); i++)
     {
-        if (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
+        // if (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
+        // {
+        // if render proxy lists aren't unique, we just delete the first one and break the loop
+        if ((m_flags & ViewFlags::NOT_MULTI_BUFFERED) && i > 0)
         {
-            // if render proxy lists aren't unique, we just delete the first one and break the loop
-            if (i > 0)
-            {
-                break;
-            }
-
-            delete m_renderProxyLists[i];
+            break;
         }
-        else
-        {
-            // delete it on the correct frame
-            RenderProxyList** ppPayload = GetSafeDeleterInstance()->AllocCustom<RenderProxyList*>([](void* ptr)
-                {
-                    delete *reinterpret_cast<RenderProxyList**>(ptr);
-                },
-                /* desiredIdx */ i);
 
-            *ppPayload = m_renderProxyLists[i];
-        }
+        delete m_renderProxyLists[i];
+        // }
+        // else
+        // {
+        //     // // delete it on the correct frame
+        //     // RenderProxyList** ppPayload = GetSafeDeleterInstance()->AllocCustom<RenderProxyList*>([](void* ptr)
+        //     //     {
+        //     //         delete *reinterpret_cast<RenderProxyList**>(ptr);
+        //     //     },
+        //     //     /* desiredIdx */ i);
+
+        //     // *ppPayload = m_renderProxyLists[i];
+        // }
     }
 
     if (m_camera != nullptr)

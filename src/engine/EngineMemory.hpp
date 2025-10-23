@@ -31,11 +31,6 @@ enum EnginePoolName : int
     EPN_MAX
 };
 
-HYP_API extern void EngineMemory_Initialize();
-HYP_API extern void EngineMemory_Shutdown();
-
-HYP_API extern const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName);
-HYP_API extern Pool* EngineMemory_GetPool(EnginePoolName poolName);
-HYP_API extern EnginePoolName EngineMemory_GetPoolName(const char* str);
+HYP_API extern Pool* const* g_enginePools[EPN_MAX];
 
 } // namespace hyperion

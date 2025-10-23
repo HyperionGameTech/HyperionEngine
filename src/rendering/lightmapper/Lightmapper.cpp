@@ -69,13 +69,13 @@ namespace hyperion {
 struct RENDER_COMMAND(LightmapRender)
     : RenderCommand
 {
-    LightmapJob* job;
+    LightmapJobBase* job;
     Handle<World> world;
     Handle<View> view;
     Array<LightmapRay> rays;
     uint32 rayOffset;
 
-    RENDER_COMMAND(LightmapRender)(LightmapJob* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
+    RENDER_COMMAND(LightmapRender)(LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
         : job(job),
           world(world),
           view(view),
@@ -179,11 +179,11 @@ void LightmapperConfig::PostLoadCallback()
 
 #pragma endregion LightmapperConfig
 
-#pragma region LightmapJob
+#pragma region LightmapJobBase
 
-static constexpr uint32 g_maxConcurrentRenderingTasksPerJob = 1;
+static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 
-LightmapJob::LightmapJob(LightmapJobParams&& params)
+LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
     : m_params(std::move(params)),
       m_texelIndex(0),
       m_lightmapElement(nullptr),
@@ -192,7 +192,7 @@ LightmapJob::LightmapJob(LightmapJobParams&& params)
 {
 }
 
-LightmapJob::~LightmapJob()
+LightmapJobBase::~LightmapJobBase()
 {
     for (TaskBatch* taskBatch : m_currentTasks)
     {
@@ -204,7 +204,7 @@ LightmapJob::~LightmapJob()
     delete m_lightmapElement;
 }
 
-void LightmapJob::Start()
+void LightmapJobBase::Start()
 {
     m_runningSemaphore.Produce(1, [this](bool)
         {
@@ -231,12 +231,12 @@ void LightmapJob::Start()
         });
 }
 
-void LightmapJob::Stop()
+void LightmapJobBase::Stop()
 {
     m_runningSemaphore.Release(1);
 }
 
-void LightmapJob::Stop(const Error& error)
+void LightmapJobBase::Stop(const Error& error)
 {
     HYP_LOG(Lightmap, Error, "Lightmap job {} stopped with error: {}", m_uuid, error.GetMessage());
 
@@ -245,19 +245,19 @@ void LightmapJob::Stop(const Error& error)
     Stop();
 }
 
-bool LightmapJob::IsCompleted() const
+bool LightmapJobBase::IsCompleted() const
 {
     return !m_runningSemaphore.IsInSignalState();
 }
 
-void LightmapJob::AddTask(TaskBatch* taskBatch)
+void LightmapJobBase::AddTask(TaskBatch* taskBatch)
 {
     Mutex::Guard guard(m_currentTasksMutex);
 
     m_currentTasks.PushBack(taskBatch);
 }
 
-void LightmapJob::Process()
+void LightmapJobBase::Process()
 {
     Assert(IsRunning());
     Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
@@ -333,7 +333,7 @@ void LightmapJob::Process()
     view->UpdateVisibility();
     view->CollectSync();
 
-    if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= g_maxConcurrentRenderingTasksPerJob)
+    if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= MaxConcurrentRenderingTasksPerJob)
     {
         // Wait for current rendering tasks to complete before enqueueing new ones.
 
@@ -439,11 +439,11 @@ void LightmapJob::Process()
     PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
 }
 
-#pragma endregion LightmapJob
+#pragma endregion LightmapJobBase
 
-#pragma region Lightmapper
+#pragma region LightmapperBase
 
-Lightmapper::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
+LightmapperBase::LightmapperBase(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
     : m_config(std::move(config)),
       m_scene(scene),
       m_aabb(aabb),
@@ -451,7 +451,7 @@ Lightmapper::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene,
 {
 }
 
-Lightmapper::~Lightmapper()
+LightmapperBase::~LightmapperBase()
 {
     m_lightmapRenderers = {};
 
@@ -465,12 +465,12 @@ Lightmapper::~Lightmapper()
     }
 }
 
-bool Lightmapper::IsComplete() const
+bool LightmapperBase::IsComplete() const
 {
     return m_numJobs.Get(MemoryOrder::ACQUIRE) == 0;
 }
 
-void Lightmapper::Initialize()
+void LightmapperBase::Initialize()
 {
     HYP_LOG(Lightmap, Info, "Initializing lightmapper: {}", m_config.ToString());
 
@@ -553,7 +553,7 @@ void Lightmapper::Initialize()
     Assert(m_lightmapRenderers.Any());
 }
 
-LightmapJobParams Lightmapper::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
+LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
     AssertDebug(m_volume != nullptr);
 
@@ -570,7 +570,7 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(SizeType startIndex, Size
     return jobParams;
 }
 
-void Lightmapper::Build()
+void LightmapperBase::Build()
 {
     HYP_SCOPE;
     const uint32 idealTrianglesPerJob = m_config.idealTrianglesPerJob;
@@ -636,7 +636,7 @@ void Lightmapper::Build()
 
         if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
         {
-            UniquePtr<LightmapJob> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
+            UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
 
             startIndex = index + 1;
 
@@ -650,13 +650,13 @@ void Lightmapper::Build()
 
     if (startIndex < m_subElements.Size() - 1)
     {
-        UniquePtr<LightmapJob> job = CreateJob(CreateLightmapJobParams(startIndex, m_subElements.Size()));
+        UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, m_subElements.Size()));
 
         AddJob(std::move(job));
     }
 }
 
-void Lightmapper::Update(float delta)
+void LightmapperBase::Update(float delta)
 {
     HYP_SCOPE;
 
@@ -665,7 +665,7 @@ void Lightmapper::Update(float delta)
     Mutex::Guard guard(m_queueMutex);
 
     Assert(!m_queue.Empty());
-    LightmapJob* job = m_queue.Front().Get();
+    LightmapJobBase* job = m_queue.Front().Get();
 
     // Start job if not started
     if (!job->IsRunning())
@@ -681,7 +681,7 @@ void Lightmapper::Update(float delta)
     }
 }
 
-void Lightmapper::HandleCompletedJob(LightmapJob* job)
+void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -829,6 +829,6 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
     }
 }
 
-#pragma endregion Lightmapper
+#pragma endregion LightmapperBase
 
 } // namespace hyperion

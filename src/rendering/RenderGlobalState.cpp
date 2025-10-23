@@ -524,7 +524,7 @@ struct FrameData
 
 static FrameData s_frameData[NumMultiBuffers];
 static HashMap<View*, ViewData*> s_viewData;
-static ResourceContainer s_resources;
+static ResourceContainer* s_resources;
 
 static ViewData* GetViewData(View* view)
 {
@@ -567,6 +567,8 @@ void RenderApi_Init()
     HYP_SCOPE;
     Threads::AssertOnThread(g_mainThread);
 
+    s_resources = PoolNew<ResourceContainer>(*g_renderPool);
+
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
     Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
@@ -599,7 +601,7 @@ void RenderApi_Init()
     g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
 
     ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
-    registry.InvokeAll(s_resources);
+    registry.InvokeAll(*s_resources);
 
     registry.funcs.Clear();
 }
@@ -632,6 +634,9 @@ void RenderApi_Shutdown()
     }
 
     s_viewData.Clear();
+
+    PoolDelete(*g_renderPool, s_resources);
+    s_resources = nullptr;
 
     delete g_renderGlobalState;
     g_renderGlobalState = nullptr;
@@ -765,7 +770,7 @@ static void SyncResources(
         const ObjId<ElementType> resourceId = pResource->Id();
         AssertDebug(resourceId.IsValid());
 
-        ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(pResource->InstanceClass());
+        ResourceSubtypeData& subtypeData = s_resources->GetSubtypeData(pResource->InstanceClass());
         AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
         ResourceData* rd = subtypeData.data.TryGet(resourceId.ToIndex());
@@ -796,7 +801,7 @@ static void SyncResources(
         const ObjId<ElementType> resourceId = pResource->Id();
         AssertDebug(resourceId.IsValid());
 
-        ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(pResource->InstanceClass());
+        ResourceSubtypeData& subtypeData = s_resources->GetSubtypeData(pResource->InstanceClass());
         AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
         ResourceData* rd = subtypeData.data.TryGet(resourceId.ToIndex());
@@ -830,7 +835,7 @@ static void SyncResources(
                 const ProxyType* pSrcProxy = src.GetProxy(resourceId);
                 AssertDebug(pSrcProxy != nullptr);
 
-                ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(pResource->InstanceClass());
+                ResourceSubtypeData& subtypeData = s_resources->GetSubtypeData(pResource->InstanceClass());
 
                 ProxyType* pDstProxy = dst.SetProxy(resourceId, *pSrcProxy);
                 CopyRenderProxy(subtypeData, resourceId, pDstProxy);
@@ -922,7 +927,7 @@ IRenderProxy* RenderApi_GetRenderProxy(const HypObjectBase* resource)
 
     AssertDebug(resource != nullptr);
 
-    ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = s_resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(subtypeData.hasProxyData,
         "Cannot use GetRenderProxy() for type which does not have a RenderProxy! Type name: {}",
         subtypeData.typeInfo->name);
@@ -952,7 +957,7 @@ void RenderApi_UpdateGpuData(const HypObjectBase* resource)
 
     const ObjIdBase resourceId = resource->Id();
 
-    ResourceSubtypeData& subtypeData = s_resources.GetSubtypeData(resource->InstanceClass());
+    ResourceSubtypeData& subtypeData = s_resources->GetSubtypeData(resource->InstanceClass());
     AssertDebug(resourceId.GetTypeId() == subtypeData.typeInfo->id);
 
     AssertDebug(subtypeData.gpuBufferHolder != nullptr,
@@ -1105,7 +1110,7 @@ void RenderApi_BeginFrame_RenderThread()
         vfd.rplShared->EndRead();
     }
 
-    for (ResourceSubtypeData& subtypeData : s_resources.dataByType)
+    for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
         for (ResourceData& elem : subtypeData.data)
         {
@@ -1171,7 +1176,7 @@ void RenderApi_BeginFrame_RenderThread()
         vd.rplRender.EndRead();
     }
 
-    for (ResourceSubtypeData& subtypeData : s_resources.dataByType)
+    for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
         if (subtypeData.indicesPendingUpdate.Count() != 0)
         {
@@ -1193,8 +1198,8 @@ void RenderApi_BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::notFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::notFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1294,7 +1299,7 @@ void RenderApi_EndFrame_RenderThread()
 
     numCleanupCycles -= g_renderGlobalState->graphicsPipelineCache->RunCleanupCycle(16);
 
-    for (ResourceSubtypeData& subtypeData : s_resources.dataByType)
+    for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
         for (Bitset::BitIndex i : subtypeData.indicesPendingDelete)
         {

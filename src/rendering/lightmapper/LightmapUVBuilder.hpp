@@ -119,6 +119,7 @@ public:
 
     LightmapUVBuilder(const LightmapUVBuilder& other) = default;
     LightmapUVBuilder(LightmapUVBuilder&& other) noexcept = default;
+
     LightmapUVBuilder& operator=(const LightmapUVBuilder& other) = default;
     LightmapUVBuilder& operator=(LightmapUVBuilder&& other) noexcept = default;
 

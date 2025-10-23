@@ -58,6 +58,8 @@
 
 namespace hyperion {
 
+HYP_DECLARE_LOG_CHANNEL(Engine);
+
 #pragma region Memory Pools
 
 static constexpr SizeType ObjectPoolBlockSize = 16 * 1024 * 1024;
@@ -72,6 +74,12 @@ HYP_API Pool* g_framePools[NumMultiBuffers];
 HYP_API Pool* g_scenePool;
 HYP_API Pool* g_taskPool;
 
+Pool* const* g_enginePools[EPN_MAX] = {
+    &g_objectPool, // EPN_CORE
+    &g_renderPool, // EPN_RENDER
+    &g_scenePool   // EPN_SCENE
+};
+
 HYP_API Pool* GetCurrentFramePool()
 {
     const uint32 currentFrameIndex = RenderApi_GetFrameIndex();
@@ -79,9 +87,7 @@ HYP_API Pool* GetCurrentFramePool()
     return g_framePools[currentFrameIndex];
 }
 
-#pragma endregion MemoryPools
-
-HYP_DECLARE_LOG_CHANNEL(Engine);
+#pragma endregion Memory Pools
 
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
@@ -153,8 +159,6 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
     g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
     g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
-
-    EngineMemory_Initialize();
 
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
@@ -317,8 +321,6 @@ HYP_API void DestroyEngine()
 
     delete g_safeDeleter;
     g_safeDeleter = nullptr;
-
-    EngineMemory_Shutdown();
 }
 
 } // namespace hyperion

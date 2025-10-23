@@ -279,10 +279,10 @@ public:
     // use a sparse array so we can use IDs as indices
     // without worring about hashing for lookups and allowing us to
     // still iterate over the elements (mostly) linearly.
-    using ElementArrayType = SparsePagedArray<ElementType, 256, AllocatorType>;
-    using VersionArrayType = SparsePagedArray<int, 256, AllocatorType>; // mirrors elements array
+    using ElementArrayType = SparsePagedArray<ElementType, 16, AllocatorType>;
+    using VersionArrayType = SparsePagedArray<int, 16, AllocatorType>; // mirrors elements array
 
-    using ProxyArrayType = SparsePagedArray<ProxyType, 1024, AllocatorType>;
+    using ProxyArrayType = SparsePagedArray<ProxyType, 16, AllocatorType>;
 
     static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 
@@ -505,8 +505,8 @@ public:
         subclassImpls[subclassIndex]->MarkToRemove(id);
     }
 
-    template <class AllocatorType>
-    void GetRemoved(Array<IdType, AllocatorType>& outIds, bool includeChanged) const
+    template <class ArrayAllocatorType>
+    void GetRemoved(Array<IdType, ArrayAllocatorType>& outIds, bool includeChanged) const
     {
         HYP_SCOPE;
 
@@ -518,8 +518,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetRemoved(Array<ElementType, AllocatorType>& out, bool includeChanged) const
+    template <class ArrayAllocatorType>
+    void GetRemoved(Array<ElementType, ArrayAllocatorType>& out, bool includeChanged) const
     {
         HYP_SCOPE;
 
@@ -531,8 +531,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetRemoved(Array<ElementType*, AllocatorType>& out, bool includeChanged) const
+    template <class ArrayAllocatorType>
+    void GetRemoved(Array<ElementType*, ArrayAllocatorType>& out, bool includeChanged) const
     {
         HYP_SCOPE;
 
@@ -544,8 +544,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetAdded(Array<IdType, AllocatorType>& outIds, bool includeChanged) const
+    template <class ArrayAllocatorType>
+    void GetAdded(Array<IdType, ArrayAllocatorType>& outIds, bool includeChanged) const
     {
         HYP_SCOPE;
 
@@ -557,8 +557,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetAdded(Array<ElementType, AllocatorType>& out, bool includeChanged) const
+    template <class ArrayAllocatorType>
+    void GetAdded(Array<ElementType, ArrayAllocatorType>& out, bool includeChanged) const
     {
         HYP_SCOPE;
 
@@ -570,8 +570,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetAdded(Array<ElementType*, AllocatorType>& out, bool includeChanged) const
+    template <class ArrayAllocatorType>
+    void GetAdded(Array<ElementType*, ArrayAllocatorType>& out, bool includeChanged) const
     {
         HYP_SCOPE;
 
@@ -583,8 +583,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetChanged(Array<IdType, AllocatorType>& outIds) const
+    template <class ArrayAllocatorType>
+    void GetChanged(Array<IdType, ArrayAllocatorType>& outIds) const
     {
         HYP_SCOPE;
 
@@ -596,8 +596,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetChanged(Array<ElementType, AllocatorType>& out) const
+    template <class ArrayAllocatorType>
+    void GetChanged(Array<ElementType, ArrayAllocatorType>& out) const
     {
         HYP_SCOPE;
 
@@ -609,8 +609,8 @@ public:
         }
     }
 
-    template <class AllocatorType>
-    void GetChanged(Array<ElementType*, AllocatorType>& out) const
+    template <class ArrayAllocatorType>
+    void GetChanged(Array<ElementType*, ArrayAllocatorType>& out) const
     {
         HYP_SCOPE;
 
@@ -946,8 +946,8 @@ public:
             next.Set(id.ToIndex(), false);
         }
 
-        template <class AllocatorType>
-        void GetRemoved(Array<IdType, AllocatorType>& outIds, bool includeChanged) const
+        template <class ArrayAllocatorType>
+        void GetRemoved(Array<IdType, ArrayAllocatorType>& outIds, bool includeChanged) const
         {
             HYP_SCOPE;
 
@@ -968,8 +968,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetRemoved(Array<ElementType, AllocatorType>& out, bool includeChanged) const
+        template <class ArrayAllocatorType>
+        void GetRemoved(Array<ElementType, ArrayAllocatorType>& out, bool includeChanged) const
         {
             HYP_SCOPE;
 
@@ -993,8 +993,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetRemoved(Array<ElementType*, AllocatorType>& out, bool includeChanged) const
+        template <class ArrayAllocatorType>
+        void GetRemoved(Array<ElementType*, ArrayAllocatorType>& out, bool includeChanged) const
         {
             HYP_SCOPE;
 
@@ -1018,8 +1018,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetAdded(Array<IdType, AllocatorType>& outIds, bool includeChanged) const
+        template <class ArrayAllocatorType>
+        void GetAdded(Array<IdType, ArrayAllocatorType>& outIds, bool includeChanged) const
         {
             HYP_SCOPE;
 
@@ -1040,8 +1040,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetAdded(Array<ElementType, AllocatorType>& out, bool includeChanged) const
+        template <class ArrayAllocatorType>
+        void GetAdded(Array<ElementType, ArrayAllocatorType>& out, bool includeChanged) const
         {
             HYP_SCOPE;
 
@@ -1065,8 +1065,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetAdded(Array<ElementType*, AllocatorType>& out, bool includeChanged) const
+        template <class ArrayAllocatorType>
+        void GetAdded(Array<ElementType*, ArrayAllocatorType>& out, bool includeChanged) const
         {
             HYP_SCOPE;
 
@@ -1090,8 +1090,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetChanged(Array<IdType, AllocatorType>& outIds) const
+        template <class ArrayAllocatorType>
+        void GetChanged(Array<IdType, ArrayAllocatorType>& outIds) const
         {
             HYP_SCOPE;
 
@@ -1107,8 +1107,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetChanged(Array<ElementType, AllocatorType>& out) const
+        template <class ArrayAllocatorType>
+        void GetChanged(Array<ElementType, ArrayAllocatorType>& out) const
         {
             HYP_SCOPE;
 
@@ -1127,8 +1127,8 @@ public:
             }
         }
 
-        template <class AllocatorType>
-        void GetChanged(Array<ElementType*, AllocatorType>& out) const
+        template <class ArrayAllocatorType>
+        void GetChanged(Array<ElementType*, ArrayAllocatorType>& out) const
         {
             HYP_SCOPE;
 

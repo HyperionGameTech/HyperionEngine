@@ -18,7 +18,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-HYP_API Pool* g_editorPickCachePool;
+Pool s_editorPickCachePool { EditorPickCache::MaxMemoryUsageBytes };
+HYP_API Pool* g_editorPickCachePool = &s_editorPickCachePool;
 
 static Handle<AssetPackage> GetImportsPackage()
 {
@@ -90,16 +91,10 @@ static void RegisterPackageAssets(const Handle<EditorProject>& project, const Ha
 
 EditorState::EditorState()
 {
-    AssertDebug(g_editorPickCachePool == nullptr);
-    g_editorPickCachePool = new Pool(EditorPickCache::MaxMemoryUsageBytes);
 }
 
 EditorState::~EditorState()
 {
-    AssertDebug(g_editorPickCachePool != nullptr);
-
-    delete g_editorPickCachePool;
-    g_editorPickCachePool = nullptr;
 }
 
 void EditorState::Init()

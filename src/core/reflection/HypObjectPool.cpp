@@ -6,15 +6,14 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+#include <engine/EngineMemory.hpp>
+#endif
+
 namespace hyperion {
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-
-enum EnginePoolName : int;
-
-HYP_API extern Pool* EngineMemory_GetPool(EnginePoolName poolName);
-HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName);
-
+HYP_API extern Pool* g_objectPool;
 #endif
 
 HYP_API void ReleaseHypObject(HypObjectHeader* header)
@@ -129,26 +128,25 @@ static Spinlock<MPMC>& GetLock()
     return s_lock;
 }
 
-static Pool& GetPool()
+static Pool* GetPool()
 {
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    return *EngineMemory_GetPool((EnginePoolName)0);
+    return g_objectPool;
 #else
     static Pool s_globalPool { 16 * 1024 * 1024 };
-    return s_globalPool;
+    return &s_globalPool;
 #endif
 }
 
-static Pool& GetPoolForClass(const HypClass* hypClass)
+static Pool* GetPoolForClass(const HypClass* hypClass)
 {
     HYP_CORE_ASSERT(hypClass != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    Pool* pool = EngineMemory_GetPool(hypClass->GetEnginePoolName());
-    if (pool != nullptr)
-    {
-        return *pool;
-    }
+    Pool* const* pool = g_enginePools[hypClass->GetEnginePoolName()];
+    HYP_CORE_ASSERT(pool != nullptr && *pool != nullptr, "Engine pool not found for %u", uint32(hypClass->GetEnginePoolName()));
+
+    return *pool;
 #endif
 
     return GetPool();
@@ -158,20 +156,22 @@ static Pool& GetPoolForClass(const HypClass* hypClass)
 
 HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const HypClass* hypClass)
     : m_typeId(typeId),
-      m_hypClass(hypClass),
-      m_pool(&GetPoolForClass(hypClass))
+      m_hypClass(hypClass)
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void());
-    HYP_CORE_ASSERT(m_pool != nullptr);
 }
 
-void HypObjectContainerBase::LockPoolOrThreadAssert(LockGuard& outGuard, int flags) const
+Pool* HypObjectContainerBase::GetPool() const
 {
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    EnginePoolName poolName = m_hypClass->GetEnginePoolName();
-    HYP_CORE_ASSERT(poolName >= 0);
+    return GetPoolForClass(m_hypClass);
+}
 
-    if ((int)poolName == 0)
+void HypObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags)
+{
+    HYP_CORE_ASSERT(pool != nullptr);
+
+#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
+    if (pool->GetFlags() & PF_THREAD_SAFE)
     {
 #endif
         Spinlock<MPMC>& lock = GetLock();
@@ -192,7 +192,7 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(LockGuard& outGuard, int fla
             EngineMemory_GetPoolThreadId(poolName).GetName());
     }*/
 
-    Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "HypObject can only be created/destroyed from its owning pool thread");
+    // Threads::AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "HypObject can only be created/destroyed from its owning pool thread");
 #endif
 }
 

@@ -87,12 +87,12 @@ protected:
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
-    HYP_API void LockPoolOrThreadAssert(LockGuard& outGuard, int flags) const;
+    HYP_API Pool* GetPool() const;
+    HYP_API static void LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags);
 
     TypeId m_typeId;
     const HypClass* m_hypClass;
     IdGenerator m_idGenerator;
-    Pool* m_pool;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -248,9 +248,11 @@ public:
     {
         Array<HypObjectHeader*> headers;
 
+        Pool* pool = GetPool();
+
         {
             LockGuard guard;
-            LockPoolOrThreadAssert(guard, PF_NONE);
+            LockPoolOrThreadAssert(pool, guard, PF_NONE);
 
             for (auto& header : m_headers)
             {
@@ -267,7 +269,7 @@ public:
         }
 
         LockGuard guard;
-        LockPoolOrThreadAssert(guard, PF_WRITER | PF_FREE);
+        LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_FREE);
 
         /// @FIXME: This is not safe if the destructor of T tries to allocate more objects from the pool during
         // its destruction
@@ -275,7 +277,7 @@ public:
         // Free all allocated elements
         for (HypObjectHeader* header : headers)
         {
-            m_pool->Free(header);
+            pool->Free(header);
         }
     }
 
@@ -291,10 +293,12 @@ public:
         // allocation would be the header size + object size, aligned to the object alignment
         const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
-        LockGuard guard;
-        LockPoolOrThreadAssert(guard, PF_WRITER | PF_ALLOCATE);
+        Pool* pool = GetPool();
 
-        void* mem = m_pool->Allocate(totalSize, MaxObjectAlignment);
+        LockGuard guard;
+        LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_ALLOCATE);
+
+        void* mem = pool->Allocate(totalSize, MaxObjectAlignment);
 
         // header needs to have padding in front of it so we can get the header from the object pointer
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), MaxObjectAlignment) - sizeof(HypObjectHeader);
@@ -317,7 +321,8 @@ public:
             return nullptr;
         }
 
-        LockPoolOrThreadAssert(outGuard, PF_NONE);
+        Pool* pool = GetPool();
+        LockPoolOrThreadAssert(pool, outGuard, PF_NONE);
 
         if (!m_headers.HasIndex(index))
         {
@@ -331,8 +336,10 @@ public:
     {
         HYP_CORE_ASSERT(header != nullptr);
 
+        Pool* pool = GetPool();
+
         LockGuard guard;
-        LockPoolOrThreadAssert(guard, PF_WRITER | PF_FREE);
+        LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;
         HYP_CORE_ASSERT(index != ~0u, "Invalid index");
@@ -342,7 +349,7 @@ public:
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(HypObjectHeader), 16) - sizeof(HypObjectHeader);
 
         void* mem = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(header) - HeaderOffset);
-        m_pool->Free(mem);
+        pool->Free(mem);
 
         m_headers.EraseAt(index);
     }

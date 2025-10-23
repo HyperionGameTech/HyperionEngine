@@ -158,7 +158,7 @@ void LightmapJob_GpuPathTracing::IntegrateRayHits(Span<const LightmapRay> rays, 
 #pragma region LightmapRenderer_GpuPathTracing
 
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
-    Lightmapper* lightmapper,
+    LightmapperBase* lightmapper,
     const Handle<Scene>& scene,
     LightmapShadingType shadingType)
     : ILightmapRenderer(lightmapper),
@@ -441,7 +441,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(FrameBase* frame, Span<Ligh
     stagingBuffer.Reset();
 }
 
-void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJob* job, Span<const LightmapRay> rays, uint32 rayOffset)
+void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -528,7 +528,7 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 #pragma region Lightmapper_GpuPathTracing
 
 Lightmapper_GpuPathTracing::Lightmapper_GpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
-    : Lightmapper(std::move(config), scene, aabb)
+    : LightmapperBase(std::move(config), scene, aabb)
 {
 }
 

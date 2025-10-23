@@ -515,7 +515,7 @@ const char* LookupTypeName(TypeId typeId)
             return "<could not lookup type name>";
         }
 
-        g_formattedStringMap = currentThreadObject->GetTLS().Alloc<FormattedStringMap>();
+        g_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
         InitFormattedStringMap(g_formattedStringMap);
 
         currentThreadObject->AtExit([]()
@@ -666,7 +666,7 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
     HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    // default to CORE pool
+    // objects pool
     m_enginePoolName = (EnginePoolName)0;
 #endif
 
