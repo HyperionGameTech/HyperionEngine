@@ -66,6 +66,7 @@ static constexpr SizeType FramePoolBlockSize = 4 * 1024 * 1024;
 static constexpr SizeType ScenePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType TaskPoolBlockSize = 4 * 1024 * 1024;
 
+HYP_API Pool* g_objectPool;
 HYP_API Pool* g_renderPool;
 HYP_API Pool* g_framePools[NumMultiBuffers];
 HYP_API Pool* g_scenePool;
