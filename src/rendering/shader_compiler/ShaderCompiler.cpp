@@ -1495,11 +1495,8 @@ bool ShaderCompiler::LoadOrCompileBatch(Name name,
     if (!CanCompileShaders())
     {
         HYP_LOG(ShaderCompiler, Warning,
-            "Not compiled with GLSL compiler support... Shaders may become out "
-            "of date.\n"
-            "If any .hypshader files are missing, you may need to recompile "
-            "the engine with glslang linked, "
-            "so that they can be generated.");
+            "Not compiled with shader compilation support... Shaders may become out of date.\n"
+            "If any .hypshader files are missing, they will not be compiled on the fly.");
     }
 
     if (!m_definitions || !m_definitions->IsValid())
@@ -1557,8 +1554,7 @@ bool ShaderCompiler::LoadOrCompileBatch(Name name,
         return LoadBatchFromFile(outputFilePath, batch);
     };
 
-    const FilePath outputFilePath =
-        GetResourceDirectory() / "data/compiled_shaders" / nameString + ".hypshader";
+    const FilePath outputFilePath = GetResourceDirectory() / "data/compiled_shaders" / nameString + ".hypshader";
 
     if (outputFilePath.Exists())
     {

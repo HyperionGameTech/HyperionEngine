@@ -5,11 +5,10 @@
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-layout(location=0) in vec3 v_position;
-layout(location=1) in vec3 v_normal;
-layout(location=2) in vec2 v_texcoord0;
+layout(location = 0) in vec3 v_position;
+layout(location = 1) in vec2 v_texcoord0;
 
-layout(location=0) out vec4 out_color;
+layout(location = 0) out vec4 out_color;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/shared.inc"

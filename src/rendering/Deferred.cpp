@@ -113,7 +113,7 @@ static void GetDeferredShaderProperties(
     static const GlobalConfig& globalConfig = CoreApi_GetGlobalConfig();
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
 
-    outShaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
+    outShaderProperties.SetRequiredVertexAttributes(VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
     // VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
 
     MergeGlobalShaderProperties(outShaderProperties);
@@ -487,13 +487,20 @@ void TonemapPass::CreatePipeline()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    RenderableAttributeSet renderableAttributes(
-        MeshAttributes {
-            .vertexAttributes = staticMeshVertexAttributes },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = BlendFunction::None(),
-            .flags = MAF_NONE });
+    const MeshAttributes meshAttributes {
+        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+    };
+
+    const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = BlendFunction::None(),
+        .flags = MAF_NONE
+    };
+
+    const RenderableAttributeSet renderableAttributes(
+        meshAttributes,
+        materialAttributes);
 
     ShaderProperties shaderProperties;
 
@@ -552,15 +559,22 @@ void LightmapPass::CreatePipeline()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
+    const MeshAttributes meshAttributes {
+        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+    };
+
+    const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = BlendFunction(
+            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
+        .flags = MAF_NONE
+    };
+
     RenderableAttributeSet renderableAttributes(
-        MeshAttributes {
-            .vertexAttributes = staticMeshVertexAttributes },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = BlendFunction(
-                BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-                BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-            .flags = MAF_NONE });
+        meshAttributes,
+        materialAttributes);
 
     m_shader = g_shaderManager->GetOrCreate(NAME("ApplyLightmap"));
 
@@ -625,14 +639,21 @@ void EnvGridPass::CreatePipeline()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    RenderableAttributeSet renderableAttributes(
-        MeshAttributes {
-            .vertexAttributes = staticMeshVertexAttributes },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-                BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-            .flags = MAF_NONE });
+    const MeshAttributes meshAttributes {
+        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+    };
+
+    const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
+        .flags = MAF_NONE
+    };
+
+    const RenderableAttributeSet renderableAttributes(
+        meshAttributes,
+        materialAttributes);
 
     if (m_mode == EGPM_RADIANCE)
     {
@@ -825,14 +846,21 @@ void ReflectionsPass::CreatePipeline()
 {
     HYP_SCOPE;
 
+    const MeshAttributes meshAttributes {
+        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+    };
+
+    const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
+        .flags = MAF_NONE
+    };
+
     CreatePipeline(RenderableAttributeSet(
-        MeshAttributes {
-            .vertexAttributes = staticMeshVertexAttributes },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-                BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-            .flags = MAF_NONE }));
+        meshAttributes,
+        materialAttributes));
 }
 
 void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)

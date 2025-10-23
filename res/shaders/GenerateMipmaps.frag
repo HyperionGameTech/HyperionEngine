@@ -5,8 +5,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout(location = 0) in vec3 v_position;
-layout(location = 1) in vec3 v_normal;
-layout(location = 2) in vec2 v_texcoord;
+layout(location = 1) in vec2 v_texcoord;
 layout(location = 0) out vec4 color_output;
 
 #include "../include/defines.inc"
