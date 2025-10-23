@@ -250,7 +250,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
     const Handle<View>& view = m_lightmapper->GetView();
     Assert(view != nullptr);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -270,7 +270,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
 
         if (meshProxy->material != nullptr)
         {
-            const uint32 materialBinding = RenderApi_RetrieveResourceBinding(meshProxy->material);
+            const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
             blas->SetMaterialBinding(materialBinding);
         }
 
@@ -361,7 +361,7 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, uint32 ra
 
     uniforms.rayOffset = rayOffset;
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(m_lightmapper->GetView());
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(m_lightmapper->GetView());
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -382,7 +382,7 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(FrameBase* frame, uint32 ra
             break;
         }
 
-        uniforms.lightIndices[numBoundLights++] = RenderApi_RetrieveResourceBinding(light);
+        uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
     }
 
     uniforms.numBoundLights = numBoundLights;

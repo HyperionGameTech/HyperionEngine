@@ -181,7 +181,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
     Light* light = renderSetup.light;
     ShadowMap* shadowMap = nullptr;
 
-    RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi_GetRenderProxy(light));
+    RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
     Assert(lightProxy != nullptr, "Proxy for Light {} not found when rendering shadows!", light->Id());
     Assert(lightProxy->shadowViews.Any(), "Light {} proxy has no shadow view attached!", light->Id());
 
@@ -250,7 +250,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
     lightProxy->bufferData.offsetUv = atlasElement.offsetUv;
     lightProxy->bufferData.layerIndex = atlasElement.layerIndex;
 
-    RenderApi_UpdateGpuData(light);
+    RenderApi::UpdateGpuData(light);
 
     const GpuImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();
     Assert(shadowMapImage.IsValid());
@@ -281,7 +281,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         ShadowPassData* pd = ObjCast<ShadowPassData>(rs.passData);
         AssertDebug(pd != nullptr);
 
-        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(shadowView);
+        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(shadowView);
         rpl.BeginRead();
         renderProxyLists.PushBack(&rpl);
 
@@ -290,7 +290,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
             continue;
         }
 
-        RenderCollector& renderCollector = RenderApi_GetRenderCollector(shadowView);
+        RenderCollector& renderCollector = RenderApi::GetRenderCollector(shadowView);
         renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_LIGHTMAP)));
 
         if (!combineShadowMapsPass)

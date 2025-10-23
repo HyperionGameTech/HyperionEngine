@@ -22,12 +22,12 @@ namespace hyperion {
 
 SuppressRenderStatsScope::SuppressRenderStatsScope()
 {
-    RenderApi_SuppressRenderStats();
+    RenderApi::SuppressRenderStats();
 }
 
 SuppressRenderStatsScope::~SuppressRenderStatsScope()
 {
-    RenderApi_UnsuppressRenderStats();
+    RenderApi::UnsuppressRenderStats();
 }
 
 #pragma endregion SuppressRenderStatsScope
@@ -68,7 +68,7 @@ void RenderStatsCalculator::AddSample(double delta)
     {
         m_sampleIndex = (m_sampleIndex % g_maxSamples);
         m_sampleData[m_sampleIndex] = delta;
-        
+
         ++m_sampleIndex;
     }
 }
@@ -80,17 +80,17 @@ void RenderStatsCalculator::Advance(RenderStats& renderStats)
 
     m_counter.NextTick();
     m_deltaAccum += m_counter.delta;
-    
+
     const bool resetFrameStats = m_counter.delta >= 1.0;
     const bool resetMinMax = resetFrameStats || m_deltaAccum >= 1.0;
-    
+
     // reset frame stats if we have a signficant delta between the last frame,
     // indicating we probably were paused (e.g in a breakpoint)
     if (resetFrameStats)
     {
         m_counter = GameCounter();
         m_counter.delta = 1.0;
-        
+
         m_numSamples = 0;
         m_sampleIndex = 0;
     }

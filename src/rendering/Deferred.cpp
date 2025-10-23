@@ -92,6 +92,16 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
     ShaderProperties { { NAME("LIGHT_TYPE_AREA_RECT") } }
 };
 
+static const FixedArray<Name, GTN_MAX> s_gbufferTextureNames {
+    NAME("GBufferAlbedoTexture"),
+    NAME("GBufferNormalsTexture"),
+    NAME("GBufferMaterialTexture"),
+    NAME("GBufferLightmapTexture"),
+    NAME("GBufferVelocityTexture"),
+    NAME("GBufferWSNormalsTexture"),
+    NAME("GBufferTranslucentTexture")
+};
+
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
 static void GetDeferredShaderProperties(
@@ -312,7 +322,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -675,7 +685,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
 
     HYP_DEFER({ rpl.EndRead(); });
@@ -723,7 +733,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
         if (ShouldRenderHalfRes())
         {
-            const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi_GetWorldBufferData()->frameCounter & 1);
+            const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
             const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewportOffset, viewportExtent);
@@ -859,10 +869,10 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    static const ConfigurationValue& ssrEnabled = CoreApi_GetGlobalConfig().Get("rendering.ssr.enabled");
-    static const ConfigurationValue& raytracingReflectionsEnabled = CoreApi_GetGlobalConfig().Get("rendering.raytracing.reflections.enabled");
+    static const ConfigurationValue& s_ssrEnabled = CoreApi_GetGlobalConfig().Get("rendering.ssr.enabled");
+    static const ConfigurationValue& s_raytracingReflectionsEnabled = CoreApi_GetGlobalConfig().Get("rendering.raytracing.reflections.enabled");
 
-    return ssrEnabled.ToBool(true) && !raytracingReflectionsEnabled.ToBool(false);
+    return s_ssrEnabled.ToBool(true) && !s_raytracingReflectionsEnabled.ToBool(false);
 }
 
 void ReflectionsPass::CreateSSRRenderer()
@@ -927,7 +937,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
 
     HYP_DEFER({ rpl.EndRead(); });
@@ -984,7 +994,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
         if (ShouldRenderHalfRes())
         {
-            const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi_GetWorldBufferData()->frameCounter & 1);
+            const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
             const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewportOffset, viewportExtent);
@@ -1006,10 +1016,10 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            // RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(envProbe->Id()));
+            // RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi::GetRenderProxy(envProbe->Id()));
             // Assert(envProbeProxy != nullptr);
             // AssertDebug(envProbeProxy->bufferData.textureIndex != ~0u, "EnvProbe texture index not set: not bound for proxy %p at frame idx %u!", (void*)envProbeProxy,
-            //     RenderApi_GetFrameIndex_RenderThread());
+            //     RenderApi::GetFrameIndex_RenderThread());
 
             frame->renderQueue << BindDescriptorSet(
                 graphicsPipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex),
@@ -1288,16 +1298,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
 
     FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
-    static const FixedArray<Name, GTN_MAX> gbufferTextureNames {
-        NAME("GBufferAlbedoTexture"),
-        NAME("GBufferNormalsTexture"),
-        NAME("GBufferMaterialTexture"),
-        NAME("GBufferLightmapTexture"),
-        NAME("GBufferVelocityTexture"),
-        NAME("GBufferWSNormalsTexture"),
-        NAME("GBufferTranslucentTexture")
-    };
-
     const FramebufferRef& opaqueFbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmapFbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     const FramebufferRef& translucentFbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
@@ -1328,7 +1328,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
         {
             for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
             {
-                descriptorSet->SetElement(gbufferTextureNames[attachmentIndex], opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
+                descriptorSet->SetElement(s_gbufferTextureNames[attachmentIndex], opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
             }
 
             // add translucent bucket's albedo
@@ -1578,7 +1578,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     {
         AssertDebug(view != nullptr);
 
-        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
         rpl.BeginRead();
 
         renderProxyLists.PushBack(&rpl);
@@ -1816,7 +1816,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         }
 
 #ifdef HYP_ENABLE_RENDER_STATS
-        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
         // RenderProxyList already be in read state (see above)
 
         counts[ERS_VIEWS]++;
@@ -1840,7 +1840,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     }
 
 #ifdef HYP_ENABLE_RENDER_STATS
-    RenderApi_AddRenderStats(counts);
+    RenderApi::AddRenderStats(counts);
 #endif
 }
 
@@ -1851,7 +1851,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     Assert(rs.IsValid());
     Assert(rs.HasView());
 
-    uint32 globalFrameIndex = RenderApi_GetFrameIndex();
+    uint32 globalFrameIndex = RenderApi::GetFrameIndex();
     if (m_lastFrameData.frameId != globalFrameIndex)
     {
         m_lastFrameData.frameId = globalFrameIndex;
@@ -1862,11 +1862,11 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     Assert(view->GetFlags() & ViewFlags::GBUFFER);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    RenderCollector& renderCollector = RenderApi_GetRenderCollector(view);
+    RenderCollector& renderCollector = RenderApi::GetRenderCollector(view);
 
     DeferredPassData* passDataCasted = ObjCast<DeferredPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
@@ -1909,21 +1909,21 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     if (useTemporalAa)
     {
         // apply jitter to camera for TAA
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(view->GetCamera()));
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
         CameraShaderData& cameraBufferData = cameraProxy->bufferData;
 
         if (cameraBufferData.projection[3][3] < MathUtil::epsilonF)
         {
-            const uint32 frameCounter = RenderApi_GetWorldBufferData()->frameCounter + 1;
+            const uint32 frameCounter = RenderApi::GetWorldBufferData()->frameCounter + 1;
 
             Vec4f jitter = Vec4f::Zero();
             Mat4f::Jitter(frameCounter, cameraBufferData.dimensions.x, cameraBufferData.dimensions.y, jitter);
 
             cameraBufferData.jitter = jitter * CameraJitterScale;
 
-            RenderApi_UpdateGpuData(view->GetCamera());
+            RenderApi::UpdateGpuData(view->GetCamera());
         }
     }
 
@@ -2170,7 +2170,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
 
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(rs.passData);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -2215,14 +2215,14 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
 
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
 
-            const uint32 materialBinding = RenderApi_RetrieveResourceBinding(meshProxy->material);
+            const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
             blas->SetMaterialBinding(materialBinding);
 
             HYP_GFX_ASSERT(blas->Create());
         }
         else
         {
-            const uint32 materialBinding = RenderApi_RetrieveResourceBinding(meshProxy->material);
+            const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
 
             blas->SetMaterialBinding(materialBinding);
             blas->SetTransform(meshProxy->bufferData.modelMatrix);

@@ -80,7 +80,7 @@ const DescriptorSetRef& MaterialDescriptorSetManager::ForBoundMaterial(const Mat
 
     if (material)
     {
-        boundIndex = RenderApi_RetrieveResourceBinding(material);
+        boundIndex = RenderApi::RetrieveResourceBinding(material);
 
         AssertDebug(boundIndex != ~0u, "Material {} is not bound for rendering!", material->Id());
     }

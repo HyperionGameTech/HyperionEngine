@@ -100,7 +100,7 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (view)
         {
-            rpl = &RenderApi_GetConsumerProxyList(view);
+            rpl = &RenderApi::GetConsumerProxyList(view);
         }
 
         if (rpl)

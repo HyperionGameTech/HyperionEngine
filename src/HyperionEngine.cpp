@@ -82,7 +82,7 @@ Pool* const* g_enginePools[EPN_MAX] = {
 
 HYP_API Pool* GetCurrentFramePool()
 {
-    const uint32 currentFrameIndex = RenderApi_GetFrameIndex();
+    const uint32 currentFrameIndex = RenderApi::GetFrameIndex();
 
     return g_framePools[currentFrameIndex];
 }
@@ -255,7 +255,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
         HYP_LOG(Engine, Info, "Running in headless mode");
     }
 
-    RenderApi_Init();
+    RenderApi::Init();
 
     InitObject(g_engineDriver);
 

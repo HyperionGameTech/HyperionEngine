@@ -284,7 +284,7 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
     // Can only fill the lights if we have a view ready
     if (view)
     {
-        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
         rpl.BeginRead();
 
         HYP_DEFER({ rpl.EndRead(); });
@@ -305,7 +305,7 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
                 break;
             }
 
-            outUniforms.lightIndices[numBoundLights++] = RenderApi_RetrieveResourceBinding(light);
+            outUniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
         }
     }
 

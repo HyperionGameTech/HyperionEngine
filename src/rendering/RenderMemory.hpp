@@ -18,7 +18,9 @@ using memory::Pool;
 HYP_API extern Pool* g_renderPool;
 HYP_API extern Pool* g_framePools[NumMultiBuffers];
 
-HYP_API extern uint32 RenderApi_GetFrameIndex();
+namespace RenderApi {
+HYP_API extern uint32 GetFrameIndex();
+} // namespace RenderApi
 
 using RenderAllocator = AllocatorInstance<Pool, &g_renderPool>;
 

@@ -178,7 +178,7 @@ void AmbientProbeDebugDrawShape::UpdateBufferData(DebugDrawCommand* cmd, Immedia
 {
     IDebugDrawShape::UpdateBufferData(cmd, bufferData);
 
-    const uint32 envProbeIndex = RenderApi_RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
+    const uint32 envProbeIndex = RenderApi::RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
 
     bufferData->envProbeType = EPT_AMBIENT;
     bufferData->envProbeIndex = envProbeIndex;
@@ -227,7 +227,7 @@ void ReflectionProbeDebugDrawShape::UpdateBufferData(DebugDrawCommand* cmd, Imme
 {
     IDebugDrawShape::UpdateBufferData(cmd, bufferData);
 
-    const uint32 envProbeIndex = RenderApi_RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
+    const uint32 envProbeIndex = RenderApi::RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
 
     bufferData->envProbeType = EPT_REFLECTION;
     bufferData->envProbeIndex = envProbeIndex;
@@ -467,7 +467,7 @@ DebugDrawer::~DebugDrawer()
                 Threads::AssertOnThread(g_renderThread);
 
                 DebugDrawBufferDeleter* del = reinterpret_cast<DebugDrawBufferDeleter*>(ptr);
-                AssertDebug(del->idx == RenderApi_GetFrameIndex());
+                AssertDebug(del->idx == RenderApi::GetFrameIndex());
 
                 DebugDrawBufferDeleterPayload* payload = del->payload;
                 AssertDebug(payload != nullptr);
@@ -546,7 +546,7 @@ void DebugDrawer::Update(float delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    const uint32 idx = RenderApi_GetFrameIndex();
+    const uint32 idx = RenderApi::GetFrameIndex();
 
     if (m_commandLists[idx].Empty())
     {
@@ -635,7 +635,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    const uint32 idx = RenderApi_GetFrameIndex();
+    const uint32 idx = RenderApi::GetFrameIndex();
 
     if (!IsEnabled() || m_headers[idx].Empty())
     {
@@ -647,7 +647,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     Assert(renderSetup.HasView());
 
-    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(renderSetup.view->GetCamera()));
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -834,7 +834,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     }
 
 #ifdef HYP_ENABLE_RENDER_STATS
-    RenderApi_AddRenderStats(counts);
+    RenderApi::AddRenderStats(counts);
 #endif
 
     ClearCommands(idx);
@@ -846,7 +846,7 @@ void DebugDrawer::ClearCommands(uint32 idx)
     AssertDebug(idx < m_commandLists.Size());
 
     // would cause issues if we try to free from pool being used by wrong thread..
-    Assert(idx == RenderApi_GetFrameIndex());
+    Assert(idx == RenderApi::GetFrameIndex());
 
     for (DebugDrawCommandHeader& header : m_headers[idx])
     {
@@ -885,7 +885,7 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    const uint32 idx = RenderApi_GetFrameIndex();
+    const uint32 idx = RenderApi::GetFrameIndex();
 
     return m_commandLists[idx].EmplaceBack(this);
 }

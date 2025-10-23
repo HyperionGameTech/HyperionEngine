@@ -119,7 +119,7 @@ static void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
 
     AssertDebug(resource != nullptr);
 
-    RenderApi_AssignResourceBinding(resource, next);
+    RenderApi::AssignResourceBinding(resource, next);
 }
 
 template <class ProxyType>
@@ -234,7 +234,9 @@ struct SubtypeResourceBindings
 
 static SparsePagedArray<SubtypeResourceBindings, 64> s_subtypeBindings;
 
-static inline SubtypeResourceBindings& RenderApi_ResourceBinding_GetSubtypeBindings(const HypClass* hypClass)
+namespace RenderApi {
+
+static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const HypClass* hypClass)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -250,14 +252,14 @@ static inline SubtypeResourceBindings& RenderApi_ResourceBinding_GetSubtypeBindi
     return *bindings;
 }
 
-static void RenderApi_ResourceBinding_Assign(HypObjectBase* resource, uint32 binding)
+static void ResourceBinding_Assign(HypObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
-    SubtypeResourceBindings& bindings = RenderApi_ResourceBinding_GetSubtypeBindings(resource->InstanceClass());
+    SubtypeResourceBindings& bindings = ResourceBinding_GetSubtypeBindings(resource->InstanceClass());
 
     ObjIdBase resourceId = resource->Id();
     AssertDebug(resourceId.IsValid());
@@ -277,7 +279,7 @@ static void RenderApi_ResourceBinding_Assign(HypObjectBase* resource, uint32 bin
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
 }
 
-static uint32 RenderApi_ResourceBinding_Retrieve(const HypObjectBase* resource)
+static uint32 ResourceBinding_Retrieve(const HypObjectBase* resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -287,7 +289,7 @@ static uint32 RenderApi_ResourceBinding_Retrieve(const HypObjectBase* resource)
         return ~0u; // invalid resource
     }
 
-    const SubtypeResourceBindings& bindings = RenderApi_ResourceBinding_GetSubtypeBindings(resource->InstanceClass());
+    const SubtypeResourceBindings& bindings = ResourceBinding_GetSubtypeBindings(resource->InstanceClass());
 
     const ObjIdBase resourceId = resource->Id();
 
@@ -297,6 +299,8 @@ static uint32 RenderApi_ResourceBinding_Retrieve(const HypObjectBase* resource)
 
     return elem ? *elem : ~0u;
 }
+
+} // namespace RenderApi
 
 #pragma endregion ResourceBindings
 
@@ -562,124 +566,6 @@ static ViewData* GetViewData(View* view)
     return viewDataIt->second;
 }
 
-void RenderApi_Init()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
-
-    s_resources = PoolNew<ResourceContainer>(*g_renderPool);
-
-    s_threadFrameIndex = &s_frameIndex[CONSUMER];
-
-    Assert(g_appContext != nullptr, "AppContext must be initialized before RenderApi_Init!");
-    Assert(g_renderBackend != nullptr);
-
-    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
-    {
-        resourceBinder->Initialize();
-    }
-
-    RendererResult result = g_renderBackend->Initialize();
-    Assert(result, "Failed to initialize rendering backend: {}", result.GetError().GetMessage());
-
-    { // override global config after renderer initialize
-        ConfigurationTable renderGlobalConfigOverrides;
-
-        // if ray tracing is not supported, we need to update the configuration
-        if (!g_renderBackend->GetRenderConfig().raytracing)
-        {
-            renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
-            renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
-            renderGlobalConfigOverrides.Set("rendering.raytracing.globalIllumination.enabled", false);
-            renderGlobalConfigOverrides.Set("rendering.raytracing.pathTracing.enabled", false);
-
-            CoreApi_UpdateGlobalConfig(renderGlobalConfigOverrides);
-        }
-    }
-
-    g_renderGlobalState = new RenderGlobalState();
-    g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
-
-    ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
-    registry.InvokeAll(*s_resources);
-
-    registry.funcs.Clear();
-}
-
-void RenderApi_Shutdown()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_mainThread);
-
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
-    {
-        for (auto& it : s_frameData[i].viewFrameData)
-        {
-            delete it.second;
-        }
-
-        s_frameData[i].viewFrameData.Clear();
-    }
-
-    for (auto& it : s_viewData)
-    {
-        ViewData* vd = it.second;
-
-        if (!vd)
-        {
-            continue;
-        }
-
-        PoolDelete(*g_renderPool, vd);
-    }
-
-    s_viewData.Clear();
-
-    PoolDelete(*g_renderPool, s_resources);
-    s_resources = nullptr;
-
-    delete g_renderGlobalState;
-    g_renderGlobalState = nullptr;
-
-    Assert(g_renderBackend->Destroy());
-}
-
-static inline int RenderApi_CurrentThreadType()
-{
-    const ThreadId& threadId = Threads::CurrentThreadId();
-
-    if (threadId == g_renderThread)
-    {
-        return CONSUMER;
-    }
-
-    if (threadId == g_gameThread)
-    {
-        return PRODUCER;
-    }
-
-    // invalid
-    return -1;
-}
-
-uint32 RenderApi_GetFrameIndex()
-{
-    if (HYP_UNLIKELY(!s_threadFrameIndex))
-    {
-        const int threadType = RenderApi_CurrentThreadType();
-        Assert(threadType >= 0, "RenderApi_GetFrameIndex called from an invalid thread!");
-
-        s_threadFrameIndex = &s_frameIndex[threadType];
-    }
-
-    return *s_threadFrameIndex;
-}
-
-uint32 RenderApi_GetFrameCounter()
-{
-    return (uint32)AtomicAdd(&s_frameCounter, 0);
-}
-
 static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 {
     HYP_SCOPE;
@@ -877,7 +763,127 @@ static HYP_FORCE_INLINE void CopyDependencies(RenderProxyList& dst, RenderProxyL
     }
 }
 
-RenderProxyList& RenderApi_GetProducerProxyList(View* view)
+namespace RenderApi {
+
+void Init()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_mainThread);
+
+    s_resources = PoolNew<ResourceContainer>(*g_renderPool);
+
+    s_threadFrameIndex = &s_frameIndex[CONSUMER];
+
+    Assert(g_appContext != nullptr, "AppContext must be initialized before Init!");
+    Assert(g_renderBackend != nullptr);
+
+    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
+    {
+        resourceBinder->Initialize();
+    }
+
+    RendererResult result = g_renderBackend->Initialize();
+    Assert(result, "Failed to initialize rendering backend: {}", result.GetError().GetMessage());
+
+    { // override global config after renderer initialize
+        ConfigurationTable renderGlobalConfigOverrides;
+
+        // if ray tracing is not supported, we need to update the configuration
+        if (!g_renderBackend->GetRenderConfig().raytracing)
+        {
+            renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
+            renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
+            renderGlobalConfigOverrides.Set("rendering.raytracing.globalIllumination.enabled", false);
+            renderGlobalConfigOverrides.Set("rendering.raytracing.pathTracing.enabled", false);
+
+            CoreApi_UpdateGlobalConfig(renderGlobalConfigOverrides);
+        }
+    }
+
+    g_renderGlobalState = new RenderGlobalState();
+    g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
+
+    ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
+    registry.InvokeAll(*s_resources);
+
+    registry.funcs.Clear();
+}
+
+void Shutdown()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_mainThread);
+
+    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    {
+        for (auto& it : s_frameData[i].viewFrameData)
+        {
+            delete it.second;
+        }
+
+        s_frameData[i].viewFrameData.Clear();
+    }
+
+    for (auto& it : s_viewData)
+    {
+        ViewData* vd = it.second;
+
+        if (!vd)
+        {
+            continue;
+        }
+
+        PoolDelete(*g_renderPool, vd);
+    }
+
+    s_viewData.Clear();
+
+    PoolDelete(*g_renderPool, s_resources);
+    s_resources = nullptr;
+
+    delete g_renderGlobalState;
+    g_renderGlobalState = nullptr;
+
+    Assert(g_renderBackend->Destroy());
+}
+
+static inline int CurrentThreadType()
+{
+    const ThreadId& threadId = Threads::CurrentThreadId();
+
+    if (threadId == g_renderThread)
+    {
+        return CONSUMER;
+    }
+
+    if (threadId == g_gameThread)
+    {
+        return PRODUCER;
+    }
+
+    // invalid
+    return -1;
+}
+
+uint32 GetFrameIndex()
+{
+    if (HYP_UNLIKELY(!s_threadFrameIndex))
+    {
+        const int threadType = CurrentThreadType();
+        Assert(threadType >= 0, "GetFrameIndex called from an invalid thread!");
+
+        s_threadFrameIndex = &s_frameIndex[threadType];
+    }
+
+    return *s_threadFrameIndex;
+}
+
+uint32 GetFrameCounter()
+{
+    return (uint32)AtomicAdd(&s_frameCounter, 0);
+}
+
+RenderProxyList& GetProducerProxyList(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -887,7 +893,7 @@ RenderProxyList& RenderApi_GetProducerProxyList(View* view)
     return *vd->rplShared;
 }
 
-RenderProxyList& RenderApi_GetConsumerProxyList(View* view)
+RenderProxyList& GetConsumerProxyList(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -897,7 +903,7 @@ RenderProxyList& RenderApi_GetConsumerProxyList(View* view)
     return GetViewData(view)->rplRender;
 }
 
-RenderCollector& RenderApi_GetRenderCollector(View* view)
+RenderCollector& GetRenderCollector(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -905,7 +911,7 @@ RenderCollector& RenderApi_GetRenderCollector(View* view)
     return GetViewData(view)->renderCollector;
 }
 
-Array<Pair<View*, RenderCollector*>> RenderApi_GetAllRenderCollectors()
+Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -920,7 +926,7 @@ Array<Pair<View*, RenderCollector*>> RenderApi_GetAllRenderCollectors()
     return result;
 }
 
-IRenderProxy* RenderApi_GetRenderProxy(const HypObjectBase* resource)
+IRenderProxy* GetRenderProxy(const HypObjectBase* resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -948,7 +954,7 @@ IRenderProxy* RenderApi_GetRenderProxy(const HypObjectBase* resource)
     return pProxy;
 }
 
-void RenderApi_UpdateGpuData(const HypObjectBase* resource)
+void UpdateGpuData(const HypObjectBase* resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -968,7 +974,7 @@ void RenderApi_UpdateGpuData(const HypObjectBase* resource)
         "Cannot use UpdateGpuData() for type which does not have a RenderProxy! Type: {}",
         subtypeData.typeInfo->name);
 
-    const uint32 bindingIndex = RenderApi_ResourceBinding_Retrieve(resource);
+    const uint32 bindingIndex = ResourceBinding_Retrieve(resource);
     AssertDebug(bindingIndex != ~0u);
 
     const uint32 idx = resourceId.ToIndex();
@@ -982,24 +988,24 @@ void RenderApi_UpdateGpuData(const HypObjectBase* resource)
     subtypeData.indicesPendingUpdate.Set(idx, false);
 }
 
-void RenderApi_AssignResourceBinding(HypObjectBase* resource, uint32 binding)
+void AssignResourceBinding(HypObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    RenderApi_ResourceBinding_Assign(resource, binding);
+    ResourceBinding_Assign(resource, binding);
 }
 
-uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource)
+uint32 RetrieveResourceBinding(const HypObjectBase* resource)
 {
     HYP_SCOPE;
     // FIXME: Add better check to ensure it is from a render task thread.
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    return RenderApi_ResourceBinding_Retrieve(resource);
+    return ResourceBinding_Retrieve(resource);
 }
 
-WorldShaderData* RenderApi_GetWorldBufferData()
+WorldShaderData* GetWorldBufferData()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
@@ -1007,7 +1013,7 @@ WorldShaderData* RenderApi_GetWorldBufferData()
     return &s_frameData[*s_threadFrameIndex].worldBufferData;
 }
 
-Viewport& RenderApi_GetViewport(View* view)
+Viewport& GetViewport(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
@@ -1015,7 +1021,7 @@ Viewport& RenderApi_GetViewport(View* view)
     return GetViewFrameData(view, *s_threadFrameIndex)->viewport;
 }
 
-RenderStats* RenderApi_GetRenderStats()
+RenderStats* GetRenderStats()
 {
     if (Threads::IsOnThread(g_renderThread))
     {
@@ -1027,7 +1033,7 @@ RenderStats* RenderApi_GetRenderStats()
     return &s_frameData[*s_threadFrameIndex].renderStats;
 }
 
-void RenderApi_AddRenderStats(const RenderStatsCounts& counts)
+void AddRenderStats(const RenderStatsCounts& counts)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1035,7 +1041,7 @@ void RenderApi_AddRenderStats(const RenderStatsCounts& counts)
     s_renderStatsCalculator.AddCounts(counts);
 }
 
-void RenderApi_SuppressRenderStats()
+void SuppressRenderStats()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1043,7 +1049,7 @@ void RenderApi_SuppressRenderStats()
     s_renderStatsCalculator.Suppress();
 }
 
-void RenderApi_UnsuppressRenderStats()
+void UnsuppressRenderStats()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1051,7 +1057,7 @@ void RenderApi_UnsuppressRenderStats()
     s_renderStatsCalculator.Unsuppress();
 }
 
-void RenderApi_BeginFrame_GameThread()
+void BeginFrame_GameThread()
 {
     HYP_SCOPE;
 
@@ -1060,7 +1066,7 @@ void RenderApi_BeginFrame_GameThread()
     s_freeSemaphore.acquire();
 }
 
-void RenderApi_EndFrame_GameThread()
+void EndFrame_GameThread()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -1072,7 +1078,7 @@ void RenderApi_EndFrame_GameThread()
     s_fullSemaphore.release();
 }
 
-void RenderApi_BeginFrame_RenderThread()
+void BeginFrame_RenderThread()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1211,7 +1217,7 @@ void RenderApi_BeginFrame_RenderThread()
                 AssertDebug(subtypeData.hasProxyData);
                 AssertDebug(subtypeData.writeBufferDataFn != nullptr);
 
-                const uint32 bindingIndex = RenderApi_ResourceBinding_Retrieve(resource);
+                const uint32 bindingIndex = ResourceBinding_Retrieve(resource);
                 AssertDebug(bindingIndex != ~0u,
                     "Failed to retrieve binding for resource: {} in frame {}, but it is marked as bound (index: {})",
                     i, slot, i);
@@ -1227,7 +1233,7 @@ void RenderApi_BeginFrame_RenderThread()
     }
 }
 
-void RenderApi_EndFrame_RenderThread()
+void EndFrame_RenderThread()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
@@ -1363,6 +1369,8 @@ void RenderApi_EndFrame_RenderThread()
 
     s_freeSemaphore.release();
 }
+
+} // namespace RenderApi
 
 #pragma region RenderGlobalState
 

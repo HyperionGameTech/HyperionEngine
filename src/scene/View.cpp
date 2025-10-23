@@ -297,7 +297,7 @@ void View::UpdateViewport()
     Threads::AssertOnThread(g_gameThread);
     AssertReady();
 
-    const uint32 idx = RenderApi_GetFrameIndex();
+    const uint32 idx = RenderApi::GetFrameIndex();
 
     m_viewportBuffered[idx] = m_viewport;
 
@@ -334,7 +334,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
     AssertDebug(m_collectionTaskBatch == nullptr, "m_collectionTaskBatch is not nullptr, already collecting?");
     m_collectionTaskBatch = &batch;
 
-    RenderProxyList& rpl = RenderApi_GetProducerProxyList(this);
+    RenderProxyList& rpl = RenderApi::GetProducerProxyList(this);
 
     batch.AddTask([this, &rpl]()
         {
@@ -392,7 +392,7 @@ const Viewport& View::GetViewport() const
 
     AssertReady();
 
-    return m_viewportBuffered[RenderApi_GetFrameIndex()];
+    return m_viewportBuffered[RenderApi::GetFrameIndex()];
 }
 
 void View::SetViewport(const Viewport& viewport)
@@ -411,7 +411,7 @@ void View::SetViewport(const Viewport& viewport)
             CreateReadbackTexture();
         }
 
-        m_viewportBuffered[RenderApi_GetFrameIndex()] = viewport;
+        m_viewportBuffered[RenderApi::GetFrameIndex()] = viewport;
     }
 }
 
@@ -420,7 +420,7 @@ GpuImageBase* View::GetReadbackTextureGpuImage() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    return m_readbackTextureGpuImages[RenderApi_GetFrameIndex()];
+    return m_readbackTextureGpuImages[RenderApi::GetFrameIndex()];
 }
 
 void View::CreateReadbackTexture()

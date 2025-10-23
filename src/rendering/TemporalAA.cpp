@@ -119,7 +119,7 @@ void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& render
     {
         Assert(renderSetup.HasView());
 
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(renderSetup.view->GetCamera()));
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
         m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));

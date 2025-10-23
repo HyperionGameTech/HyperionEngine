@@ -796,7 +796,7 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         // Add render stats counts to the engine's render stats
         for (RenderStatsCounts& counts : state->renderStatsCounts)
         {
-            RenderApi_AddRenderStats(counts);
+            RenderApi::AddRenderStats(counts);
 
             counts = RenderStatsCounts(); // Reset counts after adding for next use
         }
@@ -980,7 +980,7 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
                     drawCall.mesh->Id(), drawCall.mesh->GetName(), drawCall.mesh->GetAssetReference().GetAssetPath().ToString());
 
                 Assert(drawCall.material && drawCall.material->IsReady());
-                Assert(RenderApi_RetrieveResourceBinding(drawCall.material) != ~0u);
+                Assert(RenderApi::RetrieveResourceBinding(drawCall.material) != ~0u);
             };
 
             for (const DrawCall& drawCall : drawCallCollection.drawCalls)

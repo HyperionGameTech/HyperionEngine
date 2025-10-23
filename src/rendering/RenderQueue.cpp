@@ -168,7 +168,7 @@ void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, FrameBase*)
 
     if (cmdCasted->m_pipeline)
     {
-        cmdCasted->m_pipeline->lastFrame = RenderApi_GetFrameCounter();
+        cmdCasted->m_pipeline->lastFrame = RenderApi::GetFrameCounter();
     }
 }
 

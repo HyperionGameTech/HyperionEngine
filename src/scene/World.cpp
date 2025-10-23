@@ -266,7 +266,7 @@ void World::Update(float delta)
 
     AssertReady();
 
-    const uint32 currentFrameIndex = RenderApi_GetFrameIndex();
+    const uint32 currentFrameIndex = RenderApi::GetFrameIndex();
 
     // set buffered Views for current frame index
     m_viewsPerFrame[currentFrameIndex].Resize(m_views.Size());
@@ -420,9 +420,9 @@ void World::Update(float delta)
 
     m_gameState.gameTime += delta;
 
-    WorldShaderData* bufferData = RenderApi_GetWorldBufferData();
+    WorldShaderData* bufferData = RenderApi::GetWorldBufferData();
     bufferData->gameTime = m_gameState.gameTime;
-    bufferData->frameCounter = RenderApi_GetFrameCounter();
+    bufferData->frameCounter = RenderApi::GetFrameCounter();
 }
 
 const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsystem>& subsystem)
@@ -808,12 +808,12 @@ Span<View* const> World::GetViews() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | g_gameThread);
 
-    return m_viewsPerFrame[RenderApi_GetFrameIndex()].ToSpan();
+    return m_viewsPerFrame[RenderApi::GetFrameIndex()].ToSpan();
 }
 
 RenderStats* World::GetRenderStats() const
 {
-    return RenderApi_GetRenderStats();
+    return RenderApi::GetRenderStats();
 }
 
 } // namespace hyperion

@@ -356,7 +356,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 
 void DDGI::UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup)
 {
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -392,7 +392,7 @@ void DDGI::UpdateUniforms(FrameBase* frame, const RenderSetup& renderSetup)
             break;
         }
 
-        lightIndicesU32[m_uniforms.numBoundLights++] = RenderApi_RetrieveResourceBinding(light);
+        lightIndicesU32[m_uniforms.numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
     }
 
     m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(DDGIUniforms), &m_uniforms);

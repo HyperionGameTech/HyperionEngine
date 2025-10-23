@@ -25,7 +25,7 @@ struct RENDER_COMMAND(DumpRenderCollectors) final : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        Array<Pair<View*, RenderCollector*>> result = RenderApi_GetAllRenderCollectors();
+        Array<Pair<View*, RenderCollector*>> result = RenderApi::GetAllRenderCollectors();
 
         for (const auto& pair : result)
         {
@@ -34,7 +34,7 @@ struct RENDER_COMMAND(DumpRenderCollectors) final : RenderCommand
 
             HYP_LOG(Console, Info, "View: {}, RenderCollector: {}", view->Id(), (void*)collector);
 
-            RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+            RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
             rpl.BeginRead();
 
             HYP_LOG(Console, Info, "RenderProxyList: {}", (void*)&rpl);

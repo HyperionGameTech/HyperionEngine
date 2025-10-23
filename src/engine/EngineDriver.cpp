@@ -132,7 +132,7 @@ private:
 
         while (m_isRunning.Get(MemoryOrder::RELAXED))
         {
-            RenderApi_BeginFrame_RenderThread();
+            RenderApi::BeginFrame_RenderThread();
 
             while (g_appContext->PollEvent(event))
             {
@@ -151,7 +151,7 @@ private:
 
             g_engineDriver->RenderNextFrame();
 
-            RenderApi_EndFrame_RenderThread();
+            RenderApi::EndFrame_RenderThread();
         }
 
         g_renderThreadInstance = nullptr;
@@ -306,7 +306,7 @@ const Handle<EngineStats>& EngineDriver::GetEngineStats() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    return m_engineStatsBuffered[RenderApi_GetFrameIndex()];
+    return m_engineStatsBuffered[RenderApi::GetFrameIndex()];
 }
 
 const Handle<World>& EngineDriver::GetCurrentWorld() const
@@ -314,7 +314,7 @@ const Handle<World>& EngineDriver::GetCurrentWorld() const
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
 
-    return m_currentWorldBuffered[RenderApi_GetFrameIndex()];
+    return m_currentWorldBuffered[RenderApi::GetFrameIndex()];
 }
 
 void EngineDriver::SetCurrentWorld(const Handle<World>& world)
@@ -324,12 +324,12 @@ void EngineDriver::SetCurrentWorld(const Handle<World>& world)
 
     if (!world)
     {
-        m_currentWorldBuffered[RenderApi_GetFrameIndex()] = m_defaultWorld;
+        m_currentWorldBuffered[RenderApi::GetFrameIndex()] = m_defaultWorld;
 
         return;
     }
 
-    m_currentWorldBuffered[RenderApi_GetFrameIndex()] = world;
+    m_currentWorldBuffered[RenderApi::GetFrameIndex()] = world;
 }
 
 bool EngineDriver::IsRenderLoopActive() const
@@ -357,7 +357,7 @@ bool EngineDriver::StartRenderLoop()
 
     m_renderThread->Start();
 
-    RenderApi_Shutdown();
+    RenderApi::Shutdown();
 
     return true;
 }
@@ -444,11 +444,11 @@ HYP_API void EngineDriver::RenderNextFrame()
 
     PreFrameUpdate(frame);
 
-    const Handle<World>& currentWorld = m_currentWorldBuffered[RenderApi_GetFrameIndex()];
+    const Handle<World>& currentWorld = m_currentWorldBuffered[RenderApi::GetFrameIndex()];
 
     if (currentWorld && currentWorld->IsReady())
     {
-        g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi_GetWorldBufferData(), sizeof(WorldShaderData));
+        g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
 
         RenderSetup rs { currentWorld, nullptr };
         g_renderGlobalState->mainRenderer->RenderFrame(frame, rs);

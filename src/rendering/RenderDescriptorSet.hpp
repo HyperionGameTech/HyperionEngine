@@ -50,7 +50,9 @@ HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 class IRenderProxy;
 class HypObjectBase;
 
-uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource);
+namespace RenderApi {
+uint32 RetrieveResourceBinding(const HypObjectBase* resource);
+} // namespace RenderApi
 
 template <class T>
 struct ShaderDataOffset
@@ -67,7 +69,7 @@ struct ShaderDataOffset
     explicit ShaderDataOffset(const HypObjectBase* resource, uint32 indexIfNull = InvalidIndex)
         : index(indexIfNull)
     {
-        if (uint32 idx = RenderApi_RetrieveResourceBinding(resource); idx != ~0u)
+        if (uint32 idx = RenderApi::RetrieveResourceBinding(resource); idx != ~0u)
         {
             index = idx;
         }

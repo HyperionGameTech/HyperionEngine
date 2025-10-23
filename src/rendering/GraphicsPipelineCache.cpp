@@ -362,7 +362,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         DeferCreate(table);
     }
 
-    Proc<void(GraphicsPipelineBase* graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
+    Proc<void(GraphicsPipelineBase * graphicsPipeline, uint32 slot)> newCallback([this, attributes](GraphicsPipelineBase* graphicsPipeline, uint32 slot)
         {
             Mutex::Guard guard(m_mutex);
 
@@ -414,7 +414,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
             if (callback.IsValid())
             {
                 // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
-                graphicsPipeline->lastFrame = RenderApi_GetFrameCounter();
+                graphicsPipeline->lastFrame = RenderApi::GetFrameCounter();
 
                 callback(graphicsPipeline, slot);
             }
@@ -458,11 +458,11 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(
-            shader,
-            descriptorTableDecl,
-            Map(framebuffers, [](const FramebufferRef& framebuffer) { return static_cast<const FramebufferBase*>(framebuffer.Get()); }),
-            attributes))
+        if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
+                                                                            {
+                                                                                return static_cast<const FramebufferBase*>(framebuffer.Get());
+                                                                            }),
+                attributes))
         {
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 
@@ -480,7 +480,7 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    const uint32 currFrame = RenderApi_GetFrameCounter();
+    const uint32 currFrame = RenderApi::GetFrameCounter();
 
     Mutex::Guard guard(m_mutex);
 

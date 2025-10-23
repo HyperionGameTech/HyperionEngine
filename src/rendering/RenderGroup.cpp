@@ -440,7 +440,7 @@ static void RenderAll(
         counts[ERS_TRIANGLES] += instancedDrawCalls.numIndices[i] / 3;
     }
 
-    RenderApi_AddRenderStats(counts);
+    RenderApi::AddRenderStats(counts);
 }
 
 template <bool UseIndirectRendering>
@@ -791,7 +791,7 @@ void RenderGroup::PerformRendering(
     RenderStatsCounts counts;
     counts[ERS_RENDER_GROUPS] = 1;
 
-    RenderApi_AddRenderStats(counts);
+    RenderApi::AddRenderStats(counts);
 #endif
 }
 

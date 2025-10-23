@@ -39,6 +39,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
+extern HYP_API const char* LookupTypeName(TypeId typeId);
+
 #pragma region UIRenderCollector
 
 static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet& entityAttributes, const Optional<RenderableAttributeSet>& overrideAttributes)
@@ -98,8 +100,6 @@ static void BuildRenderGroups(RenderCollector& renderCollector, RenderProxyList&
         }
 
 #ifdef HYP_DEBUG_MODE
-        extern HYP_API const char* LookupTypeName(TypeId type_id);
-
         AssertDebug(meshProxy->entity.Id().GetTypeId() == TypeId::ForType<Entity>(),
             "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
             LookupTypeName(meshProxy->entity.Id().GetTypeId()));
@@ -166,7 +166,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -269,10 +269,10 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
     rs.view = m_view.Get();
     rs.passData = pd;
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(m_view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(m_view);
     rpl.BeginRead();
 
-    // RenderCollector& renderCollector = RenderApi_GetRenderCollector(m_view);
+    // RenderCollector& renderCollector = RenderApi::GetRenderCollector(m_view);
 
     if (pd->viewport != m_view->GetViewport())
     {

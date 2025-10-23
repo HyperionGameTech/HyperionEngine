@@ -225,7 +225,7 @@ void UISubsystem::Update(float delta)
     m_view->UpdateViewport();
     m_view->UpdateVisibility();
 
-    RenderProxyList& rpl = RenderApi_GetProducerProxyList(m_view);
+    RenderProxyList& rpl = RenderApi::GetProducerProxyList(m_view);
     rpl.BeginWrite();
     rpl.disableBuildRenderCollection = true;
     rpl.useOrdering = true;

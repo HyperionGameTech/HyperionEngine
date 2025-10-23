@@ -1275,7 +1275,7 @@ void EditorSubsystem::Update(float delta)
             continue; // skip non-primary views
         }
 
-        for (Mesh* mesh : view->GetRenderProxyList(RenderApi_GetFrameIndex())->GetMeshes())
+        for (Mesh* mesh : view->GetRenderProxyList(RenderApi::GetFrameIndex())->GetMeshes())
         {
             pickRpl.GetMeshes().Track(mesh->Id(), mesh);
         }

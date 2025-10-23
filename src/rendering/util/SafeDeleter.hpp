@@ -27,7 +27,9 @@ namespace hyperion {
 
 static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
 
-HYP_API extern uint32 RenderApi_GetFrameCounter();
+namespace RenderApi {
+HYP_API extern uint32 GetFrameCounter();
+} // namespace RenderApi
 
 template <class T>
 class SafeDeleterEntry;
@@ -149,7 +151,6 @@ public:
             currHeaders->PushBack(header);
         }
 
-
         // double-buffered to allow adding new entries while iterating.
         // we only actually iterate from headers[0] and move the entries that were added to headers[1] to headers[0] after iterating.
         Array<EntryHeader> headers[2];
@@ -158,7 +159,6 @@ public:
         Array<EntryHeader>* currHeaders;
         uint32 bufferPos;
         uint32 desiredIdx; // only for temp entry lists when we request a specific index!
-
     };
 
     template <class AllocatorType>
@@ -166,7 +166,7 @@ public:
     {
     public:
         TByteBuffer<AllocatorType> buffer;
-        
+
         EntryList()
             : EntryList(~0u)
         {
@@ -248,7 +248,7 @@ public:
 
         SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
 
-        header.fc = RenderApi_GetFrameCounter();
+        header.fc = RenderApi::GetFrameCounter();
 
         if constexpr (!std::is_trivially_destructible_v<SafeDeleterEntry<T>>)
         {
@@ -295,7 +295,7 @@ public:
 
         T* ptr = reinterpret_cast<T*>(list.Alloc(sizeof(T), alignof(T), header));
 
-        header.fc = RenderApi_GetFrameCounter();
+        header.fc = RenderApi::GetFrameCounter();
         header.destructFn = destructFn;
         header.moveFn = nullptr;
 
@@ -323,7 +323,6 @@ private:
 
     FixedArray<EntryList<Pool>*, NumMultiBuffers> m_entryLists;
     Counter m_counters[NumMultiBuffers];
-
 };
 
 extern HYP_API SafeDeleter* GetSafeDeleterInstance();

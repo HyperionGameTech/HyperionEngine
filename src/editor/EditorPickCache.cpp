@@ -56,7 +56,7 @@ static int ComputeResidency(const EditorPickCacheEntry& entry)
         return 0;
     }
 
-    const int fc = RenderApi_GetFrameCounter();
+    const int fc = RenderApi::GetFrameCounter();
 
     int residency = MinResidency;
 
@@ -120,7 +120,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     AssertDebug(std::is_final_v<Mesh> || mesh->InstanceClass() == Mesh::Class());
 
-    const uint32 fc = RenderApi_GetFrameCounter();
+    const uint32 fc = RenderApi::GetFrameCounter();
 
     if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
     {

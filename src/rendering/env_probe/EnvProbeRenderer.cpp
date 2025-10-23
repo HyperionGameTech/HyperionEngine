@@ -158,7 +158,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     EnvProbePassData* pd = ObjCast<EnvProbePassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -184,9 +184,9 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
             return;
         }
 
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi_GetRenderProxy(renderSetup.light));
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(renderSetup.light));
         AssertDebug(lightProxy != nullptr);
-        AssertDebug(RenderApi_RetrieveResourceBinding(renderSetup.light) != ~0u);
+        AssertDebug(RenderApi::RetrieveResourceBinding(renderSetup.light) != ~0u);
 
         if (lightProxy->bufferData.positionIntensity == pd->cachedLightDirIntensity
             && !rpl.GetMeshEntities().GetDiff().NeedsUpdate())
@@ -199,7 +199,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
         pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
     }
 
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(envProbe));
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi::GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
     if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate()
@@ -211,7 +211,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
     pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
-    RenderCollector& renderCollector = RenderApi_GetRenderCollector(view);
+    RenderCollector& renderCollector = RenderApi::GetRenderCollector(view);
 
     HYP_LOG(Rendering, Info, "Render EnvProbe {} with {} mesh entities (shared: {}), num total draw calls: {}", envProbe->Id(), rpl.GetMeshEntities().NumCurrent(),
         rpl.isShared,
@@ -270,10 +270,10 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
 
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(envProbe));
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi::GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -323,7 +323,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
             break;
         }
 
-        uniforms.lightIndices[numBoundLights++] = RenderApi_RetrieveResourceBinding(light);
+        uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
     }
 
     uniforms.numBoundLights = numBoundLights;
@@ -412,10 +412,10 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     View* view = renderSetup.view;
     AssertDebug(view != nullptr);
 
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(envProbe));
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi::GetRenderProxy(envProbe));
     Assert(envProbeProxy != nullptr);
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -522,7 +522,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     {
         if (light->GetLightType() == LT_DIRECTIONAL)
         {
-            AssertDebug(RenderApi_RetrieveResourceBinding(light) != ~0u, "Light not bound!");
+            AssertDebug(RenderApi::RetrieveResourceBinding(light) != ~0u, "Light not bound!");
 
             directionalLight = light;
 
@@ -548,7 +548,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         uint32 envProbeIndex;
     } pushConstants;
 
-    pushConstants.envProbeIndex = RenderApi_RetrieveResourceBinding(envProbe);
+    pushConstants.envProbeIndex = RenderApi::RetrieveResourceBinding(envProbe);
     pushConstants.probeGridPosition = { 0, 0, 0, 0 };
     pushConstants.cubemapDimensions = Vec4u { cubemapDimensions, 0, 0 };
     pushConstants.worldPosition = envProbeProxy->bufferData.worldPosition;
@@ -663,7 +663,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         {
             HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
 
-            const uint32 boundIndex = RenderApi_RetrieveResourceBinding(envProbe);
+            const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
             Assert(boundIndex != ~0u);
 
             EnvProbeShaderData readbackBuffer;

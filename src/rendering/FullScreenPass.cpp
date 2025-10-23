@@ -539,7 +539,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 
     if (ShouldRenderHalfRes())
     {
-        const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi_GetWorldBufferData()->frameCounter & 1);
+        const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         // render previous frame's result to screen
@@ -644,7 +644,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
     {
         Assert(framebuffer != nullptr, "Framebuffer must be set before rendering to it, if rendering at half res");
 
-        const Vec2i viewportOffset = (Vec2i(framebuffer->GetExtent().x, 0) / 2) * (RenderApi_GetWorldBufferData()->frameCounter & 1);
+        const Vec2i viewportOffset = (Vec2i(framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(framebuffer->GetExtent().x / 2, framebuffer->GetExtent().y);
 
         frame->renderQueue << BindGraphicsPipeline(
@@ -702,7 +702,7 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& renderSetup)
 
     if (ShouldRenderHalfRes())
     {
-        const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi_GetWorldBufferData()->frameCounter & 1);
+        const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         frame->renderQueue << BindGraphicsPipeline(

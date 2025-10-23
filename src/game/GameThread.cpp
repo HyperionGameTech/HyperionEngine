@@ -89,7 +89,7 @@ void GameThread::operator()()
 
         HYP_PROFILE_BEGIN;
 
-        RenderApi_BeginFrame_GameThread();
+        RenderApi::BeginFrame_GameThread();
 
         counter.NextTick();
 
@@ -129,7 +129,7 @@ void GameThread::operator()()
 
         g_engineDriver->GetDebugDrawer()->Update(counter.delta);
 
-        RenderApi_EndFrame_GameThread();
+        RenderApi::EndFrame_GameThread();
     }
 
     // flush scheduler

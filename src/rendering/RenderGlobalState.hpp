@@ -54,64 +54,65 @@ extern ResourceBinderBase* g_materialBinder;
 extern ResourceBinderBase* g_textureBinder;
 extern ResourceBinderBase* g_skeletonBinder;
 
-HYP_API extern SizeType GetNumDescendants(TypeId typeId);
-HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
+namespace RenderApi {
 
 // Call at start of engine before render / game thread start ticking.
 // Allocates containers declared in RenderGlobalState.cpp via DECLARE_RENDER_DATA_CONTAINER
-void RenderApi_Init();
-void RenderApi_Shutdown();
+void Init();
+void Shutdown();
 
 /*! \brief Get the current frame index for the current thread (can be called from the game or render threads).
  *  This is the index of the frame that is currently being processed.
  *  \note This is thread-safe only if called from the game or render thread. Other threads should not call this function. */
-HYP_API uint32 RenderApi_GetFrameIndex();
+HYP_API uint32 GetFrameIndex();
 
 /*! \brief Get the global frame counter value that is incremented every frame.
  *  This is used to track the number of frames that have been rendered.
  *  \note This is thread-safe and can be called from any thread as the frame counter is atomic. */
-HYP_API uint32 RenderApi_GetFrameCounter();
+HYP_API uint32 GetFrameCounter();
 
-void RenderApi_BeginFrame_GameThread();
-void RenderApi_EndFrame_GameThread();
+void BeginFrame_GameThread();
+void EndFrame_GameThread();
 
-void RenderApi_BeginFrame_RenderThread();
-void RenderApi_EndFrame_RenderThread();
+void BeginFrame_RenderThread();
+void EndFrame_RenderThread();
 
 /*! \brief Get the RenderProxyList for the Game thread to write to for the current frame, for the given view.
  *  The game thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will
  *  use when rendering the frame.
  *  \note This is only valid to call from the game thread, or from a task that is initiated by the game thread. */
-RenderProxyList& RenderApi_GetProducerProxyList(View* view);
+RenderProxyList& GetProducerProxyList(View* view);
 
 /*! \brief Get the RenderProxyList for the Render thread to read from for the current frame, for the given view.
  *  \note This is only valid to call from the render thread, or from a task that is initiated by the render thread. */
-RenderProxyList& RenderApi_GetConsumerProxyList(View* view);
+RenderProxyList& GetConsumerProxyList(View* view);
 
 /*! \brief Get the RenderCollector corresponding to the given View, only usable on the Render thread. */
-RenderCollector& RenderApi_GetRenderCollector(View* view);
+RenderCollector& GetRenderCollector(View* view);
 /*! For debugging: Get all active render collectors for the current frame. Only usable on the Render thread. */
-Array<Pair<View*, RenderCollector*>> RenderApi_GetAllRenderCollectors();
+Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors();
 
 // Call on render thread or render thread tasks only (consumer threads)
-IRenderProxy* RenderApi_GetRenderProxy(const HypObjectBase* resource);
+IRenderProxy* GetRenderProxy(const HypObjectBase* resource);
 
 /*! \brief Render thread only - update GPU data to match RenderProxy's buffer data for the resource */
-void RenderApi_UpdateGpuData(const HypObjectBase* resource);
+void UpdateGpuData(const HypObjectBase* resource);
 
 // used on render thread only - assigns all render proxy for the given object to the given binding
-void RenderApi_AssignResourceBinding(HypObjectBase* resource, uint32 binding);
+void AssignResourceBinding(HypObjectBase* resource, uint32 binding);
 // used on render thread only - retrieves the binding set for the given resource (~0u if unset)
-uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource);
+uint32 RetrieveResourceBinding(const HypObjectBase* resource);
 
-WorldShaderData* RenderApi_GetWorldBufferData();
+WorldShaderData* GetWorldBufferData();
 
-Viewport& RenderApi_GetViewport(View* view);
+Viewport& GetViewport(View* view);
 
-RenderStats* RenderApi_GetRenderStats();
-void RenderApi_AddRenderStats(const RenderStatsCounts& counts);
-void RenderApi_SuppressRenderStats();
-void RenderApi_UnsuppressRenderStats();
+RenderStats* GetRenderStats();
+void AddRenderStats(const RenderStatsCounts& counts);
+void SuppressRenderStats();
+void UnsuppressRenderStats();
+
+} // namespace RenderApi
 
 HYP_ENUM()
 enum GlobalRenderBuffer : uint8

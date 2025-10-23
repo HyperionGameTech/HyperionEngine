@@ -469,7 +469,7 @@ LightmapRenderer_CpuPathTracing::SharedCpuData* LightmapRenderer_CpuPathTracing:
 
     for (Light* light : rpl.GetLights())
     {
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi_GetRenderProxy(light));
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
 
         if (lightProxy)
         {
@@ -479,7 +479,7 @@ LightmapRenderer_CpuPathTracing::SharedCpuData* LightmapRenderer_CpuPathTracing:
 
     for (EnvProbe* envProbe : rpl.GetEnvProbes().GetElements<SkyProbe>())
     {
-        RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(envProbe));
+        RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi::GetRenderProxy(envProbe));
 
         if (envProbeProxy)
         {
@@ -499,7 +499,7 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
-    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
 
     SharedCpuData* sharedCpuData = CreateSharedCpuData(rpl);
 
@@ -535,7 +535,7 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
                 uint32 seed = std::rand();
 
                 // Keep the ViewData alive to prevent needing to recreate it a bunch
-                RenderApi_GetConsumerProxyList(view);
+                RenderApi::GetConsumerProxyList(view);
 
                 const uint32 offsetIndex = batchIndex * itemsPerBatch;
                 const uint32 maxIndex = MathUtil::Min(offsetIndex + itemsPerBatch, numItems);

@@ -132,7 +132,7 @@ public:
 
     void Create();
 
-    void Resize(Vec2u resolution);
+    void Resize(Vec2u extent);
 
     Delegate<void, Vec2u> OnGBufferResolutionChanged;
 
