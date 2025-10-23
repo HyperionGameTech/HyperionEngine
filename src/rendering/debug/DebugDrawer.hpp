@@ -11,6 +11,7 @@
 #include <core/threading/Mutex.hpp>
 
 #include <core/reflection/Handle.hpp>
+#include <core/reflection/HypObject.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -47,12 +48,12 @@ struct ImmediateDrawShaderData;
 
 static constexpr int MaxDebugDrawShapeTypes = 8;
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.debug.debugDrawer")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.Debug.DebugDrawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
     HYP_STRUCT_BODY(DebugDrawerConfig);
 
-    HYP_FIELD(Description = "Enable or disable the debug drawer.", JsonPath = "enabled")
+    HYP_FIELD(Description = "Enable or disable the debug drawer.")
     bool enabled = true;
 
     virtual ~DebugDrawerConfig() override = default;
@@ -241,24 +242,35 @@ private:
     uint32 m_bufferOffset;
 };
 
-class HYP_API DebugDrawer
+HYP_CLASS()
+class HYP_API DebugDrawer final : public HypObjectBase
 {
+    HYP_OBJECT_BODY(DebugDrawer);
+
 public:
     DebugDrawer();
-    ~DebugDrawer();
+    ~DebugDrawer() override;
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsEnabled() const
     {
         return m_config.enabled;
     }
 
-    void Initialize();
+    HYP_METHOD(Property = "Config")
+    HYP_FORCE_INLINE const DebugDrawerConfig& GetConfig() const
+    {
+        return m_config;
+    }
+
     void Update(float delta);
     void Render(FrameBase* frame, const RenderSetup& renderSetup);
 
     DebugDrawCommandList& CreateCommandList();
 
 private:
+    void Init() override;
+
     DebugDrawerConfig m_config;
 
     AtomicVar<bool> m_isInitialized;

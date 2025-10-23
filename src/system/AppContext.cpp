@@ -60,9 +60,9 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
     if (m_name.Empty())
     {
-        if (json::JSONValue configAppName = CoreApi_GetGlobalConfig().Get("app.name"))
+        if (json::JSONValue configAppName = CoreApi_GetGlobalConfig().Get("App.Name"))
         {
-            m_name = CoreApi_GetGlobalConfig().Get("app.name").ToString();
+            m_name = CoreApi_GetGlobalConfig().Get("App.Name").ToString();
         }
     }
 }

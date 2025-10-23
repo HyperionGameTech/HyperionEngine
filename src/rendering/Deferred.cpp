@@ -122,17 +122,17 @@ static void GetDeferredShaderProperties(
     static const ConfigurationValue& s_##name = globalConfig.Get(path); \
     const bool name = s_##name.ToBool()
 
-    DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "rendering.raytracing.reflections.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(raytracingGlobalIllumination, "rendering.raytracing.globalIllumination.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(envGridGlobalIllumination, "rendering.envGrid.globalIllumination.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(envGridReflections, "rendering.envGrid.reflections.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(hbil, "rendering.hbil.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(hbao, "rendering.hbao.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(ssgi, "rendering.ssgi.enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(pathTracing, "rendering.raytracing.pathTracing.enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "Rendering.RayTracing.Reflections.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(raytracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(envGridGlobalIllumination, "Rendering.EnvGrid.GI.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(envGridReflections, "Rendering.EnvGrid.Reflections.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(hbao, "Rendering.HBAO.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(ssgi, "Rendering.SSGI.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(pathTracing, "Rendering.RayTracing.PathTracing.Enabled");
 
-    DEF_STATIC_CONFIGURATION_VALUE(debugReflections, "rendering.debug.reflections");
-    DEF_STATIC_CONFIGURATION_VALUE(debugIrradiance, "rendering.debug.irradiance");
+    DEF_STATIC_CONFIGURATION_VALUE(debugReflections, "Rendering.Debug.Reflections");
+    DEF_STATIC_CONFIGURATION_VALUE(debugIrradiance, "Rendering.Debug.Irradiance");
 
 #undef DEF_STATIC_CONFIGURATION_VALUE
 
@@ -869,8 +869,8 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    static const ConfigurationValue& s_ssrEnabled = CoreApi_GetGlobalConfig().Get("rendering.ssr.enabled");
-    static const ConfigurationValue& s_raytracingReflectionsEnabled = CoreApi_GetGlobalConfig().Get("rendering.raytracing.reflections.enabled");
+    static const ConfigurationValue& s_ssrEnabled = CoreApi_GetGlobalConfig().Get("Rendering.SSR.Enabled");
+    static const ConfigurationValue& s_raytracingReflectionsEnabled = CoreApi_GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
 
     return s_ssrEnabled.ToBool(true) && !s_raytracingReflectionsEnabled.ToBool(false);
 }
@@ -1433,7 +1433,7 @@ void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredPassData& 
     }
 
     const bool shouldEnableRaytracingForView = view->GetRaytracingView().IsValid()
-        && CoreApi_GetGlobalConfig().Get("rendering.raytracing.enabled").ToBool();
+        && CoreApi_GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool();
 
     if (!shouldEnableRaytracingForView)
     {

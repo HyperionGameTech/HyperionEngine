@@ -498,9 +498,12 @@ DebugDrawer::~DebugDrawer()
     SafeDelete(std::move(m_descriptorTable));
 }
 
-void DebugDrawer::Initialize()
+void DebugDrawer::Init()
 {
     HYP_SCOPE;
+
+    HypObjectBase::Init();
+    SetReady(true);
 
     Assert(!m_isInitialized.Get(MemoryOrder::ACQUIRE));
 

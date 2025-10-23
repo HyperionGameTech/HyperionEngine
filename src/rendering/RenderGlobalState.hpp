@@ -42,6 +42,8 @@ struct RenderStatsCounts;
 struct Viewport;
 class ResourceBinderBase;
 
+namespace RenderApi {
+
 extern ResourceBinderBase* g_meshEntityBinder;
 extern ResourceBinderBase* g_meshBinder;
 extern ResourceBinderBase* g_cameraBinder;
@@ -53,8 +55,6 @@ extern ResourceBinderBase* g_lightmapVolumeBinder;
 extern ResourceBinderBase* g_materialBinder;
 extern ResourceBinderBase* g_textureBinder;
 extern ResourceBinderBase* g_skeletonBinder;
-
-namespace RenderApi {
 
 // Call at start of engine before render / game thread start ticking.
 // Allocates containers declared in RenderGlobalState.cpp via DECLARE_RENDER_DATA_CONTAINER
@@ -172,10 +172,10 @@ public:
 
     BindlessStorage* bindlessStorage;
 
-    UniquePtr<ShadowMapAllocator> shadowMapAllocator;
-    UniquePtr<PlaceholderData> placeholderData;
+    ShadowMapAllocator* shadowMapAllocator;
+    PlaceholderData* placeholderData;
 
-    UniquePtr<GpuBufferHolderMap> gpuBufferHolders;
+    GpuBufferHolderMap* gpuBufferHolders;
 
     DescriptorTableRef globalDescriptorTable;
 

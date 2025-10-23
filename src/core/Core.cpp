@@ -78,7 +78,7 @@ bool CoreApi_Initialize(int argc, char** argv)
 
     GlobalConfig config { "GlobalConfig" };
 
-    if (json::JSONValue configArgs = config.Get("app.args"))
+    if (json::JSONValue configArgs = config.Get("App.Args"))
     {
         json::JSONString configArgsString = configArgs.ToString();
         Array<String> configArgsStringSplit = configArgsString.Split(' ');

@@ -63,6 +63,7 @@ HYP_API extern const HypClass* g_clsComputePipelineBase;
 HYP_API extern const HypClass* g_clsConsoleCommandBase;
 HYP_API extern const HypClass* g_clsConsoleUI;
 HYP_API extern const HypClass* g_clsConvexHullPhysicsShape;
+HYP_API extern const HypClass* g_clsDebugDrawer;
 HYP_API extern const HypClass* g_clsDebugDrawerConfig;
 HYP_API extern const HypClass* g_clsDefaultImageFormat;
 HYP_API extern const HypClass* g_clsDeferredPass;

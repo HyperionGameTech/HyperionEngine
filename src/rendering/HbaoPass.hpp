@@ -15,18 +15,18 @@
 
 namespace hyperion {
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.hbao")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.HBAO")
 struct HBAOConfig : public ConfigBase<HBAOConfig>
 {
     HYP_STRUCT_BODY(HBAOConfig);
 
-    HYP_FIELD(JsonPath = "radius")
+    HYP_FIELD()
     float radius = 2.5f;
 
-    HYP_FIELD(JsonPath = "power")
+    HYP_FIELD()
     float power = 0.8f;
 
-    HYP_FIELD(JsonPath = "temporalBlending")
+    HYP_FIELD()
     bool useTemporalBlending = false;
 
     virtual ~HBAOConfig() override = default;

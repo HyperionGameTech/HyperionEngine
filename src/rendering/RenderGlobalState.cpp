@@ -155,6 +155,8 @@ extern void OnBindingChanged_Material(Material* lightmapVolume, uint32 prev, uin
 
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
+namespace RenderApi {
+
 static ResourceBindingAllocator<> s_meshEntityBindingsAllocator;
 static ResourceBinder<Entity, &OnBindingChanged_MeshEntity> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
 ResourceBinderBase* g_meshEntityBinder = &s_meshEntityBinder;
@@ -234,8 +236,6 @@ struct SubtypeResourceBindings
 
 static SparsePagedArray<SubtypeResourceBindings, 64> s_subtypeBindings;
 
-namespace RenderApi {
-
 static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const HypClass* hypClass)
 {
     HYP_SCOPE;
@@ -299,8 +299,6 @@ static uint32 ResourceBinding_Retrieve(const HypObjectBase* resource)
 
     return elem ? *elem : ~0u;
 }
-
-} // namespace RenderApi
 
 #pragma endregion ResourceBindings
 
@@ -576,7 +574,7 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     if (!vfd)
     {
-        vfd = new ViewFrameData();
+        vfd = PoolNew<ViewFrameData>(*g_framePools[slot]);
         vfd->view = view;
 
         vfd->rplShared = view->GetRenderProxyList(slot);
@@ -763,8 +761,6 @@ static HYP_FORCE_INLINE void CopyDependencies(RenderProxyList& dst, RenderProxyL
     }
 }
 
-namespace RenderApi {
-
 void Init()
 {
     HYP_SCOPE;
@@ -791,16 +787,16 @@ void Init()
         // if ray tracing is not supported, we need to update the configuration
         if (!g_renderBackend->GetRenderConfig().raytracing)
         {
-            renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
-            renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
-            renderGlobalConfigOverrides.Set("rendering.raytracing.globalIllumination.enabled", false);
-            renderGlobalConfigOverrides.Set("rendering.raytracing.pathTracing.enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Reflections.Enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.GI.Enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.PathTracing.Enabled", false);
 
             CoreApi_UpdateGlobalConfig(renderGlobalConfigOverrides);
         }
     }
 
-    g_renderGlobalState = new RenderGlobalState();
+    g_renderGlobalState = PoolNew<RenderGlobalState>(*g_renderPool);
     g_renderGlobalState->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
 
     ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
@@ -818,7 +814,7 @@ void Shutdown()
     {
         for (auto& it : s_frameData[i].viewFrameData)
         {
-            delete it.second;
+            PoolDelete(*g_framePools[i], it.second);
         }
 
         s_frameData[i].viewFrameData.Clear();
@@ -841,7 +837,7 @@ void Shutdown()
     PoolDelete(*g_renderPool, s_resources);
     s_resources = nullptr;
 
-    delete g_renderGlobalState;
+    PoolDelete(*g_renderPool, g_renderGlobalState);
     g_renderGlobalState = nullptr;
 
     Assert(g_renderBackend->Destroy());
@@ -1279,7 +1275,7 @@ void EndFrame_RenderThread()
             vfd.rplShared->debugIsSynced = false;
 #endif
 
-            delete &vfd;
+            PoolDelete(*g_framePools[slot], &vfd);
 
             it = frameData.viewFrameData.Erase(it);
 
@@ -1375,13 +1371,15 @@ void EndFrame_RenderThread()
 #pragma region RenderGlobalState
 
 RenderGlobalState::RenderGlobalState()
-    : shadowMapAllocator(MakeUnique<ShadowMapAllocator>()),
-      gpuBufferHolders(MakeUnique<GpuBufferHolderMap>()),
-      placeholderData(MakeUnique<PlaceholderData>()),
-      materialDescriptorSetManager(new MaterialDescriptorSetManager()),
-      graphicsPipelineCache(new GraphicsPipelineCache()),
-      bindlessStorage(new BindlessStorage())
+    : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
+      gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
+      placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
+      materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
+      graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
+      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool))
 {
+    Threads::AssertOnThread(g_renderThread);
+
     gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CBUFF>(1);
     gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CBUFF>();
     gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::SSBO>();
@@ -1425,7 +1423,7 @@ RenderGlobalState::RenderGlobalState()
 
     globalDescriptorTable->Create();
 
-    mainRenderer = new DeferredRenderer();
+    mainRenderer = PoolNew<DeferredRenderer>(*g_renderPool);
     mainRenderer->Initialize();
 
     for (uint32 i = 0; i < GRT_MAX; i++)
@@ -1434,20 +1432,20 @@ RenderGlobalState::RenderGlobalState()
     }
 
     globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
-    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer();
-    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer();
+    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = PoolNew<ReflectionProbeRenderer>(*g_renderPool);
+    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = PoolNew<ReflectionProbeRenderer>(*g_renderPool);
 
-    globalRenderers[GRT_ENV_GRID].PushBack(new EnvGridRenderer());
+    globalRenderers[GRT_ENV_GRID].PushBack(PoolNew<EnvGridRenderer>(*g_renderPool));
 
     globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
-    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer();
-    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer();
+    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = PoolNew<PointShadowRenderer>(*g_renderPool);
+    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = PoolNew<DirectionalShadowRenderer>(*g_renderPool);
 }
 
 RenderGlobalState::~RenderGlobalState()
 {
     bindlessStorage->UnsetAllResources();
-    delete bindlessStorage;
+    PoolDelete(*g_renderPool, bindlessStorage);
     bindlessStorage = nullptr;
 
     shadowMapAllocator->Destroy();
@@ -1462,19 +1460,28 @@ RenderGlobalState::~RenderGlobalState()
             if (globalRenderers[i][j])
             {
                 globalRenderers[i][j]->Shutdown();
-                delete globalRenderers[i][j];
+                PoolDelete(*g_renderPool, globalRenderers[i][j]);
             }
         }
     }
 
-    delete materialDescriptorSetManager;
+    PoolDelete(*g_renderPool, shadowMapAllocator);
+    shadowMapAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, gpuBufferHolders);
+    gpuBufferHolders = nullptr;
+
+    PoolDelete(*g_renderPool, placeholderData);
+    placeholderData = nullptr;
+
+    PoolDelete(*g_renderPool, materialDescriptorSetManager);
     materialDescriptorSetManager = nullptr;
 
-    delete graphicsPipelineCache;
+    PoolDelete(*g_renderPool, graphicsPipelineCache);
     graphicsPipelineCache = nullptr;
 
     mainRenderer->Shutdown();
-    delete mainRenderer;
+    PoolDelete(*g_renderPool, mainRenderer);
     mainRenderer = nullptr;
 }
 
@@ -1517,7 +1524,7 @@ void RenderGlobalState::RemoveRenderer(GlobalRendererType globalRendererType, Re
     AssertDebug(renderer != nullptr);
     AssertDebug(globalRenderers[globalRendererType].Contains(renderer));
 
-    delete renderer;
+    PoolDelete(*g_renderPool, renderer);
 
     globalRenderers[globalRendererType].Erase(renderer);
 }
@@ -1698,6 +1705,8 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frameIndex)
 
 #pragma endregion RenderGlobalState
 
+namespace RenderApi {
+
 DECLARE_RENDER_DATA_CONTAINER(Entity, RenderProxyMesh, GRB_ENTITIES, &WriteBufferData_MeshEntity, &s_meshEntityBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Mesh, NullProxy, GRB_INVALID, nullptr, &s_meshBinder);
@@ -1724,5 +1733,7 @@ DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, GRB_MATERIALS, null
 DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, GRB_INVALID, nullptr, &s_textureBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Skeleton, RenderProxySkeleton, GRB_SKELETONS, nullptr, &s_skeletonBinder);
+
+} // namespace RenderApi
 
 } // namespace hyperion

@@ -19,7 +19,7 @@ class GBuffer;
 class View;
 struct SSGIUniforms;
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering.ssgi")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.SSGI")
 struct SSGIConfig : public ConfigBase<SSGIConfig>
 {
     HYP_STRUCT_BODY(SSGIConfig);

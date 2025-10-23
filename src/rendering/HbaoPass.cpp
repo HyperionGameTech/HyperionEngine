@@ -88,7 +88,7 @@ void HBAO::Create()
     HYP_SCOPE;
 
     ShaderProperties shaderProperties;
-    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi_GetGlobalConfig().Get("rendering.hbil.enabled").ToBool());
+    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi_GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {

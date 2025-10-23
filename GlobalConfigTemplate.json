@@ -1,82 +1,82 @@
 {
-  "rendering": {
-    "indirectRendering": true,
-    "parallelCollection": true,
-    "ssr": {
-      "coneTracing": false,
-      "numIterations": 32,
-      "quality": 2,
-      "eyeFade": [0.980000, 0.990000],
-      "rayStep": 1.500000,
-      "enabled": true,
-      "screenEdgeFade": [0.960000, 0.990000],
-      "roughnessScattering": true
+  "Rendering": {
+    "IndirectRendering": true,
+    "ParallelCollection": true,
+    "SSR": {
+      "ConeTracing": false,
+      "NumIterations": 32,
+      "Quality": 2,
+      "EyeFade": [0.980000, 0.990000],
+      "RayStep": 1.500000,
+      "Enabled": true,
+      "ScreenEdgeFade": [0.960000, 0.990000],
+      "RoughnessScattering": true
     },
-    "envGrid": {
-      "reflections": {
-        "enabled": false
+    "EnvGrid": {
+      "Reflections": {
+        "Enabled": false
       },
-      "globalIllumination": {
-        "enabled": false
+      "GlobalIllumination": {
+        "Enabled": true
       }
     },
-    "taa": {
-      "enabled": false
+    "TAA": {
+      "Enabled": true
     },
-    "debug": {
-      "reflections": false,
-      "debugDrawer": {
-        "enabled": true,
-        "envGridProbes": false
+    "Debug": {
+      "Reflections": false,
+      "DebugDrawer": {
+        "Enabled": true,
+        "EnvGridProbes": false
       },
-      "irradiance": false
+      "Irradiance": false
     },
-    "hbil": {
-      "enabled": false
+    "HBIL": {
+      "Enabled": false
     },
-    "raytracing": {
-      "reflections": {
-        "enabled": false
+    "RayTracing": {
+      "Reflections": {
+        "Enabled": false
       },
-      "globalIllumination": {
-        "enabled": true
+      "GI": {
+        "Enabled": true
       },
-      "pathTracing": {
-        "enabled": false
+      "PathTracing": {
+        "Enabled": false
       },
-      "enabled": true
+      "Enabled": true
     },
-    "hbao": {
-      "radius": 2.500000,
-      "power": 0.800000,
-      "temporalBlending": false,
-      "enabled": false
+    "HBAO": {
+      "Radius": 2.500000,
+      "Power": 0.800000,
+      "UseTemporalBlending": false,
+      "Enabled": false
     },
-    "ssgi": {
-      "quality": 0,
-      "enabled": false
+    "SSGI": {
+      "Quality": 0,
+      "Enabled": false
     },
-    "vulkan": {
-      "debugLayers": false
+    "Vulkan": {
+      "DebugLayers": false
     }
   },
-  "editor": {
-    "camera": {
-      "moveSensitivity": 1,
-      "lookSensitivity": 1
+  "Editor": {
+    "Camera": {
+      "MoveSensitivity": 1,
+      "LookSensitivity": 1
     }
   },
-  "app": {
-    "name": "HyperionEditor",
-    "args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace"
+  "App": {
+    "Name": "HyperionEditor",
+    "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace"
   },
-  "lightmapper": {
-    "maxRaysPerFrame": 100000,
-    "traceMode": 0,
-    "numThreadsPerJob": 4,
-    "radiance": true,
-    "idealTrianglesPerJob": 16000,
-    "numSamples": 32,
-    "irradiance": true
+  "Lightmapper": {
+    "MaxRaysPerFrame": 100000,
+    "TraceMode": 0,
+    "NumThreadsPerJob": 4,
+    "Radiance": true,
+    "IdealTrianglesPerJob": 16000,
+    "NumSamples": 32,
+    "Irradiance": true
   }
 }

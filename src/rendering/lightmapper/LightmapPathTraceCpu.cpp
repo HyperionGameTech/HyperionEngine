@@ -63,7 +63,7 @@ namespace hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
-static constexpr uint32 g_maxBouncesCpu = 4;
+static constexpr uint32 MaxBouncesCpu = 4;
 
 struct LightmapRayHit : RayHit
 {
@@ -84,8 +84,8 @@ struct LightmapRayHit : RayHit
 
     LightmapRayHit(LightmapRayHit&& other) noexcept
         : RayHit(static_cast<RayHit&&>(std::move(other))),
-          entity(std::move(other.entity)),
-          triangle(std::move(other.triangle))
+          entity(std::move(other.entity)),    // NOLINT(bugprone-use-after-move)
+          triangle(std::move(other.triangle)) // NOLINT(bugprone-use-after-move)
     {
     }
 
@@ -97,8 +97,8 @@ struct LightmapRayHit : RayHit
         }
 
         RayHit::operator=(static_cast<RayHit&&>(std::move(other)));
-        entity = std::move(other.entity);
-        triangle = std::move(other.triangle);
+        entity = std::move(other.entity);     // NOLINT(bugprone-use-after-move)
+        triangle = std::move(other.triangle); // NOLINT(bugprone-use-after-move)
 
         return *this;
     }
@@ -319,7 +319,7 @@ private:
 
 uint32 LightmapThreadPool::NumThreadsToCreate()
 {
-    uint32 numThreads = CoreApi_GetGlobalConfig().Get("lightmapper.numThreadsPerJob").ToUInt32(4);
+    uint32 numThreads = CoreApi_GetGlobalConfig().Get("Lightmapper.NumThreadsPerJob").ToUInt32(4);
     return MathUtil::Clamp(numThreads, 1u, Threads::NumCores());
 }
 
@@ -563,7 +563,7 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
                         direction = N0;
                     }
 
-                    for (int bounceIndex = 0; bounceIndex < g_maxBouncesCpu; ++bounceIndex)
+                    for (int bounceIndex = 0; bounceIndex < MaxBouncesCpu; ++bounceIndex)
                     {
                         LightmapRay ray = firstRay;
                         ray.ray = Ray { origin, direction };

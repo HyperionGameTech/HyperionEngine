@@ -26,7 +26,7 @@ extern HYP_API const char* LookupTypeName(TypeId typeId);
 
 HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 {
-    return g_renderGlobalState->gpuBufferHolders.Get();
+    return g_renderGlobalState->gpuBufferHolders;
 }
 
 #pragma region DrawCallCollection

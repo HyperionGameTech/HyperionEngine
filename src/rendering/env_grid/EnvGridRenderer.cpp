@@ -518,7 +518,7 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    static const ConfigurationValue& globalIlluminationEnabled = CoreApi_GetGlobalConfig().Get("rendering.envGrid.globalIllumination.enabled");
+    static const ConfigurationValue& globalIlluminationEnabled = CoreApi_GetGlobalConfig().Get("Rendering.EnvGrid.GI.Enabled");
 
     if (!globalIlluminationEnabled.ToBool())
     {

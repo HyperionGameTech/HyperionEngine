@@ -51,20 +51,29 @@ struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(AddUIRenderer)
+struct RENDER_COMMAND(AddUIRendererForView)
     : RenderCommand
 {
-    UIRenderer* uiRenderer;
+    WeakHandle<View> viewWeak;
 
-    RENDER_COMMAND(AddUIRenderer)
-    (UIRenderer* uiRenderer)
-        : uiRenderer(uiRenderer)
+    RENDER_COMMAND(AddUIRendererForView)(const WeakHandle<View>& viewWeak)
+        : viewWeak(viewWeak)
     {
-        AssertDebug(uiRenderer != nullptr);
     }
 
     virtual RendererResult operator()() override
     {
+        Handle<View> view = viewWeak.Lock();
+        if (!view)
+        {
+            HYP_LOG(UI, Warning, "AddUIRendererForView: view is expired");
+
+            HYPERION_RETURN_OK;
+        }
+
+        UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
+        uiRenderer->renderCollector.drawCallCollectionImpl = view->GetViewDesc().drawCallCollectionImpl;
+
         g_renderGlobalState->AddRenderer(GRT_UI, uiRenderer);
 
         HYPERION_RETURN_OK;
@@ -184,10 +193,7 @@ void UISubsystem::Init()
 
     CreateFramebuffer();
 
-    m_uiRenderer = new UIRenderer(m_view);
-    m_uiRenderer->renderCollector.drawCallCollectionImpl = viewDesc.drawCallCollectionImpl;
-
-    PUSH_RENDER_COMMAND(AddUIRenderer, m_uiRenderer);
+    PUSH_RENDER_COMMAND(AddUIRendererForView, m_view);
 }
 
 void UISubsystem::OnAddedToWorld()

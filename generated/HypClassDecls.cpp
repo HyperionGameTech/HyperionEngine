@@ -291,6 +291,7 @@ const HypClass* g_clsVulkanRaytracingPipeline = nullptr;
 const HypClass* g_clsSkydomeRenderer = nullptr;
 const HypClass* g_clsFontAtlas = nullptr;
 const HypClass* g_clsFontAtlasTextureSet = nullptr;
+const HypClass* g_clsDebugDrawer = nullptr;
 const HypClass* g_clsDebugDrawerConfig = nullptr;
 const HypClass* g_clsPhysicsMaterial = nullptr;
 const HypClass* g_clsPhysicsShapeType = nullptr;

@@ -140,7 +140,7 @@ void World::Init()
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
-    if (CoreApi_GetGlobalConfig().Get("rendering.raytracing.enabled").ToBool(false))
+    if (CoreApi_GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool(false))
     {
         // dummy output target
         ViewOutputTargetDesc outputTargetDesc {

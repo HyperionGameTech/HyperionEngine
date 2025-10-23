@@ -280,8 +280,8 @@ HYP_API void EngineDriver::Init()
     m_finalPass = MakeUnique<FinalPass>(g_renderBackend->GetSwapchain()->HandleFromThis());
     m_finalPass->Create();
 
-    m_debugDrawer = MakeUnique<DebugDrawer>();
-    m_debugDrawer->Initialize();
+    m_debugDrawer = CreateObject<DebugDrawer>();
+    InitObject(m_debugDrawer);
 
     m_defaultWorld = CreateObject<World>();
     m_defaultWorld->SetName(NAME("DefaultWorld"));

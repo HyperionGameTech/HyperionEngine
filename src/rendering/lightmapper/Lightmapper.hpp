@@ -61,7 +61,7 @@ enum class LightmapShadingType : int
     MAX
 };
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "lightmapper")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Lightmapper")
 struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 {
     HYP_STRUCT_BODY(LightmapperConfig);

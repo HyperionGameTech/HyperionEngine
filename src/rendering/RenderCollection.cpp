@@ -474,8 +474,8 @@ void RenderProxyList::BeginWrite()
 {
     if (isShared)
     {
-        uint64 rwMarkerState = rwMarker.BitOr(writeFlag, MemoryOrder::ACQUIRE);
-        while (HYP_UNLIKELY(rwMarkerState & readMask))
+        uint64 rwMarkerState = rwMarker.BitOr(WriteFlag, MemoryOrder::ACQUIRE);
+        while (HYP_UNLIKELY(rwMarkerState & ReadMask))
         {
             HYP_LOG_TEMP("Busy waiting for read marker to be released! "
                          "If this is occuring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
@@ -509,7 +509,7 @@ void RenderProxyList::EndWrite()
 
     if (isShared)
     {
-        rwMarker.BitAnd(~writeFlag, MemoryOrder::RELEASE);
+        rwMarker.BitAnd(~WriteFlag, MemoryOrder::RELEASE);
     }
 }
 
@@ -523,7 +523,7 @@ void RenderProxyList::BeginRead()
         {
             rwMarkerState = rwMarker.Increment(2, MemoryOrder::ACQUIRE);
 
-            if (HYP_UNLIKELY(rwMarkerState & writeFlag))
+            if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
             {
                 HYP_LOG_TEMP("Waiting for write marker to be released. "
                              "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
@@ -534,7 +534,7 @@ void RenderProxyList::BeginRead()
                 HYP_WAIT_IDLE();
             }
         }
-        while (HYP_UNLIKELY(rwMarkerState & writeFlag));
+        while (HYP_UNLIKELY(rwMarkerState & WriteFlag));
     }
     else
     {
@@ -552,11 +552,11 @@ void RenderProxyList::EndRead()
     if (isShared)
     {
         uint64 rwMarkerState = rwMarker.Decrement(2, MemoryOrder::ACQUIRE_RELEASE);
-        AssertDebug(rwMarkerState & readMask, "Invalid state, expected read mask to be set when calling EndRead()");
+        AssertDebug(rwMarkerState & ReadMask, "Invalid state, expected read mask to be set when calling EndRead()");
 
         /// FIXME: If BeginRead() is called on other thread between the check and setting state to CS_DONE,
         /// we could set state to done when it isn't actually.
-        if (((rwMarkerState - 2) & readMask) == 0)
+        if (((rwMarkerState - 2) & ReadMask) == 0)
         {
             state = CS_DONE;
         }

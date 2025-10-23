@@ -303,7 +303,7 @@ void LegacyEnvGrid::Update(float delta)
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    static const ConfigurationValue& s_configDebugDrawProbes = CoreApi_GetGlobalConfig().Get("rendering.debug.debugDrawer.envGridProbes");
+    static const ConfigurationValue& s_configDebugDrawProbes = CoreApi_GetGlobalConfig().Get("Rendering.Debug.DebugDrawer.EnvGridProbes");
 
     // Debug draw
     if (s_configDebugDrawProbes.ToBool(false))

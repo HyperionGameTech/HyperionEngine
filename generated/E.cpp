@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region FirstPersonCameraControllerMode Reflection Data
 
-HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 386, 0, {})
+HYP_BEGIN_ENUM(FirstPersonCameraControllerMode, 387, 0, {})
     HypConstant(NAME(HYP_STR(MOUSE_LOCKED)), FirstPersonCameraControllerMode::MOUSE_LOCKED),
     HypConstant(NAME(HYP_STR(MOUSE_FREE)), FirstPersonCameraControllerMode::MOUSE_FREE)
 HYP_END_ENUM
@@ -37,7 +37,7 @@ namespace hyperion {
 
 #pragma region FirstPersonCameraController Reflection Data
 
-HYP_BEGIN_CLASS(FirstPersonCameraController, 187, 1, NAME("PerspectiveCameraController"))
+HYP_BEGIN_CLASS(FirstPersonCameraController, 188, 1, NAME("PerspectiveCameraController"))
     HypMethod(NAME(HYP_STR(GetMode)), &FirstPersonCameraController::GetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
     HypMethod(NAME(HYP_STR(SetMode)), &FirstPersonCameraController::SetMode, Span<const HypClassAttribute> { {HypClassAttribute("property", "Mode"), HypClassAttribute("transient", true) } }),
     HypMethod(NAME(HYP_STR(IsMouseLockAllowed)), &FirstPersonCameraController::IsMouseLockAllowed)
@@ -55,7 +55,7 @@ namespace hyperion {
 
 #pragma region FollowCameraController Reflection Data
 
-HYP_BEGIN_CLASS(FollowCameraController, 189, 0, NAME("PerspectiveCameraController"))
+HYP_BEGIN_CLASS(FollowCameraController, 190, 0, NAME("PerspectiveCameraController"))
 HYP_END_CLASS
 
 #pragma endregion FollowCameraController Reflection Data
@@ -70,7 +70,7 @@ namespace hyperion {
 
 #pragma region OrthoCameraController Reflection Data
 
-HYP_BEGIN_CLASS(OrthoCameraController, 190, 0, NAME("CameraController"))
+HYP_BEGIN_CLASS(OrthoCameraController, 191, 0, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion OrthoCameraController Reflection Data
@@ -89,7 +89,7 @@ namespace hyperion {
 
 #pragma region CameraProjectionMode Reflection Data
 
-HYP_BEGIN_ENUM(CameraProjectionMode, 387, 0, {})
+HYP_BEGIN_ENUM(CameraProjectionMode, 388, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), CameraProjectionMode::NONE),
     HypConstant(NAME(HYP_STR(PERSPECTIVE)), CameraProjectionMode::PERSPECTIVE),
     HypConstant(NAME(HYP_STR(ORTHOGRAPHIC)), CameraProjectionMode::ORTHOGRAPHIC)
@@ -104,7 +104,7 @@ namespace hyperion {
 
 #pragma region CameraFlags Reflection Data
 
-HYP_BEGIN_ENUM(CameraFlags, 388, 0, {})
+HYP_BEGIN_ENUM(CameraFlags, 389, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), CameraFlags::NONE),
     HypConstant(NAME(HYP_STR(MATCH_WINDOW_SIZE)), CameraFlags::MATCH_WINDOW_SIZE)
 HYP_END_ENUM
@@ -118,7 +118,7 @@ namespace hyperion {
 
 #pragma region CameraController Reflection Data
 
-HYP_BEGIN_CLASS(CameraController, 184, 7, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(CameraController, 185, 7, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetInputHandler)), &CameraController::GetInputHandler, Span<const HypClassAttribute> { {HypClassAttribute("property", "InputHandler") } }),
     HypMethod(NAME(HYP_STR(SetInputHandler)), &CameraController::SetInputHandler, Span<const HypClassAttribute> { {HypClassAttribute("property", "InputHandler") } }),
     HypMethod(NAME(HYP_STR(GetCamera)), &CameraController::GetCamera, Span<const HypClassAttribute> { {HypClassAttribute("property", "Camera") } }),
@@ -145,7 +145,7 @@ namespace hyperion {
 
 #pragma region Camera Reflection Data
 
-HYP_BEGIN_CLASS(Camera, 179, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(Camera, 180, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetCameraFlags)), &Camera::GetCameraFlags, Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(SetCameraFlags)), &Camera::SetCameraFlags, Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(GetCameraControllers)), &Camera::GetCameraControllers, Span<const HypClassAttribute> { {HypClassAttribute("property", "CameraControllers") } }),
@@ -214,7 +214,7 @@ namespace hyperion {
 
 #pragma region NullCameraController Reflection Data
 
-HYP_BEGIN_CLASS(NullCameraController, 191, 0, NAME("CameraController"))
+HYP_BEGIN_CLASS(NullCameraController, 192, 0, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion NullCameraController Reflection Data
@@ -256,7 +256,7 @@ namespace hyperion {
 
 #pragma region AnimationTrack Reflection Data
 
-HYP_BEGIN_CLASS(AnimationTrack, 192, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(AnimationTrack, 193, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetBoneName)), &AnimationTrack::GetBoneName),
     HypMethod(NAME(HYP_STR(SetBoneName)), &AnimationTrack::SetBoneName),
     HypMethod(NAME(HYP_STR(AddKeyframe)), &AnimationTrack::AddKeyframe),
@@ -276,7 +276,7 @@ namespace hyperion {
 
 #pragma region Animation Reflection Data
 
-HYP_BEGIN_CLASS(Animation, 193, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(Animation, 194, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetName)), &Animation::GetName, Span<const HypClassAttribute> { {HypClassAttribute("property", "Name") } }),
     HypMethod(NAME(HYP_STR(SetName)), &Animation::SetName, Span<const HypClassAttribute> { {HypClassAttribute("property", "Name") } }),
     HypMethod(NAME(HYP_STR(GetLength)), &Animation::GetLength, Span<const HypClassAttribute> { {HypClassAttribute("property", "Length"), HypClassAttribute("transient", true) } }),
@@ -305,7 +305,7 @@ namespace hyperion {
 
 #pragma region Keyframe Reflection Data
 
-HYP_BEGIN_STRUCT(Keyframe, 389, 0, {})
+HYP_BEGIN_STRUCT(Keyframe, 390, 0, {})
     HypField(NAME(HYP_STR(Time)), &Keyframe::time, offsetof(Keyframe, time), Span<const HypClassAttribute> { {HypClassAttribute("property", "Time"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Transform)), &Keyframe::transform, offsetof(Keyframe, transform), Span<const HypClassAttribute> { {HypClassAttribute("property", "Transform"), HypClassAttribute("serialize", true) } }),
     HypMethod(NAME(HYP_STR(Blend)), &Keyframe::Blend)
@@ -352,7 +352,7 @@ namespace hyperion {
 
 #pragma region Bone Reflection Data
 
-HYP_BEGIN_CLASS(Bone, 181, 0, NAME("Node"))
+HYP_BEGIN_CLASS(Bone, 182, 0, NAME("Node"))
     HypField(NAME(HYP_STR(Skeleton)), &Bone::m_skeleton, offsetof(Bone, m_skeleton), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(BoneMatrix)), &Bone::m_boneMatrix, offsetof(Bone, m_boneMatrix)),
     HypField(NAME(HYP_STR(Keyframe)), &Bone::m_keyframe, offsetof(Bone, m_keyframe), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
@@ -378,7 +378,7 @@ namespace hyperion {
 
 #pragma region LightmapElement Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapElement, 390, 0, {}, HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_STRUCT(LightmapElement, 391, 0, {}, HypClassAttribute("noscriptbindings", true))
     HypField(NAME(HYP_STR(Id)), &LightmapElement::id, offsetof(LightmapElement, id), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(OffsetUv)), &LightmapElement::offsetUv, offsetof(LightmapElement, offsetUv), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(OffsetCoords)), &LightmapElement::offsetCoords, offsetof(LightmapElement, offsetCoords), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
@@ -396,7 +396,7 @@ namespace hyperion {
 
 #pragma region LightmapVolumeAtlas Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapVolumeAtlas, 391, 0, {})
+HYP_BEGIN_STRUCT(LightmapVolumeAtlas, 392, 0, {})
     HypProperty(NAME(HYP_STR(AtlasDimensions)), &LightmapVolumeAtlas::atlasDimensions),
     HypProperty(NAME(HYP_STR(Elements)), &LightmapVolumeAtlas::elements),
     HypProperty(NAME(HYP_STR(FreeSpaces)), &LightmapVolumeAtlas::freeSpaces)
@@ -413,7 +413,7 @@ namespace hyperion {
 
 #pragma region LightmapVolume Reflection Data
 
-HYP_BEGIN_CLASS(LightmapVolume, 180, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(LightmapVolume, 181, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetUUID)), &LightmapVolume::GetUUID, Span<const HypClassAttribute> { {HypClassAttribute("property", "UUID") } }),
     HypMethod(NAME(HYP_STR(GetAtlasTexture)), &LightmapVolume::GetAtlasTexture),
     HypField(NAME(HYP_STR(Uuid)), &LightmapVolume::m_uuid, offsetof(LightmapVolume, m_uuid), Span<const HypClassAttribute> { {HypClassAttribute("property", "UUID") } }),
@@ -432,7 +432,7 @@ namespace hyperion {
 
 #pragma region LightmapTextureType Reflection Data
 
-HYP_BEGIN_ENUM(LightmapTextureType, 392, 0, {})
+HYP_BEGIN_ENUM(LightmapTextureType, 393, 0, {})
     HypConstant(NAME(HYP_STR(LTT_INVALID)), LightmapTextureType::LTT_INVALID),
     HypConstant(NAME(HYP_STR(LTT_RADIANCE)), LightmapTextureType::LTT_RADIANCE),
     HypConstant(NAME(HYP_STR(LTT_IRRADIANCE)), LightmapTextureType::LTT_IRRADIANCE),
@@ -460,7 +460,7 @@ namespace hyperion {
 
 #pragma region MeshComponent Reflection Data
 
-HYP_BEGIN_STRUCT(MeshComponent, 393, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 240),HypClassAttribute("label", "Mesh Component"),HypClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(MeshComponent, 394, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 240),HypClassAttribute("label", "Mesh Component"),HypClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(Mesh)), &MeshComponent::mesh, offsetof(MeshComponent, mesh), Span<const HypClassAttribute> { {HypClassAttribute("property", "Mesh"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Material)), &MeshComponent::material, offsetof(MeshComponent, material), Span<const HypClassAttribute> { {HypClassAttribute("property", "Material"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Skeleton)), &MeshComponent::skeleton, offsetof(MeshComponent, skeleton), Span<const HypClassAttribute> { {HypClassAttribute("property", "Skeleton"), HypClassAttribute("editor", true) } }),
@@ -489,7 +489,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateFlags Reflection Data
 
-HYP_BEGIN_ENUM(VisibilityStateFlags, 394, 0, {})
+HYP_BEGIN_ENUM(VisibilityStateFlags, 395, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), VisibilityStateFlags::NONE),
     HypConstant(NAME(HYP_STR(ALWAYS_VISIBLE)), VisibilityStateFlags::ALWAYS_VISIBLE),
     HypConstant(NAME(HYP_STR(INVALIDATED)), VisibilityStateFlags::INVALIDATED)
@@ -505,7 +505,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateComponent Reflection Data
 
-HYP_BEGIN_STRUCT(VisibilityStateComponent, 395, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 32),HypClassAttribute("serialize", false),HypClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(VisibilityStateComponent, 396, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 32),HypClassAttribute("serialize", false),HypClassAttribute("editor", false))
     HypField(NAME(HYP_STR(Flags)), &VisibilityStateComponent::flags, offsetof(VisibilityStateComponent, flags)),
     HypField(NAME(HYP_STR(OctantId)), &VisibilityStateComponent::octantId, offsetof(VisibilityStateComponent, octantId)),
     HypField(NAME(HYP_STR(VisibilityState)), &VisibilityStateComponent::visibilityState, offsetof(VisibilityStateComponent, visibilityState))
@@ -528,7 +528,7 @@ namespace hyperion {
 
 #pragma region BoundingBoxComponent Reflection Data
 
-HYP_BEGIN_STRUCT(BoundingBoxComponent, 396, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 64),HypClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(BoundingBoxComponent, 397, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 64),HypClassAttribute("editor", false))
     HypField(NAME(HYP_STR(LocalAabb)), &BoundingBoxComponent::localAabb, offsetof(BoundingBoxComponent, localAabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "LocalAABB") } }),
     HypField(NAME(HYP_STR(WorldAabb)), &BoundingBoxComponent::worldAabb, offsetof(BoundingBoxComponent, worldAabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "WorldAABB") } })
 HYP_END_STRUCT
@@ -550,7 +550,7 @@ namespace hyperion {
 
 #pragma region TransformComponent Reflection Data
 
-HYP_BEGIN_STRUCT(TransformComponent, 397, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Transform Component"),HypClassAttribute("description", "Controls the translation, rotation, and scale of an object."),HypClassAttribute("editor", false),HypClassAttribute("serialize", false))
+HYP_BEGIN_STRUCT(TransformComponent, 398, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Transform Component"),HypClassAttribute("description", "Controls the translation, rotation, and scale of an object."),HypClassAttribute("editor", false),HypClassAttribute("serialize", false))
     HypField(NAME(HYP_STR(Transform)), &TransformComponent::transform, offsetof(TransformComponent, transform), Span<const HypClassAttribute> { {HypClassAttribute("property", "Transform") } })
 HYP_END_STRUCT
 
@@ -570,7 +570,7 @@ namespace hyperion {
 
 #pragma region ScriptComponentFlags Reflection Data
 
-HYP_BEGIN_ENUM(ScriptComponentFlags, 398, 0, {})
+HYP_BEGIN_ENUM(ScriptComponentFlags, 399, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), ScriptComponentFlags::NONE),
     HypConstant(NAME(HYP_STR(INITIALIZED)), ScriptComponentFlags::INITIALIZED),
     HypConstant(NAME(HYP_STR(RELOADING)), ScriptComponentFlags::RELOADING),
@@ -589,7 +589,7 @@ namespace hyperion {
 
 #pragma region ScriptComponent Reflection Data
 
-HYP_BEGIN_STRUCT(ScriptComponent, 399, 0, {}, HypClassAttribute("component", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("label", "Script Component"),HypClassAttribute("description", "A script component that can be attached to an entity."))
+HYP_BEGIN_STRUCT(ScriptComponent, 400, 0, {}, HypClassAttribute("component", true),HypClassAttribute("noscriptbindings", true),HypClassAttribute("label", "Script Component"),HypClassAttribute("description", "A script component that can be attached to an entity."))
     HypField(NAME(HYP_STR(AssetReference)), &ScriptComponent::assetReference, offsetof(ScriptComponent, assetReference), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(Assembly)), &ScriptComponent::assembly, offsetof(ScriptComponent, assembly), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(ScriptObjectResource)), &ScriptComponent::scriptObjectResource, offsetof(ScriptComponent, scriptObjectResource), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
@@ -614,7 +614,7 @@ namespace hyperion {
 
 #pragma region UIComponent Reflection Data
 
-HYP_BEGIN_STRUCT(UIComponent, 400, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 8),HypClassAttribute("serialize", false))
+HYP_BEGIN_STRUCT(UIComponent, 401, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 8),HypClassAttribute("serialize", false))
     HypField(NAME(HYP_STR(UiObject)), &UIComponent::uiObject, offsetof(UIComponent, uiObject))
 HYP_END_STRUCT
 
@@ -633,7 +633,7 @@ namespace hyperion {
 
 #pragma region AnimationComponent Reflection Data
 
-HYP_BEGIN_STRUCT(AnimationComponent, 401, 0, {}, HypClassAttribute("component", true))
+HYP_BEGIN_STRUCT(AnimationComponent, 402, 0, {}, HypClassAttribute("component", true))
     HypField(NAME(HYP_STR(PlaybackState)), &AnimationComponent::playbackState, offsetof(AnimationComponent, playbackState), Span<const HypClassAttribute> { {HypClassAttribute("property", "PlaybackState"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } })
 HYP_END_STRUCT
 
@@ -647,7 +647,7 @@ namespace hyperion {
 
 #pragma region AnimationPlaybackState Reflection Data
 
-HYP_BEGIN_STRUCT(AnimationPlaybackState, 402, 0, {})
+HYP_BEGIN_STRUCT(AnimationPlaybackState, 403, 0, {})
     HypField(NAME(HYP_STR(AnimationIndex)), &AnimationPlaybackState::animationIndex, offsetof(AnimationPlaybackState, animationIndex), Span<const HypClassAttribute> { {HypClassAttribute("property", "AnimationIndex"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Status)), &AnimationPlaybackState::status, offsetof(AnimationPlaybackState, status), Span<const HypClassAttribute> { {HypClassAttribute("property", "Status"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(LoopMode)), &AnimationPlaybackState::loopMode, offsetof(AnimationPlaybackState, loopMode), Span<const HypClassAttribute> { {HypClassAttribute("property", "LoopMode"), HypClassAttribute("editor", true) } }),
@@ -664,7 +664,7 @@ namespace hyperion {
 
 #pragma region AnimationLoopMode Reflection Data
 
-HYP_BEGIN_ENUM(AnimationLoopMode, 403, 0, {})
+HYP_BEGIN_ENUM(AnimationLoopMode, 404, 0, {})
     HypConstant(NAME(HYP_STR(ONCE)), AnimationLoopMode::ONCE),
     HypConstant(NAME(HYP_STR(REPEAT)), AnimationLoopMode::REPEAT)
 HYP_END_ENUM
@@ -678,7 +678,7 @@ namespace hyperion {
 
 #pragma region AnimationPlaybackStatus Reflection Data
 
-HYP_BEGIN_ENUM(AnimationPlaybackStatus, 404, 0, {})
+HYP_BEGIN_ENUM(AnimationPlaybackStatus, 405, 0, {})
     HypConstant(NAME(HYP_STR(STOPPED)), AnimationPlaybackStatus::STOPPED),
     HypConstant(NAME(HYP_STR(PAUSED)), AnimationPlaybackStatus::PAUSED),
     HypConstant(NAME(HYP_STR(PLAYING)), AnimationPlaybackStatus::PLAYING)
@@ -699,7 +699,7 @@ namespace hyperion {
 
 #pragma region SkyComponent Reflection Data
 
-HYP_BEGIN_STRUCT(SkyComponent, 405, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Sky Component"),HypClassAttribute("description", "Controls the rendering of a dynamic skydome."),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(SkyComponent, 406, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Sky Component"),HypClassAttribute("description", "Controls the rendering of a dynamic skydome."),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(Subsystem)), &SkyComponent::subsystem, offsetof(SkyComponent, subsystem), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } })
 HYP_END_STRUCT
 
@@ -718,7 +718,7 @@ namespace hyperion {
 
 #pragma region AudioLoopMode Reflection Data
 
-HYP_BEGIN_ENUM(AudioLoopMode, 406, 0, {})
+HYP_BEGIN_ENUM(AudioLoopMode, 407, 0, {})
     HypConstant(NAME(HYP_STR(ALM_ONCE)), AudioLoopMode::ALM_ONCE),
     HypConstant(NAME(HYP_STR(ALM_REPEAT)), AudioLoopMode::ALM_REPEAT)
 HYP_END_ENUM
@@ -733,7 +733,7 @@ namespace hyperion {
 
 #pragma region AudioComponent Reflection Data
 
-HYP_BEGIN_STRUCT(AudioComponent, 407, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Audio Component"),HypClassAttribute("description", "Controls the state of an audio source."),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(AudioComponent, 408, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Audio Component"),HypClassAttribute("description", "Controls the state of an audio source."),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(AudioSource)), &AudioComponent::audioSource, offsetof(AudioComponent, audioSource), Span<const HypClassAttribute> { {HypClassAttribute("property", "AudioSource"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(PlaybackState)), &AudioComponent::playbackState, offsetof(AudioComponent, playbackState), Span<const HypClassAttribute> { {HypClassAttribute("property", "PlaybackState"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Flags)), &AudioComponent::flags, offsetof(AudioComponent, flags), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
@@ -751,7 +751,7 @@ namespace hyperion {
 
 #pragma region AudioComponentFlags Reflection Data
 
-HYP_BEGIN_ENUM(AudioComponentFlags, 408, 0, {})
+HYP_BEGIN_ENUM(AudioComponentFlags, 409, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), AudioComponentFlags::NONE),
     HypConstant(NAME(HYP_STR(INIT)), AudioComponentFlags::INIT)
 HYP_END_ENUM
@@ -765,7 +765,7 @@ namespace hyperion {
 
 #pragma region AudioPlaybackStatus Reflection Data
 
-HYP_BEGIN_ENUM(AudioPlaybackStatus, 409, 0, {})
+HYP_BEGIN_ENUM(AudioPlaybackStatus, 410, 0, {})
     HypConstant(NAME(HYP_STR(APS_STOPPED)), AudioPlaybackStatus::APS_STOPPED),
     HypConstant(NAME(HYP_STR(APS_PAUSED)), AudioPlaybackStatus::APS_PAUSED),
     HypConstant(NAME(HYP_STR(APS_PLAYING)), AudioPlaybackStatus::APS_PLAYING)
@@ -780,7 +780,7 @@ namespace hyperion {
 
 #pragma region AudioPlaybackState Reflection Data
 
-HYP_BEGIN_STRUCT(AudioPlaybackState, 410, 0, {})
+HYP_BEGIN_STRUCT(AudioPlaybackState, 411, 0, {})
     HypField(NAME(HYP_STR(Status)), &AudioPlaybackState::status, offsetof(AudioPlaybackState, status), Span<const HypClassAttribute> { {HypClassAttribute("property", "Status"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(LoopMode)), &AudioPlaybackState::loopMode, offsetof(AudioPlaybackState, loopMode), Span<const HypClassAttribute> { {HypClassAttribute("property", "LoopMode"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Speed)), &AudioPlaybackState::speed, offsetof(AudioPlaybackState, speed), Span<const HypClassAttribute> { {HypClassAttribute("property", "Speed"), HypClassAttribute("editor", true) } }),
@@ -802,7 +802,7 @@ namespace hyperion {
 
 #pragma region LightmapVolumeComponent Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapVolumeComponent, 411, 0, {}, HypClassAttribute("component", true))
+HYP_BEGIN_STRUCT(LightmapVolumeComponent, 412, 0, {}, HypClassAttribute("component", true))
     HypField(NAME(HYP_STR(Volume)), &LightmapVolumeComponent::volume, offsetof(LightmapVolumeComponent, volume), Span<const HypClassAttribute> { {HypClassAttribute("property", "Volume") } })
 HYP_END_STRUCT
 
@@ -822,7 +822,7 @@ namespace hyperion {
 
 #pragma region NodeLinkComponent Reflection Data
 
-HYP_BEGIN_STRUCT(NodeLinkComponent, 412, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 8),HypClassAttribute("serialize", false),HypClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(NodeLinkComponent, 413, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 8),HypClassAttribute("serialize", false),HypClassAttribute("editor", false))
     HypField(NAME(HYP_STR(Node)), &NodeLinkComponent::node, offsetof(NodeLinkComponent, node))
 HYP_END_STRUCT
 
@@ -845,7 +845,7 @@ namespace hyperion {
 
 #pragma region RigidBodyComponent Reflection Data
 
-HYP_BEGIN_STRUCT(RigidBodyComponent, 413, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Rigid Body Component"),HypClassAttribute("description", "Controls the properties of an object with rigid body physics."),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(RigidBodyComponent, 414, 0, {}, HypClassAttribute("component", true),HypClassAttribute("label", "Rigid Body Component"),HypClassAttribute("description", "Controls the properties of an object with rigid body physics."),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(RigidBody)), &RigidBodyComponent::rigidBody, offsetof(RigidBodyComponent, rigidBody), Span<const HypClassAttribute> { {HypClassAttribute("property", "RigidBody") } }),
     HypField(NAME(HYP_STR(PhysicsMaterial)), &RigidBodyComponent::physicsMaterial, offsetof(RigidBodyComponent, physicsMaterial), Span<const HypClassAttribute> { {HypClassAttribute("property", "PhysicsMaterial") } }),
     HypField(NAME(HYP_STR(Flags)), &RigidBodyComponent::flags, offsetof(RigidBodyComponent, flags), Span<const HypClassAttribute> { {HypClassAttribute("transient", true) } }),
@@ -862,7 +862,7 @@ namespace hyperion {
 
 #pragma region RigidBodyComponentFlags Reflection Data
 
-HYP_BEGIN_ENUM(RigidBodyComponentFlags, 414, 0, {})
+HYP_BEGIN_ENUM(RigidBodyComponentFlags, 415, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), RigidBodyComponentFlags::NONE),
     HypConstant(NAME(HYP_STR(INIT)), RigidBodyComponentFlags::INIT),
     HypConstant(NAME(HYP_STR(DIRTY)), RigidBodyComponentFlags::DIRTY)
@@ -883,7 +883,7 @@ namespace hyperion {
 
 #pragma region ReflectionProbeComponent Reflection Data
 
-HYP_BEGIN_STRUCT(ReflectionProbeComponent, 415, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 24),HypClassAttribute("label", "Reflection Probe Component"),HypClassAttribute("description", "Handles cubemap reflection calculations for a single EnvProbe source"),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(ReflectionProbeComponent, 416, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 24),HypClassAttribute("label", "Reflection Probe Component"),HypClassAttribute("description", "Handles cubemap reflection calculations for a single EnvProbe source"),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(Dimensions)), &ReflectionProbeComponent::dimensions, offsetof(ReflectionProbeComponent, dimensions), Span<const HypClassAttribute> { {HypClassAttribute("property", "Dimensions"), HypClassAttribute("editor", true), HypClassAttribute("label", "Dimensions") } }),
     HypField(NAME(HYP_STR(EnvProbe)), &ReflectionProbeComponent::envProbe, offsetof(ReflectionProbeComponent, envProbe), Span<const HypClassAttribute> { {HypClassAttribute("property", "EnvProbe"), HypClassAttribute("editor", true), HypClassAttribute("label", "EnvProbe") } }),
     HypField(NAME(HYP_STR(ReflectionProbeRenderer)), &ReflectionProbeComponent::reflectionProbeRenderer, offsetof(ReflectionProbeComponent, reflectionProbeRenderer), Span<const HypClassAttribute> { {HypClassAttribute("property", "ReflectionProbeRenderer"), HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true), HypClassAttribute("editor", false) } })
@@ -903,7 +903,7 @@ namespace hyperion {
 
 #pragma region WorldAABBUpdaterSystem Reflection Data
 
-HYP_BEGIN_CLASS(WorldAABBUpdaterSystem, 152, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(WorldAABBUpdaterSystem, 153, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion WorldAABBUpdaterSystem Reflection Data
@@ -918,7 +918,7 @@ namespace hyperion {
 
 #pragma region PhysicsSystem Reflection Data
 
-HYP_BEGIN_CLASS(PhysicsSystem, 153, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(PhysicsSystem, 154, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion PhysicsSystem Reflection Data
@@ -933,7 +933,7 @@ namespace hyperion {
 
 #pragma region SkySystem Reflection Data
 
-HYP_BEGIN_CLASS(SkySystem, 154, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(SkySystem, 155, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion SkySystem Reflection Data
@@ -948,7 +948,7 @@ namespace hyperion {
 
 #pragma region VisibilityStateUpdaterSystem Reflection Data
 
-HYP_BEGIN_CLASS(VisibilityStateUpdaterSystem, 155, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(VisibilityStateUpdaterSystem, 156, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion VisibilityStateUpdaterSystem Reflection Data
@@ -963,7 +963,7 @@ namespace hyperion {
 
 #pragma region AudioSystem Reflection Data
 
-HYP_BEGIN_CLASS(AudioSystem, 156, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(AudioSystem, 157, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion AudioSystem Reflection Data
@@ -978,7 +978,7 @@ namespace hyperion {
 
 #pragma region EntityRenderProxySystem_Mesh Reflection Data
 
-HYP_BEGIN_CLASS(EntityRenderProxySystem_Mesh, 157, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(EntityRenderProxySystem_Mesh, 158, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion EntityRenderProxySystem_Mesh Reflection Data
@@ -993,7 +993,7 @@ namespace hyperion {
 
 #pragma region EntityMeshDirtyStateSystem Reflection Data
 
-HYP_BEGIN_CLASS(EntityMeshDirtyStateSystem, 158, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(EntityMeshDirtyStateSystem, 159, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion EntityMeshDirtyStateSystem Reflection Data
@@ -1008,7 +1008,7 @@ namespace hyperion {
 
 #pragma region ScriptSystem Reflection Data
 
-HYP_BEGIN_CLASS(ScriptSystem, 159, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(ScriptSystem, 160, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion ScriptSystem Reflection Data
@@ -1023,7 +1023,7 @@ namespace hyperion {
 
 #pragma region LightmapSystem Reflection Data
 
-HYP_BEGIN_CLASS(LightmapSystem, 160, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true),HypClassAttribute("description", "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable."))
+HYP_BEGIN_CLASS(LightmapSystem, 161, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true),HypClassAttribute("description", "Associates an Entity with a MeshComponent with the assigned LightmapVolume, if applicable."))
 HYP_END_CLASS
 
 #pragma endregion LightmapSystem Reflection Data
@@ -1038,7 +1038,7 @@ namespace hyperion {
 
 #pragma region AnimationSystem Reflection Data
 
-HYP_BEGIN_CLASS(AnimationSystem, 161, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(AnimationSystem, 162, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion AnimationSystem Reflection Data
@@ -1056,7 +1056,7 @@ namespace hyperion {
 
 #pragma region WorldGridLayerInfo Reflection Data
 
-HYP_BEGIN_STRUCT(WorldGridLayerInfo, 416, 0, {}, HypClassAttribute("size", 80))
+HYP_BEGIN_STRUCT(WorldGridLayerInfo, 417, 0, {}, HypClassAttribute("size", 80))
     HypField(NAME(HYP_STR(GridSize)), &WorldGridLayerInfo::gridSize, offsetof(WorldGridLayerInfo, gridSize), Span<const HypClassAttribute> { {HypClassAttribute("property", "GridSize"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(CellSize)), &WorldGridLayerInfo::cellSize, offsetof(WorldGridLayerInfo, cellSize), Span<const HypClassAttribute> { {HypClassAttribute("property", "CellSize"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Offset)), &WorldGridLayerInfo::offset, offsetof(WorldGridLayerInfo, offset), Span<const HypClassAttribute> { {HypClassAttribute("property", "Offset"), HypClassAttribute("serialize", true) } }),
@@ -1079,7 +1079,7 @@ namespace hyperion {
 
 #pragma region WorldGridLayer Reflection Data
 
-HYP_BEGIN_CLASS(WorldGridLayer, 194, 1, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(WorldGridLayer, 195, 1, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetLayerInfo)), &WorldGridLayer::GetLayerInfo),
     HypMethod(NAME(HYP_STR(OnAdded)), &WorldGridLayer::OnAdded, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(OnRemoved)), &WorldGridLayer::OnRemoved, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
@@ -1185,7 +1185,7 @@ namespace hyperion {
 
 #pragma region WorldGrid Reflection Data
 
-HYP_BEGIN_CLASS(WorldGrid, 196, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(WorldGrid, 197, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetWorld)), &WorldGrid::GetWorld),
     HypMethod(NAME(HYP_STR(GetStreamingManager)), &WorldGrid::GetStreamingManager),
     HypMethod(NAME(HYP_STR(AddLayer)), &WorldGrid::AddLayer),
@@ -1225,7 +1225,7 @@ namespace hyperion {
 
 #pragma region TerrainWorldGridLayer Reflection Data
 
-HYP_BEGIN_CLASS(TerrainWorldGridLayer, 195, 0, NAME("WorldGridLayer"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(TerrainWorldGridLayer, 196, 0, NAME("WorldGridLayer"), HypClassAttribute("noscriptbindings", true))
     HypMethod(NAME(HYP_STR(GetScene)), &TerrainWorldGridLayer::GetScene),
     HypMethod(NAME(HYP_STR(Init)), &TerrainWorldGridLayer::Init),
     HypMethod(NAME(HYP_STR(OnAdded_Impl)), &TerrainWorldGridLayer::OnAdded_Impl),
@@ -1245,7 +1245,7 @@ namespace hyperion {
 
 #pragma region EnginePoolName Reflection Data
 
-HYP_BEGIN_ENUM(EnginePoolName, 417, 0, {})
+HYP_BEGIN_ENUM(EnginePoolName, 418, 0, {})
     HypConstant(NAME(HYP_STR(EPN_INVALID)), EnginePoolName::EPN_INVALID),
     HypConstant(NAME(HYP_STR(EPN_CORE)), EnginePoolName::EPN_CORE),
     HypConstant(NAME(HYP_STR(EPN_RENDER)), EnginePoolName::EPN_RENDER),
@@ -1267,7 +1267,7 @@ namespace hyperion {
 
 #pragma region EngineStats Reflection Data
 
-HYP_BEGIN_CLASS(EngineStats, 197, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EngineStats, 198, 0, NAME("HypObjectBase"))
     HypField(NAME(HYP_STR(StatGroups)), &EngineStats::statGroups, offsetof(EngineStats, statGroups))
 HYP_END_CLASS
 
@@ -1280,7 +1280,7 @@ namespace hyperion {
 
 #pragma region EngineStatGroup Reflection Data
 
-HYP_BEGIN_CLASS(EngineStatGroup, 198, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EngineStatGroup, 199, 0, NAME("HypObjectBase"))
     HypField(NAME(HYP_STR(Name)), &EngineStatGroup::name, offsetof(EngineStatGroup, name)),
     HypField(NAME(HYP_STR(Entries)), &EngineStatGroup::entries, offsetof(EngineStatGroup, entries)),
     HypField(NAME(HYP_STR(NumEntries)), &EngineStatGroup::numEntries, offsetof(EngineStatGroup, numEntries))
@@ -1295,7 +1295,7 @@ namespace hyperion {
 
 #pragma region EngineStatEntry Reflection Data
 
-HYP_BEGIN_STRUCT(EngineStatEntry, 418, 0, {})
+HYP_BEGIN_STRUCT(EngineStatEntry, 419, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion EngineStatEntry Reflection Data
@@ -1313,7 +1313,7 @@ namespace hyperion {
 
 #pragma region EngineDriver Reflection Data
 
-HYP_BEGIN_CLASS(EngineDriver, 199, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EngineDriver, 200, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetInstance)), &EngineDriver::GetInstance),
     HypMethod(NAME(HYP_STR(GetEngineStats)), &EngineDriver::GetEngineStats),
     HypMethod(NAME(HYP_STR(GetCurrentWorld)), &EngineDriver::GetCurrentWorld),
@@ -1335,7 +1335,7 @@ namespace hyperion {
 
 #pragma region EditorActionStack Reflection Data
 
-HYP_BEGIN_CLASS(EditorActionStack, 200, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EditorActionStack, 201, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(Push)), &EditorActionStack::Push),
     HypMethod(NAME(HYP_STR(CanUndo)), &EditorActionStack::CanUndo),
     HypMethod(NAME(HYP_STR(CanRedo)), &EditorActionStack::CanRedo),
@@ -1359,7 +1359,7 @@ namespace hyperion {
 
 #pragma region EditorActionStackState Reflection Data
 
-HYP_BEGIN_ENUM(EditorActionStackState, 419, 0, {})
+HYP_BEGIN_ENUM(EditorActionStackState, 420, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), EditorActionStackState::NONE),
     HypConstant(NAME(HYP_STR(CAN_UNDO)), EditorActionStackState::CAN_UNDO),
     HypConstant(NAME(HYP_STR(CAN_REDO)), EditorActionStackState::CAN_REDO)

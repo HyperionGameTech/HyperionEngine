@@ -121,8 +121,8 @@ struct DrawCallCollectionMapping
  *  Keeps track of which objects are newly added, removed or changed (via render proxy version changing), allowing updates to be applied to only objects that need it. */
 class RenderProxyList
 {
-    static constexpr uint64 writeFlag = 0x1;
-    static constexpr uint64 readMask = uint64(-1) & ~writeFlag;
+    static constexpr uint64 WriteFlag = 0x1;
+    static constexpr uint64 ReadMask = uint64(-1) & ~WriteFlag;
 
 public:
     using AllocatorType = Pool; // per-frame pools

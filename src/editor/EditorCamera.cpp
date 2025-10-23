@@ -139,9 +139,9 @@ bool EditorCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
-    
-    static const ConfigurationValue& editorLookSensitivity = CoreApi_GetGlobalConfig().Get("editor.camera.lookSensitivity");
-    static const ConfigurationValue& editorMoveSensitivity = CoreApi_GetGlobalConfig().Get("editor.camera.lookSensitivity");
+
+    static const ConfigurationValue& s_editorLookSensitivity = CoreApi_GetGlobalConfig().Get("Editor.Camera.LookSensitivity");
+    static const ConfigurationValue& s_editorMoveSensitivity = CoreApi_GetGlobalConfig().Get("Editor.Camera.MoveSensitivity");
 
     Handle<EditorCameraController> controller = m_controller.Lock();
 
@@ -156,10 +156,10 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     {
         return false;
     }
-    
+
     // magic numbers for fun
-    const double lookMultiplier = 7000.0 * editorLookSensitivity.ToDouble(1.0);
-    const double moveMultiplier = 25.0 * editorMoveSensitivity.ToDouble(1.0);
+    const double lookMultiplier = 7000.0 * s_editorLookSensitivity.ToDouble(1.0);
+    const double moveMultiplier = 25.0 * s_editorMoveSensitivity.ToDouble(1.0);
 
     // double for moar bits!!1
     const double mouseDeltaX = double(evt.position.x) - double(evt.previousPosition.x);
@@ -198,7 +198,6 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         if (isCtrlPressed)
         {
             // rotate around the focal point
-
         }
         else if (!isMoveKeyPressed)
         {
@@ -234,7 +233,7 @@ bool EditorCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
 
         return true;
     }
-    
+
     return false;
 }
 
@@ -294,7 +293,7 @@ void EditorCameraController::UpdateLogic(double delta)
 
     const Vec3f direction = m_camera->GetDirection();
     const Vec3f dirCrossY = direction.Cross(m_camera->GetUpVector());
-    
+
     m_inputHandler->SetDeltaTime(delta);
 
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))

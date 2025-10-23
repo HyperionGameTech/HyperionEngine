@@ -79,9 +79,9 @@ public:
         return m_defaultWorld;
     }
 
-    HYP_FORCE_INLINE DebugDrawer* GetDebugDrawer() const
+    HYP_FORCE_INLINE const Handle<DebugDrawer>& GetDebugDrawer() const
     {
-        return m_debugDrawer.Get();
+        return m_debugDrawer;
     }
 
     HYP_FORCE_INLINE FinalPass* GetFinalPass() const
@@ -128,7 +128,7 @@ private:
 
     Handle<World> m_world;
 
-    UniquePtr<DebugDrawer> m_debugDrawer;
+    Handle<DebugDrawer> m_debugDrawer;
 
     UniquePtr<FinalPass> m_finalPass;
 

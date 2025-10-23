@@ -28,6 +28,10 @@
 
 namespace hyperion {
 
+namespace RenderApi {
+extern ResourceBinderBase* g_reflectionProbeTextureBinder;
+} // namespace RenderApi
+
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
     AssertDebug(entity->InstanceClass() == Entity::Class(),
@@ -123,8 +127,6 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
 
 void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
 {
-    extern ResourceBinderBase* g_reflectionProbeTextureBinder;
-
     AssertDebug(gpuBufferHolder != nullptr);
     AssertDebug(idx != ~0u);
 
@@ -133,7 +135,7 @@ void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, 
 
     if (proxyCasted->envProbe.GetUnsafe()->IsA<SkyProbe>() || proxyCasted->envProbe.GetUnsafe()->IsA<ReflectionProbe>())
     {
-        const uint32 textureBinding = g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
+        const uint32 textureBinding = RenderApi::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
         Assert(textureBinding != ~0u);
 
         proxyCasted->bufferData.textureIndex = textureBinding;

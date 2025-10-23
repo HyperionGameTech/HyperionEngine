@@ -41,36 +41,36 @@ class TaskBatch;
 
 using threading::TaskBatch;
 
-HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "rendering")
+HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>
 {
     HYP_STRUCT_BODY(RendererConfig);
 
-    HYP_FIELD(JsonPath = "raytracing.pathTracing.enabled")
+    HYP_FIELD(JsonPath = "RayTracing.PathTracing.Enabled")
     bool pathTracer = false;
 
-    HYP_FIELD(JsonPath = "raytracing.reflections.enabled")
+    HYP_FIELD(JsonPath = "RayTracing.Reflections.Enabled")
     bool raytracingReflections = false;
 
-    HYP_FIELD(JsonPath = "raytracing.globalIllumination.enabled")
+    HYP_FIELD(JsonPath = "RayTracing.GI.Enabled")
     bool raytracingGlobalIllumination = false;
 
-    HYP_FIELD(JsonPath = "hbao.enabled")
+    HYP_FIELD(JsonPath = "HBAO.Enabled")
     bool hbaoEnabled = false;
 
-    HYP_FIELD(JsonPath = "hbil.enabled")
+    HYP_FIELD(JsonPath = "HBIL.Enabled")
     bool hbilEnabled = false;
 
-    HYP_FIELD(JsonPath = "ssgi.enabled")
+    HYP_FIELD(JsonPath = "SSGI.Enabled")
     bool ssgiEnabled = false;
 
-    HYP_FIELD(JsonPath = "envGrid.globalIllumination.enabled")
+    HYP_FIELD(JsonPath = "EnvGrid.GI.Enabled")
     bool envGridGiEnabled = false;
 
-    HYP_FIELD(JsonPath = "envGrid.reflections.enabled")
+    HYP_FIELD(JsonPath = "EnvGrid.Reflections.Enabled")
     bool envGridRadianceEnabled = false;
 
-    HYP_FIELD(JsonPath = "taa.enabled")
+    HYP_FIELD(JsonPath = "taa.Enabled")
     bool taaEnabled = false;
 
     virtual ~RendererConfig() override = default;
