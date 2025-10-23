@@ -36,14 +36,14 @@ enum class TaskEnqueueFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(TaskEnqueueFlags)
 
-HYP_API extern Pool* g_taskPool;
-
 namespace threading {
 
 class TaskThread;
 class TaskBatch;
 class SchedulerBase;
 class TaskBase;
+
+HYP_API extern Pool* GetTaskPool();
 
 class TaskCompleteNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
 {
@@ -174,7 +174,7 @@ private:
 class ITaskExecutor
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_taskPool);
+    HYP_DEF_POOL_NEW_DELETE(GetTaskPool());
 
     virtual ~ITaskExecutor() = default;
 
@@ -591,7 +591,7 @@ struct TaskRef
 class TaskBase
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_taskPool);
+    HYP_DEF_POOL_NEW_DELETE(GetTaskPool());
 
     TaskBase(TaskID id, SchedulerBase* assignedScheduler)
         : m_id(id),
