@@ -71,7 +71,7 @@ namespace containers {
 template <int TStringType>
 class String;
 
-template <class T>
+template <class T, class AllocatorType>
 class LinkedList;
 
 template <class Key, class Value, class NodeAllocatorType>
@@ -435,8 +435,8 @@ struct TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, class HypDataType>
-struct TypeInfoImpl<containers::LinkedList<T>, HypDataType>
+template <class T, class AllocatorType, class HypDataType>
+struct TypeInfoImpl<containers::LinkedList<T, AllocatorType>, HypDataType>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -1089,10 +1089,10 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, HypDataType>::operator()(Type
     result.extendedInfo.handler = new FixedArrayHandler();
 }
 
-template <class T, class HypDataType>
-void TypeInfoImpl<containers::LinkedList<T>, HypDataType>::operator()(TypeInfo& result) const
+template <class T, class AllocatorType, class HypDataType>
+void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, HypDataType>::operator()(TypeInfo& result) const
 {
-    using ListType = containers::LinkedList<T>;
+    using ListType = containers::LinkedList<T, AllocatorType>;
 
     class LinkedListHandler final : public ITypeInfoLinkedListHandler
     {

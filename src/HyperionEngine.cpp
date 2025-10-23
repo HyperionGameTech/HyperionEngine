@@ -148,13 +148,12 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 {
     Threads::SetCurrentThreadId(g_mainThread);
 
-    g_objectPool = new Pool(ObjectPoolBlockSize);
-
-    g_renderPool = new Pool(RenderPoolBlockSize);
+    g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
+    g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
-        g_framePools[i] = new Pool(FramePoolBlockSize);
+        g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
     }
 
     g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);

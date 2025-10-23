@@ -41,7 +41,7 @@
 
 namespace hyperion {
 
-static const String g_reservedClassMemberNames[] = {
+static const String s_reservedClassMemberNames[] = {
     "$construct"
 };
 
@@ -196,7 +196,7 @@ void AstClass::Visit(AstVisitor* visitor, Module* mod)
         &m_staticMembers
     };
 
-    for (const String& reserved : g_reservedClassMemberNames)
+    for (const String& reserved : s_reservedClassMemberNames)
     {
         for (const Array<RC<AstVariableDeclaration>>* members : allMembers)
         {

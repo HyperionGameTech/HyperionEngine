@@ -562,7 +562,7 @@ HYP_BEGIN_STRUCT(RendererConfig, 323, 0, {}, HypClassAttribute("configname", "Gl
     HypField(NAME(HYP_STR(SsgiEnabled)), &RendererConfig::ssgiEnabled, offsetof(RendererConfig, ssgiEnabled), Span<const HypClassAttribute> { {HypClassAttribute("jsonpath", "SSGI.Enabled") } }),
     HypField(NAME(HYP_STR(EnvGridGiEnabled)), &RendererConfig::envGridGiEnabled, offsetof(RendererConfig, envGridGiEnabled), Span<const HypClassAttribute> { {HypClassAttribute("jsonpath", "EnvGrid.GI.Enabled") } }),
     HypField(NAME(HYP_STR(EnvGridRadianceEnabled)), &RendererConfig::envGridRadianceEnabled, offsetof(RendererConfig, envGridRadianceEnabled), Span<const HypClassAttribute> { {HypClassAttribute("jsonpath", "EnvGrid.Reflections.Enabled") } }),
-    HypField(NAME(HYP_STR(TaaEnabled)), &RendererConfig::taaEnabled, offsetof(RendererConfig, taaEnabled), Span<const HypClassAttribute> { {HypClassAttribute("jsonpath", "taa.Enabled") } })
+    HypField(NAME(HYP_STR(TaaEnabled)), &RendererConfig::taaEnabled, offsetof(RendererConfig, taaEnabled), Span<const HypClassAttribute> { {HypClassAttribute("jsonpath", "TAA.Enabled") } })
 HYP_END_STRUCT
 
 #pragma endregion RendererConfig Reflection Data

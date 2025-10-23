@@ -433,7 +433,7 @@ RC<AstStatement> Parser::ParseStatement(
         }
         else if (MatchKeyword(Keyword_const, false)
             || MatchKeyword(Keyword_ref, false)
-            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1) && !MatchKeywordAhead(Keyword_class, 1) && !MatchKeywordAhead(Keyword_enum, 1)))
+            || (MatchKeyword(Keyword_extern, false) && !MatchKeywordAhead(Keyword_func, 1) && !MatchKeywordAhead(Keyword_class, 1) && !MatchKeywordAhead(Keyword_struct, 1) && !MatchKeywordAhead(Keyword_enum, 1)))
         {
             res = ParseVariableDeclaration();
         }
@@ -448,9 +448,9 @@ RC<AstStatement> Parser::ParseStatement(
                 res = ParseFunctionExpression();
             }
         }
-        else if (MatchKeyword(Keyword_class, false)
+        else if (MatchKeyword(Keyword_class, false) || MatchKeyword(Keyword_struct, false)
             || (MatchKeyword(Keyword_proxy, false) && MatchKeywordAhead(Keyword_class, 1))
-            || (MatchKeyword(Keyword_extern, false) && MatchKeywordAhead(Keyword_class, 1)))
+            || (MatchKeyword(Keyword_extern, false) && (MatchKeywordAhead(Keyword_class, 1) || MatchKeywordAhead(Keyword_struct, 1))))
         {
             res = ParseClassDefinition();
         }
@@ -2537,7 +2537,28 @@ RC<AstClass> Parser::ParseClassDefinition()
         classFlags |= ClassFlags::CLASS_FLAG_IS_PROXY;
     }
 
-    if (Token token = ExpectKeyword(Keyword_class, true))
+    Token descToken = Token::EMPTY;
+
+    if ((descToken = MatchKeyword(Keyword_struct, true)))
+    {
+        if (classFlags & ClassFlags::CLASS_FLAG_IS_PROXY)
+        {
+            m_compilationUnit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_struct_cannot_be_proxy,
+                descToken.GetLocation()));
+        }
+        else
+        {
+            classFlags |= ClassFlags::CLASS_FLAG_IS_STRUCT;
+        }
+    }
+    else
+    {
+        descToken = ExpectKeyword(Keyword_class, true);
+    }
+
+    if (descToken)
     {
         if (Token identifier = ExpectIdentifier(false, true))
         {
@@ -2556,9 +2577,16 @@ RC<AstClass> Parser::ParseClass(
 {
     const SourceLocation location = CurrentLocation();
 
-    if (requireKeyword && !ExpectKeyword(Keyword_class, true))
+    if (requireKeyword)
     {
-        return nullptr;
+        if (MatchKeyword(Keyword_struct, true))
+        {
+            classFlags |= ClassFlags::CLASS_FLAG_IS_STRUCT;
+        }
+        else if (!ExpectKeyword(Keyword_class, true))
+        {
+            return nullptr;
+        }
     }
 
     if (allowIdentifier)

@@ -224,7 +224,7 @@ struct SubtypeResourceBindings
 {
     const HypClass* resourceClass;
     GpuBufferHolderBase* gpuBufferHolder;
-    SparsePagedArray<uint32, 1024> bindingIndices;
+    SparsePagedArray<uint32, 1024, RenderAllocator> bindingIndices;
 
     SubtypeResourceBindings(const HypClass* resourceClass, GpuBufferHolderBase* gpuBufferHolder)
         : resourceClass(resourceClass),

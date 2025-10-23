@@ -2,10 +2,16 @@
 
 #pragma once
 
-#include <core/containers/ContainerBase.hpp>
-#include <core/utilities/ValueStorage.hpp>
 #include <core/Defines.hpp>
+
+#include <core/containers/ContainerBase.hpp>
+
+#include <core/utilities/ValueStorage.hpp>
+
 #include <core/memory/Memory.hpp>
+
+#include <core/memory/allocator/Allocator.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/HashCode.hpp>
@@ -15,18 +21,22 @@
 namespace hyperion {
 
 namespace containers {
-template <class T>
+
+template <class T, class AllocatorType>
 struct LinkedListNode
 {
-    LinkedListNode* previous = nullptr;
-    LinkedListNode* next = nullptr;
+    LinkedListNode* previous;
+    LinkedListNode* next;
     ValueStorage<T> value;
 };
 
-template <class T>
-class LinkedList : public ContainerBase<LinkedList<T>, SizeType>
+template <class T, class AllocatorType = DynamicAllocator>
+class LinkedList;
+
+template <class T, class AllocatorType>
+class LinkedList : public ContainerBase<LinkedList<T, AllocatorType>, SizeType>
 {
-    using Node = containers::LinkedListNode<T>;
+    using Node = containers::LinkedListNode<T, AllocatorType>;
 
 public:
     static constexpr bool isContiguous = false;
@@ -182,7 +192,7 @@ public:
         }
     };
 
-    using Base = ContainerBase<LinkedList<T>, SizeType>;
+    using Base = ContainerBase<LinkedList<T, AllocatorType>, SizeType>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
 
@@ -255,14 +265,15 @@ public:
      *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */
     HYP_FORCE_INLINE const T& operator[](SizeType index) const
     {
-        return const_cast<LinkedList<T>*>(this)->operator[](index);
+        return const_cast<LinkedList<T, AllocatorType>*>(this)->operator[](index);
     }
 
     template <class... Args>
     ValueType& EmplaceBack(Args&&... args)
     {
-        Node* newNode = new Node;
+        Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
         newNode->previous = m_tail;
+        newNode->next = nullptr;
         newNode->value.Construct(std::forward<Args>(args)...);
 
         if (m_size == 0)
@@ -284,7 +295,8 @@ public:
     template <class... Args>
     ValueType& EmplaceFront(Args&&... args)
     {
-        Node* newNode = new Node;
+        Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+        newNode->previous = nullptr;
         newNode->next = m_head;
         newNode->value.Construct(std::forward<Args>(args)...);
 
@@ -385,44 +397,54 @@ public:
     HYP_DEF_STL_BEGIN_END({ m_head }, { (Node*)nullptr })
 
 private:
+    AllocatorType* m_pAllocator;
+
     Node* m_head;
     Node* m_tail;
     SizeType m_size;
 };
 
-template <class T>
-LinkedList<T>::LinkedList()
-    : m_head(nullptr),
+template <class T, class AllocatorType>
+LinkedList<T, AllocatorType>::LinkedList()
+    : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+      m_head(nullptr),
       m_tail(nullptr),
       m_size(0)
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
 }
 
-template <class T>
-LinkedList<T>::LinkedList(const LinkedList<T>& other)
-    : m_head(nullptr),
+template <class T, class AllocatorType>
+LinkedList<T, AllocatorType>::LinkedList(const LinkedList<T, AllocatorType>& other)
+    : m_pAllocator(other.m_pAllocator),
+      m_head(nullptr),
       m_tail(nullptr),
       m_size(0)
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
     for (const auto& value : other)
     {
         PushBack(value);
     }
 }
 
-template <class T>
-LinkedList<T>::LinkedList(LinkedList<T>&& other) noexcept
-    : m_head(other.m_head),
+template <class T, class AllocatorType>
+LinkedList<T, AllocatorType>::LinkedList(LinkedList<T, AllocatorType>&& other) noexcept
+    : m_pAllocator(other.m_pAllocator),
+      m_head(other.m_head),
       m_tail(other.m_tail),
       m_size(other.m_size)
 {
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
     other.m_head = nullptr;
     other.m_tail = nullptr;
     other.m_size = 0;
 }
 
-template <class T>
-LinkedList<T>& LinkedList<T>::operator=(const LinkedList<T>& other)
+template <class T, class AllocatorType>
+LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(const LinkedList<T, AllocatorType>& other)
 {
     if (std::addressof(other) == this)
     {
@@ -430,6 +452,10 @@ LinkedList<T>& LinkedList<T>::operator=(const LinkedList<T>& other)
     }
 
     Clear();
+
+    m_pAllocator = other.m_pAllocator;
+
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
 
     for (const auto& value : other)
     {
@@ -439,8 +465,8 @@ LinkedList<T>& LinkedList<T>::operator=(const LinkedList<T>& other)
     return *this;
 }
 
-template <class T>
-LinkedList<T>& LinkedList<T>::operator=(LinkedList<T>&& other) noexcept
+template <class T, class AllocatorType>
+LinkedList<T, AllocatorType>& LinkedList<T, AllocatorType>::operator=(LinkedList<T, AllocatorType>&& other) noexcept
 {
     if (std::addressof(other) == this)
     {
@@ -449,10 +475,13 @@ LinkedList<T>& LinkedList<T>::operator=(LinkedList<T>&& other) noexcept
 
     Clear();
 
+    m_pAllocator = other.m_pAllocator;
     m_head = other.m_head;
     m_tail = other.m_tail;
     m_size = other.m_size;
 
+    HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
     other.m_head = nullptr;
     other.m_tail = nullptr;
     other.m_size = 0;
@@ -460,8 +489,8 @@ LinkedList<T>& LinkedList<T>::operator=(LinkedList<T>&& other) noexcept
     return *this;
 }
 
-template <class T>
-LinkedList<T>::~LinkedList()
+template <class T, class AllocatorType>
+LinkedList<T, AllocatorType>::~LinkedList()
 {
     Node* node = m_head;
 
@@ -470,17 +499,18 @@ LinkedList<T>::~LinkedList()
         Node* next = node->next;
 
         node->value.Destruct();
-        delete node;
+        m_pAllocator->Free(node);
 
         node = next;
     }
 }
 
-template <class T>
-auto LinkedList<T>::PushBack(const ValueType& value) -> ValueType&
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 {
-    Node* newNode = new Node;
+    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = m_tail;
+    newNode->next = nullptr;
     newNode->value.Construct(value);
 
     if (m_size == 0)
@@ -499,11 +529,12 @@ auto LinkedList<T>::PushBack(const ValueType& value) -> ValueType&
     return newNode->value.Get();
 }
 
-template <class T>
-auto LinkedList<T>::PushBack(ValueType&& value) -> ValueType&
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 {
-    Node* newNode = new Node;
+    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
     newNode->previous = m_tail;
+    newNode->next = nullptr;
     newNode->value.Construct(std::move(value));
 
     if (m_size == 0)
@@ -522,10 +553,11 @@ auto LinkedList<T>::PushBack(ValueType&& value) -> ValueType&
     return newNode->value.Get();
 }
 
-template <class T>
-auto LinkedList<T>::PushFront(const ValueType& value) -> ValueType&
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 {
-    Node* newNode = new Node;
+    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+    newNode->previous = nullptr;
     newNode->next = m_head;
     newNode->value.Construct(value);
 
@@ -546,10 +578,11 @@ auto LinkedList<T>::PushFront(const ValueType& value) -> ValueType&
     return newNode->value.Get();
 }
 
-template <class T>
-auto LinkedList<T>::PushFront(ValueType&& value) -> ValueType&
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 {
-    Node* newNode = new Node;
+    Node* newNode = (Node*)m_pAllocator->Allocate(sizeof(Node), alignof(Node));
+    newNode->previous = nullptr;
     newNode->next = m_head;
     newNode->value.Construct(std::move(value));
 
@@ -570,8 +603,8 @@ auto LinkedList<T>::PushFront(ValueType&& value) -> ValueType&
     return newNode->value.Get();
 }
 
-template <class T>
-auto LinkedList<T>::PopBack() -> ValueType
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::PopBack() -> ValueType
 {
     HYP_CORE_ASSERT(m_size != 0);
 
@@ -580,7 +613,7 @@ auto LinkedList<T>::PopBack() -> ValueType
     ValueType value = std::move(m_tail->value.Get());
 
     m_tail->value.Destruct();
-    delete m_tail;
+    m_pAllocator->Free(m_tail);
 
     if (prev)
     {
@@ -597,8 +630,8 @@ auto LinkedList<T>::PopBack() -> ValueType
     return value;
 }
 
-template <class T>
-auto LinkedList<T>::PopFront() -> ValueType
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::PopFront() -> ValueType
 {
     HYP_CORE_ASSERT(m_size != 0);
 
@@ -607,7 +640,7 @@ auto LinkedList<T>::PopFront() -> ValueType
     ValueType value = std::move(m_head->value.Get());
 
     m_head->value.Destruct();
-    delete m_head;
+    m_pAllocator->Free(m_head);
 
     if (next)
     {
@@ -624,8 +657,8 @@ auto LinkedList<T>::PopFront() -> ValueType
     return value;
 }
 
-template <class T>
-auto LinkedList<T>::Erase(Iterator iter) -> Iterator
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::Erase(Iterator iter) -> Iterator
 {
     if (iter == End())
     {
@@ -658,15 +691,15 @@ auto LinkedList<T>::Erase(Iterator iter) -> Iterator
     }
 
     node->value.Destruct();
-    delete node;
+    m_pAllocator->Free(node);
 
     --m_size;
 
     return Iterator { next };
 }
 
-template <class T>
-void LinkedList<T>::Clear()
+template <class T, class AllocatorType>
+void LinkedList<T, AllocatorType>::Clear()
 {
     Node* node = m_head;
 
@@ -675,7 +708,7 @@ void LinkedList<T>::Clear()
         Node* next = node->next;
 
         node->value.Destruct();
-        delete node;
+        m_pAllocator->Free(node);
 
         node = next;
     }
@@ -689,8 +722,8 @@ void LinkedList<T>::Clear()
 
 using containers::LinkedList;
 
-template <class T>
-struct IsLinkedList<containers::LinkedList<T>> : std::true_type
+template <class T, class AllocatorType>
+struct IsLinkedList<containers::LinkedList<T, AllocatorType>> : std::true_type
 {
 };
 

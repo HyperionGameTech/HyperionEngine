@@ -1,6 +1,7 @@
 #include <core/memory/pool/Pool.hpp>
 
 #include <core/threading/Spinlock.hpp>
+#include <core/threading/Threads.hpp>
 
 namespace hyperion {
 namespace memory {
@@ -41,6 +42,10 @@ HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
     if (m_flags & PF_THREAD_SAFE)
     {
         lock.Lock();
+    }
+    else if (m_ownerThreadId.IsValid())
+    {
+        Threads::AssertOnThread(m_ownerThreadId, "Pool allocation from wrong thread!");
     }
 
     for (auto& block : m_blocks)
@@ -88,6 +93,10 @@ void Pool::Free(void* ptr)
     {
         lock.Lock();
     }
+    else if (m_ownerThreadId.IsValid())
+    {
+        Threads::AssertOnThread(m_ownerThreadId, "Freeing from wrong thread!");
+    }
 
     for (auto& block : m_blocks)
     {
@@ -107,7 +116,7 @@ void Pool::Free(void* ptr)
     }
 
     // not found
-    HYP_FAIL("Pointer {} not found in any pool block!", ptr);
+    HYP_FAIL("Pointer not found in any pool block!");
 
     if (m_flags & PF_THREAD_SAFE)
     {
@@ -121,6 +130,10 @@ void Pool::Reset()
     if (m_flags & PF_THREAD_SAFE)
     {
         lock.Lock();
+    }
+    else if (m_ownerThreadId.IsValid())
+    {
+        Threads::AssertOnThread(m_ownerThreadId, "Pool reset from wrong thread!");
     }
 
     m_blocks.Clear();

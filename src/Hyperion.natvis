@@ -64,7 +64,7 @@
     </Expand>
   </Type>
   
-  <Type Name="hyperion::containers::LinkedList&lt;*&gt;">
+  <Type Name="hyperion::containers::LinkedList&lt;*,*&gt;">
     <DisplayString>{{ Count={m_size} }}</DisplayString>
     <Expand>
       <Item Name="[Count]">m_size</Item>
@@ -77,7 +77,7 @@
     </Expand>
   </Type>
 
-  <Type Name="hyperion::containers::SparsePagedArray&lt;*,*&gt;">
+  <Type Name="hyperion::containers::SparsePagedArray&lt;*,*,*&gt;">
     <Expand>
       <CustomListItems>
         <!-- TODO: Loop through items and accumulate 1s in bitsets to get number of pages and nubmer of elements initialized -->

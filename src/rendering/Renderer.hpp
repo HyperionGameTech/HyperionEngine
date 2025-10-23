@@ -70,7 +70,7 @@ struct RendererConfig : public ConfigBase<RendererConfig>
     HYP_FIELD(JsonPath = "EnvGrid.Reflections.Enabled")
     bool envGridRadianceEnabled = false;
 
-    HYP_FIELD(JsonPath = "taa.Enabled")
+    HYP_FIELD(JsonPath = "TAA.Enabled")
     bool taaEnabled = false;
 
     virtual ~RendererConfig() override = default;
@@ -237,6 +237,8 @@ public:
         GraphicsPipelineCacheHandle cacheHandle;
     };
 
+    using RenderGroupCache = SparsePagedArray<RenderGroupCacheEntry, 32>;
+
     WeakHandle<View> view;
     Viewport viewport;
 
@@ -246,9 +248,9 @@ public:
     CullData cullData;
 
     // cached by ObjId<RenderGroup>
-    SparsePagedArray<RenderGroupCacheEntry, 32> renderGroupCache;
+    RenderGroupCache renderGroupCache;
     // iterator for removing cache data over frames
-    typename SparsePagedArray<RenderGroupCacheEntry, 32>::Iterator renderGroupCacheIterator;
+    typename RenderGroupCache::Iterator renderGroupCacheIterator;
 
     PassDataExt* next = nullptr;
 
@@ -262,6 +264,8 @@ public:
 class HYP_API RendererBase
 {
 public:
+    using ViewPassDataMap = SparsePagedArray<Handle<PassData>, 16>;
+
     virtual ~RendererBase();
 
     virtual void Initialize() = 0;
@@ -282,8 +286,8 @@ protected:
     const Handle<PassData>& FetchViewPassData(View* view, PassDataExt* ext = nullptr);
 
 private:
-    SparsePagedArray<Handle<PassData>, 16> m_viewPassData;
-    typename SparsePagedArray<Handle<PassData>, 16>::Iterator m_viewPassDataCleanupIterator;
+    ViewPassDataMap m_viewPassData;
+    typename ViewPassDataMap::Iterator m_viewPassDataCleanupIterator;
 };
 
 } // namespace hyperion

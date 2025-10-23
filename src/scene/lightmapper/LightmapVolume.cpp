@@ -213,7 +213,7 @@ bool LightmapVolume::AddElement(const LightmapUVMap& uvMap, LightmapElement& out
 
     const Vec2u elementDimensions = { uvMap.width, uvMap.height };
 
-    LinkedList<LightmapVolumeAtlas> tmpAtlas;
+    Optional<LightmapVolumeAtlas> tmpAtlas;
 
     for (uint32 atlasIndex = 0; atlasIndex < s_maxAtlases; atlasIndex++)
     {
@@ -222,7 +222,7 @@ bool LightmapVolume::AddElement(const LightmapUVMap& uvMap, LightmapElement& out
 
         if (atlasIndex >= m_atlases.Size())
         {
-            pAtlas = &tmpAtlas.EmplaceBack(Vec2u(4096, 4096));
+            pAtlas = &tmpAtlas.Emplace(Vec2u(4096, 4096));
             isNewAtlas = true;
         }
         else
@@ -305,17 +305,17 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 
     FixedArray<Handle<Texture>, LTT_MAX> elementTextures;
 
-    static const char* textureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
+    static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        LinkedList<LightmapAtlasBitmap> tempBitmap;
+        Optional<LightmapAtlasBitmap> tempBitmap;
 
         LightmapAtlasBitmap* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
-            LightmapAtlasBitmap& rescaledBitmap = tempBitmap.EmplaceBack(elementDimensions.x, elementDimensions.y);
+            LightmapAtlasBitmap& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
 
             Rect<uint32> srcRect {
                 0, 0,
@@ -348,7 +348,7 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 
         Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize());
 
-        texture->SetName(NAME_FMT("LightmapVolumeTexture_{}_{}_{}", m_uuid, elementIndex, textureTypeNames[i]));
+        texture->SetName(NAME_FMT("LightmapVolumeTexture_{}_{}_{}", m_uuid, elementIndex, TextureTypeNames[i]));
         InitObject(texture);
     }
 

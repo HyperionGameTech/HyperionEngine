@@ -58,6 +58,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/../src/core
     ${CMAKE_SOURCE_DIR}/../include
 )
+
+# need tlsf for memory management
+set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/../src/thirdparty/tlsf/tlsf.c)
+
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 
 if(MSVC)

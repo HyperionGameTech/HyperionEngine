@@ -56,7 +56,7 @@ int PassData::CullUnusedGraphicsPipelines(int maxIter)
     // Ensures the iterator is valid: the Iterator type for SparsePagedArray will find the next available slot in the constructor
     // elements may have been added in the middle or removed in the meantime.
     // elements that were added will be handled after the next time this loops around; elements that were removed will be skipped over to find the next valid entry.
-    renderGroupCacheIterator = typename SparsePagedArray<RenderGroupCacheEntry, 32>::Iterator(
+    renderGroupCacheIterator = typename RenderGroupCache::Iterator(
         &renderGroupCache,
         renderGroupCacheIterator.page,
         renderGroupCacheIterator.elem);
@@ -69,14 +69,14 @@ int PassData::CullUnusedGraphicsPipelines(int maxIter)
         if (renderGroupCacheIterator == renderGroupCache.End())
         {
             renderGroupCacheIterator = renderGroupCache.Begin();
-            
+
             // no elements if still at end
             if (renderGroupCacheIterator == renderGroupCache.End())
             {
                 break;
             }
         }
-        
+
         RenderGroupCacheEntry& entry = *renderGroupCacheIterator;
 
         // check refcount is zero without lock
@@ -121,12 +121,12 @@ int RendererBase::RunCleanupCycle(int maxIter)
     // Ensures the iterator is valid: the Iterator type for SparsePagedArray will find the next available slot in the constructor
     // elements may have been added in the middle or removed in the meantime.
     // elements that were added will be handled after the next time this loops around; elements that were removed will be skipped over to find the next valid entry.
-    m_viewPassDataCleanupIterator = typename SparsePagedArray<Handle<PassData>, 16>::Iterator(
+    m_viewPassDataCleanupIterator = typename ViewPassDataMap::Iterator(
         &m_viewPassData,
         m_viewPassDataCleanupIterator.page,
         m_viewPassDataCleanupIterator.elem);
 
-    const typename SparsePagedArray<Handle<PassData>, 16>::Iterator startIterator = m_viewPassDataCleanupIterator; // the iterator we started at - use it to check that we don't do duplicate checks
+    const typename ViewPassDataMap::Iterator startIterator = m_viewPassDataCleanupIterator; // the iterator we started at - use it to check that we don't do duplicate checks
 
     int numCycles = 0;
     for (; numCycles < maxIter; ++numCycles)

@@ -25,12 +25,14 @@ struct ASTMemberDecl;
 class Analyzer;
 class Module;
 
-enum class HypClassDefinitionType
+enum class HypClassDefinitionType : int
 {
     NONE = 0,
     CLASS,
     STRUCT,
-    ENUM
+    ENUM,
+
+    MAX
 };
 
 struct HypMemberDefinition

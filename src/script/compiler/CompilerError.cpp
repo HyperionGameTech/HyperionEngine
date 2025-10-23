@@ -127,6 +127,7 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_else_outside_if, "'else' not connected to an if statement" },
     { Msg_proxy_class_cannot_be_constructed, "A proxy class may not be constructed" },
     { Msg_proxy_class_may_only_contain_methods, "A proxy class may only contain methods" },
+    { Msg_struct_cannot_be_proxy, "A struct cannot be declared as a proxy class" },
     { Msg_alias_missing_assignment, "Alias '%' must have an assignment" },
     { Msg_alias_must_be_identifier, "Alias '%' must reference an identifier" },
     { Msg_unrecognized_alias_type, "Only identifiers, types and module names may be aliased" },

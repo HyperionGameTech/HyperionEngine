@@ -20,6 +20,13 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
+static const String s_typeDescriptors[int(HypClassDefinitionType::MAX)] = {
+    "<none>", // HypClassDefinitionType::NONE
+    "class",  // HypClassDefinitionType::CLASS
+    "struct", // HypClassDefinitionType::STRUCT
+    "enum"    // HypClassDefinitionType::ENUM
+};
+
 FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
     FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
@@ -163,11 +170,11 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             if (baseClassDefinitions.Any())
             {
-                writer.WriteString(HYP_FORMAT("extern class {} : {}", hypClass->name, baseClassDefinitions.Front()->name) + " {\n");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(hypClass->type)], hypClass->name, baseClassDefinitions.Front()->name) + " {\n");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern class {}", hypClass->name) + " {\n");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(hypClass->type)], hypClass->name) + " {\n");
             }
 
             HYP_DEFER({ writer.WriteString("}\n"); });
@@ -276,11 +283,11 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     return HYP_MAKE_ERROR(Error, "Enum types may only have one underlying type");
                 }
 
-                writer.WriteString(HYP_FORMAT("extern enum {} : {}", hypClass->name, hypClass->baseClassNames[0]) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(HypClassDefinitionType::ENUM)], hypClass->name, hypClass->baseClassNames[0]) + " {");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern enum {}", hypClass->name) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(HypClassDefinitionType::ENUM)], hypClass->name) + " {");
             }
 
             HYP_DEFER({ writer.WriteString("\n}\n"); });

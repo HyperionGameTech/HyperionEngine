@@ -57,7 +57,7 @@ class Optional<T, std::enable_if_t<!std::is_reference_v<std::remove_const_t<T>>>
     : OptionalBase<T, std::bool_constant<std::is_trivially_destructible_v<T>>>
 {
     using Base = OptionalBase<T, std::bool_constant<std::is_trivially_destructible_v<T>>>;
-    
+
 public:
     Optional()
     {
@@ -95,7 +95,7 @@ public:
     Optional(const Optional& other)
     {
         Base::m_hasValue = other.m_hasValue;
-        
+
         if (Base::m_hasValue)
         {
             Base::m_storage.Construct(other.Get());
@@ -335,7 +335,7 @@ public:
 
     /*! \brief Construct the held value in-place. */
     template <class... Args>
-    HYP_FORCE_INLINE void Emplace(Args&&... args)
+    HYP_FORCE_INLINE T& Emplace(Args&&... args)
     {
         if (Base::m_hasValue)
         {
@@ -344,6 +344,8 @@ public:
 
         Base::m_storage.Construct(std::forward<Args>(args)...);
         Base::m_hasValue = true;
+
+        return Base::m_storage.Get();
     }
 
     HYP_FORCE_INLINE T* operator->()
