@@ -30,7 +30,7 @@ class IndirectRenderer;
 struct RenderSetup;
 class PassData;
 struct DrawCallCollection;
-class IDrawCallCollectionImpl;
+class EntityBatchAllocatorBase;
 struct ParallelRenderingState;
 
 enum class RenderGroupFlags : uint32
@@ -101,7 +101,7 @@ private:
 
     GraphicsPipelineCacheHandle CreateGraphicsPipeline(
         PassData* pd,
-        IDrawCallCollectionImpl* drawCallCollectionImpl) const;
+        EntityBatchAllocatorBase* drawCallCollectionImpl) const;
 
     EnumFlags<RenderGroupFlags> m_flags;
     ShaderRef m_shader;

@@ -318,12 +318,12 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 
 #pragma endregion DrawCallCollection
 
-#pragma region DrawCallCollectionImpl
+#pragma region TEntityBatchAllocator
 
-static TypeMap<UniquePtr<IDrawCallCollectionImpl>> s_drawCallCollectionImplMap = {};
+static TypeMap<UniquePtr<EntityBatchAllocatorBase>> s_drawCallCollectionImplMap = {};
 static Mutex s_drawCallCollectionImplMapMutex = {};
 
-IDrawCallCollectionImpl::IDrawCallCollectionImpl(GpuBufferHolderBase* bufferHolder)
+EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder)
     : m_bufferHolder(bufferHolder)
 {
     Assert(m_bufferHolder != nullptr);
@@ -335,7 +335,7 @@ IDrawCallCollectionImpl::IDrawCallCollectionImpl(GpuBufferHolderBase* bufferHold
     m_structAlignment = structTypeInfo->alignment;
 }
 
-HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeId typeId)
+HYP_API EntityBatchAllocatorBase* GetEntityBatchAllocator(TypeId typeId)
 {
     Mutex::Guard guard(s_drawCallCollectionImplMapMutex);
 
@@ -344,7 +344,7 @@ HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeId typeId)
     return it != s_drawCallCollectionImplMap.End() ? it->second.Get() : nullptr;
 }
 
-HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeId typeId, UniquePtr<IDrawCallCollectionImpl>&& impl)
+HYP_API EntityBatchAllocatorBase* SetEntityBatchAllocator(TypeId typeId, UniquePtr<EntityBatchAllocatorBase>&& impl)
 {
     Mutex::Guard guard(s_drawCallCollectionImplMapMutex);
 
@@ -353,6 +353,6 @@ HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeId typeId, Unique
     return it->second.Get();
 }
 
-#pragma endregion DrawCallCollectionImpl
+#pragma endregion TEntityBatchAllocator
 
 } // namespace hyperion

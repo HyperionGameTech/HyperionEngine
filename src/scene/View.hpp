@@ -31,7 +31,7 @@ class LightmapVolume;
 class EnvGrid;
 class EnvProbe;
 class GBuffer;
-class IDrawCallCollectionImpl;
+class EntityBatchAllocatorBase;
 
 namespace threading {
 
@@ -100,7 +100,7 @@ struct ViewDesc
     Camera* camera = nullptr;
     int priority = 0;
     Optional<RenderableAttributeSet> overrideAttributes;
-    IDrawCallCollectionImpl* drawCallCollectionImpl = nullptr;
+    EntityBatchAllocatorBase* drawCallCollectionImpl = nullptr;
     TextureFormat readbackTextureFormat = TF_RGBA8; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
 };
 

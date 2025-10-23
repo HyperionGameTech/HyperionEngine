@@ -139,7 +139,7 @@ void GBuffer::Resize(Vec2u extent)
 
     if (m_isCreated)
     {
-        for (auto& framebuffer : m_framebuffers)
+        for (const FramebufferRef& framebuffer : m_framebuffers)
         {
             HYP_GFX_ASSERT(framebuffer->Create());
         }

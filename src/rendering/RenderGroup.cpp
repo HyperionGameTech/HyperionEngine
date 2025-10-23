@@ -118,7 +118,7 @@ void RenderGroup::Init()
     SetReady(true);
 }
 
-GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(PassData* pd, IDrawCallCollectionImpl* drawCallCollectionImpl) const
+GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(PassData* pd, EntityBatchAllocatorBase* drawCallCollectionImpl) const
 {
     HYP_SCOPE;
 

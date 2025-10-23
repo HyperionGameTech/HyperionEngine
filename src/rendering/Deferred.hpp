@@ -46,7 +46,7 @@ class RaytracingReflections;
 class DDGI;
 struct RenderSetup;
 class RenderGroup;
-class IDrawCallCollectionImpl;
+class EntityBatchAllocatorBase;
 class RenderProxyList;
 class RenderCollector;
 enum LightType : uint32;

@@ -604,7 +604,7 @@ static inline void DeleteOnRenderThread(Func&& function)
 RenderCollector::RenderCollector()
     : parallelRenderingStateHead(nullptr),
       parallelRenderingStateTail(nullptr),
-      drawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>()),
+      drawCallCollectionImpl(GetOrCreateEntityBatchAllocator<EntityInstanceBatch>()),
       renderGroupFlags(RenderGroupFlags::DEFAULT)
 {
 }

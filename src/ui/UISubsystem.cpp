@@ -185,7 +185,7 @@ void UISubsystem::Init()
         .outputTargetDesc = outputTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
-        .drawCallCollectionImpl = GetOrCreateDrawCallCollectionImpl<UIEntityInstanceBatch>()
+        .drawCallCollectionImpl = GetOrCreateEntityBatchAllocator<UIEntityInstanceBatch>()
     };
 
     m_view = CreateObject<View>(viewDesc);

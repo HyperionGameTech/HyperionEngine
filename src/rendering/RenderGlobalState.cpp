@@ -531,7 +531,7 @@ static ResourceContainer* s_resources;
 static ViewData* GetViewData(View* view)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
+    Threads::AssertOnThread(g_renderThread);
 
     AssertDebug(view != nullptr);
 
@@ -549,7 +549,7 @@ static ViewData* GetViewData(View* view)
         }
         else
         {
-            vd->renderCollector.drawCallCollectionImpl = GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>();
+            vd->renderCollector.drawCallCollectionImpl = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
         }
 
         AssertDebug(vd->renderCollector.drawCallCollectionImpl != nullptr);

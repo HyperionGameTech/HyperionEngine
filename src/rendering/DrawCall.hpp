@@ -28,7 +28,7 @@ class IndirectDrawState;
 class GpuBufferHolderBase;
 struct MeshInstanceData;
 
-extern HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap();
+HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
 static constexpr uint32 MaxEntitiesPerBatch = 60;
 
@@ -209,10 +209,10 @@ struct InstancedDrawCallStorage
     }
 };
 
-class IDrawCallCollectionImpl
+class EntityBatchAllocatorBase
 {
 public:
-    ~IDrawCallCollectionImpl() = default;
+    ~EntityBatchAllocatorBase() = default;
 
     HYP_FORCE_INLINE SizeType GetStructSize() const
     {
@@ -237,7 +237,7 @@ public:
     virtual EntityInstanceBatch* AcquireBatch() const = 0;
 
 protected:
-    explicit IDrawCallCollectionImpl(GpuBufferHolderBase* bufferHolder);
+    explicit EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHolder);
 
     GpuBufferHolderBase* m_bufferHolder;
     SizeType m_structSize;
@@ -247,13 +247,13 @@ protected:
 struct DrawCallCollection
 {
     DrawCallCollection()
-        : impl(nullptr),
+        : batchAllocator(nullptr),
           renderGroup(nullptr)
     {
     }
 
-    DrawCallCollection(IDrawCallCollectionImpl* impl, RenderGroup* renderGroup)
-        : impl(impl),
+    DrawCallCollection(EntityBatchAllocatorBase* batchAllocator, RenderGroup* renderGroup)
+        : batchAllocator(batchAllocator),
           renderGroup(renderGroup)
     {
     }
@@ -268,7 +268,7 @@ struct DrawCallCollection
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return impl != nullptr;
+        return batchAllocator != nullptr;
     }
 
     void PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy);
@@ -283,7 +283,7 @@ struct DrawCallCollection
      *  Otherwise, zero will be returned. */
     uint32 PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset);
 
-    IDrawCallCollectionImpl* impl;
+    EntityBatchAllocatorBase* batchAllocator;
 
     RenderGroup* renderGroup;
 
@@ -296,18 +296,18 @@ struct DrawCallCollection
 };
 
 template <class EntityInstanceBatchType>
-class DrawCallCollectionImpl final : public IDrawCallCollectionImpl
+class TEntityBatchAllocator final : public EntityBatchAllocatorBase
 {
 public:
     static_assert(std::is_base_of_v<EntityInstanceBatch, EntityInstanceBatchType>, "EntityInstanceBatchType must be a derived struct type of EntityInstanceBatch");
     static_assert(offsetof(EntityInstanceBatchType, indices) == 16, "offsetof for member `indices` of the derived EntityInstanceBatch type must be 16 or shader calculations will be incorrect!");
 
-    DrawCallCollectionImpl()
-        : IDrawCallCollectionImpl(GetGpuBufferHolderMap()->GetOrCreate<EntityInstanceBatchType>())
+    TEntityBatchAllocator()
+        : EntityBatchAllocatorBase(GetGpuBufferHolderMap()->GetOrCreate<EntityInstanceBatchType>())
     {
     }
 
-    ~DrawCallCollectionImpl() = default;
+    ~TEntityBatchAllocator() = default;
 
     virtual EntityInstanceBatch* AcquireBatch() const override
     {
@@ -320,18 +320,18 @@ public:
     }
 };
 
-extern HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeId typeId);
-extern HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeId typeId, UniquePtr<IDrawCallCollectionImpl>&& impl);
+HYP_API extern EntityBatchAllocatorBase* GetEntityBatchAllocator(TypeId typeId);
+HYP_API extern EntityBatchAllocatorBase* SetEntityBatchAllocator(TypeId typeId, UniquePtr<EntityBatchAllocatorBase>&& impl);
 
 template <class EntityInstanceBatchType>
-IDrawCallCollectionImpl* GetOrCreateDrawCallCollectionImpl()
+EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 {
-    if (IDrawCallCollectionImpl* impl = GetDrawCallCollectionImpl(TypeId::ForType<EntityInstanceBatchType>()))
+    if (EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(TypeId::ForType<EntityInstanceBatchType>()))
     {
         return impl;
     }
 
-    return SetDrawCallCollectionImpl(TypeId::ForType<EntityInstanceBatchType>(), MakeUnique<DrawCallCollectionImpl<EntityInstanceBatchType>>());
+    return SetEntityBatchAllocator(TypeId::ForType<EntityInstanceBatchType>(), MakeUnique<TEntityBatchAllocator<EntityInstanceBatchType>>());
 }
 
 } // namespace hyperion

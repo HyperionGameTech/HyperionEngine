@@ -28,7 +28,7 @@ struct DrawCallStorage;
 struct InstancedDrawCallStorage;
 
 class DrawCallCollection;
-class IDrawCallCollectionImpl;
+class EntityBatchAllocatorBase;
 
 struct alignas(16) ObjectInstance
 {
@@ -113,7 +113,7 @@ public:
         return m_indirectDrawState;
     }
 
-    void Create(IDrawCallCollectionImpl* impl);
+    void Create(EntityBatchAllocatorBase* impl);
 
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection);
@@ -127,7 +127,7 @@ private:
     ComputePipelineRef m_objectVisibility;
     CullData m_cachedCullData;
     uint8 m_cachedCullDataUpdatedBits;
-    IDrawCallCollectionImpl* m_drawCallCollectionImpl;
+    EntityBatchAllocatorBase* m_drawCallCollectionImpl;
 };
 
 } // namespace hyperion

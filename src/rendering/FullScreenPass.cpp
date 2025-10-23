@@ -366,13 +366,19 @@ void FullScreenPass::CreatePipeline()
 {
     HYP_SCOPE;
 
+    const MeshAttributes meshAttributes {
+        .vertexAttributes = staticMeshVertexAttributes
+    };
+
+    const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = m_blendFunction,
+        .flags = MAF_NONE
+    };
+
     CreatePipeline(RenderableAttributeSet(
-        MeshAttributes {
-            .vertexAttributes = staticMeshVertexAttributes },
-        MaterialAttributes {
-            .fillMode = FM_FILL,
-            .blendFunction = m_blendFunction,
-            .flags = MAF_NONE }));
+        meshAttributes,
+        materialAttributes));
 }
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)

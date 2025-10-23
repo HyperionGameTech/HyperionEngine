@@ -311,7 +311,7 @@ IndirectRenderer::~IndirectRenderer()
     SafeDelete(std::move(m_objectVisibility));
 }
 
-void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
+void IndirectRenderer::Create(EntityBatchAllocatorBase* impl)
 {
     Assert(impl != nullptr);
     m_drawCallCollectionImpl = impl;

@@ -33,7 +33,7 @@ class PassData;
 class RendererBase;
 class RenderGroup;
 class View;
-class IDrawCallCollectionImpl;
+class EntityBatchAllocatorBase;
 
 namespace threading {
 class TaskBatch;
