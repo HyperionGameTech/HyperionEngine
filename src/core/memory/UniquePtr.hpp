@@ -93,8 +93,8 @@ struct UniquePtrHolder
     template <class Base, class Derived, class... Args>
     void Construct(Args&&... args)
     {
-        value = Memory::AllocateAndConstruct<Derived>(std::forward<Args>(args)...);
-        dtor = &Memory::DestructAndFree<Derived>;
+        value = Memory::New<Derived>(std::forward<Args>(args)...);
+        dtor = &Memory::Delete<Derived>;
         typeId = TypeId::ForType<Derived>();
     }
 
@@ -102,7 +102,7 @@ struct UniquePtrHolder
     void TakeOwnership(Derived* ptr)
     {
         value = ptr;
-        dtor = &Memory::DestructAndFree<Derived>;
+        dtor = &Memory::Delete<Derived>;
         typeId = TypeId::ForType<Derived>();
     }
 
@@ -398,7 +398,7 @@ public:
         static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
 
         UniquePtr ptr;
-        ptr.Reset(Memory::AllocateAndConstruct<T>(std::forward<Args>(args)...));
+        ptr.Reset(Memory::New<T>(std::forward<Args>(args)...));
 
         return ptr;
     }
@@ -410,9 +410,7 @@ public:
     {
         constexpr TypeId typeId = TypeId::ForType<Ty>();
 
-        return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
-            || std::is_same_v<Ty, void>
-            || GetTypeId() == typeId
+        return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_same_v<Ty, void> || GetTypeId() == typeId
             || IsA(GetClass(typeId), m_holder.value, GetTypeId());
     }
 };
@@ -486,8 +484,7 @@ public:
     {
         constexpr TypeId typeId = TypeId::ForType<Ty>();
 
-        return std::is_same_v<Ty, void>
-            || GetTypeId() == typeId
+        return std::is_same_v<Ty, void> || GetTypeId() == typeId
             || IsA(GetClass(typeId), m_holder.value, GetTypeId());
     }
 };

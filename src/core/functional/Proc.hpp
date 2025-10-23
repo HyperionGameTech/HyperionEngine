@@ -276,8 +276,8 @@ public:
         }
 
         // Use heap allocation if the functor is too large for inline storage
-        m_impl.ptr = Memory::AllocateAndConstruct<FuncNormalized>(std::forward<Func>(fn));
-        m_impl.deleteFn = &Memory::DestructAndFree<FuncNormalized>;
+        m_impl.ptr = Memory::New<FuncNormalized>(std::forward<Func>(fn));
+        m_impl.deleteFn = &Memory::Delete<FuncNormalized>;
     }
 
     Proc(Proc* fn)

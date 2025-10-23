@@ -1,5 +1,7 @@
 #include <core/memory/pool/Pool.hpp>
 
+#include <core/threading/Spinlock.hpp>
+
 namespace hyperion {
 namespace memory {
 
@@ -35,11 +37,22 @@ Pool::~Pool()
 
 HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
 {
+    Spinlock<MPMC> lock(&m_lockState);
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Lock();
+    }
+
     for (auto& block : m_blocks)
     {
         void* p = block.Allocate(size, alignment);
         if (p != nullptr)
         {
+            if (m_flags & PF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return p;
         }
     }
@@ -55,11 +68,27 @@ HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
         HYP_FAIL("Failed to allocate from new block!");
     }
 
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Unlock();
+    }
+
     return p;
 }
 
 void Pool::Free(void* ptr)
 {
+    if (!ptr)
+    {
+        return;
+    }
+
+    Spinlock<MPMC> lock(&m_lockState);
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Lock();
+    }
+
     for (auto& block : m_blocks)
     {
         ubyte* base = reinterpret_cast<ubyte*>(block.buffer.Data());
@@ -67,21 +96,49 @@ void Pool::Free(void* ptr)
         if (bptr > base && bptr <= base + block.buffer.GetCapacity())
         {
             block.Free(ptr);
+
+            if (m_flags & PF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return;
         }
     }
 
     // not found
     HYP_FAIL("Pointer {} not found in any pool block!", ptr);
+
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Unlock();
+    }
 }
 
 void Pool::Reset()
 {
+    Spinlock<MPMC> lock(&m_lockState);
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Lock();
+    }
+
     m_blocks.Clear();
+
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Unlock();
+    }
 }
 
 MemoryMetrics Pool::GetMemoryMetrics() const
 {
+    Spinlock<MPMC> lock(&m_lockState);
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Lock();
+    }
+
     MemoryMetrics metrics;
 
     for (const auto& block : m_blocks)
@@ -91,6 +148,11 @@ MemoryMetrics Pool::GetMemoryMetrics() const
         // With TLSF allocator, we can get accurate statistics from the allocator itself
         MemoryMetrics blockMetrics = block.allocator.GetMemoryMetrics();
         metrics += blockMetrics;
+    }
+
+    if (m_flags & PF_THREAD_SAFE)
+    {
+        lock.Unlock();
     }
 
     return metrics;

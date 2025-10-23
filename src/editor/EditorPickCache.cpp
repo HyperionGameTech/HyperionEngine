@@ -36,7 +36,7 @@ struct EditorPickCacheImpl
 
     Cache cache;
     FixedArray<ResidencySet, MaxResidency + 1> residencyMap;
-    RenderProxyList renderProxyList { /* isShared */ false, /* useRefCounting */ false };
+    RenderProxyList renderProxyList { g_editorPickCachePool, /* isShared */ false, /* useRefCounting */ false };
 
     LockstepGameCounter updateCounter { 1.0 }; // per second
 

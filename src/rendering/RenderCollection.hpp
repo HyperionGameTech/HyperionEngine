@@ -125,6 +125,8 @@ class RenderProxyList
     static constexpr uint64 readMask = uint64(-1) & ~writeFlag;
 
 public:
+    using AllocatorType = Pool; // per-frame pools
+
     using TrackedResourceTypes = Tuple<
         Entity, // mesh entities
         Mesh,
@@ -138,24 +140,25 @@ public:
         Texture>;
 
     using ResourceTrackerTypes = Tuple<
-        ResourceTracker<ObjId<Entity>, Entity*, RenderProxyMesh>,
-        ResourceTracker<ObjId<Mesh>, Mesh*>,
-        ResourceTracker<ObjId<Camera>, Camera*, RenderProxyCamera>,
-        ResourceTracker<ObjId<EnvProbe>, EnvProbe*, RenderProxyEnvProbe>,
-        ResourceTracker<ObjId<Light>, Light*, RenderProxyLight>,
-        ResourceTracker<ObjId<EnvGrid>, EnvGrid*, RenderProxyEnvGrid>,
-        ResourceTracker<ObjId<LightmapVolume>, LightmapVolume*, RenderProxyLightmapVolume>,
-        ResourceTracker<ObjId<Material>, Material*, RenderProxyMaterial>,
-        ResourceTracker<ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
-        ResourceTracker<ObjId<Texture>, Texture*>>;
+        ResourceTracker<AllocatorType, ObjId<Entity>, Entity*, RenderProxyMesh>,
+        ResourceTracker<AllocatorType, ObjId<Mesh>, Mesh*>,
+        ResourceTracker<AllocatorType, ObjId<Camera>, Camera*, RenderProxyCamera>,
+        ResourceTracker<AllocatorType, ObjId<EnvProbe>, EnvProbe*, RenderProxyEnvProbe>,
+        ResourceTracker<AllocatorType, ObjId<Light>, Light*, RenderProxyLight>,
+        ResourceTracker<AllocatorType, ObjId<EnvGrid>, EnvGrid*, RenderProxyEnvGrid>,
+        ResourceTracker<AllocatorType, ObjId<LightmapVolume>, LightmapVolume*, RenderProxyLightmapVolume>,
+        ResourceTracker<AllocatorType, ObjId<Material>, Material*, RenderProxyMaterial>,
+        ResourceTracker<AllocatorType, ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
+        ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>>;
 
     static_assert(TupleSize<ResourceTrackerTypes>::value == TupleSize<TrackedResourceTypes>::value, "Tuple sizes must match");
 
 private:
 public:
-    /*! \param isShared if true, uses a spinlock to protect against mutual access of the data
+    /*! \param pAllocator The allocator to use for this render proxy list
+     *  \param isShared if true, uses a spinlock to protect against mutual access of the data
      *  \param useRefCounting if true, will increment reference count (UpdateRefs() will need to be called) and release reference counts on destruction. */
-    RenderProxyList(bool isShared, bool useRefCounting);
+    RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting);
 
     RenderProxyList(const RenderProxyList& other) = delete;
     RenderProxyList& operator=(const RenderProxyList& other) = delete;
@@ -207,8 +210,8 @@ public:
     Viewport viewport;
     int priority;
 
-    FixedArray<ResourceTrackerBase*, TupleSize<TrackedResourceTypes>::value> resourceTrackers;
-    FixedArray<void (*)(ResourceTrackerBase*), TupleSize<TrackedResourceTypes>::value> releaseRefsFunctions;
+    FixedArray<ResourceTrackerBase<AllocatorType>*, TupleSize<TrackedResourceTypes>::value> resourceTrackers;
+    FixedArray<void (*)(ResourceTrackerBase<AllocatorType>*), TupleSize<TrackedResourceTypes>::value> releaseRefsFunctions;
 
 #define DEF_RESOURCE_TRACKER_GETTER(getterName, T)                                                                                                                            \
     HYP_FORCE_INLINE auto Get##getterName()->typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type&             \

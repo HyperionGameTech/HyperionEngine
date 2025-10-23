@@ -121,15 +121,15 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
-static Spinlock<MPMC>& GetGlobalPoolLock()
+static Spinlock<MPMC>& GetLock()
 {
-    static volatile int64 s_globalPoolLockValue = 0;
-    static Spinlock<MPMC> s_globalPoolLock { &s_globalPoolLockValue };
+    static volatile int64 s_lockValue = 0;
+    static Spinlock<MPMC> s_lock { &s_lockValue };
 
-    return s_globalPoolLock;
+    return s_lock;
 }
 
-static Pool& GetGlobalPool()
+static Pool& GetPool()
 {
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     return *EngineMemory_GetPool((EnginePoolName)0);
@@ -151,7 +151,7 @@ static Pool& GetPoolForClass(const HypClass* hypClass)
     }
 #endif
 
-    return GetGlobalPool();
+    return GetPool();
 }
 
 #pragma region HypObjectContainerBase
@@ -174,7 +174,7 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(LockGuard& outGuard, int fla
     if ((int)poolName == 0)
     {
 #endif
-        Spinlock<MPMC>& lock = GetGlobalPoolLock();
+        Spinlock<MPMC>& lock = GetLock();
         lock.Lock();
 
         outGuard.lock = &lock;

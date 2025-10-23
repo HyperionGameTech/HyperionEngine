@@ -497,7 +497,7 @@ public:
 struct ViewData
 {
     View* view = nullptr;
-    RenderProxyList rplRender { /* isShared */ false, /* useRefCounting */ false };
+    RenderProxyList rplRender { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
     RenderCollector renderCollector;
     uint32 framesSinceUsed = 0;
     uint32 numRefs = 0; // number of ViewFrameData holding refs to this
@@ -712,10 +712,10 @@ static HYP_FORCE_INLINE void CopyRenderProxy(ResourceSubtypeData& subtypeData, c
     subtypeData.indicesPendingUpdate.Set(idx, true);
 }
 
-template <class ElementType, class ProxyType>
+template <class AllocatorType, class ElementType, class ProxyType>
 static HYP_FORCE_INLINE void SyncResourcesImpl(
-    ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker,
-    const typename ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>::Impl& impl)
+    ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker,
+    const typename ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>::Impl& impl)
 {
     if (impl.elements.Empty())
     {
@@ -731,10 +731,10 @@ static HYP_FORCE_INLINE void SyncResourcesImpl(
     }
 }
 
-template <class ElementType, class ProxyType>
+template <class AllocatorType, class ElementType, class ProxyType>
 static void SyncResources(
-    ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& dst,
-    const ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& src)
+    ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& dst,
+    const ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& src)
 {
     dst.Advance();
 
@@ -846,10 +846,10 @@ static void SyncResources(
     //    }
 }
 
-template <SizeType... Indices>
+template <class AllocatorType, SizeType... Indices>
 static HYP_FORCE_INLINE void SyncResourcesT(
-    ResourceTrackerBase** dstResourceTrackers,
-    ResourceTrackerBase** srcResourceTrackers,
+    ResourceTrackerBase<AllocatorType>** dstResourceTrackers,
+    ResourceTrackerBase<AllocatorType>** srcResourceTrackers,
     std::index_sequence<Indices...>)
 {
     (SyncResources(
@@ -1193,8 +1193,8 @@ void RenderApi_BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                i != Bitset::notFound;
-                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                 i != Bitset::notFound;
+                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1694,9 +1694,6 @@ DECLARE_RENDER_DATA_CONTAINER(Camera, RenderProxyCamera, GRB_CAMERAS, nullptr, &
 DECLARE_RENDER_DATA_CONTAINER(EnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, &WriteBufferData_EnvGrid, &s_envGridBinder);
 DECLARE_RENDER_DATA_CONTAINER(LegacyEnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, &WriteBufferData_EnvGrid, &s_envGridBinder);
 
-// FIXME: Overlap with ambient probes / reflection and sky probes causing issues where indices are overlapping,
-// due to using separate allocators but going into the same buffer. Need to either use a single allocator for all env probes,
-// or have separate buffers for each type.
 DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder);
 DECLARE_RENDER_DATA_CONTAINER(ReflectionProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);
 DECLARE_RENDER_DATA_CONTAINER(SkyProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);

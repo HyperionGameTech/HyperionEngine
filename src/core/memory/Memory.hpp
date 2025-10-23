@@ -110,6 +110,12 @@ public:
         std::memset(dest, 0xDEAD, length);
     }
 
+    template <class T, class... Args>
+    HYP_NODISCARD static T* New(Args&&... args)
+    {
+        return new T(std::forward<Args>(args)...);
+    }
+
     template <class T>
     static void Delete(void* ptr)
     {

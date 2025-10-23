@@ -373,11 +373,25 @@ public:
     };
 
     HYP_FORCE_INLINE SparsePagedArray()
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+          m_pages(m_pAllocator)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+    }
+
+    explicit SparsePagedArray(AllocatorType* pAllocator)
+        : m_pAllocator(pAllocator),
+          m_pages(m_pAllocator)
+    {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
     }
 
     SparsePagedArray(std::initializer_list<KeyValuePair<KeyType, T>> initializerList)
+        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
+          m_pages(m_pAllocator)
     {
+        HYP_CORE_ASSERT(m_pAllocator != nullptr);
+
         for (const auto& item : initializerList)
         {
             Set(item.first, item.second);
@@ -385,7 +399,9 @@ public:
     }
 
     SparsePagedArray(const SparsePagedArray& other)
-        : m_validPages(other.m_validPages)
+        : m_pAllocator(other.m_pAllocator),
+          m_validPages(other.m_validPages),
+          m_pages(m_pAllocator)
     {
         m_pages.ResizeZeroed(other.m_pages.Size());
 
@@ -393,7 +409,7 @@ public:
         {
             HYP_CORE_ASSERT(bit < other.m_pages.Size());
 
-            m_pages[bit] = (Page*)AllocatorType().Allocate(sizeof(Page), alignof(Page));
+            m_pages[bit] = (Page*)m_pAllocator->Allocate(sizeof(Page), alignof(Page));
             new (m_pages[bit]) Page();
 
             for (Bitset::BitIndex elem : other.m_pages[bit]->initializedBits)
@@ -415,19 +431,22 @@ public:
             HYP_CORE_ASSERT(bit < m_pages.Size());
 
             m_pages[bit]->~Page();
-            AllocatorType().Free(m_pages[bit]);
+            m_pAllocator->Free(m_pages[bit]);
 
             m_pages[bit] = nullptr;
         }
 
+        m_pAllocator = other.m_pAllocator;
         m_validPages = other.m_validPages;
+
+        m_pages = Array<Page*, AllocatorType>(m_pAllocator, 0);
         m_pages.ResizeZeroed(other.m_pages.Size());
 
         for (Bitset::BitIndex bit : other.m_validPages)
         {
             HYP_CORE_ASSERT(bit < other.m_pages.Size());
 
-            m_pages[bit] = (Page*)AllocatorType().Allocate(sizeof(Page), alignof(Page));
+            m_pages[bit] = (Page*)m_pAllocator->Allocate(sizeof(Page), alignof(Page));
             new (m_pages[bit]) Page();
 
             for (Bitset::BitIndex elem : other.m_pages[bit]->initializedBits)
@@ -440,7 +459,8 @@ public:
     }
 
     SparsePagedArray(SparsePagedArray&& other) noexcept
-        : m_pages(std::move(other.m_pages)),
+        : m_pAllocator(other.m_pAllocator),
+          m_pages(std::move(other.m_pages)),
           m_validPages(std::move(other.m_validPages))
     {
     }
@@ -457,11 +477,12 @@ public:
             HYP_CORE_ASSERT(bit < m_pages.Size());
 
             m_pages[bit]->~Page();
-            AllocatorType().Free(m_pages[bit]);
+            m_pAllocator->Free(m_pages[bit]);
 
             m_pages[bit] = nullptr;
         }
 
+        m_pAllocator = other.m_pAllocator;
         m_pages = std::move(other.m_pages);
         m_validPages = std::move(other.m_validPages);
 
@@ -475,7 +496,7 @@ public:
             HYP_CORE_ASSERT(bit < m_pages.Size());
 
             m_pages[bit]->~Page();
-            AllocatorType().Free(m_pages[bit]);
+            m_pAllocator->Free(m_pages[bit]);
 
             m_pages[bit] = nullptr;
         }
@@ -736,7 +757,7 @@ public:
             m_validPages.Set(pageIndex, false);
 
             page->~Page();
-            AllocatorType().Free(page);
+            m_pAllocator->Free(page);
 
             m_pages[pageIndex] = nullptr;
         }
@@ -807,7 +828,7 @@ public:
             if (freeMemory)
             {
                 page->~Page();
-                AllocatorType().Free(page);
+                m_pAllocator->Free(page);
 
                 m_pages[bit] = nullptr;
             }
@@ -837,11 +858,11 @@ public:
     HYP_DEF_STL_BEGIN_END(Iterator(const_cast<SparsePagedArray*>(this), 0, 0), Iterator(const_cast<SparsePagedArray*>(this), m_pages.Size(), PageSize));
 
 protected:
-    static constexpr uint64 pageSizeBits = MathUtil::FastLog2_Pow2(PageSize);
+    static constexpr uint64 PageSizeBits = MathUtil::FastLog2_Pow2(PageSize);
 
     HYP_FORCE_INLINE static constexpr SizeType PageIndex(SizeType index)
     {
-        return index >> pageSizeBits;
+        return index >> PageSizeBits;
     }
 
     HYP_FORCE_INLINE static constexpr SizeType ElementIndex(SizeType index)
@@ -860,7 +881,7 @@ protected:
                 m_pages.Resize(pageIndex + 1);
             }
 
-            m_pages[pageIndex] = (Page*)AllocatorType().Allocate(sizeof(Page), alignof(Page));
+            m_pages[pageIndex] = (Page*)m_pAllocator->Allocate(sizeof(Page), alignof(Page));
             new (m_pages[pageIndex]) Page();
 
             m_validPages.Set(pageIndex, true);
@@ -869,7 +890,8 @@ protected:
         return m_pages[pageIndex];
     }
 
-    Array<Page*, InlineAllocator<8>> m_pages;
+    AllocatorType* m_pAllocator;
+    Array<Page*, AllocatorType> m_pages;
     Bitset m_validPages;
 };
 

@@ -45,6 +45,9 @@
 
 namespace hyperion {
 
+HYP_API extern Pool* g_scenePool;
+HYP_API extern Pool* g_framePools[NumMultiBuffers];
+
 #pragma region ViewOutputTarget
 
 ViewOutputTarget::ViewOutputTarget()
@@ -168,7 +171,11 @@ View::View(const ViewDesc& viewDesc)
             continue;
         }
 
-        *it = new RenderProxyList(/* isShared */ true, /* useRefCounting */ true);
+        Pool* pool = (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
+            ? g_scenePool
+            : g_framePools[std::distance(std::begin(m_renderProxyLists), it)];
+
+        *it = new RenderProxyList(pool, /* isShared */ true, /* useRefCounting */ true);
     }
 }
 
@@ -176,15 +183,29 @@ View::~View()
 {
     Assert(m_collectionTaskBatch == nullptr, "Collection tasks pending on View destruction!");
 
-    for (auto it = std::begin(m_renderProxyLists); it != std::end(m_renderProxyLists); ++it)
+    for (uint32 i = 0; i < HYP_ARRAY_SIZE(m_renderProxyLists); i++)
     {
-        // if render proxy lists aren't unique, we just delete the first one and break the loop
-        if (it != std::begin(m_renderProxyLists) && *it == *(it - 1))
+        if (m_flags & ViewFlags::NOT_MULTI_BUFFERED)
         {
-            break;
-        }
+            // if render proxy lists aren't unique, we just delete the first one and break the loop
+            if (i > 0)
+            {
+                break;
+            }
 
-        delete *it;
+            delete m_renderProxyLists[i];
+        }
+        else
+        {
+            // delete it on the correct frame
+            RenderProxyList** ppPayload = GetSafeDeleterInstance()->AllocCustom<RenderProxyList*>([](void* ptr)
+                {
+                    delete *reinterpret_cast<RenderProxyList**>(ptr);
+                },
+                /* desiredIdx */ i);
+
+            *ppPayload = m_renderProxyLists[i];
+        }
     }
 
     if (m_camera != nullptr)

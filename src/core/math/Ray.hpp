@@ -33,11 +33,9 @@ HYP_ENUM()
 enum RayTestFlags : uint32
 {
     RTF_NONE = 0x0,
-    RTF_USE_BVH = 0x1,
 
-#ifdef HYP_EDITOR
+    RTF_USE_BVH = 0x1,
     RTF_EDITOR_PICK = 0x2,
-#endif
 
     RTF_MAX = 0xFFFFFFFFu
 };

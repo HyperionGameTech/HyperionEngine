@@ -39,14 +39,15 @@ struct ResourceTrackerDiff
     }
 };
 
+template <class AllocatorType>
 class ResourceTrackerBase
 {
 public:
     virtual ~ResourceTrackerBase() = default;
 };
 
-template <class IdType, class ElementType, class ProxyType = NullProxy>
-class ResourceTracker final : public ResourceTrackerBase
+template <class AllocatorType, class IdType, class ElementType, class ProxyType = NullProxy>
+class ResourceTracker final : public ResourceTrackerBase<AllocatorType>
 {
 public:
     struct Impl;
@@ -278,13 +279,16 @@ public:
     // use a sparse array so we can use IDs as indices
     // without worring about hashing for lookups and allowing us to
     // still iterate over the elements (mostly) linearly.
-    using ElementArrayType = SparsePagedArray<ElementType, 256>;
-    using VersionArrayType = SparsePagedArray<int, 256>; // mirrors elements array
+    using ElementArrayType = SparsePagedArray<ElementType, 256, AllocatorType>;
+    using VersionArrayType = SparsePagedArray<int, 256, AllocatorType>; // mirrors elements array
+
+    using ProxyArrayType = SparsePagedArray<ProxyType, 1024, AllocatorType>;
 
     static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 
-    ResourceTracker()
-        : baseImpl(&TypeInfo_ForType<typename IdType::ObjectType>()), // default impl for base class
+    explicit ResourceTracker(AllocatorType* pAllocator)
+        : pAllocator(pAllocator),
+          baseImpl(&TypeInfo_ForType<typename IdType::ObjectType>(), pAllocator), // default impl for base class
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used
@@ -442,7 +446,7 @@ public:
             const HypClass* hypClass = GetClass(typeId);
             AssertDebug(hypClass != nullptr);
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass));
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass), pAllocator);
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -694,7 +698,7 @@ public:
             const HypClass* hypClass = GetClass(typeId);
             AssertDebug(hypClass != nullptr, "HypClass for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass));
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass), pAllocator);
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -724,7 +728,7 @@ public:
             const HypClass* hypClass = GetClass(typeId);
             AssertDebug(hypClass != nullptr, "HypClass for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass));
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass), pAllocator);
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -788,9 +792,13 @@ public:
 
     struct Impl final
     {
-        explicit Impl(const TypeInfo* typeInfo)
-            : typeInfo(typeInfo)
+        Impl(const TypeInfo* typeInfo, AllocatorType* pAllocator)
+            : typeInfo(typeInfo),
+              elements(pAllocator),
+              versions(pAllocator),
+              proxies(pAllocator)
         {
+            AssertDebug(pAllocator != nullptr);
         }
 
         Impl(const Impl& other) = delete;
@@ -1286,18 +1294,20 @@ public:
         // per-element version identifier array - mirrors elements array
         VersionArrayType versions;
 
-        SparsePagedArray<ProxyType, 1024> proxies;
+        ProxyArrayType proxies;
 
         Bitset previous;
         Bitset next;
         Bitset changed;
     };
 
+    AllocatorType* pAllocator;
+
     // base class impl
     Impl baseImpl;
 
     // per-subtype implementations (only constructed and setup on first Bind() call with that type)
-    Array<Pimpl<Impl>> subclassImpls;
+    Array<Pimpl<Impl>, AllocatorType> subclassImpls;
     Bitset subclassIndices;
 
     mutable ResourceTrackerDiff cachedDiff;
@@ -1339,7 +1349,7 @@ static inline void GetAddedElements(ResourceTracker<IdType, ElementType, ProxyTy
     {
         if (!lhs.subclassIndices.Test(i))
         {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
+            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo, lhs.pAllocator);
             lhs.subclassIndices.Set(i, true);
         }
 
@@ -1382,7 +1392,7 @@ static inline void GetRemovedElements(ResourceTracker<IdType, ElementType, Proxy
     {
         if (!rhs.subclassIndices.Test(i))
         {
-            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo);
+            lhs.subclassImpls[i] = MakePimpl<typename ResourceTracker<IdType, ElementType, ProxyType>::Impl>(rhs.subclassImpls[i]->typeInfo, lhs.pAllocator);
             lhs.subclassIndices.Set(i, true);
         }
 

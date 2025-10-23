@@ -301,14 +301,14 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     return rg;
 }
 
-template <class Functor, SizeType... Indices>
-static inline void ForEachResourceTrackerType_Impl(Span<ResourceTrackerBase*> resourceTrackers, const Functor& functor, std::index_sequence<Indices...>)
+template <class AllocatorType, class Functor, SizeType... Indices>
+static inline void ForEachResourceTrackerType_Impl(Span<ResourceTrackerBase<AllocatorType>*> resourceTrackers, const Functor& functor, std::index_sequence<Indices...>)
 {
     (functor(TypeWrapper<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type>(), resourceTrackers[Indices], Indices), ...);
 }
 
-template <class Functor>
-static inline void ForEachResourceTrackerType(Span<ResourceTrackerBase*> resourceTrackers, const Functor& functor)
+template <class AllocatorType, class Functor>
+static inline void ForEachResourceTrackerType(Span<ResourceTrackerBase<AllocatorType>*> resourceTrackers, const Functor& functor)
 {
     ForEachResourceTrackerType_Impl(resourceTrackers, functor, std::make_index_sequence<TupleSize<RenderProxyList::ResourceTrackerTypes>::value>());
 }
@@ -319,20 +319,20 @@ static constexpr SizeType GetTrackedResourceTypeIndex()
     return FindTypeElementIndex<T, RenderProxyList::TrackedResourceTypes>::value;
 }
 
-template <class Functor, SizeType... Indices>
-static inline void ForEachResourceTracker_Impl(Span<ResourceTrackerBase*> resourceTrackers, const Functor& functor, std::index_sequence<Indices...>)
+template <class AllocatorType, class Functor, SizeType... Indices>
+static inline void ForEachResourceTracker_Impl(Span<ResourceTrackerBase<AllocatorType>*> resourceTrackers, const Functor& functor, std::index_sequence<Indices...>)
 {
     (functor(static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*resourceTrackers[Indices])), ...);
 }
 
-template <class Functor>
-static inline void ForEachResourceTracker(Span<ResourceTrackerBase*> resourceTrackers, const Functor& functor)
+template <class AllocatorType, class Functor>
+static inline void ForEachResourceTracker(Span<ResourceTrackerBase<AllocatorType>*> resourceTrackers, const Functor& functor)
 {
     ForEachResourceTracker_Impl(resourceTrackers, functor, std::make_index_sequence<TupleSize<RenderProxyList::ResourceTrackerTypes>::value>());
 }
 
-template <class ElementType, class ProxyType>
-static inline void UpdateRefs_Impl(ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker)
+template <class AllocatorType, class ElementType, class ProxyType>
+static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& resourceTracker)
 {
     auto diff = resourceTracker.GetDiff();
     if (!diff.NeedsUpdate())
@@ -407,7 +407,7 @@ static inline void UpdateRefs(T& renderProxyList)
         });
 }
 
-RenderProxyList::RenderProxyList(bool isShared, bool useRefCounting)
+RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting)
     : isShared(isShared),
       useRefCounting(useRefCounting),
       viewport(Viewport { Vec2u::One(), Vec2i::Zero() }),
@@ -415,64 +415,14 @@ RenderProxyList::RenderProxyList(bool isShared, bool useRefCounting)
       resourceTrackers {},
       releaseRefsFunctions {}
 {
+    AssertDebug(pAllocator != nullptr);
+
     // initialize the resource trackers
-    ForEachResourceTrackerType(resourceTrackers, [this]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase*& pResourceTracker, SizeType idx)
+    ForEachResourceTrackerType(resourceTrackers.ToSpan(), [this, pAllocator]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>, ResourceTrackerBase<AllocatorType>*& pResourceTracker, SizeType idx)
         {
             AssertDebug(!pResourceTracker);
 
-            pResourceTracker = new ResourceTrackerType();
-
-            // if (this->useRefCounting)
-            // {
-            //     releaseRefsFunctions[idx] = [](ResourceTrackerBase* resourceTracker) -> void
-            //     {
-            //         ResourceTrackerType* resourceTrackerCasted = static_cast<ResourceTrackerType*>(resourceTracker);
-            //         resourceTrackerCasted->Advance(/* clearNextState */ true);
-
-            //         HashSet<HypObjectBase*> releasedObjects;
-
-            //         const auto releaseRefs = [&](auto& elements)
-            //         {
-            //             // Release weak references to all tracked elements
-            //             for (auto* elem : elements)
-            //             {
-            //                 AssertDebug(elem != nullptr);
-
-            //                 HypObjectBase* elemCasted = reinterpret_cast<HypObjectBase*>(elem);
-            //                 AssertDebug(elemCasted->GetObjectHeader_Internal()->GetRefCountStrong() > 0);
-
-            //                 AssertDebug(!releasedObjects.Contains(elemCasted));
-
-            //                 elemCasted->GetObjectHeader_Internal()->DecRefStrong();
-
-            //                 releasedObjects.Insert(elemCasted);
-            //             }
-            //         };
-
-            //         Assert(!resourceTrackerCasted->GetDiff().NeedsUpdate(),
-            //             "Update needed when resources are being released! This will lead to improper ref counts!");
-
-            //         Array<typename ResourceTrackerType::TElementType> elements;
-            //         // get current REMOVED elements
-            //         resourceTrackerCasted->GetRemoved(elements, false);
-            //         releaseRefs(elements);
-            //         elements.Clear();
-
-            //         // get current ADDED elements
-            //         resourceTrackerCasted->GetAdded(elements, false);
-            //         releaseRefs(elements);
-            //         elements.Clear();
-
-            //         // advance, moving the current elements over to the REMOVED bin.
-            //         resourceTrackerCasted->Advance(/* clearNextState */ true);
-
-            //         // release refs on elements that were moved over
-            //         resourceTrackerCasted->GetRemoved(elements, false);
-            //         releaseRefs(elements);
-
-            //         AssertDebug(resourceTrackerCasted->NumCurrent() == 0);
-            //     };
-            // }
+            pResourceTracker = new ResourceTrackerType(pAllocator);
         });
 }
 
@@ -504,7 +454,7 @@ RenderProxyList::~RenderProxyList()
 
     for (SizeType i = 0; i < resourceTrackers.Size(); i++)
     {
-        ResourceTrackerBase* resourceTracker = resourceTrackers[i];
+        ResourceTrackerBase<AllocatorType>* resourceTracker = resourceTrackers[i];
         AssertDebug(resourceTracker != nullptr);
 
         if (useRefCounting)

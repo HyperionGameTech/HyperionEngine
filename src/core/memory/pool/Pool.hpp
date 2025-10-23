@@ -9,20 +9,40 @@
 #include <core/containers/HashSet.hpp>
 #include <core/containers/SortedArray.hpp>
 
+#include <core/utilities/EnumFlags.hpp>
+
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/MemoryMetrics.hpp>
-
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
 
 #include <core/memory/allocator/Allocator.hpp>
 #include <core/memory/allocator/TlsfAllocator.hpp>
 
+#include <core/Defines.hpp>
+#include <core/Types.hpp>
+
 namespace hyperion {
+
+enum PoolFlags : uint32
+{
+    PF_NONE = 0,
+    PF_THREAD_SAFE = 0x1, //!< pool is thread-safe
+};
+
+HYP_MAKE_ENUM_FLAGS(PoolFlags);
+
 namespace memory {
 
 class HYP_API Pool
 {
+    template <class T, class T2>
+    friend struct DefaultAllocatorInstanceHelper;
+
+    /*! \brief This constructor should generally not be used, but exists so we don't have compiler errors for GetDefaultAllocatorInstance */
+    Pool()
+        : Pool(1024 * 1024) // default to 1 MB blocks
+    {
+    }
+
 public:
     template <class T>
     struct Allocation : DynamicAllocationBase<T>
@@ -63,8 +83,10 @@ public:
         void Free(void* ptr);
     };
 
-    explicit Pool(SizeType blockSize)
-        : m_blockSize(blockSize)
+    explicit Pool(SizeType blockSize, EnumFlags<PoolFlags> flags = PF_NONE)
+        : m_blockSize(blockSize),
+          m_flags(flags),
+          m_lockState(0)
     {
         HYP_CORE_ASSERT(m_blockSize > 0);
     }
@@ -76,6 +98,16 @@ public:
     Pool& operator=(Pool&&) = delete;
 
     ~Pool();
+
+    HYP_FORCE_INLINE SizeType GetBlockSize() const
+    {
+        return m_blockSize;
+    }
+
+    HYP_FORCE_INLINE EnumFlags<PoolFlags> GetFlags() const
+    {
+        return m_flags;
+    }
 
     /*! \brief Allocates memory from the pool with the given size and alignment. */
     HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment = 16);
@@ -98,6 +130,9 @@ public:
 protected:
     LinkedList<Block> m_blocks;
     SizeType m_blockSize;
+    EnumFlags<PoolFlags> m_flags;
+
+    mutable volatile int64 m_lockState;
 };
 
 template <class T>
@@ -145,3 +180,36 @@ using memory::PoolFree;
 using memory::PoolNew;
 
 } // namespace hyperion
+
+#define HYP_DEF_POOL_NEW_DELETE(poolName)                                  \
+    void* operator new(size_t size)                                        \
+    {                                                                      \
+        return poolName->Allocate(size);                                   \
+    }                                                                      \
+                                                                           \
+    void operator delete(void* ptr)                                        \
+    {                                                                      \
+        poolName->Free(ptr);                                               \
+    }                                                                      \
+                                                                           \
+    void* operator new(size_t size, std::align_val_t alignment)            \
+    {                                                                      \
+        return poolName->Allocate(size, static_cast<SizeType>(alignment)); \
+    }                                                                      \
+                                                                           \
+    void operator delete(void* ptr, std::align_val_t)                      \
+    {                                                                      \
+        poolName->Free(ptr);                                               \
+    }                                                                      \
+                                                                           \
+    void* operator new[](size_t size) = delete;                            \
+    void operator delete[](void* ptr) = delete;                            \
+                                                                           \
+    static void* operator new(size_t, void* p) noexcept                    \
+    {                                                                      \
+        return p;                                                          \
+    }                                                                      \
+                                                                           \
+    static void operator delete(void*, void*) noexcept                     \
+    {                                                                      \
+    }

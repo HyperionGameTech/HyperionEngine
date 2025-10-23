@@ -84,39 +84,27 @@ extern const CommandLineArguments& CoreApi_GetCommandLineArguments();
 
 #pragma region EngineMemory
 
-ValueStorage<Pool> s_enginePools[EPN_MAX];
+Pool* s_enginePools[EPN_MAX];
 HYP_API bool g_enginePoolsInitialized = false;
 
 static const ThreadId* s_enginePoolThreadIds[EPN_MAX] = {
-    &ThreadId::Invalid(), // EPN_CORE <-- not tied to any thread
+    &ThreadId::Invalid(), // EPN_CORE
     &g_renderThread,      // EPN_RENDER
-    &g_gameThread         // EPN_SCENE
-};
-
-constexpr SizeType EnginePoolSizes[EPN_MAX] = {
-    8 * 1024 * 1024,  // EPN_CORE
-    4 * 1024 * 1024,  // EPN_RENDER
-    4 * 1024 * 1024   // EPN_SCENE
+    &ThreadId::Invalid()  // EPN_SCENE
 };
 
 HYP_API void EngineMemory_Initialize()
 {
     // init pools
-
-    for (int i = 0; i < EPN_MAX; ++i)
-    {
-        s_enginePools[i].Construct(EnginePoolSizes[i]);
-    }
+    s_enginePools[EPN_CORE] = g_objectPool;
+    s_enginePools[EPN_RENDER] = g_renderPool;
+    s_enginePools[EPN_SCENE] = g_scenePool;
 
     g_enginePoolsInitialized = true;
 }
 
 HYP_API void EngineMemory_Shutdown()
 {
-    for (int i = 0; i < EPN_MAX; ++i)
-    {
-        s_enginePools[i].Destruct();
-    }
 }
 
 HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName)
@@ -128,7 +116,7 @@ HYP_API const ThreadId& EngineMemory_GetPoolThreadId(EnginePoolName poolName)
 HYP_API Pool* EngineMemory_GetPool(EnginePoolName poolName)
 {
     AssertDebug(poolName < EPN_MAX && poolName >= 0);
-    return s_enginePools[poolName].GetPointer();
+    return s_enginePools[poolName];
 }
 
 HYP_API EnginePoolName EngineMemory_GetPoolName(const char* str)

@@ -167,7 +167,7 @@ public:
         }
 
         // <page size> * sizeof(GraphicsPipelineRef)
-        constexpr SizeType pageStorageSizeBytes = (1u << Base::pageSizeBits) * sizeof(GraphicsPipelineRef);
+        constexpr SizeType pageStorageSizeBytes = (1u << Base::PageSizeBits) * sizeof(GraphicsPipelineRef);
 
         //  - the underlying reference may be null if it has been destroyed,
         //    but the pointer itself is still valid as long as the cache handle exists.
@@ -186,7 +186,7 @@ public:
             // calculate the index of the graphics pipeline, using the offset relative to the page's storage address
             // to get the index within the page.
             // then, we add the page index multiplied by the page size to get the absolute index in the SparsePagedArray.
-            return (pageIdx << Base::pageSizeBits) + ((UIntPtr(pGraphicsPipeline) - UIntPtr(&page->storage)) / sizeof(GraphicsPipelineRef));
+            return (pageIdx << Base::PageSizeBits) + ((UIntPtr(pGraphicsPipeline) - UIntPtr(&page->storage)) / sizeof(GraphicsPipelineRef));
         }
 
         return SizeType(-1);
@@ -214,7 +214,9 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
     AssertDebug(cachedPipelines != nullptr);
 
     if (lock)
+    {
         g_renderGlobalState->graphicsPipelineCache->m_mutex.Lock();
+    }
 
     const SizeType index = g_renderGlobalState->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_pRef);
     AssertDebug(index != SizeType(-1));
@@ -223,7 +225,9 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
     refCount += delta;
 
     if (lock)
+    {
         g_renderGlobalState->graphicsPipelineCache->m_mutex.Unlock();
+    }
 }
 
 GraphicsPipelineCacheHandle::GraphicsPipelineCacheHandle(GraphicsPipelineRef* pRef)

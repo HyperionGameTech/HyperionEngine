@@ -60,11 +60,16 @@ namespace hyperion {
 
 #pragma region Memory Pools
 
+static constexpr SizeType ObjectPoolBlockSize = 16 * 1024 * 1024;
 static constexpr SizeType RenderPoolBlockSize = 16 * 1024 * 1024;
 static constexpr SizeType FramePoolBlockSize = 4 * 1024 * 1024;
+static constexpr SizeType ScenePoolBlockSize = 8 * 1024 * 1024;
+static constexpr SizeType TaskPoolBlockSize = 4 * 1024 * 1024;
 
 HYP_API Pool* g_renderPool;
 HYP_API Pool* g_framePools[NumMultiBuffers];
+HYP_API Pool* g_scenePool;
+HYP_API Pool* g_taskPool;
 
 HYP_API Pool* GetCurrentFramePool()
 {
@@ -136,7 +141,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 {
     Threads::SetCurrentThreadId(g_mainThread);
 
-    EngineMemory_Initialize();
+    g_objectPool = new Pool(ObjectPoolBlockSize);
 
     g_renderPool = new Pool(RenderPoolBlockSize);
 
@@ -144,6 +149,11 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     {
         g_framePools[i] = new Pool(FramePoolBlockSize);
     }
+
+    g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
+    g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
+
+    EngineMemory_Initialize();
 
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
@@ -286,6 +296,12 @@ HYP_API void DestroyEngine()
     delete g_renderBackend;
     g_renderBackend = nullptr;
 
+    delete g_scenePool;
+    g_scenePool = nullptr;
+
+    delete g_taskPool;
+    g_taskPool = nullptr;
+
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
         delete g_framePools[i];
@@ -294,6 +310,12 @@ HYP_API void DestroyEngine()
 
     delete g_renderPool;
     g_renderPool = nullptr;
+
+    delete g_objectPool;
+    g_objectPool = nullptr;
+
+    delete g_safeDeleter;
+    g_safeDeleter = nullptr;
 
     EngineMemory_Shutdown();
 }

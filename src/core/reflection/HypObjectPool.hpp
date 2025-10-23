@@ -381,7 +381,8 @@ public:
         HypObjectContainer<T>& GetOrCreate(const HypClass* hypClass)
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static HypObjectContainer<T>& s_container = static_cast<HypObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), hypClass, +[](const HypClass* hypClass) -> HypObjectContainerBase*
+            static HypObjectContainer<T>& s_container = static_cast<HypObjectContainer<T>&>(GetOrCreate(
+                TypeId::ForType<T>(), hypClass, +[](const HypClass* hypClass) -> HypObjectContainerBase*
                 {
                     return new HypObjectContainer<T>(hypClass);
                 }));

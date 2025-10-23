@@ -242,6 +242,7 @@ HYP_API extern const HypClass* g_clsPostFXPass;
 HYP_API extern const HypClass* g_clsProcessShaderSourcePhase;
 HYP_API extern const HypClass* g_clsQuaternion;
 HYP_API extern const HypClass* g_clsRay;
+HYP_API extern const HypClass* g_clsRayTestFlags;
 HYP_API extern const HypClass* g_clsRaytracingPassData;
 HYP_API extern const HypClass* g_clsRaytracingPipelineBase;
 HYP_API extern const HypClass* g_clsRaytracingReflectionsConfig;

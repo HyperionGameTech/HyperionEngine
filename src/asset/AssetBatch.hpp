@@ -178,6 +178,8 @@ private:
 
 public:
     using TaskBatch::IsCompleted;
+    using TaskBatch::operator new;
+    using TaskBatch::operator delete;
 
     HYP_API AssetBatch(const Handle<AssetManager>& assetManager);
     HYP_API AssetBatch(const Handle<AssetManager>& assetManager, const String& identifier);

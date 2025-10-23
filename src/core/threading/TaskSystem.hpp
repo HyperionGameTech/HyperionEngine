@@ -54,6 +54,8 @@ using OnTaskBatchCompletedCallback = Proc<void()>;
 class TaskBatch
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_taskPool);
+
     TaskCompleteNotifier notifier;
     uint32 numEnqueued = 0;
 

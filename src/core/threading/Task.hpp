@@ -18,6 +18,8 @@
 #include <core/functional/Proc.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/Util.hpp>
 
 #include <core/Types.hpp>
@@ -33,6 +35,8 @@ enum class TaskEnqueueFlags : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(TaskEnqueueFlags)
+
+HYP_API extern Pool* g_taskPool;
 
 namespace threading {
 
@@ -170,6 +174,8 @@ private:
 class ITaskExecutor
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_taskPool);
+
     virtual ~ITaskExecutor() = default;
 
     virtual TaskID GetTaskID() const = 0;
@@ -440,7 +446,7 @@ public:
     void Fulfill(const ReturnType& value)
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
-        
+
         Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
         spinlock.LockWriter();
 
@@ -500,7 +506,7 @@ public:
     void Fulfill()
     {
         HYP_CORE_ASSERT(!Base::IsCompleted());
-        
+
         Spinlock<SPMC> spinlock(&this->m_promiseFulfillLockState);
         spinlock.LockWriter();
 
@@ -585,6 +591,8 @@ struct TaskRef
 class TaskBase
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_taskPool);
+
     TaskBase(TaskID id, SchedulerBase* assignedScheduler)
         : m_id(id),
           m_assignedScheduler(assignedScheduler)
@@ -818,7 +826,7 @@ protected:
 
                     spinlock.UnlockReader();
 
-                    //Task_DeferTaskDeletion(m_executor);
+                    // Task_DeferTaskDeletion(m_executor);
                 }
                 else
                 {
@@ -947,7 +955,7 @@ protected:
         HYP_CORE_ASSERT(IsCompleted());
 #endif
     }
-    
+
     virtual void Reset() override
     {
         if (m_ownsExecutor)
