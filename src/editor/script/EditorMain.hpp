@@ -11,6 +11,7 @@ namespace hyperion {
 
 class World;
 class Scene;
+class EditorProject;
 
 HYP_CLASS()
 class HYP_API EditorMain : public HypObjectBase
@@ -22,10 +23,10 @@ public:
     virtual ~EditorMain() = default;
 
     HYP_METHOD()
-    void BeforeInit(World* world, Scene* scene);
+    void BeforeAdded(World* world, Scene* scene);
 
     HYP_METHOD()
-    void Init() override;
+    void OnAdded(Entity* entity);
 
     HYP_METHOD()
     UIEventHandlerResult OpenProjectClicked(const MouseEvent& event);
@@ -67,8 +68,15 @@ public:
     UIEventHandlerResult AddEntity(const MouseEvent& event);
 
 private:
+    void HandleProjectOpened(const Handle<EditorProject>& project);
+    void HandleProjectClosing(const Handle<EditorProject>& project);
+
     World* m_world;
     Scene* m_scene;
+
+    DelegateHandler m_onProjectOpenedDelegate;
+    DelegateHandler m_onProjectClosingDelegate;
+    DelegateHandler m_onActionStackStateChangeDelegate;
 };
 
 } // namespace hyperion

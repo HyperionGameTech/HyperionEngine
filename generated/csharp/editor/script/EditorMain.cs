@@ -6,13 +6,13 @@ namespace Hyperion
 {
     public static class EditorMainExtensions
     {
-        public static void BeforeInit(this EditorMain obj, World world, Scene scene)
+        public static void BeforeAdded(this EditorMain obj, World world, Scene scene)
         {
-            obj.GetMethod(new Name(18222843660896982756)).InvokeNative(obj, world, scene);
+            obj.GetMethod(new Name(335161793468282916)).InvokeNative(obj, world, scene);
         }
-        public static void Init(this EditorMain obj)
+        public static void OnAdded(this EditorMain obj, Entity entity)
         {
-            obj.GetMethod(new Name(2333059020755428851)).InvokeNative(obj);
+            obj.GetMethod(new Name(5770745234237135986)).InvokeNative(obj, entity);
         }
         public static UIEventHandlerResult OpenProjectClicked(this EditorMain obj, MouseEvent event)
         {

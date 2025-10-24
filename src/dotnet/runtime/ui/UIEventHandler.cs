@@ -13,9 +13,9 @@ namespace Hyperion
     {
         private UIObject? uiObject;
 
-        public override void Init(Entity entity)
+        public override void OnAdded(Entity entity)
         {
-            base.Init(entity);
+            base.OnAdded(entity);
 
             uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(entity).UIObject;
 

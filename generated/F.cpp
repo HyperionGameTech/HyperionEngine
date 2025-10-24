@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region EditorCameraControllerMode Reflection Data
 
-HYP_BEGIN_ENUM(EditorCameraControllerMode, 422, 0, {})
+HYP_BEGIN_ENUM(EditorCameraControllerMode, 424, 0, {})
     HypConstant(NAME(HYP_STR(INACTIVE)), EditorCameraControllerMode::INACTIVE),
     HypConstant(NAME(HYP_STR(FOCUSED)), EditorCameraControllerMode::FOCUSED),
     HypConstant(NAME(HYP_STR(MOUSE_LOCKED)), EditorCameraControllerMode::MOUSE_LOCKED)
@@ -563,6 +563,33 @@ HYP_END_CLASS
 
 } // namespace hyperion
 
+/* Generated from: editor/ui/debug/FpsCounter.hpp */
+
+#include <editor/ui/debug/FpsCounter.hpp>
+
+namespace hyperion {
+
+#pragma region FpsCounter Reflection Data
+
+HYP_BEGIN_CLASS(FpsCounter, 214, 0, NAME("EditorDebugOverlayBase"))
+HYP_END_CLASS
+
+#pragma endregion FpsCounter Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region StatOverlay Reflection Data
+
+HYP_BEGIN_CLASS(StatOverlay, 215, 0, NAME("EditorDebugOverlayBase"))
+HYP_END_CLASS
+
+#pragma endregion StatOverlay Reflection Data
+
+} // namespace hyperion
+
 /* Generated from: editor/ui/debug/EditorDebugOverlay.hpp */
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
@@ -574,7 +601,7 @@ namespace hyperion {
 
 #pragma region TextureEditorDebugOverlay Reflection Data
 
-HYP_BEGIN_CLASS(TextureEditorDebugOverlay, 214, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(TextureEditorDebugOverlay, 216, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion TextureEditorDebugOverlay Reflection Data
@@ -586,7 +613,7 @@ namespace hyperion {
 
 #pragma region TextEditorDebugOverlay Reflection Data
 
-HYP_BEGIN_CLASS(TextEditorDebugOverlay, 215, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(TextEditorDebugOverlay, 217, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion TextEditorDebugOverlay Reflection Data
@@ -603,7 +630,7 @@ namespace hyperion {
 
 #pragma region EditorDebugOverlayBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorDebugOverlayBase, 213, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorDebugOverlayBase, 213, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetUIObject)), &EditorDebugOverlayBase::GetUIObject),
     HypMethod(NAME(HYP_STR(GetPlacement)), &EditorDebugOverlayBase::GetPlacement, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(Update)), &EditorDebugOverlayBase::Update, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
@@ -699,6 +726,7 @@ bool EditorDebugOverlayBase::IsEnabled() const
 #include <editor/script/EditorMain.hpp>
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/Entity.hpp>
 #include <ui/UIObject.hpp>
 #include <input/Mouse.hpp>
 
@@ -707,9 +735,9 @@ namespace hyperion {
 
 #pragma region EditorMain Reflection Data
 
-HYP_BEGIN_CLASS(EditorMain, 216, 0, NAME("HypObjectBase"))
-    HypMethod(NAME(HYP_STR(BeforeInit)), &EditorMain::BeforeInit),
-    HypMethod(NAME(HYP_STR(Init)), &EditorMain::Init),
+HYP_BEGIN_CLASS(EditorMain, 218, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
+    HypMethod(NAME(HYP_STR(OnAdded)), &EditorMain::OnAdded),
     HypMethod(NAME(HYP_STR(OpenProjectClicked)), &EditorMain::OpenProjectClicked),
     HypMethod(NAME(HYP_STR(SaveClicked)), &EditorMain::SaveClicked),
     HypMethod(NAME(HYP_STR(UndoClicked)), &EditorMain::UndoClicked),
@@ -745,7 +773,7 @@ namespace hyperion {
 
 #pragma region ConsoleCommandBase Reflection Data
 
-HYP_BEGIN_CLASS(ConsoleCommandBase, 217, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(ConsoleCommandBase, 219, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(Execute)), &ConsoleCommandBase::Execute, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } })
 HYP_END_CLASS
 
@@ -793,7 +821,7 @@ namespace hyperion {
 
 #pragma region LogEntitiesCommand Reflection Data
 
-HYP_BEGIN_CLASS(LogEntitiesCommand, 218, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "log_entities"))
+HYP_BEGIN_CLASS(LogEntitiesCommand, 220, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "log_entities"))
 HYP_END_CLASS
 
 #pragma endregion LogEntitiesCommand Reflection Data

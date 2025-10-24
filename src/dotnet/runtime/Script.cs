@@ -38,13 +38,13 @@ namespace Hyperion
         /// Sets up handles used by the Script instance.
         /// </summary>
         /// <param name="scene">Native handle to the scene</param>
-        internal void BeforeInit(World world, Scene scene)
+        internal void BeforeAdded(World world, Scene scene)
         {
             this.world = world;
             this.scene = scene;
         }
 
-        public virtual void Init(Entity entity)
+        public virtual void OnAdded(Entity entity)
         {
             this.entity = entity;
         }

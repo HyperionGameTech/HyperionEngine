@@ -7,6 +7,8 @@
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorAction.hpp>
 
+#include <editor/ui/debug/FpsCounter.hpp>
+
 #include <ui/UIMenuBar.hpp>
 #include <ui/UISubsystem.hpp>
 #include <ui/UIStage.hpp>
@@ -35,7 +37,7 @@ EditorMain::EditorMain()
 {
 }
 
-void EditorMain::BeforeInit(World* world, Scene* scene)
+void EditorMain::BeforeAdded(World* world, Scene* scene)
 {
     m_world = world;
     m_scene = scene;
@@ -43,11 +45,71 @@ void EditorMain::BeforeInit(World* world, Scene* scene)
     Assert(m_world != nullptr && m_scene != nullptr);
 }
 
-void EditorMain::Init()
+void EditorMain::OnAdded(Entity* entity)
 {
     HYP_SCOPE;
 
-    HypObjectBase::Init();
+    HYP_LOG(Editor, Info, "EditorMain OnAdded()");
+
+    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
+    if (!editorSubsystem)
+    {
+        return;
+    }
+
+    // Bind to project opened/closing events
+    m_onProjectOpenedDelegate = editorSubsystem->OnProjectOpened.Bind([this](const Handle<EditorProject>& project)
+        {
+            HandleProjectOpened(project);
+        });
+
+    m_onProjectClosingDelegate = editorSubsystem->OnProjectClosing.Bind([this](const Handle<EditorProject>& project)
+        {
+            HandleProjectClosing(project);
+        });
+
+    // If a project is already open, handle it
+    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    if (currentProject.IsValid())
+    {
+        HandleProjectOpened(currentProject);
+    }
+
+    // Add debug overlays
+    Handle<FpsCounter> fpsCounter = CreateObject<FpsCounter>(m_world);
+    InitObject(fpsCounter);
+    editorSubsystem->AddDebugOverlay(fpsCounter);
+
+    Handle<StatOverlay> statOverlay = CreateObject<StatOverlay>();
+    InitObject(statOverlay);
+    editorSubsystem->AddDebugOverlay(statOverlay);
+}
+
+void EditorMain::HandleProjectOpened(const Handle<EditorProject>& project)
+{
+    HYP_SCOPE;
+
+    HYP_LOG(Editor, Info, "HandleProjectOpened invoked with project: {}", project->GetName());
+
+    // Remove existing action stack state change delegate if any
+    m_onActionStackStateChangeDelegate.Reset();
+
+    // Bind to action stack state changes to update undo/redo menu items
+    m_onActionStackStateChangeDelegate = project->GetActionStack()->OnStateChange.Bind([this](EnumFlags<EditorActionStackState> state)
+        {
+            UpdateUndoMenuItem();
+            UpdateRedoMenuItem();
+        });
+}
+
+void EditorMain::HandleProjectClosing(const Handle<EditorProject>& project)
+{
+    HYP_SCOPE;
+
+    HYP_LOG(Editor, Info, "HandleProjectClosing invoked with project: {}", project->GetName());
+
+    // Remove action stack state change delegate
+    m_onActionStackStateChangeDelegate.Reset();
 }
 
 UIEventHandlerResult EditorMain::OpenProjectClicked(const MouseEvent& event)

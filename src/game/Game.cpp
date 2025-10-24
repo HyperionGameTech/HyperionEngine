@@ -100,13 +100,13 @@ void Game::Init()
     if (m_managedGameObject && m_managedGameObject->IsValid())
     {
         m_managedGameObject->InvokeMethodByName<void>(
-            "BeforeInit",
+            "BeforeAdded",
             m_world,
             g_appContext->GetInputManager(),
             AssetManager::GetInstance(),
             m_uiSubsystem->GetUIStage());
 
-        m_managedGameObject->InvokeMethodByName<void>("Init");
+        m_managedGameObject->InvokeMethodByName<void>("OnAdded");
     }
 }
 

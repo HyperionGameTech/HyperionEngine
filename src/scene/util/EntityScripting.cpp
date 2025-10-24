@@ -170,19 +170,20 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
         HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
 
-        if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
-        {
-            InvokeScriptMethodT<void>(nullptr, sor, "BeforeInit", world, scene);
+        InitObject(scriptComponent.nativeObject);
 
-            scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
+        if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
+        {
+            InvokeScriptMethodT<void>(nullptr, sor, "BeforeAdded", world, scene);
+
+            scriptComponent.flags |= ScriptComponentFlags::BEFORE_ADDED_CALLED;
         }
 
-        if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
+        if (!(scriptComponent.flags & ScriptComponentFlags::ON_ADDED_CALLED))
         {
-            // calls Init()
-            InitObject(scriptComponent.nativeObject);
+            InvokeScriptMethodT<void>(nullptr, sor, "OnAdded", entity);
 
-            scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+            scriptComponent.flags |= ScriptComponentFlags::ON_ADDED_CALLED;
         }
     }
     else // external script object (C# or HypScript)
@@ -266,29 +267,29 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                     HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
 
-                    if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
+                    if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
                     {
-                        if (dotnet::Method* beforeInitMethodPtr = classPtr->GetMethod("BeforeInit"))
+                        if (dotnet::Method* beforeInitMethodPtr = classPtr->GetMethod("BeforeAdded"))
                         {
-                            HYP_NAMED_SCOPE("Call BeforeInit() on script component");
-                            HYP_LOG(Script, Debug, "Calling BeforeInit() on script component");
+                            HYP_NAMED_SCOPE("Call BeforeAdded() on script component");
+                            HYP_LOG(Script, Debug, "Calling BeforeAdded() on script component");
 
                             object->InvokeMethod<void>(beforeInitMethodPtr, world, scene);
 
-                            scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
+                            scriptComponent.flags |= ScriptComponentFlags::BEFORE_ADDED_CALLED;
                         }
                     }
 
-                    if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
+                    if (!(scriptComponent.flags & ScriptComponentFlags::ON_ADDED_CALLED))
                     {
-                        if (dotnet::Method* initMethodPtr = classPtr->GetMethod("Init"))
+                        if (dotnet::Method* initMethodPtr = classPtr->GetMethod("OnAdded"))
                         {
                             HYP_NAMED_SCOPE("Call Init() on script component");
                             HYP_LOG(Script, Info, "Calling Init() on script component");
 
                             object->InvokeMethod<void>(initMethodPtr, entity);
 
-                            scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+                            scriptComponent.flags |= ScriptComponentFlags::ON_ADDED_CALLED;
                         }
                     }
                 }
@@ -378,16 +379,16 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 sor = AllocateResource<ScriptObjectResource>(instance, HypData());
                 sor->IncRef();
 
-                if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
+                if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
                 {
-                    InvokeScriptMethod("BeforeInit", scriptComponent);
-                    scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
+                    InvokeScriptMethodT<void>(nullptr, sor, "BeforeAdded", world, scene);
+                    scriptComponent.flags |= ScriptComponentFlags::BEFORE_ADDED_CALLED;
                 }
 
-                if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
+                if (!(scriptComponent.flags & ScriptComponentFlags::ON_ADDED_CALLED))
                 {
-                    InvokeScriptMethod("Init", scriptComponent);
-                    scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+                    InvokeScriptMethodT<void>(nullptr, sor, "OnAdded", entity);
+                    scriptComponent.flags |= ScriptComponentFlags::ON_ADDED_CALLED;
                 }
 
                 if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
@@ -448,7 +449,7 @@ void EntityScripting::DeinitEntityScriptComponent(Entity* entity, ScriptComponen
         sor = nullptr;
     }
 
-    scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::BEFORE_INIT_CALLED | ScriptComponentFlags::INIT_CALLED);
+    scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::BEFORE_ADDED_CALLED | ScriptComponentFlags::ON_ADDED_CALLED);
 }
 
 } // namespace hyperion

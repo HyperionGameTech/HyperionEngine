@@ -46,7 +46,7 @@ namespace Hyperion
         /// <summary>
         /// Invoked from native code before the Init() is called.
         /// Sets up handles used by the Game instance.
-        internal void BeforeInit(World world, InputManager inputManager, AssetManager assetManager, UIStage uiStage)
+        internal void BeforeAdded(World world, InputManager inputManager, AssetManager assetManager, UIStage uiStage)
         {
             this.world = world;
             this.inputManager = inputManager;

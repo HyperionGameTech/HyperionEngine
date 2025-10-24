@@ -1203,11 +1203,6 @@ void EditorSubsystem::OnAddedToWorld()
 #else
     NewProject();
 #endif
-
-    if (!dotnet::DotNetSystem::GetInstance().IsEnabled())
-    {
-        AddDebugOverlay(CreateObject<TextEditorDebugOverlay>(".NET runtime is not enabled - editor features may be missing or non-functional", Color::Red()));
-    }
 }
 
 void EditorSubsystem::OnRemovedFromWorld()
@@ -3185,6 +3180,8 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
 {
     HYP_SCOPE;
 
+    AssertDebug(debugOverlay != nullptr);
+
     if (!debugOverlay)
     {
         return;
@@ -3232,6 +3229,8 @@ void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debu
 
         m_debugOverlayContainers[placement]->AddChildUIObject(listViewItem);
     }
+
+    HYP_LOG_TEMP("Added debug overlay: {}", debugOverlay->GetName());
 }
 
 bool EditorSubsystem::RemoveDebugOverlay(WeakName name)
