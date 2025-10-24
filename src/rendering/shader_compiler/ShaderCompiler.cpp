@@ -222,7 +222,7 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
 
 static bool SatisfiesRequestedPropertySet(const ShaderProperties& requested, const ShaderProperties& candidate)
 {
-    if (candidate.GetPropertySetHashCode() == requested.GetPropertySetHashCode())
+    if (candidate.GetPropertySetHashCode() != requested.GetPropertySetHashCode())
     {
         return false;
     }
@@ -2624,6 +2624,7 @@ CompiledShader ShaderCompiler::GetCompiledShader(
     return compiledShader;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool ShaderCompiler::GetCompiledShader(
     Name name,
     const ShaderProperties& properties,
@@ -2706,6 +2707,7 @@ bool ShaderCompiler::GetCompiledShader(
 
     return true;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion ShaderCompiler
 
