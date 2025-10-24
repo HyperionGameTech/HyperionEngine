@@ -26,11 +26,6 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
 
     const auto ensureContainsProperties = [](const ShaderProperties& expected, const ShaderProperties& received) -> bool
     {
-        if (!received.HasRequiredVertexAttributes(expected.GetRequiredVertexAttributes()))
-        {
-            return false;
-        }
-
         for (const ShaderProperty& property : expected.GetPropertySet())
         {
             if (!received.GetPropertySet().Contains(property))

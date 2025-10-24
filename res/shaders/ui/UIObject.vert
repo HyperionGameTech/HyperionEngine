@@ -17,6 +17,7 @@ layout(location = 5) out flat uvec4 v_properties;
 // clang-format off
 
 HYP_ATTRIBUTE(0) vec3 a_position;
+HYP_ATTRIBUTE(1) vec3 a_normal;
 HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 
 #include "../include/scene.inc"

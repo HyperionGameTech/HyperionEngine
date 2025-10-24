@@ -367,7 +367,8 @@ void FullScreenPass::CreatePipeline()
     HYP_SCOPE;
 
     const MeshAttributes meshAttributes {
-        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
             | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 

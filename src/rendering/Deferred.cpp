@@ -113,8 +113,10 @@ static void GetDeferredShaderProperties(
     static const GlobalConfig& globalConfig = CoreApi_GetGlobalConfig();
     static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
 
-    outShaderProperties.SetRequiredVertexAttributes(VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
-    // VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
+    outShaderProperties.SetRequiredVertexAttributes(
+        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
 
     MergeGlobalShaderProperties(outShaderProperties);
 
@@ -488,7 +490,8 @@ void TonemapPass::CreatePipeline()
     Threads::AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
-        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
             | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
@@ -560,7 +563,8 @@ void LightmapPass::CreatePipeline()
     Threads::AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
-        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
             | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
@@ -640,7 +644,8 @@ void EnvGridPass::CreatePipeline()
     Threads::AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
-        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
             | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
@@ -847,7 +852,8 @@ void ReflectionsPass::CreatePipeline()
     HYP_SCOPE;
 
     const MeshAttributes meshAttributes {
-        .vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
             | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 

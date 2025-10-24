@@ -74,7 +74,9 @@ const Array<Vertex> MeshBuilder::cubeVertices = {
 
 Handle<Mesh> MeshBuilder::Quad()
 {
-    const VertexAttributeSet vertexAttributes = staticMeshVertexAttributes;
+    const VertexAttributeSet vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
 
     MeshDesc meshDesc;
     meshDesc.meshAttributes.vertexAttributes = vertexAttributes;

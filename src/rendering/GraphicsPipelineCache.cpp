@@ -33,7 +33,7 @@
 namespace hyperion {
 
 // discard a graphics pipeline that hasn't been used after this number of frames
-static constexpr uint32 GraphicsPipelineDiscardFrames = 32;
+static constexpr uint32 GraphicsPipelineDiscardFrames = 60;
 
 #pragma region CachedPipelinesMap
 
@@ -394,7 +394,8 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
         uint32 slot;
         Proc<void(GraphicsPipelineBase*, uint32)> callback;
 
-        RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)(
+        RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)
+        (
             GraphicsPipelineBase* graphicsPipeline,
             uint32 slot,
             Proc<void(GraphicsPipelineBase*, uint32)>&& callback)

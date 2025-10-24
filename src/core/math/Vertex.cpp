@@ -41,6 +41,33 @@ SizeType VertexAttributeSet::CalculateVertexSize() const
     return size;
 }
 
+String VertexAttributeSet::ToString() const
+{
+    String result = "";
+    bool first = true;
+
+    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++)
+    {
+        const uint64 iterFlagMask = VertexAttribute::mapping.OrdinalToEnum(i); // NOLINT(readability-static-accessed-through-instance)
+
+        if (flagMask & iterFlagMask)
+        {
+            if (!first)
+            {
+                result += ", ";
+            }
+
+            result += VertexAttribute::mapping[VertexAttribute::Type(iterFlagMask)].name;
+
+            first = false;
+        }
+    }
+
+    result += "";
+
+    return result;
+}
+
 #pragma endregion VertexAttributeSet
 
 #pragma region VertexAttribute

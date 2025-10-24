@@ -107,8 +107,8 @@ void GBuffer::Create()
     }
 
     HYP_LOG(Rendering, Debug, "Creating GBuffer with resolution {}", m_extent);
-
-    for (auto& framebuffer : m_framebuffers)
+    
+    for (const FramebufferRef& framebuffer : m_framebuffers)
     {
         HYP_GFX_ASSERT(framebuffer->Create());
     }

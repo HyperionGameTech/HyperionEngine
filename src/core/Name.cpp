@@ -45,8 +45,8 @@ using NameAllocator = AllocatorInstance<Pool, &s_namePool>;
 class NameRegistry
 {
 public:
-    using CharBuffer = Array<char, NameAllocator>;
-    using MapType = HashMap<NameID, Pair<CharBuffer, uint32>, NodeAllocator<NameAllocator>>;
+    using CharBuffer = Array<char>;
+    using MapType = HashMap<NameID, Pair<CharBuffer, uint32>>;
 
     using Bucket = typename MapType::Bucket;
     using Node = typename MapType::Node;

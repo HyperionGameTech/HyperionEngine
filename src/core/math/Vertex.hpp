@@ -222,6 +222,8 @@ struct VertexAttributeSet
     HYP_API Array<VertexAttribute::Type> BuildAttributes() const;
     HYP_API SizeType CalculateVertexSize() const;
 
+    HYP_API String ToString() const;
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;

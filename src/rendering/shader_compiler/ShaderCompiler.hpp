@@ -413,6 +413,11 @@ public:
         return m_optionalVertexAttributes;
     }
 
+    HYP_FORCE_INLINE VertexAttributeSet GetAllVertexAttributes() const
+    {
+        return m_requiredVertexAttributes | m_optionalVertexAttributes;
+    }
+
     HYP_FORCE_INLINE void SetRequiredVertexAttributes(VertexAttributeSet vertexAttributes)
     {
         m_requiredVertexAttributes = vertexAttributes;
@@ -469,8 +474,10 @@ private:
     {
         HashCode hc;
 
-        // NOTE: Intentionally left out m_optionalVertexAttributes,
+        // NOTE: Intentionally left out m_optionalVertexAttributes
         // as they do not impact the final instantiated version of the shader properties.
+        // m_requiredVertexAttributes needs to be checked by the caller as we could have
+        // shader with less vertex attributes than the mesh in question has.
 
         m_cachedPropertySetHashCode = HashCode();
 
@@ -492,7 +499,6 @@ private:
             m_cachedPropertySetHashCode.Add(pShaderProperty->GetHashCode());
         }
 
-        hc.Add(m_requiredVertexAttributes.GetHashCode());
         hc.Add(m_cachedPropertySetHashCode);
 
         m_cachedHashCode = hc;
@@ -1259,31 +1265,7 @@ public:
         return true;
     }
 
-    bool GetShaderInstance(Name name, uint64 versionHash, CompiledShader& out) const
-    {
-        Mutex::Guard guard(m_mutex);
-
-        const auto it = m_compiledShaders.Find(name);
-
-        if (it == m_compiledShaders.End())
-        {
-            return false;
-        }
-
-        const auto versionIt = it->second.compiledShaders.FindIf([versionHash](const CompiledShader& item)
-            {
-                return item.definition.properties.GetHashCode().Value() == versionHash;
-            });
-
-        if (versionIt == it->second.compiledShaders.End())
-        {
-            return false;
-        }
-
-        out = *versionIt;
-
-        return true;
-    }
+    bool GetShaderInstance(Name name, const ShaderProperties& properties, CompiledShader& out) const;
 
     void Set(Name name, const CompiledShaderBatch& batch)
     {

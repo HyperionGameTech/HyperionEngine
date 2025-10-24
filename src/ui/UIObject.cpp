@@ -1879,9 +1879,14 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 {
     HYP_SCOPE;
 
+    constexpr VertexAttributeSet UIObjectVertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+
     return MaterialAttributes {
-        .shaderDefinition = ShaderDefinition { NAME("UIObject"), ShaderProperties(VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0) },
-        .blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        .shaderDefinition = ShaderDefinition(NAME("UIObject"), ShaderProperties(UIObjectVertexAttributes)),
+        .blendFunction = BlendFunction(
+            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
             BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
         .cullFaces = FCM_BACK,
         .flags = MAF_NONE
