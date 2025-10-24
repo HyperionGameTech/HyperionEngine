@@ -53,6 +53,7 @@ HYP_API const Name g_attrProperty = NAME("property");
 HYP_API const Name g_attrLoadOrder = NAME("loadorder");
 HYP_API const Name g_attrJsonPath = NAME("jsonpath");
 HYP_API const Name g_attrJsonIgnore = NAME("jsonignore");
+HYP_API const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
 
 } // namespace Attributes
 

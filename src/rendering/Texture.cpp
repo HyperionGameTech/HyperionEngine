@@ -1,17 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/Texture.hpp>
-
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderSampler.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderTextureMipmap.hpp>
 #include <rendering/RenderHelpers.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/TextureMipmapRenderer.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

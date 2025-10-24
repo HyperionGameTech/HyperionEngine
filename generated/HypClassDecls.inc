@@ -93,6 +93,7 @@ HYP_API extern const HypClass* g_clsEditorCameraController;
 HYP_API extern const HypClass* g_clsEditorCameraControllerMode;
 HYP_API extern const HypClass* g_clsEditorCameraInputHandler;
 HYP_API extern const HypClass* g_clsEditorDebugOverlayBase;
+HYP_API extern const HypClass* g_clsEditorMain;
 HYP_API extern const HypClass* g_clsEditorManipulationWidgetBase;
 HYP_API extern const HypClass* g_clsEditorProject;
 HYP_API extern const HypClass* g_clsEditorPropertyPanelBase;

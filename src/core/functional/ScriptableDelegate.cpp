@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <core/reflection/HypData.hpp>
+#include <core/reflection/HypMethod.hpp>
+
 #include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
-
-// needed by dotnet/ManagedClass.hpp
-#include <core/reflection/HypData.hpp>
 
 #include <dotnet/ManagedClass.hpp>
 
@@ -23,6 +23,20 @@ HYP_API void LogScriptableDelegateError(const char* message, dotnet::ManagedObje
     else
     {
         HYP_LOG(DotNET, Error, "ScriptableDelegate: {}", message);
+    }
+}
+
+void ScriptableDelegateHelper::InvokeHypMethod_Internal(HypData* outReturnHypData, const HypMethod* method, const Handle<HypObjectBase>& target, Span<HypData> argsHypData)
+{
+    HYP_CORE_ASSERT(method != nullptr, "Method cannot be null");
+
+    if (outReturnHypData)
+    {
+        *outReturnHypData = method->Invoke(argsHypData);
+    }
+    else
+    {
+        (void)method->Invoke(argsHypData);
     }
 }
 

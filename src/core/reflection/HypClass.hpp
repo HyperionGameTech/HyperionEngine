@@ -989,6 +989,7 @@ HYP_API extern const Name g_attrProperty;
 HYP_API extern const Name g_attrLoadOrder;
 HYP_API extern const Name g_attrJsonPath;
 HYP_API extern const Name g_attrJsonIgnore;
+HYP_API extern const Name g_attrScriptableDelegate;
 
 } // namespace Attributes
 

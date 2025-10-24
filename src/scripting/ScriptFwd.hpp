@@ -41,8 +41,10 @@ enum ScriptLanguage : uint32
 {
     SL_INVALID = ~0u,
 
-    SL_HYPSCRIPT = 0,
-    SL_CSHARP = 1
+    SL_NATIVE = 0,
+
+    SL_HYPSCRIPT = 1,
+    SL_CSHARP = 2
 };
 
 } // namespace hyperion

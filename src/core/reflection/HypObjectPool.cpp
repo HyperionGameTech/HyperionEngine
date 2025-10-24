@@ -171,7 +171,7 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGu
     HYP_CORE_ASSERT(pool != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (pool->GetFlags() & PF_THREAD_SAFE)
+    if (HYP_LIKELY(pool == g_objectPool || (pool->GetFlags() & PF_THREAD_SAFE)))
     {
 #endif
         Spinlock<MPMC>& lock = GetLock();

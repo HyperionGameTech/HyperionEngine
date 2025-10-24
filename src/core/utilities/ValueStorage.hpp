@@ -120,6 +120,15 @@ struct alignas(Alignment) ValueStorage<T, 1, Alignment, std::enable_if_t<!std::i
 template <SizeType Count, SizeType Alignment>
 struct ValueStorage<void, Count, Alignment>
 {
+    void* GetPointer() &
+    {
+        return nullptr;
+    }
+
+    const void* GetPointer() const&
+    {
+        return nullptr;
+    }
 };
 
 // 0 count specialization

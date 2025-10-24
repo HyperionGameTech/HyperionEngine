@@ -1,4 +1,5 @@
-#include <rendering/RenderTextureMipmap.hpp>
+#include <rendering/util/TextureMipmapRenderer.hpp>
+
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>

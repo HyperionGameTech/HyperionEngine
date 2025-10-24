@@ -53,10 +53,20 @@ struct ScriptObjectData_HypScript final
 };
 #endif
 
+struct ScriptObjectData_Native final
+{
+    static constexpr ScriptLanguage Language = SL_NATIVE;
+
+    WeakHandle<HypObjectBase> nativeObject;
+};
+
 class HYP_API ScriptObjectResource final : public ResourceBase
 {
 public:
     ScriptObjectResource();
+
+    explicit ScriptObjectResource(const Handle<HypObjectBase>& nativeObject);
+
     ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(HypObjectPtr ptr, const RC<dotnet::ManagedClass>& managedClass);
     ScriptObjectResource(HypObjectPtr ptr, dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass);
@@ -100,6 +110,11 @@ public:
         return nullptr;
     }
 
+    ScriptObjectData_Native* GetScriptObjectData_Native() const
+    {
+        return m_scriptObjectData.Is<ScriptObjectData_Native>() ? &m_scriptObjectData.Get<ScriptObjectData_Native>() : nullptr;
+    }
+
     ScriptObjectData_DotNet* GetScriptObjectData_DotNet() const
     {
 #ifdef HYP_DOTNET
@@ -131,7 +146,7 @@ protected:
 #ifdef HYP_SCRIPT
         ScriptObjectData_HypScript,
 #endif
-        ScriptObjectData_Dummy>
+        ScriptObjectData_Native>
         m_scriptObjectData;
 };
 

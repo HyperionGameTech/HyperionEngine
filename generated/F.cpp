@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region EditorCameraControllerMode Reflection Data
 
-HYP_BEGIN_ENUM(EditorCameraControllerMode, 421, 0, {})
+HYP_BEGIN_ENUM(EditorCameraControllerMode, 422, 0, {})
     HypConstant(NAME(HYP_STR(INACTIVE)), EditorCameraControllerMode::INACTIVE),
     HypConstant(NAME(HYP_STR(FOCUSED)), EditorCameraControllerMode::FOCUSED),
     HypConstant(NAME(HYP_STR(MOUSE_LOCKED)), EditorCameraControllerMode::MOUSE_LOCKED)
@@ -694,6 +694,41 @@ bool EditorDebugOverlayBase::IsEnabled() const
 #pragma endregion EditorDebugOverlayBase Scriptable Methods
 } // namespace hyperion
 
+/* Generated from: editor/script/EditorMain.hpp */
+
+#include <editor/script/EditorMain.hpp>
+#include <scene/World.hpp>
+#include <scene/Scene.hpp>
+#include <ui/UIObject.hpp>
+#include <input/Mouse.hpp>
+
+
+namespace hyperion {
+
+#pragma region EditorMain Reflection Data
+
+HYP_BEGIN_CLASS(EditorMain, 216, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(BeforeInit)), &EditorMain::BeforeInit),
+    HypMethod(NAME(HYP_STR(Init)), &EditorMain::Init),
+    HypMethod(NAME(HYP_STR(OpenProjectClicked)), &EditorMain::OpenProjectClicked),
+    HypMethod(NAME(HYP_STR(SaveClicked)), &EditorMain::SaveClicked),
+    HypMethod(NAME(HYP_STR(UndoClicked)), &EditorMain::UndoClicked),
+    HypMethod(NAME(HYP_STR(RedoClicked)), &EditorMain::RedoClicked),
+    HypMethod(NAME(HYP_STR(UpdateUndoMenuItem)), &EditorMain::UpdateUndoMenuItem),
+    HypMethod(NAME(HYP_STR(UpdateRedoMenuItem)), &EditorMain::UpdateRedoMenuItem),
+    HypMethod(NAME(HYP_STR(SimulateClicked)), &EditorMain::SimulateClicked),
+    HypMethod(NAME(HYP_STR(GenerateLightmapsClicked)), &EditorMain::GenerateLightmapsClicked),
+    HypMethod(NAME(HYP_STR(AddPointLight)), &EditorMain::AddPointLight),
+    HypMethod(NAME(HYP_STR(AddAreaRectLight)), &EditorMain::AddAreaRectLight),
+    HypMethod(NAME(HYP_STR(AddReflectionProbe)), &EditorMain::AddReflectionProbe),
+    HypMethod(NAME(HYP_STR(AddNode)), &EditorMain::AddNode),
+    HypMethod(NAME(HYP_STR(AddEntity)), &EditorMain::AddEntity)
+HYP_END_CLASS
+
+#pragma endregion EditorMain Reflection Data
+
+} // namespace hyperion
+
 /* Generated from: console/ConsoleCommand.hpp */
 
 #include <console/ConsoleCommand.hpp>
@@ -710,7 +745,7 @@ namespace hyperion {
 
 #pragma region ConsoleCommandBase Reflection Data
 
-HYP_BEGIN_CLASS(ConsoleCommandBase, 216, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(ConsoleCommandBase, 217, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(Execute)), &ConsoleCommandBase::Execute, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } })
 HYP_END_CLASS
 
@@ -758,7 +793,7 @@ namespace hyperion {
 
 #pragma region LogEntitiesCommand Reflection Data
 
-HYP_BEGIN_CLASS(LogEntitiesCommand, 217, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "log_entities"))
+HYP_BEGIN_CLASS(LogEntitiesCommand, 218, 0, NAME("ConsoleCommandBase"), HypClassAttribute("command", "log_entities"))
 HYP_END_CLASS
 
 #pragma endregion LogEntitiesCommand Reflection Data

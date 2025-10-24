@@ -287,21 +287,16 @@ DescriptorUsageSet::BuildDescriptorTableDeclaration() const
             "Descriptor usage {} has invalid slot {}",
             descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
 
-        DescriptorSetDeclaration* descriptorSetDeclaration =
-            table.FindDescriptorSetDeclaration(descriptorUsage.setName);
+        DescriptorSetDeclaration* descriptorSetDeclaration = table.FindDescriptorSetDeclaration(descriptorUsage.setName);
 
         // check if this descriptor set is defined in the static descriptor table
         // if it is, we can use those definitions
         // otherwise, it is a 'custom' descriptor set
-        DescriptorSetDeclaration* staticDescriptorSetDeclaration =
-            GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(
-                descriptorUsage.setName);
+        DescriptorSetDeclaration* staticDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorUsage.setName);
 
         if (staticDescriptorSetDeclaration != nullptr)
         {
-            Assert(staticDescriptorSetDeclaration->FindDescriptorDeclaration(
-                       descriptorUsage.descriptorName)
-                    != nullptr,
+            Assert(staticDescriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName) != nullptr,
                 "Descriptor set {} is defined in the static descriptor table, but "
                 "the descriptor {} is not",
                 descriptorUsage.setName, descriptorUsage.descriptorName);

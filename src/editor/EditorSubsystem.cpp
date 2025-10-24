@@ -1159,10 +1159,12 @@ void EditorSubsystem::OnAddedToWorld()
 
     CreateHighlightNode();
 
-    g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([](const ScriptData& script)
-                                                                   {
-                                                                       HYP_LOG(Script, Debug, "Script state changed: now is {}", EnumToString(ScriptCompileStatus(script.compileStatus)));
-                                                                   })
+    g_engineDriver->GetScriptingService()
+        ->OnScriptStateChanged
+        .Bind([](const ScriptData& script)
+            {
+                HYP_LOG(Script, Debug, "Script state changed: now is {}", EnumToString(ScriptCompileStatus(script.compileStatus)));
+            })
         .Detach();
 
     if (Handle<AssetCollector> baseAssetCollector = g_assetManager->GetBaseAssetCollector())
@@ -2610,19 +2612,21 @@ void EditorSubsystem::InitContentBrowser()
     Assert(m_contentBrowserContentsEmpty != nullptr);
     m_contentBrowserContentsEmpty->SetIsVisible(true);
 
-    if (Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button"))
-    {
-        m_delegateHandlers.Remove(NAME("ImportClicked"));
-        m_delegateHandlers.Add(
-            NAME("ImportClicked"),
-            importButton->OnClick
-                .Bind([this](...)
-                    {
-                        ShowImportContentDialog();
+    Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
+    Assert(importButton != nullptr);
 
-                        return UIEventHandlerResult::STOP_BUBBLING;
-                    }));
-    }
+    importButton->OnClick.RemoveAllDetached();
+
+    m_delegateHandlers.Remove(NAME("ImportClicked"));
+    m_delegateHandlers.Add(
+        NAME("ImportClicked"),
+        importButton->OnClick
+            .Bind([this](...)
+                {
+                    ShowImportContentDialog();
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }));
 }
 
 void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested)

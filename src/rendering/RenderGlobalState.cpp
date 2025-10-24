@@ -73,7 +73,7 @@ namespace hyperion {
 static_assert(NumMultiBuffers <= MinSafeDeleteCycles,
     "NumMultiBuffers must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
-static constexpr uint32 MaxFramesBeforeDiscard = 10; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = 60; // number of frames before ViewData is discarded if not written to
 
 // must be greater than or equal to MinSafeDeleteCycles so that
 // we can ensure no active views hold pointers to deleted objects.

@@ -28,6 +28,11 @@ struct HYP_API Keyframe
     Keyframe(const Keyframe& other) = default;
     Keyframe& operator=(const Keyframe& other) = default;
 
+    Keyframe(Keyframe&& other) noexcept = default;
+    Keyframe& operator=(Keyframe&& other) noexcept = default;
+
+    ~Keyframe() = default;
+
     HYP_METHOD()
     Keyframe Blend(const Keyframe& to, float blend) const;
 };

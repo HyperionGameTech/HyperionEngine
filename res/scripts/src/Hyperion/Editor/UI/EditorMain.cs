@@ -67,6 +67,9 @@ public class TestEditorTask : LongRunningEditorTask
 }
 
 
+/// <summary>
+///  Most of this has been replaced with a C++ implementation (see editor/script/EditorMain.hpp)
+/// </summary>
 public class EditorMain : UIEventHandler
 {
     FirstPersonCameraController? firstPersonCameraController;
@@ -914,7 +917,7 @@ public class EditorMain : UIEventHandler
 
         return UIEventHandlerResult.Ok;
     }
-    
+
     public UIEventHandlerResult AddEntity()
     {
         var editorSubsystem = World.GetSubsystem<EditorSubsystem>();

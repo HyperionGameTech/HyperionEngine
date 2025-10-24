@@ -79,7 +79,7 @@ public:
             return defaultResult;
         }
 
-        if (!scriptComponent->scriptObjectResource || !scriptComponent->scriptObjectResource->GetManagedObject() || !scriptComponent->scriptObjectResource->GetManagedObject()->IsValid())
+        if (!scriptComponent->scriptObjectResource)
         {
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid ScriptComponent Object"));
         }
@@ -87,42 +87,58 @@ public:
         scriptComponent->scriptObjectResource->IncRef();
         HYP_DEFER({ scriptComponent->scriptObjectResource->DecRef(); });
 
-        dotnet::ManagedObject* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
-        Assert(managedObject != nullptr);
-
-        if (dotnet::ManagedClass* classPtr = managedObject->GetClass())
+#ifdef HYP_DOTNET
+        if (scriptComponent->scriptObjectResource->GetScriptLanguage() == SL_CSHARP)
         {
-            if (dotnet::Method* methodPtr = classPtr->GetMethod(m_methodName))
+
+            dotnet::ManagedObject* managedObject = scriptComponent->scriptObjectResource->GetManagedObject();
+            Assert(managedObject != nullptr);
+
+            if (dotnet::ManagedClass* classPtr = managedObject->GetClass())
             {
-                if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE)
+                if (dotnet::Method* methodPtr = classPtr->GetMethod(m_methodName))
                 {
-                    if (!methodPtr->GetAttributes().GetAttribute("UIEvent"))
+                    if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE)
                     {
-                        return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method does not have the Hyperion.UIEvent attribute"));
+                        if (!methodPtr->GetAttributes().GetAttribute("UIEvent"))
+                        {
+                            return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method does not have the Hyperion.UIEvent attribute"));
+                        }
                     }
+
+                    // // Stubbed method, do not call
+                    // if (methodPtr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
+                    //     return defaultResult;
+                    // }
+
+                    UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(methodPtr, std::forward<Args>(args)...);
+
+                    if (result == UIEventHandlerResult::OK)
+                    {
+                        return result | defaultResult;
+                    }
+
+                    return result;
                 }
 
-                // // Stubbed method, do not call
-                // if (methodPtr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
-                //     return defaultResult;
-                // }
-
-                UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(methodPtr, std::forward<Args>(args)...);
-
-                if (result == UIEventHandlerResult::OK)
-                {
-                    return result | defaultResult;
-                }
-
-                return result;
+                return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; method missing on class"));
             }
+        }
+#endif
 
-            return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; method missing on class"));
+        UIEventHandlerResult result;
+
+        if (!ScriptableDelegateHelper::InvokeScriptObjectMethod<HypData, UIEventHandlerResult>(
+                scriptComponent->scriptObjectResource,
+                m_methodName,
+                &result,
+                std::forward<Args>(args)...))
+        {
+            HYP_LOG(UI, Error, "Failed to call method {} for UI object with name: {}", m_methodName, m_uiObject->GetName());
+            return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Failed to call method"));
         }
 
-        HYP_LOG(UI, Error, "Failed to call method {} for UI object with name: {}", m_methodName, m_uiObject->GetName());
-
-        return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; failed to call method"));
+        return result;
     }
 
 private:

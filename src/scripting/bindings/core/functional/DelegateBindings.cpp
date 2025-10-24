@@ -7,11 +7,11 @@
 
 #include <core/Types.hpp>
 
-namespace hyperion::dotnet {
+using namespace hyperion;
 
 extern "C"
 {
-
+#ifdef HYP_DOTNET
     HYP_EXPORT DelegateHandler* ScriptableDelegate_Bind(IScriptableDelegate* delegate, dotnet::ManagedClass* pClass, ObjectReference* objectReference)
     {
         Assert(delegate != nullptr);
@@ -20,6 +20,7 @@ extern "C"
 
         return new DelegateHandler(delegate->BindManaged("DynamicInvoke", MakeUnique<dotnet::ManagedObject>(pClass->RefCountedPtrFromThis(), *objectReference, ObjectFlags::CREATED_FROM_MANAGED)));
     }
+#endif
 
     HYP_EXPORT int ScriptableDelegate_RemoveAllDetached(IScriptableDelegate* delegate)
     {
@@ -62,5 +63,3 @@ extern "C"
     }
 
 } // extern "C"
-
-} // namespace hyperion::dotnet

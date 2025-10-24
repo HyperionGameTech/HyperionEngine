@@ -25,6 +25,12 @@ HYP_DECLARE_LOG_CHANNEL(Object);
 
 ScriptObjectResource::ScriptObjectResource() = default;
 
+ScriptObjectResource::ScriptObjectResource(const Handle<HypObjectBase>& nativeObject)
+{
+    ScriptObjectData_Native& data = m_scriptObjectData.Emplace<ScriptObjectData_Native>();
+    data.nativeObject = nativeObject;
+}
+
 ScriptObjectResource::ScriptObjectResource(dotnet::ManagedObject* objectPtr, const RC<dotnet::ManagedClass>& managedClass)
 {
 #ifdef HYP_DOTNET

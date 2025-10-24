@@ -236,7 +236,7 @@ public:
 
                 const BVHNode* bvhNode = static_cast<const BVHNode*>(rayHit.userData);
 
-                const uint32 triangleId = bvhNode->triangleIds[rayHit.id];
+                const uint32 triangleId = rayHit.id;
 
                 AssertDebug(triangleId < m_cachedIndices.Size() / 3);
 
@@ -533,9 +533,6 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
         taskBatch->AddTask([this, view = renderSetup.view, sharedCpuData, job, batchIndex, itemsPerBatch, numItems, envProbeTexture](...)
             {
                 uint32 seed = std::rand();
-
-                // Keep the ViewData alive to prevent needing to recreate it a bunch
-                RenderApi::GetConsumerProxyList(view);
 
                 const uint32 offsetIndex = batchIndex * itemsPerBatch;
                 const uint32 maxIndex = MathUtil::Min(offsetIndex + itemsPerBatch, numItems);

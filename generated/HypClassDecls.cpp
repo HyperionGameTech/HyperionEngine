@@ -425,6 +425,7 @@ const HypClass* g_clsTransformEditorPropertyPanel = nullptr;
 const HypClass* g_clsTextureEditorDebugOverlay = nullptr;
 const HypClass* g_clsTextEditorDebugOverlay = nullptr;
 const HypClass* g_clsEditorDebugOverlayBase = nullptr;
+const HypClass* g_clsEditorMain = nullptr;
 const HypClass* g_clsConsoleCommandBase = nullptr;
 const HypClass* g_clsConsoleUI = nullptr;
 const HypClass* g_clsLogEntitiesCommand = nullptr;

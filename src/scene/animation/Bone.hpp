@@ -24,9 +24,14 @@ class HYP_API Bone : public Node
 
 public:
     Bone();
-    Bone(Name name);
+    explicit Bone(Name name);
+
     Bone(const Bone& other) = delete;
     Bone& operator=(const Bone& other) = delete;
+
+    Bone(Bone&& other) noexcept = default;
+    Bone& operator=(Bone&& other) noexcept = default;
+
     virtual ~Bone() override;
 
     Vec3f GetOffsetTranslation() const;

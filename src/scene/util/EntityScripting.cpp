@@ -23,6 +23,7 @@
 
 #include <core/reflection/HypClass.hpp>
 #include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/HypMethod.hpp>
 
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
@@ -101,6 +102,29 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         break;
     }
 #endif
+    case SL_NATIVE:
+    {
+        auto* data = sor->GetScriptObjectData_Native();
+        Assert(data != nullptr);
+
+        Handle<HypObjectBase> nativeObject = data->nativeObject.Lock();
+        AssertDebug(nativeObject != nullptr);
+
+        if (const HypMethod* method = nativeObject->InstanceClass()->GetMethod(methodName))
+        {
+            if constexpr (!std::is_void_v<ReturnType>)
+            {
+                AssertDebug(outReturnValue != nullptr);
+                new (outReturnValue) ReturnType(method->Invoke(Span<HypData> { { HypData(nativeObject), HypData(std::forward<ArgTypes>(args))... } }));
+            }
+            else
+            {
+                (void)method->Invoke(Span<HypData> { { HypData(nativeObject), HypData(std::forward<ArgTypes>(args))... } });
+            }
+        }
+
+        break;
+    }
     default:
         break;
     }
@@ -130,228 +154,262 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         return;
     }
 
-    const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
-    AssertDebug(scriptAsset != nullptr);
-
-    if (!scriptAsset)
+    if (scriptComponent.nativeObject != nullptr) // native script object
     {
-        HYP_LOG(Script, Warning, "Entity has ScriptComponent with no ScriptAsset!");
-
-        return;
-    }
-
-    ScriptData* scriptData = scriptAsset->GetScriptData();
-    Assert(scriptData != nullptr);
-
-    switch (scriptData->language)
-    {
-#ifdef HYP_DOTNET
-    case SL_CSHARP:
-    {
-        if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
+        if (!sor || !sor->GetScriptObjectData_Native() || sor->GetScriptObjectData_Native()->nativeObject.GetUnsafe() != scriptComponent.nativeObject.Get())
         {
             FreeResource<ScriptObjectResource>(sor);
             sor = nullptr;
+        }
 
-            ResourceHandle resourceHandle(*scriptAsset->GetResource());
+        sor = AllocateResource<ScriptObjectResource>(scriptComponent.nativeObject);
+        sor->IncRef();
 
-            if (!scriptComponent.assembly)
+        const HypClass* nativeClass = scriptComponent.nativeObject->InstanceClass();
+        AssertDebug(nativeClass != nullptr);
+
+        HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
+
+        if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
+        {
+            InvokeScriptMethodT<void>(nullptr, sor, "BeforeInit", world, scene);
+
+            scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
+        }
+
+        if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
+        {
+            // calls Init()
+            InitObject(scriptComponent.nativeObject);
+
+            scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+        }
+    }
+    else // external script object (C# or HypScript)
+    {
+        const Handle<ScriptAsset>& scriptAsset = scriptComponent.assetReference.Resolve();
+        AssertDebug(scriptAsset != nullptr);
+
+        if (!scriptAsset)
+        {
+            HYP_LOG(Script, Warning, "Entity has ScriptComponent with no ScriptAsset!");
+
+            return;
+        }
+
+        ScriptData* scriptData = scriptAsset->GetScriptData();
+        Assert(scriptData != nullptr);
+
+        switch (scriptData->language)
+        {
+#ifdef HYP_DOTNET
+        case SL_CSHARP:
+        {
+            if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
             {
-                ANSIString assemblyPath(scriptData->assemblyPath.Data(), scriptData->assemblyPath.Data() + ArraySize(scriptData->assemblyPath));
+                FreeResource<ScriptObjectResource>(sor);
+                sor = nullptr;
 
-                if (scriptData->hotReloadVersion > 0)
+                ResourceHandle resourceHandle(*scriptAsset->GetResource());
+
+                if (!scriptComponent.assembly)
                 {
-                    // @FIXME Implement FindLastIndex
-                    const SizeType extensionIndex = assemblyPath.FindFirstIndex(".dll");
+                    ANSIString assemblyPath(scriptData->assemblyPath.Data(), scriptData->assemblyPath.Data() + ArraySize(scriptData->assemblyPath));
 
-                    if (extensionIndex != ANSIString::notFound)
+                    if (scriptData->hotReloadVersion > 0)
                     {
-                        assemblyPath = assemblyPath.Substr(0, extensionIndex)
-                            + "." + ANSIString::ToString(scriptData->hotReloadVersion)
-                            + ".dll";
+                        // @FIXME Implement FindLastIndex
+                        const SizeType extensionIndex = assemblyPath.FindFirstIndex(".dll");
+
+                        if (extensionIndex != ANSIString::notFound)
+                        {
+                            assemblyPath = assemblyPath.Substr(0, extensionIndex)
+                                + "." + ANSIString::ToString(scriptData->hotReloadVersion)
+                                + ".dll";
+                        }
+                        else
+                        {
+                            assemblyPath = assemblyPath
+                                + "." + ANSIString::ToString(scriptData->hotReloadVersion)
+                                + ".dll";
+                        }
+                    }
+
+                    if (RC<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assemblyPath.Data()))
+                    {
+                        scriptComponent.assembly = std::move(assembly);
                     }
                     else
                     {
-                        assemblyPath = assemblyPath
-                            + "." + ANSIString::ToString(scriptData->hotReloadVersion)
-                            + ".dll";
+                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", assemblyPath.Data());
+
+                        return;
                     }
                 }
 
-                if (RC<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assemblyPath.Data()))
+                if (RC<dotnet::ManagedClass> classPtr = scriptComponent.assembly->FindClassByName(scriptData->className.Data()))
                 {
-                    scriptComponent.assembly = std::move(assembly);
+                    HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
+
+                    if (!classPtr->HasParentClass("Script"))
+                    {
+                        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", scriptData->className.Data(), scriptData->assemblyPath.Data());
+
+                        return;
+                    }
+
+                    dotnet::ManagedObject* object = classPtr->NewObject();
+                    Assert(object != nullptr);
+
+                    sor = AllocateResource<ScriptObjectResource>(object, classPtr);
+                    sor->IncRef();
+
+                    HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
+
+                    if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
+                    {
+                        if (dotnet::Method* beforeInitMethodPtr = classPtr->GetMethod("BeforeInit"))
+                        {
+                            HYP_NAMED_SCOPE("Call BeforeInit() on script component");
+                            HYP_LOG(Script, Debug, "Calling BeforeInit() on script component");
+
+                            object->InvokeMethod<void>(beforeInitMethodPtr, world, scene);
+
+                            scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
+                        }
+                    }
+
+                    if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
+                    {
+                        if (dotnet::Method* initMethodPtr = classPtr->GetMethod("Init"))
+                        {
+                            HYP_NAMED_SCOPE("Call Init() on script component");
+                            HYP_LOG(Script, Info, "Calling Init() on script component");
+
+                            object->InvokeMethod<void>(initMethodPtr, entity);
+
+                            scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+                        }
+                    }
                 }
+#ifdef HYP_DEBUG_MODE
                 else
                 {
-                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", assemblyPath.Data());
+                    HYP_FAIL("Failed to load .NET class {} from Assembly {}", scriptData->className.Data(), scriptComponent.assembly->GetGuid().ToUUID().ToString());
+                }
+#endif
+
+                if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
+                {
+                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
+
+                    if (scriptComponent.scriptObjectResource)
+                    {
+                        scriptComponent.scriptObjectResource->DecRef();
+
+                        FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
+                        scriptComponent.scriptObjectResource = nullptr;
+                    }
 
                     return;
                 }
             }
 
-            if (RC<dotnet::ManagedClass> classPtr = scriptComponent.assembly->FindClassByName(scriptData->className.Data()))
-            {
-                HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
+            break;
+        }
+#endif
+#ifdef HYP_SCRIPT
+        case SL_HYPSCRIPT:
+        {
+            HypScript& hs = HypScript::GetInstance();
 
-                if (!classPtr->HasParentClass("Script"))
+            if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
+            {
+                FreeResource<ScriptObjectResource>(sor);
+                sor = nullptr;
+
+                ResourceHandle resourceHandle(*scriptAsset->GetResource());
+
+                // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
+                FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path.Data());
+
+                if (!path.Exists() || !path.CanRead())
                 {
-                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Class '{}' from assembly '{}' does not inherit from 'Script'", scriptData->className.Data(), scriptData->assemblyPath.Data());
+                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptData->path.Data());
+                    return;
+                }
+
+                FileBufferedReaderSource source { path };
+                BufferedByteReader reader { &source };
+
+                if (!reader.IsOpen())
+                {
+                    HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptData->path.Data());
+                    return;
+                }
+
+                ByteBuffer byteBuffer = reader.ReadBytes();
+
+                SourceFile sourceFile(path, byteBuffer.Size());
+                sourceFile.ReadIntoBuffer(byteBuffer);
+
+                ErrorList errorList;
+
+                Script_Instance* instance = hs.Compile(sourceFile, errorList);
+
+                if (errorList.HasFatalErrors())
+                {
+                    SystemMessageBox(MessageBoxType::CRITICAL)
+                        .Title("Script Compilation Error")
+                        .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", scriptData->path.Data()))
+                        .Button("Close", []()
+                            {
+                            })
+                        .Show();
 
                     return;
                 }
 
-                dotnet::ManagedObject* object = classPtr->NewObject();
-                Assert(object != nullptr);
+                Assert(instance != nullptr);
 
-                sor = AllocateResource<ScriptObjectResource>(object, classPtr);
+                // run the script to initialize classes, functions, etc.
+                hs.Run(instance);
+
+                sor = AllocateResource<ScriptObjectResource>(instance, HypData());
                 sor->IncRef();
-
-                HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
 
                 if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
                 {
-                    if (dotnet::Method* beforeInitMethodPtr = classPtr->GetMethod("BeforeInit"))
-                    {
-                        HYP_NAMED_SCOPE("Call BeforeInit() on script component");
-                        HYP_LOG(Script, Debug, "Calling BeforeInit() on script component");
-
-                        object->InvokeMethod<void>(beforeInitMethodPtr, world, scene);
-
-                        scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
-                    }
+                    InvokeScriptMethod("BeforeInit", scriptComponent);
+                    scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
                 }
 
                 if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
                 {
-                    if (dotnet::Method* initMethodPtr = classPtr->GetMethod("Init"))
+                    InvokeScriptMethod("Init", scriptComponent);
+                    scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+                }
+
+                if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
+                {
+                    if (scriptComponent.scriptObjectResource)
                     {
-                        HYP_NAMED_SCOPE("Call Init() on script component");
-                        HYP_LOG(Script, Info, "Calling Init() on script component");
+                        scriptComponent.scriptObjectResource->DecRef();
 
-                        object->InvokeMethod<void>(initMethodPtr, entity);
-
-                        scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
+                        FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
+                        scriptComponent.scriptObjectResource = nullptr;
                     }
+
+                    return;
                 }
             }
-#ifdef HYP_DEBUG_MODE
-            else
-            {
-                HYP_FAIL("Failed to load .NET class {} from Assembly {}", scriptData->className.Data(), scriptComponent.assembly->GetGuid().ToUUID().ToString());
-            }
-#endif
 
-            if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
-            {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", scriptData->className.Data(), scriptData->assemblyPath.Data());
-
-                if (scriptComponent.scriptObjectResource)
-                {
-                    scriptComponent.scriptObjectResource->DecRef();
-
-                    FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
-                    scriptComponent.scriptObjectResource = nullptr;
-                }
-
-                return;
-            }
+            break;
         }
-
-        break;
-    }
 #endif
-#ifdef HYP_SCRIPT
-    case SL_HYPSCRIPT:
-    {
-        HypScript& hs = HypScript::GetInstance();
-
-        if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
-        {
-            FreeResource<ScriptObjectResource>(sor);
-            sor = nullptr;
-
-            ResourceHandle resourceHandle(*scriptAsset->GetResource());
-
-            // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
-            FilePath path = FilePath::Join(CoreApi_GetExecutablePath(), scriptData->path.Data());
-
-            if (!path.Exists() || !path.CanRead())
-            {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptData->path.Data());
-                return;
-            }
-
-            FileBufferedReaderSource source { path };
-            BufferedByteReader reader { &source };
-
-            if (!reader.IsOpen())
-            {
-                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptData->path.Data());
-                return;
-            }
-
-            ByteBuffer byteBuffer = reader.ReadBytes();
-
-            SourceFile sourceFile(path, byteBuffer.Size());
-            sourceFile.ReadIntoBuffer(byteBuffer);
-
-            ErrorList errorList;
-
-            Script_Instance* instance = hs.Compile(sourceFile, errorList);
-
-            if (errorList.HasFatalErrors())
-            {
-                SystemMessageBox(MessageBoxType::CRITICAL)
-                    .Title("Script Compilation Error")
-                    .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", scriptData->path.Data()))
-                    .Button("Close", []()
-                        {
-                        })
-                    .Show();
-
-                return;
-            }
-
-            Assert(instance != nullptr);
-
-            // run the script to initialize classes, functions, etc.
-            hs.Run(instance);
-
-            sor = AllocateResource<ScriptObjectResource>(instance, HypData());
-            sor->IncRef();
-
-            if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
-            {
-                InvokeScriptMethod("BeforeInit", scriptComponent);
-                scriptComponent.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;
-            }
-
-            if (!(scriptComponent.flags & ScriptComponentFlags::INIT_CALLED))
-            {
-                InvokeScriptMethod("Init", scriptComponent);
-                scriptComponent.flags |= ScriptComponentFlags::INIT_CALLED;
-            }
-
-            if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
-            {
-                if (scriptComponent.scriptObjectResource)
-                {
-                    scriptComponent.scriptObjectResource->DecRef();
-
-                    FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
-                    scriptComponent.scriptObjectResource = nullptr;
-                }
-
-                return;
-            }
+        default:
+            return;
         }
-
-        break;
-    }
-#endif
-    default:
-        return;
     }
 
     scriptComponent.flags |= ScriptComponentFlags::INITIALIZED;

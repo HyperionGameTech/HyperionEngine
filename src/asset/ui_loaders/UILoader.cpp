@@ -8,8 +8,10 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
+#ifdef HYP_DOTNET
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/ManagedClass.hpp>
+#endif
 
 #include <ui/UIStage.hpp>
 #include <ui/UIObject.hpp>
@@ -579,13 +581,12 @@ public:
 
                 if (attributeNameUpper.StartsWith("ON"))
                 {
-#if 1
                     // Find a ScriptableDelegate field with the name, bind C# function
                     HypClassMemberList memberList = hypClass->GetMembers(HypMemberType::TYPE_FIELD);
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&attributeNameUpper](const IHypMember& member)
                         {
-                            const HypClassAttributeValue& attr = member.GetAttribute("scriptabledelegate");
+                            const HypClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrScriptableDelegate);
 
                             if (!attr.GetBool())
                             {
@@ -609,10 +610,6 @@ public:
 
                         continue;
                     }
-                    //
-                    //                    AssertDebug(uiObject->GetScene() != nullptr && uiObject->GetScene()->IsReady());
-                    //                    AssertDebug(uiObject->GetEntity() != nullptr && uiObject->GetScene()->IsReady());
-                    //                    AssertDebug(scriptComponent->resource != nullptr);
 
                     // May be null if script not found because it needs to be compiled the first time...
                     // @FIXME
@@ -624,12 +621,11 @@ public:
                         continue;
                     }
 
-                    // Bind a C# member function to the delegate
                     if (memberIt != memberList.End())
                     {
                         const HypField& field = static_cast<const HypField&>(*memberIt);
 
-                        const UIntPtr fieldAddress = UIntPtr(uiObject.Get()) + UIntPtr(field.GetOffset());
+                        const UIntPtr fieldAddress = UIntPtr(static_cast<HypObjectBase*>(uiObject.Get())) + UIntPtr(field.GetOffset());
 
                         IScriptableDelegate* scriptableDelegate = reinterpret_cast<IScriptableDelegate*>(fieldAddress);
 
@@ -658,74 +654,6 @@ public:
 
                         continue;
                     }
-
-#else
-                    bool found = false;
-
-                    const auto getDelegateFunctionsIt = s_getDelegateFunctions.Find(attributeNameUpper);
-
-                    if (getDelegateFunctionsIt != s_getDelegateFunctions.End())
-                    {
-                        ScriptableDelegate<UIEventHandlerResult>* delegate = getDelegateFunctionsIt->second(uiObject.Get());
-
-                        delegate->Bind(UIScriptDelegate<> { uiObject.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
-
-                        found = true;
-                    }
-
-                    if (found)
-                    {
-                        continue;
-                    }
-
-                    const auto getDelegateFunctionsChildrenIt = s_getDelegateFunctionsChildren.Find(attributeNameUpper);
-
-                    if (getDelegateFunctionsChildrenIt != s_getDelegateFunctionsChildren.End())
-                    {
-                        ScriptableDelegate<UIEventHandlerResult, UIObject*>* delegate = getDelegateFunctionsChildrenIt->second(uiObject.Get());
-
-                        delegate->Bind(UIScriptDelegate<UIObject*> { uiObject.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
-
-                        found = true;
-                    }
-
-                    if (found)
-                    {
-                        continue;
-                    }
-
-                    const auto getDelegateFunctionsMouseIt = s_getDelegateFunctionsMouse.Find(attributeNameUpper);
-
-                    if (getDelegateFunctionsMouseIt != s_getDelegateFunctionsMouse.End())
-                    {
-                        ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* delegate = getDelegateFunctionsMouseIt->second(uiObject.Get());
-
-                        delegate->Bind(UIScriptDelegate<MouseEvent> { uiObject.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
-
-                        found = true;
-                    }
-
-                    if (found)
-                    {
-                        continue;
-                    }
-
-                    const auto getDelegateFunctionsKeyboardIt = s_getDelegateFunctionsKeyboard.Find(attributeNameUpper);
-
-                    if (getDelegateFunctionsKeyboardIt != s_getDelegateFunctionsKeyboard.End())
-                    {
-                        ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* delegate = getDelegateFunctionsKeyboardIt->second(uiObject.Get());
-
-                        delegate->Bind(UIScriptDelegate<KeyboardEvent> { uiObject.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
-
-                        found = true;
-                    }
-
-                    if (found)
-                    {
-                        continue;
-                    }
-#endif
 
                     HYP_LOG(Assets, Warning, "Unknown event attribute: {}", attribute.first);
                 }
@@ -856,6 +784,9 @@ public:
             const Pair<String, String>* assemblyIt = attributes.TryGet("assembly");
             const Pair<String, String>* classIt = attributes.TryGet("class");
 
+            bool valid = false;
+
+#ifdef HYP_DOTNET
             if (assemblyIt && classIt)
             {
                 ScriptComponent scriptComponent {};
@@ -877,6 +808,8 @@ public:
                     if (m_uiObjectStack.Any())
                     {
                         LastObject()->SetScriptComponent(std::move(scriptComponent));
+
+                        valid = true;
                     }
                 }
                 else
@@ -884,9 +817,72 @@ public:
                     HYP_LOG(Assets, Error, "Failed to register UI script {}", assetObjectResult.GetError().GetMessage());
                 }
             }
-            else
+#endif
+
+            const Pair<String, String>* pathIt = attributes.TryGet("path");
+
+#ifdef HYP_SCRIPT
+            // if PATH attr exists, it's HypScript
+
+            if (!valid && pathIt)
             {
-                HYP_LOG(Assets, Warning, "Script node missing assembly or class attribute");
+                ScriptComponent scriptComponent {};
+
+                ScriptData scriptData {};
+                scriptData.language = SL_HYPSCRIPT;
+                Memory::StrCpy(scriptData.path.Data(), pathIt->second.Data(), ArraySize(scriptData.path));
+                Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
+
+                // @TODO!!! Check EntityScripting.cpp for reference implementation
+            }
+#endif
+
+            // Native script object
+            if (!valid && classIt && !pathIt && !assemblyIt)
+            {
+                ScriptComponent scriptComponent {};
+
+                ScriptData scriptData {};
+                scriptData.language = SL_NATIVE;
+                Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
+
+                const String className = classIt->second;
+
+                if (const HypClass* hypClass = GetClass(className))
+                {
+                    HypData result;
+                    if (hypClass->CreateInstance(result))
+                    {
+                        if (HypObjectBase* scriptObject = result.Get<HypObjectBase*>())
+                        {
+                            scriptComponent.nativeObject = MakeStrongRef(scriptObject);
+
+                            if (m_uiObjectStack.Any())
+                            {
+                                LastObject()->SetScriptComponent(std::move(scriptComponent));
+
+                                valid = true;
+                            }
+                        }
+                        else
+                        {
+                            HYP_LOG(Assets, Warning, "Failed to create instance of native script class: {}", classIt->second);
+                        }
+                    }
+                    else
+                    {
+                        HYP_LOG(Assets, Warning, "Failed to create instance of native script class: {}", classIt->second);
+                    }
+                }
+                else
+                {
+                    HYP_LOG(Assets, Warning, "Unknown native script class: {}", classIt->second);
+                }
+            }
+
+            if (!valid)
+            {
+                HYP_LOG(Assets, Warning, "Invalid SCRIPT node in UI XML");
             }
         }
         else
