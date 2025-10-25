@@ -118,6 +118,7 @@ Handle<UIObject> FpsCounter::CreateUIObject_Impl(UIObject* spawnParent)
 void FpsCounter::Update_Impl(float delta)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
 
     m_deltaAccumGame += delta;
     m_numTicksGame++;
@@ -157,37 +158,37 @@ void FpsCounter::Update_Impl(float delta)
     if (m_countersTextElement.IsValid())
     {
         String countersText;
-        countersText += HYP_FORMAT("DrawCalls: {}", snapshot[g_statDrawCalls]);
+        countersText += HYP_FORMAT("DrawCalls: {}", snapshot[g_statDrawCalls].value);
 
-        if (snapshot[g_statInstancedDrawCalls] > 0)
+        if (snapshot[g_statInstancedDrawCalls].value > 0)
         {
-            countersText += HYP_FORMAT(", Instanced: {}", snapshot[g_statInstancedDrawCalls]);
+            countersText += HYP_FORMAT(", Instanced: {}", snapshot[g_statInstancedDrawCalls].value);
         }
 
-        if (snapshot[g_statDebugDraws] > 0)
+        if (snapshot[g_statDebugDraws].value > 0)
         {
-            countersText += HYP_FORMAT(", DebugDraw: {}", snapshot[g_statDebugDraws]);
+            countersText += HYP_FORMAT(", DebugDraw: {}", snapshot[g_statDebugDraws].value);
         }
 
-        countersText += HYP_FORMAT(", Tris: {}", snapshot[g_statTriangles]);
-        countersText += HYP_FORMAT(", RenderGroups: {}", snapshot[g_statRenderGroups]);
-        countersText += HYP_FORMAT(", Views: {}", snapshot[g_statViews]);
-        countersText += HYP_FORMAT(", Textures: {}", snapshot[g_statTextures]);
-        countersText += HYP_FORMAT(", Materials: {}", snapshot[g_statMaterials]);
+        countersText += HYP_FORMAT(", Tris: {}", snapshot[g_statTriangles].value);
+        countersText += HYP_FORMAT(", RenderGroups: {}", snapshot[g_statRenderGroups].value);
+        countersText += HYP_FORMAT(", Views: {}", snapshot[g_statViews].value);
+        countersText += HYP_FORMAT(", Textures: {}", snapshot[g_statTextures].value);
+        countersText += HYP_FORMAT(", Materials: {}", snapshot[g_statMaterials].value);
 
-        if (snapshot[g_statLights] > 0)
+        if (snapshot[g_statLights].value > 0)
         {
-            countersText += HYP_FORMAT(", Lights: {}", snapshot[g_statLights]);
+            countersText += HYP_FORMAT(", Lights: {}", snapshot[g_statLights].value);
         }
 
-        if (snapshot[g_statLightmapVolumes] > 0)
+        if (snapshot[g_statLightmapVolumes].value > 0)
         {
-            countersText += HYP_FORMAT(", LightmapVolumes: {}", snapshot[g_statLightmapVolumes]);
+            countersText += HYP_FORMAT(", LightmapVolumes: {}", snapshot[g_statLightmapVolumes].value);
         }
 
-        if (snapshot[g_statEnvProbes] > 0)
+        if (snapshot[g_statEnvProbes].value > 0)
         {
-            countersText += HYP_FORMAT(", EnvProbes: {}", snapshot[g_statEnvProbes]);
+            countersText += HYP_FORMAT(", EnvProbes: {}", snapshot[g_statEnvProbes].value);
         }
 
         m_countersTextElement->SetText(countersText);

@@ -105,6 +105,11 @@ public:
     void BeginGameStatsFrame();
     void PublishGameChannel();
 
+    /*! \brief Record a value set to be integrated into samples.
+     *  Call this to add values that will be included in the next Advance() calculation.
+      * Call only from Render thread! */
+    HYP_API void RecordValueSet(const struct EngineStatsValueSet& valueSet);
+
 private:
     double CalculateFps() const;
 
@@ -296,6 +301,46 @@ struct EngineStatsSnapshotValue
     double avg;
 };
 
+struct EngineStatsValueSet
+{
+    double values[EngineStatsMaxStats];
+
+    EngineStatsValueSet()
+        : values()
+    {
+    }
+
+    double& operator[](int statId)
+    {
+        return values[statId];
+    }
+
+    double operator[](int statId) const
+    {
+        return values[statId];
+    }
+
+    double& operator[](const EngineStatBase& stat)
+    {
+        return values[stat.id];
+    }
+
+    double operator[](const EngineStatBase& stat) const
+    {
+        return values[stat.id];
+    }
+
+    EngineStatsValueSet& operator+=(const EngineStatsValueSet& other)
+    {
+        for (uint32 i = 0; i < EngineStatsMaxStats; i++)
+        {
+            values[i] += other.values[i];
+        }
+
+        return *this;
+    }
+};
+
 struct EngineStatsSnapshot
 {
     EngineStatsSnapshotValue values[EngineStatsMaxStats];
@@ -314,63 +359,14 @@ struct EngineStatsSnapshot
         }
     }
 
-    EngineStatsSnapshotValue& operator[](int statId)
-    {
-        return values[statId];
-    }
-
     const EngineStatsSnapshotValue& operator[](int statId) const
     {
         return values[statId];
     }
 
-    double& operator[](const EngineStatBase& stat)
+    const EngineStatsSnapshotValue& operator[](const EngineStatBase& stat) const
     {
-        return values[stat.id].value;
-    }
-
-    double operator[](const EngineStatBase& stat) const
-    {
-        return values[stat.id].value;
-    }
-
-    HYP_FORCE_INLINE double GetValue(int statId, double defaultValue = 0.0) const
-    {
-        const EngineStatsSnapshotValue* snapshotValue = statId >= 0 && statId < int(EngineStatsMaxStats)
-            ? &values[statId]
-            : nullptr;
-
-        return snapshotValue ? snapshotValue->value : defaultValue;
-    }
-
-    HYP_FORCE_INLINE double GetAverage(int statId, double defaultValue = 0.0) const
-    {
-        const EngineStatsSnapshotValue* snapshotValue = statId >= 0 && statId < int(EngineStatsMaxStats)
-            ? &values[statId]
-            : nullptr;
-
-        return snapshotValue ? snapshotValue->avg : defaultValue;
-    }
-
-    EngineStatsSnapshot& Merge(const EngineStatsSnapshot& other)
-    {
-        for (uint32 i = 0; i < EngineStatsMaxStats; i++)
-        {
-            EngineStatsSnapshotValue& thisValue = values[i];
-            const EngineStatsSnapshotValue& otherValue = other.values[i];
-
-            if (otherValue.type != EST_INVALID)
-            {
-                thisValue.statId = otherValue.statId;
-                thisValue.type = otherValue.type;
-                thisValue.value += otherValue.value;
-                thisValue.min = MathUtil::Min(thisValue.min, otherValue.min);
-                thisValue.max = MathUtil::Max(thisValue.max, otherValue.max);
-                // @NOTE avg is not merged here as it would break, due to using weighted averages
-            }
-        }
-
-        return *this;
+        return values[stat.id];
     }
 };
 

@@ -587,10 +587,8 @@ static void RenderAll_Parallel(
                         renderQueue << DrawIndexed(drawCalls.numIndices[i], 1);
                     }
 
-                    // @TODO Add parllel engine stats!!!
-
-                    parallelRenderingState->snapshots[index][g_statTriangles] += drawCalls.numIndices[i] / 3;
-                    parallelRenderingState->snapshots[index][g_statDrawCalls]++;
+                    parallelRenderingState->statValues[index][g_statTriangles] += drawCalls.numIndices[i] / 3;
+                    parallelRenderingState->statValues[index][g_statDrawCalls]++;
 
                     prevMesh = drawCalls.meshes[i];
                 }
@@ -688,9 +686,9 @@ static void RenderAll_Parallel(
 
                     prevMesh = instancedDrawCalls.meshes[i];
 
-                    parallelRenderingState->snapshots[index][g_statTriangles] += instancedDrawCalls.numIndices[i] / 3;
-                    parallelRenderingState->snapshots[index][g_statDrawCalls]++;
-                    parallelRenderingState->snapshots[index][g_statInstancedDrawCalls]++;
+                    parallelRenderingState->statValues[index][g_statTriangles] += instancedDrawCalls.numIndices[i] / 3;
+                    parallelRenderingState->statValues[index][g_statDrawCalls]++;
+                    parallelRenderingState->statValues[index][g_statInstancedDrawCalls]++;
                 }
             });
 

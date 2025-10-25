@@ -78,7 +78,7 @@ struct ParallelRenderingState
     // per-thread RenderQueue
     FixedArray<LocalQueue*, MaxBatches> localQueues {};
 
-    FixedArray<EngineStatsSnapshot, MaxBatches> snapshots {};
+    FixedArray<EngineStatsValueSet, MaxBatches> statValues {};
 
     // Temporary storage for data that will be executed in parallel during the frame
     Array<DrawCallRange, FixedAllocator<MaxBatches>> drawCalls;

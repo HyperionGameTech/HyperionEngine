@@ -258,164 +258,6 @@ EngineStatGroup::~EngineStatGroup()
 
 #pragma endregion EngineStats tree
 
-#pragma region Multi-buffer channels
-
-struct StatAccumulator
-{
-    double last = 0.0;
-    double min  = DBL_MAX;
-    double max  = -DBL_MAX;
-    double sum  = 0.0;
-    uint32 count = 0;
-
-    void Reset()
-    {
-        last = 0.0;
-        min  = DBL_MAX;
-        max  = -DBL_MAX;
-        sum  = 0.0;
-        count = 0;
-    }
-
-    void Push(double v)
-    {
-        last = v;
-        min = MathUtil::Min(min, v);
-        max = MathUtil::Max(max, v);
-        sum += v;
-        count += 1;
-    }
-
-    double Avg() const
-    {
-        return count ? (sum / double(count)) : last;
-    }
-};
-
-struct StatBuffer
-{
-    StatAccumulator acc[EngineStatsMaxStats];
-
-    void ResetAll()
-    {
-        for (int i = 0; i < EngineStatsMaxStats; ++i)
-        {
-            acc[i].Reset();
-        }
-    }
-};
-
-// One writer per channel, one reader (render). No atomics; relies on external semaphore ordering.
-class EngineStatChannel
-{
-public:
-    EngineStatChannel()
-        : m_writeIdx(0),
-          m_publishedIdx(255)
-    {
-        for (int i = 0; i < NumMultiBuffers; ++i)
-        {
-            m_buffers[i].ResetAll();
-        }
-    }
-
-    void BeginFrame(uint8 idx)
-    {
-        m_writeIdx = idx;
-        m_buffers[m_writeIdx].ResetAll();
-    }
-
-    void Record(int statId, double value)
-    {
-        if (HYP_UNLIKELY(statId < 0 || statId >= EngineStatsMaxStats))
-        {
-            return;
-        }
-        m_buffers[m_writeIdx].acc[statId].Push(value);
-    }
-
-    void Publish()
-    {
-        m_publishedIdx = m_writeIdx;
-    }
-
-    const StatBuffer* AcquirePublished() const
-    {
-        return (m_publishedIdx < NumMultiBuffers) ? &m_buffers[m_publishedIdx] : nullptr;
-    }
-
-    const StatBuffer* CurrentWriterBuffer() const
-    {
-        return &m_buffers[m_writeIdx];
-    }
-
-private:
-    StatBuffer m_buffers[NumMultiBuffers];
-    uint8 m_writeIdx;       // writer thread only
-    uint8 m_publishedIdx;   // written by writer before signaling; read by reader after wait
-};
-
-struct MergeState
-{
-    double sum[EngineStatsMaxStats];
-    uint32 count[EngineStatsMaxStats];
-
-    void Reset()
-    {
-        for (int i = 0; i < EngineStatsMaxStats; ++i)
-        {
-            sum[i] = 0.0;
-            count[i] = 0;
-        }
-    }
-};
-
-static void MergeFromBuffer(EngineStatsSnapshot& dst, const StatBuffer* buffer, MergeState& state)
-{
-    if (!buffer)
-    {
-        return;
-    }
-
-    for (int i = 0; i < EngineStatsMaxStats; ++i)
-    {
-        const StatAccumulator& a = buffer->acc[i];
-
-        if (a.count == 0 && a.min == DBL_MAX && a.max == -DBL_MAX && a.last == 0.0)
-        {
-            continue;
-        }
-
-        EngineStatsSnapshotValue& s = dst[i];
-
-        s.value = a.count ? a.last : s.value;
-        s.min = MathUtil::Min(s.min, a.min);
-        s.max = MathUtil::Max(s.max, a.max);
-
-        state.sum[i]   += a.sum;
-        state.count[i] += a.count;
-    }
-}
-
-static void FinalizeMergedAverages(EngineStatsSnapshot& dst, const MergeState& state)
-{
-    for (int i = 0; i < EngineStatsMaxStats; ++i)
-    {
-        EngineStatsSnapshotValue& s = dst[i];
-
-        if (state.count[i] != 0u)
-        {
-            s.avg = state.sum[i] / double(state.count[i]);
-        }
-        else
-        {
-            s.avg = s.value;
-        }
-    }
-}
-
-#pragma endregion Multi-buffer channels
-
 #pragma region Recorder internals
 
 static TByteBuffer<Pool> CreateSamplesBuffer()
@@ -427,13 +269,9 @@ static TByteBuffer<Pool> CreateSamplesBuffer()
 
 struct EngineStatsRecorderImpl
 {
-    FixedArray<EngineStatsSnapshot, NumMultiBuffers> snapshots;
+    EngineStatsSnapshot snapshots[NumMultiBuffers];
 
-    // Single render-owned rolling window of samples
     TByteBuffer<Pool> statsBuffer;
-
-    EngineStatChannel gameChannel;
-    EngineStatChannel renderChannel;
 
     GameCounter counter;
     double deltaAccum;
@@ -441,8 +279,8 @@ struct EngineStatsRecorderImpl
     uint32 sampleIndex;
 
     EngineStatsRecorderImpl()
-        : statsBuffer(CreateSamplesBuffer()),
-          counter(),
+        : snapshots(),
+          statsBuffer(CreateSamplesBuffer()),
           deltaAccum(0.0),
           numSamples(0),
           sampleIndex(0)
@@ -462,11 +300,13 @@ EngineStatsRecorder::EngineStatsRecorder()
 
 EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot()
 {
+    Threads::AssertOnThread(g_renderThread | g_gameThread);
     return m_pImpl->snapshots[RenderApi::GetFrameIndex()];
 }
 
 const EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot() const
 {
+    Threads::AssertOnThread(g_renderThread | g_gameThread);
     return m_pImpl->snapshots[RenderApi::GetFrameIndex()];
 }
 
@@ -504,7 +344,9 @@ double EngineStatsRecorder::CalculateFps() const
 
     for (uint32 i = 0; i < count; i++)
     {
-        sum += GetSampleData(StatIdMsPerFrame, i) / 1000.0;
+        const uint32 idx = (m_pImpl->sampleIndex + EngineStatsNumSamples - 1 - i) % EngineStatsNumSamples;
+
+        sum += GetSampleData(StatIdMsPerFrame, idx) / 1000.0;
     }
 
     const double avgDelta = sum / double(count);
@@ -516,35 +358,54 @@ void EngineStatsRecorder::Prepare()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    m_pImpl->renderChannel.BeginFrame(uint8(RenderApi::GetFrameIndex()));
+    // EngineStatsSnapshot& snapshot = m_pImpl->snapshot;
 
-    EngineStatsSnapshot& snapshot = m_pImpl->snapshots[RenderApi::GetFrameIndex()];
-
-    for (int i = 0; i < EngineStatsMaxStats; i++)
-    {
-        snapshot[i] = {};
-        snapshot[i].statId = i;
-        snapshot[i].type = EST_MAX;
-        snapshot[i].value = 0.0;
-        snapshot[i].min = DBL_MAX;
-        snapshot[i].max = -DBL_MAX;
-        snapshot[i].avg = 0.0;
-    }
+    // for (int i = 0; i < EngineStatsMaxStats; i++)
+    // {
+    //     snapshot.values[i] = {};
+    //     snapshot.values[i].statId = i;
+    //     snapshot.values[i].type = EST_MAX;
+    //     snapshot.values[i].value = 0.0;
+    //     snapshot.values[i].min = DBL_MAX;
+    //     snapshot.values[i].max = -DBL_MAX;
+    //     snapshot.values[i].avg = 0.0;
+    // }
 }
 
 void EngineStatsRecorder::BeginGameStatsFrame()
 {
-    m_pImpl->gameChannel.BeginFrame(uint8(RenderApi::GetFrameIndex()));
+    // m_pImpl->gameChannel.BeginFrame(uint8(RenderApi::GetFrameIndex()));
 }
 
 void EngineStatsRecorder::PublishGameChannel()
 {
-    m_pImpl->gameChannel.Publish();
+    // m_pImpl->gameChannel.Publish();
+}
+
+void EngineStatsRecorder::RecordValueSet(const EngineStatsValueSet& valueSet)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+
+    const uint32 sampleIdx = m_pImpl->sampleIndex % EngineStatsNumSamples;
+
+    for (int statId = 0; statId < EngineStatsMaxStats; ++statId)
+    {
+        const double value = valueSet.values[statId];
+        
+        if (value != 0.0)
+        {
+            // Add to existing sample value (accumulate values from multiple sources)
+            const double currentValue = GetSampleData(statId, sampleIdx);
+            SetSampleData(statId, sampleIdx, currentValue + value);
+        }
+    }
 }
 
 void EngineStatsRecorder::Advance()
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     m_pImpl->counter.NextTick();
     m_pImpl->deltaAccum += m_pImpl->counter.delta;
@@ -557,78 +418,88 @@ void EngineStatsRecorder::Advance()
         m_pImpl->counter = GameCounter();
         m_pImpl->counter.delta = 1.0;
 
-        m_pImpl->numSamples  = 0;
+        m_pImpl->numSamples = 0;
         m_pImpl->sampleIndex = 0;
+    }
+
+    if (resetMinMax)
+    {
+        m_pImpl->deltaAccum = 0.0;
     }
 
     EngineStatsSnapshot& snapshot = m_pImpl->snapshots[RenderApi::GetFrameIndex()];
 
     const double msPerFrame = m_pImpl->counter.delta * 1000.0;
-    snapshot[StatIdMsPerFrame].value = msPerFrame;
-
-    if (resetMinMax)
-    {
-        snapshot[StatIdMsPerFrame].max = msPerFrame;
-        snapshot[StatIdMsPerFrame].min = msPerFrame;
-        m_pImpl->deltaAccum = 0.0;
-    }
-    else
-    {
-        snapshot[StatIdMsPerFrame].max = MathUtil::Max(snapshot[StatIdMsPerFrame].max, msPerFrame);
-        snapshot[StatIdMsPerFrame].min = MathUtil::Min(snapshot[StatIdMsPerFrame].min, msPerFrame);
-    }
-
-    // Seal render stats for this frame
-    m_pImpl->renderChannel.Publish();
-
-    // Merge game + render channel buffers into the snapshot
-    const StatBuffer* gameBuffer = m_pImpl->gameChannel.AcquirePublished();
-    const StatBuffer* renderBuffer = m_pImpl->renderChannel.CurrentWriterBuffer();
-
-    MergeState mergeState;
-    mergeState.Reset();
-
-    MergeFromBuffer(snapshot, gameBuffer, mergeState);
-    MergeFromBuffer(snapshot, renderBuffer, mergeState);
-    FinalizeMergedAverages(snapshot, mergeState);
 
     const uint32 sampleIdx = m_pImpl->sampleIndex % EngineStatsNumSamples;
+    const uint32 prevSampleIdx = (sampleIdx + EngineStatsNumSamples - 1) % EngineStatsNumSamples;
 
-    SetSampleData(StatIdMsPerFrame, sampleIdx, snapshot[StatIdMsPerFrame].value);
+    SetSampleData(StatIdMsPerFrame, sampleIdx, msPerFrame);
+    SetSampleData(StatIdFps, sampleIdx, m_pImpl->counter.delta > 0.0 ? (1.0 / (m_pImpl->counter.delta)) : 0.0);
 
-    for (int statId = 0; statId < EngineStatsMaxStats; ++statId)
+    EngineStats& engineStats = GetGlobalEngineStats();
+
+    for (int statId = NumReservedStatIds; statId < EngineStatsMaxStats; ++statId)
     {
-        if (statId == StatIdMsPerFrame)
+        EngineStatBase* stat = engineStats.linearStats[statId];
+
+        if (!stat)
         {
             continue;
         }
 
-        if (mergeState.count[statId] != 0u)
+        double value = stat->GetValue();
+        stat->Reset();
+
+        SetSampleData(statId, sampleIdx, value);
+    }
+
+    const uint32 actualNumSamples = MathUtil::Min(m_pImpl->numSamples + 1u, EngineStatsNumSamples);
+    
+    // Update snapshot values
+    for (int statId = 0; statId < EngineStatsMaxStats; ++statId)
+    {
+        EngineStatsSnapshotValue& statSnapshot = snapshot.values[statId];
+        
+        if (statId >= NumReservedStatIds)
         {
-            SetSampleData(statId, sampleIdx, snapshot[statId].value);
+            EngineStatBase* stat = engineStats.linearStats[statId];
+            if (!stat)
+            {
+                continue;
+            }
+            
+            statSnapshot.type = stat->type;
         }
         else
         {
-            if (m_pImpl->numSamples == 0)
-            {
-                SetSampleData(statId, sampleIdx, snapshot[statId].value);
-            }
-            else
-            {
-                const uint32 prev = (sampleIdx + EngineStatsNumSamples - 1) % EngineStatsNumSamples;
-                SetSampleData(statId, sampleIdx, GetSampleData(statId, prev));
-            }
+            statSnapshot.type = EST_COUNTER;
         }
+        
+        // Calculate min, max, avg from samples
+        double sum = 0.0;
+        
+        for (uint32 i = 0; i < actualNumSamples; ++i)
+        {
+            const uint32 idx = (sampleIdx + EngineStatsNumSamples - i) % EngineStatsNumSamples;
+
+            double sampleValue = GetSampleData(statId, idx);
+            sum += sampleValue;
+        }
+
+        const double currentValue = GetSampleData(statId, sampleIdx);
+
+        double minVal = m_pImpl->numSamples > 0 && !resetMinMax ? MathUtil::Min(GetSampleData(statId, prevSampleIdx), currentValue) : currentValue;
+        double maxVal = m_pImpl->numSamples > 0 && !resetMinMax ? MathUtil::Max(GetSampleData(statId, prevSampleIdx), currentValue) : currentValue;
+        
+        statSnapshot.value = currentValue;
+        statSnapshot.min = minVal;
+        statSnapshot.max = maxVal;
+        statSnapshot.avg = actualNumSamples > 0 ? (sum / double(actualNumSamples)) : 0.0;
     }
 
-    // FPS derived from the rolling ms/frame window
-    snapshot[StatIdFps].value = CalculateFps();
-    snapshot[StatIdFps].avg = snapshot[StatIdFps].value;
-    snapshot[StatIdFps].min = snapshot[StatIdFps].value;
-    snapshot[StatIdFps].max = snapshot[StatIdFps].value;
-
     m_pImpl->numSamples = MathUtil::Min<uint32>(m_pImpl->numSamples + 1u, EngineStatsNumSamples);
-    m_pImpl->sampleIndex++;
+    m_pImpl->sampleIndex = (m_pImpl->sampleIndex + 1) % EngineStatsNumSamples;
 }
 
 #pragma endregion EngineStatsRecorder
