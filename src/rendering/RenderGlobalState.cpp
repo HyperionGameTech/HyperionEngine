@@ -1043,8 +1043,9 @@ void BeginFrame_RenderThread()
     s_fullSemaphore.acquire();
 
     const uint32 slot = s_frameIndex[CONSUMER];
-
     FrameData& fd = s_frameData[slot];
+
+    g_engineStatsRecorder->Prepare();
 
     HYP_GFX_ASSERT(RenderCommands::Flush());
 

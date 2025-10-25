@@ -28,6 +28,32 @@ static constexpr int NumReservedStatIds = 5;
 
 static AtomicVar<int> s_nextStatId { NumReservedStatIds };
 
+static constexpr int GameThreadBufferIndex = 0;
+static constexpr int RenderThreadBufferIndex = 1;
+static constexpr int NumPerThreadBuffers = 2;
+
+static inline int GetBufferIndex()
+{
+    const ThreadId& currentThreadId = ThreadId::Current();
+
+    if (currentThreadId == g_gameThread)
+    {
+        return GameThreadBufferIndex;
+    }
+    else if (currentThreadId == g_renderThread)
+    {
+        return RenderThreadBufferIndex;
+    }
+    else
+    {
+        AssertDebug(false);
+
+        HYP_LOG(Engine, Warning, "EngineStatsRecorder accessed from unknown thread!");
+
+        return GameThreadBufferIndex;
+    }
+}
+
 Pool* g_statPool;
 EngineStatsRecorder* g_engineStatsRecorder;
 
@@ -159,14 +185,15 @@ static EngineStats& GetGlobalEngineStats()
 
 #pragma region EngineStatBase
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path)
-    : EngineStatBase(type, path, false)
+EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId)
+    : EngineStatBase(type, path, ownerThreadId, false)
 {
 }
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, bool skipPathParsing)
+EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId, bool skipPathParsing)
     : id(-1),
-      type(type)
+      type(type),
+      ownerThreadId(ownerThreadId.IsValid() ? ownerThreadId : g_renderThread)
 {
     if (skipPathParsing)
     {
@@ -280,11 +307,11 @@ EngineStatGroup::~EngineStatGroup()
 
 #pragma region EngineStatsRecorderImpl
 
-static FixedArray<TByteBuffer<Pool>, NumMultiBuffers> CreateStatsBuffers()
+static FixedArray<TByteBuffer<Pool>, NumPerThreadBuffers> CreateStatsBuffers()
 {
-    ValueStorage<FixedArray<TByteBuffer<Pool>, NumMultiBuffers>> buffersStorage;
+    ValueStorage<FixedArray<TByteBuffer<Pool>, NumPerThreadBuffers>> buffersStorage;
 
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    for (uint32 i = 0; i < NumPerThreadBuffers; i++)
     {
         auto* buffer = new (buffersStorage.GetPointer()->Data() + i) TByteBuffer<Pool>(EngineStats_GetPool());
         buffer->SetSize(sizeof(double) * EngineStatsMaxStats * EngineStatsNumSamples);
@@ -296,7 +323,7 @@ static FixedArray<TByteBuffer<Pool>, NumMultiBuffers> CreateStatsBuffers()
 struct EngineStatsRecorderImpl
 {
     FixedArray<EngineStatsSnapshot, NumMultiBuffers> snapshots;
-    FixedArray<TByteBuffer<Pool>, NumMultiBuffers> statsBuffers;
+    FixedArray<TByteBuffer<Pool>, NumPerThreadBuffers> statsBuffers;
     GameCounter counter;
     double deltaAccum;
     uint32 numSamples;
@@ -323,19 +350,15 @@ EngineStatsRecorder::EngineStatsRecorder()
 
 EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot()
 {
-    Threads::AssertOnThread(g_renderThread | g_gameThread);
-
     return m_pImpl->snapshots[RenderApi::GetFrameIndex()];
 }
 
 const EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot() const
 {
-    Threads::AssertOnThread(g_renderThread | g_gameThread);
-
     return m_pImpl->snapshots[RenderApi::GetFrameIndex()];
 }
 
-void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, uint32 frameIndex, double value)
+void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, uint32 bufferIdx, double value)
 {
     HYP_SCOPE;
 
@@ -344,13 +367,13 @@ void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, uint32 fra
         return;
     }
 
-    TByteBuffer<Pool>& statsBuffer = m_pImpl->statsBuffers[frameIndex];
+    TByteBuffer<Pool>& statsBuffer = m_pImpl->statsBuffers[bufferIdx];
     double* statSamples = reinterpret_cast<double*>(statsBuffer.Data()) + statId * EngineStatsNumSamples;
 
     statSamples[sampleIdx] = value;
 }
 
-double EngineStatsRecorder::GetSampleData(int statId, uint32 sampleIdx, uint32 frameIndex) const
+double EngineStatsRecorder::GetSampleData(int statId, uint32 sampleIdx, uint32 bufferIdx) const
 {
     HYP_SCOPE;
 
@@ -359,7 +382,7 @@ double EngineStatsRecorder::GetSampleData(int statId, uint32 sampleIdx, uint32 f
         return 0.0;
     }
 
-    const TByteBuffer<Pool>& statsBuffer = m_pImpl->statsBuffers[frameIndex];
+    const TByteBuffer<Pool>& statsBuffer = m_pImpl->statsBuffers[bufferIdx];
     const double* statSamples = reinterpret_cast<const double*>(statsBuffer.Data()) + statId * EngineStatsNumSamples;
 
     return statSamples[sampleIdx];
@@ -374,9 +397,9 @@ void EngineStatsRecorder::RecordStat(int statId, EngineStatType type, double val
         return;
     }
 
-    const uint32 frameIndex = RenderApi::GetFrameIndex();
+    const uint32 bufferIdx = GetBufferIndex();
 
-    EngineStatsSnapshot& snapshot = m_pImpl->snapshots[frameIndex];
+    EngineStatsSnapshot& snapshot = m_pImpl->snapshots[RenderApi::GetFrameIndex()];
 
     EngineStatsSnapshotValue& snapshotValue = snapshot[statId];
     snapshotValue = {};
@@ -388,10 +411,10 @@ void EngineStatsRecorder::RecordStat(int statId, EngineStatType type, double val
     snapshotValue.value = value;
 
     const uint32 sampleIdx = m_pImpl->sampleIndex % EngineStatsNumSamples;
-    SetSampleData(statId, sampleIdx, frameIndex, value);
+    SetSampleData(statId, sampleIdx, bufferIdx, value);
 }
 
-double EngineStatsRecorder::CalculateFps(uint32 frameIndex) const
+double EngineStatsRecorder::CalculateFps(uint32 bufferIdx) const
 {
     HYP_SCOPE;
 
@@ -404,21 +427,40 @@ double EngineStatsRecorder::CalculateFps(uint32 frameIndex) const
 
     double sum = 0.0;
 
-    for (uint32 i = 0; i < count; ++i)
+    for (uint32 i = 0; i < count; i++)
     {
-        sum += GetSampleData(StatIdMsPerFrame, i, frameIndex) / 1000.0;
+        sum += GetSampleData(StatIdMsPerFrame, i, bufferIdx) / 1000.0;
     }
 
     const double avgDelta = sum / double(count);
     return avgDelta > 0.0 ? 1.0 / avgDelta : INFINITY;
 }
 
-void EngineStatsRecorder::Advance()
+void EngineStatsRecorder::Prepare()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    const uint32 frameIndex = RenderApi::GetFrameIndex();
+    // set it all to zero
+    EngineStatsSnapshot& snapshot = m_pImpl->snapshots[RenderApi::GetFrameIndex()];
+
+    for (int i = 0; i < EngineStatsMaxStats; i++)
+    {
+        snapshot[i] = {};
+        snapshot[i].statId = i;
+        snapshot[i].type = EST_MAX;
+        snapshot[i].value = 0.0;
+        snapshot[i].min = DBL_MAX;
+        snapshot[i].max = -DBL_MAX;
+        snapshot[i].avg = 0.0;
+    }
+}
+
+void EngineStatsRecorder::Advance()
+{
+    HYP_SCOPE;
+
+    const uint32 bufferIdx = GetBufferIndex();
 
     m_pImpl->counter.NextTick();
     m_pImpl->deltaAccum += m_pImpl->counter.delta;
@@ -454,13 +496,13 @@ void EngineStatsRecorder::Advance()
         snapshot[StatIdMsPerFrame].min = MathUtil::Min(snapshot[StatIdMsPerFrame].min, msPerFrame);
     }
 
-    snapshot[StatIdFps].value = CalculateFps(frameIndex);
+    snapshot[StatIdFps].value = CalculateFps(bufferIdx);
 
     for (int i = 0; i < NumReservedStatIds; ++i)
     {
         if (snapshot[i].type != EST_INVALID)
         {
-            SetSampleData(i, m_pImpl->sampleIndex % EngineStatsNumSamples, frameIndex, snapshot[i].value);
+            SetSampleData(i, m_pImpl->sampleIndex % EngineStatsNumSamples, bufferIdx, snapshot[i].value);
         }
     }
 
@@ -486,7 +528,7 @@ void EngineStatsRecorder::Advance()
 
             for (uint32 sampleIdx = 0; sampleIdx < count; sampleIdx++)
             {
-                sum += GetSampleData(statId, sampleIdx, frameIndex);
+                sum += GetSampleData(statId, sampleIdx, bufferIdx);
             }
 
             snapshotValue.avg = sum / double(count);
