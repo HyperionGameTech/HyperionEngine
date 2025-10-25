@@ -85,11 +85,14 @@ public:
     void Prepare();
     void Advance();
 
-private:
-    double CalculateFps(uint32 bufferIdx) const;
+    void BeginGameStatsFrame();
+    void PublishGameChannel();
 
-    void SetSampleData(int statId, uint32 sampleIdx, uint32 bufferIdx, double value);
-    double GetSampleData(int statId, uint32 sampleIdx, uint32 bufferIdx) const;
+private:
+    double CalculateFps() const;
+
+    void SetSampleData(int statId, uint32 sampleIdx, double value);
+    double GetSampleData(int statId, uint32 sampleIdx) const;
 
     void RecordStat(int statId, EngineStatType type, double value);
 
