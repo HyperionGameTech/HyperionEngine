@@ -9,6 +9,8 @@
 #include <core/memory/Pimpl.hpp>
 #include <core/memory/pool/Pool.hpp>
 
+#include <core/threading/ThreadId.hpp>
+
 #include <core/profiling/PerformanceClock.hpp>
 
 #include <core/containers/FixedArray.hpp>
@@ -18,10 +20,6 @@
 #include <cfloat>
 
 namespace hyperion {
-
-namespace RenderApi {
-extern uint32 GetFrameIndex();
-} // namespace RenderApi
 
 class EngineStatsRecorder;
 struct EngineStatsSnapshot;
@@ -54,8 +52,8 @@ enum EngineStatType : int
 class HYP_API EngineStatBase
 {
 protected:
-    EngineStatBase(EngineStatType type, UTF8StringView path);
-    EngineStatBase(EngineStatType type, UTF8StringView path, bool skipPathParsing);
+    EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId);
+    EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId, bool skipPathParsing);
 
 public:
     HYP_DEF_POOL_NEW_DELETE(EngineStats_GetPool());
@@ -65,6 +63,7 @@ public:
     int id;
     Name name;
     EngineStatType type;
+    ThreadId ownerThreadId;
 
     virtual double GetValue() const = 0;
 };
@@ -83,13 +82,14 @@ public:
     void Suppress();
     void Unsuppress();
 
+    void Prepare();
     void Advance();
 
 private:
-    double CalculateFps(uint32 frameIndex) const;
+    double CalculateFps(uint32 bufferIdx) const;
 
-    void SetSampleData(int statId, uint32 sampleIdx, uint32 frameIndex, double value);
-    double GetSampleData(int statId, uint32 sampleIdx, uint32 frameIndex) const;
+    void SetSampleData(int statId, uint32 sampleIdx, uint32 bufferIdx, double value);
+    double GetSampleData(int statId, uint32 sampleIdx, uint32 bufferIdx) const;
 
     void RecordStat(int statId, EngineStatType type, double value);
 
@@ -100,7 +100,7 @@ class HYP_API EngineStatGroup : public EngineStatBase
 {
 public:
     explicit EngineStatGroup(UTF8StringView path)
-        : EngineStatBase(EST_GROUP, path)
+        : EngineStatBase(EST_GROUP, path, ThreadId::Invalid())
     {
     }
 
@@ -110,7 +110,7 @@ private:
 
     // Internal constructor for creating intermediate groups during path parsing
     EngineStatGroup(UTF8StringView path, bool skipPathParsing)
-        : EngineStatBase(EST_GROUP, path, skipPathParsing)
+        : EngineStatBase(EST_GROUP, path, ThreadId::Invalid(), skipPathParsing)
     {
     }
 
@@ -130,9 +130,8 @@ template <class T>
 class HYP_API EngineStatCounter : public EngineStatBase
 {
 public:
-    explicit EngineStatCounter(UTF8StringView path, T initialValue = 0)
-        : EngineStatBase(EST_COUNTER, path),
-          m_value(initialValue)
+    explicit EngineStatCounter(UTF8StringView path, const ThreadId& ownerThreadId = ThreadId::Invalid())
+        : EngineStatBase(EST_COUNTER, path, ownerThreadId)
     {
     }
 
@@ -202,8 +201,8 @@ private:
 class HYP_API EngineStatTimer : public EngineStatBase
 {
 public:
-    explicit EngineStatTimer(UTF8StringView path)
-        : EngineStatBase(EST_TIMER, path),
+    explicit EngineStatTimer(UTF8StringView path, const ThreadId& ownerThreadId = ThreadId::Invalid())
+        : EngineStatBase(EST_TIMER, path, ownerThreadId),
           m_clock()
     {
     }
