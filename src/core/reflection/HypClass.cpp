@@ -453,7 +453,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 }
 
 using FormattedStringMap = HashMap<TypeId, String, DynamicNodeAllocator>;
-thread_local FormattedStringMap* g_formattedStringMap;
+thread_local FormattedStringMap* s_formattedStringMap;
 
 static void InitFormattedStringMap(void* mem)
 {
@@ -507,7 +507,7 @@ const char* LookupTypeName(TypeId typeId)
         return *hypClass->GetName();
     }
 
-    if (!g_formattedStringMap)
+    if (!s_formattedStringMap)
     {
         ThreadBase* currentThreadObject = Threads::CurrentThreadObject();
 
@@ -516,20 +516,20 @@ const char* LookupTypeName(TypeId typeId)
             return "<could not lookup type name>";
         }
 
-        g_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
-        InitFormattedStringMap(g_formattedStringMap);
+        s_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
+        InitFormattedStringMap(s_formattedStringMap);
 
         currentThreadObject->AtExit([]()
             {
-                g_formattedStringMap->~FormattedStringMap();
+                s_formattedStringMap->~FormattedStringMap();
             });
     }
 
-    auto it = g_formattedStringMap->Find(typeId);
+    auto it = s_formattedStringMap->Find(typeId);
 
-    if (it == g_formattedStringMap->End())
+    if (it == s_formattedStringMap->End())
     {
-        it = g_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId({})", typeId.Value())).first;
+        it = s_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId({})", typeId.Value())).first;
     }
 
     return *it->second;

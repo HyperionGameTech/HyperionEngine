@@ -9,10 +9,7 @@
 #include <core/math/MathUtil.hpp>
 #include <core/profiling/ProfileScope.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-
 #include <rendering/RenderGlobalState.hpp>
-#include <rendering/util/SafeDeleter.hpp>
 
 #include <cfloat>
 
@@ -22,15 +19,10 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 
 static constexpr SizeType StatPoolBlockSize = 1024 * 1024;
 static constexpr const char* RootStatGroupName = "Root";
-
-static bool s_isInitializing = false;
-
 static constexpr int NumReservedStatIds = 5;
 
-static AtomicVar<int> s_nextStatId { NumReservedStatIds };
-
-Pool* g_statPool;
-EngineStatsRecorder* g_engineStatsRecorder;
+Pool* g_statPool = nullptr;
+EngineStatsRecorder* g_engineStatsRecorder = nullptr;
 
 HYP_API Pool* EngineStats_GetPool()
 {
@@ -50,7 +42,24 @@ HYP_API Pool* EngineStats_GetPool()
     return g_statPool;
 }
 
-#pragma region EngineStats tree
+static inline EngineStatThreadType GetThreadType(const ThreadId& threadId)
+{
+    if (threadId == g_renderThread)
+    {
+        return ESTT_RENDER;
+    }
+
+    if (threadId == g_gameThread)
+    {
+        return ESTT_GAME;
+    }
+
+    AssertDebug(false, "Invalid thread to get ThreadType : {}", threadId.GetName());
+
+    return ESTT_INVALID;
+}
+
+#pragma region EngineStats tree / registration
 
 class EngineStats final
 {
@@ -61,10 +70,15 @@ public:
     EngineStatBase* GetStat(UTF8StringView path) const;
 
     EngineStatGroup* root;
+    FixedArray<EngineStatBase*, EngineStatsMaxStats> linearStats;
 };
 
+static bool s_isInitializing = false;
+static int s_nextStatId = NumReservedStatIds;
+
 EngineStats::EngineStats()
-    : root(nullptr)
+    : root(nullptr),
+      linearStats { nullptr }
 {
     s_isInitializing = true;
     root = new EngineStatGroup(UTF8StringView(RootStatGroupName), true);
@@ -76,10 +90,110 @@ EngineStats::~EngineStats()
     delete root;
 }
 
+static EngineStats& GetGlobalEngineStats()
+{
+    static EngineStats s_globalEngineStats;
+    return s_globalEngineStats;
+}
+
+EngineStatBase::EngineStatBase(EngineStatType inType, UTF8StringView path, EngineStatThreadType threadType)
+    : id(-1),
+      name(),
+      type(inType),
+      threadType(threadType)
+{
+    // Parse path and register into the tree; also assign id.
+    EngineStats& engineStats = GetGlobalEngineStats();
+
+    EngineStatGroup* currentGroup = engineStats.root;
+    Assert(currentGroup != nullptr);
+
+    UTF8StringView remainingPath = path;
+    UTF8StringView statName = path;
+
+    while (remainingPath.Size() > 0)
+    {
+        UTF8StringView curr = remainingPath;
+        SizeType characterIndex = 0;
+        bool separatorFound = false;
+
+        for (utf::u32char ch : remainingPath)
+        {
+            if (ch == utf::u32char('/'))
+            {
+                curr = remainingPath.Substr(0, characterIndex);
+                remainingPath = remainingPath.Substr(characterIndex + 1, SizeType(-1));
+                separatorFound = true;
+                break;
+            }
+
+            ++characterIndex;
+        }
+
+        if (!separatorFound)
+        {
+            statName = curr;
+            break;
+        }
+
+        EngineStatBase* foundStat = nullptr;
+
+        for (EngineStatBase* stat : currentGroup->stats)
+        {
+            if (stat->name == WeakName(curr))
+            {
+                foundStat = stat;
+                break;
+            }
+        }
+
+        if (!foundStat)
+        {
+            EngineStatGroup* newGroup = new EngineStatGroup(curr, true);
+            currentGroup->stats.PushBack(newGroup);
+            currentGroup = newGroup;
+        }
+        else if (foundStat->type == EST_GROUP)
+        {
+            currentGroup = static_cast<EngineStatGroup*>(foundStat);
+        }
+        else
+        {
+            HYP_LOG(Engine, Warning, "Stat group '{}' not found; found non-group stat instead!", curr);
+            break;
+        }
+    }
+
+    name = CreateNameFromDynamicString(statName);
+
+    if (type != EST_GROUP)
+    {
+        id = s_nextStatId++;
+        engineStats.linearStats[id] = this;
+    }
+
+    currentGroup->stats.PushBack(this);
+}
+
+EngineStatBase::EngineStatBase(EngineStatType inType, UTF8StringView path, EngineStatThreadType threadType, bool /*skipPathParsing*/)
+    : id(-1),
+      name(CreateNameFromDynamicString(path)),
+      type(inType),
+      threadType(threadType)
+{
+    // Only used by EngineStatGroup internal constructor
+}
+
+EngineStatGroup::~EngineStatGroup()
+{
+    for (EngineStatBase* stat : stats)
+    {
+        delete stat;
+    }
+}
+
 EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
 {
-    HYP_SCOPE;
-
     static constexpr utf::u32char PathSeparator = utf::u32char('/');
 
     EngineStatBase* currentStat = root;
@@ -145,275 +259,88 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
     return nullptr;
 }
 
-static EngineStats& GetGlobalEngineStats()
+#pragma endregion EngineStats tree / registration
+
+#pragma region Buffering and sampling
+
+class StatWriteBuffer
 {
-    static EngineStats s_globalEngineStats;
-    return s_globalEngineStats;
-}
-
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId)
-    : EngineStatBase(type, path, ownerThreadId, false)
-{
-}
-
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId, bool skipPathParsing)
-    : id(-1),
-      type(type),
-      ownerThreadId(ownerThreadId.IsValid() ? ownerThreadId : g_renderThread)
-{
-    if (skipPathParsing)
+public:
+    StatWriteBuffer()
     {
-        name = CreateNameFromDynamicString(path);
-        return;
-    }
-
-    if (s_isInitializing)
-    {
-        HYP_LOG(Engine, Warning, "Attempted to create stat '{}' during EngineStats initialization - deferring", path);
-        name = CreateNameFromDynamicString(path);
-        return;
-    }
-
-    EngineStats& engineStats = GetGlobalEngineStats();
-
-    EngineStatGroup* currentGroup = static_cast<EngineStatGroup*>(engineStats.root);
-    Assert(currentGroup != nullptr);
-
-    UTF8StringView remainingPath = path;
-    UTF8StringView statName = path;
-
-    while (remainingPath.Size() > 0)
-    {
-        UTF8StringView curr = remainingPath;
-        SizeType characterIndex = 0;
-        bool separatorFound = false;
-
-        for (utf::u32char ch : remainingPath)
+        for (int i = 0; i < NumMultiBuffers; ++i)
         {
-            if (ch == utf::u32char('/'))
-            {
-                curr = remainingPath.Substr(0, characterIndex);
-                remainingPath = remainingPath.Substr(characterIndex + 1, SizeType(-1));
-                separatorFound = true;
-                break;
-            }
-
-            ++characterIndex;
-        }
-
-        if (!separatorFound)
-        {
-            statName = curr;
-            break;
-        }
-
-        EngineStatBase* foundStat = nullptr;
-
-        for (EngineStatBase* stat : currentGroup->stats)
-        {
-            if (stat->name == WeakName(curr))
-            {
-                foundStat = stat;
-                break;
-            }
-        }
-
-        if (!foundStat)
-        {
-            EngineStatGroup* newGroup = new EngineStatGroup(curr, true);
-            currentGroup->stats.PushBack(newGroup);
-            currentGroup = newGroup;
-        }
-        else if (foundStat->type == EST_GROUP)
-        {
-            currentGroup = static_cast<EngineStatGroup*>(foundStat);
-        }
-        else
-        {
-            HYP_LOG(Engine, Warning, "Stat group '{}' not found; found non-group stat instead!", curr);
-            break;
+            m_values[i] = 0.0;
+            m_written[i] = false;
         }
     }
 
-    name = CreateNameFromDynamicString(statName);
-
-    if (type != EST_GROUP)
+    HYP_FORCE_INLINE void Write(uint8 idx, double v)
     {
-        id = s_nextStatId.Increment(1, MemoryOrder::RELAXED);
+        m_values[idx] = v;
+        m_written[idx] = true;
     }
 
-    currentGroup->stats.PushBack(this);
-}
-
-EngineStatGroup::~EngineStatGroup()
-{
-    for (EngineStatBase* stat : stats)
+    HYP_FORCE_INLINE bool TryRead(uint8 idx, double& out) const
     {
-        delete stat;
+        if (!m_written[idx])
+            return false;
+        out = m_values[idx];
+        return true;
     }
-}
 
-#pragma endregion EngineStats tree
-
-#pragma region Multi-buffer channels
-
-struct StatAccumulator
-{
-    double last = 0.0;
-    double min  = DBL_MAX;
-    double max  = -DBL_MAX;
-    double sum  = 0.0;
-    uint32 count = 0;
-
-    void Reset()
+    HYP_FORCE_INLINE void ClearWritten(uint8 idx)
     {
-        last = 0.0;
-        min  = DBL_MAX;
-        max  = -DBL_MAX;
-        sum  = 0.0;
-        count = 0;
+        m_written[idx] = false;
+    }
+
+private:
+    double m_values[NumMultiBuffers];
+    bool m_written[NumMultiBuffers];
+};
+
+static constexpr int SamplesPerStat = EngineStatsNumSamples;
+
+struct RenderSamples
+{
+    RenderSamples()
+        : count(0),
+          writeIndex(0)
+    {
+        for (int i = 0; i < SamplesPerStat; ++i)
+        {
+            data[i] = 0.0;
+        }
     }
 
     void Push(double v)
     {
-        last = v;
-        min = MathUtil::Min(min, v);
-        max = MathUtil::Max(max, v);
-        sum += v;
-        count += 1;
+        data[writeIndex] = v;
+        writeIndex = (writeIndex + 1) % SamplesPerStat;
+        if (count < (uint32)SamplesPerStat)
+        {
+            ++count;
+        }
     }
 
     double Avg() const
     {
-        return count ? (sum / double(count)) : last;
+        if (count == 0)
+            return 0.0;
+        double sum = 0.0;
+        for (uint32 i = 0; i < count; ++i)
+            sum += data[i];
+        return sum / double(count);
     }
+
+    double data[SamplesPerStat];
+    uint32 count;
+    uint32 writeIndex;
 };
 
-struct StatBuffer
-{
-    StatAccumulator acc[EngineStatsMaxStats];
+#pragma endregion Buffering and sampling
 
-    void ResetAll()
-    {
-        for (int i = 0; i < EngineStatsMaxStats; ++i)
-        {
-            acc[i].Reset();
-        }
-    }
-};
-
-// One writer per channel, one reader (render). No atomics; relies on external semaphore ordering.
-class EngineStatChannel
-{
-public:
-    EngineStatChannel()
-        : m_writeIdx(0),
-          m_publishedIdx(255)
-    {
-        for (int i = 0; i < NumMultiBuffers; ++i)
-        {
-            m_buffers[i].ResetAll();
-        }
-    }
-
-    void BeginFrame(uint8 idx)
-    {
-        m_writeIdx = idx;
-        m_buffers[m_writeIdx].ResetAll();
-    }
-
-    void Record(int statId, double value)
-    {
-        if (HYP_UNLIKELY(statId < 0 || statId >= EngineStatsMaxStats))
-        {
-            return;
-        }
-        m_buffers[m_writeIdx].acc[statId].Push(value);
-    }
-
-    void Publish()
-    {
-        m_publishedIdx = m_writeIdx;
-    }
-
-    const StatBuffer* AcquirePublished() const
-    {
-        return (m_publishedIdx < NumMultiBuffers) ? &m_buffers[m_publishedIdx] : nullptr;
-    }
-
-    const StatBuffer* CurrentWriterBuffer() const
-    {
-        return &m_buffers[m_writeIdx];
-    }
-
-private:
-    StatBuffer m_buffers[NumMultiBuffers];
-    uint8 m_writeIdx;       // writer thread only
-    uint8 m_publishedIdx;   // written by writer before signaling; read by reader after wait
-};
-
-struct MergeState
-{
-    double sum[EngineStatsMaxStats];
-    uint32 count[EngineStatsMaxStats];
-
-    void Reset()
-    {
-        for (int i = 0; i < EngineStatsMaxStats; ++i)
-        {
-            sum[i] = 0.0;
-            count[i] = 0;
-        }
-    }
-};
-
-static void MergeFromBuffer(EngineStatsSnapshot& dst, const StatBuffer* buffer, MergeState& state)
-{
-    if (!buffer)
-    {
-        return;
-    }
-
-    for (int i = 0; i < EngineStatsMaxStats; ++i)
-    {
-        const StatAccumulator& a = buffer->acc[i];
-
-        if (a.count == 0 && a.min == DBL_MAX && a.max == -DBL_MAX && a.last == 0.0)
-        {
-            continue;
-        }
-
-        EngineStatsSnapshotValue& s = dst[i];
-
-        s.value = a.count ? a.last : s.value;
-        s.min   = MathUtil::Min(s.min, a.min);
-        s.max   = MathUtil::Max(s.max, a.max);
-
-        state.sum[i]   += a.sum;
-        state.count[i] += a.count;
-    }
-}
-
-static void FinalizeMergedAverages(EngineStatsSnapshot& dst, const MergeState& state)
-{
-    for (int i = 0; i < EngineStatsMaxStats; ++i)
-    {
-        EngineStatsSnapshotValue& s = dst[i];
-
-        if (state.count[i] != 0u)
-        {
-            s.avg = state.sum[i] / double(state.count[i]);
-        }
-        else
-        {
-            s.avg = s.value;
-        }
-    }
-}
-
-#pragma endregion Multi-buffer channels
-
-#pragma region Recorder internals
+#pragma region EngineStatsRecorderImpl
 
 static TByteBuffer<Pool> CreateSamplesBuffer()
 {
@@ -424,31 +351,43 @@ static TByteBuffer<Pool> CreateSamplesBuffer()
 
 struct EngineStatsRecorderImpl
 {
-    FixedArray<EngineStatsSnapshot, NumMultiBuffers> snapshots;
+    //// Render thread only stuff
+    EngineStatsSnapshot snapshot;
+    EngineStatsSnapshot prevSnapshot;
 
-    // Single render-owned rolling window of samples
-    TByteBuffer<Pool> statsBuffer;
+    // Rolling samples window
+    RenderSamples samples[EngineStatsMaxStats];
 
-    EngineStatChannel gameChannel;
-    EngineStatChannel renderChannel;
+    // Clock for ms/frame
+    GameCounter msCounter;
+    double deltaAccum = 0.0;
+    ////
 
-    GameCounter counter;
-    double deltaAccum;
-    uint32 numSamples;
-    uint32 sampleIndex;
+    // Per-stat write buffers (filled during Publish passes)
+    // One thread may access elems at a given time.
+    // E.g game thread writes to stat X while render thread only from stat Y.
+    /// Each thread must call Publish() to make its writes visible to the recorder.
+    StatWriteBuffer writeBuffers[EngineStatsMaxStats];
+
+    uint32 numSamples = 0;
+    uint32 sampleIndex = 0;
+
+    bool suppressed = false;
 
     EngineStatsRecorderImpl()
-        : statsBuffer(CreateSamplesBuffer()),
-          counter(),
-          deltaAccum(0.0),
-          numSamples(0),
-          sampleIndex(0)
     {
-        counter.delta = 1.0;
+        for (int i = 0; i < EngineStatsMaxStats; ++i)
+        {
+            snapshot[i] = {};
+            snapshot[i].statId = i;
+            snapshot[i].type = EST_INVALID;
+            snapshot[i].min = DBL_MAX;
+            snapshot[i].max = -DBL_MAX;
+        }
     }
 };
 
-#pragma endregion Recorder internals
+#pragma endregion EngineStatsRecorderImpl
 
 #pragma region EngineStatsRecorder
 
@@ -459,176 +398,204 @@ EngineStatsRecorder::EngineStatsRecorder()
 
 EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot()
 {
-    return m_pImpl->snapshots[RenderApi::GetFrameIndex()];
+    return m_pImpl->snapshot;
 }
 
 const EngineStatsSnapshot& EngineStatsRecorder::GetCurrentSnapshot() const
 {
-    return m_pImpl->snapshots[RenderApi::GetFrameIndex()];
+    return m_pImpl->snapshot;
 }
 
-void EngineStatsRecorder::SetSampleData(int statId, uint32 sampleIdx, double value)
+void EngineStatsRecorder::Suppress()
 {
-    if (statId < 0 || statId >= int(EngineStatsMaxStats))
+    m_pImpl->suppressed = true;
+}
+
+void EngineStatsRecorder::Unsuppress()
+{
+    m_pImpl->suppressed = false;
+}
+
+void EngineStatsRecorder::CalculateFps(uint32 sampleIdx, struct EngineStatsSnapshotValue& out) const
+{
+    const auto& msWin = m_pImpl->samples[StatIdMsPerFrame];
+
+    if (msWin.count == 0)
     {
+        out.value = 0.0;
+        out.min = 0.0;
+        out.max = 0.0;
+        out.avg = 0.0;
         return;
     }
 
-    double* base = reinterpret_cast<double*>(m_pImpl->statsBuffer.Data());
-    base[statId * EngineStatsNumSamples + sampleIdx] = value;
-}
+    const double lastMs = msWin.data[sampleIdx];
+    out.value = (lastMs > 0.0) ? (1000.0 / lastMs) : 0.0;
 
-double EngineStatsRecorder::GetSampleData(int statId, uint32 sampleIdx) const
-{
-    if (statId < 0 || statId >= int(EngineStatsMaxStats))
+    double sumMs = 0.0;
+    double minMs = DBL_MAX;  // fastest frame in window
+    double maxMs = -DBL_MAX; // slowest frame in window
+    uint32 used = 0;
+
+    for (uint32 i = 0; i < msWin.count; ++i)
     {
-        return 0.0;
+        const uint32 idx = (sampleIdx + i) % EngineStatsNumSamples;
+        const double ms = msWin.data[idx];
+
+        if (ms <= 0.0)
+        {
+            continue;
+        }
+
+        sumMs += ms;
+        minMs = MathUtil::Min(minMs, ms);
+        maxMs = MathUtil::Max(maxMs, ms);
+        ++used;
     }
 
-    const double* base = reinterpret_cast<const double*>(m_pImpl->statsBuffer.Data());
-    return base[statId * EngineStatsNumSamples + sampleIdx];
-}
-
-double EngineStatsRecorder::CalculateFps() const
-{
-    if (m_pImpl->numSamples < EngineStatsMinSamples)
+    if (used == 0)
     {
-        return INFINITY;
+        out.min = 0.0;
+        out.max = 0.0;
+        out.avg = 0.0;
+        return;
     }
 
-    const uint32 count = MathUtil::Min(m_pImpl->numSamples, EngineStatsNumSamples);
-    double sum = 0.0;
+    const double avgMs = sumMs / double(used);
 
-    for (uint32 i = 0; i < count; i++)
-    {
-        sum += GetSampleData(StatIdMsPerFrame, i) / 1000.0;
-    }
-
-    const double avgDelta = sum / double(count);
-    return avgDelta > 0.0 ? 1.0 / avgDelta : INFINITY;
+    out.avg = (avgMs > 0.0) ? (1000.0 / avgMs) : 0.0; // frames / totalSeconds
+    out.min = (maxMs > 0.0) ? (1000.0 / maxMs) : 0.0; // lowest fps = 1 / largest ms
+    out.max = (minMs > 0.0) ? (1000.0 / minMs) : 0.0; // highest fps = 1 / smallest ms
 }
 
+// Zero-cost at frame start; resets snapshot and carries prev for fallback
 void EngineStatsRecorder::Prepare()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    m_pImpl->renderChannel.BeginFrame(uint8(RenderApi::GetFrameIndex()));
+    m_pImpl->prevSnapshot = m_pImpl->snapshot;
 
-    EngineStatsSnapshot& snapshot = m_pImpl->snapshots[RenderApi::GetFrameIndex()];
+    EngineStats& engineStats = GetGlobalEngineStats();
 
-    for (int i = 0; i < EngineStatsMaxStats; i++)
+    for (int i = 0; i < EngineStatsMaxStats; ++i)
     {
-        snapshot[i] = {};
-        snapshot[i].statId = i;
-        snapshot[i].type = EST_MAX;
-        snapshot[i].value = 0.0;
-        snapshot[i].min = DBL_MAX;
-        snapshot[i].max = -DBL_MAX;
-        snapshot[i].avg = 0.0;
+        EngineStatBase* stat = engineStats.linearStats[i];
+
+        auto& s = m_pImpl->snapshot[i];
+        s = {};
+        s.statId = i;
+        s.type = stat ? stat->type : EST_INVALID;
+        s.value = 0.0;
+        s.min = DBL_MAX;
+        s.max = -DBL_MAX;
+        s.avg = 0.0;
     }
 }
 
 void EngineStatsRecorder::BeginGameStatsFrame()
 {
-    m_pImpl->gameChannel.BeginFrame(uint8(RenderApi::GetFrameIndex()));
 }
 
 void EngineStatsRecorder::PublishGameChannel()
 {
-    m_pImpl->gameChannel.Publish();
+    const EngineStatThreadType threadType = GetThreadType(ThreadId::Current());
+    const uint8 frameIdx = uint8(RenderApi::GetFrameIndex());
+
+    for (EngineStatBase* stat : GetGlobalEngineStats().linearStats)
+    {
+        if (!stat || stat->id < 0 || stat->id >= EngineStatsMaxStats)
+            continue;
+        if (stat->threadType != threadType)
+            continue;
+
+        const double v = stat->GetValue();
+        m_pImpl->writeBuffers[stat->id].Write(frameIdx, v);
+
+        stat->Reset();
+    }
 }
 
 void EngineStatsRecorder::Advance()
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
-    m_pImpl->counter.NextTick();
-    m_pImpl->deltaAccum += m_pImpl->counter.delta;
+    m_pImpl->msCounter.NextTick();
+    m_pImpl->deltaAccum += m_pImpl->msCounter.delta;
 
-    const bool resetFrameStats = (m_pImpl->counter.delta >= 1.0);
-    const bool resetMinMax     = resetFrameStats || (m_pImpl->deltaAccum >= 1.0);
+    const bool resetFrameStats = m_pImpl->msCounter.delta >= 1.0;
+    const bool resetMinMax = resetFrameStats || m_pImpl->deltaAccum >= 1.0;
 
+    // reset frame stats if we have a signficant delta between the last frame,
+    // indicating we probably were paused (e.g in a breakpoint)
     if (resetFrameStats)
     {
-        m_pImpl->counter = GameCounter();
-        m_pImpl->counter.delta = 1.0;
+        m_pImpl->msCounter = GameCounter();
+        m_pImpl->msCounter.delta = 1.0;
 
-        m_pImpl->numSamples  = 0;
+        m_pImpl->numSamples = 0;
         m_pImpl->sampleIndex = 0;
     }
 
-    EngineStatsSnapshot& snapshot = m_pImpl->snapshots[RenderApi::GetFrameIndex()];
+    const uint8 frameIdx = uint8(RenderApi::GetFrameIndex());
 
-    const double msPerFrame = m_pImpl->counter.delta * 1000.0;
-    snapshot[StatIdMsPerFrame].value = msPerFrame;
+    // Update ms/frame stat
+    const double msPerFrame = m_pImpl->msCounter.delta * 1000.0;
+    m_pImpl->writeBuffers[StatIdMsPerFrame].Write(frameIdx, msPerFrame);
 
-    if (resetMinMax)
+    // Publish render-owned stats into buffers for this frame
+    for (EngineStatBase* stat : GetGlobalEngineStats().linearStats)
     {
-        snapshot[StatIdMsPerFrame].max = msPerFrame;
-        snapshot[StatIdMsPerFrame].min = msPerFrame;
-        m_pImpl->deltaAccum = 0.0;
-    }
-    else
-    {
-        snapshot[StatIdMsPerFrame].max = MathUtil::Max(snapshot[StatIdMsPerFrame].max, msPerFrame);
-        snapshot[StatIdMsPerFrame].min = MathUtil::Min(snapshot[StatIdMsPerFrame].min, msPerFrame);
-    }
-
-    // Seal render stats for this frame
-    m_pImpl->renderChannel.Publish();
-
-    // Merge game + render channel buffers into the snapshot
-    const StatBuffer* gameBuffer = m_pImpl->gameChannel.AcquirePublished();
-    const StatBuffer* renderBuffer = m_pImpl->renderChannel.CurrentWriterBuffer();
-
-    MergeState mergeState;
-    mergeState.Reset();
-
-    MergeFromBuffer(snapshot, gameBuffer, mergeState);
-    MergeFromBuffer(snapshot, renderBuffer, mergeState);
-    FinalizeMergedAverages(snapshot, mergeState);
-
-    const uint32 sampleIdx = m_pImpl->sampleIndex % EngineStatsNumSamples;
-
-    SetSampleData(StatIdMsPerFrame, sampleIdx, snapshot[StatIdMsPerFrame].value);
-
-    for (int statId = 0; statId < EngineStatsMaxStats; ++statId)
-    {
-        if (statId == StatIdMsPerFrame)
-        {
+        if (!stat || stat->id < 0 || stat->id >= EngineStatsMaxStats)
             continue;
-        }
+        if (stat->threadType != ESTT_RENDER)
+            continue;
 
-        if (mergeState.count[statId] != 0u)
-        {
-            SetSampleData(statId, sampleIdx, snapshot[statId].value);
-        }
-        else
-        {
-            if (m_pImpl->numSamples == 0)
-            {
-                SetSampleData(statId, sampleIdx, snapshot[statId].value);
-            }
-            else
-            {
-                const uint32 prev = (sampleIdx + EngineStatsNumSamples - 1) % EngineStatsNumSamples;
-                SetSampleData(statId, sampleIdx, GetSampleData(statId, prev));
-            }
-        }
+        const double v = stat->GetValue();
+        m_pImpl->writeBuffers[stat->id].Write(frameIdx, v);
+        stat->Reset();
     }
 
-    // FPS derived from the rolling ms/frame window
-    snapshot[StatIdFps].value = CalculateFps();
-    snapshot[StatIdFps].avg = snapshot[StatIdFps].value;
-    snapshot[StatIdFps].min = snapshot[StatIdFps].value;
-    snapshot[StatIdFps].max = snapshot[StatIdFps].value;
+    // Populate snapshot from buffers (fallback to previous snapshot if not written)
+    for (int statId = 0; statId < EngineStatsMaxStats; statId++)
+    {
+        double v = 0.0;
 
-    m_pImpl->numSamples = MathUtil::Min<uint32>(m_pImpl->numSamples + 1u, EngineStatsNumSamples);
-    m_pImpl->sampleIndex++;
+        auto& dst = m_pImpl->snapshot[statId];
+
+        if (!m_pImpl->writeBuffers[statId].TryRead(frameIdx, v))
+        {
+            v = m_pImpl->prevSnapshot[statId].value;
+        }
+
+        m_pImpl->writeBuffers[statId].ClearWritten(frameIdx);
+
+        dst.value = v;
+
+        dst.min = MathUtil::Min(dst.min, v);
+        dst.max = MathUtil::Max(dst.max, v);
+
+        m_pImpl->samples[statId].Push(v);
+        dst.avg = m_pImpl->samples[statId].Avg();
+    }
+
+    const uint32 fpsSampleIdx = m_pImpl->sampleIndex;
+
+    m_pImpl->numSamples = MathUtil::Min<uint32>(m_pImpl->numSamples + 1, EngineStatsNumSamples);
+    m_pImpl->sampleIndex = (m_pImpl->sampleIndex + 1) % EngineStatsNumSamples;
+
+    // FPS derived from ms-per-frame rolling window
+    {
+        auto& f = m_pImpl->snapshot[StatIdFps];
+
+        CalculateFps(fpsSampleIdx, f);
+    }
 }
 
 #pragma endregion EngineStatsRecorder
+
+#pragma region Init / Shutdown
 
 HYP_API void EngineStats_Initialize()
 {
@@ -654,5 +621,7 @@ HYP_API void EngineStats_Shutdown()
         g_statPool = nullptr;
     }
 }
+
+#pragma endregion Init / Shutdown
 
 } // namespace hyperion

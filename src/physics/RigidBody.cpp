@@ -33,6 +33,8 @@ RigidBody::~RigidBody()
 
 void RigidBody::Init()
 {
+    HypObjectBase::Init();
+
     SetReady(true);
 }
 

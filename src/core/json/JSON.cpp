@@ -61,7 +61,7 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
 static String GetIndentationString(uint32 depth)
 {
     // Preallocate indentation strings
-    static const FixedArray<String, 10> PreallocatedIndentationStrings {
+    static const FixedArray<String, 10> s_strings {
         "",
         "  ",
         "    ",
@@ -74,14 +74,14 @@ static String GetIndentationString(uint32 depth)
         "                  "
     };
 
-    if (depth < PreallocatedIndentationStrings.Size())
+    if (depth < s_strings.Size())
     {
-        return PreallocatedIndentationStrings[depth];
+        return s_strings[depth];
     }
 
-    String indentation = PreallocatedIndentationStrings[PreallocatedIndentationStrings.Size() - 1];
+    String indentation = s_strings[s_strings.Size() - 1];
 
-    for (uint32 i = PreallocatedIndentationStrings.Size(); i <= depth; i++)
+    for (uint32 i = s_strings.Size(); i <= depth; i++)
     {
         indentation += "  ";
     }
