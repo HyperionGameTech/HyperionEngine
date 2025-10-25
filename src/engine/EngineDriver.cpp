@@ -59,6 +59,8 @@
 #include <scripting/ScriptingService.hpp>
 
 #include <engine/EngineGlobals.hpp>
+#include <engine/EngineStats.hpp>
+
 #include <HyperionEngine.hpp>
 
 #define HYP_LOG_FRAMES_PER_SECOND
@@ -292,21 +294,7 @@ HYP_API void EngineDriver::Init()
         currentWorld = m_defaultWorld;
     }
 
-    for (Handle<EngineStats>& engineStats : m_engineStatsBuffered)
-    {
-        engineStats = CreateObject<EngineStats>();
-        InitObject(engineStats);
-    }
-
     SetReady(true);
-}
-
-const Handle<EngineStats>& EngineDriver::GetEngineStats() const
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_gameThread | g_renderThread);
-
-    return m_engineStatsBuffered[RenderApi::GetFrameIndex()];
 }
 
 const Handle<World>& EngineDriver::GetCurrentWorld() const
@@ -408,7 +396,6 @@ void EngineDriver::FinalizeStop()
         SetGlobalNetRequestThread(nullptr);
     }
 
-    SafeDelete(std::move(m_engineStatsBuffered));
     SafeDelete(std::move(m_currentWorldBuffered));
 
     m_debugDrawer.Reset();

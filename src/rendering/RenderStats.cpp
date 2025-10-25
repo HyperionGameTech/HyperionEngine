@@ -22,12 +22,12 @@ namespace hyperion {
 
 SuppressRenderStatsScope::SuppressRenderStatsScope()
 {
-    RenderApi::SuppressRenderStats();
+    // RenderApi::SuppressRenderStats();
 }
 
 SuppressRenderStatsScope::~SuppressRenderStatsScope()
 {
-    RenderApi::UnsuppressRenderStats();
+    // RenderApi::UnsuppressRenderStats();
 }
 
 #pragma endregion SuppressRenderStatsScope
@@ -36,7 +36,6 @@ SuppressRenderStatsScope::~SuppressRenderStatsScope()
 
 void RenderStatsCalculator::AddCounts(const RenderStatsCounts& counts)
 {
-#if defined(HYP_ENABLE_RENDER_STATS) && defined(HYP_ENABLE_RENDER_STATS_COUNTERS)
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
@@ -49,7 +48,6 @@ void RenderStatsCalculator::AddCounts(const RenderStatsCounts& counts)
     {
         m_counts.counts[i] += counts.counts[i];
     }
-#endif
 }
 
 void RenderStatsCalculator::AddSample(double delta)

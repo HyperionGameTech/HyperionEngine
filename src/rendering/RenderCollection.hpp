@@ -27,6 +27,8 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
+#include <engine/EngineStats.hpp>
+
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -76,7 +78,7 @@ struct ParallelRenderingState
     // per-thread RenderQueue
     FixedArray<LocalQueue*, MaxBatches> localQueues {};
 
-    FixedArray<RenderStatsCounts, MaxBatches> renderStatsCounts {};
+    FixedArray<EngineStatsValueSet, MaxBatches> statValues {};
 
     // Temporary storage for data that will be executed in parallel during the frame
     Array<DrawCallRange, FixedAllocator<MaxBatches>> drawCalls;

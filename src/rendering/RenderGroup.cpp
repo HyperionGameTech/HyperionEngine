@@ -39,6 +39,8 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
+
 #include <core/Constants.hpp>
 
 #ifdef HYP_VULKAN
@@ -46,6 +48,11 @@
 #endif
 
 namespace hyperion {
+
+extern EngineStatCounter<uint32> g_statDrawCalls;
+extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
+extern EngineStatCounter<uint32> g_statTriangles;
+extern EngineStatCounter<uint32> g_statRenderGroups;
 
 #pragma region RenderGroup
 
@@ -286,8 +293,6 @@ static void RenderAll(
     const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
     const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);
 
-    RenderStatsCounts counts;
-
     frame->renderQueue << BindGraphicsPipeline(pipeline);
 
     if (globalDescriptorSetIndex != ~0u)
@@ -370,8 +375,8 @@ static void RenderAll(
 
         prevMesh = drawCalls.meshes[i];
 
-        counts[ERS_DRAW_CALLS]++;
-        counts[ERS_TRIANGLES] += drawCalls.numIndices[i] / 3;
+        g_statDrawCalls++;
+        g_statTriangles += drawCalls.numIndices[i] / 3;
     }
 
     const InstancedDrawCallStorage& instancedDrawCalls = drawCallCollection.instancedDrawCalls;
@@ -437,12 +442,10 @@ static void RenderAll(
 
         prevMesh = instancedDrawCalls.meshes[i];
 
-        counts[ERS_DRAW_CALLS]++;
-        counts[ERS_INSTANCED_DRAW_CALLS]++;
-        counts[ERS_TRIANGLES] += instancedDrawCalls.numIndices[i] / 3;
+        g_statDrawCalls++;
+        g_statInstancedDrawCalls++;
+        g_statTriangles += instancedDrawCalls.numIndices[i] / 3;
     }
-
-    RenderApi::AddRenderStats(counts);
 }
 
 template <bool UseIndirectRendering>
@@ -584,8 +587,8 @@ static void RenderAll_Parallel(
                         renderQueue << DrawIndexed(drawCalls.numIndices[i], 1);
                     }
 
-                    parallelRenderingState->renderStatsCounts[index][ERS_TRIANGLES] += drawCalls.numIndices[i] / 3;
-                    parallelRenderingState->renderStatsCounts[index][ERS_DRAW_CALLS]++;
+                    parallelRenderingState->statValues[index][g_statTriangles] += drawCalls.numIndices[i] / 3;
+                    parallelRenderingState->statValues[index][g_statDrawCalls]++;
 
                     prevMesh = drawCalls.meshes[i];
                 }
@@ -683,9 +686,9 @@ static void RenderAll_Parallel(
 
                     prevMesh = instancedDrawCalls.meshes[i];
 
-                    parallelRenderingState->renderStatsCounts[index][ERS_TRIANGLES] += instancedDrawCalls.numIndices[i] / 3;
-                    parallelRenderingState->renderStatsCounts[index][ERS_DRAW_CALLS]++;
-                    parallelRenderingState->renderStatsCounts[index][ERS_INSTANCED_DRAW_CALLS]++;
+                    parallelRenderingState->statValues[index][g_statTriangles] += instancedDrawCalls.numIndices[i] / 3;
+                    parallelRenderingState->statValues[index][g_statDrawCalls]++;
+                    parallelRenderingState->statValues[index][g_statInstancedDrawCalls]++;
                 }
             });
 
@@ -789,12 +792,7 @@ void RenderGroup::PerformRendering(
         }
     }
 
-#if defined(HYP_ENABLE_RENDER_STATS) && defined(HYP_ENABLE_RENDER_STATS_COUNTERS)
-    RenderStatsCounts counts;
-    counts[ERS_RENDER_GROUPS] = 1;
-
-    RenderApi::AddRenderStats(counts);
-#endif
+    g_statRenderGroups++;
 }
 
 #pragma endregion RenderGroup

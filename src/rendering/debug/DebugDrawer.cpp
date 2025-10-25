@@ -33,8 +33,11 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineGlobals.hpp>
+#include <engine/EngineStats.hpp>
 
 namespace hyperion {
+
+extern EngineStatCounter<uint32> g_statDebugDraws;
 
 static RenderableAttributeSet GetRenderableAttributes()
 {
@@ -416,14 +419,14 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const C
 
 static FixedArray<ByteBuffer, NumMultiBuffers> CreateDebugDrawBuffers()
 {
-    ValueStorage<FixedArray<ByteBuffer, NumMultiBuffers>> buffers;
+    ValueStorage<FixedArray<ByteBuffer, NumMultiBuffers>> buffersStorage;
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {
-        new (buffers.GetPointer()->Data() + i) ByteBuffer;
+        new (buffersStorage.GetPointer()->Data() + i) ByteBuffer;
     }
 
-    return std::move(buffers).Get();
+    return std::move(buffersStorage).Get();
 }
 
 DebugDrawer::DebugDrawer()
@@ -732,10 +735,6 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     SizeType totalDrawCalls = 0;
     SizeType totalInstancedDraws = 0;
 
-#ifdef HYP_ENABLE_RENDER_STATS
-    RenderStatsCounts counts {};
-#endif
-
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
         auto& shaderData = partitionedShaderData[shapeIdx];
@@ -754,9 +753,8 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         {
             if (numToDraw != 0)
             {
-#ifdef HYP_ENABLE_RENDER_STATS
-                counts[ERS_DEBUG_DRAWS] += numToDraw;
-#endif
+                g_statDebugDraws += uint32(numToDraw);
+
                 IDebugDrawShape* shape = currShapes[shapeIdx];
                 AssertDebug(shape != nullptr);
 
@@ -835,10 +833,6 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
         commitCurrentDraws();
     }
-
-#ifdef HYP_ENABLE_RENDER_STATS
-    RenderApi::AddRenderStats(counts);
-#endif
 
     ClearCommands(idx);
 }

@@ -63,10 +63,6 @@ public:
     HYP_API EngineDriver();
     HYP_API ~EngineDriver() override;
 
-    /*! \brief Callable on the render thread or game thread */
-    HYP_METHOD()
-    const Handle<EngineStats>& GetEngineStats() const;
-
     HYP_METHOD()
     const Handle<World>& GetCurrentWorld() const;
 
@@ -121,8 +117,6 @@ private:
     HYP_API void Init() override;
 
     void PreFrameUpdate(FrameBase* frame);
-
-    FixedArray<Handle<EngineStats>, NumMultiBuffers> m_engineStatsBuffered;
 
     UniquePtr<RenderThread> m_renderThread;
 

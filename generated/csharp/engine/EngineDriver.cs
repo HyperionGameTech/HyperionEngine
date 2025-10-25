@@ -6,13 +6,6 @@ namespace Hyperion
 {
     public static class EngineDriverExtensions
     {
-        public static EngineStats GetEngineStats(this EngineDriver obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(4415995467062353160)).InvokeNative(obj))
-            {
-                return resultData.ReadObject<EngineStats>();
-            }
-        }
         public static World GetCurrentWorld(this EngineDriver obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(5568727108358601852)).InvokeNative(obj))

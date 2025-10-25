@@ -41,6 +41,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
 
 namespace hyperion {
 
@@ -794,11 +795,11 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         }
 
         // Add render stats counts to the engine's render stats
-        for (RenderStatsCounts& counts : state->renderStatsCounts)
+        for (EngineStatsValueSet& valueSet : state->statValues)
         {
-            RenderApi::AddRenderStats(counts);
+            g_engineStatsRecorder->RecordValueSet(valueSet);
 
-            counts = RenderStatsCounts(); // Reset counts after adding for next use
+            valueSet = {}; // Reset counts after adding for next use
         }
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
