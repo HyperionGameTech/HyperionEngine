@@ -813,7 +813,7 @@ Span<View* const> World::GetViews() const
 
 RenderStats* World::GetRenderStats() const
 {
-    return RenderApi::GetRenderStats();
+    return nullptr; // deprecated
 }
 
 } // namespace hyperion

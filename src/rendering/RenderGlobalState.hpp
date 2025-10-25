@@ -107,11 +107,6 @@ WorldShaderData* GetWorldBufferData();
 
 Viewport& GetViewport(View* view);
 
-RenderStats* GetRenderStats();
-void AddRenderStats(const RenderStatsCounts& counts);
-void SuppressRenderStats();
-void UnsuppressRenderStats();
-
 } // namespace RenderApi
 
 HYP_ENUM()

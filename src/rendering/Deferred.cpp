@@ -59,6 +59,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+#include <engine/EngineStats.hpp>
 
 namespace hyperion {
 
@@ -101,6 +102,24 @@ static const FixedArray<Name, GTN_MAX> s_gbufferTextureNames {
     NAME("GBufferWSNormalsTexture"),
     NAME("GBufferTranslucentTexture")
 };
+
+static EngineStatTimer s_deferredPassTimer("Rendering/Deferred/DeferredPass");
+static EngineStatTimer s_deferredDirectLightingTimer("Rendering/Deferred/DirectLighting");
+static EngineStatTimer s_deferredIndirectLightingTimer("Rendering/Deferred/IndirectLighting");
+
+// Global stat counter instances
+EngineStatCounter<uint32> g_statDrawCalls("Rendering/DrawCalls");
+EngineStatCounter<uint32> g_statInstancedDrawCalls("Rendering/InstancedDrawCalls");
+EngineStatCounter<uint32> g_statTriangles("Rendering/Triangles");
+EngineStatCounter<uint32> g_statRenderGroups("Rendering/RenderGroups");
+EngineStatCounter<uint32> g_statViews("Rendering/Views");
+EngineStatCounter<uint32> g_statTextures("Rendering/Textures");
+EngineStatCounter<uint32> g_statMaterials("Rendering/Materials");
+EngineStatCounter<uint32> g_statLights("Rendering/Lights");
+EngineStatCounter<uint32> g_statLightmapVolumes("Rendering/LightmapVolumes");
+EngineStatCounter<uint32> g_statEnvProbes("Rendering/EnvProbes");
+EngineStatCounter<uint32> g_statEnvGrids("Rendering/EnvGrids");
+EngineStatCounter<uint32> g_statDebugDraws("Rendering/DebugDraws");
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();
 
@@ -319,6 +338,7 @@ void DeferredPass::Resize_Internal(Vec2u newSize)
 void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
+    ENGINE_STAT_SCOPE(&s_deferredPassTimer);
 
     AssertDebug(rs.IsValid());
     AssertDebug(rs.HasView());
@@ -327,6 +347,11 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
+
+    ENGINE_STAT_SCOPE(
+        m_mode == DPM_DIRECT_LIGHTING
+            ? &s_deferredDirectLightingTimer
+            : &s_deferredIndirectLightingTimer);
 
     switch (m_mode)
     {
@@ -491,8 +516,8 @@ void TonemapPass::CreatePipeline()
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
     const MaterialAttributes materialAttributes {
@@ -564,8 +589,8 @@ void LightmapPass::CreatePipeline()
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
     const MaterialAttributes materialAttributes {
@@ -645,8 +670,8 @@ void EnvGridPass::CreatePipeline()
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
     const MaterialAttributes materialAttributes {
@@ -853,8 +878,8 @@ void ReflectionsPass::CreatePipeline()
 
     const MeshAttributes meshAttributes {
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-            | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
     };
 
     const MaterialAttributes materialAttributes {
@@ -1849,17 +1874,17 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             }
         }
 
-#ifdef HYP_ENABLE_RENDER_STATS
         RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
         // RenderProxyList already be in read state (see above)
 
-        counts[ERS_VIEWS]++;
-        counts[ERS_TEXTURES] += rpl.GetTextures().NumCurrent();
-        counts[ERS_MATERIALS] += rpl.GetMaterials().NumCurrent();
-        counts[ERS_LIGHTMAP_VOLUMES] += rpl.GetLightmapVolumes().NumCurrent();
-        counts[ERS_LIGHTS] += rpl.GetLights().NumCurrent();
-        counts[ERS_ENV_GRIDS] += rpl.GetEnvGrids().NumCurrent();
-        counts[ERS_ENV_PROBES] += rpl.GetEnvProbes().NumCurrent();
+        g_statViews++;
+        g_statTextures += rpl.GetTextures().NumCurrent();
+        g_statMaterials += rpl.GetMaterials().NumCurrent();
+        g_statLightmapVolumes += rpl.GetLightmapVolumes().NumCurrent();
+        g_statLights += rpl.GetLights().NumCurrent();
+        g_statEnvGrids += rpl.GetEnvGrids().NumCurrent();
+        g_statEnvProbes += rpl.GetEnvProbes().NumCurrent();
+
 #if 0
         HYP_LOG(Rendering, Debug, "View '{}' used {} textures, {} materials, {} lightmap volumes, {} lights, {} env grids and {} env probes.",
             view->Id(),
@@ -1870,12 +1895,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             rpl.GetEnvGrids().NumCurrent(),
             rpl.GetEnvProbes().NumCurrent());
 #endif
-#endif
     }
-
-#ifdef HYP_ENABLE_RENDER_STATS
-    RenderApi::AddRenderStats(counts);
-#endif
 }
 
 void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& rs)

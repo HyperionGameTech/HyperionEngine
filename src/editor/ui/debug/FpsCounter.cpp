@@ -7,7 +7,7 @@
 
 #include <scene/World.hpp>
 
-#include <rendering/RenderStats.hpp>
+#include <engine/EngineStats.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -19,6 +19,21 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
+
+extern EngineStatCounter<uint32> g_statDrawCalls;
+extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
+extern EngineStatCounter<uint32> g_statTriangles;
+extern EngineStatCounter<uint32> g_statRenderGroups;
+extern EngineStatCounter<uint32> g_statViews;
+extern EngineStatCounter<uint32> g_statMaterials;
+extern EngineStatCounter<uint32> g_statTextures;
+extern EngineStatCounter<uint32> g_statLights;
+extern EngineStatCounter<uint32> g_statLightmapVolumes;
+extern EngineStatCounter<uint32> g_statEnvProbes;
+extern EngineStatCounter<uint32> g_statEnvGrids;
+extern EngineStatCounter<uint32> g_statDebugDraws;
+
+#pragma region FpsCounter
 
 const Array<Pair<int, Color>> FpsCounter::s_fpsColors = {
     { 30, Color(1.0f, 0.0f, 0.0f, 1.0f) },
@@ -123,60 +138,56 @@ void FpsCounter::Update_Impl(float delta)
         return;
     }
 
-    const RenderStats* renderStats = m_world->GetRenderStats();
-    if (renderStats == nullptr)
-    {
-        return;
-    }
+    const EngineStatsSnapshot& snapshot = g_engineStatsRecorder->GetCurrentSnapshot();
 
     if (m_fpsTextElement.IsValid())
     {
         // @TODO: Round to two decimal places when added to HYP_FORMAT
         m_fpsTextElement->SetText(HYP_FORMAT(
             "{} fps, {} ms/frame (avg: {}, min: {}, max: {})",
-            int(renderStats->framesPerSecond),
-            renderStats->millisecondsPerFrame,
-            renderStats->millisecondsPerFrameAvg,
-            renderStats->millisecondsPerFrameMin,
-            renderStats->millisecondsPerFrameMax));
+            int(snapshot[StatIdFps].value),
+            snapshot[StatIdMsPerFrame].value,
+            snapshot[StatIdMsPerFrame].avg,
+            snapshot[StatIdMsPerFrame].min,
+            snapshot[StatIdMsPerFrame].max));
 
-        m_fpsTextElement->SetTextColor(GetFpsColor(int(renderStats->framesPerSecond)));
+        m_fpsTextElement->SetTextColor(GetFpsColor(int(snapshot[StatIdFps].value)));
     }
 
     if (m_countersTextElement.IsValid())
     {
         String countersText;
-        countersText += HYP_FORMAT("DrawCalls: {}", renderStats->counts[ERS_DRAW_CALLS]);
+        countersText += HYP_FORMAT("DrawCalls: {}", snapshot[g_statDrawCalls]);
 
-        if (renderStats->counts[ERS_INSTANCED_DRAW_CALLS] > 0)
+        if (snapshot[g_statInstancedDrawCalls] > 0)
         {
-            countersText += HYP_FORMAT(", Instanced: {}", renderStats->counts[ERS_INSTANCED_DRAW_CALLS]);
+            countersText += HYP_FORMAT(", Instanced: {}", snapshot[g_statInstancedDrawCalls]);
         }
 
-        if (renderStats->counts[ERS_DEBUG_DRAWS] > 0)
+        if (snapshot[g_statDebugDraws] > 0)
         {
-            countersText += HYP_FORMAT(", DebugDraw: {}", renderStats->counts[ERS_DEBUG_DRAWS]);
+            countersText += HYP_FORMAT(", DebugDraw: {}", snapshot[g_statDebugDraws]);
         }
 
-        countersText += HYP_FORMAT(", Tris: {}", renderStats->counts[ERS_TRIANGLES]);
-        countersText += HYP_FORMAT(", Groups: {}", renderStats->counts[ERS_RENDER_GROUPS]);
-        countersText += HYP_FORMAT(", Views: {}", renderStats->counts[ERS_VIEWS]);
-        countersText += HYP_FORMAT(", Textures: {}", renderStats->counts[ERS_TEXTURES]);
-        countersText += HYP_FORMAT(", Materials: {}", renderStats->counts[ERS_MATERIALS]);
+        countersText += HYP_FORMAT(", Tris: {}", snapshot[g_statTriangles]);
+        countersText += HYP_FORMAT(", Groups: {}", snapshot[g_statRenderGroups]);
+        countersText += HYP_FORMAT(", Views: {}", snapshot[g_statViews]);
+        countersText += HYP_FORMAT(", Textures: {}", snapshot[g_statTextures]);
+        countersText += HYP_FORMAT(", Materials: {}", snapshot[g_statMaterials]);
 
-        if (renderStats->counts[ERS_LIGHTS] > 0)
+        if (snapshot[g_statLights] > 0)
         {
-            countersText += HYP_FORMAT(", Lights: {}", renderStats->counts[ERS_LIGHTS]);
+            countersText += HYP_FORMAT(", Lights: {}", snapshot[g_statLights]);
         }
 
-        if (renderStats->counts[ERS_LIGHTMAP_VOLUMES] > 0)
+        if (snapshot[g_statLightmapVolumes] > 0)
         {
-            countersText += HYP_FORMAT(", LightmapVolumes: {}", renderStats->counts[ERS_LIGHTMAP_VOLUMES]);
+            countersText += HYP_FORMAT(", LightmapVolumes: {}", snapshot[g_statLightmapVolumes]);
         }
 
-        if (renderStats->counts[ERS_ENV_PROBES] > 0)
+        if (snapshot[g_statEnvProbes] > 0)
         {
-            countersText += HYP_FORMAT(", EnvProbes: {}", renderStats->counts[ERS_ENV_PROBES]);
+            countersText += HYP_FORMAT(", EnvProbes: {}", snapshot[g_statEnvProbes]);
         }
 
         m_countersTextElement->SetText(countersText);
@@ -196,7 +207,9 @@ Color FpsCounter::GetFpsColor(int fps)
     return s_fpsColors.Back().second;
 }
 
-// StatOverlay implementation
+#pragma endregion FpsCounter
+
+#pragma region StatOverlay
 
 StatOverlay::StatOverlay() = default;
 
@@ -224,5 +237,7 @@ void StatOverlay::Update_Impl(float delta)
 
     // @TODO - update stats items for each stat group
 }
+
+#pragma endregion StatOverlay
 
 } // namespace hyperion

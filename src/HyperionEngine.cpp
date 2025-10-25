@@ -50,6 +50,7 @@
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineMemory.hpp>
+#include <engine/EngineStats.hpp>
 
 #include <game/Game.hpp>
 
@@ -176,6 +177,8 @@ HYP_API bool InitializeEngine(int argc, char** argv)
         return false;
     }
 
+    EngineStats_Initialize();
+
     const FilePath basePath = FilePath(CoreApi_GetCommandLineArguments().GetCommand()).BasePath();
     CoreApi_SetExecutablePath(basePath);
 
@@ -280,6 +283,8 @@ HYP_API void DestroyEngine()
     {
         TaskSystem::GetInstance().Stop();
     }
+
+    EngineStats_Shutdown();
 
     NameRegistry_Shutdown();
 
