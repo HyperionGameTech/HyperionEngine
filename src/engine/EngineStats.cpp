@@ -61,10 +61,12 @@ public:
     EngineStatBase* GetStat(UTF8StringView path) const;
 
     EngineStatGroup* root;
+    FixedArray<EngineStatBase*, EngineStatsMaxStats> linearStats;
 };
 
 EngineStats::EngineStats()
-    : root(nullptr)
+    : root(nullptr),
+      linearStats { }
 {
     s_isInitializing = true;
     root = new EngineStatGroup(UTF8StringView(RootStatGroupName), true);
@@ -151,15 +153,15 @@ static EngineStats& GetGlobalEngineStats()
     return s_globalEngineStats;
 }
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId)
-    : EngineStatBase(type, path, ownerThreadId, false)
+EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType)
+    : EngineStatBase(type, path, threadType, false)
 {
 }
 
-EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId, bool skipPathParsing)
+EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing)
     : id(-1),
       type(type),
-      ownerThreadId(ownerThreadId.IsValid() ? ownerThreadId : g_renderThread)
+      threadType(threadType)
 {
     if (skipPathParsing)
     {
@@ -240,6 +242,7 @@ EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, const T
     if (type != EST_GROUP)
     {
         id = s_nextStatId.Increment(1, MemoryOrder::RELAXED);
+        engineStats.linearStats[id] = this;
     }
 
     currentGroup->stats.PushBack(this);

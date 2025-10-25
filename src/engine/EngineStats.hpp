@@ -49,11 +49,21 @@ enum EngineStatType : int
     EST_MAX
 };
 
+enum EngineStatThreadType : int
+{
+    ESTT_INVALID = -1,
+
+    ESTT_RENDER = 0,
+    ESTT_GAME,
+
+    ESTT_MAX
+};
+
 class HYP_API EngineStatBase
 {
 protected:
-    EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId);
-    EngineStatBase(EngineStatType type, UTF8StringView path, const ThreadId& ownerThreadId, bool skipPathParsing);
+    EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType);
+    EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing);
 
 public:
     HYP_DEF_POOL_NEW_DELETE(EngineStats_GetPool());
@@ -63,9 +73,16 @@ public:
     int id;
     Name name;
     EngineStatType type;
-    ThreadId ownerThreadId;
+    EngineStatThreadType threadType;
 
-    virtual double GetValue() const = 0;
+    virtual double GetValue() const
+    {
+        return 0.0;
+    }
+
+    virtual void Reset()
+    {
+    }
 };
 
 class HYP_API EngineStatsRecorder
@@ -103,7 +120,7 @@ class HYP_API EngineStatGroup : public EngineStatBase
 {
 public:
     explicit EngineStatGroup(UTF8StringView path)
-        : EngineStatBase(EST_GROUP, path, ThreadId::Invalid())
+        : EngineStatBase(EST_GROUP, path, ESTT_INVALID)
     {
     }
 
@@ -113,17 +130,12 @@ private:
 
     // Internal constructor for creating intermediate groups during path parsing
     EngineStatGroup(UTF8StringView path, bool skipPathParsing)
-        : EngineStatBase(EST_GROUP, path, ThreadId::Invalid(), skipPathParsing)
+        : EngineStatBase(EST_GROUP, path, ESTT_INVALID, skipPathParsing)
     {
     }
 
 public:
     virtual ~EngineStatGroup() override;
-
-    virtual double GetValue() const override
-    {
-        return 0.0;
-    }
 
     HYP_FIELD()
     Array<EngineStatBase*> stats;
@@ -133,8 +145,8 @@ template <class T>
 class HYP_API EngineStatCounter : public EngineStatBase
 {
 public:
-    explicit EngineStatCounter(UTF8StringView path, const ThreadId& ownerThreadId = ThreadId::Invalid())
-        : EngineStatBase(EST_COUNTER, path, ownerThreadId)
+    explicit EngineStatCounter(UTF8StringView path, EngineStatThreadType threadType = ESTT_RENDER)
+        : EngineStatBase(EST_COUNTER, path, threadType)
     {
     }
 
@@ -187,14 +199,14 @@ public:
         return m_value;
     }
 
-    void Reset()
-    {
-        m_value = 0;
-    }
-
     virtual double GetValue() const override
     {
         return static_cast<double>(m_value);
+    }
+
+    virtual void Reset() override
+    {
+        m_value = 0;
     }
 
 private:
@@ -204,15 +216,10 @@ private:
 class HYP_API EngineStatTimer : public EngineStatBase
 {
 public:
-    explicit EngineStatTimer(UTF8StringView path, const ThreadId& ownerThreadId = ThreadId::Invalid())
-        : EngineStatBase(EST_TIMER, path, ownerThreadId),
+    explicit EngineStatTimer(UTF8StringView path, EngineStatThreadType threadType)
+        : EngineStatBase(EST_TIMER, path, threadType),
           m_clock()
     {
-    }
-
-    void Reset()
-    {
-        m_clock = PerformanceClock();
     }
 
     void StartTiming()
@@ -233,6 +240,11 @@ public:
     virtual double GetValue() const override
     {
         return GetElapsedMs();
+    }
+
+    virtual void Reset() override
+    {
+        m_clock = PerformanceClock();
     }
 
 private:
