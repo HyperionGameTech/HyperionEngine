@@ -1021,6 +1021,8 @@ void BeginFrame_GameThread()
     s_threadFrameIndex = &s_frameIndex[PRODUCER];
 
     s_freeSemaphore.acquire();
+
+    g_engineStatsRecorder->BeginGameStatsFrame();
 }
 
 void EndFrame_GameThread()
@@ -1028,7 +1030,10 @@ void EndFrame_GameThread()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    FrameData& frameData = s_frameData[s_frameIndex[PRODUCER]];
+    const uint32 slot = s_frameIndex[PRODUCER];
+    FrameData& frameData = s_frameData[slot];
+
+    g_engineStatsRecorder->PublishGameChannel();
 
     s_frameIndex[PRODUCER] = (s_frameIndex[PRODUCER] + 1) % NumMultiBuffers;
 

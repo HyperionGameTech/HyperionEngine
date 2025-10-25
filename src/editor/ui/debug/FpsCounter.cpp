@@ -170,7 +170,7 @@ void FpsCounter::Update_Impl(float delta)
         }
 
         countersText += HYP_FORMAT(", Tris: {}", snapshot[g_statTriangles]);
-        countersText += HYP_FORMAT(", Groups: {}", snapshot[g_statRenderGroups]);
+        countersText += HYP_FORMAT(", RenderGroups: {}", snapshot[g_statRenderGroups]);
         countersText += HYP_FORMAT(", Views: {}", snapshot[g_statViews]);
         countersText += HYP_FORMAT(", Textures: {}", snapshot[g_statTextures]);
         countersText += HYP_FORMAT(", Materials: {}", snapshot[g_statMaterials]);
