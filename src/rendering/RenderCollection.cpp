@@ -794,11 +794,11 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         }
 
         // Add render stats counts to the engine's render stats
-        for (RenderStatsCounts& counts : state->renderStatsCounts)
+        for (EngineStatsSnapshot& snapshot : state->snapshots)
         {
-            RenderApi::AddRenderStats(counts);
+            g_engineStatsRecorder->GetCurrentSnapshot().Merge(snapshot);
 
-            counts = RenderStatsCounts(); // Reset counts after adding for next use
+            snapshot = {}; // Reset counts after adding for next use
         }
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)

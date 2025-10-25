@@ -59,6 +59,7 @@
 #include <util/BlueNoise.hpp>
 
 #include <engine/EngineGlobals.hpp>
+#include <engine/EngineStats.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -89,10 +90,6 @@ static thread_local uint32* s_threadFrameIndex;
 
 static volatile int64 s_frameCounter; // atomic
 static uint32 s_frameIndex[2] = { 0 };
-
-// Render thread only
-static RenderStats s_renderStats {};
-static RenderStatsCalculator s_renderStatsCalculator {};
 
 static std::counting_semaphore<NumMultiBuffers> s_fullSemaphore { 0 };
 static std::counting_semaphore<NumMultiBuffers> s_freeSemaphore { NumMultiBuffers };
@@ -1017,42 +1014,6 @@ Viewport& GetViewport(View* view)
     return GetViewFrameData(view, *s_threadFrameIndex)->viewport;
 }
 
-RenderStats* GetRenderStats()
-{
-    if (Threads::IsOnThread(g_renderThread))
-    {
-        return &s_renderStats;
-    }
-
-    Threads::AssertOnThread(g_gameThread);
-
-    return &s_frameData[*s_threadFrameIndex].renderStats;
-}
-
-void AddRenderStats(const RenderStatsCounts& counts)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
-
-    s_renderStatsCalculator.AddCounts(counts);
-}
-
-void SuppressRenderStats()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
-
-    s_renderStatsCalculator.Suppress();
-}
-
-void UnsuppressRenderStats()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_renderThread);
-
-    s_renderStatsCalculator.Unsuppress();
-}
-
 void BeginFrame_GameThread()
 {
     HYP_SCOPE;
@@ -1351,11 +1312,7 @@ void EndFrame_RenderThread()
 
     g_safeDeleter->UpdateEntryListQueue();
 
-    // update render stats and copy to frame data so the game thread can read it
-    // do this after calling UpdateEntryListQueue() on SafeDeleter so we can get the total
-    // number of deletion queue items for our stats
-    s_renderStatsCalculator.Advance(s_renderStats);
-    frameData.renderStats = s_renderStats;
+    g_engineStatsRecorder->Advance();
 
     g_safeDeleter->Iterate();
 
