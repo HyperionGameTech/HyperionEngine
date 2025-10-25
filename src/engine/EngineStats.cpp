@@ -389,8 +389,8 @@ static void MergeFromBuffer(EngineStatsSnapshot& dst, const StatBuffer* buffer, 
         EngineStatsSnapshotValue& s = dst[i];
 
         s.value = a.count ? a.last : s.value;
-        s.min   = MathUtil::Min(s.min, a.min);
-        s.max   = MathUtil::Max(s.max, a.max);
+        s.min = MathUtil::Min(s.min, a.min);
+        s.max = MathUtil::Max(s.max, a.max);
 
         state.sum[i]   += a.sum;
         state.count[i] += a.count;
@@ -550,7 +550,7 @@ void EngineStatsRecorder::Advance()
     m_pImpl->deltaAccum += m_pImpl->counter.delta;
 
     const bool resetFrameStats = (m_pImpl->counter.delta >= 1.0);
-    const bool resetMinMax     = resetFrameStats || (m_pImpl->deltaAccum >= 1.0);
+    const bool resetMinMax = resetFrameStats || (m_pImpl->deltaAccum >= 1.0);
 
     if (resetFrameStats)
     {

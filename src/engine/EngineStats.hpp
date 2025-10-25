@@ -216,7 +216,7 @@ private:
 class HYP_API EngineStatTimer : public EngineStatBase
 {
 public:
-    explicit EngineStatTimer(UTF8StringView path, EngineStatThreadType threadType)
+    explicit EngineStatTimer(UTF8StringView path, EngineStatThreadType threadType = ESTT_RENDER)
         : EngineStatBase(EST_TIMER, path, threadType),
           m_clock()
     {
