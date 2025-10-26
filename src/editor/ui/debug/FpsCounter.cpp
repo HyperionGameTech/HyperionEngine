@@ -143,16 +143,18 @@ void FpsCounter::Update_Impl(float delta)
 
     if (m_fpsTextElement.IsValid())
     {
-        // @TODO: Round to two decimal places when added to HYP_FORMAT
+        // Display average FPS for smoother reading, with instantaneous ms/frame
+        const int avgFps = int(snapshot[StatIdFps].avg);
+        
         m_fpsTextElement->SetText(HYP_FORMAT(
             "{} fps, {} ms/frame (avg: {}, min: {}, max: {})",
-            int(snapshot[StatIdFps].value),
+            avgFps,
             snapshot[StatIdMsPerFrame].value,
             snapshot[StatIdMsPerFrame].avg,
             snapshot[StatIdMsPerFrame].min,
             snapshot[StatIdMsPerFrame].max));
 
-        m_fpsTextElement->SetTextColor(GetFpsColor(int(snapshot[StatIdFps].value)));
+        m_fpsTextElement->SetTextColor(GetFpsColor(avgFps));
     }
 
     if (m_countersTextElement.IsValid())

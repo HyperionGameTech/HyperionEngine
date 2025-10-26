@@ -475,6 +475,8 @@ void EngineStatsRecorder::Advance()
         
         // Calculate min, max, avg from samples
         double sum = 0.0;
+        double minVal = DBL_MAX;
+        double maxVal = -DBL_MAX;
         
         for (uint32 i = 0; i < actualNumSamples; ++i)
         {
@@ -482,12 +484,19 @@ void EngineStatsRecorder::Advance()
 
             double sampleValue = GetSampleData(statId, idx);
             sum += sampleValue;
+            
+            minVal = MathUtil::Min(minVal, sampleValue);
+            maxVal = MathUtil::Max(maxVal, sampleValue);
         }
 
         const double currentValue = GetSampleData(statId, sampleIdx);
 
-        double minVal = m_pImpl->numSamples > 0 && !resetMinMax ? MathUtil::Min(GetSampleData(statId, prevSampleIdx), currentValue) : currentValue;
-        double maxVal = m_pImpl->numSamples > 0 && !resetMinMax ? MathUtil::Max(GetSampleData(statId, prevSampleIdx), currentValue) : currentValue;
+        // If we don't have enough samples yet, use current value for min/max
+        if (m_pImpl->numSamples == 0)
+        {
+            minVal = currentValue;
+            maxVal = currentValue;
+        }
         
         statSnapshot.value = currentValue;
         statSnapshot.min = minVal;
