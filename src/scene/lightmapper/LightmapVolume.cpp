@@ -110,42 +110,23 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
                 Assert(element.offsetCoords.x + element.dimensions.x <= atlasTexture->GetExtent().x);
                 Assert(element.offsetCoords.y + element.dimensions.y <= atlasTexture->GetExtent().y);
 
-                // Have to do the blit on frame end, as our element texture may not be init'd yet!
-                //currentFrame->OnFrameEnd.Bind([atlasTexture = atlasTexture, elementTexture = elementTexture, element = element](FrameBase* frame) mutable
-                //    {
-                //            UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+                renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
+                renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
 
-                //            singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
-                //                {
-                //                    // if this happens we have some ordering issue and the element texture is not ready for copy
-                //                    AssertDebug(elementTexture->GetGpuImage()->GetResourceState() != RS_UNDEFINED);
+                renderQueue << Blit(
+                    elementTexture->GetGpuImage(),
+                    atlasTexture->GetGpuImage(),
+                    Rect<uint32> {
+                        0, 0,
+                        element.dimensions.x, element.dimensions.y
+                    },
+                    Rect<uint32> {
+                        element.offsetCoords.x, element.offsetCoords.y,
+                        element.offsetCoords.x + element.dimensions.x, element.offsetCoords.y + element.dimensions.y
+                    });
 
-                                    renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
-                                    renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
-
-                                    renderQueue << Blit(
-                                        elementTexture->GetGpuImage(),
-                                        atlasTexture->GetGpuImage(),
-                                        Rect<uint32> {
-                                            0, 0,
-                                            element.dimensions.x, element.dimensions.y
-                                        },
-                                        Rect<uint32> {
-                                            element.offsetCoords.x, element.offsetCoords.y,
-                                            element.offsetCoords.x + element.dimensions.x, element.offsetCoords.y + element.dimensions.y
-                                        });
-
-                                    renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
-                                    renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
-
-                                   /* return {};
-                                });
-
-                            Assert(singleTimeCommands->Execute());
-
-                            SafeDelete(std::move(atlasTexture));
-                            SafeDelete(std::move(elementTexture));
-                    }).Detach();*/
+                renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+                renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
             }
         }
 
@@ -429,7 +410,7 @@ void LightmapVolume::UpdateAtlasTextures(
     LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
     
     // Calculate the size of the atlas texture in bytes
-    constexpr TextureFormat AtlasTextureFormat = TF_RGBA16F;
+    constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
     constexpr uint32 BytesPerPixel = BytesPerComponent(AtlasTextureFormat) * NumComponents(AtlasTextureFormat);
 
     const SizeType atlasWidth = atlas.atlasDimensions.x;
@@ -461,24 +442,6 @@ void LightmapVolume::UpdateAtlasTextures(
     Handle<Texture>& irradianceTexture = m_irradianceAtlasTextures[atlasIndex];
     if (!irradianceTexture)
     {
-        // fill with some test color for debugging
-        ByteBuffer atlasData;
-        atlasData.SetSize(atlasDataSize);
-
-        for (SizeType y = 0; y < atlasHeight; y++)
-        {
-            for (SizeType x = 0; x < atlasWidth; x++)
-            {
-                const SizeType pixelIndex = (y * atlasWidth + x) * BytesPerPixel;
-                Float16* pixelPtr = reinterpret_cast<Float16*>(atlasData.Data() + pixelIndex);
-                // test pattern
-                pixelPtr[0] = Float16(0.0f); // R
-                pixelPtr[1] = Float16(0.0f); // G
-                pixelPtr[2] = Float16(1.0f); // B
-                pixelPtr[3] = Float16(1.0f); // A
-            }
-        }
-
         irradianceTexture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
@@ -486,35 +449,17 @@ void LightmapVolume::UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
-            TextureData { std::move(atlasData) });
+                TWM_CLAMP_TO_EDGE });
 
         irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", m_uuid));
 
-        /*if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()).Await(); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()).Await(); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
-        }*/
+        }
 
         InitObject(irradianceTexture);
     }
-
-    /*Array<FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
-    elementTextures.Resize(atlas.elements.Size());
-
-    for (SizeType elementIndex = 0; elementIndex < atlas.elements.Size(); elementIndex++)
-    {
-        LightmapElement& element = atlas.elements[elementIndex];
-        FixedArray<Handle<Texture>, LTT_MAX>& currentElementTextures = elementTextures[elementIndex];
-
-        for (SizeType entryIndex = 0; entryIndex < element.entries.Size(); entryIndex++)
-        {
-            LightmapElementTextureEntry& entry = element.entries[entryIndex];
-            AssertDebug(entry.type < LTT_MAX);
-
-            currentElementTextures[entry.type] = entry.texture;
-        }
-    }*/
 
     Array<Handle<Texture>> atlasTextures;
     atlasTextures.Resize(uint32(LTT_MAX));

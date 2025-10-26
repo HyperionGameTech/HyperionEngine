@@ -63,6 +63,11 @@ public:
         m_semaphore.Produce();
     }
 
+    HYP_FORCE_INLINE void Reset()
+    {
+        m_semaphore.SetValue(0);
+    }
+
     HYP_FORCE_INLINE bool IsSignaled() const
     {
         return m_semaphore.IsInSignalState();

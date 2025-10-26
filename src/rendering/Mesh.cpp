@@ -213,6 +213,8 @@ void Mesh::UploadGpuData()
         return;
     }
 
+    gpuUploadFence.Reset();
+
     ResourceHandle resourceHandle(*asset->GetResource());
     AssertDebug(asset->IsLoaded());
 
@@ -252,8 +254,6 @@ void Mesh::UploadGpuData()
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
     if (IsReady() && !Threads::IsOnThread(g_renderThread))
     {
-        HYP_BREAKPOINT;
-
         vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
         indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
@@ -416,7 +416,11 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
     {
         g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
 
-        // CreateGpuBuffers();
+        // needs reupload!
+        if (m_flags[MF_VIEW_INDEPENDENT] || gpuUploadFence.IsSignaled())
+        {
+            UploadGpuData();
+        }
     }
 }
 
@@ -444,8 +448,8 @@ uint32 Mesh::NumIndices() const
     HYP_SCOPE;
     HYP_MT_CHECK_READ(m_dataRaceDetector, "Streamed mesh data");
 
-    ///! FIXME: Use meshProxy instead of reading from asset desc, as it may change on another thread
     const Handle<MeshAsset>& asset = GetAsset();
+
     return asset ? asset->GetMeshDesc().numIndices : 0;
 }
 

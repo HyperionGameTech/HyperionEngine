@@ -50,20 +50,19 @@ static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 struct RENDER_COMMAND(CreateTextureGpuImage)
     : RenderCommand
 {
-    WeakHandle<TextureAsset> textureAssetWeak;
+    Handle<TextureAsset> textureAsset;
     ResourceHandle resourceHandle;
     ResourceState initialState;
     GpuImageRef image;
     bool uploadTextureData;
 
-    RENDER_COMMAND(CreateTextureGpuImage)
-    (
-        const WeakHandle<TextureAsset>& textureAssetWeak,
+    RENDER_COMMAND(CreateTextureGpuImage)(
+        Handle<TextureAsset>&& textureAsset,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
         GpuImageRef image,
         bool uploadTextureData)
-        : textureAssetWeak(textureAssetWeak),
+        : textureAsset(std::move(textureAsset)),
           resourceHandle(std::move(resourceHandle)),
           initialState(initialState),
           image(std::move(image)),
@@ -81,7 +80,6 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
         if (uploadTextureData)
         {
-            Handle<TextureAsset> textureAsset = textureAssetWeak.Lock();
             Assert(textureAsset && resourceHandle);
 
             TextureData* textureData = textureAsset->GetTextureData();
@@ -103,7 +101,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
                     textureAsset->GetName(), image->GetByteSize(), imageData->Size());
 
                 // throw an error in debug mode
-                //AssertDebug(false, "Streamed texture data buffer size mismatch!");
+                AssertDebug(false, "Streamed texture data buffer size mismatch!");
 
                 // fill some placeholder data with zeros so we don't crash
                 ByteBuffer* placeholderBuffer = &placeholderBuffers.EmplaceBack();
@@ -265,19 +263,19 @@ void Texture::Init()
     ResourceHandle resourceHandle;
     bool uploadTextureData = false;
 
-    const Handle<TextureAsset>& asset = GetAsset();
+    Handle<TextureAsset> textureAsset = GetAsset();
 
-    if (asset != nullptr)
+    if (textureAsset)
     {
-        resourceHandle = ResourceHandle(*asset->GetResource());
+        resourceHandle = ResourceHandle(*textureAsset->GetResource());
 
-        const TextureData* textureData = asset->GetTextureData();
+        const TextureData* textureData = textureAsset->GetTextureData();
         uploadTextureData = textureData && !textureData->imageData.Empty();
     }
 
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
-        MakeWeakRef(asset),
+        std::move(textureAsset),
         std::move(resourceHandle),
         RS_SHADER_RESOURCE,
         m_gpuImage,
