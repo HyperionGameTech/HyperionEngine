@@ -1185,24 +1185,8 @@ void EditorSubsystem::OnAddedToWorld()
                 assetCollector->StopWatching();
             })
         .Detach();
-#ifdef HYP_TEMP_PROJECT_SAVE_LOAD_TEST
-#if HYP_TEMP_PROJECT_SAVE_LOAD_TEST == 1 // save
+
     NewProject();
-#elif HYP_TEMP_PROJECT_SAVE_LOAD_TEST == 2 // load
-    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "NewProj2");
-
-    if (!result)
-    {
-        HYP_LOG(Editor, Error, "Failed to load project: {}", result.GetError().GetMessage());
-
-        HYP_BREAKPOINT;
-    }
-
-    OpenProject(*result);
-#endif
-#else
-    NewProject();
-#endif
 }
 
 void EditorSubsystem::OnRemovedFromWorld()

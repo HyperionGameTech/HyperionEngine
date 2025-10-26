@@ -7,16 +7,12 @@
 
 #include <rendering/RenderEnvironment.hpp>
 
-// temp
-#include <rendering/ParticleSystem.hpp>
-
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Light.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/util/VoxelOctree.hpp> // temp
 #include <rendering/Texture.hpp>
 
 #include <scene/EntityManager.hpp>
@@ -86,9 +82,6 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
-
-static VoxelOctree* g_voxelOctree = nullptr;
-
 namespace editor {
 
 #pragma region HyperionEditor
@@ -102,7 +95,6 @@ HyperionEditor::~HyperionEditor()
 {
 }
 
-// temp
 void HyperionEditor::Init()
 {
     Game::Init();
@@ -110,75 +102,6 @@ void HyperionEditor::Init()
     m_editorSubsystem = CreateObject<EditorSubsystem>();
 
     GetWorld()->AddSubsystem(m_editorSubsystem);
-
-#ifdef HYP_TEMP_PROJECT_SAVE_LOAD_TEST
-#if HYP_TEMP_PROJECT_SAVE_LOAD_TEST == 1 // save
-    // if (const Handle<WorldGrid>& worldGrid = GetWorld()->GetWorldGrid())
-    // {
-    //     worldGrid->AddLayer(CreateObject<TerrainWorldGridLayer>());
-    // }
-    // else
-    // {
-    //     HYP_FAIL("World grid is not initialized in the editor!");
-    // }
-
-    Handle<Scene> scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
-    scene->SetName(NAME("myScene"));
-    m_editorSubsystem->GetCurrentProject()->AddScene(scene);
-
-    HYP_LOG(Editor, Debug, "ShaderManager memory usage: {} MiB",
-        double(ShaderManager::GetInstance()->CalculateMemoryUsage()) / 1024 / 1024);
-
-    // return;
-
-    // auto testParticleSpawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
-    //     .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png").GetValue().Result(),
-    //     .origin = Vec3f(0.0f, 6.0f, 0.0f),
-    //     .startSize = 0.2f,
-    //     .hasPhysics = true });
-    // InitObject(testParticleSpawner);
-
-    // scene->GetWorld()->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(testParticleSpawner);
-
-    // if (false)
-    // { // add test area light
-    //     Handle<Light> light = CreateObject<Light>(
-    //         LT_AREA_RECT,
-    //         Vec3f(0.0f, 1.25f, 0.0f),
-    //         Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
-    //         Vec2f(2.0f, 2.0f),
-    //         Color(1.0f, 0.0f, 0.0f),
-    //         1.0f,
-    //         1.0f);
-
-    //     Handle<Texture> dummyLightTexture;
-
-    //     if (auto dummyLightTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png"))
-    //     {
-    //         dummyLightTexture = dummyLightTextureAsset->Result();
-    //     }
-
-    //     light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
-    //         { .shaderDefinition = ShaderDefinition {
-    //               HYP_NAME(Forward),
-    //               ShaderProperties(staticMeshVertexAttributes) },
-    //             .bucket = RB_OPAQUE },
-    //         {}, { { MaterialTextureKey::ALBEDO_MAP, std::move(dummyLightTexture) } }));
-    //     Assert(light->GetMaterial().IsValid());
-
-    //     InitObject(light);
-
-    //     Handle<Node> lightNode = scene->GetRoot()->AddChild();
-    //     lightNode->SetName(NAME("AreaLight"));
-
-    //     auto areaLightEntity = scene->GetEntityManager()->AddEntity();
-
-    //     scene->GetEntityManager()->AddComponent<TransformComponent>(areaLightEntity, { Transform(light->GetPosition(), Vec3f(1.0f), Quaternion::Identity()) });
-
-    //     scene->GetEntityManager()->AddComponent<LightComponent>(areaLightEntity, { light });
-
-    //     lightNode->SetEntity(areaLightEntity);
-    // }
 
 // add sun
 #if 1
@@ -227,14 +150,6 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-#if 0
-                Handle<LegacyEnvGrid> envGridEntity = CreateObject<LegacyEnvGrid>(node->GetWorldAABB() * 1.2f, EnvGridOptions { EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, Vec3u { 10, 3, 10 } });
-                envGridEntity->SetName(NAME("EnvGrid2"));
-                scene->GetRoot()->AddChild(envGridEntity);
-
-                envGridEntity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { node->GetWorldAABB() * 1.2f, node->GetWorldAABB() * 1.2f });
-#endif
-
                 if (auto& zombieAsset = results["zombie"]; zombieAsset.IsValid())
                 {
                     Handle<Node> zombie = zombieAsset.ExtractAs<Node>();
@@ -279,62 +194,14 @@ void HyperionEditor::Init()
 
                     scene->GetRoot()->AddChild(zombie);
                 }
-
-                /// testing Voxel octree
-                g_voxelOctree = new VoxelOctree();
-                if (auto res = g_voxelOctree->Build(VoxelOctreeParams {}, scene->GetEntityManager()); res.HasError())
-                {
-                    HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
-                }
-
-                // test
-                const Handle<EditorProject>& project = GetWorld()->GetSubsystem<EditorSubsystem>()->GetCurrentProject();
-                project->SetName(NAME("NewProj2"));
-                Result saveResult = project->Save();
-                Assert(saveResult, "Failed to save editor project: {}", saveResult.GetError().GetMessage());
             })
         .Detach();
 
     batch->LoadAsync();
-#endif
-#endif
-#endif
 }
 
 void HyperionEditor::Logic(float delta)
 {
-    // if (g_voxelOctree != nullptr)
-    // {
-    //     DebugDrawCommandList& debugDrawCommands = g_engineDriver->GetDebugDrawer()->CreateCommandList();
-
-    //     PerformanceClock clock;
-    //     clock.Start();
-
-    //     Proc<void(const VoxelOctree&, int)> drawOctant;
-
-    //     drawOctant = [&](const VoxelOctree& octree, int depth)
-    //     {
-    //         if (octree.GetPayload().occupiedBit)
-    //         {
-    //             AssertDebug(!octree.IsDivided());
-    //             debugDrawCommands.box(octree.GetAABB().GetCenter(), octree.GetAABB().GetExtent(), Color::Cyan());
-    //         }
-
-    //         if (octree.IsDivided())
-    //         {
-    //             for (const auto& it : octree.GetOctants())
-    //             {
-    //                 drawOctant(static_cast<const VoxelOctree&>(*it.octree), depth + 1);
-    //             }
-    //         }
-    //     };
-
-    //     drawOctant(*g_voxelOctree, 0);
-    //     //
-    //     clock.Stop();
-
-    //     HYP_LOG_TEMP("Time to draw boxes: {}", clock.ElapsedMs());
-    // }
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent& event)
