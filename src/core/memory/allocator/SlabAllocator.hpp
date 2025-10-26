@@ -20,7 +20,8 @@ namespace memory {
 
 enum AllocationType : uint32;
 
-class SlabAllocator
+template <class AllocatorType>
+class TSlabAllocator
 {
 public:
     template <class T>
@@ -28,11 +29,21 @@ public:
     {
     };
 
-    SlabAllocator(
+    explicit TSlabAllocator(
         SizeType blockSize,
         uint32 blocksPerSlab = 256,
         SizeType alignment = 16)
-        : m_blockSize(0),
+        : TSlabAllocator(GetDefaultAllocatorInstance<AllocatorType>(), blockSize, blocksPerSlab, alignment)
+    {
+    }
+
+    TSlabAllocator(
+        AllocatorType* pAllocator,
+        SizeType blockSize,
+        uint32 blocksPerSlab = 256,
+        SizeType alignment = 16)
+        : m_pAllocator(pAllocator),
+          m_blockSize(0),
           m_alignment(0),
           m_blocksPerSlab(blocksPerSlab),
           m_slabs(),
@@ -50,13 +61,16 @@ public:
         m_blockSize = AlignUp(reqBlock, m_alignment);
     }
 
-    ~SlabAllocator()
+    TSlabAllocator(const TSlabAllocator&) = delete;
+    TSlabAllocator& operator=(const TSlabAllocator&) = delete;
+
+    TSlabAllocator(TSlabAllocator&& other) noexcept = delete;
+    TSlabAllocator& operator=(TSlabAllocator&& other) noexcept = delete;
+
+    ~TSlabAllocator()
     {
         Reset();
     }
-
-    SlabAllocator(const SlabAllocator&) = delete;
-    SlabAllocator& operator=(const SlabAllocator&) = delete;
 
     void* Allocate()
     {
@@ -81,9 +95,12 @@ public:
         Slab& slab = m_slabs.Back();
         void* p = PopFromSlab(slab);
         if (!p)
+        {
             return nullptr;
+        }
 
         ++m_activeAllocations;
+
         return p;
     }
 
@@ -91,16 +108,29 @@ public:
     void* Allocate(SizeType size, SizeType alignment)
     {
         if (size == 0)
+        {
             size = m_blockSize;
+        }
+
         if (alignment == 0)
+        {
             alignment = m_alignment;
+        }
 
         if (HYP_UNLIKELY(size > m_blockSize))
+        {
             return nullptr;
+        }
+
         if (HYP_UNLIKELY(!IsPowerOfTwo(alignment)))
+        {
             return nullptr;
+        }
+
         if (HYP_UNLIKELY(alignment > m_alignment))
+        {
             return nullptr;
+        }
 
         return Allocate();
     }
@@ -108,12 +138,16 @@ public:
     void Free(void* ptr)
     {
         if (!ptr)
+        {
             return;
+        }
 
         Slab* slab = FindOwningSlab(ptr);
         HYP_CORE_ASSERT(slab != nullptr);
         if (HYP_UNLIKELY(!slab))
+        {
             return;
+        }
 
         const ubyte* base = static_cast<const ubyte*>(slab->base);
         const ubyte* p = static_cast<const ubyte*>(ptr);
@@ -121,17 +155,23 @@ public:
 
         HYP_CORE_ASSERT(p >= base && p < base + slabBytes);
         if (HYP_UNLIKELY(!(p >= base && p < base + slabBytes)))
+        {
             return;
+        }
 
         const SizeType offset = static_cast<SizeType>(p - base);
         HYP_CORE_ASSERT((offset % m_blockSize) == 0);
         if (HYP_UNLIKELY((offset % m_blockSize) != 0))
+        {
             return;
+        }
 
         const uint32 blockIndex = static_cast<uint32>(offset / m_blockSize);
         HYP_CORE_ASSERT(blockIndex < m_blocksPerSlab);
         if (HYP_UNLIKELY(blockIndex >= m_blocksPerSlab))
+        {
             return;
+        }
 
 #if defined(HYP_DEBUG_MODE)
         {
@@ -152,7 +192,9 @@ public:
         ++slab->freeCount;
 
         if (m_activeAllocations > 0)
+        {
             --m_activeAllocations;
+        }
     }
 
     void Reset()
@@ -161,7 +203,7 @@ public:
         {
             if (m_slabs[i].base)
             {
-                HYP_FREE_ALIGNED(m_slabs[i].base);
+                m_pAllocator->Free(m_slabs[i].base);
                 m_slabs[i].base = nullptr;
             }
             m_slabs[i].freeHead = InvalidIndex();
@@ -236,9 +278,11 @@ private:
 
     bool CreateSlab()
     {
-        void* mem = HYP_ALLOC_ALIGNED(TotalSlabBytes(), m_alignment);
+        void* mem = m_pAllocator->Allocate(TotalSlabBytes(), m_alignment);
         if (!mem)
+        {
             return false;
+        }
 
         Slab slab;
         slab.base = mem;
@@ -286,10 +330,12 @@ private:
                 return &m_slabs[i];
             }
         }
+
         return nullptr;
     }
 
 private:
+    AllocatorType* m_pAllocator;
     SizeType m_blockSize;
     SizeType m_alignment;
     uint32 m_blocksPerSlab;
@@ -297,8 +343,11 @@ private:
     uint64 m_activeAllocations;
 };
 
+using SlabAllocator = TSlabAllocator<DynamicAllocator>;
+
 } // namespace memory
 
 using memory::SlabAllocator;
+using memory::TSlabAllocator;
 
 } // namespace hyperion

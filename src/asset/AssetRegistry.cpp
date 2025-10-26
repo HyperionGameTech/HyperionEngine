@@ -1153,6 +1153,8 @@ void AssetPackage::Prune(bool* outShouldDestroy)
                 {
                     objectsToDelete.PushBack(assetObject);
 
+                    HYP_LOG(Assets, Debug, "Pruning asset object '{}' from package '{}'", assetObject->GetName(), m_name);
+
                     assetObject->SetIsTransientByProxy(false);
                     assetObject->m_package.Reset();
                     assetObject->m_assetPath = {};

@@ -88,9 +88,9 @@ namespace Hyperion
                 return resultData.ReadBool();
             }
         }
-        public static void SetIsPersistentlyLoaded(this AssetObject obj, bool persistentlyLoaded)
+        public static void SetIsPersistentlyLoaded(this AssetObject obj, bool persistentlyLoaded, bool setFlag)
         {
-            obj.GetMethod(new Name(5616107437368338772)).InvokeNative(obj, persistentlyLoaded);
+            obj.GetMethod(new Name(5616107437368338772)).InvokeNative(obj, persistentlyLoaded, setFlag);
         }
         public static bool IsTransient(this AssetObject obj)
         {

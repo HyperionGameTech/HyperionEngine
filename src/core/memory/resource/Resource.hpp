@@ -12,7 +12,8 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/memory/MemoryPool.hpp>
+#include <core/memory/allocator/SlabAllocator.hpp>
+#include <core/memory/pool/Pool.hpp>
 #include <core/Name.hpp>
 
 #include <core/Types.hpp>
@@ -22,30 +23,12 @@ namespace hyperion {
 static constexpr uint64 g_initializationMaskInitializedBit = 0x1;
 static constexpr uint64 g_initializationMaskReadMask = uint64(-1) & ~g_initializationMaskInitializedBit;
 
+HYP_API extern Pool* g_resourcePool;
+
 class IResourceMemoryPool;
 
 template <class T>
 class ResourceMemoryPool;
-
-template <class T>
-struct ResourceMemoryPoolInitInfo : MemoryPoolInitInfo<T>
-{
-};
-
-struct ResourceMemoryPoolHandle
-{
-    uint32 index = ~0u;
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return index != ~0u;
-    }
-
-    HYP_FORCE_INLINE bool operator!() const
-    {
-        return index == ~0u;
-    }
-};
 
 // Represents the objects an engine object (e.g Material) uses while it is currently being rendered, streamed, or otherwise consuming resources.
 class IResource
@@ -63,9 +46,6 @@ public:
      *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
      *  \note Ensure the current thread does not hold any ResourceHandle objects when calling this function, or it will deadlock. */
     virtual void WaitForFinalization() const = 0;
-
-    virtual ResourceMemoryPoolHandle GetPoolHandle() const = 0;
-    virtual void SetPoolHandle(ResourceMemoryPoolHandle poolHandle) = 0;
 };
 
 /*! \brief Basic abstract implementation of IResource, using reference counting to manage the lifetime of the underlying resources. */
@@ -105,16 +85,6 @@ public:
     /*! \brief Wait for the resource to no longer be in loaded state */
     virtual void WaitForFinalization() const override final;
 
-    virtual ResourceMemoryPoolHandle GetPoolHandle() const override final
-    {
-        return m_poolHandle;
-    }
-
-    virtual void SetPoolHandle(ResourceMemoryPoolHandle poolHandle) override final
-    {
-        m_poolHandle = poolHandle;
-    }
-
     bool IsInitialized() const;
 
 protected:
@@ -124,8 +94,6 @@ protected:
 protected:
     int32 m_refCount;
     mutable Mutex m_mutex;
-
-    ResourceMemoryPoolHandle m_poolHandle;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 
@@ -144,14 +112,12 @@ public:
 extern HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId typeId, UniquePtr<IResourceMemoryPool> (*createFn)(void));
 
 template <class T>
-class ResourceMemoryPool final : private MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>, public IResourceMemoryPool
+class ResourceMemoryPool final : public IResourceMemoryPool
 {
-    static const Name s_poolName;
+    using AllocatorType = TSlabAllocator<AllocatorInstance<Pool, &g_resourcePool>>;
 
 public:
     static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
-
-    using Base = MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>;
 
     static ResourceMemoryPool<T>* GetInstance()
     {
@@ -164,7 +130,7 @@ public:
     }
 
     ResourceMemoryPool()
-        : Base(s_poolName)
+        : m_allocator(sizeof(T))
     {
     }
 
@@ -173,11 +139,10 @@ public:
     template <class... Args>
     T* Allocate(Args&&... args)
     {
-        ValueStorage<T>* element;
-        const uint32 index = Base::AcquireIndex(&element);
+        T* ptr = static_cast<T*>(m_allocator.Allocate());
+        HYP_CORE_ASSERT(ptr != nullptr, "Failed to allocate resource from pool");
 
-        T* ptr = element->Construct(std::forward<Args>(args)...);
-        ptr->SetPoolHandle(ResourceMemoryPoolHandle { index });
+        new (ptr) T(std::forward<Args>(args)...);
 
         return ptr;
     }
@@ -194,18 +159,14 @@ private:
 
         ptr->WaitForFinalization();
 
-        const ResourceMemoryPoolHandle poolHandle = ptr->GetPoolHandle();
-        HYP_CORE_ASSERT(poolHandle, "Resource has no pool handle set - the resource was likely not allocated using the pool");
-
         // Invoke the destructor
         ptr->~T();
 
-        Base::ReleaseIndex(poolHandle.index);
+        m_allocator.Free(ptr);
     }
-};
 
-template <class T>
-const Name ResourceMemoryPool<T>::s_poolName = CreateNameFromDynamicString(ANSIString("ResourceMemoryPool_") + TypeNameHelper<T, false>::value.Data());
+    AllocatorType m_allocator;
+};
 
 template <class T, class... Args>
 HYP_FORCE_INLINE static T* AllocateResource(Args&&... args)

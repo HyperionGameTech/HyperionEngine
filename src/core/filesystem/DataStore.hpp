@@ -93,17 +93,6 @@ public:
      *  \param key The key to check for
      *  \returns true if the key exists, false otherwise */
     virtual bool Exists(const String& key) const;
-
-    virtual ResourceMemoryPoolHandle GetPoolHandle() const override
-    {
-        return m_poolHandle;
-    }
-
-    virtual void SetPoolHandle(ResourceMemoryPoolHandle poolHandle) override
-    {
-        m_poolHandle = poolHandle;
-    }
-
 protected:
     virtual bool IsNull() const override
     {
@@ -117,7 +106,6 @@ protected:
     virtual void WaitForFinalization() const override final;
 
 private:
-    ResourceMemoryPoolHandle m_poolHandle;
     String m_prefix;
     DataStoreOptions m_options;
     RefCounter m_refCounter;

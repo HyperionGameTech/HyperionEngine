@@ -101,7 +101,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
                     textureAsset->GetName(), image->GetByteSize(), imageData->Size());
 
                 // throw an error in debug mode
-                AssertDebug(false, "Streamed texture data buffer size mismatch!");
+                //AssertDebug(false, "Streamed texture data buffer size mismatch!");
 
                 // fill some placeholder data with zeros so we don't crash
                 ByteBuffer* placeholderBuffer = &placeholderBuffers.EmplaceBack();

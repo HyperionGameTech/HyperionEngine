@@ -33,6 +33,7 @@ HYP_API extern Pool* g_renderPool;                  // Pool for rendering alloca
 HYP_API extern Pool* g_framePools[NumMultiBuffers]; // Pools for per-frame allocations, on either game or render thread for their given frame index.
 HYP_API extern Pool* g_scenePool;                   // Pool for scene-related allocations (thread safe)
 HYP_API extern Pool* g_taskPool;                    // Pool for task system allocations (thread safe)
+HYP_API extern Pool* g_resourcePool;                // Pool for IResource-derived allocations (thread safe)
 
 HYP_API const FilePath& GetResourceDirectory();
 

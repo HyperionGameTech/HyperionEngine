@@ -186,16 +186,6 @@ public:
     {
         // Do nothing
     }
-
-    virtual ResourceMemoryPoolHandle GetPoolHandle() const override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
-    virtual void SetPoolHandle(ResourceMemoryPoolHandle) override
-    {
-        HYP_NOT_IMPLEMENTED_VOID();
-    }
 };
 
 HYP_API IResource& GetNullResource()

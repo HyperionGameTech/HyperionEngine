@@ -759,7 +759,18 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 
         bool isNewMaterial = false;
 
-        subElement.material = subElement.material.IsValid() ? subElement.material->Clone() : CreateObject<Material>();
+        if (subElement.material)
+        {
+            Handle<Material> clonedMaterial = subElement.material->Clone();
+            SafeDelete(std::move(subElement.material));
+
+            subElement.material = clonedMaterial;
+        }
+        else
+        {
+            subElement.material = CreateObject<Material>();
+        }
+
         isNewMaterial = true;
 
         subElement.material->SetBucket(RB_LIGHTMAP);
@@ -787,6 +798,8 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
                 if (newMaterial.IsValid())
                 {
                     InitObject(newMaterial);
+
+                    SafeDelete(std::move(meshComponent.material));
 
                     meshComponent.material = std::move(newMaterial);
                 }
