@@ -187,8 +187,6 @@ static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
     : m_params(std::move(params)),
       m_texelIndex(0),
-      m_atlasBuilt(false),
-      m_lightmapElement(nullptr),
       m_lastLoggedPercentage(0),
       numConcurrentRenderingTasks(0)
 {
@@ -202,34 +200,13 @@ LightmapJobBase::~LightmapJobBase()
 
         delete taskBatch;
     }
-
-    delete m_lightmapElement;
 }
 
 void LightmapJobBase::Start()
 {
     m_runningSemaphore.Produce(1, [this](bool)
         {
-            if (!m_atlasBuilt)
-            {
-                // No elements to process
-                if (!m_params.subElementsView)
-                {
-                    m_atlas = LightmapAtlas { {} };
-
-                    return;
-                }
-
-                HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
-
-                m_atlas = LightmapAtlas { { m_params.subElementsView } };
-
-                m_atlasBuildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
-                    {
-                        return m_atlas.Build();
-                    },
-                    TaskThreadPoolName::THREAD_POOL_BACKGROUND);
-            }
+            Start_Internal();
         });
 }
 
@@ -261,11 +238,13 @@ void LightmapJobBase::AddTask(TaskBatch* taskBatch)
 
 void LightmapJobBase::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
 {
+    LightmapTexelsBase& texels = GetTexels();
+
     for (uint32 rayIndex = 0; rayIndex < maxRayHits && HasRemainingTexels(); ++rayIndex)
     {
         const uint32 texelIndex = NextTexel();
 
-        LightmapRay ray = m_atlas.texels[texelIndex].ray;
+        LightmapRay ray = texels.texels[texelIndex].ray;
         ray.texelIndex = texelIndex;
 
         outRays.PushBack(ray);
@@ -276,14 +255,14 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
 {
     Assert(rays.Size() == hits.Size());
 
-    LightmapAtlas& atlas = GetAtlas();
+    LightmapTexelsBase& texels = GetTexels();
 
     for (SizeType i = 0; i < hits.Size(); i++)
     {
         const LightmapRay& ray = rays[i];
         const LightmapHit& hit = hits[i];
 
-        LightmapTexel& texel = atlas.texels[ray.texelIndex];
+        LightmapTexel& texel = texels.texels[ray.texelIndex];
 
         switch (shadingType)
         {
@@ -304,65 +283,11 @@ void LightmapJobBase::Process()
     Assert(IsRunning());
     Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
 
-    if (!m_atlasBuilt)
+    bool isReadyToProcess = true;
+    Process_Internal(&isReadyToProcess);
+
+    if (!isReadyToProcess)
     {
-        // wait for uv map to finish building
-
-        // If uv map is not valid, it must have a task that is building it
-        Assert(m_atlasBuildTask.IsValid());
-
-        if (!m_atlasBuildTask.IsCompleted())
-        {
-            // return early so we don't block - we need to wait for build task to complete before processing
-            return;
-        }
-
-        if (Result result = m_atlasBuildTask.Await(); result.HasError())
-        {
-            Stop(result.GetError());
-
-            return;
-        }
-
-        if (m_atlas.IsBuilt())
-        {
-            LightmapElement lightmapElement;
-            if (!m_params.volume->AddElement({ m_atlas.width, m_atlas.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
-            {
-                Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
-                    m_uuid, Vec2u(m_atlas.width, m_atlas.height)));
-
-                return;
-            }
-
-            if (m_lightmapElement != nullptr)
-            {
-                *m_lightmapElement = std::move(lightmapElement);
-            }
-            else
-            {
-                m_lightmapElement = new LightmapElement(std::move(lightmapElement));
-            }
-
-            // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
-            m_texelIndices.Reserve(m_atlas.texels.Size());
-
-            for (const auto& it : m_atlas.meshToUvIndices)
-            {
-                m_texelIndices.Concat(it.second);
-            }
-
-            // Free up memory
-            m_atlas.meshToUvIndices.Clear();
-
-            m_atlasBuilt = true;
-        }
-        else
-        {
-            // Mark as ready to stop further processing
-            Stop(HYP_MAKE_ERROR(Error, "Failed to build UV map for lightmap job {}", m_uuid));
-        }
-
         return;
     }
 
@@ -480,6 +405,118 @@ void LightmapJobBase::Process()
 }
 
 #pragma endregion LightmapJobBase
+
+#pragma region LightmapAtlasJob
+
+LightmapAtlasJob::~LightmapAtlasJob()
+{
+    if (m_lightmapElement != nullptr)
+    {
+        delete m_lightmapElement;
+    }
+}
+
+void LightmapAtlasJob::Start_Internal()
+{
+    if (!m_atlasBuilt)
+    {
+        // No elements to process
+        if (!m_params.subElementsView)
+        {
+            m_atlas = LightmapAtlas { {} };
+
+            return;
+        }
+
+        HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
+
+        m_atlas = LightmapAtlas { { m_params.subElementsView } };
+
+        m_atlasBuildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
+            {
+                return m_atlas.Build();
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+    }
+}
+
+void LightmapAtlasJob::Process_Internal(bool* outIsReadyToProcess)
+{
+    if (outIsReadyToProcess)
+    {
+        *outIsReadyToProcess = m_atlasBuilt;
+    }
+
+    if (m_atlasBuilt)
+    {
+        return;
+    }
+
+    // wait for uv map to finish building
+
+    // If uv map is not valid, it must have a task that is building it
+    Assert(m_atlasBuildTask.IsValid());
+
+    if (!m_atlasBuildTask.IsCompleted())
+    {
+        // return early so we don't block - we need to wait for build task to complete before processing
+        return;
+    }
+
+    if (Result result = m_atlasBuildTask.Await(); result.HasError())
+    {
+        Stop(result.GetError());
+
+        return;
+    }
+
+    if (m_atlas.IsBuilt())
+    {
+        LightmapElement lightmapElement;
+        if (!m_params.volume->AddElement({ m_atlas.width, m_atlas.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+        {
+            Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
+                m_uuid, Vec2u(m_atlas.width, m_atlas.height)));
+
+            return;
+        }
+
+        if (m_lightmapElement != nullptr)
+        {
+            *m_lightmapElement = std::move(lightmapElement);
+        }
+        else
+        {
+            m_lightmapElement = new LightmapElement(std::move(lightmapElement));
+        }
+
+        // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
+        m_texelIndices.Reserve(m_atlas.texels.Size());
+
+        for (const auto& it : m_atlas.meshToUvIndices)
+        {
+            m_texelIndices.Concat(it.second);
+        }
+
+        // Free up memory
+        m_atlas.meshToUvIndices.Clear();
+
+        m_atlasBuilt = true;
+
+        if (outIsReadyToProcess)
+        {
+            *outIsReadyToProcess = true;
+        }
+    }
+    else
+    {
+        // Mark as ready to stop further processing
+        Stop(HYP_MAKE_ERROR(Error, "Failed to build UV map for lightmap job {}", m_uuid));
+    }
+}
+
+
+#pragma endregion LightmapAtlasJob
 
 #pragma region LightmapperBase
 
@@ -677,6 +714,7 @@ void LightmapperBase::Build()
         if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
         {
             UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
+            Assert(job != nullptr);
 
             startIndex = index + 1;
 
@@ -691,6 +729,7 @@ void LightmapperBase::Build()
     if (startIndex < m_subElements.Size() - 1)
     {
         UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, m_subElements.Size()));
+        Assert(job != nullptr);
 
         AddJob(std::move(job));
     }
@@ -740,144 +779,149 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 
     HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
 
-    const LightmapAtlas& atlas = job->GetAtlas();
-
-    LightmapElement* lightmapElement = job->GetLightmapElement();
-
-    if (lightmapElement == nullptr)
+    /// @TODO: Refactor !!!
+    LightmapAtlasJob* atlasJob = dynamic_cast<LightmapAtlasJob*>(job);
+    if (atlasJob != nullptr)
     {
-        HYP_LOG(Lightmap, Debug, "Lightmap element is null, skipping building LightmapElement textures for job {}", job->GetUUID());
+        const LightmapAtlas& atlas = atlasJob->GetAtlas();
 
-        return;
-    }
+        LightmapElement* lightmapElement = atlasJob->GetLightmapElement();
 
-    if (!m_volume->BuildElementTextures(atlas, lightmapElement->id))
-    {
-        HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
-
-        return;
-    }
-
-    HYP_LOG(Lightmap, Debug, "Lightmap job {}: Building element with id {}, UV offset: {}, Scale: {}", job->GetUUID(), lightmapElement->id,
-        lightmapElement->offsetUv, lightmapElement->scale);
-
-    for (SizeType subElementIndex = 0; subElementIndex < job->GetSubElements().Size(); subElementIndex++)
-    {
-        LightmapSubElement& subElement = job->GetSubElements()[subElementIndex];
-
-        auto updateMeshData = [&]()
+        if (lightmapElement == nullptr)
         {
-            const Handle<Mesh>& mesh = subElement.mesh;
-            Assert(mesh.IsValid());
+            HYP_LOG(Lightmap, Debug, "Lightmap element is null, skipping building LightmapElement textures for job {}", job->GetUUID());
 
-            Assert(subElementIndex < job->GetAtlas().GetMeshData().Size());
-
-            const LightmapMeshData& lightmapMeshData = job->GetAtlas().GetMeshData()[subElementIndex];
-            Assert(lightmapMeshData.mesh == mesh);
-
-            MeshDesc newMeshDesc;
-            newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
-            newMeshDesc.numVertices = uint32(lightmapMeshData.vertices.Size());
-            newMeshDesc.numIndices = uint32(lightmapMeshData.indices.Size());
-
-            MeshData newMeshData;
-            newMeshData.vertexData = lightmapMeshData.vertices;
-            newMeshData.indexData = ByteBuffer(lightmapMeshData.indices.ToByteView());
-
-            for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
-            {
-                Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
-                lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
-                lightmapUv *= lightmapElement->scale;
-                lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
-            }
-
-            mesh->SetMeshData(newMeshDesc, newMeshData);
-        };
-
-        updateMeshData();
-
-        bool isNewMaterial = false;
-
-        if (subElement.material)
-        {
-            Handle<Material> clonedMaterial = subElement.material->Clone();
-            SafeDelete(std::move(subElement.material));
-
-            subElement.material = clonedMaterial;
-        }
-        else
-        {
-            subElement.material = CreateObject<Material>();
+            return;
         }
 
-        isNewMaterial = true;
-
-        subElement.material->SetBucket(RB_LIGHTMAP);
-
-        subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
-        subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
-
-        auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), lightmapElementId = lightmapElement->id, volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+        if (!m_volume->BuildElementTextures(atlas, lightmapElement->id))
         {
-            Handle<EntityManager> entityManager = entityManagerWeak.Lock();
+            HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
 
-            if (!entityManager)
+            return;
+        }
+
+        HYP_LOG(Lightmap, Debug, "Lightmap job {}: Building element with id {}, UV offset: {}, Scale: {}", job->GetUUID(), lightmapElement->id,
+            lightmapElement->offsetUv, lightmapElement->scale);
+
+        for (SizeType subElementIndex = 0; subElementIndex < job->GetSubElements().Size(); subElementIndex++)
+        {
+            LightmapSubElement& subElement = job->GetSubElements()[subElementIndex];
+
+            auto updateMeshData = [&]()
             {
-                HYP_LOG(Lightmap, Error, "Failed to lock EntityManager while updating lightmap element");
+                const Handle<Mesh>& mesh = subElement.mesh;
+                Assert(mesh.IsValid());
 
-                return;
-            }
+                Assert(subElementIndex < atlas.GetMeshData().Size());
 
-            const Handle<Entity>& entity = subElement.entity;
+                const LightmapMeshData& lightmapMeshData = atlas.GetMeshData()[subElementIndex];
+                Assert(lightmapMeshData.mesh == mesh);
 
-            if (entityManager->HasComponent<MeshComponent>(entity))
-            {
-                MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
+                MeshDesc newMeshDesc;
+                newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
+                newMeshDesc.numVertices = uint32(lightmapMeshData.vertices.Size());
+                newMeshDesc.numIndices = uint32(lightmapMeshData.indices.Size());
 
-                if (newMaterial.IsValid())
+                MeshData newMeshData;
+                newMeshData.vertexData = lightmapMeshData.vertices;
+                newMeshData.indexData = ByteBuffer(lightmapMeshData.indices.ToByteView());
+
+                for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
                 {
-                    InitObject(newMaterial);
-
-                    SafeDelete(std::move(meshComponent.material));
-
-                    meshComponent.material = std::move(newMaterial);
+                    Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
+                    lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
+                    lightmapUv *= lightmapElement->scale;
+                    lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
                 }
 
-                meshComponent.lightmapVolume = volume.ToWeak();
-                meshComponent.lightmapElementId = lightmapElementId;
-                meshComponent.lightmapVolumeUuid = volume->GetUUID();
+                mesh->SetMeshData(newMeshDesc, newMeshData);
+            };
+
+            updateMeshData();
+
+            bool isNewMaterial = false;
+
+            if (subElement.material)
+            {
+                Handle<Material> clonedMaterial = subElement.material->Clone();
+                SafeDelete(std::move(subElement.material));
+
+                subElement.material = clonedMaterial;
             }
             else
             {
-                Assert(newMaterial.IsValid());
-                InitObject(newMaterial);
-
-                MeshComponent meshComponent {};
-                meshComponent.mesh = subElement.mesh;
-                meshComponent.material = newMaterial;
-                meshComponent.lightmapVolume = volume.ToWeak();
-                meshComponent.lightmapElementId = lightmapElementId;
-                meshComponent.lightmapVolumeUuid = volume->GetUUID();
-
-                entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+                subElement.material = CreateObject<Material>();
             }
 
-            entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
-        };
+            isNewMaterial = true;
 
-        if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
-        {
-            // If we are on the same thread, we can update the mesh component immediately
-            updateMeshComponent();
-        }
-        else
-        {
-            // Enqueue the update to be performed on the owner thread
-            ThreadBase* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadId());
-            Assert(thread != nullptr);
+            subElement.material->SetBucket(RB_LIGHTMAP);
 
-            thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+            subElement.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
+            subElement.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
+
+            auto updateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()), lightmapElementId = lightmapElement->id, volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
+            {
+                Handle<EntityManager> entityManager = entityManagerWeak.Lock();
+
+                if (!entityManager)
+                {
+                    HYP_LOG(Lightmap, Error, "Failed to lock EntityManager while updating lightmap element");
+
+                    return;
+                }
+
+                const Handle<Entity>& entity = subElement.entity;
+
+                if (entityManager->HasComponent<MeshComponent>(entity))
+                {
+                    MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
+
+                    if (newMaterial.IsValid())
+                    {
+                        InitObject(newMaterial);
+
+                        SafeDelete(std::move(meshComponent.material));
+
+                        meshComponent.material = std::move(newMaterial);
+                    }
+
+                    meshComponent.lightmapVolume = volume.ToWeak();
+                    meshComponent.lightmapElementId = lightmapElementId;
+                    meshComponent.lightmapVolumeUuid = volume->GetUUID();
+                }
+                else
+                {
+                    Assert(newMaterial.IsValid());
+                    InitObject(newMaterial);
+
+                    MeshComponent meshComponent {};
+                    meshComponent.mesh = subElement.mesh;
+                    meshComponent.material = newMaterial;
+                    meshComponent.lightmapVolume = volume.ToWeak();
+                    meshComponent.lightmapElementId = lightmapElementId;
+                    meshComponent.lightmapVolumeUuid = volume->GetUUID();
+
+                    entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+                }
+
+                entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+            };
+
+            if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
+            {
+                // If we are on the same thread, we can update the mesh component immediately
+                updateMeshComponent();
+            }
+            else
+            {
+                // Enqueue the update to be performed on the owner thread
+                ThreadBase* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadId());
+                Assert(thread != nullptr);
+
+                thread->GetScheduler().Enqueue(std::move(updateMeshComponent), TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
         }
     }
 }

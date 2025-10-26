@@ -48,7 +48,6 @@ enum class LightmapTraceMode : int
 {
     GPU_PATH_TRACING = 0,
     CPU_PATH_TRACING,
-    ENV_GRID, // unused
 
     MAX
 };
@@ -223,21 +222,6 @@ public:
         return m_uuid;
     }
 
-    HYP_FORCE_INLINE LightmapAtlas& GetAtlas()
-    {
-        return m_atlas;
-    }
-
-    HYP_FORCE_INLINE const LightmapAtlas& GetAtlas() const
-    {
-        return m_atlas;
-    }
-
-    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
-    {
-        return m_lightmapElement;
-    }
-
     HYP_FORCE_INLINE Scene* GetScene() const
     {
         return m_params.scene.Get();
@@ -305,10 +289,10 @@ public:
     AtomicVar<uint32> numConcurrentRenderingTasks;
 
 protected:
-    /*virtual void Start_Internal() = 0;
-    virtual void Process_Internal() = 0;
+    virtual void Start_Internal() = 0;
+    virtual void Process_Internal(bool* outIsReady = nullptr) = 0;
 
-    virtual LightmapTexelsBase& GetTexels() = 0;*/
+    virtual LightmapTexelsBase& GetTexels() = 0;
 
     HYP_FORCE_INLINE bool HasRemainingTexels() const
     {
@@ -338,12 +322,6 @@ protected:
     Array<LightmapRay> m_previousFrameRays;
     mutable Mutex m_previousFrameRaysMutex;
 
-    LightmapAtlas m_atlas;
-    Task<Result> m_atlasBuildTask;
-    bool m_atlasBuilt;
-
-    LightmapElement* m_lightmapElement;
-
     Array<TaskBatch*> m_currentTasks;
     mutable Mutex m_currentTasksMutex;
 
@@ -353,6 +331,49 @@ protected:
     double m_lastLoggedPercentage;
 
     Result m_result;
+};
+
+class HYP_API LightmapAtlasJob : public LightmapJobBase
+{
+public:
+    explicit LightmapAtlasJob(LightmapJobParams&& params)
+        : LightmapJobBase(std::move(params)),
+          m_atlasBuilt(false),
+          m_lightmapElement(nullptr)
+    {
+    }
+
+    virtual ~LightmapAtlasJob() override;
+
+    HYP_FORCE_INLINE LightmapAtlas& GetAtlas()
+    {
+        return m_atlas;
+    }
+
+    HYP_FORCE_INLINE const LightmapAtlas& GetAtlas() const
+    {
+        return m_atlas;
+    }
+
+    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
+    {
+        return m_lightmapElement;
+    }
+
+protected:
+    virtual void Start_Internal() override;
+    virtual void Process_Internal(bool* outIsReadyToProcess) override;
+
+    virtual LightmapTexelsBase& GetTexels() override
+    {
+        return m_atlas;
+    }
+
+    LightmapAtlas m_atlas;
+    Task<Result> m_atlasBuildTask;
+    bool m_atlasBuilt;
+
+    LightmapElement* m_lightmapElement;
 };
 
 HYP_CLASS(Abstract)
@@ -408,7 +429,12 @@ protected:
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params)
     {
-        return MakeUnique<LightmapJobBase>(std::move(params));
+        if (params.volume)
+        {
+            return MakeUnique<LightmapAtlasJob>(std::move(params));
+        }
+
+        return nullptr;
     }
 
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) = 0;

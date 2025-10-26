@@ -29,7 +29,6 @@ static Handle<LightmapperBase> CreateLightmapper(LightmapperConfig&& config, Arg
         return CreateObject<Lightmapper_GpuPathTracing>(std::move(config), std::forward<Args>(args)...);
     case LightmapTraceMode::CPU_PATH_TRACING:
         return CreateObject<Lightmapper_CpuPathTracing>(std::move(config), std::forward<Args>(args)...);
-    case LightmapTraceMode::ENV_GRID: // fallthrough
     default:
         HYP_NOT_IMPLEMENTED();
     }

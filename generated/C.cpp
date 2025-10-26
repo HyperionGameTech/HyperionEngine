@@ -1227,7 +1227,6 @@ namespace hyperion {
 HYP_BEGIN_ENUM(LightmapTraceMode, 332, 0, {})
 HypConstant(NAME(HYP_STR(GPU_PATH_TRACING)), LightmapTraceMode::GPU_PATH_TRACING),
     HypConstant(NAME(HYP_STR(CPU_PATH_TRACING)), LightmapTraceMode::CPU_PATH_TRACING),
-    HypConstant(NAME(HYP_STR(ENV_GRID)), LightmapTraceMode::ENV_GRID),
     HypConstant(NAME(HYP_STR(MAX)), LightmapTraceMode::MAX)
         HYP_END_ENUM
 
