@@ -21,7 +21,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <rendering/lightmapper/LightmapUVBuilder.hpp>
+#include <rendering/lightmapper/LightmapAtlas.hpp>
 
 namespace hyperion {
 
@@ -176,7 +176,7 @@ public:
     }
 
     virtual void Create() = 0;
-    virtual void PrepareJob(LightmapJobBase* job) { };
+    virtual void PrepareJob(LightmapJobBase* job) {};
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> outHits) = 0;
     virtual void Render(FrameBase* frame, const RenderSetup& renderSetup, LightmapJobBase* job, Span<const LightmapRay> rays, uint32 rayOffset) = 0;
@@ -223,26 +223,14 @@ public:
         return m_uuid;
     }
 
-    HYP_FORCE_INLINE LightmapUVBuilder& GetUVBuilder()
+    HYP_FORCE_INLINE LightmapAtlas& GetAtlas()
     {
-        return m_uvBuilder;
+        return m_atlas;
     }
 
-    HYP_FORCE_INLINE const LightmapUVBuilder& GetUVBuilder() const
+    HYP_FORCE_INLINE const LightmapAtlas& GetAtlas() const
     {
-        return m_uvBuilder;
-    }
-
-    HYP_FORCE_INLINE LightmapUVMap& GetUVMap()
-    {
-        Assert(m_uvMap.HasValue());
-        return *m_uvMap;
-    }
-
-    HYP_FORCE_INLINE const LightmapUVMap& GetUVMap() const
-    {
-        Assert(m_uvMap.HasValue());
-        return *m_uvMap;
+        return m_atlas;
     }
 
     HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
@@ -341,9 +329,9 @@ protected:
     Array<LightmapRay> m_previousFrameRays;
     mutable Mutex m_previousFrameRaysMutex;
 
-    LightmapUVBuilder m_uvBuilder;
-    Optional<LightmapUVMap> m_uvMap;
-    Task<TResult<LightmapUVMap>> m_buildUvMapTask;
+    LightmapAtlas m_atlas;
+    Task<Result> m_atlasBuildTask;
+    bool m_atlasBuilt;
 
     LightmapElement* m_lightmapElement;
 

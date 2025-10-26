@@ -76,7 +76,8 @@ struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
 {
     GpuBufferRef uniformBuffer;
 
-    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)(GpuBufferRef uniformBuffer)
+    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
+    (GpuBufferRef uniformBuffer)
         : uniformBuffer(std::move(uniformBuffer))
     {
     }
@@ -95,7 +96,8 @@ struct RENDER_COMMAND(SetGpuLightmapperReady)
 {
     RC<GpuLightmapperReadyNotification> notification;
 
-    RENDER_COMMAND(SetGpuLightmapperReady)(const RC<GpuLightmapperReadyNotification>& notification)
+    RENDER_COMMAND(SetGpuLightmapperReady)
+    (const RC<GpuLightmapperReadyNotification>& notification)
         : notification(notification)
     {
         Assert(notification != nullptr);
@@ -119,7 +121,7 @@ void LightmapJob_GpuPathTracing::GatherRays(uint32 maxRayHits, Array<LightmapRay
     {
         const uint32 texelIndex = NextTexel();
 
-        LightmapRay ray = m_uvMap->uvs[texelIndex].ray;
+        LightmapRay ray = m_atlas.texels[texelIndex].ray;
         ray.texelIndex = texelIndex;
 
         outRays.PushBack(ray);
@@ -130,22 +132,22 @@ void LightmapJob_GpuPathTracing::IntegrateRayHits(Span<const LightmapRay> rays, 
 {
     Assert(rays.Size() == hits.Size());
 
-    LightmapUVMap& uvMap = GetUVMap();
+    LightmapAtlas& atlas = GetAtlas();
 
     for (SizeType i = 0; i < hits.Size(); i++)
     {
         const LightmapRay& ray = rays[i];
         const LightmapHit& hit = hits[i];
 
-        LightmapUV& uv = uvMap.uvs[ray.texelIndex];
+        LightmapTexel& texel = atlas.texels[ray.texelIndex];
 
         switch (shadingType)
         {
         case LightmapShadingType::RADIANCE:
-            uv.radiance += Vec4f(hit.color, 1.0f); //= Vec4f(MathUtil::Lerp(uv.radiance.GetXYZ() * uv.radiance.w, hit.color.GetXYZ(), hit.color.w), 1.0f);
+            texel.radiance += Vec4f(hit.color, 1.0f);
             break;
         case LightmapShadingType::IRRADIANCE:
-            uv.irradiance += Vec4f(hit.color, 1.0f); //= Vec4f(MathUtil::Lerp(uv.irradiance.GetXYZ() * uv.irradiance.w, hit.color.GetXYZ(), hit.color.w), 1.0f);
+            texel.irradiance += Vec4f(hit.color, 1.0f);
             break;
         default:
             HYP_UNREACHABLE();

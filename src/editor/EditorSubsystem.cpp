@@ -67,7 +67,7 @@
 
 // temp
 #include <rendering/lightmapper/LightmapperSubsystem.hpp>
-#include <rendering/lightmapper/LightmapUVBuilder.hpp>
+#include <rendering/lightmapper/LightmapAtlas.hpp>
 
 #include <console/ui/ConsoleUI.hpp>
 

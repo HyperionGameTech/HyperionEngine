@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
 
@@ -73,7 +73,7 @@ struct LightmapRay
 static_assert(std::is_trivially_copy_constructible_v<LightmapRay>, "LightmapRay must be trivially copy constructible");
 static_assert(std::is_trivially_move_constructible_v<LightmapRay>, "LightmapRay must be trivially move constructible");
 
-struct LightmapUV
+struct LightmapTexel
 {
     Handle<Mesh> mesh;
     Handle<Material> material;
@@ -87,60 +87,24 @@ struct LightmapUV
     LightmapRay ray;
 };
 
-using LightmapAtlasBitmap = Bitmap_RGBA8;
-
-struct LightmapUVMap
+/*! \brief Base class for lightmap texel source, used to trace rays from and store texel data to. */
+class LightmapTexelsBase
 {
+public:
     // HashMap from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
     using MeshToUVIndicesMap = HashMap<ObjId<Mesh>, Array<uint32, DynamicAllocator>>;
 
     uint32 width = 0;
     uint32 height = 0;
 
-    /// UVs in texture space with each entry corresponding to a texel in the lightmap.
-    Array<LightmapUV> uvs;
+    /// Texels in UV space
+    Array<LightmapTexel> texels;
 
     // Mapping from mesh Id to the indices of the UVs that correspond to that mesh.
     MeshToUVIndicesMap meshToUvIndices;
 
-    LightmapAtlasBitmap ToBitmapRadiance() const;
-    LightmapAtlasBitmap ToBitmapIrradiance() const;
-};
-
-class LightmapUVBuilder
-{
-    using MeshFloatDataArray = Array<float, DynamicAllocator>;
-    using MeshIndexArray = Array<uint32, DynamicAllocator>;
-
-public:
-    LightmapUVBuilder() = default;
-
-    LightmapUVBuilder(const LightmapUVBuilderParams& params);
-
-    LightmapUVBuilder(const LightmapUVBuilder& other) = default;
-    LightmapUVBuilder(LightmapUVBuilder&& other) noexcept = default;
-
-    LightmapUVBuilder& operator=(const LightmapUVBuilder& other) = default;
-    LightmapUVBuilder& operator=(LightmapUVBuilder&& other) noexcept = default;
-
-    ~LightmapUVBuilder() = default;
-
-    HYP_FORCE_INLINE const Array<LightmapMeshData>& GetMeshData() const
-    {
-        return m_meshData;
-    }
-
-    TResult<LightmapUVMap> Build();
-
-private:
-    LightmapUVBuilderParams m_params;
-    Array<LightmapMeshData> m_meshData;
-
-    // Per element mesh data used for building the UV map
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexPositions;
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexNormals;
-    Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexUvs;
-    Array<Array<uint32>, DynamicAllocator> m_meshIndices;
+    LightmapTexelsBase() = default;
+    virtual ~LightmapTexelsBase() = default;
 };
 
 } // namespace hyperion

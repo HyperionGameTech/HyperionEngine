@@ -19,7 +19,7 @@
 namespace hyperion {
 
 class Texture;
-struct LightmapUVMap;
+class LightmapAtlas;
 class LightmapJobBase;
 class RenderProxyLightmapVolume;
 
@@ -174,11 +174,11 @@ public:
     }
 
     /*! \brief Add a LightmapElement to this volume. */
-    bool AddElement(const LightmapUVMap& uvMap, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
+    bool AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElement::Id elementId) const;
 
-    bool BuildElementTextures(const LightmapUVMap& uvMap, LightmapElement::Id elementId);
+    bool BuildElementTextures(const LightmapAtlas& atlas, LightmapElement::Id elementId);
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 

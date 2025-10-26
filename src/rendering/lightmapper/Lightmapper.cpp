@@ -75,7 +75,8 @@ struct RENDER_COMMAND(LightmapRender)
     Array<LightmapRay> rays;
     uint32 rayOffset;
 
-    RENDER_COMMAND(LightmapRender)(LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
+    RENDER_COMMAND(LightmapRender)
+    (LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
         : job(job),
           world(world),
           view(view),
@@ -186,6 +187,7 @@ static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
     : m_params(std::move(params)),
       m_texelIndex(0),
+      m_atlasBuilt(false),
       m_lightmapElement(nullptr),
       m_lastLoggedPercentage(0),
       numConcurrentRenderingTasks(0)
@@ -208,23 +210,23 @@ void LightmapJobBase::Start()
 {
     m_runningSemaphore.Produce(1, [this](bool)
         {
-            if (!m_uvMap.HasValue())
+            if (!m_atlasBuilt)
             {
                 // No elements to process
                 if (!m_params.subElementsView)
                 {
-                    m_uvMap = LightmapUVMap {};
+                    m_atlas = LightmapAtlas { {} };
 
                     return;
                 }
 
                 HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
 
-                m_uvBuilder = LightmapUVBuilder { { m_params.subElementsView } };
+                m_atlas = LightmapAtlas { { m_params.subElementsView } };
 
-                m_buildUvMapTask = TaskSystem::GetInstance().Enqueue([this]() -> TResult<LightmapUVMap>
+                m_atlasBuildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
                     {
-                        return m_uvBuilder.Build();
+                        return m_atlas.Build();
                     },
                     TaskThreadPoolName::THREAD_POOL_BACKGROUND);
             }
@@ -262,37 +264,33 @@ void LightmapJobBase::Process()
     Assert(IsRunning());
     Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
 
-    if (!m_uvMap.HasValue())
+    if (!m_atlasBuilt)
     {
         // wait for uv map to finish building
 
         // If uv map is not valid, it must have a task that is building it
-        Assert(m_buildUvMapTask.IsValid());
+        Assert(m_atlasBuildTask.IsValid());
 
-        if (!m_buildUvMapTask.IsCompleted())
+        if (!m_atlasBuildTask.IsCompleted())
         {
             // return early so we don't block - we need to wait for build task to complete before processing
             return;
         }
 
-        if (TResult<LightmapUVMap>& uvMapResult = m_buildUvMapTask.Await(); uvMapResult.HasValue())
+        if (Result result = m_atlasBuildTask.Await(); result.HasError())
         {
-            m_uvMap = std::move(*uvMapResult);
-        }
-        else
-        {
-            Stop(uvMapResult.GetError());
+            Stop(result.GetError());
 
             return;
         }
 
-        if (m_uvMap.HasValue())
+        if (m_atlas.IsBuilt())
         {
             LightmapElement lightmapElement;
-            if (!m_params.volume->AddElement(*m_uvMap, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+            if (!m_params.volume->AddElement({ m_atlas.width, m_atlas.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
             {
                 Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
-                    m_uuid, Vec2u(m_uvMap->width, m_uvMap->height)));
+                    m_uuid, Vec2u(m_atlas.width, m_atlas.height)));
 
                 return;
             }
@@ -307,15 +305,17 @@ void LightmapJobBase::Process()
             }
 
             // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
-            m_texelIndices.Reserve(m_uvMap->uvs.Size());
+            m_texelIndices.Reserve(m_atlas.texels.Size());
 
-            for (const auto& it : m_uvMap->meshToUvIndices)
+            for (const auto& it : m_atlas.meshToUvIndices)
             {
                 m_texelIndices.Concat(it.second);
             }
 
             // Free up memory
-            m_uvMap->meshToUvIndices.Clear();
+            m_atlas.meshToUvIndices.Clear();
+
+            m_atlasBuilt = true;
         }
         else
         {
@@ -700,7 +700,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 
     HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
 
-    const LightmapUVMap& uvMap = job->GetUVMap();
+    const LightmapAtlas& atlas = job->GetAtlas();
 
     LightmapElement* lightmapElement = job->GetLightmapElement();
 
@@ -711,7 +711,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
         return;
     }
 
-    if (!m_volume->BuildElementTextures(uvMap, lightmapElement->id))
+    if (!m_volume->BuildElementTextures(atlas, lightmapElement->id))
     {
         HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
 
@@ -730,9 +730,9 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
             const Handle<Mesh>& mesh = subElement.mesh;
             Assert(mesh.IsValid());
 
-            Assert(subElementIndex < job->GetUVBuilder().GetMeshData().Size());
+            Assert(subElementIndex < job->GetAtlas().GetMeshData().Size());
 
-            const LightmapMeshData& lightmapMeshData = job->GetUVBuilder().GetMeshData()[subElementIndex];
+            const LightmapMeshData& lightmapMeshData = job->GetAtlas().GetMeshData()[subElementIndex];
             Assert(lightmapMeshData.mesh == mesh);
 
             MeshDesc newMeshDesc;
