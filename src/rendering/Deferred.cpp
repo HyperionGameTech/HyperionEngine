@@ -1664,7 +1664,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             RaytracingPassData* pdCasted = ObjCast<RaytracingPassData>(pd.Get());
             Assert(pdCasted != nullptr);
 
-            RenderSetup newRs = rs;
+            RenderSetup newRs = rs.Fork();
             newRs.passData = pd;
             newRs.view = view;
 
@@ -1733,9 +1733,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         }
     }
 
-    // Render global environment probes and grids and set fallbacks
-    RenderSetup newRs = rs;
-
     // Render shadows for shadow casting lights
     for (uint32 lightType = 0; lightType < LT_MAX; lightType++)
     {
@@ -1755,14 +1752,17 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
             if (light->GetLightFlags() & LF_SHADOW)
             {
-                newRs.light = light;
-                shadowRenderer->RenderFrame(frame, newRs);
-                newRs.light = nullptr;
+                RenderSetup shadowRs = rs.Fork();
+                shadowRs.light = light;
+
+                shadowRenderer->RenderFrame(frame, shadowRs);
             }
         }
     }
 
     {
+        RenderSetup newRs = rs.Fork();
+
         // Set sky as fallback probe
         if (envProbes[EPT_SKY].Any())
         {
@@ -1782,11 +1782,10 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                 {
                     for (EnvProbe* envProbe : envProbes[envProbeType])
                     {
-                        newRs.envProbe = envProbe;
+                        RenderSetup envProbeRs = newRs.Fork();
+                        envProbeRs.envProbe = envProbe;
 
-                        renderer->RenderFrame(frame, newRs);
-
-                        newRs.envProbe = nullptr;
+                        renderer->RenderFrame(frame, envProbeRs);
                     }
                 }
                 else
@@ -1800,24 +1799,23 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         {
             for (EnvGrid* envGrid : envGrids)
             {
+                RenderSetup envGridRs = newRs.Fork();
+
                 // Set global directional light as fallback
                 if (envGridLights.Contains(envGrid))
                 {
-                    newRs.light = envGridLights[envGrid];
+                    envGridRs.light = envGridLights[envGrid];
                 }
 
-                newRs.envGrid = envGrid;
+                envGridRs.envGrid = envGrid;
 
-                g_renderGlobalState->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, newRs);
+                g_renderGlobalState->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridRs);
 
-                newRs.light = nullptr;
-                newRs.envGrid = nullptr;
+                envGridRs.light = nullptr;
+                envGridRs.envGrid = nullptr;
             }
         }
     }
-
-    // reset renderer state back to what it was before
-    newRs = rs;
 
     for (View* view : rs.world->GetViews())
     {
@@ -1827,6 +1825,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         {
             continue;
         }
+
+        RenderSetup newRs = rs.Fork();
 
         const Handle<DeferredPassData>& pd = ObjCast<DeferredPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);

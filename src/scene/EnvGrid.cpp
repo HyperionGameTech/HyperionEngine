@@ -219,10 +219,11 @@ void LegacyEnvGrid::Init()
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
             ViewOutputTargetAttachmentDesc {
-                TF_R16, // distance, distance^2 (packed)
+                TF_R16F,
                 TT_CUBEMAP,
                 LoadOperation::CLEAR,
-                StoreOperation::STORE },
+                StoreOperation::STORE,
+                MathUtil::Infinity<Vec4f>() }, // @TODO Review
             ViewOutputTargetAttachmentDesc {
                 g_renderBackend->GetDefaultFormat(DIF_DEPTH),
                 TT_CUBEMAP,

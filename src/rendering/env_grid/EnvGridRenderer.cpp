@@ -114,10 +114,10 @@ struct EnvProbeGridIndex
 
 #pragma region Global Constants
 
-static const Vec2u shNumSamples { 16, 16 };
-static const Vec2u shNumTiles { 16, 16 };
-static const uint32 shNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(shNumSamples.Max()) + 1));
-static const bool shParallelReduce = false;
+static const Vec2u ShNumSamples { 16, 16 };
+static const Vec2u ShNumTiles { 16, 16 };
+static const uint32 ShNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(ShNumSamples.Max()) + 1));
+static const bool ShParallelReduce = false;
 
 static const uint32 maxQueuedProbesForRender = 1;
 
@@ -379,11 +379,11 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
 
     AssertDebug(envGrid != nullptr);
 
-    pd.shTilesBuffers.Resize(shNumLevels);
+    pd.shTilesBuffers.Resize(ShNumLevels);
 
-    for (uint32 i = 0; i < shNumLevels; i++)
+    for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        const SizeType size = sizeof(SHTile) * (shNumTiles.x >> i) * (shNumTiles.y >> i);
+        const SizeType size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
         pd.shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
         pd.shTilesBuffers[i]->SetRequireCpuAccessible(true);
 
@@ -404,9 +404,9 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
 
     const DescriptorTableDeclaration& descriptorTableDecl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    pd.computeShDescriptorTables.Resize(shNumLevels);
+    pd.computeShDescriptorTables.Resize(ShNumLevels);
 
-    for (uint32 i = 0; i < shNumLevels; i++)
+    for (uint32 i = 0; i < ShNumLevels; i++)
     {
         pd.computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
@@ -420,7 +420,7 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
             computeShDescriptorSet->SetElement("InDepthCubemap", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultCubemap));
             computeShDescriptorSet->SetElement("InputSHTilesBuffer", pd.shTilesBuffers[i]);
 
-            if (i != shNumLevels - 1)
+            if (i != ShNumLevels - 1)
             {
                 computeShDescriptorSet->SetElement("OutputSHTilesBuffer", pd.shTilesBuffers[i + 1]);
             }
@@ -804,20 +804,20 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
     asyncRenderQueue << DispatchCompute(pd->computeSh, Vec3u { 1, 1, 1 });
 
     // Parallel reduce
-    if (shParallelReduce)
+    if (ShParallelReduce)
     {
-        for (uint32 i = 1; i < shNumLevels; i++)
+        for (uint32 i = 1; i < ShNumLevels; i++)
         {
             asyncRenderQueue << InsertBarrier(pd->shTilesBuffers[i - 1], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
             const Vec2u prevDimensions {
-                MathUtil::Max(1u, shNumSamples.x >> (i - 1)),
-                MathUtil::Max(1u, shNumSamples.y >> (i - 1))
+                MathUtil::Max(1u, ShNumSamples.x >> (i - 1)),
+                MathUtil::Max(1u, ShNumSamples.y >> (i - 1))
             };
 
             const Vec2u nextDimensions {
-                MathUtil::Max(1u, shNumSamples.x >> i),
-                MathUtil::Max(1u, shNumSamples.y >> i)
+                MathUtil::Max(1u, ShNumSamples.x >> i),
+                MathUtil::Max(1u, ShNumSamples.y >> i)
             };
 
             Assert(prevDimensions.x >= 2);
@@ -847,7 +847,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
         }
     }
 
-    const uint32 finalizeShBufferIndex = shParallelReduce ? shNumLevels - 1 : 0;
+    const uint32 finalizeShBufferIndex = ShParallelReduce ? ShNumLevels - 1 : 0;
 
     // Finalize - build into final buffer
     asyncRenderQueue << InsertBarrier(pd->shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);

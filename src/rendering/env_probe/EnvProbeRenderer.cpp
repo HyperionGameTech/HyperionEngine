@@ -36,10 +36,10 @@
 
 namespace hyperion {
 
-static constexpr Vec2u shNumSamples = { 16, 16 };
-static constexpr Vec2u shNumTiles = { 16, 16 };
-static constexpr uint32 shNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(shNumSamples.Max()) + 1));
-static constexpr bool shParallelReduce = false;
+static constexpr Vec2u ShNumSamples = { 16, 16 };
+static constexpr Vec2u ShNumTiles = { 16, 16 };
+static constexpr uint32 ShNumLevels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(ShNumSamples.Max()) + 1));
+static constexpr bool ShParallelReduce = false;
 
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
@@ -88,6 +88,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSe
     RenderSetup rs = renderSetup;
     rs.view = envProbe->GetView().Get();
     rs.passData = FetchViewPassData(rs.view);
+    rs.envProbe = renderSetup.prev ? renderSetup.prev->envProbe : nullptr;
 
     RenderProbe(frame, rs, envProbe);
 }
@@ -430,15 +431,15 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     AttachmentBase* normalsAttachment = framebuffer->GetAttachment(1);
     AttachmentBase* depthAttachment = framebuffer->GetAttachment(2);
 
-    Array<GpuBufferRef> shTilesBuffers;
-    shTilesBuffers.Resize(shNumLevels);
+    Array<GpuBufferRef, FixedAllocator<ShNumLevels>> shTilesBuffers;
+    shTilesBuffers.Resize(ShNumLevels);
 
-    Array<DescriptorTableRef> shTilesDescriptorTables;
-    shTilesDescriptorTables.Resize(shNumLevels);
+    Array<DescriptorTableRef, FixedAllocator<ShNumLevels>> shTilesDescriptorTables;
+    shTilesDescriptorTables.Resize(ShNumLevels);
 
-    for (uint32 i = 0; i < shNumLevels; i++)
+    for (uint32 i = 0; i < ShNumLevels; i++)
     {
-        const SizeType size = sizeof(SHTile) * (shNumTiles.x >> i) * (shNumTiles.y >> i);
+        const SizeType size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
 
         shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
         shTilesBuffers[i]->SetRequireCpuAccessible(true);
@@ -473,10 +474,10 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     const DescriptorTableDeclaration& descriptorTableDecl = firstShader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    Array<DescriptorTableRef> computeShDescriptorTables;
-    computeShDescriptorTables.Resize(shNumLevels);
+    Array<DescriptorTableRef, FixedAllocator<ShNumLevels>> computeShDescriptorTables;
+    computeShDescriptorTables.Resize(ShNumLevels);
 
-    for (uint32 i = 0; i < shNumLevels; i++)
+    for (uint32 i = 0; i < ShNumLevels; i++)
     {
         computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
 
@@ -490,7 +491,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
             computeShDescriptorSet->SetElement("InDepthCubemap", depthAttachment ? depthAttachment->GetImageView() : g_renderGlobalState->placeholderData->GetImageViewCube1x1R8());
             computeShDescriptorSet->SetElement("InputSHTilesBuffer", shTilesBuffers[i]);
 
-            if (i != shNumLevels - 1)
+            if (i != ShNumLevels - 1)
             {
                 computeShDescriptorSet->SetElement("OutputSHTilesBuffer", shTilesBuffers[i + 1]);
             }
@@ -592,9 +593,9 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     asyncRenderQueue << DispatchCompute(pipelines[NAME("BuildCoeffs")].second, Vec3u { 1, 1, 1 });
 
     // Parallel reduce
-    if (shParallelReduce)
+    if (ShParallelReduce)
     {
-        for (uint32 i = 1; i < shNumLevels; i++)
+        for (uint32 i = 1; i < ShNumLevels; i++)
         {
             asyncRenderQueue << InsertBarrier(
                 shTilesBuffers[i - 1],
@@ -602,13 +603,13 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
                 SMT_COMPUTE);
 
             const Vec2u prevDimensions {
-                MathUtil::Max(1u, shNumSamples.x >> (i - 1)),
-                MathUtil::Max(1u, shNumSamples.y >> (i - 1))
+                MathUtil::Max(1u, ShNumSamples.x >> (i - 1)),
+                MathUtil::Max(1u, ShNumSamples.y >> (i - 1))
             };
 
             const Vec2u nextDimensions {
-                MathUtil::Max(1u, shNumSamples.x >> i),
-                MathUtil::Max(1u, shNumSamples.y >> i)
+                MathUtil::Max(1u, ShNumSamples.x >> i),
+                MathUtil::Max(1u, ShNumSamples.y >> i)
             };
 
             Assert(prevDimensions.x >= 2);
@@ -637,7 +638,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         }
     }
 
-    const uint32 finalizeShBufferIndex = shParallelReduce ? shNumLevels - 1 : 0;
+    const uint32 finalizeShBufferIndex = ShParallelReduce ? ShNumLevels - 1 : 0;
 
     // Finalize - build into final buffer
     asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);

@@ -206,7 +206,7 @@ void EnvProbe::CreateView()
             .storeOp = StoreOperation::STORE });
 
         outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = TF_R16,
+            .format = TF_RG16F,
             .imageType = TT_CUBEMAP,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
@@ -232,7 +232,7 @@ void EnvProbe::CreateView()
     if (IsReflectionProbe())
     {
         shaderDefinition = ShaderDefinition(NAME("RenderToCubemap"),
-            ShaderProperties(staticMeshVertexAttributes, { NAME("ENV_PROBE"), NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }));
+            ShaderProperties(staticMeshVertexAttributes, { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }));
     }
     else if (IsSkyProbe())
     {

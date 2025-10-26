@@ -3,14 +3,14 @@
     "IndirectRendering": true,
     "ParallelCollection": true,
     "SSR": {
-      "ConeTracing": false,
-      "NumIterations": 32,
-      "Quality": 2,
-      "EyeFade": [0.980000, 0.990000],
-      "RayStep": 1.500000,
       "Enabled": true,
-      "ScreenEdgeFade": [0.960000, 0.990000],
-      "RoughnessScattering": true
+      "Quality": 2,
+      "RoughnessScattering": true,
+      "ConeTracing": false,
+      "RayStep": 1.500000,
+      "NumIterations": 64,
+      "EyeFade": [0.990000, 0.995000],
+      "ScreenEdgeFade": [0.990000, 0.995000]
     },
     "EnvGrid": {
       "Reflections": {

@@ -137,7 +137,7 @@ void SSRRenderer::Create()
         m_temporalBlending = MakeUnique<TemporalBlending>(
             m_config.extent,
             SsrFormat,
-            TemporalBlendTechnique::TECHNIQUE_1,
+            TemporalBlendTechnique::TECHNIQUE_2,
             TemporalBlendFeedback::HIGH,
             g_renderBackend->GetTextureImageView(m_sampledResultTexture),
             m_gbuffer);

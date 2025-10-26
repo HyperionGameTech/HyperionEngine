@@ -89,6 +89,8 @@ struct HYP_API RenderSetup
     Light* light;
     PassData* passData;
 
+    RenderSetup* prev;
+
 private:
     // Private constructor for null RenderSetup
     RenderSetup()
@@ -97,7 +99,8 @@ private:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
-          passData(nullptr)
+          passData(nullptr),
+          prev(nullptr)
     {
     }
 
@@ -108,7 +111,8 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
-          passData(nullptr)
+          passData(nullptr),
+          prev(nullptr)
     {
         AssertDebug(world != nullptr, "RenderSetup must have a valid World");
     }
@@ -119,7 +123,8 @@ public:
           envProbe(nullptr),
           envGrid(nullptr),
           light(nullptr),
-          passData(nullptr)
+          passData(nullptr),
+          prev(nullptr)
     {
         AssertDebug(world != nullptr, "RenderSetup must have a valid World");
     }
@@ -156,6 +161,15 @@ public:
     {
         return view != nullptr;
     }
+
+    /*! \brief Creates a forked RenderSetup that has this RenderSetup as its previous setup.
+     *  This is useful for creating nested RenderSetups that can refer back to their parent setup if needed. */
+    RenderSetup Fork() const
+    {
+        RenderSetup forked = *this;
+        forked.prev = const_cast<RenderSetup*>(this);
+        return forked;
+    }
 };
 
 /*! \brief Special null RenderSetup that can be used for simple rendering tasks that don't make sense to use a World, such as rendering texture mipmaps.
@@ -164,6 +178,8 @@ extern const RenderSetup& NullRenderSetup();
 
 struct PassDataExt
 {
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     TypeId typeId;
 
     PassDataExt()

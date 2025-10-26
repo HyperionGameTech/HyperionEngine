@@ -18,18 +18,16 @@ layout(location = 0) out vec4 output_color;
 #ifdef WRITE_NORMALS
 layout(location = 1) out vec4 output_normals;
 #ifdef WRITE_MOMENTS
-layout(location = 2) out uint output_moments;
-#endif
-#else
+layout(location = 2) out vec2 output_moments;
+#endif // WRITE_MOMENTS
+#else // WRITE_NORMALS
 #ifdef WRITE_MOMENTS
-layout(location = 1) out uint output_moments;
-#endif
-#endif
+layout(location = 1) out vec2 output_moments;
+#endif // WRITE_MOMENTS
+#endif // !WRITE_NORMALS
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear)
-uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest)
-uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
@@ -147,6 +145,6 @@ void main()
 #endif
 
 #ifdef WRITE_MOMENTS
-    output_moments = packHalf2x16(moments);
+    output_moments = moments;
 #endif
 }

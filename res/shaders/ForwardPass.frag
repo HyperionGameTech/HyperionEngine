@@ -47,46 +47,35 @@ uniform sampler sampler_nearest;
 #include "include/env_probe.inc"
 #include "include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain)
-uniform texture2D gbuffer_mip_chain;
+HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16)
-uniform texture2D env_probe_textures[16];
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer)
-uniform EnvGridsBuffer
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
 {
     EnvGrid env_grid;
 };
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer)
-readonly buffer EnvProbesBuffer
+HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
 {
     EnvProbe env_probes[];
 };
 
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture)
-uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture)
-uniform texture2D light_field_depth_texture;
+HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
+HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer)
-uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer)
-uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray)
-uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray)
-uniform textureCubeArray point_shadow_maps;
+HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer)
-readonly buffer LightmapVolumesBuffer
+HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer) readonly buffer LightmapVolumesBuffer
 {
     LightmapVolume lightmap_volumes[];
 };
@@ -99,21 +88,18 @@ readonly buffer LightmapVolumesBuffer
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe)
-readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer)
-readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
 {
     Object objects[];
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, ObjectsBuffer)
-readonly buffer ObjectsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, ObjectsBuffer) readonly buffer ObjectsBuffer
 {
     Object object;
 };
@@ -121,15 +107,13 @@ readonly buffer ObjectsBuffer
 
 // @TODO Refactor to use LightsBuffer instead
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight)
-readonly buffer CurrentLight
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer)
-readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[HYP_MAX_MATERIALS];
 };
@@ -139,8 +123,7 @@ readonly buffer MaterialsBuffer
 #endif
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer)
-readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Object, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -151,11 +134,9 @@ readonly buffer MaterialsBuffer
 #endif
 
 #ifndef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16)
-uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
+HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
 #else
-HYP_DESCRIPTOR_SRV(Material, Textures)
-uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
 #endif
 
 #if PARALLAX_ENABLED
@@ -391,6 +372,9 @@ void main()
     materialParams.transmission = transmission;
     materialParams.ao = ao;
     materialParams.mask = mask;
+
+    // // debug texcoord1
+    // gbuffer_albedo = vec4(v_texcoord1, 0.0, 1.0);
 
     gbuffer_normals = EncodeNormal(N);
     gbuffer_material = GBufferPackMaterialParams(materialParams);
