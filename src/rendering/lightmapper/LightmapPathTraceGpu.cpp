@@ -113,50 +113,6 @@ struct RENDER_COMMAND(SetGpuLightmapperReady)
 
 #pragma endregion Render commands
 
-#pragma region LightmapJob_GpuPathTracing
-
-void LightmapJob_GpuPathTracing::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
-{
-    for (uint32 rayIndex = 0; rayIndex < maxRayHits && HasRemainingTexels(); ++rayIndex)
-    {
-        const uint32 texelIndex = NextTexel();
-
-        LightmapRay ray = m_atlas.texels[texelIndex].ray;
-        ray.texelIndex = texelIndex;
-
-        outRays.PushBack(ray);
-    }
-}
-
-void LightmapJob_GpuPathTracing::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
-{
-    Assert(rays.Size() == hits.Size());
-
-    LightmapAtlas& atlas = GetAtlas();
-
-    for (SizeType i = 0; i < hits.Size(); i++)
-    {
-        const LightmapRay& ray = rays[i];
-        const LightmapHit& hit = hits[i];
-
-        LightmapTexel& texel = atlas.texels[ray.texelIndex];
-
-        switch (shadingType)
-        {
-        case LightmapShadingType::RADIANCE:
-            texel.radiance += Vec4f(hit.color, 1.0f);
-            break;
-        case LightmapShadingType::IRRADIANCE:
-            texel.irradiance += Vec4f(hit.color, 1.0f);
-            break;
-        default:
-            HYP_UNREACHABLE();
-        }
-    }
-}
-
-#pragma endregion LightmapJob_GpuPathTracing
-
 #pragma region LightmapRenderer_GpuPathTracing
 
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(

@@ -280,15 +280,19 @@ public:
     void Start();
     void Process();
 
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays) = 0;
-
     void AddTask(TaskBatch* taskBatch);
 
     /*! \brief Integrate ray hits into the lightmap.
      *  \param rays The rays that were traced.
      *  \param hits The hits to integrate.
      */
-    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType) = 0;
+    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType);
+
+    /*! \brief Gather next rays to be traced.
+     *  \param maxRayHits The maximum number of rays to gather.
+     *  \param outRays The output array to store gathered rays.
+     */
+    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays);
 
     bool IsCompleted() const;
 
@@ -301,6 +305,11 @@ public:
     AtomicVar<uint32> numConcurrentRenderingTasks;
 
 protected:
+    /*virtual void Start_Internal() = 0;
+    virtual void Process_Internal() = 0;
+
+    virtual LightmapTexelsBase& GetTexels() = 0;*/
+
     HYP_FORCE_INLINE bool HasRemainingTexels() const
     {
         return m_texelIndex < m_texelIndices.Size() * m_params.config->numSamples;
@@ -397,7 +406,11 @@ protected:
     {
     }
 
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params)
+    {
+        return MakeUnique<LightmapJobBase>(std::move(params));
+    }
+
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) = 0;
 
     LightmapperConfig m_config;

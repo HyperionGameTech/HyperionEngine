@@ -46,20 +46,6 @@ private:
     static uint32 NumThreadsToCreate();
 };
 
-class HYP_API LightmapJob_CpuPathTracing : public LightmapJobBase
-{
-public:
-    LightmapJob_CpuPathTracing(LightmapJobParams&& params)
-        : LightmapJobBase(std::move(params))
-    {
-    }
-
-    virtual ~LightmapJob_CpuPathTracing() override = default;
-
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays) override;
-    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType) override;
-};
-
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {
 public:
@@ -169,11 +155,6 @@ public:
     virtual ~Lightmapper_CpuPathTracing() override;
 
 private:
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
-    {
-        return MakeUnique<LightmapJob_CpuPathTracing>(std::move(params));
-    }
-
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) override
     {
         return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), &m_threadPool, m_scene, shadingType);

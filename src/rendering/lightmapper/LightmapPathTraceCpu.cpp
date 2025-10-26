@@ -325,48 +325,6 @@ uint32 LightmapThreadPool::NumThreadsToCreate()
 
 #pragma endregion LightmapThreadPool
 
-#pragma region LightmapJob_CpuPathTracing
-
-void LightmapJob_CpuPathTracing::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
-{
-    for (uint32 rayIndex = 0; rayIndex < maxRayHits && HasRemainingTexels(); ++rayIndex)
-    {
-        const uint32 texelIndex = NextTexel();
-
-        LightmapRay ray = m_atlas.texels[texelIndex].ray;
-        ray.texelIndex = texelIndex;
-
-        outRays.PushBack(ray);
-    }
-}
-
-void LightmapJob_CpuPathTracing::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
-{
-    Assert(rays.Size() == hits.Size());
-
-    for (SizeType i = 0; i < hits.Size(); i++)
-    {
-        const LightmapRay& ray = rays[i];
-        const LightmapHit& hit = hits[i];
-
-        LightmapTexel& texel = m_atlas.texels[ray.texelIndex];
-
-        switch (shadingType)
-        {
-        case LightmapShadingType::RADIANCE:
-            texel.radiance += Vec4f(hit.color, 1.0f);
-            break;
-        case LightmapShadingType::IRRADIANCE:
-            texel.irradiance += Vec4f(hit.color, 1.0f);
-            break;
-        default:
-            HYP_UNREACHABLE();
-        }
-    }
-}
-
-#pragma endregion LightmapJob_CpuPathTracing
-
 #pragma region LightmapRenderer_CpuPathTracing
 
 LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(
