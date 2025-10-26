@@ -611,8 +611,7 @@ RendererResult VulkanGpuImage::Blit(
             | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
             | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 
-        /* Blit src -> dst */
-        const VkImageBlit blit {
+        VkImageBlit blit {
             .srcSubresource = {
                 .aspectMask = aspectFlagBits,
                 .mipLevel = src.baseMipLevel,
@@ -671,8 +670,7 @@ RendererResult VulkanGpuImage::Blit(
         | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
         | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 
-    /* Blit src -> dst */
-    const VkImageBlit blit {
+    VkImageBlit blit {
         .srcSubresource = {
             .aspectMask = aspectFlagBits,
             .mipLevel = srcMip,

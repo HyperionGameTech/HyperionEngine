@@ -20,7 +20,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
-static constexpr SizeType StatPoolBlockSize = 1024 * 1024;
+static constexpr SizeType StatPoolBlockSize = 1 << 18;
 static constexpr const char* RootStatGroupName = "Root";
 
 static bool s_isInitializing = false;
@@ -358,18 +358,13 @@ void EngineStatsRecorder::Prepare()
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
 
-    // EngineStatsSnapshot& snapshot = m_pImpl->snapshot;
-
-    // for (int i = 0; i < EngineStatsMaxStats; i++)
-    // {
-    //     snapshot.values[i] = {};
-    //     snapshot.values[i].statId = i;
-    //     snapshot.values[i].type = EST_MAX;
-    //     snapshot.values[i].value = 0.0;
-    //     snapshot.values[i].min = DBL_MAX;
-    //     snapshot.values[i].max = -DBL_MAX;
-    //     snapshot.values[i].avg = 0.0;
-    // }
+    const uint32 sampleIdx = m_pImpl->sampleIndex % EngineStatsNumSamples;
+    
+    // clear sample data for this sample index
+    for (int statId = 0; statId < EngineStatsMaxStats; statId++)
+    {
+        SetSampleData(statId, sampleIdx, 0.0);
+    }
 }
 
 void EngineStatsRecorder::BeginGameStatsFrame()
@@ -439,6 +434,7 @@ void EngineStatsRecorder::Advance()
 
     EngineStats& engineStats = GetGlobalEngineStats();
 
+    // integrate values into sample data
     for (int statId = NumReservedStatIds; statId < EngineStatsMaxStats; ++statId)
     {
         EngineStatBase* stat = engineStats.linearStats[statId];
@@ -451,7 +447,8 @@ void EngineStatsRecorder::Advance()
         double value = stat->GetValue();
         stat->Reset();
 
-        SetSampleData(statId, sampleIdx, value);
+        const double currValue = GetSampleData(statId, sampleIdx);
+        SetSampleData(statId, sampleIdx, value + currValue);
     }
 
     const uint32 actualNumSamples = MathUtil::Min(m_pImpl->numSamples + 1u, EngineStatsNumSamples);

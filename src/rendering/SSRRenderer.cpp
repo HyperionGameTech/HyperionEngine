@@ -114,7 +114,7 @@ void SSRRenderer::Create()
         1,
         IU_STORAGE | IU_SAMPLED });
 
-    m_uvsTexture->SetName(NAME("SsrUvs"));
+    m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
     InitObject(m_uvsTexture);
 
     m_sampledResultTexture = CreateObject<Texture>(TextureDesc {
@@ -126,8 +126,8 @@ void SSRRenderer::Create()
         TWM_CLAMP_TO_EDGE,
         1,
         IU_STORAGE | IU_SAMPLED });
-
-    m_sampledResultTexture->SetName(NAME("SsrSampledResult"));
+    
+    m_uvsTexture->SetName(NAME("SSRTexture_SampledResult"));
     InitObject(m_sampledResultTexture);
 
     CreateUniformBuffers();

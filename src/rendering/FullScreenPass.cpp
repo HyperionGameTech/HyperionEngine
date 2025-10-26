@@ -428,6 +428,7 @@ void FullScreenPass::CreatePreviousTexture()
         TFM_LINEAR,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE });
+    m_previousTexture->SetName(NAME_FMT("{}_PreviousFrameTexture", InstanceClass()->GetName()));
 
     InitObject(m_previousTexture);
 }

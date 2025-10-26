@@ -439,6 +439,8 @@ void View::CreateReadbackTexture()
         1,
         IU_SAMPLED });
 
+    m_readbackTexture->SetName(NAME_FMT("View_{}_ReadbackTexture", Id().Value()));
+
     if (IsInitCalled())
     {
         InitObject(m_readbackTexture);

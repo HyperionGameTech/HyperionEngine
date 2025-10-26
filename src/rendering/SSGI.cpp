@@ -120,6 +120,8 @@ void SSGI::Create()
         1,
         IU_STORAGE | IU_SAMPLED });
 
+    m_resultTexture->SetName(NAME("SSGITexture"));
+
     InitObject(m_resultTexture);
 
     CreateUniformBuffers();

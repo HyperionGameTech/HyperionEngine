@@ -43,7 +43,9 @@ void SkydomeRenderer::Init()
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR });
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures/SkydomeRenderer_Cubemap", m_cubemap);
+    m_cubemap->SetName(NAME("Skydome_Cubemap"));
+
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", m_cubemap);
     InitObject(m_cubemap);
 
     m_virtualScene = CreateObject<Scene>(SceneFlags::NONE);
