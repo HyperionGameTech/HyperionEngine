@@ -269,7 +269,7 @@ public:
 
         if (wasPersistent != isPersistent)
         {
-            SetIsPersistentlyLoaded(isPersistent);
+            SetIsPersistentlyLoaded(isPersistent, /* setFlag */ false);
         }
     }
 
@@ -280,7 +280,7 @@ public:
     }
 
     HYP_METHOD()
-    void SetIsPersistentlyLoaded(bool persistentlyLoaded);
+    void SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag = true);
 
     HYP_METHOD()
     bool IsTransient() const

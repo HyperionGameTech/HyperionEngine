@@ -242,11 +242,14 @@ void AssetObject::Init()
     SetReady(true);
 }
 
-void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded)
+void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
 {
     HYP_SCOPE;
 
-    m_flags[AOF_PERSISTENT] = persistentlyLoaded;
+    if (setFlag)
+    {
+        m_flags[AOF_PERSISTENT] = persistentlyLoaded;
+    }
 
     if (persistentlyLoaded)
     {
@@ -275,13 +278,17 @@ void AssetObject::SetIsTransient(bool isTransient)
 
     m_flags[AOF_TRANSIENT] = isTransient;
 
-    if (isTransient)
+    if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetIsPersistentlyLoaded(true);
+        SetIsPersistentlyLoaded(true, /* setFlag */ false);
 
         // transient assets don't have a manifest filepath as they are not saved to disk.
         m_manifestPath = FilePath();
+    }
+    else
+    {
+        SetIsPersistentlyLoaded(m_flags[AOF_PERSISTENT], /* setFlag */ false);
     }
 }
 
@@ -291,13 +298,17 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
 
     m_flags[AOF_TRANSIENT_BY_PROXY] = isTransientByProxy;
 
-    if (isTransientByProxy)
+    if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetIsPersistentlyLoaded(true);
+        SetIsPersistentlyLoaded(true, /* setFlag */ false);
 
         // transient assets don't have a manifest filepath as they are not saved to disk.
         m_manifestPath = FilePath();
+    }
+    else
+    {
+        SetIsPersistentlyLoaded(m_flags[AOF_PERSISTENT], /* setFlag */ false);
     }
 }
 

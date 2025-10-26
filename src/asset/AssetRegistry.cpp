@@ -1132,6 +1132,141 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
     MarkDirty();
 }
 
+void AssetPackage::Prune(bool* outShouldDestroy)
+{
+    HYP_SCOPE;
+
+    // Prune no longer ref'd asset objects
+    if (IsTransient())
+    {
+        Array<Handle<AssetObject>> objectsToDelete;
+
+        {
+            Mutex::Guard guard(m_mutex);
+
+            for (auto it = m_assetObjects.Begin(); it != m_assetObjects.End();)
+            {
+                const Handle<AssetObject>& assetObject = *it;
+
+                // @FIXME Will have issues with .NET objects having extra ref attached, needs to account for that
+                if (assetObject->GetObjectHeader_Internal()->GetRefCountStrong() == 1) // only referenced by us
+                {
+                    objectsToDelete.PushBack(assetObject);
+
+                    assetObject->SetIsTransientByProxy(false);
+                    assetObject->m_package.Reset();
+                    assetObject->m_assetPath = {};
+
+                    it = m_assetObjects.Erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
+
+        if (objectsToDelete.Any())
+        {
+            MarkDirty();
+
+            for (const Handle<AssetObject>& assetObject : objectsToDelete)
+            {
+                OnAssetObjectRemoved(assetObject, true);
+
+                Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+                while (parentPackage.IsValid())
+                {
+                    parentPackage->OnAssetObjectRemoved(assetObject, false);
+                    parentPackage = parentPackage->GetParentPackage().Lock();
+                }
+            }
+        }
+    }
+
+    // Prune subpackages
+    Array<Handle<AssetPackage>> subpackagesToDelete;
+
+    {
+        Array<Handle<AssetPackage>> subpackagesToPrune;
+
+        {
+
+            Mutex::Guard guard(m_mutex);
+
+            for (const Handle<AssetPackage>& subpackage : m_subpackages)
+            {
+                if (!subpackage)
+                {
+                    continue;
+                }
+
+                subpackagesToPrune.PushBack(subpackage);
+            }
+        }
+
+        for (const Handle<AssetPackage>& subpackage : subpackagesToPrune)
+        {
+            subpackage->Prune();
+        }
+
+        {
+            Mutex::Guard guard(m_mutex);
+
+            for (auto it = m_subpackages.Begin(); it != m_subpackages.End();)
+            {
+                const Handle<AssetPackage>& subpackage = *it;
+
+                if (!subpackage)
+                {
+                    ++it;
+                    continue;
+                }
+
+                Mutex::Guard guard2(subpackage->m_mutex);
+                if (subpackage->m_assetObjects.Empty() && subpackage->m_subpackages.Empty())
+                {
+                    subpackagesToDelete.PushBack(subpackage);
+
+                    it = m_subpackages.Erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
+    }
+
+    // Remove empty subpackages
+
+    if (subpackagesToDelete.Any())
+    {
+        MarkDirty();
+
+        for (const Handle<AssetPackage>& subpackage : subpackagesToDelete)
+        {
+            OnSubpackageRemoved(subpackage);
+
+            Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+            while (parentPackage.IsValid())
+            {
+                parentPackage->OnSubpackageRemoved(subpackage);
+
+                parentPackage = parentPackage->GetParentPackage().Lock();
+            }
+        }
+    }
+
+    if (outShouldDestroy != nullptr)
+    {
+        Mutex::Guard guard(m_mutex);
+        *outShouldDestroy = m_assetObjects.Empty() && m_subpackages.Empty();
+    }
+}
+
 void AssetPackage::MarkDirty()
 {
     HYP_SCOPE;
@@ -1176,7 +1311,8 @@ AssetRegistry::AssetRegistry()
 
 AssetRegistry::AssetRegistry(const String& rootPath)
     : m_rootPath(rootPath),
-      m_scheduler(new Scheduler(s_assetRegistryThread))
+      m_scheduler(new Scheduler(s_assetRegistryThread)),
+      m_pruneTimer { 30.0 } // every 30 seconds
 {
 }
 
@@ -1216,6 +1352,68 @@ void AssetRegistry::Update(float delta)
     Threads::AssertOnThread(s_assetRegistryThread);
 
     AssertReady();
+
+    if (!m_pruneTimer.Waiting())
+    {
+        m_pruneTimer.NextTick();
+
+        TaskThreadPool* assetWorkerThreadPool = g_assetManager->GetThreadPool();
+        AssertDebug(assetWorkerThreadPool != nullptr);
+
+        TaskBatch* taskBatch = new TaskBatch;
+        taskBatch->pool = assetWorkerThreadPool;
+        taskBatch->OnComplete.Bind([taskBatch]()
+            {
+                delete taskBatch;
+            })
+            .Detach();
+
+        { // collect tasks
+            Mutex::Guard guard(m_mutex);
+            for (const Handle<AssetPackage>& package : m_packages)
+            {
+                if (!package || !package->IsTransient())
+                {
+                    continue;
+                }
+
+                taskBatch->AddTask([weakThis = MakeWeakRef(this), packageWeak = MakeWeakRef(package)]()
+                    {
+                        constexpr bool ShouldRemoveEmptyRootPackages = false;
+
+                        Handle<AssetPackage> package = packageWeak.Lock();
+                        if (!package)
+                        {
+                            return;
+                        }
+
+                        bool shouldDestroy = false;
+                        package->Prune(&shouldDestroy);
+
+                        if (ShouldRemoveEmptyRootPackages && shouldDestroy)
+                        {
+                            Handle<AssetRegistry> registry = weakThis.Lock();
+
+                            if (registry)
+                            {
+                                // Remove the now empty package from the registry
+                                registry->RemovePackage(package);
+                            }
+                        }
+                    });
+            }
+        }
+
+        if (taskBatch->executors.Size() > 0)
+        {
+            TaskSystem::GetInstance().EnqueueBatch(taskBatch);
+        }
+        else
+        {
+            // nothing to do
+            delete taskBatch;
+        }
+    }
 
     if (m_scheduler->NumEnqueued() > 0)
     {

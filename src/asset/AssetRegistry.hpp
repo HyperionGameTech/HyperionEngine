@@ -28,6 +28,8 @@
 #include <core/Constants.hpp>
 #include <core/Defines.hpp>
 
+#include <util/GameCounter.hpp>
+
 #include <algorithm>
 #include <type_traits>
 
@@ -279,6 +281,12 @@ public:
     HYP_METHOD()
     void AddDependency(const AssetPath& dependency);
 
+    /*! \brief For transient packages, removes any asset objects and subpackages that are
+    *   no longer referenced outside of the package itself.
+    *   \param outShouldDestroy If provided, will be set to true if the package is now empty and should be destroyed.
+     */
+    void Prune(bool* outShouldDestroy = nullptr);
+
     HYP_METHOD(Property = "IsDirty", Transient)
     HYP_FORCE_INLINE bool IsDirty() const
     {
@@ -446,6 +454,9 @@ private:
 
     AssetPackageSet m_packages;
     mutable Mutex m_mutex;
+
+    // timer for when we should prune transient packages
+    LockstepGameCounter m_pruneTimer;
 
     Scheduler* m_scheduler;
 };
