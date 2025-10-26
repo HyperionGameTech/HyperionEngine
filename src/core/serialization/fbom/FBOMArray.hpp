@@ -5,11 +5,10 @@
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 
-#include <core/utilities/UniqueId.hpp>
-
 #include <core/serialization/fbom/FBOMBaseTypes.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMInterfaces.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/Types.hpp>
 #include <core/Constants.hpp>

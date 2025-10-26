@@ -4,7 +4,6 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
@@ -21,6 +20,7 @@
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
 #include <core/serialization/fbom/FBOMConfig.hpp>
 #include <core/serialization/fbom/FBOMEnums.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 

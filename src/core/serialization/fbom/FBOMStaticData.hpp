@@ -4,7 +4,6 @@
 
 #include <core/containers/String.hpp>
 #include <core/utilities/Optional.hpp>
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/serialization/fbom/FBOMObject.hpp>
@@ -14,6 +13,7 @@
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOMInterfaces.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Types.hpp>

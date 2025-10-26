@@ -9,7 +9,6 @@
 #include <core/containers/FlatMap.hpp>
 
 #include <core/utilities/Optional.hpp>
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Uuid.hpp>
@@ -21,6 +20,7 @@
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMInterfaces.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

@@ -10,7 +10,6 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/Any.hpp>
@@ -28,6 +27,7 @@
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
 #include <core/serialization/fbom/FBOMEnums.hpp>
 #include <core/serialization/fbom/FBOMConfig.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 

@@ -4,8 +4,8 @@
 
 #include <core/serialization/fbom/FBOMResult.hpp>
 #include <core/serialization/fbom/FBOMEnums.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>

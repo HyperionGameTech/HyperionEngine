@@ -6,13 +6,13 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/StringView.hpp>
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/serialization/fbom/FBOMResult.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/Constants.hpp>
 #include <core/Types.hpp>

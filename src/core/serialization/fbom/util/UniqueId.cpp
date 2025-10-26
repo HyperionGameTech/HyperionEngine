@@ -1,4 +1,4 @@
-#include <core/utilities/UniqueId.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 #include <core/utilities/Uuid.hpp>
 
 namespace hyperion {

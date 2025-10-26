@@ -3,11 +3,11 @@
 #pragma once
 
 #include <core/serialization/fbom/FBOMInterfaces.hpp>
+#include <core/serialization/fbom/util/UniqueId.hpp>
 
 #include <core/containers/String.hpp>
 
 #include <core/utilities/StringView.hpp>
-#include <core/utilities/UniqueId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/reflection/TypeId.hpp>
 

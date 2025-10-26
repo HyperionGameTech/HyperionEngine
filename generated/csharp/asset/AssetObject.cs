@@ -103,6 +103,10 @@ namespace Hyperion
         {
             obj.GetMethod(new Name(1509201148192078323)).InvokeNative(obj, isTransient);
         }
+        public static void SetIsTransientByProxy(this AssetObject obj, bool isTransientByProxy)
+        {
+            obj.GetMethod(new Name(15794860211088792170)).InvokeNative(obj, isTransientByProxy);
+        }
         public static bool IsLoaded(this AssetObject obj)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(2466269772133639536)).InvokeNative(obj))
