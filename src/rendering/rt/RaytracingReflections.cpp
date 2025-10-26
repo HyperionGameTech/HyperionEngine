@@ -255,6 +255,8 @@ void RaytracingReflections::CreateImages()
         1,
         IU_SAMPLED | IU_STORAGE });
 
+    m_texture->SetName(NAME("RaytracingReflectionsTexture"));
+
     InitObject(m_texture);
 }
 

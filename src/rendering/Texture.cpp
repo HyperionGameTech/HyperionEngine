@@ -54,17 +54,20 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
     ResourceHandle resourceHandle;
     ResourceState initialState;
     GpuImageRef image;
+    bool uploadTextureData;
 
     RENDER_COMMAND(CreateTextureGpuImage)
     (
         const WeakHandle<TextureAsset>& textureAssetWeak,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
-        GpuImageRef image)
+        GpuImageRef image,
+        bool uploadTextureData)
         : textureAssetWeak(textureAssetWeak),
           resourceHandle(std::move(resourceHandle)),
           initialState(initialState),
-          image(std::move(image))
+          image(std::move(image)),
+          uploadTextureData(uploadTextureData)
     {
         Assert(this->image.IsValid());
     }
@@ -73,114 +76,114 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
     virtual RendererResult operator()() override
     {
-        Handle<TextureAsset> textureAsset = textureAssetWeak.Lock();
+        AssertDebug(!image->IsCreated());
+        Assert(image->Create());
 
-        if (!image->IsCreated())
+        if (uploadTextureData)
         {
-            HYP_GFX_CHECK(image->Create());
+            Handle<TextureAsset> textureAsset = textureAssetWeak.Lock();
+            Assert(textureAsset && resourceHandle);
 
-            if (textureAsset.IsValid())
+            TextureData* textureData = textureAsset->GetTextureData();
+            Assert(textureData != nullptr);
+
+            const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
+
+            ByteBuffer const* imageData = &textureData->imageData;
+            LinkedList<ByteBuffer> placeholderBuffers;
+
+            if (textureDesc != image->GetTextureDesc())
             {
-                Assert(resourceHandle);
+                HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
+            }
 
-                TextureData* textureData = textureAsset->GetTextureData();
-                Assert(textureData != nullptr);
+            if (imageData->Size() != image->GetByteSize())
+            {
+                HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
+                    textureAsset->GetName(), image->GetByteSize(), imageData->Size());
 
-                const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
+                // throw an error in debug mode
+                //AssertDebug(false, "Streamed texture data buffer size mismatch!");
 
-                ByteBuffer const* imageData = &textureData->imageData;
-                LinkedList<ByteBuffer> placeholderBuffers;
+                // fill some placeholder data with zeros so we don't crash
+                ByteBuffer* placeholderBuffer = &placeholderBuffers.EmplaceBack();
+                placeholderBuffer->SetSize(image->GetByteSize());
 
-                if (textureDesc != image->GetTextureDesc())
+                const TextureFormat nonSrgbFormat = ChangeFormatSrgb(image->GetTextureFormat(), false);
+
+                switch (textureAsset->GetTextureDesc().type)
                 {
-                    HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
-                }
-
-                if (imageData->Size() != image->GetByteSize())
-                {
-                    HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch! Expected: {}, Got: {}",
-                        image->GetByteSize(), imageData->Size());
-
-                    // fill some placeholder data with zeros so we don't crash
-                    ByteBuffer* placeholderBuffer = &placeholderBuffers.EmplaceBack();
-                    placeholderBuffer->SetSize(image->GetByteSize());
-
-                    const TextureFormat nonSrgbFormat = ChangeFormatSrgb(image->GetTextureFormat(), false);
-
-                    switch (textureAsset->GetTextureDesc().type)
+                case TT_TEX2D:
+                    switch (nonSrgbFormat)
                     {
-                    case TT_TEX2D:
-                        switch (nonSrgbFormat)
-                        {
-                        case TF_R8:
-                            FillPlaceholderBuffer_Tex2D<TF_R8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                            break;
-                        case TF_RGBA8:
-                            FillPlaceholderBuffer_Tex2D<TF_RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                            break;
-                        case TF_RGBA16F:
-                            FillPlaceholderBuffer_Tex2D<TF_RGBA16F>(image->GetExtent().GetXY(), *placeholderBuffer);
-                            break;
-                        case TF_RGBA32F:
-                            FillPlaceholderBuffer_Tex2D<TF_RGBA32F>(image->GetExtent().GetXY(), *placeholderBuffer);
-                            break;
-                        default:
-                            // no FillPlaceholderBuffer method defined
-                            break;
-                        }
+                    case TF_R8:
+                        FillPlaceholderBuffer_Tex2D<TF_R8>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
-                    case TT_CUBEMAP:
-                        switch (nonSrgbFormat)
-                        {
-                        case TF_R8:
-                            FillPlaceholderBuffer_Cubemap<TF_R8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                            break;
-                        case TF_RGBA8:
-                            FillPlaceholderBuffer_Cubemap<TF_RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
-                            break;
-                        default:
-                            // no FillPlaceholderBuffer method defined
-                            break;
-                        }
+                    case TF_RGBA8:
+                        FillPlaceholderBuffer_Tex2D<TF_RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                        break;
+                    case TF_RGBA16F:
+                        FillPlaceholderBuffer_Tex2D<TF_RGBA16F>(image->GetExtent().GetXY(), *placeholderBuffer);
+                        break;
+                    case TF_RGBA32F:
+                        FillPlaceholderBuffer_Tex2D<TF_RGBA32F>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
                     default:
                         // no FillPlaceholderBuffer method defined
                         break;
                     }
-
-                    imageData = placeholderBuffer;
+                    break;
+                case TT_CUBEMAP:
+                    switch (nonSrgbFormat)
+                    {
+                    case TF_R8:
+                        FillPlaceholderBuffer_Cubemap<TF_R8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                        break;
+                    case TF_RGBA8:
+                        FillPlaceholderBuffer_Cubemap<TF_RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                        break;
+                    default:
+                        // no FillPlaceholderBuffer method defined
+                        break;
+                    }
+                    break;
+                default:
+                    // no FillPlaceholderBuffer method defined
+                    break;
                 }
 
-                GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
-                stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", textureAsset->GetName().IsValid() ? textureAsset->GetName() : NAME("Invalid")));
-                HYP_GFX_CHECK(stagingBuffer->Create());
-                stagingBuffer->Copy(imageData->Size(), imageData->Data());
-
-                HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
-
-                FrameBase* frame = g_renderBackend->GetCurrentFrame();
-
-                // Needs to be done after rendering; otherwise might try to insert barriers during a render pass.
-                RenderQueue& renderQueue = frame->postRenderQueue;
-
-                renderQueue << InsertBarrier(image, RS_COPY_DST);
-                renderQueue << CopyBufferToImage(stagingBuffer, image);
-
-                if (textureDesc.HasMipmaps())
-                {
-                    renderQueue << GenerateMipmaps(image);
-                }
-
-                renderQueue << InsertBarrier(image, initialState);
+                imageData = placeholderBuffer;
             }
-            else if (initialState != RS_UNDEFINED)
+
+            GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
+            stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", textureAsset->GetName().IsValid() ? textureAsset->GetName() : NAME("Invalid")));
+            HYP_GFX_CHECK(stagingBuffer->Create());
+            stagingBuffer->Copy(imageData->Size(), imageData->Data());
+
+            HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
+
+            FrameBase* frame = g_renderBackend->GetCurrentFrame();
+
+            // Needs to be done after rendering; otherwise might try to insert barriers during a render pass.
+            RenderQueue& renderQueue = frame->postRenderQueue;
+
+            renderQueue << InsertBarrier(image, RS_COPY_DST);
+            renderQueue << CopyBufferToImage(stagingBuffer, image);
+
+            if (textureDesc.HasMipmaps())
             {
-                FrameBase* frame = g_renderBackend->GetCurrentFrame();
-                RenderQueue& renderQueue = frame->postRenderQueue;
-
-                // Transition to initial state
-                renderQueue << InsertBarrier(image, initialState);
+                renderQueue << GenerateMipmaps(image);
             }
+
+            renderQueue << InsertBarrier(image, initialState);
+        }
+        else if (initialState != RS_UNDEFINED)
+        {
+            FrameBase* frame = g_renderBackend->GetCurrentFrame();
+            RenderQueue& renderQueue = frame->postRenderQueue;
+
+            // Transition to initial state
+            renderQueue << InsertBarrier(image, initialState);
         }
 
         resourceHandle.Reset();
@@ -195,12 +198,12 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
 Texture::Texture()
     : Texture(TextureDesc {
-          TT_TEX2D,
-          TF_RGBA8,
-          Vec3u { 1, 1, 1 },
-          TFM_NEAREST,
-          TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE })
+        TT_TEX2D,
+        TF_RGBA8,
+        Vec3u { 1, 1, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE })
 {
 }
 
@@ -258,15 +261,29 @@ void Texture::Init()
     {
         m_gpuImage->SetDebugName(m_name);
     }
+    
+    ResourceHandle resourceHandle;
+    bool uploadTextureData = false;
 
     const Handle<TextureAsset>& asset = GetAsset();
+
+    if (asset != nullptr)
+    {
+        resourceHandle = ResourceHandle(*asset->GetResource());
+
+        const TextureData* textureData = asset->GetTextureData();
+        uploadTextureData = textureData && !textureData->imageData.Empty();
+    }
 
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
         MakeWeakRef(asset),
-        asset != nullptr ? ResourceHandle(*asset->GetResource()) : ResourceHandle(),
+        std::move(resourceHandle),
         RS_SHADER_RESOURCE,
-        m_gpuImage);
+        m_gpuImage,
+        uploadTextureData);
+    
+    AssetObject::Init();
 
     SetReady(true);
 }

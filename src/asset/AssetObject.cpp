@@ -285,6 +285,22 @@ void AssetObject::SetIsTransient(bool isTransient)
     }
 }
 
+void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
+{
+    HYP_SCOPE;
+
+    m_flags[AOF_TRANSIENT_BY_PROXY] = isTransientByProxy;
+
+    if (isTransientByProxy)
+    {
+        // needs to be kept in memory if transient
+        SetIsPersistentlyLoaded(true);
+
+        // transient assets don't have a manifest filepath as they are not saved to disk.
+        m_manifestPath = FilePath();
+    }
+}
+
 Result AssetObject::Rename(Name name)
 {
     HYP_SCOPE;

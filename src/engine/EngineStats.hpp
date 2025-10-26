@@ -108,7 +108,7 @@ public:
     /*! \brief Record a value set to be integrated into samples.
      *  Call this to add values that will be included in the next Advance() calculation.
       * Call only from Render thread! */
-    HYP_API void RecordValueSet(const struct EngineStatsValueSet& valueSet);
+    void RecordValueSet(const struct EngineStatsValueSet& valueSet);
 
 private:
     double CalculateFps() const;

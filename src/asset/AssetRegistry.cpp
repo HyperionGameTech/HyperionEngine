@@ -214,12 +214,9 @@ void AssetPackage::Init()
 
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
-            if (IsTransient() || assetObject->IsTransient())
-            {
-                // transient data isn't saved to disk so we have to keep it in memory
-                assetObject->SetIsPersistentlyLoaded(true);
-            }
-            else if (isPackageSavedInFilesystem)
+            assetObject->SetIsTransientByProxy(IsTransient());
+
+            if (isPackageSavedInFilesystem)
             {
                 const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
@@ -343,13 +340,10 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
         {
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
+            
+            assetObject->SetIsTransientByProxy(IsTransient());
 
-            if (IsTransient() || assetObject->IsTransient())
-            {
-                // transient data isn't saved to disk so we have to keep it in memory
-                assetObject->SetIsPersistentlyLoaded(true);
-            }
-            else if (isPackageSavedInFilesystem)
+            if (isPackageSavedInFilesystem)
             {
                 const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
@@ -448,13 +442,10 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             {
                 assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
             }
-
-            if (IsTransient() || assetObject->IsTransient())
-            {
-                // transient data isn't saved to disk so we have to keep it in memory
-                assetObject->SetIsPersistentlyLoaded(true);
-            }
-            else if (isPackageSavedInFilesystem)
+            
+            assetObject->SetIsTransientByProxy(IsTransient());
+            
+            if (isPackageSavedInFilesystem)
             {
                 // set a filepath for the asset object to be saved at, based on our package's filepath.
                 const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
@@ -826,6 +817,8 @@ void AssetPackage::Rename(Name name)
 
     m_name = name;
     m_friendlyName = friendlyName;
+
+    // @TODO Update AssetObject TRANSIENT_BY_PROXY flags if changed
 }
 
 bool AssetPackage::HasAssetWithName(Name assetName) const
@@ -998,8 +991,8 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
                 continue;
             }
-
-            assetObject->SetIsPersistentlyLoaded(false);
+            
+            assetObject->SetIsTransientByProxy(false);
         }
 
         m_isDirty.Set(false, MemoryOrder::RELEASE);

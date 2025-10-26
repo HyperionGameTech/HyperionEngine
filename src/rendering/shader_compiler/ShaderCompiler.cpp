@@ -234,7 +234,10 @@ static bool SatisfiesRequestedPropertySet(const ShaderProperties& requested, con
         return true;
     }
 
-    if ((candidate.GetAllVertexAttributes() & requestedAttributes) == requestedAttributes)
+    // Satisfies if:
+    //  candidate can has the attributes we requested for (AND) candidate does not require any attributes that we don't have.
+    if ((candidate.GetAllVertexAttributes() & requestedAttributes) == requestedAttributes
+        && (candidate.GetRequiredVertexAttributes() & requested.GetAllVertexAttributes()) == candidate.GetRequiredVertexAttributes())
     {
         return true;
     }
@@ -276,8 +279,7 @@ bool ShaderCache::GetShaderInstance(Name name, const ShaderProperties& propertie
 
 #pragma region DescriptorUsageSet
 
-DescriptorTableDeclaration
-DescriptorUsageSet::BuildDescriptorTableDeclaration() const
+DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration() const
 {
     DescriptorTableDeclaration table;
 

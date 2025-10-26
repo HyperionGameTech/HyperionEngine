@@ -87,7 +87,7 @@ struct LightmapUV
     LightmapRay ray;
 };
 
-using LightmapAtlasBitmap = Bitmap_RGBA8;
+using LightmapAtlasBitmap = Bitmap_RGBA16F;
 
 struct LightmapUVMap
 {

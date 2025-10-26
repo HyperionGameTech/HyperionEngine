@@ -74,7 +74,7 @@ void TemporalAA::CreateTextures()
         TWM_CLAMP_TO_EDGE,
         1,
         IU_STORAGE | IU_SAMPLED });
-    m_resultTexture->SetName(NAME("TaaResult"));
+    m_resultTexture->SetName(NAME("TAA_ResultTexture"));
     InitObject(m_resultTexture);
 
     m_historyTexture = CreateObject<Texture>(TextureDesc {
@@ -87,7 +87,7 @@ void TemporalAA::CreateTextures()
         1,
         IU_STORAGE | IU_SAMPLED });
 
-    m_historyTexture->SetName(NAME("TaaHistory"));
+    m_historyTexture->SetName(NAME("TAA_HistoryTexture"));
     InitObject(m_historyTexture);
 }
 

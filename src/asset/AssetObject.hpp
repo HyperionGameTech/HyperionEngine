@@ -131,7 +131,8 @@ enum AssetObjectFlags : uint32
 {
     AOF_NONE = 0x0,
     AOF_PERSISTENT = 0x1, //!< Asset is persistently loaded in memory
-    AOF_TRANSIENT = 0x2   //!< Asset is not saved to disk
+    AOF_TRANSIENT = 0x2,   //!< Asset is not saved to disk
+    AOF_TRANSIENT_BY_PROXY = 0x4 //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
@@ -284,11 +285,14 @@ public:
     HYP_METHOD()
     bool IsTransient() const
     {
-        return m_flags[AOF_TRANSIENT];
+        return bool(m_flags & (AOF_TRANSIENT | AOF_TRANSIENT_BY_PROXY));
     }
 
     HYP_METHOD()
     void SetIsTransient(bool isTransient);
+
+    HYP_METHOD()
+    void SetIsTransientByProxy(bool isTransientByProxy);
 
     HYP_METHOD()
     bool IsLoaded() const;
