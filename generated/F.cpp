@@ -11,7 +11,7 @@ namespace hyperion {
 
 #pragma region UIDockableItem Reflection Data
 
-HYP_BEGIN_CLASS(UIDockableItem, 205, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIDockableItem, 203, 0, NAME("UIPanel"))
 HYP_END_CLASS
 
 #pragma endregion UIDockableItem Reflection Data
@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region UIDockableContainer Reflection Data
 
-HYP_BEGIN_CLASS(UIDockableContainer, 206, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIDockableContainer, 204, 0, NAME("UIPanel"))
 HYP_END_CLASS
 
 #pragma endregion UIDockableContainer Reflection Data
@@ -38,7 +38,7 @@ namespace hyperion {
 
 #pragma region UIGridColumn Reflection Data
 
-HYP_BEGIN_CLASS(UIGridColumn, 207, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIGridColumn, 205, 0, NAME("UIPanel"))
     HypMethod(NAME(HYP_STR(GetColumnSize)), &UIGridColumn::GetColumnSize, Span<const HypClassAttribute> { {HypClassAttribute("property", "ColumnSize"), HypClassAttribute("xmlattribute", "colsize") } }),
     HypMethod(NAME(HYP_STR(SetColumnSize)), &UIGridColumn::SetColumnSize, Span<const HypClassAttribute> { {HypClassAttribute("property", "ColumnSize"), HypClassAttribute("xmlattribute", "colsize") } })
 HYP_END_CLASS
@@ -52,7 +52,7 @@ namespace hyperion {
 
 #pragma region UIGridRow Reflection Data
 
-HYP_BEGIN_CLASS(UIGridRow, 208, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIGridRow, 206, 0, NAME("UIPanel"))
 HYP_END_CLASS
 
 #pragma endregion UIGridRow Reflection Data
@@ -64,7 +64,7 @@ namespace hyperion {
 
 #pragma region UIGrid Reflection Data
 
-HYP_BEGIN_CLASS(UIGrid, 209, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIGrid, 207, 0, NAME("UIPanel"))
     HypMethod(NAME(HYP_STR(GetNumColumns)), &UIGrid::GetNumColumns, Span<const HypClassAttribute> { {HypClassAttribute("property", "NumColumns") } }),
     HypMethod(NAME(HYP_STR(SetNumColumns)), &UIGrid::SetNumColumns, Span<const HypClassAttribute> { {HypClassAttribute("property", "NumColumns"), HypClassAttribute("xmlattribute", "cols") } }),
     HypMethod(NAME(HYP_STR(GetNumRows)), &UIGrid::GetNumRows, Span<const HypClassAttribute> { {HypClassAttribute("property", "NumRows") } }),
@@ -83,7 +83,7 @@ namespace hyperion {
 
 #pragma region UIImage Reflection Data
 
-HYP_BEGIN_CLASS(UIImage, 199, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIImage, 197, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UIImage Reflection Data
@@ -98,7 +98,7 @@ namespace hyperion {
 
 #pragma region UIListViewItem Reflection Data
 
-HYP_BEGIN_CLASS(UIListViewItem, 200, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIListViewItem, 198, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UIListViewItem Reflection Data
@@ -110,7 +110,7 @@ namespace hyperion {
 
 #pragma region UIListView Reflection Data
 
-HYP_BEGIN_CLASS(UIListView, 210, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIListView, 208, 0, NAME("UIPanel"))
     HypMethod(NAME(HYP_STR(SetSelectedItem)), &UIListView::SetSelectedItem),
     HypMethod(NAME(HYP_STR(GetSelectedItemIndex)), &UIListView::GetSelectedItemIndex),
     HypMethod(NAME(HYP_STR(SetSelectedItemIndex)), &UIListView::SetSelectedItemIndex),
@@ -127,7 +127,7 @@ namespace hyperion {
 
 #pragma region UIListViewOrientation Reflection Data
 
-HYP_BEGIN_ENUM(UIListViewOrientation, 410, 0, {})
+HYP_BEGIN_ENUM(UIListViewOrientation, 408, 0, {})
     HypConstant(NAME(HYP_STR(VERTICAL)), UIListViewOrientation::VERTICAL),
     HypConstant(NAME(HYP_STR(HORIZONTAL)), UIListViewOrientation::HORIZONTAL)
 HYP_END_ENUM
@@ -146,7 +146,7 @@ namespace hyperion {
 
 #pragma region UIMenuBarDropDirection Reflection Data
 
-HYP_BEGIN_ENUM(UIMenuBarDropDirection, 411, 0, {})
+HYP_BEGIN_ENUM(UIMenuBarDropDirection, 409, 0, {})
     HypConstant(NAME(HYP_STR(DOWN)), UIMenuBarDropDirection::DOWN),
     HypConstant(NAME(HYP_STR(UP)), UIMenuBarDropDirection::UP)
 HYP_END_ENUM
@@ -160,7 +160,7 @@ namespace hyperion {
 
 #pragma region UIMenuItem Reflection Data
 
-HYP_BEGIN_CLASS(UIMenuItem, 201, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIMenuItem, 199, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UIMenuItem Reflection Data
@@ -172,7 +172,7 @@ namespace hyperion {
 
 #pragma region UIMenuBar Reflection Data
 
-HYP_BEGIN_CLASS(UIMenuBar, 211, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIMenuBar, 209, 0, NAME("UIPanel"))
     HypMethod(NAME(HYP_STR(GetDropDirection)), &UIMenuBar::GetDropDirection, Span<const HypClassAttribute> { {HypClassAttribute("property", "DropDirection"), HypClassAttribute("xmlattribute", "direction") } }),
     HypMethod(NAME(HYP_STR(SetDropDirection)), &UIMenuBar::SetDropDirection, Span<const HypClassAttribute> { {HypClassAttribute("property", "DropDirection"), HypClassAttribute("xmlattribute", "direction") } }),
     HypMethod(NAME(HYP_STR(SetSelectedMenuItemIndex)), &UIMenuBar::SetSelectedMenuItemIndex),
@@ -205,7 +205,7 @@ namespace hyperion {
 
 #pragma region UIObject Reflection Data
 
-HYP_BEGIN_CLASS(UIObject, 196, 22, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(UIObject, 194, 22, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypConstant(NAME(HYP_STR(Tmpfield)), &UIObject::tmpField),
     HypMethod(NAME(HYP_STR(GetEntity)), &UIObject::GetEntity),
     HypMethod(NAME(HYP_STR(GetStage)), &UIObject::GetStage),
@@ -313,7 +313,7 @@ namespace hyperion {
 
 #pragma region UIObjectSize Reflection Data
 
-HYP_BEGIN_STRUCT(UIObjectSize, 412, 0, {})
+HYP_BEGIN_STRUCT(UIObjectSize, 410, 0, {})
     HypField(NAME(HYP_STR(Flags)), &UIObjectSize::flags, offsetof(UIObjectSize, flags)),
     HypField(NAME(HYP_STR(Value)), &UIObjectSize::value, offsetof(UIObjectSize, value))
 HYP_END_STRUCT
@@ -327,7 +327,7 @@ namespace hyperion {
 
 #pragma region UIObjectAspectRatio Reflection Data
 
-HYP_BEGIN_STRUCT(UIObjectAspectRatio, 413, 0, {})
+HYP_BEGIN_STRUCT(UIObjectAspectRatio, 411, 0, {})
     HypField(NAME(HYP_STR(X)), &UIObjectAspectRatio::x, offsetof(UIObjectAspectRatio, x)),
     HypField(NAME(HYP_STR(Y)), &UIObjectAspectRatio::y, offsetof(UIObjectAspectRatio, y))
 HYP_END_STRUCT
@@ -341,7 +341,7 @@ namespace hyperion {
 
 #pragma region UIObjectUpdateSizeFlags Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectUpdateSizeFlags, 414, 0, {})
+HYP_BEGIN_ENUM(UIObjectUpdateSizeFlags, 412, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectUpdateSizeFlags::NONE),
     HypConstant(NAME(HYP_STR(MAX_SIZE)), UIObjectUpdateSizeFlags::MAX_SIZE),
     HypConstant(NAME(HYP_STR(INNER_SIZE)), UIObjectUpdateSizeFlags::INNER_SIZE),
@@ -358,7 +358,7 @@ namespace hyperion {
 
 #pragma region UIObjectAlignment Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectAlignment, 415, 0, {})
+HYP_BEGIN_ENUM(UIObjectAlignment, 413, 0, {})
     HypConstant(NAME(HYP_STR(TOP_LEFT)), UIObjectAlignment::TOP_LEFT),
     HypConstant(NAME(HYP_STR(TOP_RIGHT)), UIObjectAlignment::TOP_RIGHT),
     HypConstant(NAME(HYP_STR(CENTER)), UIObjectAlignment::CENTER),
@@ -375,7 +375,7 @@ namespace hyperion {
 
 #pragma region UIEventHandlerResult Reflection Data
 
-HYP_BEGIN_STRUCT(UIEventHandlerResult, 416, 0, {}, HypClassAttribute("size", 24))
+HYP_BEGIN_STRUCT(UIEventHandlerResult, 414, 0, {}, HypClassAttribute("size", 24))
 HYP_END_STRUCT
 
 #pragma endregion UIEventHandlerResult Reflection Data
@@ -388,7 +388,7 @@ namespace hyperion {
 
 #pragma region UIObjectBorderFlags Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectBorderFlags, 417, 0, {})
+HYP_BEGIN_ENUM(UIObjectBorderFlags, 415, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectBorderFlags::NONE),
     HypConstant(NAME(HYP_STR(TOP)), UIObjectBorderFlags::TOP),
     HypConstant(NAME(HYP_STR(LEFT)), UIObjectBorderFlags::LEFT),
@@ -406,7 +406,7 @@ namespace hyperion {
 
 #pragma region UIObjectUpdateType Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectUpdateType, 418, 0, {})
+HYP_BEGIN_ENUM(UIObjectUpdateType, 416, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectUpdateType::NONE),
     HypConstant(NAME(HYP_STR(UPDATE_SIZE)), UIObjectUpdateType::UPDATE_SIZE),
     HypConstant(NAME(HYP_STR(UPDATE_POSITION)), UIObjectUpdateType::UPDATE_POSITION),
@@ -435,7 +435,7 @@ namespace hyperion {
 
 #pragma region UIObjectFocusState Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectFocusState, 419, 0, {})
+HYP_BEGIN_ENUM(UIObjectFocusState, 417, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectFocusState::NONE),
     HypConstant(NAME(HYP_STR(HOVER)), UIObjectFocusState::HOVER),
     HypConstant(NAME(HYP_STR(PRESSED)), UIObjectFocusState::PRESSED),
@@ -452,7 +452,7 @@ namespace hyperion {
 
 #pragma region ScrollAxis Reflection Data
 
-HYP_BEGIN_ENUM(ScrollAxis, 420, 0, {})
+HYP_BEGIN_ENUM(ScrollAxis, 418, 0, {})
     HypConstant(NAME(HYP_STR(SA_NONE)), ScrollAxis::SA_NONE),
     HypConstant(NAME(HYP_STR(SA_HORIZONTAL)), ScrollAxis::SA_HORIZONTAL),
     HypConstant(NAME(HYP_STR(SA_VERTICAL)), ScrollAxis::SA_VERTICAL),
@@ -473,7 +473,7 @@ namespace hyperion {
 
 #pragma region UIPanel Reflection Data
 
-HYP_BEGIN_CLASS(UIPanel, 202, 12, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIPanel, 200, 12, NAME("UIObject"))
     HypMethod(NAME(HYP_STR(IsHorizontalScrollEnabled)), &UIPanel::IsHorizontalScrollEnabled),
     HypMethod(NAME(HYP_STR(IsVerticalScrollEnabled)), &UIPanel::IsVerticalScrollEnabled),
     HypMethod(NAME(HYP_STR(SetIsScrollEnabled)), &UIPanel::SetIsScrollEnabled)
@@ -491,7 +491,7 @@ namespace hyperion {
 
 #pragma region UISpacer Reflection Data
 
-HYP_BEGIN_CLASS(UISpacer, 215, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UISpacer, 213, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UISpacer Reflection Data
@@ -509,7 +509,7 @@ namespace hyperion {
 
 #pragma region UIStage Reflection Data
 
-HYP_BEGIN_CLASS(UIStage, 216, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIStage, 214, 0, NAME("UIObject"))
     HypMethod(NAME(HYP_STR(GetSurfaceSize)), &UIStage::GetSurfaceSize),
     HypMethod(NAME(HYP_STR(SetSurfaceSize)), &UIStage::SetSurfaceSize),
     HypMethod(NAME(HYP_STR(GetScene)), &UIStage::GetScene),
@@ -529,7 +529,7 @@ namespace hyperion {
 
 #pragma region UISubsystem Reflection Data
 
-HYP_BEGIN_CLASS(UISubsystem, 153, 0, NAME("Subsystem"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(UISubsystem, 151, 0, NAME("Subsystem"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion UISubsystem Reflection Data
@@ -544,7 +544,7 @@ namespace hyperion {
 
 #pragma region UITab Reflection Data
 
-HYP_BEGIN_CLASS(UITab, 217, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UITab, 215, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UITab Reflection Data
@@ -556,7 +556,7 @@ namespace hyperion {
 
 #pragma region UITabView Reflection Data
 
-HYP_BEGIN_CLASS(UITabView, 212, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UITabView, 210, 0, NAME("UIPanel"))
 HYP_END_CLASS
 
 #pragma endregion UITabView Reflection Data
@@ -571,7 +571,7 @@ namespace hyperion {
 
 #pragma region UIText Reflection Data
 
-HYP_BEGIN_CLASS(UIText, 218, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIText, 216, 0, NAME("UIObject"))
     HypMethod(NAME(HYP_STR(GetCharacterOffset)), &UIText::GetCharacterOffset)
 HYP_END_CLASS
 
@@ -589,7 +589,7 @@ namespace hyperion {
 
 #pragma region UITextbox Reflection Data
 
-HYP_BEGIN_CLASS(UITextbox, 213, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UITextbox, 211, 0, NAME("UIPanel"))
     HypMethod(NAME(HYP_STR(GetPlaceholder)), &UITextbox::GetPlaceholder, Span<const HypClassAttribute> { {HypClassAttribute("property", "Placeholder"), HypClassAttribute("xmlattribute", "placeholder") } }),
     HypMethod(NAME(HYP_STR(SetPlaceholder)), &UITextbox::SetPlaceholder, Span<const HypClassAttribute> { {HypClassAttribute("property", "Placeholder"), HypClassAttribute("xmlattribute", "placeholder") } }),
     HypMethod(NAME(HYP_STR(GetPlaceholderTextColor)), &UITextbox::GetPlaceholderTextColor),
@@ -608,7 +608,7 @@ namespace hyperion {
 
 #pragma region UIWindow Reflection Data
 
-HYP_BEGIN_CLASS(UIWindow, 214, 0, NAME("UIPanel"))
+HYP_BEGIN_CLASS(UIWindow, 212, 0, NAME("UIPanel"))
 HYP_END_CLASS
 
 #pragma endregion UIWindow Reflection Data
@@ -623,7 +623,7 @@ namespace hyperion {
 
 #pragma region OctantId Reflection Data
 
-HYP_BEGIN_STRUCT(OctantId, 421, 0, {})
+HYP_BEGIN_STRUCT(OctantId, 419, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion OctantId Reflection Data

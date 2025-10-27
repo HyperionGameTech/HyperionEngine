@@ -75,9 +75,6 @@ static_assert(std::is_trivially_move_constructible_v<LightmapRay>, "LightmapRay 
 
 struct LightmapTexel
 {
-    Handle<Mesh> mesh;
-    Handle<Material> material;
-    Mat4f transform = Mat4f::identity;
     uint32 triangleIndex = ~0u;
     Vec3f barycentricCoords = Vec3f::Zero();
     Vec2f lightmapUv = Vec2f::Zero();
@@ -94,6 +91,14 @@ public:
     // HashMap from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
     using MeshToUVIndicesMap = HashMap<ObjId<Mesh>, Array<uint32, DynamicAllocator>>;
 
+    struct TexelRange
+    {
+        uint32 start = 0;
+        uint32 count = 0; // number of consecutive texels
+    };
+
+    using MeshToTexelRangesMap = HashMap<ObjId<Mesh>, Array<TexelRange, DynamicAllocator>>;
+
     uint32 width = 0;
     uint32 height = 0;
 
@@ -102,6 +107,9 @@ public:
 
     // Mapping from mesh Id to the indices of the UVs that correspond to that mesh.
     MeshToUVIndicesMap meshToUvIndices;
+
+    // Texel indices per mesh
+    MeshToTexelRangesMap meshToTexelRanges;
 
     LightmapTexelsBase() = default;
     virtual ~LightmapTexelsBase() = default;

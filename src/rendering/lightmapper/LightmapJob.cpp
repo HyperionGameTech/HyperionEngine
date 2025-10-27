@@ -1,0 +1,478 @@
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
+#include <exception> // for std::terminate
+
+#include <rendering/lightmapper/LightmapJob.hpp>
+#include <rendering/lightmapper/Lightmapper.hpp>
+#include <rendering/lightmapper/LightmapPathTraceCpu.hpp>
+#include <rendering/lightmapper/LightmapPathTraceGpu.hpp>
+
+#include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderHelpers.hpp>
+#include <rendering/RenderCollection.hpp>
+#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderObject.hpp>
+#include <rendering/RenderConfig.hpp>
+#include <rendering/RenderDevice.hpp>
+#include <rendering/RenderFrame.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
+#include <rendering/Texture.hpp>
+#include <rendering/Renderer.hpp>
+
+#include <scene/lightmapper/LightmapVolume.hpp>
+
+#include <scene/World.hpp>
+#include <scene/View.hpp>
+#include <scene/EnvProbe.hpp>
+
+#include <core/debug/Debug.hpp>
+
+#include <core/threading/TaskSystem.hpp>
+#include <core/threading/TaskThread.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
+
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineDriver.hpp>
+
+namespace hyperion {
+
+#pragma region Render command
+
+struct RENDER_COMMAND(LightmapRender)
+    : RenderCommand
+{
+    LightmapJobBase* job;
+    Handle<World> world;
+    Handle<View> view;
+    Array<LightmapRay> rays;
+    uint32 rayOffset;
+
+    RENDER_COMMAND(LightmapRender)
+    (LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
+        : job(job),
+          world(world),
+          view(view),
+          rays(std::move(rays)),
+          rayOffset(rayOffset)
+    {
+        job->numConcurrentRenderingTasks.Increment(1, MemoryOrder::RELEASE);
+    }
+
+    virtual ~RENDER_COMMAND(LightmapRender)() override
+    {
+        job->numConcurrentRenderingTasks.Decrement(1, MemoryOrder::RELEASE);
+    }
+
+    virtual RendererResult operator()() override
+    {
+        FrameBase* frame = g_renderBackend->GetCurrentFrame();
+
+        RenderSetup renderSetup { world, view };
+
+        RenderProxyList* rpl = nullptr;
+
+        if (view)
+        {
+            rpl = &RenderApi::GetConsumerProxyList(view);
+        }
+
+        if (rpl)
+        {
+            rpl->BeginRead();
+        }
+
+        HYP_DEFER({ if (rpl) rpl->EndRead(); });
+
+        if (rpl)
+        {
+            if (const auto& skyProbes = rpl->GetEnvProbes().GetElements<SkyProbe>(); skyProbes.Any())
+            {
+                renderSetup.envProbe = skyProbes.Front();
+            }
+        }
+
+        {
+            // Read ray hits from last time this frame was rendered
+            Array<LightmapRay> previousRays;
+            job->GetPreviousFrameRays(previousRays);
+
+            // Read previous frame hits into CPU buffer
+            if (previousRays.Size() != 0)
+            {
+                Array<LightmapHit> hitsBuffer;
+                hitsBuffer.Resize(previousRays.Size());
+
+                AssertDebug(job->GetParams().renderers != nullptr);
+
+                for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+                {
+                    AssertDebug(lightmapRenderer != nullptr);
+
+                    lightmapRenderer->ReadHitsBuffer(frame, hitsBuffer);
+
+                    job->IntegrateRayHits(previousRays, hitsBuffer, lightmapRenderer->GetShadingType());
+                }
+            }
+
+            job->SetPreviousFrameRays(rays);
+        }
+
+        if (rays.Any())
+        {
+            AssertDebug(job->GetParams().renderers != nullptr);
+
+            for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
+            {
+                AssertDebug(lightmapRenderer != nullptr);
+
+                lightmapRenderer->Render(frame, renderSetup, job, rays, rayOffset);
+            }
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion Render command
+
+static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
+
+bool LightmapJobBase::HasRemainingTexels() const
+{
+    return m_texelIndex < m_texelIndices.Size() * m_params.config->numSamples;
+}
+
+LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
+    : m_params(std::move(params)),
+      m_texelIndex(0),
+      m_lastLoggedPercentage(0),
+      numConcurrentRenderingTasks(0)
+{
+}
+
+LightmapJobBase::~LightmapJobBase()
+{
+    for (TaskBatch* taskBatch : m_currentTasks)
+    {
+        taskBatch->AwaitCompletion();
+
+        delete taskBatch;
+    }
+}
+
+void LightmapJobBase::Start()
+{
+    m_runningSemaphore.Produce(1, [this](bool)
+        {
+            Start_Internal();
+        });
+}
+
+void LightmapJobBase::Stop()
+{
+    m_runningSemaphore.Release(1);
+}
+
+void LightmapJobBase::Stop(const Error& error)
+{
+    HYP_LOG(Lightmap, Error, "Lightmap job {} stopped with error: {}", m_uuid, error.GetMessage());
+
+    m_result = error;
+
+    Stop();
+}
+
+bool LightmapJobBase::IsCompleted() const
+{
+    return !m_runningSemaphore.IsInSignalState();
+}
+
+void LightmapJobBase::AddTask(TaskBatch* taskBatch)
+{
+    Mutex::Guard guard(m_currentTasksMutex);
+
+    m_currentTasks.PushBack(taskBatch);
+}
+
+void LightmapJobBase::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
+{
+    LightmapTexelsBase& texels = GetTexels();
+
+    for (uint32 rayIndex = 0; rayIndex < maxRayHits && HasRemainingTexels(); ++rayIndex)
+    {
+        const uint32 texelIndex = NextTexel();
+
+        LightmapRay ray = texels.texels[texelIndex].ray;
+        ray.texelIndex = texelIndex;
+
+        outRays.PushBack(ray);
+    }
+}
+
+void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
+{
+    Assert(rays.Size() == hits.Size());
+
+    LightmapTexelsBase& texels = GetTexels();
+
+    for (SizeType i = 0; i < hits.Size(); i++)
+    {
+        const LightmapRay& ray = rays[i];
+        const LightmapHit& hit = hits[i];
+
+        LightmapTexel& texel = texels.texels[ray.texelIndex];
+
+        switch (shadingType)
+        {
+        case LightmapShadingType::RADIANCE:
+            texel.radiance += Vec4f(hit.color, 1.0f);
+            break;
+        case LightmapShadingType::IRRADIANCE:
+            texel.irradiance += Vec4f(hit.color, 1.0f);
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+    }
+}
+
+void LightmapJobBase::Process()
+{
+    Assert(IsRunning());
+    Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
+
+    bool isReadyToProcess = true;
+    Process_Internal(&isReadyToProcess);
+
+    if (!isReadyToProcess)
+    {
+        return;
+    }
+
+    View* view = m_params.view;
+    Assert(view != nullptr);
+
+    view->UpdateViewport();
+    view->UpdateVisibility();
+    view->CollectSync();
+
+    if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= MaxConcurrentRenderingTasksPerJob)
+    {
+        // Wait for current rendering tasks to complete before enqueueing new ones.
+
+        return;
+    }
+
+    {
+        Mutex::Guard guard(m_currentTasksMutex);
+
+        if (m_currentTasks.Any())
+        {
+            for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
+            {
+                TaskBatch* taskBatch = m_currentTasks[taskIndex];
+
+                if (!taskBatch->IsCompleted())
+                {
+                    // Skip this call
+
+                    return;
+                }
+            }
+
+            for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
+            {
+                TaskBatch* taskBatch = m_currentTasks[taskIndex];
+
+                taskBatch->AwaitCompletion();
+
+                delete taskBatch;
+            }
+
+            m_currentTasks.Clear();
+        }
+    }
+
+    bool hasRemainingRays = false;
+
+    {
+        Mutex::Guard guard(m_previousFrameRaysMutex);
+
+        if (m_previousFrameRays.Any())
+        {
+            hasRemainingRays = true;
+        }
+    }
+
+    if (!hasRemainingRays
+        && m_texelIndex >= m_texelIndices.Size() * m_params.config->numSamples
+        && numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) == 0)
+    {
+        HYP_LOG(Lightmap, Debug, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_params.config->numSamples);
+
+        Stop();
+
+        return;
+    }
+
+    AssertDebug(m_params.renderers != nullptr);
+    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = *m_params.renderers;
+
+    AssertDebug(lightmapRenderers[0] != nullptr);
+
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
+    {
+        AssertDebug(lightmapRenderer != nullptr);
+
+        if (!lightmapRenderer->CanRender())
+        {
+            HYP_LOG(Lightmap, Info, "Waiting for lightmap renderers to be ready...");
+
+            return;
+        }
+    }
+
+    const SizeType maxRays = MathUtil::Min(lightmapRenderers[0]->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
+
+    Array<LightmapRay> rays;
+    rays.Reserve(maxRays);
+
+    GatherRays(maxRays, rays);
+
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
+    {
+        lightmapRenderer->UpdateRays(rays);
+    }
+
+    const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * m_params.config->numSamples) * 100.0;
+
+    if (MathUtil::Abs(MathUtil::Floor(percentage) - MathUtil::Floor(m_lastLoggedPercentage)) >= 1)
+    {
+        HYP_LOG(Lightmap, Debug, "Lightmap job {}: Texel {} / {} ({}%)",
+            m_uuid.ToString(), m_texelIndex, m_texelIndices.Size() * m_params.config->numSamples, percentage);
+
+        m_lastLoggedPercentage = percentage;
+    }
+
+    World* world = GetScene()->GetWorld();
+    Assert(world != nullptr);
+
+    const uint32 rayOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
+
+    PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
+}
+
+LightmapJob<LightmapVolume>::~LightmapJob()
+{
+    if (m_lightmapElement != nullptr)
+    {
+        delete m_lightmapElement;
+    }
+}
+
+void LightmapJob<LightmapVolume>::Start_Internal()
+{
+    if (!m_atlasBuilt)
+    {
+        // No elements to process
+        if (!m_params.subElementsView)
+        {
+            m_atlas = LightmapAtlas { {} };
+
+            return;
+        }
+
+        HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
+
+        m_atlas = LightmapAtlas { { m_params.subElementsView } };
+
+        m_atlasBuildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
+            {
+                return m_atlas.Build();
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+    }
+}
+
+void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
+{
+    if (outIsReadyToProcess)
+    {
+        *outIsReadyToProcess = m_atlasBuilt;
+    }
+
+    if (m_atlasBuilt)
+    {
+        return;
+    }
+
+    // wait for uv map to finish building
+
+    // If uv map is not valid, it must have a task that is building it
+    Assert(m_atlasBuildTask.IsValid());
+
+    if (!m_atlasBuildTask.IsCompleted())
+    {
+        // return early so we don't block - we need to wait for build task to complete before processing
+        return;
+    }
+
+    if (Result result = m_atlasBuildTask.Await(); result.HasError())
+    {
+        Stop(result.GetError());
+
+        return;
+    }
+
+    if (m_atlas.IsBuilt())
+    {
+        LightmapElement lightmapElement;
+        if (!m_volume->AddElement({ m_atlas.width, m_atlas.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+        {
+            Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
+                m_uuid, Vec2u(m_atlas.width, m_atlas.height)));
+
+            return;
+        }
+
+        if (m_lightmapElement != nullptr)
+        {
+            *m_lightmapElement = std::move(lightmapElement);
+        }
+        else
+        {
+            m_lightmapElement = new LightmapElement(std::move(lightmapElement));
+        }
+
+        // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
+        m_texelIndices.Reserve(m_atlas.texels.Size());
+
+        for (const auto& it : m_atlas.meshToUvIndices)
+        {
+            m_texelIndices.Concat(it.second);
+        }
+
+        // Free up memory
+        m_atlas.meshToUvIndices.Clear();
+
+        m_atlasBuilt = true;
+
+        if (outIsReadyToProcess)
+        {
+            *outIsReadyToProcess = true;
+        }
+    }
+    else
+    {
+        // Mark as ready to stop further processing
+        Stop(HYP_MAKE_ERROR(Error, "Failed to build UV map for lightmap job {}", m_uuid));
+    }
+}
+
+} // namespace hyperion

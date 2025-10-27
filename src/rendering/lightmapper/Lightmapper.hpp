@@ -22,6 +22,7 @@
 #include <scene/Scene.hpp>
 
 #include <rendering/lightmapper/LightmapAtlas.hpp>
+#include <rendering/lightmapper/LightmapJob.hpp>
 
 namespace hyperion {
 
@@ -34,12 +35,13 @@ using threading::TaskBatch;
 struct LightmapHitsBuffer;
 class LightmapThreadPool;
 class ILightmapAccelerationStructure;
+class LightmapTopLevelAccelerationStructure;
 class LightmapJobBase;
 class LightmapVolume;
 class LightmapperBase;
 struct LightmapElement;
-class AssetObject;
 
+class AssetObject;
 class View;
 struct RenderSetup;
 
@@ -184,202 +186,59 @@ protected:
     LightmapperBase* m_lightmapper;
 };
 
-struct LightmapJobParams
-{
-    LightmapperConfig* config;
-
-    Handle<Scene> scene;
-    Handle<LightmapVolume> volume;
-
-    Handle<View> view;
-
-    Span<LightmapSubElement> subElementsView;
-    HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
-
-    Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
-};
-
-class HYP_API LightmapJobBase
-{
-public:
-    explicit LightmapJobBase(LightmapJobParams&& params);
-
-    LightmapJobBase(const LightmapJobBase& other) = delete;
-    LightmapJobBase& operator=(const LightmapJobBase& other) = delete;
-
-    LightmapJobBase(LightmapJobBase&& other) noexcept = delete;
-    LightmapJobBase& operator=(LightmapJobBase&& other) noexcept = delete;
-
-    virtual ~LightmapJobBase();
-
-    HYP_FORCE_INLINE const LightmapJobParams& GetParams() const
-    {
-        return m_params;
-    }
-
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
-    {
-        return m_uuid;
-    }
-
-    HYP_FORCE_INLINE Scene* GetScene() const
-    {
-        return m_params.scene.Get();
-    }
-
-    HYP_FORCE_INLINE Span<LightmapSubElement> GetSubElements() const
-    {
-        return m_params.subElementsView;
-    }
-
-    HYP_FORCE_INLINE uint32 GetTexelIndex() const
-    {
-        return m_texelIndex;
-    }
-
-    HYP_FORCE_INLINE const Array<uint32>& GetTexelIndices() const
-    {
-        return m_texelIndices;
-    }
-
-    HYP_FORCE_INLINE void GetPreviousFrameRays(Array<LightmapRay>& outRays) const
-    {
-        Mutex::Guard guard(m_previousFrameRaysMutex);
-
-        outRays = m_previousFrameRays;
-    }
-
-    HYP_FORCE_INLINE void SetPreviousFrameRays(const Array<LightmapRay>& rays)
-    {
-        Mutex::Guard guard(m_previousFrameRaysMutex);
-
-        m_previousFrameRays = rays;
-    }
-
-    HYP_FORCE_INLINE const Result& GetResult() const
-    {
-        return m_result;
-    }
-
-    void Start();
-    void Process();
-
-    void AddTask(TaskBatch* taskBatch);
-
-    /*! \brief Integrate ray hits into the lightmap.
-     *  \param rays The rays that were traced.
-     *  \param hits The hits to integrate.
-     */
-    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType);
-
-    /*! \brief Gather next rays to be traced.
-     *  \param maxRayHits The maximum number of rays to gather.
-     *  \param outRays The output array to store gathered rays.
-     */
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays);
-
-    bool IsCompleted() const;
-
-    HYP_FORCE_INLINE bool IsRunning() const
-    {
-        return m_runningSemaphore.IsInSignalState();
-    }
-
-    // Number of GPU path tracing tasks running, used to not overwhelm the gpu while rendering the frame
-    AtomicVar<uint32> numConcurrentRenderingTasks;
-
-protected:
-    virtual void Start_Internal() = 0;
-    virtual void Process_Internal(bool* outIsReady = nullptr) = 0;
-
-    virtual LightmapTexelsBase& GetTexels() = 0;
-
-    HYP_FORCE_INLINE bool HasRemainingTexels() const
-    {
-        return m_texelIndex < m_texelIndices.Size() * m_params.config->numSamples;
-    }
-
-    /*! \brief Get the next texel index to process, advancing the teexl counter
-     *  \return The texel index
-     */
-    HYP_FORCE_INLINE uint32 NextTexel()
-    {
-        const uint32 currentTexelIndex = m_texelIndices[m_texelIndex % m_texelIndices.Size()];
-        m_texelIndex++;
-
-        return currentTexelIndex;
-    }
-
-    void Stop();
-    void Stop(const Error& error);
-
-    LightmapJobParams m_params;
-
-    Uuid m_uuid;
-
-    Array<uint32> m_texelIndices; // flattened texel indices, flattened so that meshes are grouped together
-
-    Array<LightmapRay> m_previousFrameRays;
-    mutable Mutex m_previousFrameRaysMutex;
-
-    Array<TaskBatch*> m_currentTasks;
-    mutable Mutex m_currentTasksMutex;
-
-    Semaphore<int32> m_runningSemaphore;
-    uint32 m_texelIndex;
-
-    double m_lastLoggedPercentage;
-
-    Result m_result;
-};
-
-class HYP_API LightmapAtlasJob : public LightmapJobBase
-{
-public:
-    explicit LightmapAtlasJob(LightmapJobParams&& params)
-        : LightmapJobBase(std::move(params)),
-          m_atlasBuilt(false),
-          m_lightmapElement(nullptr)
-    {
-    }
-
-    virtual ~LightmapAtlasJob() override;
-
-    HYP_FORCE_INLINE LightmapAtlas& GetAtlas()
-    {
-        return m_atlas;
-    }
-
-    HYP_FORCE_INLINE const LightmapAtlas& GetAtlas() const
-    {
-        return m_atlas;
-    }
-
-    HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
-    {
-        return m_lightmapElement;
-    }
-
-protected:
-    virtual void Start_Internal() override;
-    virtual void Process_Internal(bool* outIsReadyToProcess) override;
-
-    virtual LightmapTexelsBase& GetTexels() override
-    {
-        return m_atlas;
-    }
-
-    LightmapAtlas m_atlas;
-    Task<Result> m_atlasBuildTask;
-    bool m_atlasBuilt;
-
-    LightmapElement* m_lightmapElement;
-};
-
 HYP_CLASS(Abstract)
 class HYP_API LightmapperBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(LightmapperBase);
+
+protected:
+    struct CachedResource
+    {
+        Handle<AssetObject> assetObject;
+        ResourceHandle resourceHandle;
+
+        CachedResource() = default;
+
+        CachedResource(const Handle<AssetObject>& assetObject, const ResourceHandle& resourceHandle)
+            : assetObject(assetObject),
+              resourceHandle(resourceHandle)
+        {
+        }
+
+        CachedResource(const CachedResource& other) = delete;
+        CachedResource& operator=(const CachedResource& other) = delete;
+
+        CachedResource(CachedResource&& other) noexcept
+            : assetObject(std::move(other.assetObject)),
+              resourceHandle(std::move(other.resourceHandle))
+        {
+            other.resourceHandle.Reset();
+        }
+
+        CachedResource& operator=(CachedResource&& other) noexcept
+        {
+            if (this == &other)
+            {
+                return *this;
+            }
+
+            resourceHandle.Reset();
+
+            assetObject = std::move(other.assetObject);
+            resourceHandle = std::move(other.resourceHandle);
+
+            return *this;
+        }
+
+        ~CachedResource()
+        {
+            // destruct the ResourceHandle before assetobject is destructed,
+            // so it destructing the AssetObject doesn't try to wait for the resource's ref count to reach zero
+            resourceHandle.Reset();
+        }
+    };
+
+    using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, DynamicNodeAllocator>;
 
 public:
     LightmapperBase(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
@@ -417,27 +276,30 @@ public:
     void Initialize();
     void Update(float delta);
 
+    void HandleCompletedJob(LightmapJobBase* job);
+
     Delegate<void> OnComplete;
 
 protected:
     virtual void Initialize_Internal()
     {
     }
+
     virtual void Build_Internal()
     {
     }
-
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params)
+    
+    virtual void HandleCompletedJob_Internal(LightmapJobBase* job)
     {
-        if (params.volume)
-        {
-            return MakeUnique<LightmapAtlasJob>(std::move(params));
-        }
-
-        return nullptr;
     }
 
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) = 0;
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
+    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType);
+    
+    /// ===== CPU tracing only =====
+    void BuildResourceCache();
+    void BuildAccelerationStructures();
+    /// ============================
 
     LightmapperConfig m_config;
 
@@ -446,11 +308,16 @@ protected:
 
     Handle<View> m_view;
 
-    Handle<LightmapVolume> m_volume;
-
     Array<LightmapSubElement> m_subElements;
     HashMap<Handle<Entity>, LightmapSubElement*> m_subElementsByEntity;
+    
+    /// ===== CPU tracing only =====
+    UniquePtr<LightmapTopLevelAccelerationStructure> m_accelerationStructure;
+    ResourceCache m_resourceCache;
+    LightmapThreadPool* m_threadPool;
+    /// ============================
 
+protected:
 private:
     void Build();
 
@@ -465,13 +332,44 @@ private:
         m_numJobs.Increment(1, MemoryOrder::RELEASE);
     }
 
-    void HandleCompletedJob(LightmapJobBase* job);
-
     Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
 
     Queue<UniquePtr<LightmapJobBase>> m_queue;
     Mutex m_queueMutex;
     AtomicVar<uint32> m_numJobs;
+};
+
+template <class T>
+class Lightmapper;
+
+template <>
+class Lightmapper<LightmapVolume> : public LightmapperBase
+{
+public:
+    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
+        : LightmapperBase(std::move(config), scene, aabb)
+    {
+    }
+
+    Lightmapper(const Lightmapper& other) = delete;
+    Lightmapper& operator=(const Lightmapper& other) = delete;
+
+    Lightmapper(Lightmapper&& other) noexcept = delete;
+    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
+
+    virtual ~Lightmapper() override = default;
+
+protected:
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    {
+        return MakeUnique<LightmapJob<LightmapVolume>>(std::move(params), m_volume);
+    }
+
+    virtual void Initialize_Internal() override;
+    
+    virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+
+    Handle<LightmapVolume> m_volume;
 };
 
 } // namespace hyperion

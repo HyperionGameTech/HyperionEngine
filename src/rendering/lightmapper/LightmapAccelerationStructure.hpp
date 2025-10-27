@@ -1,0 +1,277 @@
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#include <core/Types.hpp>
+
+#include <core/math/Ray.hpp>
+#include <core/math/Vertex.hpp>
+#include <core/math/Mat4f.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/Transform.hpp>
+#include <core/math/Triangle.hpp>
+
+#include <core/reflection/Handle.hpp>
+
+#include <core/containers/FlatSet.hpp>
+#include <core/containers/Array.hpp>
+
+#include <scene/BVH.hpp>
+
+namespace hyperion {
+
+class Entity;
+
+struct LightmapSubElement;
+
+struct LightmapRayHit : RayHit
+{
+    Handle<Entity> entity;
+    Triangle triangle;
+
+    LightmapRayHit() = default;
+
+    LightmapRayHit(const RayHit& rayHit, const Handle<Entity>& entity, const Triangle& triangle)
+        : RayHit(rayHit),
+          entity(entity),
+          triangle(triangle)
+    {
+    }
+
+    LightmapRayHit(const LightmapRayHit& other) = default;
+    LightmapRayHit& operator=(const LightmapRayHit& other) = default;
+
+    LightmapRayHit(LightmapRayHit&& other) noexcept
+        : RayHit(static_cast<RayHit&&>(std::move(other))),
+          entity(std::move(other.entity)),    // NOLINT(bugprone-use-after-move)
+          triangle(std::move(other.triangle)) // NOLINT(bugprone-use-after-move)
+    {
+    }
+
+    LightmapRayHit& operator=(LightmapRayHit&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        RayHit::operator=(static_cast<RayHit&&>(std::move(other)));
+        entity = std::move(other.entity);     // NOLINT(bugprone-use-after-move)
+        triangle = std::move(other.triangle); // NOLINT(bugprone-use-after-move)
+
+        return *this;
+    }
+
+    virtual ~LightmapRayHit() = default;
+
+    bool operator==(const LightmapRayHit& other) const
+    {
+        return static_cast<const RayHit&>(*this) == static_cast<const RayHit&>(other)
+            && entity == other.entity
+            && triangle == other.triangle;
+    }
+
+    bool operator!=(const LightmapRayHit& other) const
+    {
+        return static_cast<const RayHit&>(*this) != static_cast<const RayHit&>(other)
+            || entity != other.entity
+            || triangle != other.triangle;
+    }
+
+    bool operator<(const LightmapRayHit& other) const
+    {
+        if (static_cast<const RayHit&>(*this) < static_cast<const RayHit&>(other))
+        {
+            return true;
+        }
+
+        if (entity < other.entity)
+        {
+            return true;
+        }
+
+        if (entity == other.entity && triangle.GetPosition() < other.triangle.GetPosition())
+        {
+            return true;
+        }
+
+        return false;
+    }
+};
+
+using LightmapRayTestResults = FlatSet<LightmapRayHit>;
+
+class LightmapBottomLevelAccelerationStructure
+{
+public:
+    LightmapBottomLevelAccelerationStructure(
+        const LightmapSubElement* subElement,
+        BVHNode&& bvh,
+        Array<Vertex>&& vertices,
+        Array<uint32>&& indices)
+        : m_subElement(subElement),
+          m_root(std::move(bvh)),
+          m_cachedVertices(std::move(vertices)),
+          m_cachedIndices(std::move(indices))
+    {
+        Assert(m_subElement != nullptr);
+    }
+
+    LightmapBottomLevelAccelerationStructure(const LightmapBottomLevelAccelerationStructure& other) = delete;
+    LightmapBottomLevelAccelerationStructure& operator=(const LightmapBottomLevelAccelerationStructure& other) = delete;
+
+    LightmapBottomLevelAccelerationStructure(LightmapBottomLevelAccelerationStructure&& other) noexcept
+        : m_subElement(other.m_subElement),
+          m_root(std::move(other.m_root)),
+          m_cachedVertices(std::move(other.m_cachedVertices)),
+          m_cachedIndices(std::move(other.m_cachedIndices))
+    {
+        other.m_subElement = nullptr;
+    }
+
+    LightmapBottomLevelAccelerationStructure& operator=(LightmapBottomLevelAccelerationStructure&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        m_subElement = other.m_subElement;
+        m_root = std::move(other.m_root);
+        m_cachedVertices = std::move(other.m_cachedVertices);
+        m_cachedIndices = std::move(other.m_cachedIndices);
+
+        other.m_subElement = nullptr;
+
+        return *this;
+    }
+
+    ~LightmapBottomLevelAccelerationStructure() = default;
+
+    HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
+    {
+        return m_subElement->entity;
+    }
+
+    HYP_FORCE_INLINE const Transform& GetTransform() const
+    {
+        return m_subElement->transform;
+    }
+
+    LightmapRayTestResults TestRay(const Ray& ray) const
+    {
+        LightmapRayTestResults results;
+
+        const Mat4f& modelMatrix = m_subElement->transform.GetMatrix();
+
+        const Ray localSpaceRay = modelMatrix.Inverted() * ray;
+
+        RayTestResults localBvhResults = m_root.TestRay(localSpaceRay, m_cachedVertices, m_cachedIndices);
+
+        if (localBvhResults.Any())
+        {
+            const Mat4f normalMatrix = modelMatrix.Transposed().Inverted();
+
+            RayTestResults bvhResults;
+
+            for (RayHit hit : localBvhResults)
+            {
+                Vec4f transformedNormal = normalMatrix * Vec4f(hit.normal, 0.0f);
+                hit.normal = transformedNormal.GetXYZ().Normalized();
+
+                Vec4f transformedPosition = modelMatrix * Vec4f(hit.hitpoint, 1.0f);
+                transformedPosition /= transformedPosition.w;
+
+                hit.hitpoint = transformedPosition.GetXYZ();
+
+                hit.distance = (hit.hitpoint - ray.position).Length();
+
+                bvhResults.AddHit(hit);
+            }
+
+            for (const RayHit& rayHit : bvhResults)
+            {
+                Assert(rayHit.userData != nullptr);
+
+                const BVHNode* bvhNode = static_cast<const BVHNode*>(rayHit.userData);
+
+                const uint32 triangleId = rayHit.id;
+
+                AssertDebug(triangleId < m_cachedIndices.Size() / 3);
+
+                const uint32 i0 = m_cachedIndices[triangleId * 3 + 0];
+                const uint32 i1 = m_cachedIndices[triangleId * 3 + 1];
+                const uint32 i2 = m_cachedIndices[triangleId * 3 + 2];
+
+                const Triangle triangle {
+                    m_cachedVertices[i0].position,
+                    m_cachedVertices[i1].position,
+                    m_cachedVertices[i2].position
+                };
+
+                results.Emplace(rayHit, m_subElement->entity, triangle);
+            }
+        }
+
+        return results;
+    }
+
+    HYP_FORCE_INLINE const BVHNode& GetRoot() const
+    {
+        return m_root;
+    }
+
+private:
+    const LightmapSubElement* m_subElement;
+
+    BVHNode m_root;
+    Array<Vertex> m_cachedVertices;
+    Array<uint32> m_cachedIndices;
+};
+
+class LightmapTopLevelAccelerationStructure
+{
+public:
+    ~LightmapTopLevelAccelerationStructure() = default;
+
+    HYP_FORCE_INLINE const Transform& GetTransform() const
+    {
+        return Transform::identity;
+    }
+
+    LightmapRayTestResults TestRay(const Ray& ray) const
+    {
+        LightmapRayTestResults results;
+
+        for (const LightmapBottomLevelAccelerationStructure& accelerationStructure : m_accelerationStructures)
+        {
+            if (!ray.TestAABB(accelerationStructure.GetTransform() * accelerationStructure.GetRoot().aabb))
+            {
+                continue;
+            }
+
+            results.Merge(accelerationStructure.TestRay(ray));
+        }
+
+        return results;
+    }
+
+    void Add(
+        const LightmapSubElement* subElement,
+        BVHNode&& bvh,
+        Array<Vertex>&& vertices,
+        Array<uint32>&& indices)
+    {
+        m_accelerationStructures.EmplaceBack(subElement, std::move(bvh), std::move(vertices), std::move(indices));
+    }
+
+    void RemoveAll()
+    {
+        m_accelerationStructures.Clear();
+    }
+
+private:
+    Array<LightmapBottomLevelAccelerationStructure> m_accelerationStructures;
+};
+
+} // namespace hyperion

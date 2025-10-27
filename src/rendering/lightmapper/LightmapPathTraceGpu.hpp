@@ -65,20 +65,4 @@ private:
     RaytracingPipelineRef m_raytracingPipeline;
 };
 
-HYP_CLASS()
-class HYP_API Lightmapper_GpuPathTracing : public LightmapperBase
-{
-    HYP_OBJECT_BODY(Lightmapper_GpuPathTracing);
-
-public:
-    Lightmapper_GpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
-    virtual ~Lightmapper_GpuPathTracing() override = default;
-
-protected:
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) override
-    {
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType);
-    }
-};
-
 } // namespace hyperion

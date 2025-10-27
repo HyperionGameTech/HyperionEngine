@@ -483,13 +483,4 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 
 #pragma endregion LightmapRenderer_GpuPathTracing
 
-#pragma region Lightmapper_GpuPathTracing
-
-Lightmapper_GpuPathTracing::Lightmapper_GpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
-    : LightmapperBase(std::move(config), scene, aabb)
-{
-}
-
-#pragma endregion Lightmapper_GpuPathTracing
-
 } // namespace hyperion
