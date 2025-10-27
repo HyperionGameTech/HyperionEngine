@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/lightmapper/LightmapAtlas.hpp>
+#include <rendering/lightmapper/LightmapData.hpp>
 
 #include <rendering/Mesh.hpp>
 
@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-LightmapAtlas::LightmapAtlas(const LightmapUVBuilderParams& params)
+LightmapData<LightmapVolume>::LightmapData(const LightmapUVBuilderParams& params)
     : m_params(params),
       m_meshVertexPositions(m_params.subElements.Size()),
       m_meshVertexNormals(m_params.subElements.Size()),
@@ -102,7 +102,7 @@ LightmapAtlas::LightmapAtlas(const LightmapUVBuilderParams& params)
     }
 }
 
-Result LightmapAtlas::Build()
+Result LightmapData<LightmapVolume>::Build()
 {
     if (m_meshData.Empty())
     {
@@ -333,11 +333,11 @@ Result LightmapAtlas::Build()
 #endif
 }
 
-LightmapAtlasBitmap LightmapAtlas::ToBitmapRadiance() const
+auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
 {
     Assert(texels.Size() == width * height, "Invalid UV map size");
 
-    LightmapAtlasBitmap bitmap(width, height);
+    BitmapType bitmap(width, height);
 
     for (uint32 x = 0; x < width; x++)
     {
@@ -363,11 +363,11 @@ LightmapAtlasBitmap LightmapAtlas::ToBitmapRadiance() const
     return bitmap;
 }
 
-LightmapAtlasBitmap LightmapAtlas::ToBitmapIrradiance() const
+auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 {
     Assert(texels.Size() == width * height, "Invalid UV map size");
 
-    LightmapAtlasBitmap bitmap(width, height);
+    BitmapType bitmap(width, height);
 
     for (uint32 x = 0; x < width; x++)
     {

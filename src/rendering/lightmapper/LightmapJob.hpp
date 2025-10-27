@@ -11,12 +11,14 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <rendering/lightmapper/LightmapAtlas.hpp>
+#include <rendering/lightmapper/LightmapData.hpp>
 #include <rendering/lightmapper/LightmapTexel.hpp>
 
 namespace hyperion {
 
-namespace threading { class TaskBatch; }
+namespace threading {
+class TaskBatch;
+}
 using threading::TaskBatch;
 
 class Scene;
@@ -28,7 +30,7 @@ class ILightmapRenderer;
 struct RenderSetup; // forward decl for renderer interface usage
 
 enum class LightmapShadingType : int; // forward decl from Lightmapper
-struct LightmapHit; // forward decl from Lightmapper
+struct LightmapHit;                   // forward decl from Lightmapper
 
 struct LightmapperConfig; // forward decl from Lightmapper
 
@@ -138,7 +140,12 @@ protected:
     virtual void Start_Internal() = 0;
     virtual void Process_Internal(bool* outIsReady = nullptr) = 0;
 
-    virtual LightmapTexelsBase& GetTexels() = 0;
+    virtual LightmapDataBase& GetLightmapData() = 0;
+
+    HYP_FORCE_INLINE const LightmapDataBase& GetLightmapData() const
+    {
+        return const_cast<LightmapJobBase*>(this)->GetLightmapData();
+    }
 
     bool HasRemainingTexels() const;
 
@@ -186,7 +193,7 @@ public:
     explicit LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume)
         : LightmapJobBase(std::move(params)),
           m_volume(volume),
-          m_atlasBuilt(false),
+          m_lightmapDataBuilt(false),
           m_lightmapElement(nullptr)
     {
     }
@@ -198,14 +205,9 @@ public:
         return m_volume;
     }
 
-    HYP_FORCE_INLINE LightmapAtlas& GetAtlas()
+    virtual LightmapData<LightmapVolume>& GetLightmapData() override
     {
-        return m_atlas;
-    }
-
-    HYP_FORCE_INLINE const LightmapAtlas& GetAtlas() const
-    {
-        return m_atlas;
+        return m_lightmapData;
     }
 
     HYP_FORCE_INLINE LightmapElement* GetLightmapElement() const
@@ -217,16 +219,11 @@ protected:
     virtual void Start_Internal() override;
     virtual void Process_Internal(bool* outIsReadyToProcess) override;
 
-    virtual LightmapTexelsBase& GetTexels() override
-    {
-        return m_atlas;
-    }
-
     Handle<LightmapVolume> m_volume;
 
-    LightmapAtlas m_atlas;
-    Task<Result> m_atlasBuildTask;
-    bool m_atlasBuilt;
+    LightmapData<LightmapVolume> m_lightmapData;
+    Task<Result> m_buildTask;
+    bool m_lightmapDataBuilt;
 
     LightmapElement* m_lightmapElement;
 };

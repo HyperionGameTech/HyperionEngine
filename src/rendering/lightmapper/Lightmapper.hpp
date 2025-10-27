@@ -21,7 +21,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <rendering/lightmapper/LightmapAtlas.hpp>
+#include <rendering/lightmapper/LightmapData.hpp>
 #include <rendering/lightmapper/LightmapJob.hpp>
 
 namespace hyperion {
@@ -288,14 +288,14 @@ protected:
     virtual void Build_Internal()
     {
     }
-    
+
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job)
     {
     }
 
     virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) = 0;
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType);
-    
+
     /// ===== CPU tracing only =====
     void BuildResourceCache();
     void BuildAccelerationStructures();
@@ -310,7 +310,7 @@ protected:
 
     Array<LightmapSubElement> m_subElements;
     HashMap<Handle<Entity>, LightmapSubElement*> m_subElementsByEntity;
-    
+
     /// ===== CPU tracing only =====
     UniquePtr<LightmapTopLevelAccelerationStructure> m_accelerationStructure;
     ResourceCache m_resourceCache;
@@ -366,7 +366,7 @@ protected:
     }
 
     virtual void Initialize_Internal() override;
-    
+
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
 
     Handle<LightmapVolume> m_volume;

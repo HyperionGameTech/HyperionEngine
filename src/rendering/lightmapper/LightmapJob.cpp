@@ -202,13 +202,13 @@ void LightmapJobBase::AddTask(TaskBatch* taskBatch)
 
 void LightmapJobBase::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
 {
-    LightmapTexelsBase& texels = GetTexels();
+    LightmapDataBase& lightmapData = GetLightmapData();
 
     for (uint32 rayIndex = 0; rayIndex < maxRayHits && HasRemainingTexels(); ++rayIndex)
     {
         const uint32 texelIndex = NextTexel();
 
-        LightmapRay ray = texels.texels[texelIndex].ray;
+        LightmapRay ray = lightmapData.texels[texelIndex].ray;
         ray.texelIndex = texelIndex;
 
         outRays.PushBack(ray);
@@ -219,14 +219,14 @@ void LightmapJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const 
 {
     Assert(rays.Size() == hits.Size());
 
-    LightmapTexelsBase& texels = GetTexels();
+    LightmapDataBase& lightmapData = GetLightmapData();
 
     for (SizeType i = 0; i < hits.Size(); i++)
     {
         const LightmapRay& ray = rays[i];
         const LightmapHit& hit = hits[i];
 
-        LightmapTexel& texel = texels.texels[ray.texelIndex];
+        LightmapTexel& texel = lightmapData.texels[ray.texelIndex];
 
         switch (shadingType)
         {
@@ -378,23 +378,23 @@ LightmapJob<LightmapVolume>::~LightmapJob()
 
 void LightmapJob<LightmapVolume>::Start_Internal()
 {
-    if (!m_atlasBuilt)
+    if (!m_lightmapDataBuilt)
     {
         // No elements to process
         if (!m_params.subElementsView)
         {
-            m_atlas = LightmapAtlas { {} };
+            m_lightmapData = LightmapData<LightmapVolume> { {} };
 
             return;
         }
 
         HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
 
-        m_atlas = LightmapAtlas { { m_params.subElementsView } };
+        m_lightmapData = LightmapData<LightmapVolume> { { m_params.subElementsView } };
 
-        m_atlasBuildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
+        m_buildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
             {
-                return m_atlas.Build();
+                return m_lightmapData.Build();
             },
             TaskThreadPoolName::THREAD_POOL_BACKGROUND);
     }
@@ -404,39 +404,38 @@ void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
 {
     if (outIsReadyToProcess)
     {
-        *outIsReadyToProcess = m_atlasBuilt;
+        *outIsReadyToProcess = m_lightmapDataBuilt;
     }
 
-    if (m_atlasBuilt)
+    if (m_lightmapDataBuilt)
     {
         return;
     }
 
-    // wait for uv map to finish building
+    // wait for our lightmap data to finish building
 
-    // If uv map is not valid, it must have a task that is building it
-    Assert(m_atlasBuildTask.IsValid());
+    Assert(m_buildTask.IsValid());
 
-    if (!m_atlasBuildTask.IsCompleted())
+    if (!m_buildTask.IsCompleted())
     {
         // return early so we don't block - we need to wait for build task to complete before processing
         return;
     }
 
-    if (Result result = m_atlasBuildTask.Await(); result.HasError())
+    if (Result result = m_buildTask.Await(); result.HasError())
     {
         Stop(result.GetError());
 
         return;
     }
 
-    if (m_atlas.IsBuilt())
+    if (m_lightmapData.IsBuilt())
     {
         LightmapElement lightmapElement;
-        if (!m_volume->AddElement({ m_atlas.width, m_atlas.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
+        if (!m_volume->AddElement({ m_lightmapData.width, m_lightmapData.height }, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
         {
             Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
-                m_uuid, Vec2u(m_atlas.width, m_atlas.height)));
+                m_uuid, Vec2u(m_lightmapData.width, m_lightmapData.height)));
 
             return;
         }
@@ -451,17 +450,17 @@ void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
         }
 
         // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
-        m_texelIndices.Reserve(m_atlas.texels.Size());
+        m_texelIndices.Reserve(m_lightmapData.texels.Size());
 
-        for (const auto& it : m_atlas.meshToUvIndices)
+        for (const auto& it : m_lightmapData.meshToUvIndices)
         {
             m_texelIndices.Concat(it.second);
         }
 
         // Free up memory
-        m_atlas.meshToUvIndices.Clear();
+        m_lightmapData.meshToUvIndices.Clear();
 
-        m_atlasBuilt = true;
+        m_lightmapDataBuilt = true;
 
         if (outIsReadyToProcess)
         {

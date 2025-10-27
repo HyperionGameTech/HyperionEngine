@@ -84,35 +84,4 @@ struct LightmapTexel
     LightmapRay ray;
 };
 
-/*! \brief Base class for lightmap texel source, used to trace rays from and store texel data to. */
-class LightmapTexelsBase
-{
-public:
-    // HashMap from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
-    using MeshToUVIndicesMap = HashMap<ObjId<Mesh>, Array<uint32, DynamicAllocator>>;
-
-    struct TexelRange
-    {
-        uint32 start = 0;
-        uint32 count = 0; // number of consecutive texels
-    };
-
-    using MeshToTexelRangesMap = HashMap<ObjId<Mesh>, Array<TexelRange, DynamicAllocator>>;
-
-    uint32 width = 0;
-    uint32 height = 0;
-
-    /// Texels in UV space
-    Array<LightmapTexel> texels;
-
-    // Mapping from mesh Id to the indices of the UVs that correspond to that mesh.
-    MeshToUVIndicesMap meshToUvIndices;
-
-    // Texel indices per mesh
-    MeshToTexelRangesMap meshToTexelRanges;
-
-    LightmapTexelsBase() = default;
-    virtual ~LightmapTexelsBase() = default;
-};
-
 } // namespace hyperion

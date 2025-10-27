@@ -487,7 +487,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 
 #pragma endregion LightmapperBase
 
-#pragma region Lightmapper<LightmapVolume>
+#pragma region Lightmapper < LightmapVolume>
 
 void Lightmapper<LightmapVolume>::Initialize_Internal()
 {
@@ -506,7 +506,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
     LightmapJob<LightmapVolume>* jobCasted = static_cast<LightmapJob<LightmapVolume>*>(job);
 
-    const LightmapAtlas& atlas = jobCasted->GetAtlas();
+    const LightmapData<LightmapVolume>& lightmapData = jobCasted->GetLightmapData();
 
     LightmapElement* lightmapElement = jobCasted->GetLightmapElement();
 
@@ -517,7 +517,7 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
         return;
     }
 
-    if (!m_volume->BuildElementTextures(atlas, lightmapElement->id))
+    if (!m_volume->BuildElementTextures(lightmapData, lightmapElement->id))
     {
         HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
 
@@ -536,9 +536,9 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
             const Handle<Mesh>& mesh = subElement.mesh;
             Assert(mesh.IsValid());
 
-            Assert(subElementIndex < atlas.GetMeshData().Size());
+            Assert(subElementIndex < lightmapData.GetMeshData().Size());
 
-            const LightmapMeshData& lightmapMeshData = atlas.GetMeshData()[subElementIndex];
+            const LightmapMeshData& lightmapMeshData = lightmapData.GetMeshData()[subElementIndex];
             Assert(lightmapMeshData.mesh == mesh);
 
             MeshDesc newMeshDesc;
@@ -648,6 +648,6 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
     }
 }
 
-#pragma endregion Lightmapper<LightmapVolume>
+#pragma endregion Lightmapper < LightmapVolume>
 
 } // namespace hyperion
