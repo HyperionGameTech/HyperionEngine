@@ -15,6 +15,8 @@
 #include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
+#include <core/math/BoundingBox.hpp>
+
 #include <core/profiling/PerformanceClock.hpp>
 
 #include <core/config/Config.hpp>
@@ -43,6 +45,7 @@ struct LightmapElement;
 
 class AssetObject;
 class View;
+class EnvProbe;
 struct RenderSetup;
 
 HYP_ENUM()
@@ -366,10 +369,35 @@ protected:
     }
 
     virtual void Initialize_Internal() override;
-
     virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
 
     Handle<LightmapVolume> m_volume;
+};
+
+template <>
+class Lightmapper<EnvProbe> : public LightmapperBase
+{
+public:
+    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const Handle<EnvProbe>& envProbe);
+
+    Lightmapper(const Lightmapper& other) = delete;
+    Lightmapper& operator=(const Lightmapper& other) = delete;
+
+    Lightmapper(Lightmapper&& other) noexcept = delete;
+    Lightmapper& operator=(Lightmapper&& other) noexcept = delete;
+
+    virtual ~Lightmapper() override = default;
+
+protected:
+    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
+    {
+        return MakeUnique<LightmapJob<EnvProbe>>(std::move(params), m_envProbe);
+    }
+
+    virtual void Initialize_Internal() override;
+    virtual void HandleCompletedJob_Internal(LightmapJobBase* job) override;
+
+    Handle<EnvProbe> m_envProbe;
 };
 
 } // namespace hyperion

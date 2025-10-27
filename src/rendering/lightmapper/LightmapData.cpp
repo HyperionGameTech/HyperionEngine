@@ -4,6 +4,8 @@
 
 #include <rendering/Mesh.hpp>
 
+#include <scene/EnvProbe.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -13,19 +15,21 @@
 
 namespace hyperion {
 
-LightmapData<LightmapVolume>::LightmapData(const LightmapUVBuilderParams& params)
-    : m_params(params),
-      m_meshVertexPositions(m_params.subElements.Size()),
-      m_meshVertexNormals(m_params.subElements.Size()),
-      m_meshVertexUvs(m_params.subElements.Size()),
-      m_meshIndices(m_params.subElements.Size())
+#pragma region LightmapData<LightmapVolume>
+
+LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subElements)
+    : LightmapDataBase(subElements),
+      m_meshVertexPositions(subElements.Size()),
+      m_meshVertexNormals(.subElements.Size()),
+      m_meshVertexUvs(subElements.Size()),
+      m_meshIndices(subElements.Size())
 {
     // Output mesh data - this will be where we output the computed UVs to be used for tracing
-    m_meshData.Resize(m_params.subElements.Size());
+    m_meshData.Resize(subElements.Size());
 
-    for (SizeType i = 0; i < m_params.subElements.Size(); i++)
+    for (SizeType i = 0; i < subElements.Size(); i++)
     {
-        const LightmapSubElement& subElement = m_params.subElements[i];
+        const LightmapSubElement& subElement = subElements[i];
 
         LightmapMeshData& lightmapMeshData = m_meshData[i];
 
@@ -392,5 +396,50 @@ auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
 
     return bitmap;
 }
+
+#pragma endregion LightmapData<LightmapVolume>
+
+#pragma region LightmapData<EnvProbe>
+
+Result LightmapData<EnvProbe>::Build()
+{
+    Assert(m_envProbe != nullptr);
+
+    // texels need to be 6*resolution^2 in size
+    const Vec2u dimensions = m_envProbe->GetDimensions();
+    AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
+        "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);
+
+    const SizeType numTexels = 6 * dimensions.x * dimensions.y;
+
+    texels.Resize(numTexels);
+
+    for (uint32 face = 0; face < 6; face++)
+    {
+        for (uint32 y = 0; y < dimensions.y; y++)
+        {
+            for (uint32 x = 0; x < dimensions.x; x++)
+            {
+                const uint32 texelIdx = face * dimensions.x * dimensions.y + y * dimensions.x + x;
+
+                LightmapTexel& texel = texels[texelIdx];
+                
+                const Vec2f octahedralCoord = MathUtil::NormalizeOctahedralCoord(Vec2i { int(x), int(y) }, Vec2i { int(dimensions.x), int(dimensions.y) });
+                const Vec3f dir = MathUtil::DecodeOctahedralCoord(octahedralCoord).Normalize();
+
+                texel.ray = LightmapRay {
+                    Ray { Vec3f(0.0f), dir },
+                    /* meshId */ ObjId<Mesh>::invalid,
+                    /* triangleIndex */ ~0u,
+                    /* texelIndex */ texelIdx
+                };
+            }
+        }
+    }
+
+    return {};
+}
+
+#pragma endregion LightmapData<EnvProbe>
 
 } // namespace hyperion

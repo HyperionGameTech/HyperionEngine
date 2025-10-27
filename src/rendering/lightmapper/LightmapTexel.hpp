@@ -33,11 +33,6 @@ struct LightmapSubElement
     BoundingBox aabb;
 };
 
-struct LightmapUVBuilderParams
-{
-    Span<const LightmapSubElement> subElements;
-};
-
 struct LightmapMeshData
 {
     Handle<Mesh> mesh;
@@ -75,9 +70,6 @@ static_assert(std::is_trivially_move_constructible_v<LightmapRay>, "LightmapRay 
 
 struct LightmapTexel
 {
-    uint32 triangleIndex = ~0u;
-    Vec3f barycentricCoords = Vec3f::Zero();
-    Vec2f lightmapUv = Vec2f::Zero();
     Vec4f radiance = Vec4f::Zero();
     Vec4f irradiance = Vec4f::Zero();
 

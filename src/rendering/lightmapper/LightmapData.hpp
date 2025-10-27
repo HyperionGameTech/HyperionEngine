@@ -7,6 +7,7 @@
 namespace hyperion {
 
 class LightmapVolume;
+class EnvProbe;
 class Mesh;
 
 /*! \brief Base class for lightmap texel source, used to trace rays from and store texel data to. */
@@ -24,9 +25,6 @@ public:
 
     using MeshToTexelRangesMap = HashMap<ObjId<Mesh>, Array<TexelRange, DynamicAllocator>>;
 
-    uint32 width = 0;
-    uint32 height = 0;
-
     /// Texels in UV space
     Array<LightmapTexel> texels;
 
@@ -36,8 +34,23 @@ public:
     // Texel indices per mesh
     MeshToTexelRangesMap meshToTexelRanges;
 
+    Span<const LightmapSubElement> subElements;
+
     LightmapDataBase() = default;
+
+    explicit LightmapDataBase(Span<const LightmapSubElement> subElements)
+        : subElements(subElements)
+    {
+    }
+
     virtual ~LightmapDataBase() = default;
+
+    virtual Result Build() = 0;
+
+    HYP_FORCE_INLINE bool IsBuilt() const
+    {
+        return texels.Any();
+    }
 };
 
 template <class T>
@@ -54,7 +67,7 @@ public:
 
     LightmapData() = default;
 
-    LightmapData(const LightmapUVBuilderParams& params);
+    explicit LightmapData(Span<const LightmapSubElement> subElements);
 
     LightmapData(const LightmapData& other) = default;
     LightmapData(LightmapData&& other) noexcept = default;
@@ -62,25 +75,22 @@ public:
     LightmapData& operator=(const LightmapData& other) = default;
     LightmapData& operator=(LightmapData&& other) noexcept = default;
 
-    ~LightmapData() = default;
+    ~LightmapData() override = default;
 
     HYP_FORCE_INLINE const Array<LightmapMeshData>& GetMeshData() const
     {
         return m_meshData;
     }
 
-    HYP_FORCE_INLINE bool IsBuilt() const
-    {
-        return texels.Any();
-    }
-
-    Result Build();
+    virtual Result Build() override;
 
     BitmapType ToBitmapRadiance() const;
     BitmapType ToBitmapIrradiance() const;
 
+    uint32 width = 0;
+    uint32 height = 0;
+
 private:
-    LightmapUVBuilderParams m_params;
     Array<LightmapMeshData> m_meshData;
 
     // Per element mesh data used for building the UV map
@@ -88,6 +98,35 @@ private:
     Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexNormals;
     Array<MeshFloatDataArray, DynamicAllocator> m_meshVertexUvs;
     Array<Array<uint32>, DynamicAllocator> m_meshIndices;
+};
+
+template <>
+class LightmapData<EnvProbe> : public LightmapDataBase
+{
+public:
+    LightmapData()
+        : m_envProbe(nullptr)
+    {
+    }
+
+    LightmapData(Span<const LightmapSubElement> subElements, EnvProbe* envProbe)
+        : LightmapDataBase(subElements),
+          m_envProbe(envProbe)
+    {
+    }
+
+    LightmapData(const LightmapData& other) = default;
+    LightmapData(LightmapData&& other) noexcept = default;
+
+    LightmapData& operator=(const LightmapData& other) = default;
+    LightmapData& operator=(LightmapData&& other) noexcept = default;
+
+    ~LightmapData() override = default;
+    
+    virtual Result Build() override;
+
+protected:
+    EnvProbe* m_envProbe;
 };
 
 } // namespace hyperion

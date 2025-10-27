@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-uint64 MathUtil::g_seed = ~0u;
+namespace MathUtil {
 
 static Array<Vec2f> FindFactors(int num)
 {
@@ -33,7 +33,7 @@ float VanDerCorpus(uint32 bits)
     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 
-Vec2i MathUtil::ReshapeExtent(Vec2i extent)
+Vec2i ReshapeExtent(Vec2i extent)
 {
     Array<Vec2f> factors = FindFactors(extent.x * extent.y);
 
@@ -48,8 +48,8 @@ Vec2i MathUtil::ReshapeExtent(Vec2i extent)
         factors.End(),
         [](const Vec2f& a, const Vec2f& b)
         {
-            const float aDiff = MathUtil::Abs(a[0] - a[1]);
-            const float bDiff = MathUtil::Abs(b[0] - b[1]);
+            const float aDiff = Abs(a[0] - a[1]);
+            const float bDiff = Abs(b[0] - b[1]);
 
             return aDiff < bDiff;
         });
@@ -59,12 +59,12 @@ Vec2i MathUtil::ReshapeExtent(Vec2i extent)
     return Vec2i(mostBalancedPair);
 }
 
-Vec2f MathUtil::Hammersley(uint32 sampleIndex, uint32 numSamples)
+Vec2f Hammersley(uint32 sampleIndex, uint32 numSamples)
 {
     return { float(sampleIndex) / float(numSamples), VanDerCorpus(sampleIndex) };
 }
 
-Vec3f MathUtil::RandomInSphere(Vec3f rnd)
+Vec3f RandomInSphere(Vec3f rnd)
 {
     float ang1 = (rnd.x + 1.0) * pi<float>;
     float u = rnd.y;
@@ -77,14 +77,14 @@ Vec3f MathUtil::RandomInSphere(Vec3f rnd)
     return { x, y, z };
 }
 
-Vec3f MathUtil::RandomInHemisphere(Vec3f rnd, Vec3f n)
+Vec3f RandomInHemisphere(Vec3f rnd, Vec3f n)
 {
     const Vec3f v = RandomInSphere(rnd);
 
     return v * float(Sign(v.Dot(n.Normalize())));
 }
 
-Vec2f MathUtil::VogelDisk(uint32 sampleIndex, uint32 numSamples, float phi)
+Vec2f VogelDisk(uint32 sampleIndex, uint32 numSamples, float phi)
 {
     constexpr float goldenAngle = 2.4f;
 
@@ -94,7 +94,7 @@ Vec2f MathUtil::VogelDisk(uint32 sampleIndex, uint32 numSamples, float phi)
     return { r * Cos(theta), r * Sin(theta) };
 }
 
-Vec3f MathUtil::ImportanceSampleGGX(Vec2f xi, Vec3f n, float roughness)
+Vec3f ImportanceSampleGGX(Vec2f xi, Vec3f n, float roughness)
 {
     float alpha = roughness * roughness;
     float alpha2 = alpha * alpha;
@@ -107,7 +107,7 @@ Vec3f MathUtil::ImportanceSampleGGX(Vec2f xi, Vec3f n, float roughness)
     return { Cos(phi) * sinTheta, Sin(phi) * sinTheta, cosTheta };
 }
 
-Vec3f MathUtil::CalculateBarycentricCoordinates(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& p)
+Vec3f CalculateBarycentricCoordinates(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& p)
 {
     const Vec3f e0 = v1 - v0;
     const Vec3f e1 = v2 - v0;
@@ -128,7 +128,7 @@ Vec3f MathUtil::CalculateBarycentricCoordinates(const Vec3f& v0, const Vec3f& v1
     return { u, v, w };
 }
 
-Vec3f MathUtil::CalculateBarycentricCoordinates(const Vec2f& v0, const Vec2f& v1, const Vec2f& v2, const Vec2f& p)
+Vec3f CalculateBarycentricCoordinates(const Vec2f& v0, const Vec2f& v1, const Vec2f& v2, const Vec2f& p)
 {
     Vec3f s[2];
 
@@ -149,7 +149,7 @@ Vec3f MathUtil::CalculateBarycentricCoordinates(const Vec2f& v0, const Vec2f& v1
     return Vec3f(-1, 1, 1);
 }
 
-void MathUtil::ComputeOrthonormalBasis(const Vec3f& normal, Vec3f& outTangent, Vec3f& outBitangent)
+void ComputeOrthonormalBasis(const Vec3f& normal, Vec3f& outTangent, Vec3f& outBitangent)
 {
     Vec3f t;
     t = normal.Cross(Vec3f::UnitY());
@@ -159,5 +159,47 @@ void MathUtil::ComputeOrthonormalBasis(const Vec3f& normal, Vec3f& outTangent, V
     outTangent = t;
     outBitangent = normal.Cross(t).Normalize();
 }
+
+Vec2f EncodeOctahedralCoord(const Vec3f& in)
+{
+#define NON_ZERO_SIGN(n) (n >= 0.0f ? 1.0f : -1.0f)
+
+    float l1norm = Abs(in.x) + Abs(in.y) + Abs(in.z);
+    Vec2f vec = in.GetXY() * (1.0f / l1norm);
+
+    if (in.z < 0.0f)
+    {
+        vec = (Vec2f::One() - Abs(Vec2f(vec.y, vec.x))) * Vec2f(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
+    }
+
+#undef NON_ZERO_SIGN
+
+    return vec;
+}
+
+Vec3f DecodeOctahedralCoord(const Vec2f& in)
+{
+#define NON_ZERO_SIGN(n) (n >= 0.0 ? 1.0 : -1.0)
+
+    Vec3f vec = Vec3f(in.x, in.y, 1.0 - Abs(in.x) - Abs(in.y));
+    
+    if (vec.z < 0.0f)
+    {
+        const Vec2f xy = (Vec2f::One() - Abs(vec.GetXY())) * Vec2f(NON_ZERO_SIGN(vec.x), NON_ZERO_SIGN(vec.y));
+        vec.x = xy.x;
+        vec.y = xy.y;
+    }
+
+#undef NON_ZERO_SIGN
+    
+    return vec.Normalize();
+}
+
+Vec2f NormalizeOctahedralCoord(const Vec2i& coord, const Vec2i& extent)
+{
+    return (Vec2f(coord) + Vec2f(0.5f)) * (Vec2f(2.0f) / Vec2f(extent)) - Vec2f::One();
+}
+
+} // namespace MathUtil
 
 } // namespace hyperion

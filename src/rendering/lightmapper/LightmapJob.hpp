@@ -22,6 +22,7 @@ class TaskBatch;
 using threading::TaskBatch;
 
 class Scene;
+class EnvProbe;
 class View;
 class LightmapVolume;
 struct LightmapElement;
@@ -226,6 +227,36 @@ protected:
     bool m_lightmapDataBuilt;
 
     LightmapElement* m_lightmapElement;
+};
+
+template <>
+class LightmapJob<EnvProbe> : public LightmapJobBase
+{
+public:
+    explicit LightmapJob(LightmapJobParams&& params, const Handle<EnvProbe>& envProbe)
+        : LightmapJobBase(std::move(params)),
+          m_envProbe(envProbe)
+    {
+    }
+
+    virtual ~LightmapJob() override;
+
+    HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbe() const
+    {
+        return m_envProbe;
+    }
+
+    virtual LightmapData<EnvProbe>& GetLightmapData() override
+    {
+        return m_lightmapData;
+    }
+
+protected:
+    virtual void Start_Internal() override;
+    virtual void Process_Internal(bool* outIsReadyToProcess) override;
+
+    Handle<EnvProbe> m_envProbe;
+    LightmapData<EnvProbe> m_lightmapData;
 };
 
 } // namespace hyperion

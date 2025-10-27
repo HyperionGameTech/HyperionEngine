@@ -143,6 +143,8 @@ struct RENDER_COMMAND(LightmapRender)
 
 static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
 
+#pragma region LightmapJobBase
+
 bool LightmapJobBase::HasRemainingTexels() const
 {
     return m_texelIndex < m_texelIndices.Size() * m_params.config->numSamples;
@@ -368,6 +370,10 @@ void LightmapJobBase::Process()
     PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
 }
 
+#pragma endregion LightmapJobBase
+
+#pragma region LightmapJob<LightmapVolume>
+
 LightmapJob<LightmapVolume>::~LightmapJob()
 {
     if (m_lightmapElement != nullptr)
@@ -473,5 +479,28 @@ void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
         Stop(HYP_MAKE_ERROR(Error, "Failed to build UV map for lightmap job {}", m_uuid));
     }
 }
+
+#pragma endregion LightmapJob<LightmapVolume>
+
+#pragma region LightmapJob<EnvProbe>
+
+LightmapJob<EnvProbe>::~LightmapJob()
+{
+}
+
+void LightmapJob<EnvProbe>::Start_Internal()
+{
+    m_lightmapData = LightmapData<EnvProbe> { { m_params.subElementsView } };
+}
+
+void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)
+{
+    if (outIsReadyToProcess)
+    {
+        *outIsReadyToProcess = true;
+    }
+}
+
+#pragma endregion LightmapJob<EnvProbe>
 
 } // namespace hyperion

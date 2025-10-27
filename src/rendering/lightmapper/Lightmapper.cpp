@@ -24,8 +24,8 @@
 
 #include <scene/BVH.hpp>
 #include <scene/World.hpp>
-#include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+#include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/View.hpp>
 
@@ -649,5 +649,30 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 }
 
 #pragma endregion Lightmapper < LightmapVolume>
+
+#pragma region Lightmapper<EnvProbe>
+
+Lightmapper<EnvProbe>::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const Handle<EnvProbe>& envProbe)
+    : LightmapperBase(std::move(config), scene, envProbe ? envProbe->GetAABB() : BoundingBox::Empty()),
+      m_envProbe(envProbe)
+{
+}
+
+void Lightmapper<EnvProbe>::Initialize_Internal()
+{
+    Assert(m_envProbe != nullptr);
+}
+
+void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
+{
+    HYP_SCOPE;
+
+    LightmapJob<EnvProbe>* jobCasted = static_cast<LightmapJob<EnvProbe>*>(job);
+
+    const LightmapData<EnvProbe>& lightmapData = jobCasted->GetLightmapData();
+
+    // @TODO
+}
+
 
 } // namespace hyperion
