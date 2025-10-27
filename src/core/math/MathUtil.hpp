@@ -36,82 +36,82 @@ constexpr float epsilonF = FLT_EPSILON;
 constexpr double epsilonD = DBL_EPSILON;
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_enum_v<T> && !isMathVectorV<T>, std::underlying_type_t<T>) MaxSafeValue()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_enum_v<T> && !isMathVectorV<T>, std::underlying_type_t<T>) MaxSafeValue()
 {
     return std::numeric_limits<std::underlying_type_t<T>>::max();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_enum_v<T> && !isMathVectorV<T>, std::underlying_type_t<T>) MinSafeValue()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_enum_v<T> && !isMathVectorV<T>, std::underlying_type_t<T>) MinSafeValue()
 {
     return std::numeric_limits<std::underlying_type_t<T>>::lowest();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!std::is_enum_v<T> && !isMathVectorV<T>, T) MaxSafeValue()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!std::is_enum_v<T> && !isMathVectorV<T>, T) MaxSafeValue()
 {
     return std::numeric_limits<T>::max();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!std::is_enum_v<T> && !isMathVectorV<T>, T) MinSafeValue()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!std::is_enum_v<T> && !isMathVectorV<T>, T) MinSafeValue()
 {
     return std::numeric_limits<T>::lowest();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) MaxSafeValue()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) MaxSafeValue()
 {
     return T(MaxSafeValue<std::remove_all_extents_t<decltype(T::values)>>());
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) MinSafeValue()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) MinSafeValue()
 {
     return T(MinSafeValue<std::remove_all_extents_t<decltype(T::values)>>());
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr auto MaxSafeValue(T)
+static HYP_FORCE_INLINE constexpr auto MaxSafeValue(T)
 {
     return MaxSafeValue<T>();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr auto MinSafeValue(T)
+static HYP_FORCE_INLINE constexpr auto MinSafeValue(T)
 {
     return MinSafeValue<T>();
 }
 
-HYP_FORCE_INLINE Vec2f SafeValue(const Vec2f& value)
+static HYP_FORCE_INLINE Vec2f SafeValue(const Vec2f& value)
 {
     return Vec2f::Max(Vec2f::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>());
 }
 
-HYP_FORCE_INLINE Vec3f SafeValue(const Vec3f& value)
+static HYP_FORCE_INLINE Vec3f SafeValue(const Vec3f& value)
 {
     return Vec3f::Max(Vec3f::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>());
 }
 
-HYP_FORCE_INLINE Vec4f SafeValue(const Vec4f& value)
+static HYP_FORCE_INLINE Vec4f SafeValue(const Vec4f& value)
 {
     return Vec4f::Max(Vector4::Min(value, MaxSafeValue<decltype(value[0])>()), MinSafeValue<decltype(value[0])>());
 }
 
 template <class T>
-HYP_FORCE_INLINE T SafeValue(const T& value)
+static HYP_FORCE_INLINE T SafeValue(const T& value)
 {
     return Max(Min(value, MaxSafeValue<T>()), MinSafeValue<T>());
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) NaN()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) NaN()
 {
     return std::numeric_limits<T>::quiet_NaN();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, T) NaN()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, T) NaN()
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -126,13 +126,13 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_poi
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsNaN(T value)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsNaN(T value)
 {
     return value != value;
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsNaN(const T& value)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsNaN(const T& value)
 {
     for (uint32 i = 0; i < std::size(value.values); i++)
     {
@@ -146,13 +146,13 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_poi
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) Infinity()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) Infinity()
 {
     return std::numeric_limits<T>::infinity();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, T) Infinity()
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, T) Infinity()
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -167,13 +167,13 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_poi
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsFinite(T value)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, bool) IsFinite(T value)
 {
     return value != Infinity<T>() && value != -Infinity<T>();
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsFinite(const T& value)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, bool) IsFinite(const T& value)
 {
     for (uint32 i = 0; i < std::size(value.values); i++)
     {
@@ -187,19 +187,7 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>&& std::is_floating_poi
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, bool) ApproxEqual(const T& a, const T& b)
-{
-    return a.DistanceSquared(b) < (std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, double> ? epsilonD : epsilonF);
-}
-
-template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, double> ? epsilonD : epsilonF)
-{
-    return Abs(a - b) <= eps;
-}
-
-template <class T>
-HYP_ENABLE_IF(isMathVectorV<T>, T) RandRange(const T& a, const T& b)
+static HYP_ENABLE_IF(isMathVectorV<T>, T) RandRange(const T& a, const T& b)
 {
     T result;
 
@@ -212,7 +200,7 @@ HYP_ENABLE_IF(isMathVectorV<T>, T) RandRange(const T& a, const T& b)
 }
 
 template <class T>
-HYP_ENABLE_IF(!isMathVectorV<T>, T) RandRange(T a, T b)
+static HYP_ENABLE_IF(!isMathVectorV<T>, T) RandRange(T a, T b)
 {
     const auto random = T(rand()) / T(RAND_MAX);
     const auto diff = b - a;
@@ -221,36 +209,36 @@ HYP_ENABLE_IF(!isMathVectorV<T>, T) RandRange(T a, T b)
     return a + r;
 }
 
-HYP_FORCE_INLINE constexpr uint32 Rand32(uint32& seed)
+static HYP_FORCE_INLINE constexpr uint32 Rand32(uint32& seed)
 {
     return (seed = 1664525 * seed + 1013904223);
 }
 
-HYP_FORCE_INLINE constexpr uint64 Rand64(uint64& seed)
+static HYP_FORCE_INLINE constexpr uint64 Rand64(uint64& seed)
 {
     // 64-bit linear congruential generator (LCG)
     return (seed = 6364136223846793005ULL * seed + 1442695040888963407ULL);
 }
 
-HYP_FORCE_INLINE constexpr float RandomFloat(uint32& seed)
+static HYP_FORCE_INLINE constexpr float RandomFloat(uint32& seed)
 {
     return (float(Rand32(seed) & 0x00FFFFFF) / float(0x01000000));
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr T RadToDeg(T rad)
+static HYP_FORCE_INLINE constexpr T RadToDeg(T rad)
 {
     return rad * T(180) / pi<T>;
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr T DegToRad(T deg)
+static HYP_FORCE_INLINE constexpr T DegToRad(T deg)
 {
     return deg * pi<T> / T(180);
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Clamp(T val, T min, T max)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Clamp(T val, T min, T max)
 {
     if (val > max)
     {
@@ -267,7 +255,7 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Clamp(T val, T mi
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Clamp(const T& val, const T& min, const T& max)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Clamp(const T& val, const T& min, const T& max)
 {
     T result;
 
@@ -280,13 +268,13 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Clamp(const T& val
 }
 
 template <class T, class U, class V>
-HYP_FORCE_INLINE constexpr auto Lerp(const T& from, const U& to, const V& amt) -> std::enable_if_t<!isMathVectorV<T>, decltype(from + amt * (to - from))>
+static HYP_FORCE_INLINE constexpr auto Lerp(const T& from, const U& to, const V& amt) -> std::enable_if_t<!isMathVectorV<T>, decltype(from + amt * (to - from))>
 {
     return from + amt * (to - from);
 }
 
 template <class T, class U, class V>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Lerp(const T& from, const U& to, const V& amt)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Lerp(const T& from, const U& to, const V& amt)
 {
     T result;
 
@@ -299,13 +287,13 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Lerp(const T& from, const U&
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Step(T edge, T x)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Step(T edge, T x)
 {
     return x < edge ? 0.0f : 1.0f;
 }
 
 template <class T>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Step(const T& edge, const T& x)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Step(const T& edge, const T& x)
 {
     T result;
 
@@ -318,43 +306,43 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Step(const T& edge, const T&
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Min(T a)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Min(T a)
 {
     return a;
 }
 
 template <class T, class U, class V = std::common_type_t<T, U>>
-HYP_FORCE_INLINE constexpr V Min(T a, U b)
+static HYP_FORCE_INLINE constexpr V Min(T a, U b)
 {
     return (a < b) ? a : b;
 }
 
 template <class T, class U, class V = std::common_type_t<T, U>, class... Args>
-HYP_FORCE_INLINE constexpr V Min(T a, U b, Args... args)
+static HYP_FORCE_INLINE constexpr V Min(T a, U b, Args... args)
 {
     return Min(Min(a, b), args...);
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Max(T a)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Max(T a)
 {
     return a;
 }
 
 template <class T, class U, class V = std::common_type_t<T, U>>
-HYP_FORCE_INLINE constexpr V Max(T a, U b)
+static HYP_FORCE_INLINE constexpr V Max(T a, U b)
 {
     return (a > b) ? a : b;
 }
 
 template <class T, class U, class V = std::common_type_t<T, U>, class... Args>
-HYP_FORCE_INLINE constexpr V Max(T a, U b, Args... args)
+static HYP_FORCE_INLINE constexpr V Max(T a, U b, Args... args)
 {
     return Max(Max(a, b), args...);
 }
 
 template <class T>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Min(const T& a, const T& b)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Min(const T& a, const T& b)
 {
     T result;
 
@@ -367,7 +355,7 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Min(const T& a, const T& b)
 }
 
 template <class T>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Max(const T& a, const T& b)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Max(const T& a, const T& b)
 {
     T result;
 
@@ -380,13 +368,13 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Max(const T& a, const T& b)
 }
 
 template <class T, class IntegralType = int>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Sign(T value)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Sign(T value)
 {
     return IntegralType(T(0) < value) - IntegralType(value < T(0));
 }
 
 template <class T>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Sign(const T& a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Sign(const T& a)
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -401,13 +389,13 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Sign(const T& a)
 }
 
 template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
-HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Trunc(T a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Trunc(T a)
 {
     return IntegralType(std::trunc(a));
 }
 
 template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Trunc(const T& a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Trunc(const T& a)
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -422,13 +410,13 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Trunc(const T& a)
 }
 
 template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
-HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Floor(T a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Floor(T a)
 {
     return IntegralType(std::floor(a));
 }
 
 template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Floor(const T& a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Floor(const T& a)
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -443,13 +431,13 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Floor(const T& a)
 }
 
 template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
-HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Ceil(T a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Ceil(T a)
 {
     return IntegralType(std::ceil(a));
 }
 
 template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Ceil(const T& a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Ceil(const T& a)
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -464,31 +452,31 @@ HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Ceil(const T& a)
 }
 
 template <class T>
-HYP_FORCE_INLINE T Fract(T a)
+static HYP_FORCE_INLINE T Fract(T a)
 {
     return a - Floor<T, T>(a);
 }
 
 template <class T>
-HYP_FORCE_INLINE T Exp(T a)
+static HYP_FORCE_INLINE T Exp(T a)
 {
     return T(std::exp(a));
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr T Mod(T a, T b)
+static HYP_FORCE_INLINE constexpr T Mod(T a, T b)
 {
     return (a % b + b) % b;
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Abs(T a)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, T) Abs(T a)
 {
     return a >= T(0) ? a : -a;
 }
 
 template <class T>
-HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Abs(const T& a)
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Abs(const T& a)
 {
     using VectorScalarType = NormalizedType<decltype(T::values[0])>;
 
@@ -502,74 +490,86 @@ HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, T) Abs(const T& a)
     return result;
 }
 
+template <class T>
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(isMathVectorV<T>, bool) ApproxEqual(const T& a, const T& b)
+{
+    return a.DistanceSquared(b) < (std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, double> ? epsilonD : epsilonF);
+}
+
+template <class T>
+static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, double> ? epsilonD : epsilonF)
+{
+    return Abs(a - b) <= eps;
+}
+
 template <class T, class U = T>
-HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, U) Round(T a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, U) Round(T a)
 {
     return U(std::round(a));
 }
 
 template <class T>
-HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Round(const T& a)
+static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Round(const T& a)
 {
     return T::Round(a);
 }
 
-HYP_FORCE_INLINE float Sin(float x)
+static HYP_FORCE_INLINE float Sin(float x)
 {
     return sinf(x);
 }
 
-HYP_FORCE_INLINE double Sin(double x)
+static HYP_FORCE_INLINE double Sin(double x)
 {
     return sin(x);
 }
 
-HYP_FORCE_INLINE float Arcsin(float x)
+static HYP_FORCE_INLINE float Arcsin(float x)
 {
     return asinf(x);
 }
 
-HYP_FORCE_INLINE double Arcsin(double x)
+static HYP_FORCE_INLINE double Arcsin(double x)
 {
     return asin(x);
 }
 
-HYP_FORCE_INLINE float Cos(float x)
+static HYP_FORCE_INLINE float Cos(float x)
 {
     return cosf(x);
 }
 
-HYP_FORCE_INLINE double Cos(double x)
+static HYP_FORCE_INLINE double Cos(double x)
 {
     return cos(x);
 }
 
-HYP_FORCE_INLINE float Arccos(float x)
+static HYP_FORCE_INLINE float Arccos(float x)
 {
     return acosf(x);
 }
 
-HYP_FORCE_INLINE double Arccos(double x)
+static HYP_FORCE_INLINE double Arccos(double x)
 {
     return acos(x);
 }
 
-HYP_FORCE_INLINE float Tan(float x)
+static HYP_FORCE_INLINE float Tan(float x)
 {
     return tanf(x);
 }
 
-HYP_FORCE_INLINE double Tan(double x)
+static HYP_FORCE_INLINE double Tan(double x)
 {
     return tan(x);
 }
 
-HYP_FORCE_INLINE float Arctan(float x)
+static HYP_FORCE_INLINE float Arctan(float x)
 {
     return atanf(x);
 }
 
-HYP_FORCE_INLINE double Arctan(double x)
+static HYP_FORCE_INLINE double Arctan(double x)
 {
     return atan(x);
 }

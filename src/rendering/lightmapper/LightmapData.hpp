@@ -65,9 +65,12 @@ public:
     using MeshFloatDataArray = Array<float, DynamicAllocator>;
     using MeshIndexArray = Array<uint32, DynamicAllocator>;
 
-    LightmapData() = default;
+    LightmapData()
+        : m_volume(nullptr)
+    {
+    }
 
-    explicit LightmapData(Span<const LightmapSubElement> subElements);
+    LightmapData(Span<const LightmapSubElement> subElements, LightmapVolume* volume);
 
     LightmapData(const LightmapData& other) = default;
     LightmapData(LightmapData&& other) noexcept = default;
@@ -91,6 +94,8 @@ public:
     uint32 height = 0;
 
 private:
+    LightmapVolume* m_volume;
+
     Array<LightmapMeshData> m_meshData;
 
     // Per element mesh data used for building the UV map

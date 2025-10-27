@@ -17,10 +17,11 @@ namespace hyperion {
 
 #pragma region LightmapData<LightmapVolume>
 
-LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subElements)
+LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subElements, LightmapVolume* volume)
     : LightmapDataBase(subElements),
+      m_volume(volume),
       m_meshVertexPositions(subElements.Size()),
-      m_meshVertexNormals(.subElements.Size()),
+      m_meshVertexNormals(subElements.Size()),
       m_meshVertexUvs(subElements.Size()),
       m_meshIndices(subElements.Size())
 {
@@ -266,14 +267,7 @@ Result LightmapData<LightmapVolume>::Build()
                     const uint32 texelIdx = (point.x + atlas->width) % atlas->width
                         + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
 
-                    /// Optimize me: we are holding mesh/material references per-texel.
-                    /// should store these in a more efficient way.
-                    /// such as: storing ranges of texels per-mesh/material combo.
-                    /// then we can just use lower_bound / upper_bound to find relevant texels for a mesh/material combo.
                     LightmapTexel& texel = texels[texelIdx];
-                    texel.triangleIndex = i / 3;
-                    texel.barycentricCoords = barycentricCoords;
-                    texel.lightmapUv = Vec2f(point) / Vec2f { float(atlas->width), float(atlas->height) };
                     texel.ray = LightmapRay {
                         Ray { position, normal },
                         lightmapMeshData.mesh->Id(),
