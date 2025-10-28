@@ -50,7 +50,7 @@ public:
     UIEventHandlerResult SimulateClicked(const MouseEvent& event);
 
     HYP_METHOD()
-    UIEventHandlerResult GenerateLightmapsClicked(const MouseEvent& event);
+    UIEventHandlerResult RebuildLightmaps(const MouseEvent& event);
 
     HYP_METHOD()
     UIEventHandlerResult AddPointLight(const MouseEvent& event);
@@ -60,6 +60,9 @@ public:
 
     HYP_METHOD()
     UIEventHandlerResult AddReflectionProbe(const MouseEvent& event);
+
+    HYP_METHOD()
+    UIEventHandlerResult AddLightmapVolume(const MouseEvent& event);
 
     HYP_METHOD()
     UIEventHandlerResult AddNode(const MouseEvent& event);

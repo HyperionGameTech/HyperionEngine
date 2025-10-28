@@ -118,9 +118,30 @@ Handle<UIObject> RunningEditorTask::CreateUIObject(UIStage* uiStage) const
 
 #pragma region GenerateLightmapsEditorTask
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask()
-    : m_task(nullptr)
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume)
+    : GenerateLightmapsEditorTask(Array<Handle<HypObjectBase>> { { ObjCast<HypObjectBase>(volume) } })
 {
+}
+
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<HypObjectBase>>& sources)
+    : TickableEditorTask(),
+      m_sources(sources)
+{
+    for (auto it = m_sources.Begin(); it != m_sources.End();)
+    {
+        HypObjectBase* source = *it;
+
+        if (!source->IsA(LightmapVolume::Class())
+            && !source->IsA(EnvProbe::Class()))
+        {
+            HYP_LOG(Editor, Error, "GenerateLightmapsEditorTask source is not a LightmapVolume or EnvProbe: \"{}\"", source->InstanceClass()->GetName());
+            it = m_sources.Erase(it);
+
+            continue;
+        }
+
+        ++it;
+    }
 }
 
 void GenerateLightmapsEditorTask::Process()
@@ -128,13 +149,18 @@ void GenerateLightmapsEditorTask::Process()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
+    if (m_sources.Empty())
+    {
+        HYP_LOG(Editor, Error, "No valid sources provided for GenerateLightmapsEditorTask");
+
+        return;
+    }
+
     HYP_LOG(Editor, Info, "Generating lightmaps");
 
     if (!m_world.IsValid() || !m_scene.IsValid())
     {
         HYP_LOG(Editor, Error, "World or scene not set for GenerateLightmapsEditorTask");
-
-        m_task = nullptr;
 
         return;
     }
@@ -142,8 +168,6 @@ void GenerateLightmapsEditorTask::Process()
     if (!m_aabb.IsValid() || !m_aabb.IsFinite())
     {
         HYP_LOG(Editor, Error, "Invalid AABB provided for GenerateLightmapsEditorTask");
-
-        m_task = nullptr;
 
         return;
     }
@@ -155,28 +179,43 @@ void GenerateLightmapsEditorTask::Process()
         lightmapperSubsystem = m_world->AddSubsystem<LightmapperSubsystem>();
     }
 
-    Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(m_aabb);
-    lightmapVolume->SetName(Name::Unique("LightmapVolume"));
-    InitObject(lightmapVolume);
+    for (const Handle<HypObjectBase>& source : m_sources)
+    {
+        Task<void>* task = nullptr;
 
-    lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
+        if (source->IsA(LightmapVolume::Class()))
+        {
+            task = lightmapperSubsystem->GenerateLightmaps(ObjCast<LightmapVolume>(source));
+        }
+        else if (source->IsA(EnvProbe::Class()))
+        {
+            task = lightmapperSubsystem->GenerateLightmaps(ObjCast<EnvProbe>(source));
+        }
 
-    m_scene->GetRoot()->AddChild(lightmapVolume);
-
-    m_task = lightmapperSubsystem->GenerateLightmaps(lightmapVolume);
+        if (task != nullptr)
+        {
+            m_tasks.PushBack(task);
+        }
+    }
 }
 
 void GenerateLightmapsEditorTask::Cancel()
 {
-    if (m_task != nullptr)
+    if (m_tasks.Any())
     {
-        m_task->Cancel();
+        for (Task<void>* task : m_tasks)
+        {
+            if (task != nullptr)
+            {
+                task->Cancel();
+            }
+        }
     }
 }
 
 bool GenerateLightmapsEditorTask::IsCompleted() const
 {
-    return m_task == nullptr || m_task->IsCompleted();
+    return m_tasks.Empty() || Every(m_tasks, &Task<void>::IsCompleted);
 }
 
 void GenerateLightmapsEditorTask::Tick(float delta)
@@ -184,11 +223,18 @@ void GenerateLightmapsEditorTask::Tick(float delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    if (m_task != nullptr)
+    for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
-        if (m_task->IsCompleted())
+        Task<void>* task = *it;
+
+        if (task == nullptr || task->IsCompleted())
         {
-            m_task = nullptr;
+            // remove task upon completion
+            it = m_tasks.Erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 }

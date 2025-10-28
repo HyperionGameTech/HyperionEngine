@@ -612,10 +612,11 @@ HYP_BEGIN_CLASS(EditorMain, 214, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(UpdateUndoMenuItem)), &EditorMain::UpdateUndoMenuItem),
     HypMethod(NAME(HYP_STR(UpdateRedoMenuItem)), &EditorMain::UpdateRedoMenuItem),
     HypMethod(NAME(HYP_STR(SimulateClicked)), &EditorMain::SimulateClicked),
-    HypMethod(NAME(HYP_STR(GenerateLightmapsClicked)), &EditorMain::GenerateLightmapsClicked),
+    HypMethod(NAME(HYP_STR(RebuildLightmaps)), &EditorMain::RebuildLightmaps),
     HypMethod(NAME(HYP_STR(AddPointLight)), &EditorMain::AddPointLight),
     HypMethod(NAME(HYP_STR(AddAreaRectLight)), &EditorMain::AddAreaRectLight),
     HypMethod(NAME(HYP_STR(AddReflectionProbe)), &EditorMain::AddReflectionProbe),
+    HypMethod(NAME(HYP_STR(AddLightmapVolume)), &EditorMain::AddLightmapVolume),
     HypMethod(NAME(HYP_STR(AddNode)), &EditorMain::AddNode),
     HypMethod(NAME(HYP_STR(AddEntity)), &EditorMain::AddEntity)
 HYP_END_CLASS

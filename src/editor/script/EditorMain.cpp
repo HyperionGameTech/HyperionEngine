@@ -20,6 +20,8 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/GameState.hpp>
 
+#include <scene/lightmapper/LightmapVolume.hpp>
+
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -382,7 +384,7 @@ UIEventHandlerResult EditorMain::SimulateClicked(const MouseEvent& event)
     return UIEventHandlerResult::OK;
 }
 
-UIEventHandlerResult EditorMain::GenerateLightmapsClicked(const MouseEvent& event)
+UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
 {
     HYP_SCOPE;
 
@@ -397,15 +399,37 @@ UIEventHandlerResult EditorMain::GenerateLightmapsClicked(const MouseEvent& even
     Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
     if (!activeScene.IsValid())
     {
-        HYP_LOG(Editor, Error, "No active scene; cannot generate lightmaps");
+        HYP_LOG(Editor, Error, "No active scene; cannot add lightmap volume!");
 
         return UIEventHandlerResult::ERR;
     }
 
-    // @TODO: Allow building a bounding box in editor before starting the task.
-    BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
+    // @TODO : Allow selection of scene(s) and volume(s) to generate for?
 
-    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>();
+    Array<Handle<HypObjectBase>> sources;
+
+    // Generate EnvProbes and LightmapVolumes in the scene
+    auto collectEntitiesOfType = [&]<class T>(TypeWrapper<T>)
+    {
+        for (auto [entity, _] : activeScene->GetEntityManager()->GetEntitySet<EntityType<T>>())
+        {
+            AssertDebug(entity->IsA<T>());
+            sources.PushBack(MakeStrongRef(entity));
+        }
+    };
+
+    collectEntitiesOfType(TypeWrapper<EnvProbe> {});
+    collectEntitiesOfType(TypeWrapper<LightmapVolume> {});
+
+    if (sources.Empty())
+    {
+        HYP_LOG(Editor, Warning, "No EnvProbes or LightmapVolumes found in the active scene ({}); nothing to generate lightmaps for", activeScene->GetName());
+
+        return UIEventHandlerResult::OK;
+    }
+
+
+    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(sources);
     InitObject(generateLightmapsTask);
 
     generateLightmapsTask->SetScene(activeScene);
@@ -413,7 +437,6 @@ UIEventHandlerResult EditorMain::GenerateLightmapsClicked(const MouseEvent& even
     Handle<World> worldHandle = MakeStrongRef(m_world);
 
     generateLightmapsTask->SetWorld(worldHandle);
-    generateLightmapsTask->SetAABB(lightmapVolumeAabb);
 
     editorSubsystem->AddTask(generateLightmapsTask);
 
@@ -646,6 +669,52 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
     InitObject(action);
 
     currentProject->GetActionStack()->Push(action);
+
+    return UIEventHandlerResult::OK;
+}
+
+UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
+{
+    HYP_SCOPE;
+
+    EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
+    if (editorSubsystem == nullptr)
+    {
+        HYP_LOG(Editor, Error, "EditorSubsystem not found");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
+    if (!activeScene.IsValid())
+    {
+        HYP_LOG(Editor, Error, "No active scene; cannot add lightmap volume!");
+
+        return UIEventHandlerResult::ERR;
+    }
+
+    // @TODO: Allow building a bounding box in editor before starting the task.
+    BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
+    
+    Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);
+    lightmapVolume->SetName(Name::Unique("LightmapVolume"));
+    InitObject(lightmapVolume);
+
+    lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { lightmapVolumeAabb, lightmapVolumeAabb });
+
+    activeScene->GetRoot()->AddChild(lightmapVolume);
+
+    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(lightmapVolume);
+    InitObject(generateLightmapsTask);
+
+    generateLightmapsTask->SetScene(activeScene);
+
+    Handle<World> worldHandle = MakeStrongRef(m_world);
+
+    generateLightmapsTask->SetWorld(worldHandle);
+    generateLightmapsTask->SetAABB(lightmapVolumeAabb);
+
+    editorSubsystem->AddTask(generateLightmapsTask);
 
     return UIEventHandlerResult::OK;
 }

@@ -94,6 +94,31 @@ public:
         return m_header->hypClass;
     }
 
+    template <class TOther>
+    HYP_FORCE_INLINE bool IsA() const
+    {
+        if constexpr (std::is_same_v<HypObjectBase, TOther>)
+        {
+            return true;
+        }
+        else
+        {
+            static const HypClass* otherHypClass = TOther::Class();
+
+            if (!otherHypClass)
+            {
+                return false;
+            }
+
+            return hyperion::IsA(otherHypClass, InstanceClass());
+        }
+    }
+
+    HYP_FORCE_INLINE bool IsA(const HypClass* hypClass) const
+    {
+        return hyperion::IsA(hypClass, InstanceClass());
+    }
+
     HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
     {
         return m_header;

@@ -43,6 +43,7 @@ struct MouseEvent;
 struct KeyboardEvent;
 class View;
 class ConsoleUI;
+class LightmapVolume;
 
 namespace sys {
 class AppContextBase;
@@ -89,7 +90,14 @@ class GenerateLightmapsEditorTask : public TickableEditorTask
     HYP_OBJECT_BODY(GenerateLightmapsEditorTask);
 
 public:
-    GenerateLightmapsEditorTask();
+    GenerateLightmapsEditorTask()
+        : TickableEditorTask()
+    {
+    }
+
+    explicit GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume);
+
+    explicit GenerateLightmapsEditorTask(const Array<Handle<HypObjectBase>>& sources);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -140,10 +148,11 @@ public:
     virtual void Tick(float delta) override;
 
 private:
+    Array<Handle<HypObjectBase>> m_sources;
     Handle<World> m_world;
     Handle<Scene> m_scene;
     BoundingBox m_aabb;
-    Task<void>* m_task;
+    Array<Task<void>*> m_tasks;
 };
 
 enum class EditorManipulationMode
