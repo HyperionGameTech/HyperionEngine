@@ -27,8 +27,8 @@
 
 namespace hyperion::serialization {
 
-static const TypeId g_typeIdAssetReference = TypeId::ForType<AssetReference>();
-static const Name g_nameResolveAsset = NAME("resolveasset");
+static const TypeId s_typeIdAssetReference = TypeId::ForType<AssetReference>();
+static const Name s_nameResolveAsset = NAME("resolveasset");
 
 struct SaveAssetsAsReferencesContext
 {
@@ -52,7 +52,7 @@ static void CollectAssetReferenceMembers(
             continue;
         }
 
-        if (member.GetTypeId() == g_typeIdAssetReference)
+        if (member.GetTypeId() == s_typeIdAssetReference)
         {
             if (usedMemberNames.Contains(member.GetName()))
             {
@@ -63,7 +63,7 @@ static void CollectAssetReferenceMembers(
 
             const IHypMember* pTargetMember = nullptr;
 
-            if (const HypClassAttributeValue& targetAttr = member.GetAttribute(g_nameResolveAsset))
+            if (const HypClassAttributeValue& targetAttr = member.GetAttribute(s_nameResolveAsset))
             {
                 // Get the target member
                 pTargetMember = hypClass->GetMember(*targetAttr.GetString(), HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);

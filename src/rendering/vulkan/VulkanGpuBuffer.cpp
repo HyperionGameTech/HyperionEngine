@@ -148,7 +148,15 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
         case SMT_RAY_GEN:
         case SMT_RAY_INTERSECT:
         case SMT_RAY_MISS:
-            return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            if (GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+            {
+                return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            }
+            else
+            {
+                HYP_FAIL("ERROR: Attempted to get raytracing shader stage mask on a device that does not support raytracing!");
+            }
+            break;
         case SMT_GEOMETRY:
             return VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
         case SMT_TESS_CONTROL:
@@ -160,9 +168,19 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
         case SMT_TASK:
             return VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
         case SMT_UNSET:
-            return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+        {
+            VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+            if (GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
+            {
+                bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            }
+
+            return bits;
+        }
+        default:
+            HYP_UNREACHABLE();
         }
     case RS_RENDER_TARGET:
         return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;

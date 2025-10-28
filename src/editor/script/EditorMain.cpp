@@ -685,6 +685,14 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
         return UIEventHandlerResult::ERR;
     }
 
+    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    if (!currentProject.IsValid())
+    {
+        HYP_LOG(Editor, Error, "No project loaded; cannot add lightmap volume!");
+
+        return UIEventHandlerResult::ERR;
+    }
+
     Handle<Scene> activeScene = editorSubsystem->GetActiveScene();
     if (!activeScene.IsValid())
     {
@@ -702,8 +710,42 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
 
     lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { lightmapVolumeAabb, lightmapVolumeAabb });
 
-    activeScene->GetRoot()->AddChild(lightmapVolume);
+    WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
+    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        NAME("AddLightmapVolume"),
+        Proc<EditorActionFunctions()>([lightmapVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>([lightmapVolume, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            activeScene->GetRoot()->AddChild(lightmapVolume);
+
+                            editorSubsystem->SetFocusedNode(lightmapVolume, true);
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>([lightmapVolume, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        {
+                            lightmapVolume->Remove();
+
+                            if (editorSubsystem->GetFocusedNode() == lightmapVolume)
+                            {
+                                editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                Handle<Node> focusedNode = previousFocusedNode.Lock();
+                                if (focusedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                }
+                            }
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    currentProject->GetActionStack()->Push(action);
+
+    // kickoff lightmap generation for the new volume
     Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(lightmapVolume);
     InitObject(generateLightmapsTask);
 

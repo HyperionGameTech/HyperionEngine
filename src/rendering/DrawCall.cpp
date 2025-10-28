@@ -152,7 +152,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 
     if (batch != nullptr)
     {
-        // ticket has not been used at this point (always gets set to 0 after used) - need to release it
+        // it has not been recycled if not nullptr - need to release it!
         batchAllocator->ReleaseBatch(batch);
     }
 }
