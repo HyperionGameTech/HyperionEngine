@@ -1306,7 +1306,8 @@ HYP_BEGIN_STRUCT(CompiledShader, 342, 0, {})
     HypField(NAME(HYP_STR(DescriptorTableDeclaration)), &CompiledShader::descriptorTableDeclaration, offsetof(CompiledShader, descriptorTableDeclaration), Span<const HypClassAttribute> { {HypClassAttribute("property", "DescriptorTableDeclaration"), HypClassAttribute("serialize", false), HypClassAttribute("transient", true) } }),
     HypField(NAME(HYP_STR(DescriptorUsageSet)), &CompiledShader::descriptorUsageSet, offsetof(CompiledShader, descriptorUsageSet), Span<const HypClassAttribute> { {HypClassAttribute("property", "DescriptorUsageSet"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(EntryPointName)), &CompiledShader::entryPointName, offsetof(CompiledShader, entryPointName), Span<const HypClassAttribute> { {HypClassAttribute("property", "EntryPointName"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Modules)), &CompiledShader::modules, offsetof(CompiledShader, modules), Span<const HypClassAttribute> { {HypClassAttribute("property", "Modules"), HypClassAttribute("serialize", false) } })
+    HypField(NAME(HYP_STR(Modules)), &CompiledShader::modules, offsetof(CompiledShader, modules), Span<const HypClassAttribute> { {HypClassAttribute("property", "Modules"), HypClassAttribute("serialize", false) } }),
+    HypMethod(NAME(HYP_STR(GetRevisionNumber)), &CompiledShader::GetRevisionNumber, Span<const HypClassAttribute> { {HypClassAttribute("property", "RevisionNumber") } })
 HYP_END_STRUCT
 
 #pragma endregion CompiledShader Reflection Data

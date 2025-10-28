@@ -1184,6 +1184,11 @@ struct CompiledShader
     HYP_FIELD(Property = "Modules", Serialize = false) // custom serialization used
     FixedArray<ByteBuffer, SMT_MAX> modules;
 
+    /// ===== Serialization only =====
+    HYP_METHOD(Property = "RevisionNumber")
+    uint64 GetRevisionNumber() const;
+    /// ==============================
+
     HYP_FORCE_INLINE explicit operator bool() const
     {
         return IsValid();

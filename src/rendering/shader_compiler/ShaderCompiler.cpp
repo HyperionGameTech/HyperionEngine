@@ -270,6 +270,15 @@ static bool SatisfiesRequestedPropertySet(const ShaderProperties& requested, con
 
 #pragma endregion Helpers
 
+#pragma region CompiledShader
+
+uint64 CompiledShader::GetRevisionNumber() const
+{
+    return GetStaticDescriptorTableDeclaration().GetHashCode().Value();
+}
+
+#pragma endregion CompiledShader
+
 #pragma region ShaderCache
 
 bool ShaderCache::GetShaderInstance(Name name, const ShaderProperties& properties, CompiledShader& out) const
@@ -1202,7 +1211,8 @@ static void ForEachPermutation(
     }
 }
 
-static bool LoadBatchFromFile(const FilePath& filepath,
+static bool LoadBatchFromFile(
+    const FilePath& filepath,
     CompiledShaderBatch& outBatch)
 {
     // read file if it already exists.
@@ -1215,7 +1225,7 @@ static bool LoadBatchFromFile(const FilePath& filepath,
     if ((err = reader.LoadFromFile(filepath, value)))
     {
         HYP_LOG(ShaderCompiler, Error,
-            "Failed to compile shader at path: {}\n\tMessage: {}", filepath,
+            "Failed to load shader at path: {}\n\tMessage: {}", filepath,
             err.message);
 
         return false;
@@ -1584,12 +1594,6 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             {
                 const ShaderProperties& shaderProperties = item.GetDefinition().GetProperties();
 
-                // temp
-                if (shaderProperties.GetPropertySetHashCode() == requestedProperties.GetPropertySetHashCode())
-                {
-                    Assert(SatisfiesRequestedPropertySet(requestedProperties, shaderProperties));
-                }
-
                 return SatisfiesRequestedPropertySet(requestedProperties, shaderProperties);
             })
         != batch.compiledShaders.End();
@@ -1616,23 +1620,22 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             }
         }
 
+        String allPropertiesString;
+
+        for (const CompiledShader& compiledShader : batch.compiledShaders)
+        {
+            const ShaderProperties& properties = compiledShader.GetDefinition().GetProperties();
+
+            allPropertiesString += "\t" + String::ToString(properties.GetPropertySetHashCode().Value())
+                + " - " + properties.ToString()
+                + " - " + (properties.GetRequiredVertexAttributes() ? properties.GetRequiredVertexAttributes().ToString() : "<no vertex attributes>") + "\n";
+        }
+
         // clear the batch if properties requested are missing.
         batch = CompiledShaderBatch {};
 
         if (ShouldCompileMissingVariants && CanCompileShaders())
         {
-            String allPropertiesString;
-
-            for (const CompiledShader& compiledShader : batch.compiledShaders)
-            {
-                const ShaderProperties& properties = compiledShader.GetDefinition().GetProperties();
-
-                allPropertiesString += "\t" + String::ToString(properties.GetPropertySetHashCode().Value())
-                    + " - " + properties.ToString()
-                    + " - " + (properties.GetRequiredVertexAttributes() ? properties.GetRequiredVertexAttributes().ToString() : "<no vertex attributes>") + "\n";
-            }
-
-            
             HYP_LOG(
                 ShaderCompiler, Info,
                 "Compiled shader is missing properties. Attempting to compile with "
@@ -2746,6 +2749,15 @@ bool ShaderCompiler::CompileBundle(
         },
         false); // true);
 
+    if (out.compiledShaders.Empty())
+    {
+        HYP_LOG(ShaderCompiler, Error,
+            "No compiled shaders were produced for shader {}",
+            bundle.name);
+
+        return false;
+    }
+
     // more attributes = higher pri, better fit found first
     std::sort(
         out.compiledShaders.Begin(),
@@ -2849,6 +2861,12 @@ bool ShaderCompiler::GetCompiledShader(
 
     // set in cache so we can use it later
     m_cache.Set(name, batch);
+
+    if (batch.compiledShaders.Empty())
+    {
+        AssertDebug(false, "Loaded shader batch has no compiled shaders! Corrupted file?");
+        return false;
+    }
 
     // make sure we properly created it
     auto it = batch.compiledShaders.FindIf(
