@@ -76,9 +76,15 @@ public:
 
                 for (SizeType i = 0; i < item.enumValues.Size(); i++)
                 {
+                    FBOMData enumValueData;
+                    if (FBOMResult err = HypData(item.enumValues[i]).Serialize(enumValueData))
+                    {
+                        return err;
+                    }
+
                     out.SetProperty(
                         ANSIString("properties.") + ANSIString::ToString(index) + ".possible_values[" + ANSIString::ToString(i) + "]",
-                        FBOMData::FromString(item.enumValues[i]));
+                        std::move(enumValueData));
                 }
             }
         }
@@ -190,23 +196,23 @@ public:
 
             if (isValueGroup)
             {
-                uint32 numenumValues = 0;
+                uint32 numEnumValues = 0;
 
-                if (FBOMResult err = in.GetProperty(paramString + ".num_possible_values").ReadUInt32(&numenumValues))
+                if (FBOMResult err = in.GetProperty(paramString + ".num_possible_values").ReadUInt32(&numEnumValues))
                 {
                     continue;
                 }
 
-                for (uint32 i = 0; i < numenumValues; i++)
+                for (uint32 i = 0; i < numEnumValues; i++)
                 {
-                    String possibleValue;
+                    ShaderProperty::Value enumValue;
 
-                    if (FBOMResult err = in.GetProperty(paramString + ".possible_values[" + ANSIString::ToString(i) + "]").ReadString(possibleValue))
+                    if (FBOMResult err = HypData::Deserialize<ShaderProperty::Value>(context, in.GetProperty(paramString + ".possible_values[" + ANSIString::ToString(i) + "]"), enumValue))
                     {
                         continue;
                     }
 
-                    property.enumValues.PushBack(std::move(possibleValue));
+                    property.enumValues.PushBack(std::move(enumValue));
                 }
             }
 

@@ -80,7 +80,7 @@ struct ShaderProperty
     Value currentValue;
 
     HYP_FIELD()
-    Array<String> enumValues;
+    Array<Value> enumValues;
 
     ShaderProperty()
         : isPermutation(false),
@@ -224,6 +224,11 @@ struct ShaderProperty
         return isPermutation;
     }
 
+    HYP_FORCE_INLINE bool IsStatic() const
+    {
+        return !isPermutation && !IsValueGroup();
+    }
+
     HYP_FORCE_INLINE bool IsVertexAttribute() const
     {
         return flags & SPF_VERTEX_ATTRIBUTE;
@@ -234,7 +239,7 @@ struct ShaderProperty
         return IsVertexAttribute() && IsPermutable();
     }
 
-    HYP_FORCE_INLINE void AddEnumValue(const String& enumValue)
+    HYP_FORCE_INLINE void AddEnumValue(const Value& enumValue)
     {
         if (!enumValues.Contains(enumValue))
         {
@@ -245,7 +250,7 @@ struct ShaderProperty
     String GetValueString() const;
 
     HashCode GetHashCode() const;
-    
+
     String ToString() const;
 };
 
@@ -477,11 +482,11 @@ public:
      *  Value groups create new shader variants but their values are mututally exclusive to each other.
      *  i.e, only one value from the value group can be selected at a time. This reduces the number of
      *  shader variants generated compared to permutations. */
-    ShaderProperties& AddValueGroup(Name key, Span<const String> enumValues)
+    ShaderProperties& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
     {
         ShaderProperty shaderProperty(key, false);
 
-        if (enumValues)
+        if (enumValues.Any())
         {
             shaderProperty.enumValues = enumValues;
         }
@@ -590,7 +595,8 @@ private:
 
         std::sort(propsPtrs.Begin(), propsPtrs.End(), [](const ShaderProperty* a, const ShaderProperty* b)
             {
-                return *a < *b;
+                // sort by name to ensure consistent hashcode
+                return std::strcmp(*a->name, *b->name) < 0;
             });
 
         for (const ShaderProperty* pShaderProperty : propsPtrs)
