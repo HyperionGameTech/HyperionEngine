@@ -413,7 +413,7 @@ UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
     {
         for (auto [entity, _] : activeScene->GetEntityManager()->GetEntitySet<EntityType<T>>())
         {
-            AssertDebug(entity->IsA<T>());
+            AssertDebug(entity->template IsA<T>());
             sources.PushBack(MakeStrongRef(entity));
         }
     };

@@ -11,10 +11,7 @@
 #include <windows.h>
 #endif
 
-#include <bitset> // for output
-
 namespace hyperion {
-
 namespace containers {
 
 static Array<Bitset::BlockType, InlineAllocator<2>> CreateBlocks_Internal(uint64 value)

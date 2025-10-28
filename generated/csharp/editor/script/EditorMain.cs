@@ -63,9 +63,9 @@ namespace Hyperion
                 return resultData.ReadStruct<UIEventHandlerResult>();
             }
         }
-        public static UIEventHandlerResult GenerateLightmapsClicked(this EditorMain obj, MouseEvent event)
+        public static UIEventHandlerResult RebuildLightmaps(this EditorMain obj, MouseEvent event)
         {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(8168264064379550946)).InvokeNative(obj, event))
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(7292399341781348347)).InvokeNative(obj, event))
             {
                 return resultData.ReadStruct<UIEventHandlerResult>();
             }
@@ -87,6 +87,13 @@ namespace Hyperion
         public static UIEventHandlerResult AddReflectionProbe(this EditorMain obj, MouseEvent event)
         {
             using (HypDataBuffer resultData = obj.GetMethod(new Name(11782431115643545837)).InvokeNative(obj, event))
+            {
+                return resultData.ReadStruct<UIEventHandlerResult>();
+            }
+        }
+        public static UIEventHandlerResult AddLightmapVolume(this EditorMain obj, MouseEvent event)
+        {
+            using (HypDataBuffer resultData = obj.GetMethod(new Name(11090063169030228272)).InvokeNative(obj, event))
             {
                 return resultData.ReadStruct<UIEventHandlerResult>();
             }

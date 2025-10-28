@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-static const FixedArray<Vec4f, 8> frustucornersNdc {
+static const FixedArray<Vec4f, 8> s_corners {
     Vec4f { -1.0f, -1.0f, 0.0f, 1.0f },
     Vec4f { -1.0f, 1.0f, 0.0f, 1.0f },
     Vec4f { 1.0f, 1.0f, 0.0f, 1.0f },
@@ -123,7 +123,7 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
 
     for (uint32 i = 0; i < 8; i++)
     {
-        Vec4f corner = clipToWorld * frustucornersNdc[i];
+        Vec4f corner = clipToWorld * s_corners[i];
         corner /= corner.w;
 
         corners[i] = corner.GetXYZ();
