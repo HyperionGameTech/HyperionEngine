@@ -13,20 +13,6 @@ namespace hyperion {
 class RenderProxyList;
 struct GpuLightmapperReadyNotification;
 
-class HYP_API LightmapJob_GpuPathTracing : public LightmapJobBase
-{
-public:
-    LightmapJob_GpuPathTracing(LightmapJobParams&& params)
-        : LightmapJobBase(std::move(params))
-    {
-    }
-
-    virtual ~LightmapJob_GpuPathTracing() override = default;
-
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays) override;
-    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType) override;
-};
-
 class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
@@ -77,27 +63,6 @@ private:
     TLASRef m_tlas;
 
     RaytracingPipelineRef m_raytracingPipeline;
-};
-
-HYP_CLASS()
-class HYP_API Lightmapper_GpuPathTracing : public LightmapperBase
-{
-    HYP_OBJECT_BODY(Lightmapper_GpuPathTracing);
-
-public:
-    Lightmapper_GpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
-    virtual ~Lightmapper_GpuPathTracing() override = default;
-
-protected:
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
-    {
-        return MakeUnique<LightmapJob_GpuPathTracing>(std::move(params));
-    }
-
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) override
-    {
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType);
-    }
 };
 
 } // namespace hyperion

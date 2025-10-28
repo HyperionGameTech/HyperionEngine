@@ -1,8 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/lightmapper/LightmapUVBuilder.hpp>
+#include <rendering/lightmapper/LightmapData.hpp>
 
 #include <rendering/Mesh.hpp>
+
+#include <scene/EnvProbe.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -13,85 +15,22 @@
 
 namespace hyperion {
 
-#pragma region LightmapUVMap
+#pragma region LightmapData<LightmapVolume>
 
-LightmapAtlasBitmap LightmapUVMap::ToBitmapRadiance() const
-{
-    Assert(uvs.Size() == width * height, "Invalid UV map size");
-
-    LightmapAtlasBitmap bitmap(width, height);
-
-    for (uint32 x = 0; x < width; x++)
-    {
-        for (uint32 y = 0; y < height; y++)
-        {
-            const uint32 index = x + y * width;
-
-            Vec4f color = uvs[index].radiance;
-
-            if (color.w <= 0.0f)
-            {
-                continue;
-            }
-
-            color /= color.w;
-
-            AssertDebug(!MathUtil::IsNaN(color));
-
-            bitmap.GetPixelReference(x, y).SetRGBA(color);
-        }
-    }
-
-    return bitmap;
-}
-
-LightmapAtlasBitmap LightmapUVMap::ToBitmapIrradiance() const
-{
-    Assert(uvs.Size() == width * height, "Invalid UV map size");
-
-    LightmapAtlasBitmap bitmap(width, height);
-
-    for (uint32 x = 0; x < width; x++)
-    {
-        for (uint32 y = 0; y < height; y++)
-        {
-            const uint32 index = x + y * width;
-
-            Vec4f color = uvs[index].irradiance;
-
-            if (color.w <= 0.0f)
-            {
-                continue;
-            }
-
-            color /= color.w;
-
-            AssertDebug(!MathUtil::IsNaN(color));
-
-            bitmap.GetPixelReference(x, y).SetRGBA(color);
-        }
-    }
-
-    return bitmap;
-}
-
-#pragma endregion LightmapUVMap
-
-#pragma region LightmapUVBuilder
-
-LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
-    : m_params(params),
-      m_meshVertexPositions(m_params.subElements.Size()),
-      m_meshVertexNormals(m_params.subElements.Size()),
-      m_meshVertexUvs(m_params.subElements.Size()),
-      m_meshIndices(m_params.subElements.Size())
+LightmapData<LightmapVolume>::LightmapData(Span<const LightmapSubElement> subElements, LightmapVolume* volume)
+    : LightmapDataBase(subElements),
+      m_volume(volume),
+      m_meshVertexPositions(subElements.Size()),
+      m_meshVertexNormals(subElements.Size()),
+      m_meshVertexUvs(subElements.Size()),
+      m_meshIndices(subElements.Size())
 {
     // Output mesh data - this will be where we output the computed UVs to be used for tracing
-    m_meshData.Resize(m_params.subElements.Size());
+    m_meshData.Resize(subElements.Size());
 
-    for (SizeType i = 0; i < m_params.subElements.Size(); i++)
+    for (SizeType i = 0; i < subElements.Size(); i++)
     {
-        const LightmapSubElement& subElement = m_params.subElements[i];
+        const LightmapSubElement& subElement = subElements[i];
 
         LightmapMeshData& lightmapMeshData = m_meshData[i];
 
@@ -168,14 +107,12 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
     }
 }
 
-TResult<LightmapUVMap> LightmapUVBuilder::Build()
+Result LightmapData<LightmapVolume>::Build()
 {
     if (m_meshData.Empty())
     {
         return HYP_MAKE_ERROR(Error, "No mesh data to build lightmap UVs from");
     }
-
-    LightmapUVMap uvMap;
 
 #ifdef HYP_XATLAS
     xatlas::Atlas* atlas = xatlas::Create();
@@ -217,9 +154,9 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
     xatlas::PackCharts(atlas, packOptions);
 
     // write lightmap data
-    uvMap.width = atlas->width;
-    uvMap.height = atlas->height;
-    uvMap.uvs.Resize(atlas->width * atlas->height);
+    width = atlas->width;
+    height = atlas->height;
+    texels.Resize(atlas->width * atlas->height);
 
     for (uint32 meshIndex = 0; meshIndex < atlas->meshCount; meshIndex++)
     {
@@ -230,12 +167,12 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
         const Mat4f normalMatrix = transform.Inverted().Transpose();
         const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
 
-        MeshIndexArray& currentUvIndices = uvMap.meshToUvIndices[lightmapMeshData.mesh->Id()];
+        MeshIndexArray& currentUvIndices = meshToUvIndices[lightmapMeshData.mesh->Id()];
 
         const xatlas::Mesh& atlasMesh = atlas->meshes[meshIndex];
 
         Assert(m_meshIndices[meshIndex].Size() == atlasMesh.indexCount,
-            "Mesh index size does not match atlas mesh index count! Mesh index count: %zu, Atlas index count: %u",
+            "Mesh index size does not match atlas mesh index count! Mesh index count: {}, Atlas index count: {}",
             m_meshIndices[meshIndex].Size(), atlasMesh.indexCount);
 
         for (uint32 i = 0; i < atlasMesh.indexCount; i += 3)
@@ -268,9 +205,9 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
             const Vec2i pts[3] = { verts[0].second, verts[1].second, verts[2].second };
 
-            const Vec2i clamp { int(uvMap.width - 1), int(uvMap.height - 1) };
+            const Vec2i clamp { int(width - 1), int(height - 1) };
 
-            Vec2i bboxmin { int(uvMap.width - 1), int(uvMap.height - 1) };
+            Vec2i bboxmin { int(width - 1), int(height - 1) };
             Vec2i bboxmax { 0, 0 };
 
             for (int j = 0; j < 3; j++)
@@ -327,24 +264,18 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
                     const Vec3f normal = (normalMatrix * Vec4f((vertexNormals[0] * barycentricCoords.x + vertexNormals[1] * barycentricCoords.y + vertexNormals[2] * barycentricCoords.z), 0.0f)).GetXYZ().Normalize();
 
-                    const uint32 uvIndex = (point.x + atlas->width) % atlas->width
+                    const uint32 texelIdx = (point.x + atlas->width) % atlas->width
                         + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
 
-                    LightmapUV& lightmapUv = uvMap.uvs[uvIndex];
-                    lightmapUv.mesh = lightmapMeshData.mesh;
-                    lightmapUv.material = lightmapMeshData.material;
-                    lightmapUv.transform = lightmapMeshData.transform;
-                    lightmapUv.triangleIndex = i / 3;
-                    lightmapUv.barycentricCoords = barycentricCoords;
-                    lightmapUv.lightmapUv = Vec2f(point) / Vec2f { float(atlas->width), float(atlas->height) };
-                    lightmapUv.ray = LightmapRay {
+                    LightmapTexel& texel = texels[texelIdx];
+                    texel.ray = LightmapRay {
                         Ray { position, normal },
                         lightmapMeshData.mesh->Id(),
                         triangleIndex,
-                        uvIndex
+                        texelIdx
                     };
 
-                    currentUvIndices.PushBack(uvIndex);
+                    currentUvIndices.PushBack(texelIdx);
                 }
             }
         }
@@ -394,12 +325,115 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
     xatlas::Destroy(atlas);
 
-    return std::move(uvMap);
+    return {};
 #else
     return HYP_MAKE_ERROR(Error, "No method to build lightmap");
 #endif
 }
 
-#pragma endregion LightmapUVBuilder
+auto LightmapData<LightmapVolume>::ToBitmapRadiance() const -> BitmapType
+{
+    Assert(texels.Size() == width * height, "Invalid UV map size");
+
+    BitmapType bitmap(width, height);
+
+    for (uint32 x = 0; x < width; x++)
+    {
+        for (uint32 y = 0; y < height; y++)
+        {
+            const uint32 index = x + y * width;
+
+            Vec4f color = texels[index].radiance;
+
+            if (color.w <= 0.0f)
+            {
+                continue;
+            }
+
+            color /= color.w;
+
+            AssertDebug(!MathUtil::IsNaN(color));
+
+            bitmap.GetPixelReference(x, y).SetRGBA(color);
+        }
+    }
+
+    return bitmap;
+}
+
+auto LightmapData<LightmapVolume>::ToBitmapIrradiance() const -> BitmapType
+{
+    Assert(texels.Size() == width * height, "Invalid UV map size");
+
+    BitmapType bitmap(width, height);
+
+    for (uint32 x = 0; x < width; x++)
+    {
+        for (uint32 y = 0; y < height; y++)
+        {
+            const uint32 index = x + y * width;
+
+            Vec4f color = texels[index].irradiance;
+
+            if (color.w <= 0.0f)
+            {
+                continue;
+            }
+
+            color /= color.w;
+
+            AssertDebug(!MathUtil::IsNaN(color));
+
+            bitmap.GetPixelReference(x, y).SetRGBA(color);
+        }
+    }
+
+    return bitmap;
+}
+
+#pragma endregion LightmapData<LightmapVolume>
+
+#pragma region LightmapData<EnvProbe>
+
+Result LightmapData<EnvProbe>::Build()
+{
+    Assert(m_envProbe != nullptr);
+
+    // texels need to be 6*resolution^2 in size
+    const Vec2u dimensions = m_envProbe->GetDimensions();
+    AssertDebug(dimensions.Volume() > 0 && dimensions.x == dimensions.y,
+        "EnvProbe lightmap dimensions must be square and non-zero! Dimensions: {}", dimensions);
+
+    const SizeType numTexels = 6 * dimensions.x * dimensions.y;
+
+    texels.Resize(numTexels);
+
+    for (uint32 face = 0; face < 6; face++)
+    {
+        for (uint32 y = 0; y < dimensions.y; y++)
+        {
+            for (uint32 x = 0; x < dimensions.x; x++)
+            {
+                const uint32 texelIdx = face * dimensions.x * dimensions.y + y * dimensions.x + x;
+
+                LightmapTexel& texel = texels[texelIdx];
+                
+                const Vec2f octahedralCoord = MathUtil::NormalizeOctahedralCoord(Vec2i { int(x), int(y) }, Vec2i { int(dimensions.x), int(dimensions.y) });
+                const Vec3f dir = MathUtil::DecodeOctahedralCoord(octahedralCoord).Normalize();
+
+                texel.ray = LightmapRay {
+                    Ray { Vec3f(0.0f), dir },
+                    /* meshId */ ObjId<Mesh>::invalid,
+                    /* triangleIndex */ ~0u,
+                    /* texelIndex */ texelIdx
+                };
+            }
+        }
+    }
+
+    return {};
+}
+
+#pragma endregion LightmapData<EnvProbe>
 
 } // namespace hyperion

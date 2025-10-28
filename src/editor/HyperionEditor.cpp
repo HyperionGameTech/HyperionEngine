@@ -67,7 +67,7 @@
 #include <rendering/Mesh.hpp>
 
 #include <rendering/lightmapper/LightmapperSubsystem.hpp>
-#include <rendering/lightmapper/LightmapUVBuilder.hpp>
+#include <rendering/lightmapper/LightmapData.hpp>
 
 #include <system/SystemEvent.hpp>
 

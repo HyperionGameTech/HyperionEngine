@@ -13,7 +13,7 @@ namespace hyperion {
 
 #pragma region AssetPath Reflection Data
 
-HYP_BEGIN_STRUCT(AssetPath, 266, 0, {}, HypClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(AssetPath, 264, 0, {}, HypClassAttribute("size", 8))
     HypProperty(NAME(HYP_STR(Value)), &AssetPath::ToString, &AssetPath::Set),
     HypField(NAME(HYP_STR(Chain)), &AssetPath::chain, offsetof(AssetPath, chain), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypMethod(NAME(HYP_STR(IsValid)), &AssetPath::IsValid),
@@ -39,7 +39,7 @@ namespace hyperion {
 
 #pragma region MeshData Reflection Data
 
-HYP_BEGIN_STRUCT(MeshData, 267, 0, {})
+HYP_BEGIN_STRUCT(MeshData, 265, 0, {})
     HypField(NAME(HYP_STR(VertexData)), &MeshData::vertexData, offsetof(MeshData, vertexData), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } }),
     HypField(NAME(HYP_STR(IndexData)), &MeshData::indexData, offsetof(MeshData, indexData), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } })
 HYP_END_STRUCT
@@ -66,7 +66,7 @@ namespace hyperion {
 
 #pragma region MeshDesc Reflection Data
 
-HYP_BEGIN_STRUCT(MeshDesc, 268, 0, {})
+HYP_BEGIN_STRUCT(MeshDesc, 266, 0, {})
     HypField(NAME(HYP_STR(MeshAttributes)), &MeshDesc::meshAttributes, offsetof(MeshDesc, meshAttributes), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(NumVertices)), &MeshDesc::numVertices, offsetof(MeshDesc, numVertices), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(NumIndices)), &MeshDesc::numIndices, offsetof(MeshDesc, numIndices), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
@@ -84,7 +84,7 @@ namespace hyperion {
 
 #pragma region AssetChangeType Reflection Data
 
-HYP_BEGIN_ENUM(AssetChangeType, 269, 0, {})
+HYP_BEGIN_ENUM(AssetChangeType, 267, 0, {})
     HypConstant(NAME(HYP_STR(CHANGED)), AssetChangeType::CHANGED),
     HypConstant(NAME(HYP_STR(CREATED)), AssetChangeType::CREATED),
     HypConstant(NAME(HYP_STR(DELETED)), AssetChangeType::DELETED),
@@ -101,7 +101,7 @@ namespace hyperion {
 
 #pragma region AssetLoaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(AssetLoaderDefinition, 270, 0, {})
+HYP_BEGIN_STRUCT(AssetLoaderDefinition, 268, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion AssetLoaderDefinition Reflection Data
@@ -415,7 +415,7 @@ namespace hyperion {
 
 #pragma region OctantId Reflection Data
 
-HYP_BEGIN_STRUCT(OctantId, 271, 0, {})
+HYP_BEGIN_STRUCT(OctantId, 269, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion OctantId Reflection Data
@@ -432,7 +432,7 @@ namespace hyperion {
 
 #pragma region KeyCode Reflection Data
 
-HYP_BEGIN_ENUM(KeyCode, 272, 0, {})
+HYP_BEGIN_ENUM(KeyCode, 270, 0, {})
     HypConstant(NAME(HYP_STR(UNKNOWN)), KeyCode::UNKNOWN),
     HypConstant(NAME(HYP_STR(KEY_A)), KeyCode::KEY_A),
     HypConstant(NAME(HYP_STR(KEY_B)), KeyCode::KEY_B),
@@ -513,7 +513,7 @@ namespace hyperion {
 
 #pragma region KeyboardEvent Reflection Data
 
-HYP_BEGIN_STRUCT(KeyboardEvent, 273, 0, {}, HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(KeyboardEvent, 271, 0, {}, HypClassAttribute("size", 16))
     HypField(NAME(HYP_STR(InputManager)), &KeyboardEvent::inputManager, offsetof(KeyboardEvent, inputManager)),
     HypField(NAME(HYP_STR(KeyCode)), &KeyboardEvent::keyCode, offsetof(KeyboardEvent, keyCode))
 HYP_END_STRUCT
@@ -564,7 +564,7 @@ namespace hyperion {
 
 #pragma region MouseButtonState Reflection Data
 
-HYP_BEGIN_ENUM(MouseButtonState, 274, 0, {})
+HYP_BEGIN_ENUM(MouseButtonState, 272, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), MouseButtonState::NONE),
     HypConstant(NAME(HYP_STR(LEFT)), MouseButtonState::LEFT),
     HypConstant(NAME(HYP_STR(MIDDLE)), MouseButtonState::MIDDLE),
@@ -580,7 +580,7 @@ namespace hyperion {
 
 #pragma region MouseEvent Reflection Data
 
-HYP_BEGIN_STRUCT(MouseEvent, 275, 0, {}, HypClassAttribute("size", 56))
+HYP_BEGIN_STRUCT(MouseEvent, 273, 0, {}, HypClassAttribute("size", 56))
     HypField(NAME(HYP_STR(InputManager)), &MouseEvent::inputManager, offsetof(MouseEvent, inputManager)),
     HypField(NAME(HYP_STR(Position)), &MouseEvent::position, offsetof(MouseEvent, position)),
     HypField(NAME(HYP_STR(PreviousPosition)), &MouseEvent::previousPosition, offsetof(MouseEvent, previousPosition)),
@@ -600,7 +600,7 @@ namespace hyperion {
 
 #pragma region MouseButtonKey Reflection Data
 
-HYP_BEGIN_ENUM(MouseButtonKey, 276, 0, {})
+HYP_BEGIN_ENUM(MouseButtonKey, 274, 0, {})
     HypConstant(NAME(HYP_STR(MBK_INVALID)), MouseButtonKey::MBK_INVALID),
     HypConstant(NAME(HYP_STR(MBK_LEFT)), MouseButtonKey::MBK_LEFT),
     HypConstant(NAME(HYP_STR(MBK_MIDDLE)), MouseButtonKey::MBK_MIDDLE),
@@ -896,7 +896,7 @@ namespace hyperion {
 
 #pragma region StreamableKey Reflection Data
 
-HYP_BEGIN_STRUCT(StreamableKey, 277, 0, {})
+HYP_BEGIN_STRUCT(StreamableKey, 275, 0, {})
     HypField(NAME(HYP_STR(Uuid)), &StreamableKey::uuid, offsetof(StreamableKey, uuid), Span<const HypClassAttribute> { {HypClassAttribute("property", "Uuid"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(AssetPath)), &StreamableKey::assetPath, offsetof(StreamableKey, assetPath), Span<const HypClassAttribute> { {HypClassAttribute("property", "AssetPath"), HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
@@ -915,7 +915,7 @@ namespace hyperion {
 
 #pragma region StreamingCellNeighbor Reflection Data
 
-HYP_BEGIN_STRUCT(StreamingCellNeighbor, 278, 0, {})
+HYP_BEGIN_STRUCT(StreamingCellNeighbor, 276, 0, {})
     HypField(NAME(HYP_STR(Coord)), &StreamingCellNeighbor::coord, offsetof(StreamingCellNeighbor, coord), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Coord") } })
 HYP_END_STRUCT
 
@@ -928,7 +928,7 @@ namespace hyperion {
 
 #pragma region StreamingCellInfo Reflection Data
 
-HYP_BEGIN_STRUCT(StreamingCellInfo, 279, 0, {}, HypClassAttribute("size", 80))
+HYP_BEGIN_STRUCT(StreamingCellInfo, 277, 0, {}, HypClassAttribute("size", 80))
     HypField(NAME(HYP_STR(Coord)), &StreamingCellInfo::coord, offsetof(StreamingCellInfo, coord), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Coord") } }),
     HypField(NAME(HYP_STR(Extent)), &StreamingCellInfo::extent, offsetof(StreamingCellInfo, extent), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Extent") } }),
     HypField(NAME(HYP_STR(Scale)), &StreamingCellInfo::scale, offsetof(StreamingCellInfo, scale), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Scale") } }),
@@ -984,7 +984,7 @@ namespace hyperion {
 
 #pragma region StreamingCellState Reflection Data
 
-HYP_BEGIN_ENUM(StreamingCellState, 280, 0, {})
+HYP_BEGIN_ENUM(StreamingCellState, 278, 0, {})
     HypConstant(NAME(HYP_STR(INVALID)), StreamingCellState::INVALID),
     HypConstant(NAME(HYP_STR(UNLOADED)), StreamingCellState::UNLOADED),
     HypConstant(NAME(HYP_STR(UNLOADING)), StreamingCellState::UNLOADING),
@@ -1028,7 +1028,7 @@ namespace hyperion {
 
 #pragma region StreamingVolumeShape Reflection Data
 
-HYP_BEGIN_ENUM(StreamingVolumeShape, 281, 0, {})
+HYP_BEGIN_ENUM(StreamingVolumeShape, 279, 0, {})
     HypConstant(NAME(HYP_STR(SPHERE)), StreamingVolumeShape::SPHERE),
     HypConstant(NAME(HYP_STR(BOX)), StreamingVolumeShape::BOX),
     HypConstant(NAME(HYP_STR(MAX)), StreamingVolumeShape::MAX),
@@ -1229,7 +1229,7 @@ namespace hyperion {
 
 #pragma region AudioSourceFormat Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceFormat, 282, 0, {})
+HYP_BEGIN_ENUM(AudioSourceFormat, 280, 0, {})
     HypConstant(NAME(HYP_STR(MONO8)), AudioSourceFormat::MONO8),
     HypConstant(NAME(HYP_STR(MONO16)), AudioSourceFormat::MONO16),
     HypConstant(NAME(HYP_STR(STEREO8)), AudioSourceFormat::STEREO8),
@@ -1245,7 +1245,7 @@ namespace hyperion {
 
 #pragma region AudioSourceState Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceState, 283, 0, {})
+HYP_BEGIN_ENUM(AudioSourceState, 281, 0, {})
     HypConstant(NAME(HYP_STR(UNDEFINED)), AudioSourceState::UNDEFINED),
     HypConstant(NAME(HYP_STR(STOPPED)), AudioSourceState::STOPPED),
     HypConstant(NAME(HYP_STR(PLAYING)), AudioSourceState::PLAYING),
@@ -1264,7 +1264,7 @@ namespace hyperion {
 
 #pragma region GlobalRenderBuffer Reflection Data
 
-HYP_BEGIN_ENUM(GlobalRenderBuffer, 284, 0, {})
+HYP_BEGIN_ENUM(GlobalRenderBuffer, 282, 0, {})
     HypConstant(NAME(HYP_STR(GRB_INVALID)), GlobalRenderBuffer::GRB_INVALID),
     HypConstant(NAME(HYP_STR(GRB_WORLDS)), GlobalRenderBuffer::GRB_WORLDS),
     HypConstant(NAME(HYP_STR(GRB_CAMERAS)), GlobalRenderBuffer::GRB_CAMERAS),
@@ -1287,7 +1287,7 @@ namespace hyperion {
 
 #pragma region GlobalRendererType Reflection Data
 
-HYP_BEGIN_ENUM(GlobalRendererType, 285, 0, {})
+HYP_BEGIN_ENUM(GlobalRendererType, 283, 0, {})
     HypConstant(NAME(HYP_STR(GRT_NONE)), GlobalRendererType::GRT_NONE),
     HypConstant(NAME(HYP_STR(GRT_ENV_PROBE)), GlobalRendererType::GRT_ENV_PROBE),
     HypConstant(NAME(HYP_STR(GRT_ENV_GRID)), GlobalRendererType::GRT_ENV_GRID),
@@ -1323,7 +1323,7 @@ namespace hyperion {
 
 #pragma region RenderBucket Reflection Data
 
-HYP_BEGIN_ENUM(RenderBucket, 286, 0, {})
+HYP_BEGIN_ENUM(RenderBucket, 284, 0, {})
     HypConstant(NAME(HYP_STR(RB_NONE)), RenderBucket::RB_NONE),
     HypConstant(NAME(HYP_STR(RB_OPAQUE)), RenderBucket::RB_OPAQUE),
     HypConstant(NAME(HYP_STR(RB_LIGHTMAP)), RenderBucket::RB_LIGHTMAP),
@@ -1347,7 +1347,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetElementType Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetElementType, 287, 0, {})
+HYP_BEGIN_ENUM(DescriptorSetElementType, 285, 0, {})
     HypConstant(NAME(HYP_STR(UNSET)), DescriptorSetElementType::UNSET),
     HypConstant(NAME(HYP_STR(UNIFORM_BUFFER)), DescriptorSetElementType::UNIFORM_BUFFER),
     HypConstant(NAME(HYP_STR(UNIFORM_BUFFER_DYNAMIC)), DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC),
@@ -1369,7 +1369,7 @@ namespace hyperion {
 
 #pragma region DescriptorTableDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableDeclaration, 288, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableDeclaration, 286, 0, {})
     HypField(NAME(HYP_STR(Elements)), &DescriptorTableDeclaration::elements, offsetof(DescriptorTableDeclaration, elements), Span<const HypClassAttribute> { {HypClassAttribute("property", "Elements"), HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -1394,7 +1394,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 289, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 287, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorSetOffsetMap Reflection Data
@@ -1406,7 +1406,7 @@ namespace hyperion {
 
 #pragma region DescriptorDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorDeclaration, 290, 0, {})
+HYP_BEGIN_STRUCT(DescriptorDeclaration, 288, 0, {})
     HypField(NAME(HYP_STR(Slot)), &DescriptorDeclaration::slot, offsetof(DescriptorDeclaration, slot), Span<const HypClassAttribute> { {HypClassAttribute("property", "Slot"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Name)), &DescriptorDeclaration::name, offsetof(DescriptorDeclaration, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Count)), &DescriptorDeclaration::count, offsetof(DescriptorDeclaration, count), Span<const HypClassAttribute> { {HypClassAttribute("property", "Count"), HypClassAttribute("serialize", true) } }),
@@ -1424,7 +1424,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetDeclaration, 291, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetDeclaration, 289, 0, {})
     HypField(NAME(HYP_STR(SetIndex)), &DescriptorSetDeclaration::setIndex, offsetof(DescriptorSetDeclaration, setIndex), Span<const HypClassAttribute> { {HypClassAttribute("property", "SetIndex"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Name)), &DescriptorSetDeclaration::name, offsetof(DescriptorSetDeclaration, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Slots)), &DescriptorSetDeclaration::slots, offsetof(DescriptorSetDeclaration, slots), Span<const HypClassAttribute> { {HypClassAttribute("property", "Slots"), HypClassAttribute("serialize", true) } }),
@@ -1452,7 +1452,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetDeclarationFlags Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetDeclarationFlags, 292, 0, {})
+HYP_BEGIN_ENUM(DescriptorSetDeclarationFlags, 290, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), DescriptorSetDeclarationFlags::NONE),
     HypConstant(NAME(HYP_STR(REFERENCE)), DescriptorSetDeclarationFlags::REFERENCE),
     HypConstant(NAME(HYP_STR(TEMPLATE)), DescriptorSetDeclarationFlags::TEMPLATE)
@@ -1467,7 +1467,7 @@ namespace hyperion {
 
 #pragma region DescriptorSlot Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSlot, 293, 0, {})
+HYP_BEGIN_ENUM(DescriptorSlot, 291, 0, {})
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_NONE)), DescriptorSlot::DESCRIPTOR_SLOT_NONE),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_SRV)), DescriptorSlot::DESCRIPTOR_SLOT_SRV),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_UAV)), DescriptorSlot::DESCRIPTOR_SLOT_UAV),
@@ -1487,7 +1487,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetLayoutElement Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetLayoutElement, 294, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetLayoutElement, 292, 0, {})
     HypField(NAME(HYP_STR(Type)), &DescriptorSetLayoutElement::type, offsetof(DescriptorSetLayoutElement, type)),
     HypField(NAME(HYP_STR(Binding)), &DescriptorSetLayoutElement::binding, offsetof(DescriptorSetLayoutElement, binding)),
     HypField(NAME(HYP_STR(Count)), &DescriptorSetLayoutElement::count, offsetof(DescriptorSetLayoutElement, count)),
@@ -1503,7 +1503,7 @@ namespace hyperion {
 
 #pragma region DescriptorTableOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 295, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 293, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorTableOffsetMap Reflection Data
@@ -1541,7 +1541,7 @@ namespace hyperion {
 
 #pragma region MaterialTextureKey Reflection Data
 
-HYP_BEGIN_ENUM(MaterialTextureKey, 296, 0, {})
+HYP_BEGIN_ENUM(MaterialTextureKey, 294, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), MaterialTextureKey::NONE),
     HypConstant(NAME(HYP_STR(ALBEDO_MAP)), MaterialTextureKey::ALBEDO_MAP),
     HypConstant(NAME(HYP_STR(NORMAL_MAP)), MaterialTextureKey::NORMAL_MAP),
@@ -1593,7 +1593,7 @@ namespace hyperion {
 
 #pragma region MaterialParameterValue Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameterValue, 297, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(MaterialParameterValue, 295, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 16))
 HYP_END_STRUCT
 
 #pragma endregion MaterialParameterValue Reflection Data
@@ -1606,7 +1606,7 @@ namespace hyperion {
 
 #pragma region MaterialParameters Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameters, 298, 0, {})
+HYP_BEGIN_STRUCT(MaterialParameters, 296, 0, {})
     HypField(NAME(HYP_STR(Values)), &MaterialParameters::m_values, offsetof(MaterialParameters, m_values), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -1619,7 +1619,7 @@ namespace hyperion {
 
 #pragma region MaterialParameterKey Reflection Data
 
-HYP_BEGIN_ENUM(MaterialParameterKey, 299, 0, {})
+HYP_BEGIN_ENUM(MaterialParameterKey, 297, 0, {})
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_NONE)), MaterialParameterKey::MATERIAL_KEY_NONE),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_ALBEDO)), MaterialParameterKey::MATERIAL_KEY_ALBEDO),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_METALNESS)), MaterialParameterKey::MATERIAL_KEY_METALNESS),
@@ -1654,7 +1654,7 @@ namespace hyperion {
 
 #pragma region MaterialParameterType Reflection Data
 
-HYP_BEGIN_ENUM(MaterialParameterType, 300, 0, {})
+HYP_BEGIN_ENUM(MaterialParameterType, 298, 0, {})
     HypConstant(NAME(HYP_STR(MPT_NONE)), MaterialParameterType::MPT_NONE),
     HypConstant(NAME(HYP_STR(MPT_FLOAT)), MaterialParameterType::MPT_FLOAT),
     HypConstant(NAME(HYP_STR(MPT_FLOAT2)), MaterialParameterType::MPT_FLOAT2),
@@ -1675,7 +1675,7 @@ namespace hyperion {
 
 #pragma region MaterialTextures Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialTextures, 301, 0, {})
+HYP_BEGIN_STRUCT(MaterialTextures, 299, 0, {})
     HypField(NAME(HYP_STR(Values)), &MaterialTextures::m_values, offsetof(MaterialTextures, m_values), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -1688,7 +1688,7 @@ namespace hyperion {
 
 #pragma region MaterialParameter Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameter, 302, 0, {})
+HYP_BEGIN_STRUCT(MaterialParameter, 300, 0, {})
     HypField(NAME(HYP_STR(Value)), &MaterialParameter::value, offsetof(MaterialParameter, value), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Type)), &MaterialParameter::type, offsetof(MaterialParameter, type), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT

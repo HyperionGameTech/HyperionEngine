@@ -20,21 +20,6 @@
 
 namespace hyperion {
 
-template <class... Args>
-static Handle<LightmapperBase> CreateLightmapper(LightmapperConfig&& config, Args&&... args)
-{
-    switch (config.traceMode)
-    {
-    case LightmapTraceMode::GPU_PATH_TRACING:
-        return CreateObject<Lightmapper_GpuPathTracing>(std::move(config), std::forward<Args>(args)...);
-    case LightmapTraceMode::CPU_PATH_TRACING:
-        return CreateObject<Lightmapper_CpuPathTracing>(std::move(config), std::forward<Args>(args)...);
-    case LightmapTraceMode::ENV_GRID: // fallthrough
-    default:
-        HYP_NOT_IMPLEMENTED();
-    }
-}
-
 #pragma region LightmapperSubsystem
 
 LightmapperSubsystem::LightmapperSubsystem()
@@ -117,7 +102,7 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, 
         return nullptr;
     }
 
-    Handle<LightmapperBase> lightmapper = CreateLightmapper(LightmapperConfig::FromConfig(), scene, aabb);
+    Handle<LightmapperBase> lightmapper = CreateObject<Lightmapper<LightmapVolume>>(LightmapperConfig::FromConfig(), scene, aabb);
     InitObject(lightmapper);
 
     Task<void>& task = m_tasks.EmplaceBack();

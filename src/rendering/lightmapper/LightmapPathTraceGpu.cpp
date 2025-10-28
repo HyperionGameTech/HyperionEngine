@@ -76,7 +76,8 @@ struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
 {
     GpuBufferRef uniformBuffer;
 
-    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)(GpuBufferRef uniformBuffer)
+    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
+    (GpuBufferRef uniformBuffer)
         : uniformBuffer(std::move(uniformBuffer))
     {
     }
@@ -95,7 +96,8 @@ struct RENDER_COMMAND(SetGpuLightmapperReady)
 {
     RC<GpuLightmapperReadyNotification> notification;
 
-    RENDER_COMMAND(SetGpuLightmapperReady)(const RC<GpuLightmapperReadyNotification>& notification)
+    RENDER_COMMAND(SetGpuLightmapperReady)
+    (const RC<GpuLightmapperReadyNotification>& notification)
         : notification(notification)
     {
         Assert(notification != nullptr);
@@ -110,50 +112,6 @@ struct RENDER_COMMAND(SetGpuLightmapperReady)
 };
 
 #pragma endregion Render commands
-
-#pragma region LightmapJob_GpuPathTracing
-
-void LightmapJob_GpuPathTracing::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
-{
-    for (uint32 rayIndex = 0; rayIndex < maxRayHits && HasRemainingTexels(); ++rayIndex)
-    {
-        const uint32 texelIndex = NextTexel();
-
-        LightmapRay ray = m_uvMap->uvs[texelIndex].ray;
-        ray.texelIndex = texelIndex;
-
-        outRays.PushBack(ray);
-    }
-}
-
-void LightmapJob_GpuPathTracing::IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType)
-{
-    Assert(rays.Size() == hits.Size());
-
-    LightmapUVMap& uvMap = GetUVMap();
-
-    for (SizeType i = 0; i < hits.Size(); i++)
-    {
-        const LightmapRay& ray = rays[i];
-        const LightmapHit& hit = hits[i];
-
-        LightmapUV& uv = uvMap.uvs[ray.texelIndex];
-
-        switch (shadingType)
-        {
-        case LightmapShadingType::RADIANCE:
-            uv.radiance += Vec4f(hit.color, 1.0f); //= Vec4f(MathUtil::Lerp(uv.radiance.GetXYZ() * uv.radiance.w, hit.color.GetXYZ(), hit.color.w), 1.0f);
-            break;
-        case LightmapShadingType::IRRADIANCE:
-            uv.irradiance += Vec4f(hit.color, 1.0f); //= Vec4f(MathUtil::Lerp(uv.irradiance.GetXYZ() * uv.irradiance.w, hit.color.GetXYZ(), hit.color.w), 1.0f);
-            break;
-        default:
-            HYP_UNREACHABLE();
-        }
-    }
-}
-
-#pragma endregion LightmapJob_GpuPathTracing
 
 #pragma region LightmapRenderer_GpuPathTracing
 
@@ -524,14 +482,5 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 }
 
 #pragma endregion LightmapRenderer_GpuPathTracing
-
-#pragma region Lightmapper_GpuPathTracing
-
-Lightmapper_GpuPathTracing::Lightmapper_GpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
-    : LightmapperBase(std::move(config), scene, aabb)
-{
-}
-
-#pragma endregion Lightmapper_GpuPathTracing
 
 } // namespace hyperion

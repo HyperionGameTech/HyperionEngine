@@ -10,7 +10,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 
-#include <rendering/lightmapper/LightmapUVBuilder.hpp>
+#include <rendering/lightmapper/LightmapData.hpp>
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
@@ -40,7 +40,8 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
     Array<Handle<Texture>> atlasTextures;
     HashMap<LightmapElement::Id, FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
 
-    RENDER_COMMAND(BakeLightmapAtlasTexture)(
+    RENDER_COMMAND(BakeLightmapAtlasTexture)
+    (
         const WeakHandle<LightmapVolume>& lightmapVolumeWeak,
         const Array<LightmapElement>& lightmapElements,
         Array<Handle<Texture>>&& atlasTextures,
@@ -118,12 +119,10 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
                     atlasTexture->GetGpuImage(),
                     Rect<uint32> {
                         0, 0,
-                        element.dimensions.x, element.dimensions.y
-                    },
+                        element.dimensions.x, element.dimensions.y },
                     Rect<uint32> {
                         element.offsetCoords.x, element.offsetCoords.y,
-                        element.offsetCoords.x + element.dimensions.x, element.offsetCoords.y + element.dimensions.y
-                    });
+                        element.offsetCoords.x + element.dimensions.x, element.offsetCoords.y + element.dimensions.y });
 
                 renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
                 renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
@@ -164,7 +163,7 @@ struct RENDER_COMMAND(BakeLightmapAtlasTexture)
                                                         return;
                                                     }
 
-                                                    LightmapAtlasBitmap bitmap(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
+                                                    typename LightmapData<LightmapVolume>::BitmapType bitmap(atlasTexture->GetExtent().x, atlasTexture->GetExtent().y);
                                                     bitmap.SetPixels(std::move(byteBuffer));
 
                                                     const String filename = HYP_FORMAT("lightmap_atlas_texture_{}_{}.bmp",
@@ -215,13 +214,11 @@ LightmapVolume::~LightmapVolume()
     SafeDelete(std::move(m_irradianceAtlasTextures));
 }
 
-bool LightmapVolume::AddElement(const LightmapUVMap& uvMap, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
+bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
 {
     Threads::AssertOnThread(g_gameThread);
 
     outElement.id = ~0u;
-
-    const Vec2u elementDimensions = { uvMap.width, uvMap.height };
 
     LinkedList<LightmapVolumeAtlas> tmpAtlas;
 
@@ -242,7 +239,7 @@ bool LightmapVolume::AddElement(const LightmapUVMap& uvMap, LightmapElement& out
 
         uint32 elementIndex = ~0u;
 
-        if (pAtlas->AddElement(elementDimensions, outElement, elementIndex, shrinkToFit, downscaleLimit))
+        if (pAtlas->AddElement(dimensions, outElement, elementIndex, shrinkToFit, downscaleLimit))
         {
             AssertDebug(elementIndex < UINT16_MAX);
 
@@ -286,7 +283,7 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElement::Id elementId)
     return &m_atlases[atlasIndex].elements[elementIndex];
 }
 
-bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapElement::Id elementId)
+bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElement::Id elementId)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
@@ -311,9 +308,9 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 
     const Vec2u elementDimensions = element.dimensions;
 
-    FixedArray<LightmapAtlasBitmap, uint32(LTT_MAX)> bitmaps = {
-        uvMap.ToBitmapRadiance(),  /* RADIANCE */
-        uvMap.ToBitmapIrradiance() /* IRRADIANCE */
+    FixedArray<typename LightmapData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
+        lightmapData.ToBitmapRadiance(),  /* RADIANCE */
+        lightmapData.ToBitmapIrradiance() /* IRRADIANCE */
     };
 
     FixedArray<Handle<Texture>, LTT_MAX> elementTextures;
@@ -322,13 +319,13 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, LightmapEl
 
     for (uint32 i = 0; i < uint32(LTT_MAX); i++)
     {
-        LinkedList<LightmapAtlasBitmap> tempBitmap;
+        LinkedList<typename LightmapData<LightmapVolume>::BitmapType> tempBitmap;
 
-        LightmapAtlasBitmap* pBitmap = &bitmaps[i];
+        typename LightmapData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
 
         if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
         {
-            LightmapAtlasBitmap& rescaledBitmap = tempBitmap.EmplaceBack(elementDimensions.x, elementDimensions.y);
+            typename LightmapData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.EmplaceBack(elementDimensions.x, elementDimensions.y);
 
             Rect<uint32> srcRect {
                 0, 0,
@@ -408,7 +405,7 @@ void LightmapVolume::UpdateAtlasTextures(
     Assert(atlasIndex < m_atlases.Size());
 
     LightmapVolumeAtlas& atlas = m_atlases[atlasIndex];
-    
+
     // Calculate the size of the atlas texture in bytes
     constexpr TextureFormat AtlasTextureFormat = TF_RGBA8;
     constexpr uint32 BytesPerPixel = BytesPerComponent(AtlasTextureFormat) * NumComponents(AtlasTextureFormat);
@@ -416,7 +413,7 @@ void LightmapVolume::UpdateAtlasTextures(
     const SizeType atlasWidth = atlas.atlasDimensions.x;
     const SizeType atlasHeight = atlas.atlasDimensions.y;
     const SizeType atlasDataSize = atlasWidth * atlasHeight * BytesPerPixel;
-        
+
     Handle<Texture>& radianceTexture = m_radianceAtlasTextures[atlasIndex];
     if (!radianceTexture)
     {

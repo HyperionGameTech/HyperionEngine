@@ -1,8 +1,10 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/lightmapper/Lightmapper.hpp>
+#include <rendering/lightmapper/LightmapJob.hpp>
 #include <rendering/lightmapper/LightmapPathTraceCpu.hpp>
 #include <rendering/lightmapper/LightmapPathTraceGpu.hpp>
+#include <rendering/lightmapper/LightmapAccelerationStructure.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -22,8 +24,8 @@
 
 #include <scene/BVH.hpp>
 #include <scene/World.hpp>
-#include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+#include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/View.hpp>
 
@@ -66,100 +68,6 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(LightmapRender)
-    : RenderCommand
-{
-    LightmapJobBase* job;
-    Handle<World> world;
-    Handle<View> view;
-    Array<LightmapRay> rays;
-    uint32 rayOffset;
-
-    RENDER_COMMAND(LightmapRender)(LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
-        : job(job),
-          world(world),
-          view(view),
-          rays(std::move(rays)),
-          rayOffset(rayOffset)
-    {
-        job->numConcurrentRenderingTasks.Increment(1, MemoryOrder::RELEASE);
-    }
-
-    virtual ~RENDER_COMMAND(LightmapRender)() override
-    {
-        job->numConcurrentRenderingTasks.Decrement(1, MemoryOrder::RELEASE);
-    }
-
-    virtual RendererResult operator()() override
-    {
-        FrameBase* frame = g_renderBackend->GetCurrentFrame();
-
-        RenderSetup renderSetup { world, view };
-
-        RenderProxyList* rpl = nullptr;
-
-        if (view)
-        {
-            rpl = &RenderApi::GetConsumerProxyList(view);
-        }
-
-        if (rpl)
-        {
-            rpl->BeginRead();
-        }
-
-        HYP_DEFER({ if (rpl) rpl->EndRead(); });
-
-        if (rpl)
-        {
-            if (const auto& skyProbes = rpl->GetEnvProbes().GetElements<SkyProbe>(); skyProbes.Any())
-            {
-                renderSetup.envProbe = skyProbes.Front();
-            }
-        }
-
-        {
-            // Read ray hits from last time this frame was rendered
-            Array<LightmapRay> previousRays;
-            job->GetPreviousFrameRays(previousRays);
-
-            // Read previous frame hits into CPU buffer
-            if (previousRays.Size() != 0)
-            {
-                Array<LightmapHit> hitsBuffer;
-                hitsBuffer.Resize(previousRays.Size());
-
-                AssertDebug(job->GetParams().renderers != nullptr);
-
-                for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
-                {
-                    AssertDebug(lightmapRenderer != nullptr);
-
-                    lightmapRenderer->ReadHitsBuffer(frame, hitsBuffer);
-
-                    job->IntegrateRayHits(previousRays, hitsBuffer, lightmapRenderer->GetShadingType());
-                }
-            }
-
-            job->SetPreviousFrameRays(rays);
-        }
-
-        if (rays.Any())
-        {
-            AssertDebug(job->GetParams().renderers != nullptr);
-
-            for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
-            {
-                AssertDebug(lightmapRenderer != nullptr);
-
-                lightmapRenderer->Render(frame, renderSetup, job, rays, rayOffset);
-            }
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 #pragma endregion Render commands
 
 #pragma region LightmapperConfig
@@ -179,274 +87,13 @@ void LightmapperConfig::PostLoadCallback()
 
 #pragma endregion LightmapperConfig
 
-#pragma region LightmapJobBase
-
-static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
-
-LightmapJobBase::LightmapJobBase(LightmapJobParams&& params)
-    : m_params(std::move(params)),
-      m_texelIndex(0),
-      m_lightmapElement(nullptr),
-      m_lastLoggedPercentage(0),
-      numConcurrentRenderingTasks(0)
-{
-}
-
-LightmapJobBase::~LightmapJobBase()
-{
-    for (TaskBatch* taskBatch : m_currentTasks)
-    {
-        taskBatch->AwaitCompletion();
-
-        delete taskBatch;
-    }
-
-    delete m_lightmapElement;
-}
-
-void LightmapJobBase::Start()
-{
-    m_runningSemaphore.Produce(1, [this](bool)
-        {
-            if (!m_uvMap.HasValue())
-            {
-                // No elements to process
-                if (!m_params.subElementsView)
-                {
-                    m_uvMap = LightmapUVMap {};
-
-                    return;
-                }
-
-                HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
-
-                m_uvBuilder = LightmapUVBuilder { { m_params.subElementsView } };
-
-                m_buildUvMapTask = TaskSystem::GetInstance().Enqueue([this]() -> TResult<LightmapUVMap>
-                    {
-                        return m_uvBuilder.Build();
-                    },
-                    TaskThreadPoolName::THREAD_POOL_BACKGROUND);
-            }
-        });
-}
-
-void LightmapJobBase::Stop()
-{
-    m_runningSemaphore.Release(1);
-}
-
-void LightmapJobBase::Stop(const Error& error)
-{
-    HYP_LOG(Lightmap, Error, "Lightmap job {} stopped with error: {}", m_uuid, error.GetMessage());
-
-    m_result = error;
-
-    Stop();
-}
-
-bool LightmapJobBase::IsCompleted() const
-{
-    return !m_runningSemaphore.IsInSignalState();
-}
-
-void LightmapJobBase::AddTask(TaskBatch* taskBatch)
-{
-    Mutex::Guard guard(m_currentTasksMutex);
-
-    m_currentTasks.PushBack(taskBatch);
-}
-
-void LightmapJobBase::Process()
-{
-    Assert(IsRunning());
-    Assert(!m_result.HasError(), "Unhandled error in lightmap job: {}", *m_result.GetError().GetMessage());
-
-    if (!m_uvMap.HasValue())
-    {
-        // wait for uv map to finish building
-
-        // If uv map is not valid, it must have a task that is building it
-        Assert(m_buildUvMapTask.IsValid());
-
-        if (!m_buildUvMapTask.IsCompleted())
-        {
-            // return early so we don't block - we need to wait for build task to complete before processing
-            return;
-        }
-
-        if (TResult<LightmapUVMap>& uvMapResult = m_buildUvMapTask.Await(); uvMapResult.HasValue())
-        {
-            m_uvMap = std::move(*uvMapResult);
-        }
-        else
-        {
-            Stop(uvMapResult.GetError());
-
-            return;
-        }
-
-        if (m_uvMap.HasValue())
-        {
-            LightmapElement lightmapElement;
-            if (!m_params.volume->AddElement(*m_uvMap, lightmapElement, /* shrinkToFit */ true, /* downscaleLimit */ 0.1f))
-            {
-                Stop(HYP_MAKE_ERROR(Error, "Failed to add LightmapElement to LightmapVolume for lightmap job {}! UV map size: {}",
-                    m_uuid, Vec2u(m_uvMap->width, m_uvMap->height)));
-
-                return;
-            }
-
-            if (m_lightmapElement != nullptr)
-            {
-                *m_lightmapElement = std::move(lightmapElement);
-            }
-            else
-            {
-                m_lightmapElement = new LightmapElement(std::move(lightmapElement));
-            }
-
-            // Flatten texel indices, grouped by mesh IDs to prevent unnecessary loading/unloading
-            m_texelIndices.Reserve(m_uvMap->uvs.Size());
-
-            for (const auto& it : m_uvMap->meshToUvIndices)
-            {
-                m_texelIndices.Concat(it.second);
-            }
-
-            // Free up memory
-            m_uvMap->meshToUvIndices.Clear();
-        }
-        else
-        {
-            // Mark as ready to stop further processing
-            Stop(HYP_MAKE_ERROR(Error, "Failed to build UV map for lightmap job {}", m_uuid));
-        }
-
-        return;
-    }
-
-    View* view = m_params.view;
-    Assert(view != nullptr);
-
-    view->UpdateViewport();
-    view->UpdateVisibility();
-    view->CollectSync();
-
-    if (numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= MaxConcurrentRenderingTasksPerJob)
-    {
-        // Wait for current rendering tasks to complete before enqueueing new ones.
-
-        return;
-    }
-
-    {
-        Mutex::Guard guard(m_currentTasksMutex);
-
-        if (m_currentTasks.Any())
-        {
-            for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
-            {
-                TaskBatch* taskBatch = m_currentTasks[taskIndex];
-
-                if (!taskBatch->IsCompleted())
-                {
-                    // Skip this call
-
-                    return;
-                }
-            }
-
-            for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
-            {
-                TaskBatch* taskBatch = m_currentTasks[taskIndex];
-
-                taskBatch->AwaitCompletion();
-
-                delete taskBatch;
-            }
-
-            m_currentTasks.Clear();
-        }
-    }
-
-    bool hasRemainingRays = false;
-
-    {
-        Mutex::Guard guard(m_previousFrameRaysMutex);
-
-        if (m_previousFrameRays.Any())
-        {
-            hasRemainingRays = true;
-        }
-    }
-
-    if (!hasRemainingRays
-        && m_texelIndex >= m_texelIndices.Size() * m_params.config->numSamples
-        && numConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) == 0)
-    {
-        HYP_LOG(Lightmap, Debug, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_params.config->numSamples);
-
-        Stop();
-
-        return;
-    }
-
-    AssertDebug(m_params.renderers != nullptr);
-    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = *m_params.renderers;
-
-    AssertDebug(lightmapRenderers[0] != nullptr);
-
-    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
-    {
-        AssertDebug(lightmapRenderer != nullptr);
-
-        if (!lightmapRenderer->CanRender())
-        {
-            HYP_LOG(Lightmap, Info, "Waiting for lightmap renderers to be ready...");
-
-            return;
-        }
-    }
-
-    const SizeType maxRays = MathUtil::Min(lightmapRenderers[0]->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
-
-    Array<LightmapRay> rays;
-    rays.Reserve(maxRays);
-
-    GatherRays(maxRays, rays);
-
-    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
-    {
-        lightmapRenderer->UpdateRays(rays);
-    }
-
-    const double percentage = double(m_texelIndex) / double(m_texelIndices.Size() * m_params.config->numSamples) * 100.0;
-
-    if (MathUtil::Abs(MathUtil::Floor(percentage) - MathUtil::Floor(m_lastLoggedPercentage)) >= 1)
-    {
-        HYP_LOG(Lightmap, Debug, "Lightmap job {}: Texel {} / {} ({}%)",
-            m_uuid.ToString(), m_texelIndex, m_texelIndices.Size() * m_params.config->numSamples, percentage);
-
-        m_lastLoggedPercentage = percentage;
-    }
-
-    World* world = GetScene()->GetWorld();
-    Assert(world != nullptr);
-
-    const uint32 rayOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
-
-    PUSH_RENDER_COMMAND(LightmapRender, this, MakeStrongRef(world), m_params.view, std::move(rays), rayOffset);
-}
-
-#pragma endregion LightmapJobBase
-
 #pragma region LightmapperBase
 
 LightmapperBase::LightmapperBase(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
     : m_config(std::move(config)),
       m_scene(scene),
       m_aabb(aabb),
+      m_threadPool(nullptr),
       m_numJobs { 0 }
 {
 }
@@ -462,6 +109,17 @@ LightmapperBase::~LightmapperBase()
         m_scene->GetWorld()->RemoveView(m_view);
 
         SafeDelete(std::move(m_view));
+    }
+
+    if (m_threadPool)
+    {
+        if (m_threadPool->IsRunning())
+        {
+            m_threadPool->Stop();
+        }
+
+        delete m_threadPool;
+        m_threadPool = nullptr;
     }
 }
 
@@ -505,13 +163,15 @@ void LightmapperBase::Initialize()
     m_view->UpdateVisibility();
     m_view->CollectSync();
 
-    m_volume = CreateObject<LightmapVolume>(m_aabb);
-    m_volume->SetName(Name::Unique("LightmapVolume"));
-    InitObject(m_volume);
+    /// If cpu path tracing, set up thread pool and stuff
+    if (m_config.traceMode == LightmapTraceMode::CPU_PATH_TRACING)
+    {
+        BuildResourceCache();
+        BuildAccelerationStructures();
 
-    m_volume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
-
-    m_scene->GetRoot()->AddChild(m_volume);
+        m_threadPool = new LightmapThreadPool();
+        m_threadPool->Start();
+    }
 
     Initialize_Internal();
 
@@ -555,12 +215,9 @@ void LightmapperBase::Initialize()
 
 LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
-    AssertDebug(m_volume != nullptr);
-
     LightmapJobParams jobParams {
         &m_config,
         m_scene,
-        m_volume,
         m_view,
         m_subElements.ToSpan().Slice(startIndex, endIndex - startIndex),
         &m_subElementsByEntity,
@@ -568,6 +225,129 @@ LightmapJobParams LightmapperBase::CreateLightmapJobParams(SizeType startIndex, 
     };
 
     return jobParams;
+}
+
+UniquePtr<ILightmapRenderer> LightmapperBase::CreateRenderer(LightmapShadingType shadingType)
+{
+    switch (m_config.traceMode)
+    {
+    case LightmapTraceMode::GPU_PATH_TRACING:
+        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType);
+    case LightmapTraceMode::CPU_PATH_TRACING:
+        return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), m_threadPool, m_scene, shadingType);
+    default:
+        HYP_UNREACHABLE();
+    }
+}
+
+void LightmapperBase::BuildAccelerationStructures()
+{
+    Assert(m_accelerationStructure == nullptr);
+    m_accelerationStructure = MakeUnique<LightmapTopLevelAccelerationStructure>();
+
+    if (m_subElements.Empty())
+    {
+        return;
+    }
+
+    for (LightmapSubElement& subElement : m_subElements)
+    {
+        const Handle<MeshAsset>& meshAsset = subElement.mesh->GetAsset();
+
+        if (!meshAsset)
+        {
+            HYP_LOG(Lightmap, Error, "Mesh asset is invalid for entity {} in lightmapper", subElement.entity.Id());
+            continue;
+        }
+
+        ResourceHandle resourceHandle(*meshAsset->GetResource());
+
+        const MeshData& meshData = *meshAsset->GetMeshData();
+
+        BVHNode bvhNode;
+
+        if (!meshData.BuildBVH(bvhNode, /* maxDepth */ 3))
+        {
+            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", subElement.entity.Id());
+
+            continue;
+        }
+
+        Array<Vertex> vertices = meshData.vertexData;
+
+        Array<uint32> indices;
+        indices.Resize(meshData.indexData.Size() / sizeof(uint32));
+        Memory::MemCpy(indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+
+        m_accelerationStructure->Add(
+            &subElement,
+            std::move(bvhNode),
+            std::move(vertices),
+            std::move(indices));
+    }
+}
+
+/// Build cache to keep scene meshes, textures etc. in memory while we perform CPU path tracing
+void LightmapperBase::BuildResourceCache()
+{
+    HYP_NAMED_SCOPE("Building lightmapper resource cache");
+
+    HYP_LOG(Lightmap, Info, "Building lightmapper resource cache");
+
+    Mutex mtx;
+
+    TaskBatch taskBatch;
+
+    auto callback = [&](LightmapSubElement& subElement, uint32, uint32) -> void
+    {
+        Array<CachedResource> localResources;
+
+        if (subElement.mesh.IsValid())
+        {
+            Assert(subElement.mesh->GetAsset().IsValid());
+
+            localResources.EmplaceBack(subElement.mesh->GetAsset(), *subElement.mesh->GetAsset()->GetResource());
+        }
+
+        if (subElement.material.IsValid())
+        {
+            for (const Handle<Texture>& texture : subElement.material->GetTextures())
+            {
+                if (texture.IsValid())
+                {
+                    Assert(texture->GetAsset().IsValid());
+
+                    localResources.EmplaceBack(texture->GetAsset(), *texture->GetAsset()->GetResource());
+                }
+            }
+        }
+
+        if (localResources.Any())
+        {
+            Mutex::Guard guard(mtx);
+
+            for (CachedResource& cachedResource : localResources)
+            {
+                m_resourceCache.Set(std::move(cachedResource));
+            }
+        }
+    };
+
+    TaskSystem::GetInstance().ParallelForEach_Batch(
+        taskBatch,
+        (m_subElements.Size() + 255) / 256,
+        m_subElements, callback);
+
+    TaskSystem::GetInstance().EnqueueBatch(&taskBatch);
+
+    while (!taskBatch.IsCompleted())
+    {
+        Threads::Sleep(1000);
+
+        Mutex::Guard guard(mtx);
+
+        HYP_LOG(Lightmap, Debug, "Waiting for lightmapper resource cache to finish building... ({} resources discovered)", m_resourceCache.Size());
+    }
 }
 
 void LightmapperBase::Build()
@@ -637,6 +417,7 @@ void LightmapperBase::Build()
         if (idealTrianglesPerJob != 0 && numTriangles != 0 && numTriangles + subElement.mesh->NumIndices() / 3 > idealTrianglesPerJob)
         {
             UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, index + 1));
+            Assert(job != nullptr);
 
             startIndex = index + 1;
 
@@ -651,6 +432,7 @@ void LightmapperBase::Build()
     if (startIndex < m_subElements.Size() - 1)
     {
         UniquePtr<LightmapJobBase> job = CreateJob(CreateLightmapJobParams(startIndex, m_subElements.Size()));
+        Assert(job != nullptr);
 
         AddJob(std::move(job));
     }
@@ -698,11 +480,35 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
         return;
     }
 
+    HandleCompletedJob_Internal(job);
+
     HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
+}
 
-    const LightmapUVMap& uvMap = job->GetUVMap();
+#pragma endregion LightmapperBase
 
-    LightmapElement* lightmapElement = job->GetLightmapElement();
+#pragma region Lightmapper < LightmapVolume>
+
+void Lightmapper<LightmapVolume>::Initialize_Internal()
+{
+    m_volume = CreateObject<LightmapVolume>(m_aabb);
+    m_volume->SetName(Name::Unique("LightmapVolume"));
+    InitObject(m_volume);
+
+    m_volume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
+
+    m_scene->GetRoot()->AddChild(m_volume);
+}
+
+void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
+{
+    HYP_SCOPE;
+
+    LightmapJob<LightmapVolume>* jobCasted = static_cast<LightmapJob<LightmapVolume>*>(job);
+
+    const LightmapData<LightmapVolume>& lightmapData = jobCasted->GetLightmapData();
+
+    LightmapElement* lightmapElement = jobCasted->GetLightmapElement();
 
     if (lightmapElement == nullptr)
     {
@@ -711,7 +517,7 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
         return;
     }
 
-    if (!m_volume->BuildElementTextures(uvMap, lightmapElement->id))
+    if (!m_volume->BuildElementTextures(lightmapData, lightmapElement->id))
     {
         HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", lightmapElement->id);
 
@@ -730,9 +536,9 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
             const Handle<Mesh>& mesh = subElement.mesh;
             Assert(mesh.IsValid());
 
-            Assert(subElementIndex < job->GetUVBuilder().GetMeshData().Size());
+            Assert(subElementIndex < lightmapData.GetMeshData().Size());
 
-            const LightmapMeshData& lightmapMeshData = job->GetUVBuilder().GetMeshData()[subElementIndex];
+            const LightmapMeshData& lightmapMeshData = lightmapData.GetMeshData()[subElementIndex];
             Assert(lightmapMeshData.mesh == mesh);
 
             MeshDesc newMeshDesc;
@@ -842,6 +648,31 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
     }
 }
 
-#pragma endregion LightmapperBase
+#pragma endregion Lightmapper < LightmapVolume>
+
+#pragma region Lightmapper<EnvProbe>
+
+Lightmapper<EnvProbe>::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const Handle<EnvProbe>& envProbe)
+    : LightmapperBase(std::move(config), scene, envProbe ? envProbe->GetAABB() : BoundingBox::Empty()),
+      m_envProbe(envProbe)
+{
+}
+
+void Lightmapper<EnvProbe>::Initialize_Internal()
+{
+    Assert(m_envProbe != nullptr);
+}
+
+void Lightmapper<EnvProbe>::HandleCompletedJob_Internal(LightmapJobBase* job)
+{
+    HYP_SCOPE;
+
+    LightmapJob<EnvProbe>* jobCasted = static_cast<LightmapJob<EnvProbe>*>(job);
+
+    const LightmapData<EnvProbe>& lightmapData = jobCasted->GetLightmapData();
+
+    // @TODO
+}
+
 
 } // namespace hyperion

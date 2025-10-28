@@ -19,9 +19,13 @@
 namespace hyperion {
 
 class Texture;
-struct LightmapUVMap;
 class LightmapJobBase;
 class RenderProxyLightmapVolume;
+
+template <class T>
+class LightmapData;
+
+class LightmapVolume;
 
 HYP_ENUM()
 enum LightmapTextureType : uint32
@@ -174,11 +178,11 @@ public:
     }
 
     /*! \brief Add a LightmapElement to this volume. */
-    bool AddElement(const LightmapUVMap& uvMap, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
+    bool AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElement::Id elementId) const;
 
-    bool BuildElementTextures(const LightmapUVMap& uvMap, LightmapElement::Id elementId);
+    bool BuildElementTextures(const LightmapData<LightmapVolume>& lightmapData, LightmapElement::Id elementId);
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 

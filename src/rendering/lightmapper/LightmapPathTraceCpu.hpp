@@ -46,20 +46,6 @@ private:
     static uint32 NumThreadsToCreate();
 };
 
-class HYP_API LightmapJob_CpuPathTracing : public LightmapJobBase
-{
-public:
-    LightmapJob_CpuPathTracing(LightmapJobParams&& params)
-        : LightmapJobBase(std::move(params))
-    {
-    }
-
-    virtual ~LightmapJob_CpuPathTracing() override = default;
-
-    virtual void GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays) override;
-    virtual void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shadingType) override;
-};
-
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {
 public:
@@ -109,86 +95,6 @@ private:
     Array<LightmapRay, DynamicAllocator> m_currentRays;
 
     AtomicVar<uint32> m_numTracingTasks;
-};
-
-HYP_CLASS()
-class HYP_API Lightmapper_CpuPathTracing : public LightmapperBase
-{
-    HYP_OBJECT_BODY(Lightmapper_CpuPathTracing);
-
-    struct CachedResource
-    {
-        Handle<AssetObject> assetObject;
-        ResourceHandle resourceHandle;
-
-        CachedResource() = default;
-
-        CachedResource(const Handle<AssetObject>& assetObject, const ResourceHandle& resourceHandle)
-            : assetObject(assetObject),
-              resourceHandle(resourceHandle)
-        {
-        }
-
-        CachedResource(const CachedResource& other) = delete;
-        CachedResource& operator=(const CachedResource& other) = delete;
-
-        CachedResource(CachedResource&& other) noexcept
-            : assetObject(std::move(other.assetObject)),
-              resourceHandle(std::move(other.resourceHandle))
-        {
-            other.resourceHandle.Reset();
-        }
-
-        CachedResource& operator=(CachedResource&& other) noexcept
-        {
-            if (this == &other)
-            {
-                return *this;
-            }
-
-            resourceHandle.Reset();
-
-            assetObject = std::move(other.assetObject);
-            resourceHandle = std::move(other.resourceHandle);
-
-            return *this;
-        }
-
-        ~CachedResource()
-        {
-            // destruct the ResourceHandle before assetobject is destructed,
-            // so it destructing the AssetObject doesn't try to wait for the resource's ref count to reach zero
-            resourceHandle.Reset();
-        }
-    };
-
-    using ResourceCache = HashSet<CachedResource, &CachedResource::assetObject, DynamicNodeAllocator>;
-
-public:
-    Lightmapper_CpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
-    virtual ~Lightmapper_CpuPathTracing() override;
-
-private:
-    virtual UniquePtr<LightmapJobBase> CreateJob(LightmapJobParams&& params) override
-    {
-        return MakeUnique<LightmapJob_CpuPathTracing>(std::move(params));
-    }
-
-    virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) override
-    {
-        return MakeUnique<LightmapRenderer_CpuPathTracing>(this, m_accelerationStructure.Get(), &m_threadPool, m_scene, shadingType);
-    }
-
-    virtual void Initialize_Internal() override;
-    virtual void Build_Internal() override;
-
-    void BuildResourceCache();
-    void BuildAccelerationStructures();
-
-    UniquePtr<LightmapTopLevelAccelerationStructure> m_accelerationStructure;
-    ResourceCache m_resourceCache;
-
-    LightmapThreadPool m_threadPool;
 };
 
 } // namespace hyperion
