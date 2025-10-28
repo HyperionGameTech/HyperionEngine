@@ -269,7 +269,7 @@ void main()
 
     for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
         const Light light = HYP_GET_LIGHT(light_index);
-        vec3 light_color = UINT_TO_VEC4(light.color_encoded).rgb * light.position_intensity.w;
+        vec3 light_color = vec3(1.0);//UINT_TO_VEC4(light.color_encoded).rgb * light.position_intensity.w;
 
         if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL) {
             vec3 light_direction = normalize(light.position_intensity.xyz);

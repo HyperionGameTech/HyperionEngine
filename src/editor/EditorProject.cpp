@@ -383,7 +383,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
 Name EditorProject::GetNextDefaultProjectName_Impl(const String& defaultProjectName) const
 {
-    return Name::Invalid();
+    return CreateNameFromDynamicString(*defaultProjectName);
 }
 
 } // namespace hyperion

@@ -374,6 +374,15 @@ void LightmapJobBase::Process()
 
 #pragma region LightmapJob<LightmapVolume>
 
+LightmapJob<LightmapVolume>::LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume)
+    : LightmapJobBase(std::move(params)),
+      m_volume(volume),
+      m_lightmapDataBuilt(false),
+      m_lightmapElement(nullptr)
+{
+    Assert(m_volume != nullptr);
+}
+
 LightmapJob<LightmapVolume>::~LightmapJob()
 {
     if (m_lightmapElement != nullptr)
@@ -386,17 +395,15 @@ void LightmapJob<LightmapVolume>::Start_Internal()
 {
     if (!m_lightmapDataBuilt)
     {
+        m_lightmapData = LightmapData<LightmapVolume>(m_params.subElementsView, m_volume);
+
         // No elements to process
         if (!m_params.subElementsView)
         {
-            m_lightmapData = LightmapData<LightmapVolume>({ });
-
             return;
         }
-
+        
         HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
-
-        m_lightmapData = LightmapData<LightmapVolume>({ m_params.subElementsView }, m_volume);
 
         m_buildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
             {
@@ -490,7 +497,7 @@ LightmapJob<EnvProbe>::~LightmapJob()
 
 void LightmapJob<EnvProbe>::Start_Internal()
 {
-    m_lightmapData = LightmapData<EnvProbe>({ m_params.subElementsView }, m_envProbe);
+    m_lightmapData = LightmapData<EnvProbe>(m_params.subElementsView, m_envProbe);
 }
 
 void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)

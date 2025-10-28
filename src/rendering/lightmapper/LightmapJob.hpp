@@ -191,14 +191,7 @@ template <>
 class LightmapJob<LightmapVolume> : public LightmapJobBase
 {
 public:
-    explicit LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume)
-        : LightmapJobBase(std::move(params)),
-          m_volume(volume),
-          m_lightmapDataBuilt(false),
-          m_lightmapElement(nullptr)
-    {
-    }
-
+    LightmapJob(LightmapJobParams&& params, const Handle<LightmapVolume>& volume);
     virtual ~LightmapJob() override;
 
     HYP_FORCE_INLINE const Handle<LightmapVolume>& GetVolume() const
