@@ -1510,7 +1510,7 @@ void EditorSubsystem::InitViewport()
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .outputTargetDesc = { .extent = viewportSize },
         .camera = m_camera,
-        .readbackTextureFormat = TF_R11G11B10F
+        .readbackTextureFormat = TF_R10G10B10A2
     };
 
     Handle<View> view = CreateObject<View>(viewDesc);
