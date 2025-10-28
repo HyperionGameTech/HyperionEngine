@@ -135,6 +135,7 @@ FullScreenPass::FullScreenPass(
       m_extent(extent),
       m_gbuffer(gbuffer),
       m_blendFunction(BlendFunction::None()),
+      m_stage(RenderPassStage::SHADER),
       m_isInitialized(false),
       m_isFirstFrame(true)
 {
@@ -241,6 +242,15 @@ AttachmentBase* FullScreenPass::GetAttachment(uint32 attachmentIndex) const
 void FullScreenPass::SetBlendFunction(const BlendFunction& blendFunction)
 {
     m_blendFunction = blendFunction;
+
+    // @TODO invalidate graphics pipeline cache on blend function change
+}
+
+void FullScreenPass::SetStage(RenderPassStage stage)
+{
+    m_stage = stage;
+
+    // @TODO invalidate graphics pipeline cache on stage change
 }
 
 const GraphicsPipelineRef& FullScreenPass::GetGraphicsPipeline()
@@ -336,7 +346,7 @@ void FullScreenPass::CreateFramebuffer()
         framebufferExtent = Vec2u { uint32(reshapedExtent.x * 2), uint32(reshapedExtent.y) };
     }
 
-    m_framebuffer = g_renderBackend->MakeFramebuffer(framebufferExtent);
+    m_framebuffer = g_renderBackend->MakeFramebuffer(framebufferExtent, m_stage);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;

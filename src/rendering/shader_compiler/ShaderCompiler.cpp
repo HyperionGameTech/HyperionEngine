@@ -990,7 +990,7 @@ struct LoadedSourceFile
     }
 };
 
-static const FlatMap<String, ShaderModuleType> shaderTypeNames = {
+static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
     { "vert", SMT_VERTEX }, { "frag", SMT_FRAGMENT },
     { "geom", SMT_GEOMETRY }, { "comp", SMT_COMPUTE },
     { "rgen", SMT_RAY_GEN }, { "rchit", SMT_RAY_CLOSEST_HIT },
@@ -1119,24 +1119,19 @@ static void ForEachPermutation(
         Array<ShaderProperties> currentGroupCombinations;
         currentGroupCombinations.Resize(valueGroup.enumValues.Size() * allCombinations.Size());
 
-        for (SizeType existingCombinationIndex = 0;
-            existingCombinationIndex < allCombinations.Size();
-            existingCombinationIndex++)
+        for (SizeType existingCombinationIndex = 0; existingCombinationIndex < allCombinations.Size(); existingCombinationIndex++)
         {
-            for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size();
-                valueIndex++)
+            for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size(); valueIndex++)
             {
                 ShaderProperty newProperty(NAME_FMT("{}_{}", valueGroup.name,
                                                valueGroup.enumValues[valueIndex]),
                     false);
 
                 // copy the current version of the array
-                ShaderProperties mergedProperties =
-                    allCombinations[existingCombinationIndex];
+                ShaderProperties mergedProperties = allCombinations[existingCombinationIndex];
                 mergedProperties.Set(newProperty);
 
-                currentGroupCombinations[existingCombinationIndex + (valueIndex * allCombinations.Size())] =
-                    std::move(mergedProperties);
+                currentGroupCombinations[existingCombinationIndex + (valueIndex * allCombinations.Size())] = std::move(mergedProperties);
             }
         }
 
@@ -1413,9 +1408,9 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
         {
             bundle.entryPointName = sectionIt.second.GetValue().name;
         }
-        else if (shaderTypeNames.Contains(sectionIt.first))
+        else if (s_shaderTypeNames.Contains(sectionIt.first))
         {
-            bundle.sources[shaderTypeNames.At(sectionIt.first)] =
+            bundle.sources[s_shaderTypeNames.At(sectionIt.first)] =
                 SourceFile { GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name };
         }
         else
@@ -1806,9 +1801,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         String remaining;
     };
 
-    auto parseCustomStatement =
-        [](const String& start,
-            const String& line) -> ParseCustomStatementResult
+    auto parseCustomStatement = [](const String& start, const String& line) -> ParseCustomStatementResult
     {
         const String substr = line.Substr(start.Length());
 
@@ -1876,8 +1869,10 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 char ch;
 
-                String attributeKeyword, attributeType, attributeLocation,
-                    attributeName;
+                String attributeKeyword;
+                String attributeType;
+                String attributeLocation;
+                String attributeName;
 
                 Optional<String> attributeCondition;
 
@@ -1900,8 +1895,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                     else
                     {
-                        result.errors.PushBack(ProcessError {
-                            String("Invalid attribute, unknown attribute keyword `") + attributeKeyword + "`" });
+                        result.errors.PushBack(ProcessError { String("Invalid attribute, unknown attribute keyword `") + attributeKeyword + "`" });
 
                         break;
                     }
@@ -1938,32 +1932,26 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         }
                         else
                         {
-                            result.errors.PushBack(ProcessError {
-                                "Invalid attribute, missing closing parenthesis" });
+                            result.errors.PushBack(ProcessError { "Invalid attribute, missing closing parenthesis" });
 
                             break;
                         }
 
                         if (attributeLocation.Empty())
                         {
-                            result.errors.PushBack(
-                                ProcessError { "Invalid attribute location" });
+                            result.errors.PushBack(ProcessError { "Invalid attribute location" });
 
                             break;
                         }
                     }
                 }
 
-                for (SizeType index = 0;
-                    index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_');
-                    index++)
+                for (SizeType index = 0; index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_'); index++)
                 {
                     attributeType.Append(ch);
                 }
 
-                for (SizeType index = 0;
-                    index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_');
-                    index++)
+                for (SizeType index = 0; index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_'); index++)
                 {
                     attributeName.Append(ch);
                 }
@@ -1997,8 +1985,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     result.requiredAttributes.PushBack(attributeDefinition);
                 }
 
-                result.processedSource +=
-                    "layout(location=" + String::ToString(attributeDefinition.location) + ") in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
+                result.processedSource += "layout(location=" + String::ToString(attributeDefinition.location) + ") in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
 
                 if (optional)
                 {
@@ -2083,9 +2070,9 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 if (parseResult.args.Size() < 2)
                 {
-                    result.errors.PushBack(
-                        ProcessError { "Invalid descriptor: Requires format "
-                                       "HYP_DESCRIPTOR_<TYPE>(set, name)" });
+                    result.errors.PushBack(ProcessError {
+                        "Invalid descriptor: Requires format "
+                        "HYP_DESCRIPTOR_<TYPE>(set, name)" });
 
                     break;
                 }
@@ -2191,8 +2178,7 @@ bool ShaderCompiler::CompileBundle(Bundle& bundle,
     }
 
     // run with spirv-cross
-    FileSystem::MkDir(
-        (GetResourceDirectory() / "data/compiled_shaders/tmp").Data());
+    FilePath(GetResourceDirectory() / "data/compiled_shaders/tmp").MkDir();
 
     Array<LoadedSourceFile> loadedSourceFiles;
     loadedSourceFiles.Resize(bundle.sources.Size());
@@ -2250,14 +2236,17 @@ bool ShaderCompiler::CompileBundle(Bundle& bundle,
 
                 // process shader source to extract vertex attributes.
                 // runs before actual preprocessing
-                ProcessResult result =
-                    ProcessShaderSource(ProcessShaderSourcePhase::BEFORE_PREPROCESS,
-                        it.first, language, sourceString, filepath, {});
+                ProcessResult result = ProcessShaderSource(
+                    ProcessShaderSourcePhase::BEFORE_PREPROCESS,
+                    it.first,
+                    language,
+                    sourceString,
+                    filepath,
+                    {});
 
                 if (result.errors.Any())
                 {
-                    HYP_LOG(ShaderCompiler, Error, "{} shader processing errors!",
-                        result.errors.Size());
+                    HYP_LOG(ShaderCompiler, Error, "{} shader processing errors!", result.errors.Size());
 
                     processErrors[index] = result.errors;
 

@@ -344,7 +344,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 #endif
     createInfo.flags = 0;
 
-#if 0
+#if 1
 #if defined(HYP_APPLE) && HYP_APPLE
     // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
     // translation layers such as moltenvk.
@@ -362,7 +362,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
 
     extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-#if 0
+#if 1
 #if defined(HYP_APPLE) && HYP_APPLE && VK_HEADER_VERSION >= 216
     // add our enumeration extension to our instance extensions
     extensionNames.PushBack(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);

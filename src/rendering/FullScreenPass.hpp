@@ -26,6 +26,7 @@ class RenderGroup;
 class TemporalBlending;
 class GBuffer;
 struct RenderSetup;
+enum class RenderPassStage : uint8;
 
 HYP_CLASS(NoScriptBindings)
 class HYP_API FullScreenPass : public HypObjectBase
@@ -117,6 +118,13 @@ public:
         Must be set before Create() is called. */
     void SetBlendFunction(const BlendFunction& blendFunction);
 
+    HYP_FORCE_INLINE RenderPassStage GetStage() const
+    {
+        return m_stage;
+    }
+
+    void SetStage(RenderPassStage stage);
+
     HYP_FORCE_INLINE const Optional<DescriptorTableRef>& GetDescriptorTable() const
     {
         return m_descriptorTable;
@@ -176,6 +184,8 @@ protected:
     TextureFormat m_imageFormat;
 
     BlendFunction m_blendFunction;
+
+    RenderPassStage m_stage;
 
     Optional<DescriptorTableRef> m_descriptorTable;
 

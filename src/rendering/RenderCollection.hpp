@@ -26,6 +26,7 @@
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
+#include <rendering/RenderProxyList.hpp>
 
 #include <engine/EngineStats.hpp>
 
@@ -50,7 +51,7 @@ enum class RenderGroupFlags : uint32;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
 
-HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
+// UpdateRenderProxy trait declared in RenderProxyList.hpp
 
 struct DrawCallRange
 {
@@ -121,131 +122,7 @@ struct DrawCallCollectionMapping
 
 /*! \brief A collection of rendering-related objects for a View, populated via View::Collect() and usable for rendering a frame.
  *  Keeps track of which objects are newly added, removed or changed (via render proxy version changing), allowing updates to be applied to only objects that need it. */
-class RenderProxyList
-{
-    static constexpr uint64 WriteFlag = 0x1;
-    static constexpr uint64 ReadMask = uint64(-1) & ~WriteFlag;
-
-public:
-    using AllocatorType = Pool; // per-frame pools
-
-    using TrackedResourceTypes = Tuple<
-        Entity, // mesh entities
-        Mesh,
-        Camera,
-        EnvProbe,
-        Light,
-        EnvGrid,
-        LightmapVolume,
-        Material,
-        Skeleton,
-        Texture>;
-
-    using ResourceTrackerTypes = Tuple<
-        ResourceTracker<AllocatorType, ObjId<Entity>, Entity*, RenderProxyMesh>,
-        ResourceTracker<AllocatorType, ObjId<Mesh>, Mesh*>,
-        ResourceTracker<AllocatorType, ObjId<Camera>, Camera*, RenderProxyCamera>,
-        ResourceTracker<AllocatorType, ObjId<EnvProbe>, EnvProbe*, RenderProxyEnvProbe>,
-        ResourceTracker<AllocatorType, ObjId<Light>, Light*, RenderProxyLight>,
-        ResourceTracker<AllocatorType, ObjId<EnvGrid>, EnvGrid*, RenderProxyEnvGrid>,
-        ResourceTracker<AllocatorType, ObjId<LightmapVolume>, LightmapVolume*, RenderProxyLightmapVolume>,
-        ResourceTracker<AllocatorType, ObjId<Material>, Material*, RenderProxyMaterial>,
-        ResourceTracker<AllocatorType, ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
-        ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>>;
-
-    static_assert(TupleSize<ResourceTrackerTypes>::value == TupleSize<TrackedResourceTypes>::value, "Tuple sizes must match");
-
-private:
-public:
-    /*! \param pAllocator The allocator to use for this render proxy list
-     *  \param isShared if true, uses a spinlock to protect against mutual access of the data
-     *  \param useRefCounting if true, will increment reference count (UpdateRefs() will need to be called) and release reference counts on destruction. */
-    RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting);
-
-    RenderProxyList(const RenderProxyList& other) = delete;
-    RenderProxyList& operator=(const RenderProxyList& other) = delete;
-
-    RenderProxyList(RenderProxyList&& other) noexcept = delete;
-    RenderProxyList& operator=(RenderProxyList&& other) noexcept = delete;
-
-    ~RenderProxyList();
-
-    HYP_API void BeginWrite();
-    HYP_API void EndWrite();
-
-    HYP_API void BeginRead();
-    HYP_API void EndRead();
-
-    template <SizeType Index>
-    HYP_FORCE_INLINE auto GetResources() -> typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*
-    {
-        return static_cast<typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);
-    }
-
-    template <SizeType Index>
-    HYP_FORCE_INLINE auto GetResources() const -> const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*
-    {
-        return static_cast<const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);
-    }
-
-    // State for tracking transitions from writing (game thread) to reading (render thread).
-    enum CollectionState : uint8
-    {
-        CS_WRITING, //!< Currently being written to. set when the frame starts on the game thread.
-        CS_WRITTEN, //!< Written to, but not yet read from. set when the frame finishes on the game thread.
-        CS_READING, //!< Currently ready to be read. set when the frame starts on the render thread.
-        CS_DONE     //!< Finished reading. set when the frame finishes on the render thread.
-    };
-
-    CollectionState state : 2 = CS_DONE;
-
-    const bool isShared : 1 = false;               //!< should we use a spinlock to ensure multiple threads aren't accessing this list at the same time?
-    const bool useRefCounting : 1 = true;          //!< Should we inc/dec ref counts for resources we hold?
-    bool useOrdering : 1 = false;                  //!< are mesh entities sorted using an indirect array to map sort order?
-    bool disableBuildRenderCollection : 1 = false; //!< Disable building out RenderCollection. Set to true in the case of custom render collection building (See UIRenderer)
-
-#ifdef HYP_DEBUG_MODE
-    bool debugIsDestroyed : 1 = false; //!< Set to true in the destructor. Used to catch use-after-free bugs.
-    bool debugIsSynced : 1 = false;
-#endif
-
-    Viewport viewport;
-    int priority;
-
-    FixedArray<ResourceTrackerBase<AllocatorType>*, TupleSize<TrackedResourceTypes>::value> resourceTrackers;
-    FixedArray<void (*)(ResourceTrackerBase<AllocatorType>*), TupleSize<TrackedResourceTypes>::value> releaseRefsFunctions;
-
-#define DEF_RESOURCE_TRACKER_GETTER(getterName, T)                                                                                                                            \
-    HYP_FORCE_INLINE auto Get##getterName()->typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type&             \
-    {                                                                                                                                                                         \
-        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                                   \
-    }                                                                                                                                                                         \
-                                                                                                                                                                              \
-    HYP_FORCE_INLINE auto Get##getterName() const->const typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type& \
-    {                                                                                                                                                                         \
-        return *GetResources<FindTypeElementIndex<class T, TrackedResourceTypes>::value>();                                                                                   \
-    }
-
-    DEF_RESOURCE_TRACKER_GETTER(MeshEntities, Entity);
-    DEF_RESOURCE_TRACKER_GETTER(Meshes, Mesh);
-    DEF_RESOURCE_TRACKER_GETTER(Cameras, Camera);
-    DEF_RESOURCE_TRACKER_GETTER(EnvProbes, EnvProbe);
-    DEF_RESOURCE_TRACKER_GETTER(Lights, Light);
-    DEF_RESOURCE_TRACKER_GETTER(EnvGrids, EnvGrid);
-    DEF_RESOURCE_TRACKER_GETTER(LightmapVolumes, LightmapVolume);
-    DEF_RESOURCE_TRACKER_GETTER(Materials, Material);
-    DEF_RESOURCE_TRACKER_GETTER(Skeletons, Skeleton);
-    DEF_RESOURCE_TRACKER_GETTER(Textures, Texture);
-
-#undef DEF_RESOURCE_TRACKER_GETTER
-
-    Array<Pair<ObjId<Entity>, int>, DynamicAllocator> meshEntityOrdering;
-
-    // marker to set to locked when game thread is writing to this list.
-    // this only really comes into play with non-buffered Views that do not double/triple buffer their RenderProxyLists
-    AtomicVar<uint64> rwMarker { 0 };
-    uint32 readDepth = 0;
-};
+// RenderProxyList is declared in rendering/RenderProxyList.hpp
 
 class HYP_API RenderCollector
 {
