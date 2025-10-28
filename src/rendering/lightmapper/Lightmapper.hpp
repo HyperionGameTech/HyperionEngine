@@ -349,10 +349,7 @@ template <>
 class Lightmapper<LightmapVolume> : public LightmapperBase
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
-        : LightmapperBase(std::move(config), scene, aabb)
-    {
-    }
+    Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume);
 
     Lightmapper(const Lightmapper& other) = delete;
     Lightmapper& operator=(const Lightmapper& other) = delete;
@@ -378,7 +375,7 @@ template <>
 class Lightmapper<EnvProbe> : public LightmapperBase
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const Handle<EnvProbe>& envProbe);
+    Lightmapper(LightmapperConfig&& config, const Handle<EnvProbe>& envProbe);
 
     Lightmapper(const Lightmapper& other) = delete;
     Lightmapper& operator=(const Lightmapper& other) = delete;

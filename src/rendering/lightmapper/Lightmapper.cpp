@@ -489,15 +489,15 @@ void LightmapperBase::HandleCompletedJob(LightmapJobBase* job)
 
 #pragma region Lightmapper < LightmapVolume>
 
+Lightmapper<LightmapVolume>::Lightmapper(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
+    : LightmapperBase(std::move(config), MakeStrongRef(volume->GetScene()), volume->GetWorldAABB()),
+      m_volume(volume)
+{
+}
+
 void Lightmapper<LightmapVolume>::Initialize_Internal()
 {
-    m_volume = CreateObject<LightmapVolume>(m_aabb);
-    m_volume->SetName(Name::Unique("LightmapVolume"));
-    InitObject(m_volume);
-
-    m_volume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
-
-    m_scene->GetRoot()->AddChild(m_volume);
+    // no-op
 }
 
 void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* job)
@@ -652,8 +652,8 @@ void Lightmapper<LightmapVolume>::HandleCompletedJob_Internal(LightmapJobBase* j
 
 #pragma region Lightmapper<EnvProbe>
 
-Lightmapper<EnvProbe>::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const Handle<EnvProbe>& envProbe)
-    : LightmapperBase(std::move(config), scene, envProbe ? envProbe->GetAABB() : BoundingBox::Empty()),
+Lightmapper<EnvProbe>::Lightmapper(LightmapperConfig&& config, const Handle<EnvProbe>& envProbe)
+    : LightmapperBase(std::move(config), MakeStrongRef(envProbe->GetScene()), envProbe->GetAABB()),
       m_envProbe(envProbe)
 {
 }

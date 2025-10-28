@@ -19,6 +19,8 @@
 #include <scene/Light.hpp>
 #include <scene/EnvProbe.hpp>
 
+#include <scene/lightmapper/LightmapVolume.hpp>
+
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
@@ -153,7 +155,15 @@ void GenerateLightmapsEditorTask::Process()
         lightmapperSubsystem = m_world->AddSubsystem<LightmapperSubsystem>();
     }
 
-    m_task = lightmapperSubsystem->GenerateLightmaps(m_scene, m_aabb);
+    Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(m_aabb);
+    lightmapVolume->SetName(Name::Unique("LightmapVolume"));
+    InitObject(lightmapVolume);
+
+    lightmapVolume->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
+
+    m_scene->GetRoot()->AddChild(lightmapVolume);
+
+    m_task = lightmapperSubsystem->GenerateLightmaps(lightmapVolume);
 }
 
 void GenerateLightmapsEditorTask::Cancel()
