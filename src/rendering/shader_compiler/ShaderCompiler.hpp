@@ -234,18 +234,19 @@ struct ShaderProperty
         return IsVertexAttribute() && IsPermutable();
     }
 
+    HYP_FORCE_INLINE void AddEnumValue(const String& enumValue)
+    {
+        if (!enumValues.Contains(enumValue))
+        {
+            enumValues.PushBack(enumValue);
+        }
+    }
+
     String GetValueString() const;
 
-    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
-    {
-        // hashcode does not depend on any other properties than name.
-        return name.GetHashCode();
-    }
-
-    HYP_FORCE_INLINE String ToString() const
-    {
-        return *name;
-    }
+    HashCode GetHashCode() const;
+    
+    String ToString() const;
 };
 
 HYP_STRUCT()
@@ -341,6 +342,29 @@ public:
         return m_props.Empty();
     }
 
+    HYP_FORCE_INLINE Iterator Find(const ShaderProperty& property)
+    {
+        return m_props.Find(property);
+    }
+
+    HYP_FORCE_INLINE Iterator Find(WeakName name)
+    {
+        return m_props.FindIf([name](const ShaderProperty& other)
+            {
+                return other.name == name;
+            });
+    }
+
+    HYP_FORCE_INLINE ConstIterator Find(const ShaderProperty& property) const
+    {
+        return const_cast<ShaderProperties*>(this)->Find(property);
+    }
+
+    HYP_FORCE_INLINE ConstIterator Find(WeakName name) const
+    {
+        return const_cast<ShaderProperties*>(this)->Find(name);
+    }
+
     HYP_FORCE_INLINE bool HasRequiredVertexAttributes(VertexAttributeSet vertexAttributes) const
     {
         return (m_requiredVertexAttributes & vertexAttributes) == vertexAttributes;
@@ -403,6 +427,81 @@ public:
         return m_props;
     }
 
+    /*! \brief Adds a new permutation shader property
+     *  Permutations create new shader variants based on their values.
+     *  Many permutations will drastically increase the number of shader variants generated, 
+     *  so use them sparingly. (prefer value groups or static properties where appropriate) */
+    ShaderProperties& AddPermutation(Name key)
+    {
+        const ShaderProperty shaderProperty(key, true);
+
+        const auto it = m_props.Find(shaderProperty);
+
+        if (it == m_props.End())
+        {
+            m_props.Insert(shaderProperty);
+        }
+        else
+        {
+            *it = shaderProperty;
+        }
+
+        m_needsHashCodeRecalculation = true;
+
+        return *this;
+    }
+
+    /*! \brief Adds a new static property with key \ref{key} 
+     *  Static properties are applied to every shader variant and do not create new permutations. */
+    ShaderProperties& AddStatic(Name key)
+    {
+        const ShaderProperty shaderProperty(key, false);
+
+        const auto it = m_props.Find(shaderProperty);
+
+        if (it == m_props.End())
+        {
+            m_props.Insert(shaderProperty);
+        }
+        else
+        {
+            *it = shaderProperty;
+        }
+
+        m_needsHashCodeRecalculation = true;
+
+        return *this;
+    }
+
+    /*! \brief Adds a new value group property with key \ref{key} and possible enum values \ref{enumValues}
+     *  Value groups create new shader variants but their values are mututally exclusive to each other.
+     *  i.e, only one value from the value group can be selected at a time. This reduces the number of
+     *  shader variants generated compared to permutations. */
+    ShaderProperties& AddValueGroup(Name key, Span<const String> enumValues)
+    {
+        ShaderProperty shaderProperty(key, false);
+
+        if (enumValues)
+        {
+            shaderProperty.enumValues = enumValues;
+        }
+
+        const auto it = m_props.Find(shaderProperty);
+
+        if (it == m_props.End())
+        {
+            m_props.Insert(std::move(shaderProperty));
+        }
+        else
+        {
+            *it = std::move(shaderProperty);
+        }
+
+        m_needsHashCodeRecalculation = true;
+
+        return *this;
+    }
+
     HYP_FORCE_INLINE VertexAttributeSet GetRequiredVertexAttributes() const
     {
         return m_requiredVertexAttributes;
@@ -441,7 +540,7 @@ public:
         return m_props.ToArray();
     }
 
-    HYP_API String ToString(bool includeVertexAttributes = true) const;
+    HYP_API String ToString() const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -502,51 +601,6 @@ private:
         hc.Add(m_cachedPropertySetHashCode);
 
         m_cachedHashCode = hc;
-    }
-
-    HYP_FORCE_INLINE ShaderProperties& AddPermutation(Name key)
-    {
-        const ShaderProperty shaderProperty(key, true);
-
-        const auto it = m_props.Find(shaderProperty);
-
-        if (it == m_props.End())
-        {
-            m_props.Insert(shaderProperty);
-        }
-        else
-        {
-            *it = shaderProperty;
-        }
-
-        m_needsHashCodeRecalculation = true;
-
-        return *this;
-    }
-
-    HYP_FORCE_INLINE ShaderProperties& AddValueGroup(Name key, Span<const String> enumValues)
-    {
-        ShaderProperty shaderProperty(key, false);
-
-        if (enumValues)
-        {
-            shaderProperty.enumValues = enumValues;
-        }
-
-        const auto it = m_props.Find(shaderProperty);
-
-        if (it == m_props.End())
-        {
-            m_props.Insert(std::move(shaderProperty));
-        }
-        else
-        {
-            *it = std::move(shaderProperty);
-        }
-
-        m_needsHashCodeRecalculation = true;
-
-        return *this;
     }
 
     HYP_FIELD()
@@ -1394,6 +1448,13 @@ private:
     void ParseDefinitionSection(
         const INIFile::Section& section,
         Bundle& bundle);
+
+    bool CompileBundle(
+        Bundle& bundle,
+        CompiledShaderBatch& out)
+    {
+        return CompileBundle(bundle, ShaderProperties(), out);
+    }
 
     bool CompileBundle(
         Bundle& bundle,

@@ -129,6 +129,8 @@ static String BuildPreamble(const ShaderProperties& properties)
     // instantiated at this point in time. before compiling the shader, they
     // should have all been made Required.
 
+    HashSet<WeakName> definedNames;
+
     for (const ShaderProperty& property : properties.GetPropertySet())
     {
         if (!property.name.IsValid())
@@ -136,17 +138,41 @@ static String BuildPreamble(const ShaderProperties& properties)
             continue;
         }
 
-        // property has a value -- use #define <name> <value>
+        if (definedNames.Contains(WeakName(property.name)))
+        {
+            HYP_LOG(ShaderCompiler,
+                Warning,
+                "Shader property {} defined multiple times in shader properties! This may cause shader compilation errors.",
+                property.name);
+
+            HYP_BREAKPOINT_DEBUG_MODE;
+
+            continue;
+        }
+
+        definedNames.Insert(WeakName(property.name));
+
+        // property has a value -- if integral or float, use that value
         if (property.HasValue())
         {
-            preamble += HYP_FORMAT("#define {} {}\n", property.name,
-                property.GetValueString());
+            if (property.currentValue.Is<String>())
+            {
+                // string values are defined as ENUM_VALUE=1
+                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<String>());
+                HYP_LOG_TEMP("Defined string property: {}_{} 1", property.name, property.currentValue.Get<String>());
+            }
+            else
+            {
+                preamble += HYP_FORMAT("#define {} {}\n", property.name, property.GetValueString());
+                HYP_LOG_TEMP("Defined property: {} {}", property.name, property.GetValueString());
+            }
 
             continue;
         }
 
         // no value set, treat it as boolean true (1)
         preamble += HYP_FORMAT("#define {} 1\n", property.name);
+        HYP_LOG_TEMP("Defined property: {} 1", property.name);
     }
 
     return preamble;
@@ -1091,8 +1117,10 @@ static void ForEachPermutation(
         totalCount += valueGroup.enumValues.Size() * totalCount;
     }
 
-    Array<ShaderProperties> allCombinations;
-    allCombinations.Reserve(totalCount);
+    Array<ShaderProperties> propertiesBeforeValueGroups;
+    propertiesBeforeValueGroups.Reserve(totalCount);
+
+    Array<ShaderProperties>* currentCombinations = &propertiesBeforeValueGroups;
 
     for (SizeType i = 0; i < numPermutations; i++)
     {
@@ -1104,34 +1132,66 @@ static void ForEachPermutation(
         {
             if (i & (1ull << j))
             {
+                AssertDebug(!variableProperties[j].IsValueGroup());
+
                 currentProperties.Insert(variableProperties[j]);
             }
         }
 
-        allCombinations.EmplaceBack(std::move(currentProperties));
+        currentCombinations->EmplaceBack(std::move(currentProperties));
     }
+
+    Array<ShaderProperties> propertiesWithValueGroupsApplied = propertiesBeforeValueGroups;
+    currentCombinations = &propertiesWithValueGroupsApplied;
 
     // now apply the value groups onto it
     for (const ShaderProperty& valueGroup : valueGroups)
     {
-        // each value group causes the # of combinations to grow by (num values in
-        // group) * (current number of combinations)
         Array<ShaderProperties> currentGroupCombinations;
-        currentGroupCombinations.Resize(valueGroup.enumValues.Size() * allCombinations.Size());
+        currentGroupCombinations.Resize(valueGroup.enumValues.Size() * currentCombinations->Size());
 
-        for (SizeType existingCombinationIndex = 0; existingCombinationIndex < allCombinations.Size(); existingCombinationIndex++)
+        for (SizeType existingCombinationIndex = 0; existingCombinationIndex < currentCombinations->Size(); existingCombinationIndex++)
         {
             for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size(); valueIndex++)
             {
-                ShaderProperty newProperty(NAME_FMT("{}_{}", valueGroup.name,
-                                               valueGroup.enumValues[valueIndex]),
-                    false);
-
                 // copy the current version of the array
-                ShaderProperties mergedProperties = allCombinations[existingCombinationIndex];
-                mergedProperties.Set(newProperty);
+                ShaderProperties mergedProperties = (*currentCombinations)[existingCombinationIndex];
 
-                currentGroupCombinations[existingCombinationIndex + (valueIndex * allCombinations.Size())] = std::move(mergedProperties);
+                AssertDebug(!mergedProperties.Has(valueGroup.name), "Duplicate shader property name detected for {}! This will cause shader compilation errors", valueGroup.name);
+
+                // string value
+                ShaderProperty::Value shaderVal = valueGroup.enumValues[valueIndex];
+
+                // check if it's an integer/float/bool value v.s a string value
+                union
+                {
+                    float floatValue;
+                    int intValue;
+                    bool boolValue;
+                };
+
+                if (StringUtil::Parse<float>(valueGroup.enumValues[valueIndex], &floatValue))
+                {
+                    shaderVal = floatValue;
+                }
+                else if (StringUtil::Parse<int>(valueGroup.enumValues[valueIndex], &intValue))
+                {
+                    shaderVal = intValue;
+                }
+                else if (StringUtil::Parse<bool>(valueGroup.enumValues[valueIndex], &boolValue))
+                {
+                    // define <value group name> = <enum value>
+                    // NOTE: bools are defined as integers in the shader
+                    shaderVal = boolValue ? 1 : 0;
+                }
+                else
+                {
+                    // leave as string
+                }
+
+                mergedProperties.Set(ShaderProperty(valueGroup.name, /* isPermutation */ false, shaderVal));
+
+                currentGroupCombinations[existingCombinationIndex + (valueIndex * currentCombinations->Size())] = std::move(mergedProperties);
             }
         }
 
@@ -1141,32 +1201,28 @@ static void ForEachPermutation(
 
         for (const ShaderProperties& properties : currentGroupCombinations)
         {
-            HYP_LOG(ShaderCompiler, Debug, "\t\t{}",
-                String::Join(properties, ", ", [](auto&& elem)
-                    {
-                        return String(*elem.GetName());
-                    }));
+            HYP_LOG(ShaderCompiler, Debug, "\t\t{}", properties.ToString());
         }
 
-        allCombinations.Concat(currentGroupCombinations);
+        *currentCombinations = std::move(currentGroupCombinations);
     }
 
     // #ifdef HYP_SHADER_COMPILER_LOGGING
     HYP_LOG(ShaderCompiler, Info,
-        "Processing {} shader permutations:", allCombinations.Size());
+        "Processing {} shader permutations:", currentCombinations->Size());
     // #endif
 
     if (parallel)
     {
         TaskSystem::GetInstance().ParallelForEach(
-            allCombinations, [&callback](const ShaderProperties& properties, uint32, uint32)
+            *currentCombinations, [&callback](const ShaderProperties& properties, uint32, uint32)
             {
                 callback(properties);
             });
     }
     else
     {
-        for (const ShaderProperties& properties : allCombinations)
+        for (const ShaderProperties& properties : *currentCombinations)
         {
             callback(properties);
         }
@@ -1210,6 +1266,30 @@ static bool LoadBatchFromFile(const FilePath& filepath,
 }
 
 #pragma region ShaderProperty
+
+HashCode ShaderProperty::GetHashCode() const
+{
+    HashCode hc = name.GetHashCode();
+
+    if (HasValue())
+    {
+        hc.Add(GetValueString().GetHashCode());
+    }
+
+    return hc;
+}
+
+String ShaderProperty::ToString() const
+{
+    if (HasValue())
+    {
+        return HYP_FORMAT("{}={}", name, GetValueString());
+    }
+    else
+    {
+        return HYP_FORMAT("{}", name);
+    }
+}
 
 String ShaderProperty::GetValueString() const
 {
@@ -1315,46 +1395,26 @@ ShaderProperties& ShaderProperties::Set(const ShaderProperty& property,
     return *this;
 }
 
-String ShaderProperties::ToString(bool includeVertexAttributes) const
+String ShaderProperties::ToString() const
 {
-    Array<String> propertyNames;
-    propertyNames.Reserve(
-        (includeVertexAttributes
-                ? ByteUtil::BitCount(GetRequiredVertexAttributes().GetFlagMask())
-                : 0)
-        + GetPropertySet().Size());
-
-    if (includeVertexAttributes)
-    {
-        for (Bitset::BitIndex i : Bitset(GetRequiredVertexAttributes().GetFlagMask()))
-        {
-            AssertDebug(int(i) < int(VertexAttribute::mapping.Size()));
-            AssertDebug(VertexAttribute::mapping.ValueAt(i).name != nullptr,
-                "Vertex attribute name missing at index {}, flagmask: {}", i,
-                GetRequiredVertexAttributes().GetFlagMask());
-
-            propertyNames.PushBack(String("HYP_ATTRIBUTE_") + VertexAttribute::mapping.ValueAt(i).name);
-        }
-    }
-
-    for (const ShaderProperty& property : GetPropertySet())
-    {
-        propertyNames.PushBack(property.name.LookupString());
-    }
-
     String propertiesString;
     SizeType index = 0;
 
-    for (const String& name : propertyNames)
-    {
-        propertiesString += name;
+    int counter = 0;
 
-        if (index != propertyNames.Size() - 1)
+    for (const ShaderProperty& property : GetPropertySet())
+    {
+        propertiesString += property.name.LookupString();
+
+        if (property.HasValue())
+        {
+            propertiesString += "=" + property.GetValueString();
+        }
+
+        if (counter++ != GetPropertySet().Size() - 1)
         {
             propertiesString += ", ";
         }
-
-        index++;
     }
 
     return propertiesString;
@@ -1389,7 +1449,7 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
 {
     for (const auto& sectionIt : section)
     {
-        if (sectionIt.first == "permute")
+        if (sectionIt.first == "versions")
         {
             // set each property
             for (const auto& element : sectionIt.second.elements)
@@ -1423,8 +1483,10 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
 }
 
 bool ShaderCompiler::HandleCompiledShaderBatch(
-    Bundle& bundle, const ShaderProperties& requestedProperties,
-    const FilePath& outputFilePath, CompiledShaderBatch& batch)
+    Bundle& bundle,
+    const ShaderProperties& requestedProperties,
+    const FilePath& outputFilePath,
+    CompiledShaderBatch& batch)
 {
     // Check that each version specified is present in the CompiledShaderBatch.
     // OR any src files have been changed since the object file was compiled.
@@ -1509,8 +1571,8 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             for (const ShaderProperties& missingShaderProperties : missingVariants)
             {
                 missingVariantsString += String::ToString(missingShaderProperties.GetPropertySetHashCode().Value())
-                    + " - " + missingShaderProperties.ToString(false)
-                    + " - " + missingShaderProperties.GetRequiredVertexAttributes().ToString();
+                    + " - " + missingShaderProperties.ToString()
+                    + " - " + (missingShaderProperties.GetRequiredVertexAttributes() ? missingShaderProperties.GetRequiredVertexAttributes().ToString() : "<no vertex attributes>");
 
                 if (index != missingVariants.Size() - 1)
                 {
@@ -1531,7 +1593,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
                 "Compiled shader is missing properties. Attempting to compile with "
                 "the missing properties.\n\tRequested with properties:\n\t{} "
                 "({})\n\n\tMissing variants:\n\t{}\n\n\tAll found properties: {}",
-                requestedProperties.ToString(false),
+                requestedProperties.ToString(),
                 (requestedFound ? "found" : "not found"), missingVariantsString,
                 allProperties.ToString());
 
@@ -1617,8 +1679,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
 
     if (outputFilePath.Exists())
     {
-        HYP_LOG(ShaderCompiler, Info, "Attempting to load compiled shader {}...",
-            outputFilePath);
+        HYP_LOG(ShaderCompiler, Info, "Attempting to load compiled shader {}...", outputFilePath);
 
         if (!LoadBatchFromFile(outputFilePath, batch))
         {
@@ -1740,7 +1801,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
             HYP_LOG(ShaderCompiler, Error,
                 "{}: Loading of compiled shader failed!\n\tProperties: {}\n\tAttributes: {}",
-                it.first->name, it.first->versions.ToString(false), it.first->versions.GetRequiredVertexAttributes().ToString());
+                it.first->name, it.first->versions.ToString(), it.first->versions.GetRequiredVertexAttributes().ToString());
 
             allResults = false;
         }
@@ -2168,7 +2229,8 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
     return result;
 }
 
-bool ShaderCompiler::CompileBundle(Bundle& bundle,
+bool ShaderCompiler::CompileBundle(
+    Bundle& bundle,
     const ShaderProperties& additionalVersions,
     CompiledShaderBatch& out)
 {
@@ -2302,17 +2364,16 @@ bool ShaderCompiler::CompileBundle(Bundle& bundle,
             HYP_LOG(ShaderCompiler, Error, "\t{}", error.errorMessage);
         }
 
+        HYP_BREAKPOINT;
+
         return false;
     }
 
-    // // Merge all descriptor usages together
-    // for (const Array<DescriptorUsage> &descriptorUsageList : descriptorUsages)
-    // {
-    //     bundle.descriptorUsages.Merge(descriptorUsageList);
-    // }
-
     // grab each defined property, and iterate over each combination
     ShaderProperties finalProperties;
+    // merge in shared static properties
+    MergeGlobalShaderProperties(finalProperties);
+
     finalProperties.Merge(bundle.versions);
 
     { // Lookup vertex attribute names
@@ -2334,11 +2395,111 @@ bool ShaderCompiler::CompileBundle(Bundle& bundle,
         finalProperties.SetOptionalVertexAttributes(optionalVertexAttributeSet);
     }
 
-    // copy passed properties
-    finalProperties.Merge(additionalVersions);
+    HYP_LOG(ShaderCompiler, Info, "Compiling shader bundle for shader {}", bundle.name);
 
-    HYP_LOG(ShaderCompiler, Info, "Compiling shader bundle for shader {}",
-        bundle.name);
+    // INFO ON MERGING ADDITIONAL SHADER VERSIONS (on requesting a shader)
+    // ============================================
+    // if additionalVersions are provided we need to properly merge them into permutations.
+    // i.e if OUTPUT=RGBA8 is added and we have a ValueGroup OUTPUT={RGBA8, RGBA16F}, we need to add
+    // RGBA8 to the existing OUTPUT ValueGroup rather than applying it to EVERY single permutation.
+    //  ============================================
+    // IF isPermutation is true, we add a new permutation.
+    // otherwise: we check if it has a value (i.e OUTPUT=RGBA8)
+    //    - if it has a value, we find the ValueGroup in finalProperties and add the value to it - if it does not exist, we make a new one
+    //    - if it does not have a value, we add it as a static property (applied to every single permutation)
+    // =============================================
+    if (additionalVersions.Any())
+    {
+        HYP_LOG(ShaderCompiler, Info,
+            "With additional requested properties: {}",
+            additionalVersions.ToString());
+
+        const auto mergeAdditionalVersion = [](ShaderProperties& target, const ShaderProperty& additional) -> Result
+        {
+            auto targetIt = target.Find(additional.name);
+
+            if (additional.isPermutation)
+            {
+                target.AddPermutation(additional.name);
+
+                return {};
+            }
+            
+            if (additional.HasValue())
+            {
+                // Find ValueGroup in target with same name
+                if (targetIt != target.End())
+                {
+                    if (targetIt->IsValueGroup())
+                    {
+                        // Add each value from additional to the target's ValueGroup
+                        targetIt->AddEnumValue(additional.GetValueString());
+
+                        return {};
+                    }
+
+                    if (*targetIt == additional)
+                    {
+                        // already exists but equal; no need to add or give an error.
+                        return {};
+                    }
+
+                    // conflict: trying to add a value to a non-ValueGroup property
+                    return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can append to!", additional.name);
+                }
+                else
+                {
+                    String valueString = additional.GetValueString();
+                    target.AddValueGroup(additional.name, Span<String>(&valueString, 1));
+
+                    return {};
+                }
+            }
+
+            if (targetIt != target.End() && *targetIt == additional)
+            {
+                // already exists but equal; no need to add or give duplication error.
+                return {};
+            }
+
+            if (additional.IsValueGroup())
+            {
+                if (targetIt != target.End())
+                {
+                    // merge each value from additional to the target's ValueGroup
+                    if (targetIt->IsValueGroup())
+                    {
+                        for (const String& enumValue : additional.enumValues)
+                        {
+                            targetIt->AddEnumValue(enumValue);
+                        }
+
+                        return {};
+                    }
+
+                    // conflict: trying to add a ValueGroup to a non-ValueGroup property
+                    return HYP_MAKE_ERROR(Error, "Duplicate property: {} already exists and is not a ValueGroup we can merge with!", additional.name);
+                }
+            }
+
+            target.AddStatic(additional.name);
+
+            return {};
+        };
+
+        for (const ShaderProperty& additionalProperty : additionalVersions.ToArray())
+        {
+            if (Result mergeResult = mergeAdditionalVersion(finalProperties, additionalProperty); mergeResult.HasError())
+            {
+                HYP_LOG(ShaderCompiler, Warning,
+                    "Failed to merge additional shader property {} into final properties: {}",
+                    additionalProperty.name,
+                    mergeResult.GetError().GetMessage());
+
+                HYP_BREAKPOINT_DEBUG_MODE;
+            }
+        }
+    }
 
     // update versions to include vertex attribute properties
     bundle.versions = finalProperties;
@@ -2651,7 +2812,7 @@ bool ShaderCompiler::GetCompiledShader(
                 HYP_LOG(ShaderCompiler, Error,
                     "Invalid compiled shader found when looking for shader {} with properties: {}, attributes: {}",
                     compiledShader.GetDefinition().GetName(),
-                    finalProperties.ToString(false),
+                    finalProperties.ToString(),
                     finalProperties.GetRequiredVertexAttributes().ToString());
 
                 return false;
@@ -2663,18 +2824,20 @@ bool ShaderCompiler::GetCompiledShader(
     if (it == batch.compiledShaders.End())
     {
         HYP_LOG(ShaderCompiler, Error,
-            "Hash calculation for shader {} does not match {}! Invalid shader property combination.\n"
-            "\tRequested instance with properties: [{}] and vertex attributes: {}\n"
-            "\tFound property sets: {}",
+            "No match found for requested shader properties!\n"
+            "Shader: {}\n"
+            "Requested:\n\tHash: {}\tProps: {}\tVertex Attributes: {}\n\n"
+            "Found: {}",
             name,
             finalPropertiesHash.Value(),
-            finalProperties.ToString(false),
+            finalProperties.ToString(),
             finalProperties.GetRequiredVertexAttributes().ToString(),
             String::Join(batch.compiledShaders, "\n\t", [](auto&& item)
                 {
                     return HYP_FORMAT(
-                        "Props: {}, Vertex Attributes: {}",
-                        item.GetDefinition().GetProperties().ToString(false),
+                        "Hash: {}\tProps: {}\tVertex Attributes: {}",
+                        item.GetDefinition().GetProperties().GetPropertySetHashCode().Value(),
+                        item.GetDefinition().GetProperties().ToString(),
                         item.GetDefinition().GetProperties().GetRequiredVertexAttributes().ToString());
                 }));
 
@@ -2687,7 +2850,9 @@ bool ShaderCompiler::GetCompiledShader(
 
     HYP_LOG(ShaderCompiler, Debug,
         "Selected shader {} with properties: {}, attributes: {}",
-        name, finalProperties.ToString(false), finalProperties.GetRequiredVertexAttributes().ToString());
+        name,
+        finalProperties.ToString(),
+        finalProperties.GetRequiredVertexAttributes().ToString());
 
     Assert(out.GetDefinition().IsValid());
 

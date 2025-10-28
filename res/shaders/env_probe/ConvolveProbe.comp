@@ -33,7 +33,7 @@ HYP_DESCRIPTOR_SRV(ConvolveProbeDescriptorSet, MomentsTexture) uniform textureCu
 HYP_DESCRIPTOR_SAMPLER(ConvolveProbeDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
 HYP_DESCRIPTOR_SAMPLER(ConvolveProbeDescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
 
-HYP_DESCRIPTOR_UAV(ConvolveProbeDescriptorSet, OutImage, format = rgba16f) uniform image2D out_image;
+HYP_DESCRIPTOR_UAV(ConvolveProbeDescriptorSet, OutImage, format = rgba8) uniform image2D out_image;
 
 HYP_DESCRIPTOR_CBUFF(ConvolveProbeDescriptorSet, UniformBuffer) uniform UniformBuffer
 {
@@ -130,12 +130,12 @@ vec4 CalculateDirectLighting(uint light_index, in vec4 albedo, in vec3 P, in vec
 
 vec4 ConvolveProbe(uvec2 local_coord)
 {
-#if defined(MODE_IRRADIANCE)
-    const int num_samples = 128;
-    const float lobe_size = 0.98;
-#else
-    const int num_samples = 1;
+#if NUM_SAMPLES <= 0
+    return vec4(0.0);
 #endif
+
+    const int num_samples = NUM_SAMPLES;
+    const float lobe_size = LOBE_SIZE;
 
     const vec2 oct_coord = NormalizeOctahedralCoord(local_coord);
     const vec3 dir = normalize(DecodeOctahedralCoord(oct_coord));
@@ -146,12 +146,8 @@ vec4 ConvolveProbe(uvec2 local_coord)
 
     for (int i = 0; i < num_samples; i++)
     {
-#if defined(MODE_IRRADIANCE)
         vec3 offset = sphere_samples[i % 4096].xyz;
         vec3 sample_dir = normalize(dir + vec3(lobe_size) * offset);
-#else
-        vec3 sample_dir = dir;
-#endif
 
         // Non-accurate lighting calculation for simplicity
 
@@ -186,11 +182,9 @@ vec4 ConvolveProbe(uvec2 local_coord)
         sum_radiance += color;
     }
 
-#if defined(MODE_IRRADIANCE)
-    return sum_radiance / float(num_samples);
-#else
+    sum_radiance /= float(num_samples);
+
     return sum_radiance;
-#endif
 }
 
 void main(void)

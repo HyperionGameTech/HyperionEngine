@@ -31,18 +31,8 @@ HYP_DESCRIPTOR_SAMPLER(TemporalBlendingDescriptorSet, SamplerNearest) uniform sa
 // @TODO: Make ShaderCompiler use c preprocessor so that OUTPUT_FORMAT gets resolved
 HYP_DESCRIPTOR_UAV(TemporalBlendingDescriptorSet, OutImage, format = rgba16f) uniform writeonly image2D output_image;
 
-#ifdef TEMPORAL_BLEND_TECHNIQUE_0
+#ifndef TEMPORAL_BLEND_TECHNIQUE
 #define TEMPORAL_BLEND_TECHNIQUE 0
-#elif defined(TEMPORAL_BLEND_TECHNIQUE_1)
-#define TEMPORAL_BLEND_TECHNIQUE 1
-#elif defined(TEMPORAL_BLEND_TECHNIQUE_2)
-#define TEMPORAL_BLEND_TECHNIQUE 2
-#elif defined(TEMPORAL_BLEND_TECHNIQUE_3)
-#define TEMPORAL_BLEND_TECHNIQUE 3
-#elif defined(TEMPORAL_BLEND_TECHNIQUE_4)
-#define TEMPORAL_BLEND_TECHNIQUE 4 // progressive
-#else
-#define TEMPORAL_BLEND_TECHNIQUE 3
 #endif
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

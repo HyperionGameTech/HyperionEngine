@@ -172,13 +172,13 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     switch (SsrFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(NAME("OUTPUT_RGBA8"));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA8")));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(NAME("OUTPUT_RGBA16F"));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA16F")));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(NAME("OUTPUT_RGBA32F"));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA32F")));
         break;
     default:
         HYP_FAIL("Invalid SSR format type");

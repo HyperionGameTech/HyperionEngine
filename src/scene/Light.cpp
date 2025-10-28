@@ -47,11 +47,11 @@ static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
     TF_RG16F  // VSM
 };
 
-static const Name s_shadowMapFilterPropertyNames[SMF_MAX] = {
-    NAME("MODE_STANDARD"),
-    NAME("MODE_PCF"),
-    NAME("MODE_CONTACT_HARDENED"),
-    NAME("MODE_VSM")
+static const ShaderProperty s_shadowMapFilterProperties[SMF_MAX] = {
+    ShaderProperty(NAME("MODE"), false, String("STANDARD")),
+    ShaderProperty(NAME("MODE"), false, String("PCF")),
+    ShaderProperty(NAME("MODE"), false, String("CONTACT_HARDENED")),
+    ShaderProperty(NAME("MODE"), false, String("VSM"))
 };
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
@@ -169,7 +169,7 @@ void Light::CreateShadowViews()
     }
 
     const ShadowMapFilter shadowMapFilter = GetShadowMapFilter();
-    AssertDebug(shadowMapFilter < std::size(s_shadowMapFilterPropertyNames));
+    AssertDebug(shadowMapFilter < std::size(s_shadowMapFilterProperties));
 
     // Per shadow view flags
     Array<EnumFlags<ViewFlags>> shadowViewFlags = { ViewFlags::COLLECT_ALL_ENTITIES };
@@ -178,7 +178,7 @@ void Light::CreateShadowViews()
 
     ShaderProperties shaderProperties;
     shaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
-    shaderProperties.Set(s_shadowMapFilterPropertyNames[shadowMapFilter]);
+    shaderProperties.Set(s_shadowMapFilterProperties[shadowMapFilter]);
 
     ViewOutputTargetDesc outputTargetDesc {};
     outputTargetDesc.extent = m_shadowMapDimensions;

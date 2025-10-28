@@ -287,6 +287,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     };
 
     ShaderProperties shaderProperties;
+    shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), /* isPermutation */ false, 0.94f));
+    shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), /* isPermutation */ false, 64));
 
     if (!envProbe->IsSkyProbe())
     {
@@ -453,22 +455,30 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         shaderProperties.Set(NAME("LIGHTING"));
     }
 
-    HashMap<Name, Pair<ShaderRef, ComputePipelineRef>> pipelines = {
-        { NAME("Clear"), { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { NAME("MODE_CLEAR") } })), ComputePipelineRef() } },
-        { NAME("BuildCoeffs"), { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { NAME("MODE_BUILD_COEFFICIENTS") } })), ComputePipelineRef() } },
-        { NAME("Reduce"), { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { NAME("MODE_REDUCE") } })), ComputePipelineRef() } },
-        { NAME("Finalize"), { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { NAME("MODE_FINALIZE") } })), ComputePipelineRef() } }
+    enum 
+    {
+        MODE_CLEAR,
+        MODE_BUILD_COEFFICIENTS,
+        MODE_REDUCE,
+        MODE_FINALIZE,
+
+        MODE_MAX
+    };
+
+    FixedArray<Pair<ShaderRef, ComputePipelineRef>, MODE_MAX> pipelines = {
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("CLEAR")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("BUILD_COEFFICIENTS")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("REDUCE")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("FINALIZE")) } })), ComputePipelineRef::Null() }
     };
 
     ShaderRef firstShader;
 
     for (auto& it : pipelines)
     {
-        Assert(it.second.first.IsValid());
-
         if (!firstShader)
         {
-            firstShader = it.second.first;
+            firstShader = it.first;
         }
     }
 
@@ -506,10 +516,10 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     for (auto& it : pipelines)
     {
-        ComputePipelineRef& pipeline = it.second.second;
+        ComputePipelineRef& pipeline = it.second;
 
         pipeline = g_renderBackend->MakeComputePipeline(
-            it.second.first,
+            it.first,
             computeShDescriptorTables[0]);
 
         HYP_GFX_ASSERT(pipeline->Create());
@@ -556,8 +566,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     AssertDebug(pushConstants.envProbeIndex != ~0u);
 
-    pipelines[NAME("Clear")].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
-    pipelines[NAME("BuildCoeffs")].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    pipelines[MODE_CLEAR].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    pipelines[MODE_BUILD_COEFFICIENTS].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
     RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported()
         ? &g_renderBackend->GetAsyncCompute()->renderQueue
@@ -570,27 +580,27 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
-        pipelines[NAME("Clear")].second,
+        pipelines[MODE_CLEAR].second,
         { { "Global",
             { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
                 { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
-    asyncRenderQueue << BindComputePipeline(pipelines[NAME("Clear")].second);
-    asyncRenderQueue << DispatchCompute(pipelines[NAME("Clear")].second, Vec3u { 1, 1, 1 });
+    asyncRenderQueue << BindComputePipeline(pipelines[MODE_CLEAR].second);
+    asyncRenderQueue << DispatchCompute(pipelines[MODE_CLEAR].second, Vec3u { 1, 1, 1 });
 
     asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
-        pipelines[NAME("BuildCoeffs")].second,
+        pipelines[MODE_BUILD_COEFFICIENTS].second,
         { { "Global",
             { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
                 { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
-    asyncRenderQueue << BindComputePipeline(pipelines[NAME("BuildCoeffs")].second);
-    asyncRenderQueue << DispatchCompute(pipelines[NAME("BuildCoeffs")].second, Vec3u { 1, 1, 1 });
+    asyncRenderQueue << BindComputePipeline(pipelines[MODE_BUILD_COEFFICIENTS].second);
+    asyncRenderQueue << DispatchCompute(pipelines[MODE_BUILD_COEFFICIENTS].second, Vec3u { 1, 1, 1 });
 
     // Parallel reduce
     if (ShParallelReduce)
@@ -623,18 +633,18 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
                 nextDimensions.y
             };
 
-            pipelines[NAME("Reduce")].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
+            pipelines[MODE_REDUCE].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
             asyncRenderQueue << BindDescriptorTable(
                 computeShDescriptorTables[i - 1],
-                pipelines[NAME("Reduce")].second,
+                pipelines[MODE_REDUCE].second,
                 { { "Global",
                     { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
                         { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
                 frame->GetFrameIndex());
 
-            asyncRenderQueue << BindComputePipeline(pipelines[NAME("Reduce")].second);
-            asyncRenderQueue << DispatchCompute(pipelines[NAME("Reduce")].second, Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 });
+            asyncRenderQueue << BindComputePipeline(pipelines[MODE_REDUCE].second);
+            asyncRenderQueue << DispatchCompute(pipelines[MODE_REDUCE].second, Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 });
         }
     }
 
@@ -644,18 +654,18 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);
     asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    pipelines[NAME("Finalize")].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    pipelines[MODE_FINALIZE].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
 
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[finalizeShBufferIndex],
-        pipelines[NAME("Finalize")].second,
+        pipelines[MODE_FINALIZE].second,
         { { "Global",
             { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
                 { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
-    asyncRenderQueue << BindComputePipeline(pipelines[NAME("Finalize")].second);
-    asyncRenderQueue << DispatchCompute(pipelines[NAME("Finalize")].second, Vec3u { 1, 1, 1 });
+    asyncRenderQueue << BindComputePipeline(pipelines[MODE_FINALIZE].second);
+    asyncRenderQueue << DispatchCompute(pipelines[MODE_FINALIZE].second, Vec3u { 1, 1, 1 });
 
     asyncRenderQueue << InsertBarrier(g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
@@ -688,8 +698,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
             for (auto& it : pipelines)
             {
-                ShaderRef& shader = it.second.first;
-                ComputePipelineRef& pipeline = it.second.second;
+                ShaderRef& shader = it.first;
+                ComputePipelineRef& pipeline = it.second;
 
                 SafeDelete(std::move(shader));
                 SafeDelete(std::move(pipeline));
