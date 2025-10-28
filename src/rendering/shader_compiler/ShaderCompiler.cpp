@@ -1714,8 +1714,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
 
         if (!CompileBundle(bundle, properties, batch))
         {
-            HYP_LOG(ShaderCompiler, Error, "Failed to compile shader bundle {}",
-                name);
+            HYP_LOG(ShaderCompiler, Error, "Failed to compile shader bundle {}", name);
 
             return false;
         }
@@ -2785,6 +2784,10 @@ bool ShaderCompiler::CompileBundle(
 
     if (FBOMResult err = serializer.Append(out))
     {
+        HYP_LOG(ShaderCompiler, Error,
+            "Failed to serialize compiled shader bundle {}: {}",
+            bundle.name, err.message);
+
         HYP_BREAKPOINT_DEBUG_MODE;
 
         return false;
@@ -2792,6 +2795,10 @@ bool ShaderCompiler::CompileBundle(
 
     if (FBOMResult err = serializer.Emit(&byteWriter))
     {
+        HYP_LOG(ShaderCompiler, Error,
+            "Failed to write compiled shader bundle {} to file {}: {}",
+            bundle.name, finalOutputPath, err.message);
+
         HYP_BREAKPOINT_DEBUG_MODE;
 
         return false;

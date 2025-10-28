@@ -2721,6 +2721,132 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
     }
 };
 
+// FlatSet
+
+template <class T>
+struct HypDataHelperDecl<FlatSet<T>>
+{
+};
+
+template <class T>
+struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
+        {
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<FlatSet<T>>();
+        }
+
+        return value.GetTypeId() == TypeId::ForType<FlatSet<T>>();
+    }
+
+    HYP_FORCE_INLINE FlatSet<T>& Get(const Any& value) const
+    {
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
+        {
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<FlatSet<T>>())
+            {
+                return *static_cast<FlatSet<T>*>(arr->pInternalArray);
+            }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<FlatSet<T>>())
+        {
+            return value.Get<FlatSet<T>>();
+        }
+
+        HYP_UNREACHABLE();
+    }
+
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
+    {
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<FlatSet<T>>();
+    }
+
+    HYP_FORCE_INLINE FlatSet<T>& Get(const GenericArrayWrapper& value) const
+    {
+        return *static_cast<FlatSet<T>*>(value.pInternalArray);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const FlatSet<T>& value) const
+    {
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, FlatSet<T>&& value) const
+    {
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+    }
+
+    static FBOMResult Serialize(const FlatSet<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        HYP_SCOPE;
+
+        const SizeType size = value.Size();
+
+        if (size == 0)
+        {
+            // If size is empty, serialize a placeholder value to get the element type
+            outData = FBOMData::FromArray(FBOMArray());
+
+            return FBOMResult::FBOM_OK;
+        }
+
+        Array<FBOMData> elements;
+        elements.Reserve(size);
+
+        uint32 elementIndex = 0;
+
+        for (const T& value : value)
+        {
+            FBOMData& element = elements.EmplaceBack();
+
+            if (FBOMResult err = HypDataHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
+            {
+                return err;
+            }
+        }
+
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        HYP_SCOPE;
+
+        FBOMArray array;
+
+        if (FBOMResult err = data.ReadArray(context, array))
+        {
+            return err;
+        }
+
+        const SizeType size = array.Size();
+
+        FlatSet<T> result;
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            HypData element;
+
+            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            {
+                return err;
+            }
+
+            result.Insert(std::move(element.Get<T>()));
+        }
+
+        HypDataHelper<FlatSet<T>> {}.Set(out, std::move(result));
+
+        return { FBOMResult::FBOM_OK };
+    }
+};
+
 /// LinkedList
 
 template <class T>
@@ -3506,6 +3632,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::canStoreDirectly<T> && !Imple
 
         if (!marshal)
         {
+            HYP_BREAKPOINT;
             return FBOMResult { FBOMResult::FBOM_ERR, "No marshal registered for type" };
         }
 
