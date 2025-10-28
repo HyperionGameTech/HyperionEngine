@@ -276,8 +276,8 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridPassDat
 
     // Create shader, descriptor sets for voxelizing probes
 
-    ShaderRef voxelizeProbeShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { NAME("MODE_VOXELIZE") } });
-    ShaderRef offsetVoxelGridShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { NAME("MODE_OFFSET") } });
+    ShaderRef voxelizeProbeShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { ShaderProperty(NAME("MODE"), false, String("VOXELIZE")) } });
+    ShaderRef offsetVoxelGridShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { ShaderProperty(NAME("MODE"), false, String("OFFSET")) } });
     ShaderRef clearVoxelsShader = g_shaderManager->GetOrCreate(NAME("EnvProbe_ClearProbeVoxels"));
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
@@ -391,10 +391,10 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
     }
 
     FixedArray<ShaderRef, 4> shaders = {
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_CLEAR") } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_BUILD_COEFFICIENTS") } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_REDUCE") } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_FINALIZE") } })
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING"), false), ShaderProperty(NAME("MODE"), false, String("CLEAR")) } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING"), false), ShaderProperty(NAME("MODE"), false, String("BUILD_COEFFICIENTS")) } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING"), false), ShaderProperty(NAME("MODE"), false, String("REDUCE")) } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { ShaderProperty(NAME("LIGHTING"), false), ShaderProperty(NAME("MODE"), false, String("FINALIZE")) } })
     };
 
     for (const ShaderRef& shader : shaders)

@@ -367,7 +367,7 @@ void main()
     gbuffer_albedo_lightmap = (lm_irradiance + lm_radiance) * float(bool(mask & OBJECT_MASK_LIGHTMAP));
 
     GBufferMaterialParams materialParams;
-    materialParams.roughness = roughness;
+    materialParams.roughness = 0.01;//roughness;
     materialParams.metalness = metalness;
     materialParams.transmission = transmission;
     materialParams.ao = ao;
