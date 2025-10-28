@@ -159,12 +159,10 @@ static String BuildPreamble(const ShaderProperties& properties)
             {
                 // string values are defined as ENUM_VALUE=1
                 preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<String>());
-                HYP_LOG_TEMP("Defined string property: {}_{} 1", property.name, property.currentValue.Get<String>());
             }
             else
             {
                 preamble += HYP_FORMAT("#define {} {}\n", property.name, property.GetValueString());
-                HYP_LOG_TEMP("Defined property: {} {}", property.name, property.GetValueString());
             }
 
             continue;
@@ -172,7 +170,6 @@ static String BuildPreamble(const ShaderProperties& properties)
 
         // no value set, treat it as boolean true (1)
         preamble += HYP_FORMAT("#define {} 1\n", property.name);
-        HYP_LOG_TEMP("Defined property: {} 1", property.name);
     }
 
     return preamble;
@@ -1110,15 +1107,19 @@ static void ForEachPermutation(
 
     const SizeType numPermutations = 1ull << variableProperties.Size();
 
-    SizeType totalCount = numPermutations;
-
-    for (const ShaderProperty& valueGroup : valueGroups)
-    {
-        totalCount += valueGroup.enumValues.Size() * totalCount;
-    }
 
     Array<ShaderProperties> propertiesBeforeValueGroups;
-    propertiesBeforeValueGroups.Reserve(totalCount);
+
+    {
+        SizeType initialCount = numPermutations;
+
+        for (const ShaderProperty& valueGroup : valueGroups)
+        {
+            initialCount += valueGroup.enumValues.Size() * initialCount;
+        }
+
+        propertiesBeforeValueGroups.Reserve(initialCount);
+    }
 
     Array<ShaderProperties>* currentCombinations = &propertiesBeforeValueGroups;
 
@@ -1159,35 +1160,7 @@ static void ForEachPermutation(
 
                 AssertDebug(!mergedProperties.Has(valueGroup.name), "Duplicate shader property name detected for {}! This will cause shader compilation errors", valueGroup.name);
 
-                // string value
-                ShaderProperty::Value shaderVal = valueGroup.enumValues[valueIndex];
-
-                // check if it's an integer/float/bool value v.s a string value
-                union
-                {
-                    float floatValue;
-                    int intValue;
-                    bool boolValue;
-                };
-
-                if (StringUtil::Parse<float>(valueGroup.enumValues[valueIndex], &floatValue))
-                {
-                    shaderVal = floatValue;
-                }
-                else if (StringUtil::Parse<int>(valueGroup.enumValues[valueIndex], &intValue))
-                {
-                    shaderVal = intValue;
-                }
-                else if (StringUtil::Parse<bool>(valueGroup.enumValues[valueIndex], &boolValue))
-                {
-                    // define <value group name> = <enum value>
-                    // NOTE: bools are defined as integers in the shader
-                    shaderVal = boolValue ? 1 : 0;
-                }
-                else
-                {
-                    // leave as string
-                }
+                const ShaderProperty::Value& shaderVal = valueGroup.enumValues[valueIndex];
 
                 mergedProperties.Set(ShaderProperty(valueGroup.name, /* isPermutation */ false, shaderVal));
 
@@ -1281,14 +1254,25 @@ HashCode ShaderProperty::GetHashCode() const
 
 String ShaderProperty::ToString() const
 {
-    if (HasValue())
+    if (IsValueGroup())
     {
-        return HYP_FORMAT("{}={}", name, GetValueString());
+        return HYP_FORMAT("{}({})", name, enumValues.Size());
     }
-    else
+    else if (IsPermutable())
     {
-        return HYP_FORMAT("{}", name);
+        return HYP_FORMAT("{}(*)", name);
     }
+    else if (IsStatic())
+    {
+        if (HasValue())
+        {
+            return HYP_FORMAT("{}={}", name, GetValueString());
+        }
+
+        return *name;
+    }
+
+    HYP_UNREACHABLE();
 }
 
 String ShaderProperty::GetValueString() const
@@ -1398,20 +1382,13 @@ ShaderProperties& ShaderProperties::Set(const ShaderProperty& property,
 String ShaderProperties::ToString() const
 {
     String propertiesString;
-    SizeType index = 0;
-
     int counter = 0;
 
     for (const ShaderProperty& property : GetPropertySet())
     {
-        propertiesString += property.name.LookupString();
+        propertiesString += property.ToString();
 
-        if (property.HasValue())
-        {
-            propertiesString += "=" + property.GetValueString();
-        }
-
-        if (counter++ != GetPropertySet().Size() - 1)
+        if (counter++ < GetPropertySet().Size() - 1)
         {
             propertiesString += ", ";
         }
@@ -1456,7 +1433,68 @@ void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section,
             {
                 if (element.subElements.Any())
                 {
-                    bundle.versions.AddValueGroup(CreateNameFromDynamicString(*element.name), element.subElements);
+                    // Add subelements - parse int / float / string values
+                    Array<ShaderProperty::Value> enumValues;
+                    enumValues.Reserve(element.subElements.Size());
+
+                    for (const String& subElement : element.subElements)
+                    {
+                        if (subElement.Empty())
+                        {
+                            HYP_LOG(ShaderCompiler, Warning,
+                                "Empty shader property value for property {}",
+                                *element.name);
+
+                            continue;
+                        }
+
+                        ShaderProperty::Value value;
+
+                        if (std::isdigit(subElement.GetChar(0)))
+                        {
+                            if (subElement.Contains('.'))
+                            {
+                                float floatValue;
+
+                                if (!StringUtil::Parse(subElement, &floatValue))
+                                {
+                                    HYP_LOG(ShaderCompiler, Warning,
+                                        "Failed to parse shader property value {} as float for property {}",
+                                        subElement, *element.name);
+
+                                    continue;
+                                }
+
+                                value = floatValue;
+                            }
+                            else
+                            {
+                                int intValue;
+
+                                if (!StringUtil::Parse(subElement, &intValue))
+                                {
+                                    HYP_LOG(ShaderCompiler, Warning,
+                                        "Failed to parse shader property value {} as integer for property {}",
+                                        subElement, *element.name);
+
+                                    continue;
+                                }
+
+                                value = intValue;
+                            }
+                        }
+                        else
+                        {
+                            // string value
+                            value = subElement;
+                        }
+
+                        AssertDebug(value.IsValid());
+
+                        enumValues.PushBack(std::move(value));
+                    }
+
+                    bundle.versions.AddValueGroup(CreateNameFromDynamicString(*element.name), enumValues);
                 }
                 else
                 {
@@ -1541,11 +1579,16 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         },
         false);
 
-    const bool requestedFound =
-        batch.compiledShaders.FindIf(
+    const bool requestedFound = batch.compiledShaders.FindIf(
             [&requestedProperties](const CompiledShader& item)
             {
                 const ShaderProperties& shaderProperties = item.GetDefinition().GetProperties();
+
+                // temp
+                if (shaderProperties.GetPropertySetHashCode() == requestedProperties.GetPropertySetHashCode())
+                {
+                    Assert(SatisfiesRequestedPropertySet(requestedProperties, shaderProperties));
+                }
 
                 return SatisfiesRequestedPropertySet(requestedProperties, shaderProperties);
             })
@@ -1553,16 +1596,6 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
     if (missingVariants.Any() || !requestedFound)
     {
-        ShaderProperties allProperties;
-
-        for (const CompiledShader& compiledShader : batch.compiledShaders)
-        {
-            //            HYP_LOG_TEMP("compiledShader flagmask : {}",
-            //            compiledShader.GetRequiredVertexAttributes().GetFlagMask());
-
-            allProperties.Merge(compiledShader.GetDefinition().GetProperties());
-        }
-
         String missingVariantsString;
 
         {
@@ -1588,14 +1621,26 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
         if (ShouldCompileMissingVariants && CanCompileShaders())
         {
+            String allPropertiesString;
+
+            for (const CompiledShader& compiledShader : batch.compiledShaders)
+            {
+                const ShaderProperties& properties = compiledShader.GetDefinition().GetProperties();
+
+                allPropertiesString += "\t" + String::ToString(properties.GetPropertySetHashCode().Value())
+                    + " - " + properties.ToString()
+                    + " - " + (properties.GetRequiredVertexAttributes() ? properties.GetRequiredVertexAttributes().ToString() : "<no vertex attributes>") + "\n";
+            }
+
+            
             HYP_LOG(
                 ShaderCompiler, Info,
                 "Compiled shader is missing properties. Attempting to compile with "
-                "the missing properties.\n\tRequested with properties:\n\t{} "
-                "({})\n\n\tMissing variants:\n\t{}\n\n\tAll found properties: {}",
-                requestedProperties.ToString(),
-                (requestedFound ? "found" : "not found"), missingVariantsString,
-                allProperties.ToString());
+                "the missing properties.\nRequested:\n\t{} "
+                "({})\n\nMissing:\n\t{}\n\nFound:\n{}",
+                requestedProperties.ToString(), (requestedFound ? "found" : "not found"),
+                missingVariantsString,
+                allPropertiesString);
 
             return CompileBundle(bundle, requestedProperties, batch);
         }
@@ -2433,7 +2478,7 @@ bool ShaderCompiler::CompileBundle(
                     if (targetIt->IsValueGroup())
                     {
                         // Add each value from additional to the target's ValueGroup
-                        targetIt->AddEnumValue(additional.GetValueString());
+                        targetIt->AddEnumValue(additional.currentValue);
 
                         return {};
                     }
@@ -2449,8 +2494,10 @@ bool ShaderCompiler::CompileBundle(
                 }
                 else
                 {
-                    String valueString = additional.GetValueString();
-                    target.AddValueGroup(additional.name, Span<String>(&valueString, 1));
+                    Array<ShaderProperty::Value> valueArray(1);
+                    valueArray[0] = additional.currentValue;
+
+                    target.AddValueGroup(additional.name, valueArray);
 
                     return {};
                 }
@@ -2469,7 +2516,7 @@ bool ShaderCompiler::CompileBundle(
                     // merge each value from additional to the target's ValueGroup
                     if (targetIt->IsValueGroup())
                     {
-                        for (const String& enumValue : additional.enumValues)
+                        for (const ShaderProperty::Value& enumValue : additional.enumValues)
                         {
                             targetIt->AddEnumValue(enumValue);
                         }
