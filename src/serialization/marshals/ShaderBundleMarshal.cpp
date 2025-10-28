@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -15,6 +16,38 @@ HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
 
 namespace hyperion::serialization {
 
+class CompiledShaderMarshal : public HypClassInstanceMarshal
+{
+public:
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
+    {
+        return HypClassInstanceMarshal::Serialize(in, out);
+    }
+
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    {
+        CompiledShader compiledShader;
+
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, CompiledShader::Class(), out))
+        {
+            return err;
+        }
+
+        if (compiledShader.GetRevisionNumber() != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
+        {
+            // force recompile
+            return { FBOMResult::FBOM_ERR, "Shader out of date" };
+        }
+
+        out = HypData(std::move(compiledShader));
+
+        return { FBOMResult::FBOM_OK };
+    }
+};
+
+HYP_DEFINE_MARSHAL(CompiledShader, CompiledShaderMarshal);
+
+/*
 class CompiledShaderMarshal : public FBOMObjectMarshalerBase<CompiledShader>
 {
 public:
@@ -79,6 +112,7 @@ public:
                     FBOMData enumValueData;
                     if (FBOMResult err = HypData(item.enumValues[i]).Serialize(enumValueData))
                     {
+                        HYP_BREAKPOINT;
                         return err;
                     }
 
@@ -183,7 +217,7 @@ public:
             String strName;
             if (FBOMResult err = in.GetProperty(paramString + ".name").ReadString(strName))
             {
-                continue;
+                return err;
             }
 
             property.name = CreateNameFromDynamicString(*strName);
@@ -200,7 +234,7 @@ public:
 
                 if (FBOMResult err = in.GetProperty(paramString + ".num_possible_values").ReadUInt32(&numEnumValues))
                 {
-                    continue;
+                    return err;
                 }
 
                 for (uint32 i = 0; i < numEnumValues; i++)
@@ -209,7 +243,8 @@ public:
 
                     if (FBOMResult err = HypData::Deserialize<ShaderProperty::Value>(context, in.GetProperty(paramString + ".possible_values[" + ANSIString::ToString(i) + "]"), enumValue))
                     {
-                        continue;
+                        HYP_BREAKPOINT;
+                        return err;
                     }
 
                     property.enumValues.PushBack(std::move(enumValue));
@@ -290,6 +325,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(CompiledShaderBatch, CompiledShaderBatchMarshal);
+HYP_DEFINE_MARSHAL(CompiledShaderBatch, CompiledShaderBatchMarshal);*/
 
 } // namespace hyperion::serialization
