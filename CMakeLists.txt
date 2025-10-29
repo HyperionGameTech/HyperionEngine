@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.5)
 
 set(BUILD_NAME hyperion)
 
+if(POLICY CMP0114)
+  cmake_policy(SET CMP0114 NEW)
+endif()
+
 if(NOT DEFINED CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type to use" FORCE)
 endif()
