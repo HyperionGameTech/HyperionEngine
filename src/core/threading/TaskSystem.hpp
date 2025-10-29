@@ -20,6 +20,7 @@
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskThread.hpp>
+#include <core/threading/ThreadPool.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Semaphore.hpp>
@@ -48,6 +49,7 @@ enum TaskThreadPoolName : uint32
     THREAD_POOL_MAX
 };
 
+class ThreadPoolBase;
 class TaskThreadPool;
 class TaskSystem;
 
@@ -154,108 +156,6 @@ public:
 
         OnComplete.RemoveAllDetached();
     }
-};
-
-class HYP_API TaskThreadPool
-{
-public:
-    TaskThreadPool();
-    TaskThreadPool(Array<UniquePtr<TaskThread>>&& threads);
-
-    TaskThreadPool(ANSIStringView baseName, uint32 numThreads)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), baseName, numThreads)
-    {
-    }
-
-    template <class TaskThreadType>
-    TaskThreadPool(TypeWrapper<TaskThreadType>, ANSIStringView baseName, uint32 numThreads)
-    {
-        static_assert(std::is_base_of_v<TaskThread, TaskThreadType>, "TaskThreadType must be a subclass of TaskThread");
-
-        m_threadMask = 0;
-
-        m_threads.Reserve(numThreads);
-
-        for (uint32 threadIndex = 0; threadIndex < numThreads; threadIndex++)
-        {
-            UniquePtr<TaskThread>& thread = m_threads.PushBack(MakeUnique<TaskThreadType>(CreateTaskThreadId(baseName, threadIndex)));
-
-            m_threadMask |= thread->Id().GetMask();
-        }
-    }
-
-    TaskThreadPool(const TaskThreadPool&) = delete;
-    TaskThreadPool& operator=(const TaskThreadPool&) = delete;
-    TaskThreadPool(TaskThreadPool&&) noexcept = delete;
-    TaskThreadPool& operator=(TaskThreadPool&&) noexcept = delete;
-    virtual ~TaskThreadPool();
-
-    bool IsRunning() const;
-
-    virtual void Start();
-    virtual void Stop();
-    virtual void Stop(Array<TaskThread*>& outTaskThreads);
-
-    HYP_FORCE_INLINE uint32 NumThreads() const
-    {
-        return uint32(m_threads.Size());
-    }
-
-    HYP_FORCE_INLINE const Array<UniquePtr<TaskThread>>& GetThreads() const
-    {
-        return m_threads;
-    }
-
-    HYP_FORCE_INLINE uint32 GetProcessorAffinity() const
-    {
-        return MathUtil::Min(NumThreads(), MathUtil::Max(1u, Threads::NumCores()) - 1);
-    }
-
-    HYP_FORCE_INLINE ThreadMask GetThreadMask() const
-    {
-        return m_threadMask;
-    }
-
-    HYP_FORCE_INLINE TaskThread* GetTaskThread(ThreadId threadId) const
-    {
-        const auto it = m_threads.FindIf([threadId](const UniquePtr<TaskThread>& taskThread)
-            {
-                return taskThread->Id() == threadId;
-            });
-
-        if (it != m_threads.End())
-        {
-            return it->Get();
-        }
-
-        return nullptr;
-    }
-
-    template <class Function>
-    auto Enqueue(const StaticMessage& debugName, Function&& fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
-    {
-        TaskThread* taskThread = GetNextTaskThread();
-
-        return taskThread->GetScheduler().Enqueue(debugName, std::forward<Function>(fn), flags);
-    }
-
-    template <class Function>
-    auto Enqueue(Function&& fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
-    {
-        TaskThread* taskThread = GetNextTaskThread();
-
-        return taskThread->GetScheduler().Enqueue(std::forward<Function>(fn), flags);
-    }
-
-    TaskThread* GetNextTaskThread();
-
-protected:
-    AtomicVar<uint32> m_cycle { 0u };
-    Array<UniquePtr<TaskThread>> m_threads;
-    ThreadMask m_threadMask;
-
-private:
-    static ThreadId CreateTaskThreadId(ANSIStringView baseName, uint32 threadIndex);
 };
 
 class TaskSystem

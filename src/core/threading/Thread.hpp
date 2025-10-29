@@ -55,7 +55,7 @@ public:
     }
 
     /*! \brief Get the thread-local storage for this thread. This is used to store thread-local data that is unique to this thread.
-      *  Must only be called from THIS thread */
+     *  Must only be called from THIS thread */
     ThreadLocalStorage& GetTLS() const;
 
     /*! \brief Get the priority of this thread. */
@@ -66,7 +66,23 @@ public:
 
     /*! \brief Get the scheduler that this thread is associated with. */
     virtual Scheduler& GetScheduler() = 0;
-    
+
+    /*! \brief Check if the thread is currently running. */
+    virtual bool IsRunning() const = 0;
+
+    /*! \brief Request the thread to stop running. This does not immediately stop the thread, but sets a flag that the thread should stop.
+     *  The thread should check this flag periodically and exit when it is set. */
+    virtual void Stop() = 0;
+
+    /*! \brief Detach the thread from the current thread and let it run in the background until it finishes execution */
+    virtual void Detach() = 0;
+
+    /*! \brief Join the thread and wait for it to finish execution before continuing execution of the current thread */
+    virtual bool Join() = 0;
+
+    /*! \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined) */
+    virtual bool CanJoin() const = 0;
+
     void AtExit(Proc<void()>&& proc);
 
 protected:
@@ -77,9 +93,9 @@ protected:
     mutable ThreadLocalStorage* m_tls;
 };
 
-extern HYP_API void SetCurrentThreadObject(ThreadBase*);
-extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
-extern HYP_API void OnCurrentThreadExit();
+HYP_API extern void SetCurrentThreadObject(ThreadBase*);
+HYP_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
+HYP_API extern void OnCurrentThreadExit();
 
 template <class Scheduler, class... Args>
 class Thread : public ThreadBase
@@ -97,7 +113,7 @@ public:
         return m_scheduler;
     }
 
-    HYP_FORCE_INLINE bool IsRunning() const
+    bool IsRunning() const override
     {
         return m_isRunning.Get(MemoryOrder::RELAXED);
     }
@@ -107,16 +123,16 @@ public:
 
     /*! \brief Request the thread to stop running. This does not immediately stop the thread, but sets a flag that the thread should stop.
      *  The thread should check this flag periodically and exit when it is set. */
-    virtual void Stop();
+    virtual void Stop() override;
 
     /*! \brief Detach the thread from the current thread and let it run in the background until it finishes execution */
-    void Detach();
+    void Detach() override;
 
     /*!\brief Join the thread and wait for it to finish execution before continuing execution of the current thread */
-    bool Join();
+    bool Join() override;
 
     /*! \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined) */
-    bool CanJoin() const;
+    bool CanJoin() const override;
 
 protected:
     virtual void operator()(Args... args) = 0;
@@ -174,7 +190,7 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
             (*this)((tupleArgs.template GetElement<Args>())...);
 
             m_isRunning.Set(false, MemoryOrder::RELAXED);
-        
+
             OnCurrentThreadExit();
         });
 

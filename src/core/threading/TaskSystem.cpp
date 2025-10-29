@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/threading/TaskSystem.hpp>
+#include <core/threading/ThreadPool.hpp>
 
 #include <core/reflection/HypClass.hpp>
 
@@ -57,161 +58,6 @@ void TaskBatch::AwaitCompletion()
 
 #pragma endregion TaskBatch
 
-#pragma region TaskThreadPool
-
-TaskThreadPool::TaskThreadPool()
-    : m_threadMask(0)
-{
-}
-
-TaskThreadPool::TaskThreadPool(Array<UniquePtr<TaskThread>>&& threads)
-    : m_threads(std::move(threads)),
-      m_threadMask(0)
-{
-    for (const UniquePtr<TaskThread>& thread : threads)
-    {
-        HYP_CORE_ASSERT(thread != nullptr);
-
-        m_threadMask |= thread->Id().GetMask();
-    }
-}
-
-TaskThreadPool::~TaskThreadPool()
-{
-    for (auto& it : m_threads)
-    {
-        HYP_CORE_ASSERT(it != nullptr);
-        HYP_CORE_ASSERT(!it->IsRunning(), "TaskThreadPool::Stop() must be called before TaskThreadPool is destroyed");
-
-        if (it->CanJoin())
-        {
-            it->Join();
-        }
-    }
-}
-
-bool TaskThreadPool::IsRunning() const
-{
-    if (m_threads.Empty())
-    {
-        return false;
-    }
-
-    for (auto& it : m_threads)
-    {
-        HYP_CORE_ASSERT(it != nullptr);
-
-        if (it->IsRunning())
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void TaskThreadPool::Start()
-{
-    HYP_CORE_ASSERT(m_threads.Any());
-
-    for (auto& it : m_threads)
-    {
-        HYP_CORE_ASSERT(it != nullptr);
-        HYP_CORE_ASSERT(it->Start());
-
-        while (!it->IsRunning())
-        {
-            HYP_WAIT_IDLE();
-        }
-    }
-}
-
-void TaskThreadPool::Stop()
-{
-    if (!IsRunning())
-    {
-        return;
-    }
-
-    for (auto& it : m_threads)
-    {
-        it->Stop();
-    }
-
-    for (auto& it : m_threads)
-    {
-        it->Join();
-    }
-}
-
-void TaskThreadPool::Stop(Array<TaskThread*>& outTaskThreads)
-{
-    for (auto& it : m_threads)
-    {
-        HYP_CORE_ASSERT(it != nullptr);
-        it->Stop();
-
-        outTaskThreads.PushBack(it.Get());
-    }
-}
-
-TaskThread* TaskThreadPool::GetNextTaskThread()
-{
-    static constexpr uint32 maxSpins = 16;
-
-    const uint32 numThreadsInPool = uint32(m_threads.Size());
-
-    const ThreadId currentThreadId = Threads::CurrentThreadId();
-    const bool isOnTaskThread = (m_threadMask & currentThreadId.GetMask()) != 0;
-
-    ThreadBase* currentThreadObject = Threads::CurrentThreadObject();
-
-    uint32 cycle = m_cycle.Get(MemoryOrder::RELAXED) % numThreadsInPool;
-    uint32 numSpins = 0;
-
-    TaskThread* taskThread = nullptr;
-
-    // if we are currently on a task thread we need to move to the next task thread in the pool
-    // if we selected the current task thread. otherwise we will have a deadlock.
-    // this does require that there are > 1 task thread in the pool.
-    do
-    {
-        do
-        {
-            taskThread = m_threads[cycle].Get();
-
-            cycle = (cycle + 1) % numThreadsInPool;
-            m_cycle.Increment(1, MemoryOrder::RELAXED);
-
-            ++numSpins;
-
-            if (numSpins >= maxSpins)
-            {
-                if (isOnTaskThread)
-                {
-                    return static_cast<TaskThread*>(currentThreadObject); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-                }
-
-                HYP_LOG(Tasks, Warning, "Maximum spins reached in GetNextTaskThread -- all task threads busy");
-
-                return taskThread;
-            }
-        }
-        while (taskThread->Id() == currentThreadId
-            || (currentThreadObject != nullptr && currentThreadObject->GetScheduler().HasWorkAssignedFromThread(taskThread->Id())));
-    }
-    while (!taskThread->IsRunning() && !taskThread->IsFree());
-
-    return taskThread;
-}
-
-ThreadId TaskThreadPool::CreateTaskThreadId(ANSIStringView baseName, uint32 threadIndex)
-{
-    return ThreadId(Name::Unique(HYP_FORMAT("{}{}", baseName, threadIndex).Data()), THREAD_CATEGORY_TASK);
-}
-
-#pragma endregion TaskThreadPool
-
 #pragma region GenericTaskThreadPool
 
 class GenericTaskThreadPool final : public TaskThreadPool
@@ -238,21 +84,6 @@ public:
     }
 
     virtual ~RenderTaskThreadPool() override = default;
-};
-
-#pragma endregion RenderTaskThreadPool
-
-#pragma region BackgroundTaskThreadPool
-
-class BackgroundTaskThreadPool final : public TaskThreadPool
-{
-public:
-    BackgroundTaskThreadPool(uint32 numTaskThreads, ThreadPriorityValue priority)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), "BackgroundTask", numTaskThreads)
-    {
-    }
-
-    virtual ~BackgroundTaskThreadPool() override = default;
 };
 
 #pragma endregion RenderTaskThreadPool
@@ -303,17 +134,9 @@ void TaskSystem::Stop()
 
     m_running.Set(false, MemoryOrder::RELAXED);
 
-    Array<TaskThread*> taskThreads;
-
     for (const UniquePtr<TaskThreadPool>& pool : m_pools)
     {
-        pool->Stop(taskThreads);
-    }
-
-    while (taskThreads.Any())
-    {
-        TaskThread* top = taskThreads.PopBack();
-        top->Join();
+        pool->Stop();
     }
 }
 
@@ -374,11 +197,11 @@ TaskBatch* TaskSystem::EnqueueBatch(TaskBatch* batch)
             &batch->notifier,
             nextBatch != nullptr
                 ? OnTaskCompletedCallback([this, &onComplete = batch->OnComplete, nextBatch]()
-                      {
-                          onComplete();
+                    {
+                        onComplete();
 
-                          EnqueueBatch(nextBatch);
-                      })
+                        EnqueueBatch(nextBatch);
+                    })
                 : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr));
 
         batch->taskRefs.EmplaceBack(taskId, &taskThread->GetScheduler());
@@ -430,7 +253,7 @@ const FlatMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> g_threadP
         } },
     { TaskThreadPoolName::THREAD_POOL_BACKGROUND, +[]() -> UniquePtr<TaskThreadPool>
         {
-            return MakeUnique<BackgroundTaskThreadPool>(1, ThreadPriorityValue::LOWEST);
+            return MakeUnique<BackgroundTaskThreadPool>("BackgroundTask", BackgroundTaskThreadPool::MaxBackgroundThreads);
         } }
 };
 
