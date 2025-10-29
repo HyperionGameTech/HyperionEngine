@@ -82,7 +82,7 @@ class StreamingThreadPool : public TaskThreadPool
 {
 public:
     StreamingThreadPool()
-        : TaskThreadPool(TypeWrapper<StreamingWorkerThread>(), "StreamingWorker", 2)
+        : TaskThreadPool(TypeWrapper<StreamingWorkerThread>(), "StreamingWorker", 1)
     {
     }
 

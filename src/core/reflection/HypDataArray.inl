@@ -533,6 +533,164 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, Al
     };
 }
 
+// FlatSet<T>
+
+template <class T>
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set)
+    : GenericArrayWrapper()
+{
+    pInternalArray = &set;
+    functionTable.dtor = nullptr;
+
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
+    };
+
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
+    {
+        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        return flatSet.Size();
+    };
+}
+
+template <class T>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set)
+    : GenericArrayWrapper()
+{
+    pInternalArray = new std::remove_cvref_t<decltype(set)>(set);
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(set)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
+    {
+        *pDst = new std::remove_cvref_t<decltype(set)>(*(std::remove_cvref_t<decltype(set)>*)src);
+    };
+
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
+    };
+
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
+    {
+        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        return flatSet.Size();
+    };
+}
+
+template <class T>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set)
+    : GenericArrayWrapper()
+{
+    pInternalArray = new std::remove_cvref_t<decltype(set)>(std::move(set));
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(set)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
+    {
+        *pDst = new std::remove_cvref_t<decltype(set)>(*(std::remove_cvref_t<decltype(set)>*)src);
+    };
+
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
+    };
+
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeInfo_ForType<T>();
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
+    {
+        auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
+        return flatSet.Size();
+    };
+}
+
+// FlatMap<K, V>
+
+template <class K, class V>
+GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map)
+    : GenericArrayWrapper()
+{
+    pInternalArray = &map;
+    functionTable.dtor = nullptr;
+
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
+    };
+
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
+    {
+        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        return flatMap.Size();
+    };
+}
+
+template <class K, class V>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map)
+    : GenericArrayWrapper()
+{
+    pInternalArray = new std::remove_cvref_t<decltype(map)>(map);
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(map)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
+    {
+        *pDst = new std::remove_cvref_t<decltype(map)>(*(std::remove_cvref_t<decltype(map)>*)src);
+    };
+
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
+    };
+
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
+    {
+        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        return flatMap.Size();
+    };
+}
+
+template <class K, class V>
+GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map)
+    : GenericArrayWrapper()
+{
+    pInternalArray = new std::remove_cvref_t<decltype(map)>(std::move(map));
+    functionTable.dtor = &Memory::Delete<std::remove_cvref_t<decltype(map)>>;
+    functionTable.copyCtor = [](void** pDst, void* src)
+    {
+        *pDst = new std::remove_cvref_t<decltype(map)>(*(std::remove_cvref_t<decltype(map)>*)src);
+    };
+
+    functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
+    {
+        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
+    };
+
+    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+
+    functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
+    {
+        auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
+        return flatMap.Size();
+    };
+}
+
 // HashMap<K, V>
 
 template <class K, class V, class AllocatorType>
