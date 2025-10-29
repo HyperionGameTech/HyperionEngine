@@ -12,6 +12,7 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+#include <core/threading/ConditionVariable.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -23,8 +24,6 @@
 #include <core/Types.hpp>
 
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 
 namespace hyperion {
 namespace threading {
@@ -233,8 +232,8 @@ private:
     Mutex m_threadCreationMutex;
 
     ThreadBase* m_overseerThread;
-    std::mutex m_overseerMutex;
-    std::condition_variable m_overseerCondition;
+    Mutex m_overseerMutex;
+    ConditionVariable m_overseerCV;
     AtomicVar<bool> m_overseerShouldStop { false };
 };
 

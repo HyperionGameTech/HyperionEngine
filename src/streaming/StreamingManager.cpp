@@ -23,16 +23,29 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/utilities/ForEach.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
 
-#include <util/octree/Octree.hpp>
+#include <core/memory/allocator/ArenaAllocator.hpp>
+
+#include <core/memory/pool/Pool.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion {
+
+/// @TODO: Move declaration to EngineGlobals.hpp and init in HyperionEngine.cpp!
+static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024; // 4 MB
+static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;      // 1 MB -- not much needed for now, we'll adjust as needed
+
+Pool* g_streamingPool;
+
+using StreamingAllocator = AllocatorInstance<Pool, &g_streamingPool>;
+
+static TArena<StreamingAllocator>* s_streamingArena;
+
+using StreamingTempAllocator = AllocatorInstance<TArena<StreamingAllocator>, &s_streamingArena>;
+
 
 #pragma region Helpers
 
@@ -97,17 +110,14 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
 {
     struct LayerData
     {
-        enum LayerDataFlags
-        {
-            LDF_NONE = 0x0,
-            LDF_PENDING_REMOVAL = 0x2
-        };
+        static constexpr uint32 LockCountMask = 0x7FFFFFFF;
+        static constexpr uint32 PendingRemovalBit = 0x80000000;
 
         Handle<WorldGridLayer> layer;
-        StreamingCellCollection cells;
-        Queue<StreamingCellUpdate> cellUpdateQueue;
-        AtomicVar<uint8> flags { LDF_NONE };
-        AtomicVar<uint32> lockCount { 0 };
+        StreamingCellCollection<StreamingAllocator> cells;
+        Array<StreamingCellUpdate, StreamingAllocator> cellUpdateQueue;
+        // highest bit == pending removal flag, so we don't need to add another atomic + padding to eliminate false sharing
+        AtomicVar<uint32> lockCount { 0 }; 
 
         LayerData(const Handle<WorldGridLayer>& layer)
             : layer(layer)
@@ -128,17 +138,17 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
 
         bool IsLocked() const
         {
-            return lockCount.Get(MemoryOrder::ACQUIRE) > 0;
+            return (lockCount.Get(MemoryOrder::ACQUIRE) & ~PendingRemovalBit) > 0;
         }
 
         void SetPendingRemoval()
         {
-            flags.BitOr(LDF_PENDING_REMOVAL, MemoryOrder::RELEASE);
+            lockCount.BitOr(PendingRemovalBit, MemoryOrder::RELEASE);
         }
 
         bool IsPendingRemoval() const
         {
-            return flags.Get(MemoryOrder::ACQUIRE) & LDF_PENDING_REMOVAL;
+            return lockCount.Get(MemoryOrder::ACQUIRE) & PendingRemovalBit;
         }
     };
 
@@ -338,6 +348,9 @@ private:
             do
             {
                 DoWork(streamingManager);
+                
+                // Reset the streaming arena after each work cycle
+                s_streamingArena->Reset();
 
                 num = m_notifier.Release(num);
 
@@ -383,7 +396,7 @@ private:
 
     UniquePtr<StreamingThreadPool> m_threadPool;
 
-    Array<Handle<StreamingVolumeBase>> m_volumes;
+    Array<Handle<StreamingVolumeBase>, StreamingAllocator> m_volumes;
     LinkedList<LayerData> m_layers;
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesGameThread;
@@ -441,8 +454,8 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         const Handle<WorldGridLayer>& layer = layerData.layer;
         Assert(layer.IsValid());
 
-        StreamingCellCollection& cells = layerData.cells;
-        Queue<StreamingCellUpdate>& cellUpdateQueue = layerData.cellUpdateQueue;
+        StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
+        Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
         const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
 
@@ -459,8 +472,8 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         }
 
         // @TODO Use bitset via IDs, or by cell index (x * height + y, would need constant max dimensions for that) to track desired cells and undesired cells.
-        Array<Vec2i> cellsToAdd = desiredCells.ToArray();
-        Array<Handle<StreamingCell>> cellsToRemove;
+        Array<Vec2i, StreamingTempAllocator> cellsToAdd = desiredCells.ToArray();
+        Array<Handle<StreamingCell>, StreamingTempAllocator> cellsToRemove;
 
         for (const StreamingCellRuntimeInfo& cellRuntimeInfo : cells)
         {
@@ -496,7 +509,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
                     cell->GetPatchInfo().coord);
 
                 // Cell is locked here -- request unloading.
-                cellUpdateQueue.Push(StreamingCellUpdate { cell->GetPatchInfo().coord, StreamingCellState::UNLOADING });
+                cellUpdateQueue.PushBack(StreamingCellUpdate { cell->GetPatchInfo().coord, StreamingCellState::UNLOADING });
             }
         }
 
@@ -506,7 +519,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
             {
                 Assert(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", coord);
 
-                cellUpdateQueue.Push(StreamingCellUpdate { coord, StreamingCellState::WAITING });
+                cellUpdateQueue.PushBack(StreamingCellUpdate { coord, StreamingCellState::WAITING });
             }
         }
 
@@ -519,19 +532,19 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 {
     const WorldGridLayerInfo& layerInfo = layerData.layer->GetLayerInfo();
-    StreamingCellCollection& cells = layerData.cells;
-    Queue<StreamingCellUpdate>& cellUpdateQueue = layerData.cellUpdateQueue;
+    StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
+    Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
     if (cellUpdateQueue.Empty())
     {
         return;
     }
 
-    LinkedList<Proc<void()>> deferredUpdates;
+    Array<Proc<void()>, StreamingAllocator> deferredUpdates;
 
     while (cellUpdateQueue.Any())
     {
-        StreamingCellUpdate update = cellUpdateQueue.Pop();
+        StreamingCellUpdate update = cellUpdateQueue.PopBack();
 
         switch (update.state)
         {
@@ -679,19 +692,19 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layerData,
         return;
     }
 
-    Queue<Vec2f> queue;
-    HashSet<Vec2i> visited;
+    Array<Vec2f, StreamingTempAllocator> queue;
+    HashSet<Vec2i, &KeyBy_Identity<Vec2i>, NodeAllocator<StreamingTempAllocator>> visited;
 
     const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
 
-    queue.Push(centerCoord);
+    queue.PushBack(centerCoord);
     visited.Insert(Vec2i(centerCoord));
 
     const float maxDistSq = layerInfo.maxDistance * layerInfo.maxDistance;
 
     while (queue.Any())
     {
-        const Vec2f current = queue.Pop();
+        const Vec2f current = queue.PopBack();
 
         // euclidean distance check
         if (Vec2f(current).DistanceSquared(centerCoord) > maxDistSq)
@@ -707,7 +720,7 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layerData,
 
             if (visited.Insert(Vec2i(neighbor)).second)
             {
-                queue.Push(neighbor);
+                queue.PushBack(neighbor);
             }
         }
     }
@@ -723,14 +736,27 @@ StreamingManager::StreamingManager()
 }
 
 StreamingManager::StreamingManager(const WeakHandle<WorldGrid>& worldGrid)
-    : m_worldGrid(worldGrid),
-      m_thread(MakeUnique<StreamingManagerThread>())
+    : m_worldGrid(worldGrid)
 {
+    // @TODO: Assert only one StreamingManager exists!
+
+    if (!g_streamingPool)
+    {
+        g_streamingPool = new Pool(StreamingPoolBlockSize, PoolFlags::PF_THREAD_SAFE);
+    }
+
+    if (!s_streamingArena)
+    {
+        s_streamingArena = new TArena<AllocatorInstance<Pool, &g_streamingPool>>(StreamingArenaSize);
+    }
 }
 
 StreamingManager::~StreamingManager()
 {
     Stop();
+
+    delete s_streamingArena;
+    s_streamingArena = nullptr;
 }
 
 void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& volume)
@@ -785,6 +811,10 @@ void StreamingManager::RemoveWorldGridLayer(WorldGridLayer* layer)
 
 void StreamingManager::Start()
 {
+    Assert(g_streamingPool != nullptr);
+
+    m_thread = MakeUnique<StreamingManagerThread>();
+
     if (!m_thread->IsRunning())
     {
         m_thread = MakeUnique<StreamingManagerThread>();
@@ -811,6 +841,8 @@ void StreamingManager::Init()
         {
             Stop();
         }));
+
+    HypObjectBase::Init();
 
     SetReady(true);
 }

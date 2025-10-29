@@ -237,8 +237,9 @@ void BackgroundTaskThreadPool::Start()
             while (!m_pool->m_overseerShouldStop.Get(MemoryOrder::ACQUIRE))
             {
                 {
-                    std::unique_lock<std::mutex> lock(m_pool->m_overseerMutex);
-                    m_pool->m_overseerCondition.wait_for(lock, std::chrono::milliseconds(30000));
+                    Mutex::Guard lock(m_pool->m_overseerMutex);
+
+                    m_pool->m_overseerCV.WaitFor(m_pool->m_overseerMutex, 30000);
                 }
 
                 if (m_pool->m_overseerShouldStop.Get(MemoryOrder::ACQUIRE))
@@ -342,7 +343,7 @@ TaskThread* BackgroundTaskThreadPool::GetNextTaskThread()
 
 TaskThread* BackgroundTaskThreadPool::CreateThread()
 {
-    const uint32 threadIndex = m_nextThreadIndex.Increment(1, MemoryOrder::ACQUIRE_RELEASE) - 1;
+    const uint32 threadIndex = m_nextThreadIndex.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
     ThreadId threadId = CreateTaskThreadId(m_baseName, threadIndex);
 
@@ -360,10 +361,7 @@ TaskThread* BackgroundTaskThreadPool::CreateThread()
     }
 
     m_threads.PushBack(std::move(newThread));
-    m_activeThreadCount.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
-
-    HYP_LOG(Tasks, Debug, "BackgroundTaskThreadPool created new thread: {} (total active: {})",
-        threadId.GetName(), m_activeThreadCount.Get(MemoryOrder::ACQUIRE));
+    m_activeThreadCount.Increment(1, MemoryOrder::RELEASE);
 
     return taskThread;
 }
@@ -407,19 +405,18 @@ void BackgroundTaskThreadPool::CleanupIdleThreads()
             }
 
             HYP_LOG(Tasks, Debug, "BackgroundTaskThreadPool cleaned up idle thread: {}", thread->Id().GetName());
-
-            m_threadMask &= ~thread->Id().GetMask();
         }
 
         m_threads.EraseAt(index);
-        m_activeThreadCount.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+        m_activeThreadCount.Decrement(1, MemoryOrder::RELEASE);
     }
 }
 
 void BackgroundTaskThreadPool::WakeOverseer()
 {
-    std::unique_lock<std::mutex> lock(m_overseerMutex);
-    m_overseerCondition.notify_one();
+    Mutex::Guard lock(m_overseerMutex);
+
+    m_overseerCV.NotifyOne();
 }
 
 #pragma endregion BackgroundTaskThreadPool
