@@ -857,7 +857,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     if (ray.TestAABB(worldAabb))
     {
-        if (InstanceClass() == Entity::Class())
+        if (IsA(Entity::Class()))
         {
             ResourceHandle resourceHandle;
             MeshAsset* meshAsset = nullptr;

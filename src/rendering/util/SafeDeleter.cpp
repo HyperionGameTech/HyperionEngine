@@ -31,9 +31,13 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
     {
         const bool hasScriptObjectResource = ptr->GetScriptObjectResource() != nullptr;
 
+        // ADD weak ref, so no other releases of weak references when our strong count is zero triggers a Release()
+        ptr->GetObjectHeader_Internal()->IncRefWeak();
+
         int32 count = AtomicAdd(&ptr->GetObjectHeader_Internal()->refCountStrong, 0);
 
-        // 1 is since the managed object lock would have its own strong reference count of 1.
+        // manually decrease strong refcount by 1
+        // ternary is here due to the fact that the c# object would have an extra ref.
         while (count != (hasScriptObjectResource ? 1 : 0))
         {
             if (AtomicCompareExchange(&ptr->GetObjectHeader_Internal()->refCountStrong, count, count - 1))
@@ -53,9 +57,18 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
 SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
 {
     // call destructor if no more strong references
-    if (ptr && AtomicAdd(&ptr->GetObjectHeader_Internal()->refCountStrong, 0) == 0)
+    if (ptr)
     {
-        ptr->~HypObjectBase();
+        HypObjectHeader* header = ptr->GetObjectHeader_Internal();
+        AssertDebug(header != nullptr); // weird bug?
+
+        if (AtomicAdd(&header->refCountStrong, 0) == 0)
+        {
+            ptr->~HypObjectBase();
+            
+            // this will free the slot if no other weak references remain
+            header->DecRefWeak();
+        }
     }
 }
 

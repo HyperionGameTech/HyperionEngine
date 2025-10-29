@@ -14,8 +14,12 @@
 namespace hyperion {
 namespace threading {
 
+class ConditionVariable;
+
 class Mutex
 {
+    friend class ConditionVariable;
+
 public:
     struct Guard
     {

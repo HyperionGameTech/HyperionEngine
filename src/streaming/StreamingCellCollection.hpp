@@ -71,11 +71,14 @@ struct StreamingCellRuntimeInfo
     ~StreamingCellRuntimeInfo() = default;
 };
 
-class StreamingCellCollection final : HashSet<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, DynamicNodeAllocator>
+template <class AllocatorType>
+class StreamingCellCollection final : HashSet<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, NodeAllocator<AllocatorType>>
 {
 public:
-    using Iterator = typename HashSet::Iterator;
-    using ConstIterator = typename HashSet::ConstIterator;
+    using Base = HashSet<StreamingCellRuntimeInfo, &StreamingCellRuntimeInfo::coord, NodeAllocator<AllocatorType>>;
+
+    using Iterator = typename Base::Iterator;
+    using ConstIterator = typename Base::ConstIterator;
 
     StreamingCellCollection()
     {
@@ -87,9 +90,9 @@ public:
     StreamingCellCollection& operator=(const StreamingCellCollection& other) = default;
     StreamingCellCollection& operator=(StreamingCellCollection&& other) = default;
 
-    using HashSet::Any;
-    using HashSet::Empty;
-    using HashSet::Size;
+    using Base::Any;
+    using Base::Empty;
+    using Base::Size;
 
     bool AddCell(const Handle<StreamingCell>& cell, StreamingCellState initialState, bool lock = false)
     {
@@ -98,14 +101,14 @@ public:
             return false;
         }
 
-        auto it = HashSet::Find(cell->GetPatchInfo().coord);
-        if (it != HashSet::End())
+        auto it = Base::Find(cell->GetPatchInfo().coord);
+        if (it != Base::End())
         {
             // Cell already exists
             return false;
         }
 
-        auto insertResult = HashSet::Emplace(cell->GetPatchInfo().coord, cell, initialState, lock);
+        auto insertResult = Base::Emplace(cell->GetPatchInfo().coord, cell, initialState, lock);
         AssertDebug(insertResult.second);
 
         return true;
@@ -113,10 +116,10 @@ public:
 
     bool RemoveCell(const Vec2i& coord)
     {
-        auto it = HashSet::Find(coord);
-        if (it != HashSet::End())
+        auto it = Base::Find(coord);
+        if (it != Base::End())
         {
-            HashSet::Erase(it);
+            Base::Erase(it);
 
             return true;
         }
@@ -126,8 +129,8 @@ public:
 
     Handle<StreamingCell> GetCell(const Vec2i& coord) const
     {
-        auto it = HashSet::Find(coord);
-        if (it != HashSet::End())
+        auto it = Base::Find(coord);
+        if (it != Base::End())
         {
             return it->cell;
         }
@@ -137,13 +140,13 @@ public:
 
     bool HasCell(const Vec2i& coord) const
     {
-        return HashSet::Find(coord) != HashSet::End();
+        return Base::Find(coord) != Base::End();
     }
 
     bool SetCellLockState(const Vec2i& coord, bool lock)
     {
-        auto it = HashSet::Find(coord);
-        if (it != HashSet::End())
+        auto it = Base::Find(coord);
+        if (it != Base::End())
         {
             if (it->isLocked.Exchange(lock, MemoryOrder::ACQUIRE_RELEASE) == lock)
             {
@@ -158,8 +161,8 @@ public:
 
     bool IsCellLocked(const Vec2i& coord) const
     {
-        auto it = HashSet::Find(coord);
-        if (it != HashSet::End())
+        auto it = Base::Find(coord);
+        if (it != Base::End())
         {
             return it->isLocked.Get(MemoryOrder::ACQUIRE);
         }
@@ -169,8 +172,8 @@ public:
 
     bool UpdateCellState(const Vec2i& coord, StreamingCellState newState)
     {
-        auto it = HashSet::Find(coord);
-        if (it != HashSet::End())
+        auto it = Base::Find(coord);
+        if (it != Base::End())
         {
             it->state = newState;
             return true;
@@ -181,9 +184,9 @@ public:
 
     StreamingCellState GetCellState(const Vec2i& coord) const
     {
-        auto it = HashSet::Find(coord);
+        auto it = Base::Find(coord);
 
-        if (it != HashSet::End())
+        if (it != Base::End())
         {
             return it->state;
         }
@@ -193,10 +196,10 @@ public:
 
     void Clear()
     {
-        HashSet::Clear();
+        Base::Clear();
     }
 
-    HYP_DEF_STL_BEGIN_END(HashSet::Begin(), HashSet::End());
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End());
 };
 
 } // namespace hyperion
