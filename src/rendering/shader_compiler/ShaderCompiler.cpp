@@ -339,13 +339,10 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
             {
                 const uint32 setIndex = uint32(table.elements.Size());
 
-                DescriptorSetDeclaration newDescriptorSetDeclaration(
-                    setIndex, staticDescriptorSetDeclaration->name);
-                newDescriptorSetDeclaration.flags =
-                    staticDescriptorSetDeclaration->flags | DescriptorSetDeclarationFlags::REFERENCE;
+                DescriptorSetDeclaration newDescriptorSetDeclaration(setIndex, staticDescriptorSetDeclaration->name);
+                newDescriptorSetDeclaration.flags = staticDescriptorSetDeclaration->flags | DescriptorSetDeclarationFlags::REFERENCE;
 
-                table.AddDescriptorSetDeclaration(
-                    std::move(newDescriptorSetDeclaration));
+                table.AddDescriptorSetDeclaration(std::move(newDescriptorSetDeclaration));
             }
 
             continue;
@@ -355,8 +352,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
         {
             const uint32 setIndex = uint32(table.elements.Size());
 
-            descriptorSetDeclaration = table.AddDescriptorSetDeclaration(
-                DescriptorSetDeclaration(setIndex, descriptorUsage.setName));
+            descriptorSetDeclaration = table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(setIndex, descriptorUsage.setName));
         }
 
         DescriptorDeclaration desc {
@@ -365,9 +361,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
             bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC)
         };
 
-        if (auto* existingDecl =
-                descriptorSetDeclaration->FindDescriptorDeclaration(
-                    descriptorUsage.descriptorName))
+        if (auto* existingDecl = descriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName))
         {
             // Already exists, just update the slot
             *existingDecl = std::move(desc);
@@ -914,7 +908,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
                 if (type->isStruct())
                 {
                     for (auto it = type->getStruct()->begin();
-                        it != type->getStruct()->end(); ++it)
+                         it != type->getStruct()->end(); ++it)
                     {
                         String fieldTypeName;
 
@@ -1115,7 +1109,6 @@ static void ForEachPermutation(
     }
 
     const SizeType numPermutations = 1ull << variableProperties.Size();
-
 
     Array<ShaderProperties> propertiesBeforeValueGroups;
 
@@ -1590,12 +1583,12 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         false);
 
     const bool requestedFound = batch.compiledShaders.FindIf(
-            [&requestedProperties](const CompiledShader& item)
-            {
-                const ShaderProperties& shaderProperties = item.GetDefinition().GetProperties();
+                                    [&requestedProperties](const CompiledShader& item)
+                                    {
+                                        const ShaderProperties& shaderProperties = item.GetDefinition().GetProperties();
 
-                return SatisfiesRequestedPropertySet(requestedProperties, shaderProperties);
-            })
+                                        return SatisfiesRequestedPropertySet(requestedProperties, shaderProperties);
+                                    })
         != batch.compiledShaders.End();
 
     if (missingVariants.Any() || !requestedFound)
@@ -2471,7 +2464,7 @@ bool ShaderCompiler::CompileBundle(
 
                 return {};
             }
-            
+
             if (additional.HasValue())
             {
                 // Find ValueGroup in target with same name

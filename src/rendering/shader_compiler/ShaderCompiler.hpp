@@ -1169,19 +1169,19 @@ struct CompiledShader
 {
     HYP_STRUCT_BODY(CompiledShader);
 
-    HYP_FIELD(Property = "Definition", Serialize = false) // custom serialization used
+    HYP_FIELD(Property = "Definition")
     ShaderDefinition definition;
 
-    HYP_FIELD(Property = "DescriptorTableDeclaration", Serialize = false, Transient = true) // built after load, not serialized
+    HYP_FIELD(Property = "DescriptorTableDeclaration", Transient) // built after load, not serialized
     DescriptorTableDeclaration descriptorTableDeclaration;
 
-    HYP_FIELD(Property = "DescriptorUsageSet", Serialize = true)
+    HYP_FIELD(Property = "DescriptorUsageSet")
     DescriptorUsageSet descriptorUsageSet;
 
-    HYP_FIELD(Property = "EntryPointName", Serialize = true)
+    HYP_FIELD(Property = "EntryPointName")
     String entryPointName = "main";
 
-    HYP_FIELD(Property = "Modules", Serialize = false) // custom serialization used
+    HYP_FIELD(Property = "Modules")
     FixedArray<ByteBuffer, SMT_MAX> modules;
 
     /// ===== Serialization only =====

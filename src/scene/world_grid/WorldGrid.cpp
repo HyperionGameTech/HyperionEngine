@@ -74,7 +74,7 @@ void WorldGrid::Init()
         }));
 
     InitObject(m_streamingManager);
-    m_streamingManager->Start();
+    m_streamingManager->Start(); // @TODO make g_streamingManager instead of per-worldgrid streaming managers
 
     // Add a default layer if none are provided
     if (m_layers.Empty())

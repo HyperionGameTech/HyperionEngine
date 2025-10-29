@@ -141,10 +141,7 @@ struct HypData
         /* Fundamental types - can be stored inline */
         std::is_same_v<T, int8> || std::is_same_v<T, int16> | std::is_same_v<T, int32> | std::is_same_v<T, int64> || std::is_same_v<T, uint8> || std::is_same_v<T, uint16> || std::is_same_v<T, uint32> || std::is_same_v<T, uint64>
 
-        || std::is_same_v<T, char>
-        || std::is_same_v<T, float> || std::is_same_v<T, double>
-        || std::is_same_v<T, bool>
-        || std::is_same_v<T, void*>
+        || std::is_same_v<T, char> || std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, bool> || std::is_same_v<T, void*>
 
         || std::is_same_v<T, Float16>
 
@@ -2595,6 +2592,132 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
     }
 };
 
+/// FlatMap
+
+template <class K, class V>
+struct HypDataHelperDecl<FlatMap<K, V>>
+{
+};
+
+template <class K, class V>
+struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        if (const GenericArrayWrapper* array = value.TryGet<GenericArrayWrapper>())
+        {
+            return TypeInfo_GetId(*array->typeInfo) == TypeId::ForType<FlatMap<K, V>>();
+        }
+
+        return value.GetTypeId() == TypeId::ForType<FlatMap<K, V>>();
+    }
+
+    HYP_FORCE_INLINE FlatMap<K, V>& Get(const Any& value) const
+    {
+        if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
+        {
+            if (TypeInfo_GetId(*arr->typeInfo) == TypeId::ForType<FlatMap<K, V>>())
+            {
+                return *static_cast<FlatMap<K, V>*>(arr->pInternalArray);
+            }
+        }
+        else if (value.GetTypeId() == TypeId::ForType<FlatMap<K, V>>())
+        {
+            return value.Get<FlatMap<K, V>>();
+        }
+
+        HYP_UNREACHABLE();
+    }
+
+    HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
+    {
+        return TypeInfo_GetId(*value.typeInfo) == TypeId::ForType<FlatMap<K, V>>();
+    }
+
+    HYP_FORCE_INLINE FlatMap<K, V>& Get(const GenericArrayWrapper& value) const
+    {
+        return *static_cast<FlatMap<K, V>*>(value.pInternalArray);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, const FlatMap<K, V>& value) const
+    {
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hypData, FlatMap<K, V>&& value) const
+    {
+        HypDataHelper<GenericArrayWrapper>::Set(hypData, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+    }
+
+    static FBOMResult Serialize(const FlatMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        HYP_SCOPE;
+
+        const SizeType size = value.Size();
+
+        if (size == 0)
+        {
+            // If size is empty, serialize a placeholder value to get the element type
+            outData = FBOMData::FromArray(FBOMArray());
+
+            return FBOMResult::FBOM_OK;
+        }
+
+        Array<FBOMData> elements;
+        elements.Reserve(size);
+
+        uint32 elementIndex = 0;
+
+        for (const Pair<K, V>& pair : value)
+        {
+            FBOMData& element = elements.EmplaceBack();
+
+            if (FBOMResult err = HypDataHelper<Pair<K, V>>::Serialize(pair, element))
+            {
+                return err;
+            }
+        }
+
+        outData = FBOMData::FromArray(FBOMArray(std::move(elements)));
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        HYP_SCOPE;
+
+        FBOMArray array;
+
+        if (FBOMResult err = data.ReadArray(context, array))
+        {
+            return err;
+        }
+
+        const SizeType size = array.Size();
+
+        FlatMap<K, V> result;
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            HypData element;
+
+            if (FBOMResult err = HypDataHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
+            {
+                return err;
+            }
+
+            result.Insert(std::move(element.Get<Pair<K, V>>()));
+        }
+
+        HypDataHelper<FlatMap<K, V>> {}.Set(out, std::move(result));
+
+        return { FBOMResult::FBOM_OK };
+    }
+};
+
 /// HashSet
 
 template <class ValueType, auto KeyByFunction>
@@ -3515,19 +3638,18 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         }
 
         int foundTypeIndex = Variant<Types...>::invalidTypeIndex;
-        int currentTypeIndex = 0;
 
-        for (TypeId typeId : Variant<Types...>::typeIds)
+        for (int typeIndex = 0; typeIndex < sizeof...(Types); typeIndex++)
         {
+            TypeId typeId = Variant<Types...>::typeIds[typeIndex + 1]; // first element is void type id
+
             if (data.GetType().GetNativeTypeId() == typeId
                 || IsA(GetClass(data.GetType().GetNativeTypeId()), GetClass(typeId)))
             {
-                foundTypeIndex = currentTypeIndex;
+                foundTypeIndex = typeIndex;
 
                 break;
             }
-
-            ++currentTypeIndex;
         }
 
         if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)

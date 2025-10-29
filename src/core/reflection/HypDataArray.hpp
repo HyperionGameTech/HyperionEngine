@@ -3,6 +3,8 @@
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
+#include <core/containers/FlatMap.hpp>
+#include <core/containers/FlatSet.hpp>
 #include <core/containers/LinkedList.hpp>
 
 #include <core/reflection/TypeInfoFwd.hpp>
@@ -191,6 +193,28 @@ struct GenericArrayWrapper
 
     template <class T, auto KeyByFunction, class AllocatorType>
     GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, AllocatorType>&& set);
+
+    // FlatSet<T>
+
+    template <class T>
+    GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set);
+
+    template <class T>
+    GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set);
+
+    template <class T>
+    GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set);
+
+    // FlatMap<K, V>
+
+    template <class K, class V>
+    GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map);
+
+    template <class K, class V>
+    GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map);
+
+    template <class K, class V>
+    GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map);
 
     // HashMap<K, V, AllocatorType>
 
