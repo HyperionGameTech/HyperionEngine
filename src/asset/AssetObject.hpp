@@ -13,6 +13,8 @@
 
 #include <core/memory/resource/Resource.hpp>
 
+#include <core/memory/pool/Pool.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
 
 #include <core/Constants.hpp>
@@ -38,7 +40,10 @@ class ProcRef;
 
 using functional::ProcRef;
 
-class AssetDataResourceBase : public ResourceBase
+HYP_API extern Pool* g_assetPool;
+using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
+
+class HYP_API AssetDataResourceBase : public ResourceBase
 {
 public:
     friend class AssetObject;
@@ -49,7 +54,7 @@ public:
     AssetDataResourceBase(AssetDataResourceBase&&) noexcept = delete;
     AssetDataResourceBase& operator=(AssetDataResourceBase&&) noexcept = delete;
 
-    ~AssetDataResourceBase() = default;
+    virtual ~AssetDataResourceBase() override = default;
 
     /*! \brief Initialize the resource data from the given stream.
      *  \param stream The stream to read from.
@@ -57,9 +62,7 @@ public:
     Result LoadFromStream(BufferedReader& stream);
 
 protected:
-    AssetDataResourceBase()
-    {
-    }
+    AssetDataResourceBase() = default;
 
     virtual void Initialize() override final;
     virtual void Destroy() override final;
@@ -70,6 +73,8 @@ protected:
     virtual void Unload_Internal() = 0;
 
     virtual void Extract_Internal(AnyRef ref) = 0;
+
+    virtual bool IsDataLoaded() const = 0;
 
     virtual TypeId GetAssetTypeId() const = 0;
     virtual AnyRef GetAssetRef() = 0;
@@ -82,15 +87,18 @@ template <class T>
 class AssetDataResource final : public AssetDataResourceBase
 {
 public:
-    AssetDataResource() = default;
+    AssetDataResource()
+        : m_data(nullptr)
+    {
+    }
 
     AssetDataResource(const T& data)
-        : m_data(data)
+        : m_data(PoolNew<T>(*g_assetPool, data))
     {
     }
 
     AssetDataResource(T&& data)
-        : m_data(std::move(data))
+        : m_data(PoolNew<T>(*g_assetPool, std::move(data)))
     {
     }
 
@@ -100,17 +108,40 @@ public:
     AssetDataResource(AssetDataResource&&) noexcept = delete;
     AssetDataResource& operator=(AssetDataResource&&) noexcept = delete;
 
-    virtual ~AssetDataResource() override = default;
+    virtual ~AssetDataResource() override
+    {
+        if (m_data != nullptr)
+        {
+            PoolDelete(*g_assetPool, m_data);
+            m_data = nullptr;
+        }
+    }
+
+    virtual bool IsDataLoaded() const override
+    {
+        return m_data != nullptr;
+    }
 
 protected:
     virtual void Unload_Internal() override
     {
-        m_data = {};
+        if (m_data)
+        {
+            PoolDelete(*g_assetPool, m_data);
+            m_data = nullptr;
+        }
     }
 
     virtual void Extract_Internal(AnyRef ref) override
     {
-        m_data = std::move(ref.Get<T>());
+        if (m_data != nullptr)
+        {
+            *m_data = std::move(ref.Get<T>());
+        }
+        else
+        {
+            m_data = PoolNew<T>(*g_assetPool, std::move(ref.Get<T>()));
+        }
     }
 
     virtual TypeId GetAssetTypeId() const override
@@ -120,10 +151,10 @@ protected:
 
     virtual AnyRef GetAssetRef() override
     {
-        return AnyRef(&m_data);
+        return AnyRef(m_data);
     }
 
-    T m_data;
+    T* m_data;
 };
 
 HYP_ENUM()

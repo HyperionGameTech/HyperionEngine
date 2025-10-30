@@ -26,22 +26,22 @@ public:
 
     using BitIndex = uint64;
 
-    static constexpr uint32 numPreallocatedBlocks = 2;
-    static constexpr uint32 numBitsPerBlock = sizeof(BlockType) * CHAR_BIT;
-    static constexpr uint32 numBitsPerBlockLog2 = MathUtil::FastLog2(numBitsPerBlock);
+    static constexpr uint32 NumPreallocatedBlocks = 2;
+    static constexpr uint32 NumBitsPerBlock = sizeof(BlockType) * CHAR_BIT;
+    static constexpr uint32 NumBitsPerBlockLog2 = MathUtil::FastLog2(NumBitsPerBlock);
 
-    static constexpr BitIndex notFound = BitIndex(-1);
+    static constexpr BitIndex NotFound = BitIndex(-1);
 
     HYP_FORCE_INLINE static constexpr uint64 GetBitMask(BitIndex bit)
     {
-        return 1ull << (bit & (numBitsPerBlock - 1));
+        return 1ull << (bit & (NumBitsPerBlock - 1));
     }
 
     HYP_FORCE_INLINE static constexpr uint64 GetBlockIndex(BitIndex bit)
     {
         return bit / CHAR_BIT / sizeof(BlockType);
         // + 3 is log2(CHAR_BIT)
-        // return bit >> (numBitsPerBlockLog2 + 3);
+        // return bit >> (NumBitsPerBlockLog2 + 3);
     }
 
 private:
@@ -172,13 +172,13 @@ public:
                 _BitScanForward(&bitIndex, *blocksIter);
 #endif
 
-                return (uint64(blocksIter - blocksBegin) << numBitsPerBlockLog2) + uint64(bitIndex);
+                return (uint64(blocksIter - blocksBegin) << NumBitsPerBlockLog2) + uint64(bitIndex);
             }
 
             ++blocksIter;
         }
 
-        return notFound;
+        return NotFound;
     }
 
     /*! \brief Returns the index of the last set bit. If no bit is set, -1 is returned.
@@ -195,17 +195,17 @@ public:
             if (*(--blocksIter) != 0)
             {
 #ifdef HYP_CLANG_OR_GCC
-                const uint32 bitIndex = numBitsPerBlock - __builtin_clz(*blocksIter) - 1;
+                const uint32 bitIndex = NumBitsPerBlock - __builtin_clz(*blocksIter) - 1;
 #elif defined(HYP_MSVC)
                 unsigned long bitIndex = 0;
                 _BitScanReverse(&bitIndex, *blocksIter);
 #endif
 
-                return (uint64(blocksIter - blocksBegin) << numBitsPerBlockLog2) + uint64(bitIndex);
+                return (uint64(blocksIter - blocksBegin) << NumBitsPerBlockLog2) + uint64(bitIndex);
             }
         }
 
-        return notFound;
+        return NotFound;
     }
 
     /*! \brief Returns the index of the next set bit after or including the given index.
@@ -231,7 +231,7 @@ public:
                 _BitScanForward(&bitIndex, *blocksIter & mask);
 #endif
 
-                return (uint64(blocksIter - blocksBegin) << numBitsPerBlockLog2) + uint64(bitIndex);
+                return (uint64(blocksIter - blocksBegin) << NumBitsPerBlockLog2) + uint64(bitIndex);
             }
 
             // use all bits in next iteration of loop
@@ -239,7 +239,7 @@ public:
             ++blocksIter;
         }
 
-        return notFound;
+        return NotFound;
     }
 
     inline BitIndex FirstZeroBitIndex() const
@@ -259,12 +259,12 @@ public:
                 _BitScanForward(&bitIndex, inverted);
 #endif
 
-                return (blockIndex << numBitsPerBlockLog2) + bitIndex;
+                return (blockIndex << NumBitsPerBlockLog2) + bitIndex;
             }
         }
 
         // No free bit currently; return the first bit of the next block to be added
-        return BitIndex(numBlocks) << numBitsPerBlockLog2;
+        return BitIndex(numBlocks) << NumBitsPerBlockLog2;
     }
 
     inline BitIndex LastZeroBitIndex() const
@@ -278,18 +278,18 @@ public:
             if (inverted != 0)
             {
 #ifdef HYP_CLANG_OR_GCC
-                const uint32 bitIndex = numBitsPerBlock - __builtin_clz(inverted) - 1;
+                const uint32 bitIndex = NumBitsPerBlock - __builtin_clz(inverted) - 1;
 #elif defined(HYP_MSVC)
                 unsigned long bitIndex = 0;
                 _BitScanReverse(&bitIndex, inverted);
 #endif
 
-                return ((blockIndex - 1) << numBitsPerBlockLog2) + bitIndex;
+                return ((blockIndex - 1) << NumBitsPerBlockLog2) + bitIndex;
             }
         }
 
         // No free bit currently; return the first bit of the next block to be added
-        return BitIndex(numBlocks) << numBitsPerBlockLog2;
+        return BitIndex(numBlocks) << NumBitsPerBlockLog2;
     }
 
     /*! \brief Get the value of the bit at the given index.
@@ -325,7 +325,7 @@ public:
         \returns The total number of bits in the bitset. */
     HYP_FORCE_INLINE SizeType NumBits() const
     {
-        return m_blocks.Size() << numBitsPerBlockLog2;
+        return m_blocks.Size() << NumBitsPerBlockLog2;
     }
 
     /*! \brief Resizes the bitset to the given number of bits.
@@ -464,7 +464,7 @@ public:
 
     HYP_FORCE_INLINE Iterator End()
     {
-        return { this, notFound };
+        return { this, NotFound };
     }
 
     HYP_FORCE_INLINE ConstIterator Begin() const
@@ -474,7 +474,7 @@ public:
 
     HYP_FORCE_INLINE ConstIterator End() const
     {
-        return { this, notFound };
+        return { this, NotFound };
     }
 
     HYP_FORCE_INLINE Iterator begin()
@@ -500,13 +500,13 @@ public:
 private:
     HYP_FORCE_INLINE void RemoveLeadingZeros()
     {
-        while (m_blocks.Size() > numPreallocatedBlocks && m_blocks.Back() == 0)
+        while (m_blocks.Size() > NumPreallocatedBlocks && m_blocks.Back() == 0)
         {
             m_blocks.PopBack();
         }
     }
 
-    Array<BlockType, InlineAllocator<2>> m_blocks;
+    Array<BlockType, InlineAllocator<16>> m_blocks;
 };
 
 } // namespace containers
@@ -522,11 +522,11 @@ struct Formatter<StringType, Bitset>
     {
         StringType result;
 
-        for (uint32 blockIndex = bitset.NumBits() / bitset.numBitsPerBlock; blockIndex != 0; --blockIndex)
+        for (uint32 blockIndex = bitset.NumBits() / bitset.NumBitsPerBlock; blockIndex != 0; --blockIndex)
         {
-            for (uint32 bitIndex = Bitset::numBitsPerBlock; bitIndex != 0; --bitIndex)
+            for (uint32 bitIndex = Bitset::NumBitsPerBlock; bitIndex != 0; --bitIndex)
             {
-                const uint32 combinedBitIndex = ((blockIndex - 1) * Bitset::numBitsPerBlock) + (bitIndex - 1);
+                const uint32 combinedBitIndex = ((blockIndex - 1) * Bitset::NumBitsPerBlock) + (bitIndex - 1);
 
                 result.Append(bitset.Get(combinedBitIndex) ? '1' : '0');
 

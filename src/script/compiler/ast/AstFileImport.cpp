@@ -30,11 +30,11 @@ void AstFileImport::Visit(AstVisitor* visitor, Module* mod)
     String dir = m_location.GetFileName();
 
     SizeType slashIndex = dir.FindLastIndex('/');
-    slashIndex = (slashIndex == String::notFound)
+    slashIndex = (slashIndex == String::NotFound)
         ? dir.FindLastIndex('\\')
         : MathUtil::Max(slashIndex, dir.FindLastIndex('\\'));
 
-    if (slashIndex != String::notFound)
+    if (slashIndex != String::NotFound)
     {
         dir = dir.Substr(0, slashIndex);
     }

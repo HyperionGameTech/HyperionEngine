@@ -54,7 +54,7 @@ protected:
     };
 
 public:
-    static constexpr bool isContiguous = false;
+    static constexpr bool IsContiguous = false;
 
     using KeyType = SizeType;
     using ValueType = T;

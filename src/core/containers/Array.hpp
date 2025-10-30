@@ -58,7 +58,7 @@ public:
     using KeyType = typename Base::KeyType;
     using ValueType = T;
 
-    static constexpr bool isContiguous = true;
+    static constexpr bool IsContiguous = true;
 
     // Allow other Array types to access private members
     template <class OtherT, class OtherAllocatorType>

@@ -21,7 +21,7 @@ protected:
     using Map = FlatMap<TypeId, Value>;
 
 public:
-    static constexpr bool isContiguous = Map::isContiguous;
+    static constexpr bool IsContiguous = Map::IsContiguous;
 
     using KeyValuePairType = typename Map::KeyValuePairType;
 

@@ -28,7 +28,7 @@ private:
     Array<KeyValuePairType> m_vector;
 
 public:
-    static constexpr bool isContiguous = true;
+    static constexpr bool IsContiguous = true;
 
     using Base = ContainerBase<FlatMap<Key, Value>, Key>;
 

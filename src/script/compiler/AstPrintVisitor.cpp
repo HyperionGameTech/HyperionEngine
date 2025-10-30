@@ -31,13 +31,13 @@
 
 namespace hyperion {
 
-static const WideString g_colorReset = L"\033[0m";
-static const WideString g_colorNodeName = L"\033[1;96m";
-static const WideString g_colorValue = L"\033[1;92m";
-static const WideString g_colorType = L"\033[1;95m";
-static const WideString g_colorLocation = L"\033[38;5;240m";
-static const WideString g_colorKeyword = L"\033[1;94m";
-static const WideString g_colorComment = L"\033[38;5;245m";
+static const WideString s_colorReset = L"\033[0m";
+static const WideString s_colorNodeName = L"\033[1;96m";
+static const WideString s_colorValue = L"\033[1;92m";
+static const WideString s_colorType = L"\033[1;95m";
+static const WideString s_colorLocation = L"\033[38;5;240m";
+static const WideString s_colorKeyword = L"\033[1;94m";
+static const WideString s_colorComment = L"\033[38;5;245m";
 
 AstPrintVisitor::AstPrintVisitor(
     AstIterator* astIterator,
@@ -56,7 +56,7 @@ WideString AstPrintVisitor::PrintNode(AstStatement* node, SizeType depth) const
 {
     if (!node)
     {
-        return GetIndentation(depth) + Colorize(L"├─ <null>", g_colorComment) + L"\n";
+        return GetIndentation(depth) + Colorize(L"├─ <null>", s_colorComment) + L"\n";
     }
 
     WideString result;
@@ -67,7 +67,7 @@ WideString AstPrintVisitor::PrintNode(AstStatement* node, SizeType depth) const
 
     // Start with node name
     WideString nodeName = GetNodeDescription(node);
-    result += indentation + Colorize(connector, g_colorComment) + FormatNodeName(nodeName);
+    result += indentation + Colorize(connector, s_colorComment) + FormatNodeName(nodeName);
 
     WideString nodeInfo = GetBasicNodeInfo(node);
 
@@ -113,17 +113,17 @@ WideString AstPrintVisitor::PrintTree(AstStatement* root) const
 {
     if (!root)
     {
-        return Colorize(L"(empty tree)", g_colorComment) + L"\n";
+        return Colorize(L"(empty tree)", s_colorComment) + L"\n";
     }
 
     WideString result;
 
-    result += Colorize(L"╔══════════════════════════════════════╗", g_colorKeyword) + L"\n";
-    result += Colorize(L"║              AST Tree                ║", g_colorKeyword) + L"\n";
-    result += Colorize(L"╚══════════════════════════════════════╝", g_colorKeyword) + L"\n\n";
+    result += Colorize(L"╔══════════════════════════════════════╗", s_colorKeyword) + L"\n";
+    result += Colorize(L"║              AST Tree                ║", s_colorKeyword) + L"\n";
+    result += Colorize(L"╚══════════════════════════════════════╝", s_colorKeyword) + L"\n\n";
 
     result += PrintNode(root, 0);
-    result += L"\n" + Colorize(L"└─ " + Colorize(L"End of tree", g_colorComment), g_colorComment) + L"\n";
+    result += L"\n" + Colorize(L"└─ " + Colorize(L"End of tree", s_colorComment), s_colorComment) + L"\n";
 
     return result;
 }
@@ -142,22 +142,22 @@ WideString AstPrintVisitor::GetIndentation(SizeType depth) const
 
 WideString AstPrintVisitor::FormatNodeName(const WideString& nodeName) const
 {
-    return Colorize(nodeName, g_colorNodeName);
+    return Colorize(nodeName, s_colorNodeName);
 }
 
 WideString AstPrintVisitor::FormatValue(const WideString& value) const
 {
-    return Colorize(value, g_colorValue);
+    return Colorize(value, s_colorValue);
 }
 
 WideString AstPrintVisitor::FormatType(const WideString& type) const
 {
-    return Colorize(L"[" + type + L"]", g_colorType);
+    return Colorize(L"[" + type + L"]", s_colorType);
 }
 
 WideString AstPrintVisitor::FormatLocation(const SourceLocation& location) const
 {
-    return Colorize(L"@" + WideString::ToString(location.GetLine()) + L":" + WideString::ToString(location.GetColumn()), g_colorLocation);
+    return Colorize(L"@" + WideString::ToString(location.GetLine()) + L":" + WideString::ToString(location.GetColumn()), s_colorLocation);
 }
 
 WideString AstPrintVisitor::Colorize(const WideString& text, const WideString& colorCode) const
@@ -166,7 +166,7 @@ WideString AstPrintVisitor::Colorize(const WideString& text, const WideString& c
     {
         return text;
     }
-    return colorCode + text + g_colorReset;
+    return colorCode + text + s_colorReset;
 }
 
 WideString AstPrintVisitor::GetNodeDescription(AstStatement* node) const
@@ -364,22 +364,22 @@ WideString AstPrintVisitor::GetDetailedInfo(AstStatement* node, SizeType depth) 
     if (auto* callExpr = dynamic_cast<AstCallExpression*>(node))
     {
         result += indentation
-            + Colorize(L"│ ", g_colorComment)
-            + Colorize(L"Arguments: ", g_colorComment)
+            + Colorize(L"│ ", s_colorComment)
+            + Colorize(L"Arguments: ", s_colorComment)
             + FormatValue(WideString::ToString(callExpr->GetArguments().Size())) + L"\n";
     }
     else if (auto* block = dynamic_cast<AstBlock*>(node))
     {
         result += indentation
-            + Colorize(L"│ ", g_colorComment)
-            + Colorize(L"Statements: ", g_colorComment)
+            + Colorize(L"│ ", s_colorComment)
+            + Colorize(L"Statements: ", s_colorComment)
             + FormatValue(WideString::ToString(block->GetChildren().Size())) + L"\n";
     }
     else if (auto* varDecl = dynamic_cast<AstVariableDeclaration*>(node))
     {
         result += indentation
-            + Colorize(L"│ ", g_colorComment)
-            + Colorize(L"Variable: ", g_colorComment)
+            + Colorize(L"│ ", s_colorComment)
+            + Colorize(L"Variable: ", s_colorComment)
             + FormatValue(L"'" + varDecl->GetName().ToWide() + L"'") + L"\n";
     }
 
@@ -404,7 +404,7 @@ WideString AstPrintVisitor::PrintChildren(AstStatement* node, SizeType depth) co
             {
                 SizeType pos = childResult.FindFirstIndex(L"├─");
 
-                if (pos != WideString::notFound)
+                if (pos != WideString::NotFound)
                 {
                     childResult = childResult.Substr(0, pos) + L"└─" + childResult.Substr(pos + 2);
                 }
@@ -415,7 +415,7 @@ WideString AstPrintVisitor::PrintChildren(AstStatement* node, SizeType depth) co
         else
         {
             const WideString connector = isLast ? L"└─ " : L"├─ ";
-            result += GetIndentation(depth + 1) + Colorize(connector, g_colorComment) + Colorize(L"<null child>", g_colorComment) + L"\n";
+            result += GetIndentation(depth + 1) + Colorize(connector, s_colorComment) + Colorize(L"<null child>", s_colorComment) + L"\n";
         }
     }
 
