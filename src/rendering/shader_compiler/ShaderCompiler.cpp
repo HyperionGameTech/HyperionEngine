@@ -63,6 +63,8 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
 static constexpr bool ShouldCompileMissingVariants = true;
 
+extern const GlobalConfig& CoreApi_GetGlobalConfig();
+
 // #define HYP_SHADER_COMPILER_LOGGING
 
 #pragma region Helpers
@@ -72,43 +74,31 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
     String descriptorTableDefines;
 
     // Generate descriptor table defines
-    for (const DescriptorSetDeclaration& descriptorSetDeclaration :
-        descriptorTableDeclaration.elements)
+    for (const DescriptorSetDeclaration& descriptorSetDeclaration : descriptorTableDeclaration.elements)
     {
-        const DescriptorSetDeclaration* descriptorSetDeclarationPtr =
-            &descriptorSetDeclaration;
+        const DescriptorSetDeclaration* descriptorSetDeclarationPtr = &descriptorSetDeclaration;
 
-        const uint32 setIndex = descriptorTableDeclaration.GetDescriptorSetIndex(
-            descriptorSetDeclaration.name);
+        const uint32 setIndex = descriptorTableDeclaration.GetDescriptorSetIndex(descriptorSetDeclaration.name);
         Assert(setIndex != -1);
 
-        descriptorTableDefines +=
-            "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptorSetDeclaration.name.LookupString()) + " " + String::ToString(setIndex) + "\n";
+        descriptorTableDefines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptorSetDeclaration.name.LookupString()) + " " + String::ToString(setIndex) + "\n";
 
-        if (descriptorSetDeclaration
-                .flags[DescriptorSetDeclarationFlags::REFERENCE])
+        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
-            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration =
-                GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(
-                    descriptorSetDeclaration.name);
+            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
             Assert(referencedDescriptorSetDeclaration != nullptr);
 
             descriptorSetDeclarationPtr = referencedDescriptorSetDeclaration;
         }
 
-        for (const Array<DescriptorDeclaration>& descriptorDeclarations :
-            descriptorSetDeclarationPtr->slots)
+        for (const Array<DescriptorDeclaration>& descriptorDeclarations : descriptorSetDeclarationPtr->slots)
         {
-            for (const DescriptorDeclaration& descriptorDeclaration :
-                descriptorDeclarations)
+            for (const DescriptorDeclaration& descriptorDeclaration : descriptorDeclarations)
             {
-                const uint32 flatIndex =
-                    descriptorSetDeclarationPtr->CalculateFlatIndex(
-                        descriptorDeclaration.slot, descriptorDeclaration.name);
+                const uint32 flatIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(descriptorDeclaration.slot, descriptorDeclaration.name);
                 Assert(flatIndex != uint32(-1));
 
-                descriptorTableDefines +=
-                    "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptorSetDeclarationPtr->name.LookupString()) + "_" + descriptorDeclaration.name.LookupString() + " " + String::ToString(flatIndex) + "\n";
+                descriptorTableDefines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptorSetDeclarationPtr->name.LookupString()) + "_" + descriptorDeclaration.name.LookupString() + " " + String::ToString(flatIndex) + "\n";
             }
         }
     }
@@ -184,6 +174,8 @@ static String BuildPreamble(
 
 void MergeGlobalShaderProperties(ShaderProperties& properties)
 {
+    static const GlobalConfig& s_globalConfig = CoreApi_GetGlobalConfig();
+
 #if defined(HYP_VULKAN) && HYP_VULKAN
     properties.Set(ShaderProperty(NAME("HYP_VULKAN"), false));
 
@@ -217,26 +209,31 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
     properties.Set(ShaderProperty(NAME("HYP_IOS"), false));
 #endif
 
-    properties.Set(
-        ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false,
-            ShaderProperty::Value(int(NumGbufferTargets))));
+    properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false, ShaderProperty::Value(int(NumGbufferTargets))));
 
     if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
     {
-        properties.Set(ShaderProperty(
-            NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING"), false));
+        properties.Set(ShaderProperty(NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING"), false));
     }
 
     if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
-        properties.Set(
-            ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), false));
+        properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), false));
     }
 
     if (!g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
     {
-        properties.Set(
-            ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA"), false));
+        properties.Set(ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA"), false));
+    }
+
+    if (s_globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
+    {
+        properties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS"), false));
+    }
+
+    if (s_globalConfig.Get("Rendering.Irradiance.Enabled").ToBool(false))
+    {
+        properties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE"), false));
     }
 
     // props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS", false));

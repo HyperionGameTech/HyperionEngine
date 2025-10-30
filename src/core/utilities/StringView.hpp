@@ -34,8 +34,8 @@ public:
     template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator==(const StringView<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
 
-    static constexpr bool isContiguous = true;
-    static constexpr SizeType notFound = SizeType(-1);
+    static constexpr bool IsContiguous = true;
+    static constexpr SizeType NotFound = SizeType(-1);
     static constexpr int stringType = TStringType;
 
     static constexpr bool isAnsi = TStringType == StringType::ANSI;
@@ -370,23 +370,23 @@ public:
     /*! \brief Check if the string contains the given character. */
     HYP_FORCE_INLINE constexpr bool Contains(WidestCharType ch) const
     {
-        return ch != CharType { 0 } && FindFirstIndex(ch) != notFound;
+        return ch != CharType { 0 } && FindFirstIndex(ch) != NotFound;
     }
 
     /*! \brief Check if the string contains the given substring. */
     HYP_FORCE_INLINE constexpr bool Contains(const StringView& substr) const
     {
-        return FindFirstIndex(substr) != notFound;
+        return FindFirstIndex(substr) != NotFound;
     }
 
     /*! \brief Find the first occurrence of the character
      *  \param ch The character to search for.
-     *  \returns The index of the first occurrence of the character or notFound if it is not in the string. */
+     *  \returns The index of the first occurrence of the character or NotFound if it is not in the string. */
     HYP_FORCE_INLINE constexpr SizeType FindFirstIndex(WidestCharType ch) const
     {
         if (ch == 0)
         {
-            return notFound;
+            return NotFound;
         }
 
         SizeType chars = 0;
@@ -399,21 +399,21 @@ public:
             }
         }
 
-        return notFound;
+        return NotFound;
     }
 
     /*! \brief Find the last occurrence of the character
      *  \param ch The character to search for.
-     *  \returns The index of the last occurrence of the character or notFound if it is not in the string. */
+     *  \returns The index of the last occurrence of the character or NotFound if it is not in the string. */
     HYP_FORCE_INLINE constexpr SizeType FindLastIndex(WidestCharType ch) const
     {
         if (ch == 0)
         {
-            return notFound;
+            return NotFound;
         }
 
         SizeType chars = 0;
-        SizeType lastIndex = notFound;
+        SizeType lastIndex = NotFound;
 
         for (auto it = Begin(); it != End(); ++it, ++chars)
         {
@@ -445,7 +445,7 @@ public:
             }
         }
 
-        return notFound;
+        return NotFound;
     }
 
     constexpr StringView Substr(SizeType first, SizeType last) const

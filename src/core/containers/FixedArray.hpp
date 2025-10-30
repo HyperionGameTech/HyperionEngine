@@ -30,7 +30,7 @@ template <class T, SizeType Sz>
 class FixedArray
 {
 public:
-    static constexpr bool isContiguous = true;
+    static constexpr bool IsContiguous = true;
 
     T m_values[Sz > 1 ? Sz : 1];
 
@@ -307,7 +307,7 @@ class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, uint32>
 public:
     T* ptr;
 
-    static constexpr bool isContiguous = true;
+    static constexpr bool IsContiguous = true;
 
     using Iterator = T*;
     using ConstIterator = const T*;

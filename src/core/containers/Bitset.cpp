@@ -211,11 +211,11 @@ void Bitset::Clear()
 Bitset& Bitset::SetNumBits(SizeType numBits)
 {
     const SizeType previousNumBlocks = m_blocks.Size();
-    SizeType newNumBlocks = (numBits + (numBitsPerBlock - 1)) / numBitsPerBlock;
+    SizeType newNumBlocks = (numBits + (NumBitsPerBlock - 1)) / NumBitsPerBlock;
 
-    if (newNumBlocks < numPreallocatedBlocks)
+    if (newNumBlocks < NumPreallocatedBlocks)
     {
-        newNumBlocks = numPreallocatedBlocks;
+        newNumBlocks = NumPreallocatedBlocks;
     }
 
     if (newNumBlocks == m_blocks.Size())

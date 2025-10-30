@@ -488,7 +488,7 @@ template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class NodeAllocatorT
 class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<const Value&>()))>
 {
 public:
-    static constexpr bool isContiguous = false;
+    static constexpr bool IsContiguous = false;
 
     static constexpr SizeType InitialBucketSize = 16;
     static constexpr double DesiredLoadFactor = 0.75;

@@ -129,8 +129,8 @@ static void GetDeferredShaderProperties(
     const RenderProxyList* rpl = nullptr,
     LightType lightType = LT_INVALID)
 {
-    static const GlobalConfig& globalConfig = CoreApi_GetGlobalConfig();
-    static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
+    static const GlobalConfig& s_globalConfig = CoreApi_GetGlobalConfig();
+    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
 
     outShaderProperties.SetRequiredVertexAttributes(
         VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
@@ -139,8 +139,8 @@ static void GetDeferredShaderProperties(
 
     MergeGlobalShaderProperties(outShaderProperties);
 
-#define DEF_STATIC_CONFIGURATION_VALUE(name, path)                      \
-    static const ConfigurationValue& s_##name = globalConfig.Get(path); \
+#define DEF_STATIC_CONFIGURATION_VALUE(name, path)                        \
+    static const ConfigurationValue& s_##name = s_globalConfig.Get(path); \
     const bool name = s_##name.ToBool()
 
     DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "Rendering.RayTracing.Reflections.Enabled");
@@ -159,8 +159,8 @@ static void GetDeferredShaderProperties(
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        outShaderProperties.Set(NAME("RT_REFLECTIONS"), renderConfig.raytracing && raytracingReflections);
-        outShaderProperties.Set(NAME("RT_GI"), renderConfig.raytracing && raytracingGlobalIllumination);
+        outShaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.raytracing && raytracingReflections);
+        outShaderProperties.Set(NAME("RT_GI"), s_renderConfig.raytracing && raytracingGlobalIllumination);
         outShaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
         outShaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
         outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
@@ -168,7 +168,7 @@ static void GetDeferredShaderProperties(
         outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
     }
 
-    if (renderConfig.raytracing && pathTracing)
+    if (s_renderConfig.raytracing && pathTracing)
     {
         outShaderProperties.Set(NAME("PATHTRACER"));
     }
@@ -562,12 +562,12 @@ void TonemapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 LightmapPass::LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(
-          ShaderRef::Null(),
-          DescriptorTableRef::Null(),
-          framebuffer,
-          TF_RGBA8,
-          extent,
-          gbuffer)
+        ShaderRef::Null(),
+        DescriptorTableRef::Null(),
+        framebuffer,
+        TF_RGBA8,
+        extent,
+        gbuffer)
 {
 }
 

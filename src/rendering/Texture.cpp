@@ -101,7 +101,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
                     textureAsset->GetName(), image->GetByteSize(), imageData->Size());
 
                 // throw an error in debug mode
-                //AssertDebug(false, "Streamed texture data buffer size mismatch!");
+                AssertDebug(false, "Streamed texture data buffer size mismatch!");
 
                 // fill some placeholder data with zeros so we don't crash
                 ByteBuffer* placeholderBuffer = &placeholderBuffers.EmplaceBack();
@@ -162,8 +162,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
             FrameBase* frame = g_renderBackend->GetCurrentFrame();
 
-            // Needs to be done after rendering; otherwise might try to insert barriers during a render pass.
-            RenderQueue& renderQueue = frame->postRenderQueue;
+            RenderQueue& renderQueue = frame->preRenderQueue;
 
             renderQueue << InsertBarrier(image, RS_COPY_DST);
             renderQueue << CopyBufferToImage(stagingBuffer, image);
@@ -178,7 +177,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
         else if (initialState != RS_UNDEFINED)
         {
             FrameBase* frame = g_renderBackend->GetCurrentFrame();
-            RenderQueue& renderQueue = frame->postRenderQueue;
+            RenderQueue& renderQueue = frame->preRenderQueue;
 
             // Transition to initial state
             renderQueue << InsertBarrier(image, initialState);
@@ -207,7 +206,7 @@ Texture::Texture()
 
 Texture::Texture(const TextureDesc& textureDesc)
     : AssetObject(s_nameTextureDefault),
-      m_assetReference(CreateObject<TextureAsset>(s_nameTextureDefault, textureDesc, TextureData {}))
+      m_assetReference(CreateObject<TextureAsset>(s_nameTextureDefault, textureDesc))
 {
 }
 
@@ -364,7 +363,7 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
     }
     else
     {
-        asset = CreateObject<TextureAsset>(GetName(), textureDesc, TextureData {});
+        asset = CreateObject<TextureAsset>(GetName(), textureDesc);
     }
 
     if (IsInitCalled())

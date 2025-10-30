@@ -54,7 +54,7 @@ public:
     using Iterator = typename utilities::StringView<TStringType>::Iterator;
     using ConstIterator = typename utilities::StringView<TStringType>::ConstIterator;
 
-    static constexpr bool isContiguous = true;
+    static constexpr bool IsContiguous = true;
 
     static const String empty;
 
@@ -72,7 +72,7 @@ public:
 
     static constexpr int stringType = TStringType;
 
-    static constexpr SizeType notFound = SizeType(-1);
+    static constexpr SizeType NotFound = SizeType(-1);
 
     static_assert(!isUtf8 || std::is_same_v<CharType, char>, "UTF-8 Strings must have CharType equal to char");
 
@@ -294,13 +294,13 @@ public:
     /*! \brief Check if the string contains the given character. */
     HYP_FORCE_INLINE bool Contains(WidestCharType ch) const
     {
-        return ch != CharType { 0 } && utilities::StringView<TStringType>(*this).FindFirstIndex(ch) != notFound;
+        return ch != CharType { 0 } && utilities::StringView<TStringType>(*this).FindFirstIndex(ch) != NotFound;
     }
 
     /*! \brief Check if the string contains the given string. */
     HYP_FORCE_INLINE bool Contains(const utilities::StringView<TStringType>& substr) const
     {
-        return FindFirstIndex(substr) != notFound;
+        return FindFirstIndex(substr) != NotFound;
     }
 
     /*! \brief Find the index of the first occurrence of the character. */
@@ -1519,7 +1519,7 @@ String<TStringType> String<TStringType>::ReplaceAll(const String& search, const 
     {
         auto foundIndex = tmp.FindFirstIndex(search);
 
-        if (foundIndex == notFound)
+        if (foundIndex == NotFound)
         {
             result.Append(tmp);
             break;
