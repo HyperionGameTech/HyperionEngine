@@ -125,11 +125,11 @@ struct TypeInfo;
 // Forward-declare the free helper so BuildVariantTypeArray can use it without
 // needing the full TypeInfo definition yet.
 template <class T>
-const TypeInfo& TypeInfo_ForType();
+const TypeInfo& TypeOf();
 
 // Helper to build a FixedArray of TypeInfo* for variant alternative types.
 // Forward-declared here; the definition is placed after `TypeInfo` and
-// `TypeInfo_ForType` are fully defined, to avoid referencing incomplete types
+// `TypeOf` are fully defined, to avoid referencing incomplete types
 // during template definition/instantiation.
 template <class NormalizedT, std::size_t... Indices>
 FixedArray<const TypeInfo*, sizeof...(Indices)> BuildVariantTypeArray(std::index_sequence<Indices...>);
@@ -2076,7 +2076,7 @@ inline SizeType TypeInfo_GetSize(const TypeInfo& typeInfo)
 }
 
 template <class T>
-const TypeInfo& TypeInfo_ForType()
+const TypeInfo& TypeOf()
 {
     return TypeInfo::ForType<T>();
 }
@@ -2086,7 +2086,7 @@ template <class NormalizedT, std::size_t... Indices>
 inline FixedArray<const TypeInfo*, sizeof...(Indices)> BuildVariantTypeArray(std::index_sequence<Indices...>)
 {
     FixedArray<const TypeInfo*, sizeof...(Indices)> res;
-    ((res[Indices] = &TypeInfo_ForType<typename IsVariant<NormalizedT>::template TypeAtIndex<Indices>>()), ...);
+    ((res[Indices] = &TypeOf<typename IsVariant<NormalizedT>::template TypeAtIndex<Indices>>()), ...);
     return res;
 }
 
@@ -2104,7 +2104,7 @@ using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVectorHandler;
 
 using utilities::TypeInfo_ForHypClass;
-using utilities::TypeInfo_ForType;
+using utilities::TypeOf;
 using utilities::TypeInfo_Void;
 
 using utilities::TypeInfo;

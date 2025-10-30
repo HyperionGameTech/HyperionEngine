@@ -1496,7 +1496,7 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE void Set(HypData& hypData, T* value) const
     {
-        HypDataHelper<AnyRef>::Set(hypData, AnyRef(&TypeInfo_ForType<T>(), value));
+        HypDataHelper<AnyRef>::Set(hypData, AnyRef(&TypeOf<T>(), value));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)

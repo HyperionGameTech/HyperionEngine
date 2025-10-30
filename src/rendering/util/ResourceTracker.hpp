@@ -288,7 +288,7 @@ public:
 
     explicit ResourceTracker(AllocatorType* pAllocator)
         : pAllocator(pAllocator),
-          baseImpl(&TypeInfo_ForType<typename IdType::ObjectType>(), pAllocator), // default impl for base class
+          baseImpl(&TypeOf<typename IdType::ObjectType>(), pAllocator), // default impl for base class
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used

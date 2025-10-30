@@ -201,7 +201,7 @@ struct Handle final : HandleBase
      *  \return The TypeInfo of the object. */
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
-        static const TypeInfo* s_typeInfo = &TypeInfo_ForType<T>();
+        static const TypeInfo* s_typeInfo = &TypeOf<T>();
 
         return ptr ? &TypeInfo_ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
     }
@@ -560,7 +560,7 @@ struct WeakHandle final
      *  \return The TypeInfo of the object. */
     HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
     {
-        static const TypeInfo* s_typeInfo = &TypeInfo_ForType<T>();
+        static const TypeInfo* s_typeInfo = &TypeOf<T>();
 
         return ptr ? &TypeInfo_ForHypClass(ptr->m_header->hypClass) : s_typeInfo;
     }

@@ -93,7 +93,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
         const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
 
-        const ByteBuffer const* imageData = &textureData->imageData;
+        const ByteBuffer* imageData = &textureData->imageData;
         LinkedList<ByteBuffer> placeholderBuffers;
 
         if (textureDesc != image->GetTextureDesc())
@@ -124,7 +124,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
             const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
 
-            const ByteBuffer const* imageData = &textureData->imageData;
+            const ByteBuffer* imageData = &textureData->imageData;
             LinkedList<ByteBuffer> placeholderBuffers;
 
             if (!CheckImageData())
@@ -380,6 +380,7 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
 
         ResourceHandle resourceHandle(*prevAsset->GetResource());
 
+        // @NOTE: Don't use std::move with prev data, the texture may be in use elsewhere (e.g uploading in render command)
         TextureData newTextureData = *prevAsset->GetTextureData();
 
         asset = CreateObject<TextureAsset>(prevAsset->GetName(), textureDesc, newTextureData);
