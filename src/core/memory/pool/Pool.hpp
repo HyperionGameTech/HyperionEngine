@@ -9,7 +9,7 @@
 #include <core/containers/HashSet.hpp>
 #include <core/containers/SortedArray.hpp>
 
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
