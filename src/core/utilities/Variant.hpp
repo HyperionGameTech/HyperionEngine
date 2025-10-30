@@ -40,11 +40,9 @@ struct VariantHelper<T, Ts...>
 
     static constexpr bool triviallyDestructible = (std::is_trivially_destructible_v<T> && (std::is_trivially_destructible_v<Ts> && ...));
 
-    static const TypeId thisTypeId;
-
     static inline bool CopyAssign(TypeId typeId, void* dst, const void* src)
     {
-        HYP_CORE_ASSERT(typeId == thisTypeId);
+        HYP_CORE_ASSERT(typeId == TypeId::ForType<NormalizedType<T>>());
 
         if constexpr (std::is_copy_assignable_v<T>)
         {
@@ -58,7 +56,7 @@ struct VariantHelper<T, Ts...>
 
     static inline bool CopyConstruct(TypeId typeId, void* dst, const void* src)
     {
-        HYP_CORE_ASSERT(typeId == thisTypeId);
+        HYP_CORE_ASSERT(typeId == TypeId::ForType<NormalizedType<T>>());
 
         if constexpr (std::is_copy_constructible_v<T>)
         {
@@ -72,7 +70,7 @@ struct VariantHelper<T, Ts...>
 
     static inline bool MoveAssign(TypeId typeId, void* dst, void* src)
     {
-        HYP_CORE_ASSERT(typeId == thisTypeId);
+        HYP_CORE_ASSERT(typeId == TypeId::ForType<NormalizedType<T>>());
 
         if constexpr (std::is_move_assignable_v<T>)
         {
@@ -86,7 +84,7 @@ struct VariantHelper<T, Ts...>
 
     static inline bool MoveConstruct(TypeId typeId, void* dst, void* src)
     {
-        HYP_CORE_ASSERT(typeId == thisTypeId);
+        HYP_CORE_ASSERT(typeId == TypeId::ForType<NormalizedType<T>>());
 
         if constexpr (std::is_move_assignable_v<T>)
         {
@@ -100,14 +98,14 @@ struct VariantHelper<T, Ts...>
 
     static inline void Destruct(TypeId typeId, void* data)
     {
-        HYP_CORE_ASSERT(typeId == thisTypeId);
+        HYP_CORE_ASSERT(typeId == TypeId::ForType<NormalizedType<T>>());
 
         Memory::Destruct<NormalizedType<T>>(data);
     }
 
     static inline bool Compare(TypeId typeId, const void* data, const void* otherData)
     {
-        if (typeId == thisTypeId)
+        if (typeId == TypeId::ForType<NormalizedType<T>>())
         {
             return *static_cast<const NormalizedType<T>*>(data) == *static_cast<const NormalizedType<T>*>(otherData);
         }
@@ -117,7 +115,7 @@ struct VariantHelper<T, Ts...>
 
     static inline HashCode GetHashCode(TypeId typeId, const void* data)
     {
-        if (typeId == thisTypeId)
+        if (typeId == TypeId::ForType<NormalizedType<T>>())
         {
             return HashCode::GetHashCode(*static_cast<const NormalizedType<T>*>(data));
         }
@@ -585,9 +583,6 @@ const TypeId VariantBase<Types...>::typeIds[sizeof...(Types) + 1] = { TypeId::Vo
 
 template <class... Types>
 const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeOf<Types>()... };
-
-template <class T, class... Ts>
-const TypeId VariantHelper<T, Ts...>::thisTypeId = TypeId::ForType<NormalizedType<T>>();
 
 template <bool IsCopyable, class... Types>
 struct VariantHolder : public VariantBase<Types...>
