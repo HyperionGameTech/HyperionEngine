@@ -31,12 +31,20 @@ private:
 
 public:
     template <class T>
+#if HYP_TYPE_ID_COMPILE_TIME
+    static consteval TypeId ForType()
+#else
     static TypeId ForType()
+#endif
     {
         return TypeId { TypeIdValue(CONSTEXPR_TYPE_ID(T)) };
     }
-
+    
+#if HYP_TYPE_ID_COMPILE_TIME
+    static consteval TypeId ForManagedType(const char* str)
+#else
     static TypeId ForManagedType(const char* str)
+#endif
     {
         return TypeId { TypeIdValue(TYPE_ID_FROM_STRING(str) | 0x1) };
     }

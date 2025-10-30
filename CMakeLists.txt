@@ -89,6 +89,12 @@ add_definitions(-DHYP_DEBUG_MODE=1)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
 
+if(NOT HYP_DEBUG_MODE)
+    # enable TypeId generatation at compile time
+    # will increase compile times slightly but improve runtime performance
+    add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
+endif()
+
 # platform and compiler definitions
 if(MSVC)
     add_definitions(-DHYP_MSVC=1)

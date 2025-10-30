@@ -44,6 +44,8 @@ constexpr auto StripClassOrStruct()
     }
 }
 
+#pragma region TypeNameStringTransformer
+
 // constexpr functions to strip namespaces from StaticString
 
 template <bool ShouldStripNamespace>
@@ -71,6 +73,10 @@ struct TypeNameStringTransformer
     }
 };
 
+#pragma endregion TypeNameStringTransformer
+
+#pragma region TypeNameStringTransformer2
+
 template <bool ShouldStripNamespace>
 struct TypeNameStringTransformer2
 {
@@ -85,6 +91,10 @@ struct TypeNameStringTransformer2
     }
 };
 
+#pragma endregion TypeNameStringTransformer2
+
+#pragma region ParseTypeName
+
 template <auto Str, bool ShouldStripNamespace>
 constexpr auto ParseTypeName()
 {
@@ -96,16 +106,20 @@ constexpr auto ParseTypeName()
         static_assert(leftArrowIndex < rightArrowIndex, "Left arrow index must be less than right arrow index or parsing will fail!");
 
         return containers::helpers::Concat<
-            containers::helpers::TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, 0, leftArrowIndex>::value>::value,
+            TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, 0, leftArrowIndex>::value>::value,
             StaticString("<"),
-            containers::helpers::TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, leftArrowIndex + 1, rightArrowIndex>::value>::value,
+            TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, leftArrowIndex + 1, rightArrowIndex>::value>::value,
             StaticString(">")>::value;
     }
     else
     {
-        return containers::helpers::TransformSplit<TypeNameStringTransformer<ShouldStripNamespace>, Str>::value;
+        return TransformSplit<TypeNameStringTransformer<ShouldStripNamespace>, Str>::value;
     }
 }
+
+#pragma endregion ParseTypeName
+
+#pragma region TypeName
 
 /*! \brief Returns the name of the type T as a StaticString.
  *
@@ -160,11 +174,15 @@ constexpr auto TypeNameWithoutNamespace()
     //  auto __cdecl hyperion::TypeNameWithoutNamespace<class hyperion::Task<int,int>>(void)
     constexpr auto substr = containers::helpers::Substr<name, 48, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
 #else
-    static_assert(false, "Unsupported compiler for TypeNameWithoutNamespace()");
+    static_assert(false, "Unsupported compiler");
 #endif
 
     return ParseTypeName<substr, true>();
 }
+
+#pragma endregion TypeName
+
+#pragma region TypeNameHelper
 
 template <class T, bool ShouldStripNamespace = false>
 struct TypeNameHelper;
@@ -180,6 +198,10 @@ struct TypeNameHelper<T, true>
 {
     static constexpr decltype(TypeNameWithoutNamespace<T>()) value = TypeNameWithoutNamespace<T>();
 };
+
+#pragma endregion TypeNameHelper
+
+#pragma region StripReturnType
 
 template <auto Str>
 constexpr auto StripReturnType()
@@ -214,6 +236,10 @@ constexpr auto StripReturnType()
     }
 }
 
+#pragma endregion StripReturnType
+
+#pragma region StripNamespaceFromFunctionName
+
 template <auto Str>
 constexpr auto StripNamespaceFromFunctionName()
 {
@@ -243,6 +269,10 @@ constexpr auto StripNamespaceFromFunctionName()
     }
 }
 
+#pragma endregion StripNamespaceFromFunctionName
+
+#pragma region PrettyFunctionName
+
 /*! \brief Normalizes the input string, removing the return type and parameters from the function signature. */
 template <auto Str>
 constexpr auto PrettyFunctionName()
@@ -270,6 +300,8 @@ constexpr auto PrettyFunctionName()
 }
 
 #define HYP_PRETTY_FUNCTION_NAME hyperion::PrettyFunctionName<HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
+
+#pragma endregion PrettyFunctionName
 
 #pragma region Template helpers
 
