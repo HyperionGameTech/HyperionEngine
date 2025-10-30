@@ -988,7 +988,7 @@ private:
     template <class Component>
     static void EnsureValidComponentType()
     {
-        AssertDebug(IsValidComponentType<Component>(), "Invalid component type: {}", TypeName<Component>().Data());
+        AssertDebug(IsValidComponentType<Component>());
     }
 
     static void EnsureValidComponentType(TypeId componentTypeId)

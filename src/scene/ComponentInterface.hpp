@@ -85,7 +85,6 @@ public:
         : m_componentFactory(std::move(componentFactory)),
           m_componentContainerFactory(componentContainerFactory)
     {
-        Assert(::hyperion::GetClass(TypeId::ForType<Component>()) != nullptr, "No HypClass registered for Component of type {}", TypeName<Component>().Data());
     }
 
     ComponentInterface(const ComponentInterface&) = delete;

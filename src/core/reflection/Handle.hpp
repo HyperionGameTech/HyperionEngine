@@ -849,7 +849,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId otherTypeId = TypeId::ForType<T>();
+        const TypeId otherTypeId = TypeId::ForType<T>();
 
         return typeId == otherTypeId
             || IsA(GetClass(otherTypeId), ptr, typeId);

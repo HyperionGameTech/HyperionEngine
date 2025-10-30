@@ -77,7 +77,7 @@ struct ShaderDataOffset
 
     HYP_FORCE_INLINE operator uint32() const
     {
-        AssertDebug(index != InvalidIndex, "Index was ~0u when converting to uint32 for ShaderDataOffset<{}>", TypeName<T>().Data());
+        AssertDebug(index != InvalidIndex);
 
         return uint32(sizeof(T) * index);
     }
@@ -218,7 +218,7 @@ struct DescriptorTableOffsetMap
     }
 };
 
-constexpr uint32 descriptorSetElementTypeToBufferType[uint32(DescriptorSetElementType::MAX)] = {
+constexpr uint32 ElementTypeToBufferType[uint32(DescriptorSetElementType::MAX)] = {
     0,                                    // UNSET
     (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER
     (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
@@ -815,7 +815,7 @@ protected:
                 const GpuBufferType bufferType = ref->GetBufferType();
 
                 AssertDebug(
-                    (descriptorSetElementTypeToBufferType[uint32(layoutElement->type)] & (1u << uint32(bufferType))),
+                    (ElementTypeToBufferType[uint32(layoutElement->type)] & (1u << uint32(bufferType))),
                     "Buffer type {} is not in the allowed types for element {}",
                     uint32(bufferType), Name(name));
 

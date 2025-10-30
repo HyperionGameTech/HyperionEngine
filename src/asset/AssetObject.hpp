@@ -136,11 +136,11 @@ protected:
     {
         if (m_data != nullptr)
         {
-            *m_data = std::move(ref.Get<T>());
+            *m_data = ref.Get<T>();
         }
         else
         {
-            m_data = PoolNew<T>(*g_assetPool, std::move(ref.Get<T>()));
+            m_data = PoolNew<T>(*g_assetPool, ref.Get<T>());
         }
     }
 
@@ -161,8 +161,8 @@ HYP_ENUM()
 enum AssetObjectFlags : uint32
 {
     AOF_NONE = 0x0,
-    AOF_PERSISTENT = 0x1, //!< Asset is persistently loaded in memory
-    AOF_TRANSIENT = 0x2,   //!< Asset is not saved to disk
+    AOF_PERSISTENT = 0x1,        //!< Asset is persistently loaded in memory
+    AOF_TRANSIENT = 0x2,         //!< Asset is not saved to disk
     AOF_TRANSIENT_BY_PROXY = 0x4 //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
 };
 

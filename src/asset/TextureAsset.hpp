@@ -53,7 +53,7 @@ public:
         return m_textureDesc;
     }
 
-    HYP_FORCE_INLINE TextureData* GetTextureData() const
+    HYP_FORCE_INLINE const TextureData* GetTextureData() const
     {
         return GetResourceData<TextureData>();
     }

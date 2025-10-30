@@ -10,6 +10,13 @@
 #include <core/memory/MemoryMetrics.hpp>
 
 #include <core/memory/allocator/Allocator.hpp>
+#include <core/memory/allocator/AllocatorFlags.hpp>
+
+#include <core/threading/ThreadId.hpp>
+#include <core/threading/Spinlock.hpp>
+#include <core/threading/Threads.hpp>
+
+#include <core/utilities/EnumFlags.hpp>
 
 #include <new>
 #include <limits>
@@ -31,23 +38,30 @@ public:
 
     explicit TSlabAllocator(
         SizeType blockSize,
+        SizeType alignment = 16,
         uint32 blocksPerSlab = 256,
-        SizeType alignment = 16)
-        : TSlabAllocator(GetDefaultAllocatorInstance<AllocatorType>(), blockSize, blocksPerSlab, alignment)
+        EnumFlags<AllocatorFlags> flags = AF_NONE,
+        const ThreadId& ownerThreadId = ThreadId::Invalid())
+        : TSlabAllocator(GetDefaultAllocatorInstance<AllocatorType>(), blockSize, blocksPerSlab, alignment, flags, ownerThreadId)
     {
     }
 
     TSlabAllocator(
         AllocatorType* pAllocator,
         SizeType blockSize,
+        SizeType alignment = 16,
         uint32 blocksPerSlab = 256,
-        SizeType alignment = 16)
+        EnumFlags<AllocatorFlags> flags = AF_NONE,
+        const ThreadId& ownerThreadId = ThreadId::Invalid())
         : m_pAllocator(pAllocator),
           m_blockSize(0),
           m_alignment(0),
           m_blocksPerSlab(blocksPerSlab),
           m_slabs(),
-          m_activeAllocations(0)
+          m_activeAllocations(0),
+          m_flags(flags),
+          m_ownerThreadId(ownerThreadId),
+          m_lockState(0)
     {
         HYP_CORE_ASSERT(m_blocksPerSlab != 0);
         HYP_CORE_ASSERT(IsPowerOfTwo(alignment));
@@ -74,6 +88,16 @@ public:
 
     void* Allocate()
     {
+        Spinlock<MPMC> lock(&m_lockState);
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Lock();
+        }
+        else if (m_ownerThreadId.IsValid())
+        {
+            Threads::AssertOnThread(m_ownerThreadId, "TSlabAllocator allocation from wrong thread!");
+        }
+
         for (uint32 i = 0; i < m_slabs.Size(); ++i)
         {
             Slab& slab = m_slabs[i];
@@ -82,6 +106,12 @@ public:
                 if (void* p = PopFromSlab(slab))
                 {
                     ++m_activeAllocations;
+
+                    if (m_flags & AF_THREAD_SAFE)
+                    {
+                        lock.Unlock();
+                    }
+
                     return p;
                 }
             }
@@ -89,6 +119,11 @@ public:
 
         if (!CreateSlab())
         {
+            if (m_flags & AF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return nullptr;
         }
 
@@ -96,10 +131,20 @@ public:
         void* p = PopFromSlab(slab);
         if (!p)
         {
+            if (m_flags & AF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return nullptr;
         }
 
         ++m_activeAllocations;
+
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Unlock();
+        }
 
         return p;
     }
@@ -142,10 +187,25 @@ public:
             return;
         }
 
+        Spinlock<MPMC> lock(&m_lockState);
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Lock();
+        }
+        else if (m_ownerThreadId.IsValid())
+        {
+            Threads::AssertOnThread(m_ownerThreadId, "TSlabAllocator free from wrong thread!");
+        }
+
         Slab* slab = FindOwningSlab(ptr);
         HYP_CORE_ASSERT(slab != nullptr);
         if (HYP_UNLIKELY(!slab))
         {
+            if (m_flags & AF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return;
         }
 
@@ -156,6 +216,11 @@ public:
         HYP_CORE_ASSERT(p >= base && p < base + slabBytes);
         if (HYP_UNLIKELY(!(p >= base && p < base + slabBytes)))
         {
+            if (m_flags & AF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return;
         }
 
@@ -163,6 +228,11 @@ public:
         HYP_CORE_ASSERT((offset % m_blockSize) == 0);
         if (HYP_UNLIKELY((offset % m_blockSize) != 0))
         {
+            if (m_flags & AF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return;
         }
 
@@ -170,6 +240,11 @@ public:
         HYP_CORE_ASSERT(blockIndex < m_blocksPerSlab);
         if (HYP_UNLIKELY(blockIndex >= m_blocksPerSlab))
         {
+            if (m_flags & AF_THREAD_SAFE)
+            {
+                lock.Unlock();
+            }
+
             return;
         }
 
@@ -181,7 +256,14 @@ public:
             {
                 HYP_CORE_ASSERT(it != blockIndex);
                 if (HYP_UNLIKELY(it == blockIndex))
+                {
+                    if (m_flags & AF_THREAD_SAFE)
+                    {
+                        lock.Unlock();
+                    }
+
                     return; // double free detected in debug
+                }
                 it = ReadNextIndex(BlockPtr(*slab, it));
             }
         }
@@ -195,10 +277,25 @@ public:
         {
             --m_activeAllocations;
         }
+
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Unlock();
+        }
     }
 
     void Reset()
     {
+        Spinlock<MPMC> lock(&m_lockState);
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Lock();
+        }
+        else if (m_ownerThreadId.IsValid())
+        {
+            Threads::AssertOnThread(m_ownerThreadId, "TSlabAllocator reset from wrong thread!");
+        }
+
         for (uint32 i = 0; i < m_slabs.Size(); ++i)
         {
             if (m_slabs[i].base)
@@ -211,10 +308,21 @@ public:
         }
         m_slabs.Clear();
         m_activeAllocations = 0;
+
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Unlock();
+        }
     }
 
     MemoryMetrics GetMemoryMetrics() const
     {
+        Spinlock<MPMC> lock(&m_lockState);
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Lock();
+        }
+
         MemoryMetrics metrics;
 
         const SizeType slabsCount = m_slabs.Size();
@@ -228,6 +336,11 @@ public:
         metrics[MemoryMetrics::MM_BYTES_FREE] = bytesFree;
         metrics[MemoryMetrics::MM_ALLOCATIONS_ACTIVE] = static_cast<SizeType>(m_activeAllocations);
         metrics[MemoryMetrics::MM_BLOCKS_TOTAL] = blocksTotal;
+
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            lock.Unlock();
+        }
 
         return metrics;
     }
@@ -341,6 +454,9 @@ private:
     uint32 m_blocksPerSlab;
     Array<Slab> m_slabs;
     uint64 m_activeAllocations;
+    EnumFlags<AllocatorFlags> m_flags;
+    ThreadId m_ownerThreadId;
+    mutable volatile int64 m_lockState;
 };
 
 using SlabAllocator = TSlabAllocator<DynamicAllocator>;

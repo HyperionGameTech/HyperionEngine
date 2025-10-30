@@ -40,7 +40,7 @@ struct VariantHelper<T, Ts...>
 
     static constexpr bool triviallyDestructible = (std::is_trivially_destructible_v<T> && (std::is_trivially_destructible_v<Ts> && ...));
 
-    static constexpr TypeId thisTypeId = TypeId::ForType<NormalizedType<T>>();
+    static const TypeId thisTypeId;
 
     static inline bool CopyAssign(TypeId typeId, void* dst, const void* src)
     {
@@ -189,9 +189,9 @@ protected:
 
 public:
     static constexpr int invalidTypeIndex = -1;
-    static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
     static constexpr SizeType typeCount = sizeof...(Types);
 
+    static const TypeId typeIds[sizeof...(Types) + 1];
     static const TypeInfo* typeInfos[sizeof...(Types) + 1];
 
     constexpr VariantBase()
@@ -202,7 +202,7 @@ public:
     constexpr VariantBase(const VariantBase& other) = default;
     VariantBase& operator=(const VariantBase& other) = default;
 
-    constexpr VariantBase(VariantBase&& other) noexcept
+    VariantBase(VariantBase&& other) noexcept
         : VariantBase()
     {
         if (other.IsValid())
@@ -275,12 +275,12 @@ public:
     }
 
     template <class T, typename = typename std::enable_if_t<!std::is_base_of_v<VariantBase, T> && std::is_copy_constructible_v<T>>>
-    constexpr explicit VariantBase(const T& value)
+    explicit VariantBase(const T& value)
         : m_currentIndex(invalidTypeIndex)
     {
         static_assert(Helper::template holdsType<T> || ResolutionFailureV<T>, "Type is not valid for the variant");
 
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), std::addressof(value));
@@ -292,12 +292,12 @@ public:
     }
 
     template <class T, typename = typename std::enable_if_t<!std::is_base_of_v<VariantBase, T>>>
-    constexpr explicit VariantBase(T&& value)
+    explicit VariantBase(T&& value)
         : m_currentIndex(invalidTypeIndex)
     {
         static_assert(Helper::template holdsType<T> || ResolutionFailureV<T>, "Type is not valid for the variant");
 
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), std::addressof(value));
@@ -319,7 +319,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE constexpr TypeId GetTypeId() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return CurrentTypeId();
     }
@@ -360,9 +360,9 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE constexpr bool Is() const
+    HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId otherTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId otherTypeId = TypeId::ForType<NormalizedType<T>>();
 
         return m_currentIndex == TypeIndexHelper<VariantBase<Types...>> {}(otherTypeId);
     }
@@ -464,7 +464,7 @@ public:
             }
         }
 
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
@@ -490,7 +490,7 @@ public:
             }
         }
 
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
 
         const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
@@ -518,7 +518,7 @@ public:
 
         m_currentIndex = invalidTypeIndex;
 
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
 
         Memory::Construct<NormalizedType<T>>(m_storage.GetPointer(), std::forward<Args>(args)...);
 
@@ -572,7 +572,7 @@ protected:
         }
     } m_storage;
 
-    HYP_FORCE_INLINE constexpr TypeId CurrentTypeId() const
+    HYP_FORCE_INLINE TypeId CurrentTypeId() const
     {
         return typeIds[m_currentIndex + 1];
     }
@@ -580,9 +580,14 @@ protected:
     int m_currentIndex;
 };
 
-// define static type infos
+template <class... Types>
+const TypeId VariantBase<Types...>::typeIds[sizeof...(Types) + 1] = { TypeId::Void(), TypeId::ForType<Types>()... };
+
 template <class... Types>
 const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeInfo_ForType<Types>()... };
+
+template <class T, class... Ts>
+const TypeId VariantHelper<T, Ts...>::thisTypeId = TypeId::ForType<NormalizedType<T>>();
 
 template <bool IsCopyable, class... Types>
 struct VariantHolder : public VariantBase<Types...>
@@ -741,7 +746,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
     static constexpr int invalidTypeIndex = utilities::VariantBase<Types...>::invalidTypeIndex;
 
     // we do sizeof...(Types) + 1 so getting type id from index is just accessing the element at type index + 1.
-    static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
+    static const TypeId typeIds[sizeof...(Types) + 1];
     static constexpr SizeType typeCount = sizeof...(Types);
 
     constexpr Variant() = default;
@@ -760,7 +765,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
 
     ~Variant() = default;
 
-    HYP_FORCE_INLINE constexpr TypeId GetTypeId() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return m_holder.GetTypeId();
     }
@@ -990,14 +995,17 @@ private:
         m_holder;
 };
 
+template <class... Types>
+const TypeId Variant<Types...>::typeIds[sizeof...(Types) + 1] = { TypeId::Void(), TypeId::ForType<Types>()... };
+
 #pragma region TypeIndex
 
 template <class T>
 struct TypeIndex_Impl
 {
-    constexpr bool operator()(TypeId typeId, int& index) const
+    HYP_FORCE_INLINE bool operator()(TypeId typeId, int& index) const
     {
-        constexpr TypeId otherTypeId = TypeId::ForType<T>();
+        const TypeId otherTypeId = TypeId::ForType<T>();
 
         if (typeId != otherTypeId)
         {

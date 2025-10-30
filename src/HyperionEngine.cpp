@@ -22,6 +22,7 @@
 #include <console/ConsoleCommandManager.hpp>
 
 #include <system/MessageBox.hpp>
+#include <system/AppContext.hpp>
 
 #include <streaming/StreamingManager.hpp>
 

@@ -36,7 +36,7 @@
 namespace hyperion {
 
 //! for debugging
-static constexpr bool DisableAssetUnload = false;
+static constexpr bool DebugDisableUnload = false;
 
 HYP_API extern const FilePath& GetResourceDirectory();
 
@@ -104,6 +104,13 @@ void AssetDataResourceBase::Initialize()
     {
         HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
 
+        // TEMP
+        if (GetAssetRef().Is<TextureData>())
+        {
+            TextureData& textureData = GetAssetRef().Get<TextureData>();
+            HYP_LOG(Assets, Debug, "TextureData image data size: {}", textureData.imageData.Size());
+        }
+
         return;
     }
 
@@ -124,6 +131,8 @@ void AssetDataResourceBase::Initialize()
 void AssetDataResourceBase::Destroy()
 {
     HYP_SCOPE;
+    // temp debug
+    Assert(m_refCount == 0);
 
     AssetObject* assetObject = m_assetObject.GetUnsafe();
 
@@ -257,7 +266,7 @@ void AssetObject::Init()
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
         resource->m_assetObject = WeakHandleFromThis();
 
-        if ((m_flags[AOF_PERSISTENT] || DisableAssetUnload) && !m_persistentResource)
+        if ((m_flags[AOF_PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
         {
             m_persistentResource = ResourceHandle(*m_resource);
         }
@@ -286,7 +295,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
         return;
     }
 
-    if (DisableAssetUnload)
+    if (DebugDisableUnload)
     {
         return;
     }

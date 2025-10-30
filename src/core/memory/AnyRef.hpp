@@ -158,7 +158,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
         return m_ptr && (thisTypeId == typeId || IsA(GetClass(typeId), m_ptr, thisTypeId));
@@ -272,7 +272,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T& Get() const
     {
-        constexpr TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
         HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
@@ -291,7 +291,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T* TryGet() const
     {
-        constexpr TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
         const TypeId thisTypeId = GetTypeId();
 
         if (m_ptr && (thisTypeId == requestedTypeId || IsA(GetClass(requestedTypeId), m_ptr, thisTypeId)))

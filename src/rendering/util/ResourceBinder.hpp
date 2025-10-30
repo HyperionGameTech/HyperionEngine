@@ -325,7 +325,7 @@ public:
             return;
         }
 
-        constexpr TypeId baseTypeId = TypeId::ForType<T>();
+        const TypeId baseTypeId = TypeId::ForType<T>();
         const TypeId objectTypeId = GetTypeIdForClass(object->InstanceClass());
 
         if (objectTypeId == baseTypeId)
@@ -354,7 +354,7 @@ public:
     {
         AssertDebug(object != nullptr);
 
-        constexpr TypeId typeId = TypeId::ForType<T>();
+        const TypeId typeId = TypeId::ForType<T>();
         const TypeId objectTypeId = GetTypeIdForClass(object->InstanceClass());
 
         if (objectTypeId == typeId)
@@ -383,7 +383,7 @@ public:
     {
         AssertDebug(object != nullptr);
 
-        constexpr TypeId typeId = TypeId::ForType<T>();
+        const TypeId typeId = TypeId::ForType<T>();
         const TypeId objectTypeId = GetTypeIdForClass(object->InstanceClass());
 
         if (objectTypeId == typeId)
@@ -435,13 +435,13 @@ public:
 
     virtual const Bitset& GetBoundIndices(TypeId typeId) const override
     {
-        static const Bitset emptyBitset;
+        static const Bitset s_emptyBitset;
 
-        constexpr TypeId baseTypeId = TypeId::ForType<T>();
+        const TypeId baseTypeId = TypeId::ForType<T>();
 
         if (typeId == TypeId::Void())
         {
-            return emptyBitset;
+            return s_emptyBitset;
         }
 
         if (typeId == baseTypeId)
@@ -458,7 +458,7 @@ public:
             if (!m_subclassImplsInitialized.Test(subclassIndex))
             {
                 // not initialized, return empty bitset
-                return emptyBitset;
+                return s_emptyBitset;
             }
 
             return m_subclassImpls[subclassIndex].Get().lastFrameIds;

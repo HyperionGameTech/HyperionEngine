@@ -453,7 +453,7 @@ public:
             [=](ResourceContainer& container)
             {
                 const HypClass* resourceClass = GetResourceClass();
-                AssertDebug(resourceClass != nullptr, "Class not found for resource type: {}", TypeName<ResourceType>().Data());
+                AssertDebug(resourceClass != nullptr);
 
                 const int staticIndex = resourceClass->GetStaticIndex();
                 AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *resourceClass->GetName());

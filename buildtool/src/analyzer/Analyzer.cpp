@@ -219,7 +219,7 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
     {
         const SizeType equalsIndex = attribute.FindFirstIndex('=');
 
-        if (equalsIndex == String::notFound)
+        if (equalsIndex == String::NotFound)
         {
             // No equals sign, so it's a boolean attribute (true)
             results.PushBack(Pair<String, HypClassAttributeValue> { attribute, HypClassAttributeValue(true) });
@@ -353,14 +353,14 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
     SizeType& outEndIndex,
     bool requireParens = true)
 {
-    outStartIndex = String::notFound;
-    outEndIndex = String::notFound;
+    outStartIndex = String::NotFound;
+    outEndIndex = String::NotFound;
 
     for (const Pair<String, E>& it : usableMacros)
     {
         SizeType macroStartIndex = line.FindFirstIndex(it.first);
 
-        if (macroStartIndex != String::notFound)
+        if (macroStartIndex != String::NotFound)
         {
             Array<Pair<String, HypClassAttributeValue>> attributes;
 
@@ -519,7 +519,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
             hypClassDefinition.baseClassNames.PushBack(baseClassName);
         }
 
-        if (braceIndex != String::notFound)
+        if (braceIndex != String::NotFound)
         {
             const String remainingContent = contentToEnd.Substr(braceIndex, contentToEnd.Size());
 
@@ -534,7 +534,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         {
             if (!hypClassDefinition.isCXXEnum && !hypClassDefinition.isCXXEnumClass)
             {
-                if (hypClassDefinition.source.FindFirstIndex("HYP_OBJECT_BODY") == String::notFound)
+                if (hypClassDefinition.source.FindFirstIndex("HYP_OBJECT_BODY") == String::NotFound)
                 {
                     return HYP_MAKE_ERROR(AnalyzerError, "HYP_CLASS '{}' must contain HYP_OBJECT_BODY(...) in its body", mod.GetPath(), 0, hypClassDefinition.name);
                 }
@@ -544,7 +544,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         {
             if (!hypClassDefinition.isCXXEnum && !hypClassDefinition.isCXXEnumClass)
             {
-                if (hypClassDefinition.source.FindFirstIndex("HYP_STRUCT_BODY") == String::notFound)
+                if (hypClassDefinition.source.FindFirstIndex("HYP_STRUCT_BODY") == String::NotFound)
                 {
                     return HYP_MAKE_ERROR(AnalyzerError, "HYP_STRUCT '{}' must contain HYP_STRUCT_BODY(...) in its body", mod.GetPath(), 0, hypClassDefinition.name);
                 }
@@ -709,7 +709,7 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(co
 
     SizeType openingBraceIndex = innerContent.FindFirstIndex('{');
 
-    if (openingBraceIndex == String::notFound)
+    if (openingBraceIndex == String::NotFound)
     {
         return HYP_MAKE_ERROR(AnalyzerError, "Failed to find opening brace for enum", mod.GetPath());
     }
@@ -720,7 +720,7 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(co
     // Find the closing brace
     SizeType closingBraceIndex = innerContent.FindLastIndex('}');
 
-    if (closingBraceIndex == String::notFound)
+    if (closingBraceIndex == String::NotFound)
     {
         return HYP_MAKE_ERROR(AnalyzerError, "Failed to find closing brace for enum", mod.GetPath());
     }

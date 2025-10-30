@@ -22,7 +22,7 @@ class SymbolTypeCache
 {
 public:
     SymbolTypeCache()
-        : allocator(sizeof(SymbolTypeRegistration), 256, alignof(SymbolTypeRegistration))
+        : allocator(sizeof(SymbolTypeRegistration), alignof(SymbolTypeRegistration))
     {
         ptrs.Reserve(1024);
     }
