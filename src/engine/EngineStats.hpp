@@ -9,7 +9,7 @@
 #include <core/memory/Pimpl.hpp>
 #include <core/memory/pool/Pool.hpp>
 
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 
 #include <core/profiling/PerformanceClock.hpp>
 
@@ -107,7 +107,7 @@ public:
 
     /*! \brief Record a value set to be integrated into samples.
      *  Call this to add values that will be included in the next Advance() calculation.
-      * Call only from Render thread! */
+     * Call only from Render thread! */
     void RecordValueSet(const struct EngineStatsValueSet& valueSet);
 
 private:

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/threading/Mutex.hpp>
 
@@ -165,10 +165,10 @@ ThreadId::ThreadId(Name name, bool forceUnique)
 
 ThreadId::ThreadId(Name name, ThreadCategory category, bool forceUnique)
     : ThreadId(
-          name,
-          category,
-          AllocateFlags::DYNAMIC
-              | (forceUnique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
+        name,
+        category,
+        AllocateFlags::DYNAMIC
+            | (forceUnique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
 {
 }
 

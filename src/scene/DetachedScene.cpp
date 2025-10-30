@@ -7,7 +7,7 @@
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Thread.hpp>
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 

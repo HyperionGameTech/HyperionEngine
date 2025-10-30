@@ -12,7 +12,7 @@
 #include <core/memory/allocator/Allocator.hpp>
 #include <core/memory/allocator/AllocatorFlags.hpp>
 
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 #include <core/threading/Spinlock.hpp>
 #include <core/threading/Threads.hpp>
 
