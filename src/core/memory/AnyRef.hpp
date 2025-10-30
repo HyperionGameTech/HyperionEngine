@@ -204,14 +204,14 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit AnyRef(T& value)
-        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), &value)
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), &value)
     {
     }
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     AnyRef& operator=(T& value)
     {
-        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
         m_ptr = &value;
 
         return *this;
@@ -219,7 +219,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
     AnyRef(T* value)
-        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), value)
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), value)
     {
     }
 
@@ -305,7 +305,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_const_v<T> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(T& value)
     {
-        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
         m_ptr = &value;
     }
 
@@ -317,7 +317,7 @@ public:
     template <class T>
     static AnyRef Empty()
     {
-        return AnyRef(&TypeInfo_ForType<NormalizedType<T>>(), nullptr);
+        return AnyRef(&TypeOf<NormalizedType<T>>(), nullptr);
     }
 };
 
@@ -340,7 +340,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit ConstAnyRef(T&& value)
-        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
     }
@@ -350,7 +350,7 @@ public:
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
 
-        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
         m_ptr = const_cast<T*>(&value);
 
         return *this;
@@ -358,7 +358,7 @@ public:
 
     template <class T>
     ConstAnyRef(const T* value)
-        : AnyRefBase(&TypeInfo_ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
     {
     }
 
@@ -467,7 +467,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(const T& value)
     {
-        m_typeInfo = &TypeInfo_ForType<NormalizedType<T>>();
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
         m_ptr = const_cast<T*>(&value);
     }
 
@@ -479,7 +479,7 @@ public:
     template <class T>
     static ConstAnyRef Empty()
     {
-        return ConstAnyRef(&TypeInfo_ForType<NormalizedType<T>>(), nullptr);
+        return ConstAnyRef(&TypeOf<NormalizedType<T>>(), nullptr);
     }
 };
 

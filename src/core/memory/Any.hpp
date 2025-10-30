@@ -65,7 +65,7 @@ class Any final : public AnyBase
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { &TypeInfo_ForType<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
+        Block* hdr = new (base) Block { &TypeOf<T>(), nullptr, &Any::BlockCopyConstruct<T>, nullptr, &Any::BlockDeleter<T> };
         T* obj = ::new (base + objOffset) T(val);
         hdr->objectPtr = obj;
         return hdr;
@@ -360,7 +360,7 @@ public:
 
         void* raw = ::operator new(totalSize, std::align_val_t(align));
         char* base = static_cast<char*>(raw);
-        Block* hdr = new (base) Block { &TypeInfo_ForType<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
+        Block* hdr = new (base) Block { &TypeOf<U>(), nullptr, &Any::BlockCopyConstruct<U>, nullptr, &Any::BlockDeleter<U> };
         U* obj = ::new (base + objOffset) U(std::forward<Args>(args)...);
         hdr->objectPtr = obj;
 
@@ -383,7 +383,7 @@ public:
         if (ptr)
         {
             void* raw = ::operator new(sizeof(Block), std::align_val_t(alignof(Block)));
-            Block* hdr = new (raw) Block { &TypeInfo_ForType<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
+            Block* hdr = new (raw) Block { &TypeOf<U>(), ptr, &Any::BlockCopyConstruct<U>, &Memory::Delete<U>, &Any::ExternalBlockDeleter };
             m_block = hdr;
         }
         else

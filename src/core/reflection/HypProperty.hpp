@@ -73,7 +73,7 @@ struct HypPropertyGetter
               })
 
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -92,7 +92,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -111,7 +111,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
 
     // Special getter that takes no target. Used for Enums
@@ -131,7 +131,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ReturnType>();
+        typeInfo.valueTypeInfo = &TypeOf<ReturnType>();
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -150,7 +150,7 @@ struct HypPropertyGetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -234,7 +234,7 @@ struct HypPropertySetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
 
     template <class ReturnType, class TargetType, class ValueType>
@@ -271,7 +271,7 @@ struct HypPropertySetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -308,7 +308,7 @@ struct HypPropertySetter
                   return {};
               })
     {
-        typeInfo.valueTypeInfo = &TypeInfo_ForType<ValueType>();
+        typeInfo.valueTypeInfo = &TypeOf<ValueType>();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const

@@ -76,7 +76,7 @@ protected:
 
     virtual bool IsDataLoaded() const = 0;
 
-    virtual TypeId GetAssetTypeId() const = 0;
+    virtual const TypeInfo& GetAssetType() const = 0;
     virtual AnyRef GetAssetRef() = 0;
 
     WeakHandle<AssetObject> m_assetObject;
@@ -144,9 +144,15 @@ protected:
         }
     }
 
-    virtual TypeId GetAssetTypeId() const override
+    virtual const TypeInfo& GetAssetType() const override
     {
-        return const_cast<AssetDataResource*>(this)->GetAssetRef().GetTypeId();
+        AnyRef assetRef = const_cast<AssetDataResource*>(this)->GetAssetRef();
+        if (!assetRef)
+        {
+            return TypeInfo_Void();
+        }
+
+        return *assetRef.GetTypeInfo();
     }
 
     virtual AnyRef GetAssetRef() override
@@ -355,7 +361,7 @@ protected:
         }
 
         AssetDataResourceBase* resourceCasted = static_cast<AssetDataResourceBase*>(m_resource);
-        AssertDebug(resourceCasted->GetAssetTypeId() == TypeId::ForType<T>(), "Type mismatch!");
+        AssertDebug(TypeInfo_GetId(resourceCasted->GetAssetType()) == TypeInfo_GetId(TypeOf<T>()), "Type mismatch!");
 
         return resourceCasted->GetAssetRef().TryGet<T>();
     }

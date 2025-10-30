@@ -44,7 +44,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo_ForType<NormalizedType<ConstantType>>()),
+          m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -67,7 +67,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, const ConstantType* pValue, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo_ForType<NormalizedType<ConstantType>>()),
+          m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {

@@ -412,7 +412,7 @@ class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
     explicit GpuBufferHolder(uint32 initialCount = 0)
-        : GpuBufferHolderBase(&TypeInfo_ForType<StructType>()),
+        : GpuBufferHolderBase(&TypeOf<StructType>()),
           m_pool(NAME_FMT("GpuBufferData_{}", TypeInfo_GetName(*m_structTypeInfo)), initialCount)
     {
         GpuBufferHolderBase::CreateBuffers(BufferType, initialCount, sizeof(StructType));

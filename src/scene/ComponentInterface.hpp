@@ -116,7 +116,7 @@ public:
 
     virtual const TypeInfo& GetTypeInfo() const override
     {
-        return TypeInfo_ForType<Component>();
+        return TypeOf<Component>();
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
@@ -194,7 +194,7 @@ public:
 
     virtual const TypeInfo& GetTypeInfo() const override
     {
-        return TypeInfo_ForType<TagComponent<Tag>>();
+        return TypeOf<TagComponent<Tag>>();
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override

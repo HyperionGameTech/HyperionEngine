@@ -281,7 +281,7 @@ class ResourceBinder : public ResourceBinderBase
 public:
     explicit ResourceBinder(ResourceBindingAllocatorBase* bindingAllocator)
         : ResourceBinderBase(bindingAllocator),
-          m_impl(&TypeInfo_ForType<T>())
+          m_impl(&TypeOf<T>())
     {
     }
 

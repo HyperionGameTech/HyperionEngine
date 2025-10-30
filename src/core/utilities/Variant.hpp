@@ -584,7 +584,7 @@ template <class... Types>
 const TypeId VariantBase<Types...>::typeIds[sizeof...(Types) + 1] = { TypeId::Void(), TypeId::ForType<Types>()... };
 
 template <class... Types>
-const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeInfo_ForType<Types>()... };
+const TypeInfo* VariantBase<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, &TypeOf<Types>()... };
 
 template <class T, class... Ts>
 const TypeId VariantHelper<T, Ts...>::thisTypeId = TypeId::ForType<NormalizedType<T>>();
