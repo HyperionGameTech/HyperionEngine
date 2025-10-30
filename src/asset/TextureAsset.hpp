@@ -18,19 +18,26 @@ public:
         : AssetObject(),
           m_textureDesc()
     {
-        AssetObject::SetData(TextureData());
+    }
+
+    TextureAsset(Name name, const TextureDesc& desc)
+        : AssetObject(name),
+          m_textureDesc(desc)
+    {
     }
 
     TextureAsset(Name name, const TextureDesc& desc, const TextureData& textureData)
         : AssetObject(name, textureData),
           m_textureDesc(desc)
     {
+        AssertDebug(textureData.imageData.Size() != 0);
     }
 
     TextureAsset(Name name, const TextureDesc& desc, TextureData&& textureData)
         : AssetObject(name, std::move(textureData)),
           m_textureDesc(desc)
     {
+        AssertDebug(GetTextureData()->imageData.Size() != 0);
     }
 
     TextureAsset(const TextureAsset& other) = delete;

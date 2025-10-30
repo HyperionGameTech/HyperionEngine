@@ -39,7 +39,7 @@ class LinkedList : public ContainerBase<LinkedList<T, AllocatorType>, SizeType>
     using Node = containers::LinkedListNode<T, AllocatorType>;
 
 public:
-    static constexpr bool isContiguous = false;
+    static constexpr bool IsContiguous = false;
 
     struct ConstIterator;
 

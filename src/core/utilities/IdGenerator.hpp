@@ -58,7 +58,7 @@ struct IdGenerator
             if (freeIndices.Count() != 0)
             {
                 Bitset::BitIndex bitIndex = freeIndices.LastSetBitIndex();
-                HYP_CORE_ASSERT(bitIndex != Bitset::notFound);
+                HYP_CORE_ASSERT(bitIndex != Bitset::NotFound);
                 HYP_CORE_ASSERT(freeIndices.Test(bitIndex) == true);
                 freeIndices.Set(bitIndex, false);
 

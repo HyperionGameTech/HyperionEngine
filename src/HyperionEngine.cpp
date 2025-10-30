@@ -69,6 +69,7 @@ static constexpr SizeType FramePoolBlockSize = 4 * 1024 * 1024;
 static constexpr SizeType ScenePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType TaskPoolBlockSize = 4 * 1024 * 1024;
 static constexpr SizeType ResourcePoolBlockSize = 8 * 1024 * 1024;
+static constexpr SizeType AssetPoolBlockSize = 16 * 1024 * 1024;
 
 HYP_API Pool* g_objectPool;
 HYP_API Pool* g_renderPool;
@@ -76,6 +77,7 @@ HYP_API Pool* g_framePools[NumMultiBuffers];
 HYP_API Pool* g_scenePool;
 HYP_API Pool* g_taskPool;
 HYP_API Pool* g_resourcePool;
+HYP_API Pool* g_assetPool;
 
 Pool* const* g_enginePools[EPN_MAX] = {
     &g_objectPool, // EPN_CORE
@@ -162,6 +164,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     g_scenePool = new Pool(ScenePoolBlockSize, PF_THREAD_SAFE);
     g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
     g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
+    g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
 
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
@@ -315,6 +318,12 @@ HYP_API void DestroyEngine()
 
     delete g_taskPool;
     g_taskPool = nullptr;
+
+    delete g_resourcePool;
+    g_resourcePool = nullptr;
+
+    delete g_assetPool;
+    g_assetPool = nullptr;
 
     for (uint32 i = 0; i < NumMultiBuffers; i++)
     {

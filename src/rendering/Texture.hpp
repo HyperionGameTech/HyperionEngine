@@ -32,7 +32,7 @@ public:
     Texture();
 
     explicit Texture(const TextureDesc& textureDesc);
-    explicit Texture(const TextureDesc& textureDesc, const TextureData& textureData);
+    Texture(const TextureDesc& textureDesc, const TextureData& textureData);
 
     explicit Texture(const Handle<TextureAsset>& asset);
 

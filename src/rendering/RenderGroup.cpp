@@ -49,6 +49,8 @@
 
 namespace hyperion {
 
+// #define HYP_MATERIAL_DEBUG 1
+
 extern EngineStatCounter<uint32> g_statDrawCalls;
 extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
 extern EngineStatCounter<uint32> g_statTriangles;
@@ -110,6 +112,8 @@ void RenderGroup::Init()
             SafeDelete(std::move(m_shader));
             SafeDelete(std::move(m_descriptorTable));
         }));
+
+    HypObjectBase::Init();
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
     if (!g_renderBackend->GetRenderConfig().parallelRendering)
@@ -360,6 +364,14 @@ static void RenderAll(
         {
             frame->renderQueue << BindVertexBuffer(drawCalls.meshes[i]->GetVertexBuffer());
             frame->renderQueue << BindIndexBuffer(drawCalls.meshes[i]->GetIndexBuffer());
+
+#if HYP_MATERIAL_DEBUG
+            AssertDebug(drawCalls.materials[i] != nullptr && drawCalls.materials[i]->IsReady());
+            if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+            {
+                HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", drawCalls.materials[i]->GetName());
+            }
+#endif
         }
 
         if (UseIndirectRendering && drawCalls.drawCommandIndices[i] != ~0u)
@@ -427,6 +439,14 @@ static void RenderAll(
         {
             frame->renderQueue << BindVertexBuffer(instancedDrawCalls.meshes[i]->GetVertexBuffer());
             frame->renderQueue << BindIndexBuffer(instancedDrawCalls.meshes[i]->GetIndexBuffer());
+            
+#if HYP_MATERIAL_DEBUG
+            AssertDebug(instancedDrawCalls.materials[i] != nullptr && instancedDrawCalls.materials[i]->IsReady());
+            if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+            {
+                HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", instancedDrawCalls.materials[i]->GetName());
+            }
+#endif
         }
 
         if (UseIndirectRendering && instancedDrawCalls.drawCommandIndices[i] != ~0u)
@@ -574,6 +594,14 @@ static void RenderAll_Parallel(
                     {
                         renderQueue << BindVertexBuffer(drawCalls.meshes[i]->GetVertexBuffer());
                         renderQueue << BindIndexBuffer(drawCalls.meshes[i]->GetIndexBuffer());
+                        
+#if HYP_MATERIAL_DEBUG
+                        AssertDebug(drawCalls.materials[i] != nullptr && drawCalls.materials[i]->IsReady());
+                        if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+                        {
+                            HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", drawCalls.materials[i]->GetName());
+                        }
+#endif
                     }
 
                     if (UseIndirectRendering && drawCalls.drawCommandIndices[i] != ~0u)
@@ -671,6 +699,14 @@ static void RenderAll_Parallel(
                     {
                         renderQueue << BindVertexBuffer(instancedDrawCalls.meshes[i]->GetVertexBuffer());
                         renderQueue << BindIndexBuffer(instancedDrawCalls.meshes[i]->GetIndexBuffer());
+                        
+#if HYP_MATERIAL_DEBUG
+                        AssertDebug(instancedDrawCalls.materials[i] != nullptr && instancedDrawCalls.materials[i]->IsReady());
+                        if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+                        {
+                            HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", instancedDrawCalls.materials[i]->GetName());
+                        }
+#endif
                     }
 
                     if (UseIndirectRendering && instancedDrawCalls.drawCommandIndices[i] != ~0u)

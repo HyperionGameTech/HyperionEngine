@@ -59,7 +59,7 @@ void INIFile::Parse()
             commentIndices[0] = commentIndices[1];
         }
 
-        if (commentIndices[0] != String::notFound)
+        if (commentIndices[0] != String::NotFound)
         {
             lineTrimmed = lineTrimmed.Substr(0, commentIndices[0]);
         }

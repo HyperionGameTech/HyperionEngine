@@ -317,7 +317,7 @@ static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
 
     int32 parsedInt;
 
-    if (percentIndex != String::notFound)
+    if (percentIndex != String::NotFound)
     {
         String sub = str.Substr(0, percentIndex);
 

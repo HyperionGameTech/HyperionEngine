@@ -72,18 +72,18 @@ public:
               subclassImplIndex(subclassIdx),
               elementIndex(elemIdx)
         {
-            if (subclassImplIndex == Bitset::notFound && elementIndex == Bitset::notFound)
+            if (subclassImplIndex == Bitset::NotFound && elementIndex == Bitset::NotFound)
             {
                 // both set to notFound : at end
                 return;
             }
 
             // find valid element - first check baseImpl then try subclasses if not found
-            if (subclassImplIndex == Bitset::notFound)
+            if (subclassImplIndex == Bitset::NotFound)
             {
                 elementIndex = FindNextSet(tracker->baseImpl.next, elementIndex);
 
-                if (elementIndex != Bitset::notFound)
+                if (elementIndex != Bitset::NotFound)
                 {
                     // We found an element at the given index in our main impl.
                     return;
@@ -98,7 +98,7 @@ public:
             // next part will handle finding the element index.
             subclassImplIndex = FindNextSet(tracker->subclassIndices, subclassImplIndex);
 
-            while (subclassImplIndex != Bitset::notFound)
+            while (subclassImplIndex != Bitset::NotFound)
             {
                 AssertDebug(subclassImplIndex < tracker->subclassImpls.Size());
 
@@ -106,7 +106,7 @@ public:
                 elementIndex = FindNextSet(impl.next, elementIndex);
 
                 // Found valid element in subclass impl.
-                if (elementIndex != Bitset::notFound)
+                if (elementIndex != Bitset::NotFound)
                 {
                     return;
                 }
@@ -117,23 +117,23 @@ public:
             }
 
             // exhausted all subclass elements
-            subclassImplIndex = Bitset::notFound;
-            elementIndex = Bitset::notFound;
+            subclassImplIndex = Bitset::NotFound;
+            elementIndex = Bitset::NotFound;
         }
 
         Derived& operator++()
         {
             // at the end check
-            if (subclassImplIndex == Bitset::notFound && elementIndex == Bitset::notFound)
+            if (subclassImplIndex == Bitset::NotFound && elementIndex == Bitset::NotFound)
             {
                 HYP_FAIL("At end! cannot increment");
             }
 
-            if (subclassImplIndex == Bitset::notFound)
+            if (subclassImplIndex == Bitset::NotFound)
             {
                 elementIndex = FindNextSet(tracker->baseImpl.next, elementIndex + 1);
 
-                if (elementIndex != Bitset::notFound)
+                if (elementIndex != Bitset::NotFound)
                 {
                     // We found an element at the given index in our main impl.
                     return static_cast<Derived&>(*this);
@@ -145,7 +145,7 @@ public:
                 elementIndex = Bitset::BitIndex(-1); // wrap around for next
             }
 
-            while (subclassImplIndex != Bitset::notFound)
+            while (subclassImplIndex != Bitset::NotFound)
             {
                 AssertDebug(subclassImplIndex < tracker->subclassImpls.Size());
 
@@ -153,7 +153,7 @@ public:
 
                 elementIndex = FindNextSet(impl.next, elementIndex + 1);
 
-                if (elementIndex != Bitset::notFound)
+                if (elementIndex != Bitset::NotFound)
                 {
                     // Found a valid subclass element with valid element
                     return static_cast<Derived&>(*this);
@@ -165,8 +165,8 @@ public:
             }
 
             // exhausted all subclass elements
-            subclassImplIndex = Bitset::notFound;
-            elementIndex = Bitset::notFound;
+            subclassImplIndex = Bitset::NotFound;
+            elementIndex = Bitset::NotFound;
 
             return static_cast<Derived&>(*this);
         }
@@ -180,12 +180,12 @@ public:
 
         auto operator*() const -> std::conditional_t<IsConst, const ElementType, ElementType>&
         {
-            if (subclassImplIndex == Bitset::notFound && elementIndex == Bitset::notFound)
+            if (subclassImplIndex == Bitset::NotFound && elementIndex == Bitset::NotFound)
             {
                 HYP_FAIL("At end! cannot dereference!");
             }
 
-            if (subclassImplIndex == Bitset::notFound) // primary search phase
+            if (subclassImplIndex == Bitset::NotFound) // primary search phase
             {
                 return tracker->baseImpl.elements.Get(elementIndex);
             }
@@ -221,8 +221,8 @@ public:
     private:
         HYP_FORCE_INLINE bool IsAtEnd() const
         {
-            return subclassImplIndex == Bitset::notFound
-                && elementIndex == Bitset::notFound;
+            return subclassImplIndex == Bitset::NotFound
+                && elementIndex == Bitset::NotFound;
         }
 
         static HYP_FORCE_INLINE Bitset::BitIndex FindNextSet(const Bitset& bs, Bitset::BitIndex idx)
@@ -788,7 +788,7 @@ public:
         }
     }
 
-    HYP_DEF_STL_BEGIN_END(Iterator(const_cast<ResourceTracker*>(this), Bitset::notFound, 0), Iterator(const_cast<ResourceTracker*>(this), Bitset::notFound, Bitset::notFound))
+    HYP_DEF_STL_BEGIN_END(Iterator(const_cast<ResourceTracker*>(this), Bitset::NotFound, 0), Iterator(const_cast<ResourceTracker*>(this), Bitset::NotFound, Bitset::NotFound))
 
     struct Impl final
     {

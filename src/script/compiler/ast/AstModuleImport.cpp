@@ -127,12 +127,12 @@ void AstModuleImport::Visit(AstVisitor* visitor, Module* mod)
     {
         // find the folder which the current file is in
         SizeType slashIndex = m_location.GetFileName().FindLastIndex('/');
-        slashIndex = (slashIndex == String::notFound)
+        slashIndex = (slashIndex == String::NotFound)
             ? m_location.GetFileName().FindLastIndex('\\')
             : MathUtil::Max(slashIndex, m_location.GetFileName().FindLastIndex('\\'));
 
         String currentDir;
-        if (slashIndex != String::notFound)
+        if (slashIndex != String::NotFound)
         {
             currentDir = m_location.GetFileName().Substr(0, slashIndex);
         }

@@ -91,18 +91,18 @@
         <Variable Name="idx" InitialValue="0" />
 
         <Loop>
-          <Break Condition="idx == (m_blocks.m_size - m_blocks.m_startOffset) * numBitsPerBlock" />
+          <Break Condition="idx == (m_blocks.m_size - m_blocks.m_startOffset) * NumBitsPerBlock" />
 
           <If Condition="m_blocks.m_allocation.allocationType == 1">
-            <Item Name="[{ idx }]">((*(((unsigned __int32 *)m_blocks.m_allocation.buffer) + m_blocks.m_startOffset + idx / numBitsPerBlock)) &gt;&gt; (idx % numBitsPerBlock)) &amp; 1</Item>
+            <Item Name="[{ idx }]">((*(((unsigned __int32 *)m_blocks.m_allocation.buffer) + m_blocks.m_startOffset + idx / NumBitsPerBlock)) &gt;&gt; (idx % NumBitsPerBlock)) &amp; 1</Item>
           </If>
 
           <If Condition="m_blocks.m_allocation.allocationType == 2 &amp;&amp; m_blocks.m_allocation.isDynamic == false">
-            <Item Name="[{ idx }]">((*(((unsigned __int32 *)&amp;m_blocks.m_allocation.storage.dataBuffer[0]) + m_blocks.m_startOffset + idx / numBitsPerBlock)) &gt;&gt; (idx % numBitsPerBlock)) &amp; 1</Item>
+            <Item Name="[{ idx }]">((*(((unsigned __int32 *)&amp;m_blocks.m_allocation.storage.dataBuffer[0]) + m_blocks.m_startOffset + idx / NumBitsPerBlock)) &gt;&gt; (idx % NumBitsPerBlock)) &amp; 1</Item>
           </If>
 
           <If Condition="m_blocks.m_allocation.allocationType == 2 &amp;&amp; m_blocks.m_allocation.isDynamic == true">
-            <Item Name="[{ idx }]">(* ( (unsigned __int32 *)m_blocks.m_allocation.dynamicAllocation.buffer + m_blocks.m_startOffset + (idx / numBitsPerBlock)) &gt;&gt; (idx % numBitsPerBlock)) &amp; 1</Item>
+            <Item Name="[{ idx }]">(* ( (unsigned __int32 *)m_blocks.m_allocation.dynamicAllocation.buffer + m_blocks.m_startOffset + (idx / NumBitsPerBlock)) &gt;&gt; (idx % NumBitsPerBlock)) &amp; 1</Item>
           </If>
 
           <Exec>idx++</Exec>

@@ -233,7 +233,7 @@ public:
     {
         SizeType lastIndex = filename.FindLastIndex('.');
 
-        if (lastIndex == String::notFound)
+        if (lastIndex == String::NotFound)
         {
             return filename;
         }
@@ -254,7 +254,7 @@ public:
 
         SizeType lastIndex = filename.FindLastIndex('.');
 
-        if (lastIndex == String::notFound)
+        if (lastIndex == String::NotFound)
         {
             return "";
         }

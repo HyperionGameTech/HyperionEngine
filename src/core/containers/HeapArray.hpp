@@ -18,7 +18,7 @@ class HeapArray : public ContainerBase<HeapArray<T, Sz>, SizeType>
     T* m_values;
 
 public:
-    static constexpr bool isContiguous = true;
+    static constexpr bool IsContiguous = true;
 
     using Base = ContainerBase<HeapArray<T, Sz>, SizeType>;
 

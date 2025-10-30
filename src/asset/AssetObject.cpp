@@ -100,17 +100,41 @@ void AssetDataResourceBase::Initialize()
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
+    if (IsDataLoaded())
+    {
+        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
+
+        return;
+    }
+
+    HYP_LOG(Assets, Debug, "Loading asset '{}'", assetObject->GetName());
+
+    AssertDebug(!assetObject->IsTransient(), "Transient assets should not be loaded from disk!");
+
     if (Result result = Load_Internal(); result.HasError())
     {
         HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
+
+        return;
     }
+
+    HYP_LOG(Assets, Debug, "Successfully loaded asset '{}'", assetObject->GetName());
 }
 
 void AssetDataResourceBase::Destroy()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject.GetUnsafe()->IsRegistered() ? *m_assetObject.GetUnsafe()->GetPath().ToString() : *m_assetObject.GetUnsafe()->GetName());
+    AssetObject* assetObject = m_assetObject.GetUnsafe();
+
+    HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
+
+    if (!GetAssetRef().HasValue())
+    {
+        HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", assetObject->GetName());
+
+        return;
+    }
 
     Unload_Internal();
 }
@@ -255,9 +279,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
     {
         if (!m_persistentResource && m_resource && !m_resource->IsNull())
         {
-            // shouldInitialize is false since it should already be in memory and we use this for transient assets,
-            // meaning we can't load the data from disk
-            m_persistentResource = ResourceHandle(*m_resource, /* shouldInitialize */ false);
+            m_persistentResource = ResourceHandle(*m_resource);
             Assert(m_persistentResource);
         }
 
