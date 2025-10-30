@@ -93,6 +93,7 @@ public:
      *  \param key The key to check for
      *  \returns true if the key exists, false otherwise */
     virtual bool Exists(const String& key) const;
+
 protected:
     virtual bool IsNull() const override
     {
@@ -100,7 +101,6 @@ protected:
     }
 
     virtual int IncRef() override;
-    virtual int IncRefNoInitialize() override;
     virtual int DecRef() override;
 
     virtual void WaitForFinalization() const override final;

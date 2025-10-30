@@ -279,7 +279,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         const void* ptr = GetPointer();
         const TypeId held = GetTypeId();
         return held == typeId || IsA(GetClass(typeId), ptr, held);

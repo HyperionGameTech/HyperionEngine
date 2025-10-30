@@ -107,7 +107,7 @@ struct ObjId : ObjIdBase
     using ObjectType = T;
 
     static const ObjId invalid;
-    static constexpr TypeId typeIdStatic = TypeId::ForType<T>();
+    static const TypeId typeIdStatic;
 
     constexpr ObjId()
         : ObjIdBase { typeIdStatic, 0 }
@@ -158,6 +158,9 @@ struct ObjId : ObjIdBase
 
 template <class T>
 const ObjId<T> ObjId<T>::invalid = ObjId<T>();
+
+template <class T>
+const TypeId ObjId<T>::typeIdStatic = TypeId::ForType<NormalizedType<T>>();
 
 // string format specialization for ObjId<T>
 namespace utilities {

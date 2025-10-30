@@ -8,7 +8,9 @@ namespace hyperion {
 
 struct HypData;
 
+static constexpr auto HypDataTypeId = CONSTEXPR_TYPE_ID(HypData);
+
 template <class T>
-constexpr bool IsHypDataV = TypeId::ForType<T>() == TypeId::ForType<HypData>();
+constexpr bool IsHypDataV = CONSTEXPR_TYPE_ID(T) == HypDataTypeId;
 
 } // namespace hyperion

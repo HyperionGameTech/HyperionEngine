@@ -7,8 +7,6 @@
 
 #include <core/threading/Mutex.hpp>
 
-#include <core/containers/HeapArray.hpp>
-
 #include <core/math/Vertex.hpp>
 
 #include <rendering/RenderShader.hpp>

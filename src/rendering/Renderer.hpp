@@ -190,9 +190,7 @@ struct PassDataExt
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        constexpr TypeId invalidTypeId = TypeId::Void();
-
-        return typeId != invalidTypeId;
+        return typeId != TypeId::Void();
     }
 
     HYP_FORCE_INLINE bool operator!() const
@@ -203,7 +201,7 @@ struct PassDataExt
     template <class OtherPassDataExt>
     HYP_FORCE_INLINE OtherPassDataExt* AsType()
     {
-        constexpr TypeId otherTypeId = TypeId::ForType<OtherPassDataExt>();
+        const TypeId otherTypeId = TypeId::ForType<OtherPassDataExt>();
 
         if (typeId != otherTypeId)
         {
@@ -216,7 +214,7 @@ struct PassDataExt
     template <class OtherPassDataExt>
     HYP_FORCE_INLINE const OtherPassDataExt* AsType() const
     {
-        constexpr TypeId otherTypeId = TypeId::ForType<OtherPassDataExt>();
+        const TypeId otherTypeId = TypeId::ForType<OtherPassDataExt>();
 
         if (typeId != otherTypeId)
         {

@@ -74,9 +74,7 @@ public:
     {
         static_assert(std::is_class_v<T> || std::is_enum_v<T>, "T must be an class or enum type to use GetClass<T>()");
 
-        static constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
-
-        return GetClass(typeId);
+        return GetClass(TypeId::ForType<NormalizedType<T>>());
     }
 
     /*! \brief Get the HypClass instance for the given type.
@@ -103,9 +101,7 @@ public:
     {
         static_assert(std::is_enum_v<T>, "T must be an enum type to use GetEnum<T>()");
 
-        static constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
-
-        return GetEnum(typeId);
+        return GetEnum(TypeId::ForType<NormalizedType<T>>());
     }
 
     /*! \brief Get an enum HypClass instance associated with the given name.

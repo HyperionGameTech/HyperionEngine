@@ -20,9 +20,6 @@
 
 namespace hyperion {
 
-static constexpr uint64 g_initializationMaskInitializedBit = 0x1;
-static constexpr uint64 g_initializationMaskReadMask = uint64(-1) & ~g_initializationMaskInitializedBit;
-
 HYP_API extern Pool* g_resourcePool;
 
 class IResourceMemoryPool;
@@ -39,8 +36,9 @@ public:
     virtual bool IsNull() const = 0;
 
     virtual int IncRef() = 0;
-    virtual int IncRefNoInitialize() = 0;
     virtual int DecRef() = 0;
+
+    virtual int NumRefs() const = 0;
 
     /*! \brief Waits for ref count to be 0 and all tasks to be completed.
      *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
@@ -64,7 +62,7 @@ public:
     ResourceBase(ResourceBase&& other) noexcept = delete;
     ResourceBase& operator=(ResourceBase&& other) noexcept = delete;
 
-    HYP_FORCE_INLINE int NumRefs() const
+    virtual int NumRefs() const override
     {
         return m_refCount;
     }
@@ -75,11 +73,6 @@ public:
     }
 
     virtual int IncRef() override final;
-
-    // Needed to increment ref count for resources that are initialized in LOADED state.
-    // We can't call Initialize() because it is a virtual function and the object might not be fully constructed yet.
-    virtual int IncRefNoInitialize() override final;
-
     virtual int DecRef() override final;
 
     /*! \brief Wait for the resource to no longer be in loaded state */
@@ -121,16 +114,16 @@ public:
 
     static ResourceMemoryPool<T>* GetInstance()
     {
-        static IResourceMemoryPool* pool = GetOrCreateResourceMemoryPool(TypeId::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
+        static IResourceMemoryPool* s_pool = GetOrCreateResourceMemoryPool(TypeId::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
             {
                 return MakeUnique<ResourceMemoryPool<T>>();
             });
 
-        return static_cast<ResourceMemoryPool<T>*>(pool);
+        return static_cast<ResourceMemoryPool<T>*>(s_pool);
     }
 
     ResourceMemoryPool()
-        : m_allocator(sizeof(T))
+        : m_allocator(sizeof(T), alignof(T), /* blocksPerSlab */ 256, /* flags */ AF_THREAD_SAFE)
     {
     }
 
@@ -195,22 +188,13 @@ public:
     {
     }
 
-    /*! \brief Construct a ResourceHandle using the given resource. The resource will have its ref count incremented if it is not null.
-     *  If \ref{shouldInitialize} is true (default), the resource will be initialized.
-     *  Otherwise, IncRefNoInitialize() will be called (this should only be used when required, like in the constructor of base classes that have Initialize() as a virtual method). */
-    ResourceHandle(IResource& resource, bool shouldInitialize = true)
+    /*! \brief Construct a ResourceHandle using the given resource. The resource will have its ref count incremented if it is not null. */
+    ResourceHandle(IResource& resource)
         : m_resource(&resource)
     {
         if (!resource.IsNull())
         {
-            if (shouldInitialize)
-            {
-                resource.IncRef();
-            }
-            else
-            {
-                resource.IncRefNoInitialize();
-            }
+            resource.IncRef();
         }
     }
 

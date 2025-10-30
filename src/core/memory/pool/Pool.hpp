@@ -17,6 +17,7 @@
 #include <core/memory/MemoryMetrics.hpp>
 
 #include <core/memory/allocator/Allocator.hpp>
+#include <core/memory/allocator/AllocatorFlags.hpp>
 #include <core/memory/allocator/TlsfAllocator.hpp>
 
 #include <core/Defines.hpp>
@@ -24,10 +25,11 @@
 
 namespace hyperion {
 
+// Pool-specific flags (inherits from AllocatorFlags)
 enum PoolFlags : uint32
 {
-    PF_NONE = 0,
-    PF_THREAD_SAFE = 0x1, //!< pool is thread-safe
+    PF_NONE = AF_NONE,
+    PF_THREAD_SAFE = AF_THREAD_SAFE, //!< pool is thread-safe
 };
 
 HYP_MAKE_ENUM_FLAGS(PoolFlags);

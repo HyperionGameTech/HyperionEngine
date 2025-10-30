@@ -253,7 +253,6 @@ HYP_API extern const HypClass* g_clsRenderPassStage;
 HYP_API extern const HypClass* g_clsRenderStats;
 HYP_API extern const HypClass* g_clsRenderStatsCountType;
 HYP_API extern const HypClass* g_clsRenderStatsCounts;
-HYP_API extern const HypClass* g_clsRenderSubsystem;
 HYP_API extern const HypClass* g_clsRendererConfig;
 HYP_API extern const HypClass* g_clsResourceState;
 HYP_API extern const HypClass* g_clsResult;

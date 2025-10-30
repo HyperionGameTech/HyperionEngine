@@ -566,6 +566,26 @@ struct TextureData
     HYP_FIELD(Property = "ImageData", Serialize, Compressed)
     ByteBuffer imageData;
 
+    TextureData() = default;
+
+    explicit TextureData(const ByteBuffer& imageData)
+        : imageData(imageData)
+    {
+    }
+
+    explicit TextureData(ByteBuffer&& imageData)
+        : imageData(std::move(imageData))
+    {
+    }
+
+    TextureData(const TextureData& other) = default;
+    TextureData& operator=(const TextureData& other) = default;
+
+    TextureData(TextureData&& other) noexcept = default;
+    TextureData& operator=(TextureData&& other) noexcept = default;
+
+    ~TextureData() = default;
+
     HYP_FORCE_INLINE bool IsValid() const
     {
         return imageData.Any();

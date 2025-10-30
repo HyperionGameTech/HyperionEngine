@@ -1102,8 +1102,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
-            Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
+            static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
+            Assert(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
 
             const uint32 idx = id.ToIndex();
@@ -1203,8 +1203,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #ifdef HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            static constexpr TypeId entityTypeId = TypeId::ForType<Entity>();
-            Assert(id.GetTypeId() == entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
+            static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
+            Assert(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
 
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);

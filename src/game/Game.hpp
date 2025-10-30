@@ -1,41 +1,24 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
 
-#include <util/GameCounter.hpp>
-
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/resource/Resource.hpp>
-
 #include <core/reflection/HypObject.hpp>
-
-#include <core/utilities/Optional.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
 
-#include <system/AppContext.hpp>
-
-#include <input/InputManager.hpp>
-
-#include <scene/Scene.hpp>
-
-#include <rendering/RenderObject.hpp>
 
 namespace hyperion {
 
-namespace dotnet {
-class Assembly;
-class ManagedObject;
-} // namespace dotnet
-
 class UISubsystem;
 class World;
+class Scene;
 
-struct ManagedGameInfo
-{
-    String assemblyName;
-    String className;
-};
+namespace sys {
+class SystemEvent;
+} // namespace sys
+
+using sys::SystemEvent;
 
 HYP_CLASS(Abstract)
 class HYP_API Game : public HypObjectBase
@@ -47,7 +30,6 @@ class HYP_API Game : public HypObjectBase
 
 public:
     Game();
-    Game(Optional<ManagedGameInfo> managedGameInfo);
     virtual ~Game();
 
     HYP_METHOD()
@@ -72,13 +54,7 @@ protected:
 
     Handle<UISubsystem> m_uiSubsystem;
 
-    RC<dotnet::Assembly> m_managedAssembly;
-    dotnet::ManagedObject* m_managedGameObject;
-
     Handle<World> m_world;
-
-private:
-    Optional<ManagedGameInfo> m_managedGameInfo;
 };
 
 } // namespace hyperion

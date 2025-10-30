@@ -102,9 +102,8 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         TWM_REPEAT
     };
 
-    TextureData textureData {
-        ByteBuffer(imageBytesCount, imageBytes)
-    };
+    TextureData textureData;
+    textureData.imageData = ByteBuffer(imageBytesCount, imageBytes);
 
     const uint32 numComponents = NumComponents(data.format);
 
@@ -129,6 +128,8 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
                 &textureData.imageData.Data()[i * faceOffsetStep],
                 &newByteBuffer.Data()[i * newFaceOffsetStep]);
         }
+
+        HYP_LOG_TEMP("Converted texture '{}' from 3 to 4 components", assetName);
 
         textureData.imageData = std::move(newByteBuffer);
     }

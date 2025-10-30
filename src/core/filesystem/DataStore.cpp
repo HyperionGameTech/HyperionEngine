@@ -71,11 +71,6 @@ int DataStoreBase::IncRef()
         });
 }
 
-int DataStoreBase::IncRefNoInitialize()
-{
-    return IncRef();
-}
-
 int DataStoreBase::DecRef()
 {
     m_shutdownSemaphore.Produce(1);

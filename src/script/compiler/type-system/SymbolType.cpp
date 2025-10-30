@@ -23,8 +23,8 @@ SlabAllocator& GetSymbolTypeAllocator()
 {
     static SlabAllocator g_symbolTypeAllocator(
         sizeof(SymbolType),
-        1024,
-        alignof(SymbolType));
+        alignof(SymbolType),
+        1024);
 
     return g_symbolTypeAllocator;
 }

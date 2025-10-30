@@ -48,7 +48,7 @@ static SlabAllocator& GetTypeInfoAllocator()
     {
         Initializer()
         {
-            s_typeInfoAllocator = new SlabAllocator(sizeof(TypeInfo), 256, alignof(TypeInfo));
+            s_typeInfoAllocator = new SlabAllocator(sizeof(TypeInfo), alignof(TypeInfo));
         }
     } s_initializer;
 
