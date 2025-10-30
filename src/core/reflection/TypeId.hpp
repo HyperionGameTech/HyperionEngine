@@ -13,41 +13,8 @@ namespace utilities {
 
 using TypeIdValue = uint32;
 
-static constexpr uint32 g_typeIdHashBitOffset = 1;
-static constexpr uint32 g_typeIdHashMax = (~0u << g_typeIdHashBitOffset) >> g_typeIdHashBitOffset;
-static constexpr uint32 g_typeIdFlagBitMask = 0x1u;
-static constexpr uint32 g_typeIdFlagMax = 0x1u;
-
-enum TypeIdFlags : uint8
-{
-    TYPE_ID_FLAGS_NONE = 0x0,
-    TYPE_ID_FLAGS_DYNAMIC = 0x1 // Type is dynamic - does not map 1:1 to a native C++ type. E.g C# class
-};
-
-template <class T, uint8 Flags>
-struct TypeId_Impl
-{
-    static_assert(Flags <= g_typeIdFlagMax, "Flags cannot be > 0x3");
-
-    static constexpr TypeIdValue value = ((TypeNameWithoutNamespace<T>().GetHashCode().Value() % HashCode::ValueType(g_typeIdHashMax)) << g_typeIdHashBitOffset) | (Flags & g_typeIdFlagMax);
-};
-
-template <uint8 Flags>
-struct TypeId_Impl<void, Flags>
-{
-    static constexpr TypeIdValue value = 0;
-};
-
-template <uint8 Flags>
-struct TypeId_FromString_Impl
-{
-    static_assert(Flags <= g_typeIdFlagMax, "Flags cannot be > 0x3");
-
-    constexpr TypeIdValue operator()(const char* str) const
-    {
-        return ((HashCode::GetHashCode(str).Value() % HashCode::ValueType(g_typeIdHashMax)) << g_typeIdHashBitOffset) | (Flags & g_typeIdFlagMax);
-    }
-};
+#define CONSTEXPR_TYPE_ID(T) (!std::is_void_v<T> ? ((TypeNameWithoutNamespace<T>().GetHashCode().Value() % HashCode::ValueType(0x7FFFFFFFu)) << 1) : 0)
+#define TYPE_ID_FROM_STRING(str) ((HashCode::GetHashCode(str).Value() % HashCode::ValueType(0x7FFFFFFFu)) << 1)
 
 /*! \brief Simple 32-bit identifier for a given type. Stable across DLLs as the type hash is based on the name of the type. */
 HYP_STRUCT()
@@ -60,22 +27,22 @@ struct TypeId
 private:
     ValueType m_value;
 
-    static constexpr ValueType voidValue = ValueType(0);
+    static constexpr ValueType VoidValue = ValueType(0);
 
 public:
     template <class T>
-    static constexpr TypeId ForType()
+    static TypeId ForType()
     {
-        return TypeId { TypeId_Impl<NormalizedType<T>, TypeIdFlags::TYPE_ID_FLAGS_NONE>::value };
+        return TypeId { TypeIdValue(CONSTEXPR_TYPE_ID(T)) };
     }
 
-    static constexpr TypeId ForManagedType(const char* str)
+    static TypeId ForManagedType(const char* str)
     {
-        return TypeId { TypeId_FromString_Impl<TypeIdFlags::TYPE_ID_FLAGS_DYNAMIC> {}(str) };
+        return TypeId { TypeIdValue(TYPE_ID_FROM_STRING(str) | 0x1) };
     }
 
     constexpr TypeId()
-        : m_value { voidValue }
+        : m_value { VoidValue }
     {
     }
 
@@ -90,13 +57,13 @@ public:
     constexpr TypeId(TypeId&& other) noexcept
         : m_value(other.m_value)
     {
-        other.m_value = voidValue;
+        other.m_value = VoidValue;
     }
 
     constexpr TypeId& operator=(TypeId&& other) noexcept
     {
         m_value = other.m_value;
-        other.m_value = voidValue;
+        other.m_value = VoidValue;
 
         return *this;
     }
@@ -110,12 +77,12 @@ public:
 
     HYP_FORCE_INLINE constexpr explicit operator bool() const
     {
-        return m_value != voidValue;
+        return m_value != VoidValue;
     }
 
     HYP_FORCE_INLINE constexpr bool operator!() const
     {
-        return m_value == voidValue;
+        return m_value == VoidValue;
     }
 
     HYP_FORCE_INLINE constexpr bool operator==(const TypeId& other) const
@@ -150,12 +117,12 @@ public:
 
     HYP_FORCE_INLINE constexpr bool IsNativeType() const
     {
-        return !((m_value & g_typeIdFlagMax) & TYPE_ID_FLAGS_DYNAMIC);
+        return (m_value & 0x1) == 0x0;
     }
 
     HYP_FORCE_INLINE constexpr bool IsDynamicType() const
     {
-        return (m_value & g_typeIdFlagMax) & TYPE_ID_FLAGS_DYNAMIC;
+        return (m_value & 0x1) == 0x1;
     }
 
     HYP_FORCE_INLINE constexpr ValueType Value() const
@@ -170,7 +137,7 @@ public:
 
     HYP_FORCE_INLINE static constexpr TypeId Void()
     {
-        return TypeId { voidValue };
+        return TypeId { VoidValue };
     }
 };
 

@@ -143,8 +143,7 @@ public:
             }
             else
             {
-                HYP_CORE_ASSERT(targetData.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
-                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+                HYP_CORE_ASSERT(targetData.Is<ThisType>());
 
                 decltype(auto) target = targetData.Get<ThisType>();
 
@@ -205,8 +204,7 @@ public:
             {
                 if (!targetData.Is<ThisType>())
                 {
-                    return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeId: {}), but got TypeId: {}",
-                        TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), targetData.GetTypeId().Value());
+                    return HYP_MAKE_ERROR(Error, "Invalid target type");
                 }
 
                 HypData value;

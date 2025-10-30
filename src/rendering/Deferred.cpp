@@ -187,7 +187,7 @@ static void GetDeferredShaderProperties(
     }
 }
 
-static constexpr TypeId EnvProbeTypeToTypeId[EPT_MAX] = {
+static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
     TypeId::ForType<SkyProbe>(),        // EPT_SKY
     TypeId::ForType<ReflectionProbe>(), // EPT_REFLECTION
     TypeId::ForType<EnvProbe>(),        // EPT_SHADOW (fixme when derived class)
@@ -562,12 +562,12 @@ void TonemapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 LightmapPass::LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(
-        ShaderRef::Null(),
-        DescriptorTableRef::Null(),
-        framebuffer,
-        TF_RGBA8,
-        extent,
-        gbuffer)
+          ShaderRef::Null(),
+          DescriptorTableRef::Null(),
+          framebuffer,
+          TF_RGBA8,
+          extent,
+          gbuffer)
 {
 }
 
@@ -1012,7 +1012,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
     {
         const EnvProbeType envProbeType = EnvProbeTypes[cubemapType];
 
-        for (EnvProbe* envProbe : rpl.GetEnvProbes().GetElements(EnvProbeTypeToTypeId[envProbeType]))
+        for (EnvProbe* envProbe : rpl.GetEnvProbes().GetElements(s_envProbeTypeToTypeId[envProbeType]))
         {
             probesPerCubemapType[cubemapType].PushBack(envProbe);
         }

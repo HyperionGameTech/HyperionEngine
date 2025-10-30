@@ -583,28 +583,28 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
             )
         else()
             set_target_properties(glslang PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/libglslang.a
+                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang.a
             )
             set_target_properties(SPIRV PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/libSPIRV.a
+                IMPORTED_LOCATION ${BINARY_DIR}/SPIRV/${CMAKE_BUILD_TYPE}/libSPIRV.a
             )
             set_target_properties(glslang-default-resource-limits PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/libglslang-default-resource-limits.a
+                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libglslang-default-resource-limits.a
             )
             set_target_properties(SPIRV-Tools PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
+                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/${CMAKE_BUILD_TYPE}/libSPIRV-Tools.a
             )
             set_target_properties(SPIRV-Tools-opt PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
+                IMPORTED_LOCATION ${BINARY_DIR}/External/spirv-tools/source/opt/${CMAKE_BUILD_TYPE}/libSPIRV-Tools-opt.a
             )
             set_target_properties(MachineIndependent PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/libMachineIndependent.a
+                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libMachineIndependent.a
             )
             set_target_properties(GenericCodeGen PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/libGenericCodeGen.a
+                IMPORTED_LOCATION ${BINARY_DIR}/glslang/${CMAKE_BUILD_TYPE}/libGenericCodeGen.a
             )
             set_target_properties(OSDependent PROPERTIES
-                IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Unix/libOSDependent.a
+                IMPORTED_LOCATION ${BINARY_DIR}/glslang/OSDependent/Unix/${CMAKE_BUILD_TYPE}/libOSDependent.a
             )
         endif()
 

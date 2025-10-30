@@ -95,16 +95,16 @@ private:
 
 static GlobalThreadIdCache& GetStaticThreadIdCache()
 {
-    static GlobalThreadIdCache cache;
+    static GlobalThreadIdCache s_staticCache;
 
-    return cache;
+    return s_staticCache;
 }
 
 static GlobalThreadIdCache& GetDynamicThreadIdCache()
 {
-    static GlobalThreadIdCache cache;
+    static GlobalThreadIdCache s_dynamicCache;
 
-    return cache;
+    return s_dynamicCache;
 }
 
 #pragma region ThreadId

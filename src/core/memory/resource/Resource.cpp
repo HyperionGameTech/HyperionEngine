@@ -57,18 +57,6 @@ bool ResourceBase::IsInitialized() const
     return m_initState.GetValue();
 }
 
-int ResourceBase::IncRefNoInitialize()
-{
-    int result = AtomicIncrement(&m_refCount);
-
-    if (result == 1)
-    {
-        m_initState.Produce();
-    }
-
-    return result;
-}
-
 int ResourceBase::IncRef()
 {
     HYP_SCOPE;
@@ -167,12 +155,12 @@ public:
         return true;
     }
 
-    virtual int IncRef() override
+    virtual int NumRefs() const override
     {
         return 0;
     }
 
-    virtual int IncRefNoInitialize() override
+    virtual int IncRef() override
     {
         return 0;
     }

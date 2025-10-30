@@ -52,7 +52,7 @@ public:
         Array<Handle<UIElementFactoryBase>> factories;
         factories.Reserve(sizeof...(Types));
 
-        constexpr FixedArray<TypeId, sizeof...(Types)> typeIds = { TypeId::ForType<Types>()... };
+        const FixedArray<TypeId, sizeof...(Types)> typeIds = { TypeId::ForType<Types>()... };
 
         for (TypeId typeId : typeIds)
         {
@@ -355,7 +355,7 @@ public:
 
         if (it != m_values.End())
         {
-            return HYP_MAKE_ERROR(Error, "Element with Uuid {} already exists in the data source", uuid.ToString());
+            return HYP_MAKE_ERROR(Error, "Element with uuid {} already exists in the data source", uuid.ToString());
         }
 
         typename Forest<UIDataSourceElement>::ConstIterator parentIt = m_values.End();
@@ -367,7 +367,7 @@ public:
                     return item.GetUUID() == parentUuid;
                 });
 
-            AssertDebug(parentIt != m_values.End(), "Element with Uuid {} not found to set as parent!", parentUuid);
+            AssertDebug(parentIt != m_values.End(), "Element with uuid {} not found to set as parent!", parentUuid);
         }
 
         it = m_values.Add(UIDataSourceElement(uuid, std::move(value)), parentIt);
@@ -402,10 +402,8 @@ public:
 
         if (it == m_values.End())
         {
-            HYP_FAIL("Element with Uuid %s not found", uuid.ToString().Data());
+            HYP_FAIL("Element with uuid {} not found", uuid.ToString().Data());
         }
-
-        // Assert(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
         *it = UIDataSourceElement(uuid, std::move(value));
 
@@ -422,7 +420,7 @@ public:
 
         if (it == m_values.End())
         {
-            HYP_FAIL("Element with Uuid %s not found", uuid.ToString().Data());
+            HYP_FAIL("Element with uuid {} not found", uuid.ToString().Data());
         }
 
         OnElementUpdate(this, &*it, GetParentElementFromIterator(it));

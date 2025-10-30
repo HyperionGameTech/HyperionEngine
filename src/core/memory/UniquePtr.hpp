@@ -408,7 +408,7 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId typeId = TypeId::ForType<Ty>();
+        const TypeId typeId = TypeId::ForType<Ty>();
 
         return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_same_v<Ty, void> || GetTypeId() == typeId
             || IsA(GetClass(typeId), m_holder.value, GetTypeId());
@@ -482,7 +482,7 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId typeId = TypeId::ForType<Ty>();
+        const TypeId typeId = TypeId::ForType<Ty>();
 
         return std::is_same_v<Ty, void> || GetTypeId() == typeId
             || IsA(GetClass(typeId), m_holder.value, GetTypeId());

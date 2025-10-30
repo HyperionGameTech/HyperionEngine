@@ -468,7 +468,7 @@ public:
         if constexpr (std::is_void_v<U>)
             return true;
 
-        constexpr TypeId typeId = TypeId::ForType<U>();
+        const TypeId typeId = TypeId::ForType<U>();
 
         const void* ptr = Base::GetVoid();
         const TypeId currentTypeId = Base::GetTypeId();
@@ -640,7 +640,7 @@ public:
     template <class U>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeId typeId = TypeId::ForType<U>();
+        const TypeId typeId = TypeId::ForType<U>();
 
         const void* ptr = Base::GetVoid();
         const TypeId currentTypeId = Base::GetTypeId();

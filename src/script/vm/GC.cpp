@@ -7,7 +7,7 @@ namespace hyperion {
 extern HypData ScriptApi_MakeValue(const Script_VMData& data);
 
 Script_GC::Script_GC()
-    : m_allocator(sizeof(HypData), 256, alignof(HypData))
+    : m_allocator(sizeof(HypData), alignof(HypData))
 {
 }
 

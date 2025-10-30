@@ -346,18 +346,9 @@ struct MergeEnumFlags
 
 } // namespace hyperion
 
-#define HYP_MAKE_ENUM_FLAGS_PUBLIC(_enum)         \
-    namespace hyperion {                          \
-    template <>                                   \
-    struct EnumFlagsDecl<_enum>                   \
-    {                                             \
-        static constexpr bool IsEnumFlags = true; \
-    };                                            \
-    }
-
 #define HYP_MAKE_ENUM_FLAGS(_enum)                \
     template <>                                   \
-    struct ::hyperion::EnumFlagsDecl<_enum>       \
+    struct EnumFlagsDecl<_enum>                   \
     {                                             \
         static constexpr bool IsEnumFlags = true; \
     };

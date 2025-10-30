@@ -363,10 +363,9 @@ public:
     template <class T>
     HYP_FORCE_INLINE const ElementArrayType& GetElements() const
     {
-        static constexpr TypeId typeId = TypeId::ForType<T>();
         static_assert(std::is_base_of_v<typename IdType::ObjectType, T>, "T must be a subclass of the ID's inner type!");
 
-        return GetElements(typeId);
+        return GetElements(TypeId::ForType<T>());
     }
 
     HYP_FORCE_INLINE const Bitset& GetSubclassIndices() const
