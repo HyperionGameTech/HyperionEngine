@@ -14,8 +14,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -105,8 +105,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -196,8 +196,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -285,8 +285,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
         return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, HypData& out) -> bool
     {
@@ -347,8 +347,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
         return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, HypData& out) -> bool
     {
@@ -409,8 +409,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
         return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(arr)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.getElementAt = [](GenericArrayWrapper& array, SizeType index, HypData& out) -> bool
     {
@@ -469,8 +469,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunctio
         return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -496,8 +496,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFuncti
         return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -523,8 +523,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, Al
         return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -548,8 +548,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set)
         return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -575,8 +575,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set)
         return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -602,8 +602,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set)
         return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(set)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -627,8 +627,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map)
         return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeOf<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -654,8 +654,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map)
         return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeOf<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -681,8 +681,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map)
         return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeOf<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -706,8 +706,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashMap<K, V, Allocator
         return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeOf<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -733,8 +733,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashMap<K, V, Allocato
         return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeOf<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -760,8 +760,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>
         return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(map)>>();
-    elementTypeInfo = &TypeInfo_ForType<KeyValuePair<K, V>>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
+    elementTypeInfo = &TypeOf<KeyValuePair<K, V>>();
 
     functionTable.size = [](const GenericArrayWrapper& array) -> SizeType
     {
@@ -785,8 +785,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list)
         return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(list)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(list)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -826,8 +826,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list)
         return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(list)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(list)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {
@@ -867,8 +867,8 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
         return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
-    typeInfo = &TypeInfo_ForType<std::remove_cvref_t<decltype(list)>>();
-    elementTypeInfo = &TypeInfo_ForType<T>();
+    typeInfo = &TypeOf<std::remove_cvref_t<decltype(list)>>();
+    elementTypeInfo = &TypeOf<T>();
 
     functionTable.pushBack = [](GenericArrayWrapper& array, HypData&& value) -> AnyRef
     {

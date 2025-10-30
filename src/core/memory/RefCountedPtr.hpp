@@ -87,7 +87,7 @@ HYP_API ControlBlock<CountType>* NewExternalOwnedBlock(T* ptr)
 
     return new (pBlock) ControlBlock<CountType> {
         ptr,
-        &TypeInfo_ForType<T>(),
+        &TypeOf<T>(),
         CountType(1),
         CountType(1),
         &Memory::Delete<T>,
@@ -111,7 +111,7 @@ HYP_NODISCARD static inline ControlBlock<CountType>* NewInlineBlock(Args&&... ar
 
     new (pBlock) ControlBlock<CountType> {
         static_cast<T*>(pObj),
-        &TypeInfo_ForType<T>(),
+        &TypeOf<T>(),
         CountType(1),
         CountType(1),
         &Memory::Destruct<T>,
@@ -976,7 +976,7 @@ public:
 
         new (Base::m_block) BlockType {
             static_cast<T*>(this),
-            &TypeInfo_ForType<T>(),
+            &TypeOf<T>(),
             CountType(1),
             CountType(1),
             &Memory::Destruct<T>,

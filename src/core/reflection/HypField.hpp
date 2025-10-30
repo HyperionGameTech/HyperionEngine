@@ -95,8 +95,8 @@ public:
     template <class ThisType, class FieldType>
     HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
-          m_typeInfo(&TypeInfo_ForType<FieldType>()),
-          m_targetTypeInfo(&TypeInfo_ForType<ThisType>()),
+          m_typeInfo(&TypeOf<FieldType>()),
+          m_targetTypeInfo(&TypeOf<ThisType>()),
           m_offset(offset),
           m_size(sizeof(FieldType)),
           m_attributes(attributes)

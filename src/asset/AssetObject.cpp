@@ -189,7 +189,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
     FBOMWriter writer { FBOMWriterConfig {} };
 
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetTypeId());
+    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetType().id);
     Assert(marshal != nullptr);
 
     FBOMObject object;
@@ -206,9 +206,9 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
         return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
     }
 
-    Assert(object.GetType().GetNativeTypeId() == GetAssetTypeId(),
-        "Object must have a native TypeId associated to be deserialized properly! Expected TypeId {}, Got serialized type: {}",
-        GetAssetTypeId().Value(),
+    Assert(object.GetType().GetNativeTypeId() == GetAssetType().id,
+        "Object must have a native TypeId associated to be deserialized properly! Expected: {}, Got serialized type: {}",
+        GetAssetType().name,
         object.GetType().ToString(true));
 
     writer.Append(std::move(object));

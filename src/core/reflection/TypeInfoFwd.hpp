@@ -20,13 +20,13 @@ extern const Name& TypeInfo_GetName(const TypeInfo& typeInfo);
 extern SizeType TypeInfo_GetSize(const TypeInfo& typeInfo);
 
 template <class T>
-extern const TypeInfo& TypeInfo_ForType();
+extern const TypeInfo& TypeOf();
 
 } // namespace utilities
 
 using utilities::TypeInfo;
 using utilities::TypeInfo_ForHypClass;
-using utilities::TypeInfo_ForType;
+using utilities::TypeOf;
 using utilities::TypeInfo_GetId;
 using utilities::TypeInfo_GetName;
 using utilities::TypeInfo_GetSize;
