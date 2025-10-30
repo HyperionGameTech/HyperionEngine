@@ -5,7 +5,7 @@
 
 #include <core/threading/ThreadLocalStorage.hpp>
 #include <core/threading/Thread.hpp>
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

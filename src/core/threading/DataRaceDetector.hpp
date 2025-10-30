@@ -4,7 +4,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/threading/ThreadId.hpp>
+#include <core/threading/util/ThreadId.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 
