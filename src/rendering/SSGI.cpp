@@ -158,13 +158,13 @@ ShaderProperties SSGI::GetShaderProperties() const
     switch (SsgiFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA8")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA8")));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA16F")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA16F")));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA32F")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA32F")));
         break;
     default:
         HYP_FAIL("Invalid SSGI format type");
