@@ -117,9 +117,9 @@ const HypClass* HypClassRegistry::GetClass(TypeId typeId) const
         return nullptr;
     }
 
-    const auto it = m_registeredClasses.Find(typeId);
+    const auto it = m_classesByTypeId.Find(typeId);
 
-    if (it == m_registeredClasses.End())
+    if (it == m_classesByTypeId.End())
     {
         return nullptr;
     }
@@ -140,12 +140,12 @@ const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
 
     Mutex::Guard guard(m_mutex);
 
-    const auto it = m_registeredClasses.FindIf([typeName](auto&& item)
+    const auto it = m_classesByTypeId.FindIf([typeName](auto&& item)
         {
             return item.second->GetName() == typeName;
         });
 
-    if (it == m_registeredClasses.End())
+    if (it == m_classesByTypeId.End())
     {
         auto dynamicIt = m_dynamicClasses.FindIf([typeName](auto&& item)
             {
@@ -225,13 +225,24 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
         return;
     }
 
-    const auto it = m_registeredClasses.Find(typeId);
-    if (it != m_registeredClasses.End())
+    const auto it = m_classesByTypeId.Find(typeId);
+    if (it != m_classesByTypeId.End())
     {
         return;
     }
 
-    m_registeredClasses.Set(typeId, hypClass);
+    m_classesByTypeId[typeId] = hypClass;
+
+    if (hypClass->GetStaticIndex() >= 0)
+    {
+        if (hypClass->GetStaticIndex() >= m_classesByStaticIndex.Size())
+        {
+            const SizeType minSize = hypClass->GetStaticIndex() + 1;
+            m_classesByStaticIndex.Resize((minSize + 15) & ~15); // grow by chunks of 16
+        }
+
+        m_classesByStaticIndex[hypClass->GetStaticIndex()] = hypClass;
+    }
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
     if (HYP_UNLIKELY(!g_pThreadLocalCache))
@@ -281,12 +292,12 @@ void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass
     HYP_SCOPE;
 
     Array<const HypClass*> classes;
-    classes.Reserve(m_registeredClasses.Size() + (includeDynamicClasses ? m_dynamicClasses.Size() : 0));
+    classes.Reserve(m_classesByTypeId.Size() + (includeDynamicClasses ? m_dynamicClasses.Size() : 0));
 
     {
         Mutex::Guard guard(m_mutex);
 
-        for (auto&& it : m_registeredClasses)
+        for (auto&& it : m_classesByTypeId)
         {
             classes.PushBack(it.second);
         }
@@ -317,16 +328,16 @@ void HypClassRegistry::Initialize()
     HYP_CORE_ASSERT(!m_isInitialized);
     m_isInitialized = true;
 
-    auto hypObjectBaseClassIt = m_registeredClasses.FindIf([](auto&& item)
+    auto hypObjectBaseClassIt = m_classesByTypeId.FindIf([](auto&& item)
         {
             return item.second->GetName() == "HypObjectBase";
         });
 
-    HYP_CORE_ASSERT(hypObjectBaseClassIt != m_registeredClasses.End(), "HypObjectBase class not registered");
+    HYP_CORE_ASSERT(hypObjectBaseClassIt != m_classesByTypeId.End(), "HypObjectBase class not registered");
 
     g_hypObjectBaseClass = hypObjectBaseClassIt->second;
 
-    for (auto&& it : m_registeredClasses)
+    for (auto&& it : m_classesByTypeId)
     {
         it.second->Initialize();
     }

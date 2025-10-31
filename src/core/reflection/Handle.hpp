@@ -926,7 +926,11 @@ inline Handle<T> CreateObject(Args&&... args)
     HypObjectHeader* header = container->Allocate(sizeof(T));
 
     HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
-    Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
+
+    {
+        HypObjectInitializerGuard<T> guard(ptr);
+        new (ptr) T(std::forward<Args>(args)...);
+    }
 
     Handle<T> handle;
     handle.ptr = ptr;

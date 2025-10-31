@@ -128,7 +128,9 @@ public:
     void Initialize();
 
 private:
-    HashMap<TypeId, HypClass*> m_registeredClasses;
+    Array<HypClass*> m_classesByStaticIndex;
+
+    HashMap<TypeId, HypClass*> m_classesByTypeId;
 
     mutable Mutex m_mutex;
     HashMap<TypeId, HypClass*> m_dynamicClasses;
