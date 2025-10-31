@@ -14,6 +14,9 @@
 #include <core/threading/Mutex.hpp>
 
 #include <core/io/ByteWriter.hpp>
+#include <core/io/BufferedByteReader.hpp>
+
+#include <core/utilities/StringUtil.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -88,6 +91,12 @@ public:
 class HypBuildTool
 {
 public:
+    enum class CXXGenerationMode
+    {
+        CPP,
+        INL
+    };
+
     HypBuildTool(
         const FilePath& workingDirectory,
         const FilePath& sourceDirectory,
@@ -95,7 +104,8 @@ public:
         const FilePath& csharpOutputDirectory,
         const FilePath& hypscriptOutputDirectory,
         const HashSet<FilePath>& excludeDirectories,
-        const HashSet<FilePath>& excludeFiles)
+        const HashSet<FilePath>& excludeFiles,
+        CXXGenerationMode cxxMode = CXXGenerationMode::CPP)
     {
         m_analyzer.SetWorkingDirectory(workingDirectory);
         m_analyzer.SetSourceDirectory(sourceDirectory);
@@ -109,6 +119,8 @@ public:
 
         m_analyzer.SetGlobalDefines(GetGlobalDefines());
         m_analyzer.SetIncludePaths(GetIncludePaths());
+
+        m_cxxMode = cxxMode;
 
         m_threadPool.Start();
     }
@@ -625,7 +637,7 @@ private:
 
         RC<CXXModuleGenerator> cxxModuleGenerator = MakeRefCountedPtr<CXXModuleGenerator>();
 
-        // Generate the HypClassDecl header file
+        // Generate the HypClassDecl header and implementation files (shared by both modes)
         {
             FilePath hypClassDeclHeaderPath = m_analyzer.GetCXXOutputDirectory() / "HypClassDecls.inc";
             FileByteWriter hypClassDeclWriter(hypClassDeclHeaderPath);
@@ -645,7 +657,6 @@ private:
             }
         }
 
-        // Generate the HypClassDecl implementation file
         {
             FilePath hypClassDeclImplPath = m_analyzer.GetCXXOutputDirectory() / "HypClassDecls.cpp";
             FileByteWriter hypClassDeclImplWriter(hypClassDeclImplPath);
@@ -663,6 +674,130 @@ private:
 
                 hypClassDeclImplWriter.Close();
             }
+        }
+
+        if (m_cxxMode == CXXGenerationMode::INL)
+        {
+            // Pre-scan for duplicate flattened .inl filenames (e.g., Foo.generated.inl)
+            HashMap<String, FilePath> seenInlNames; // maps inl filename to first header path encountered
+            HashSet<String> duplicateInlNames;      // set of filenames that collide
+
+            for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
+            {
+                if (mod->GetHypClasses().Empty())
+                {
+                    continue;
+                }
+
+                const FilePath& headerPath = mod->GetPath();
+                if (!headerPath.Any())
+                {
+                    continue;
+                }
+
+                const String stem = StringUtil::StripExtension(headerPath.Basename());
+                const String inlFilename = stem + ".generated.inl";
+
+                if (seenInlNames.Contains(inlFilename))
+                {
+                    const FilePath& firstHeaderPath = seenInlNames.At(inlFilename);
+
+                    if (!duplicateInlNames.Contains(inlFilename))
+                    {
+                        duplicateInlNames.Insert(inlFilename);
+                        HYP_LOG(BuildTool, Error, "Duplicate inline output filename '{}' would be generated from:\n - {}\n - {}", inlFilename, firstHeaderPath, headerPath);
+
+                        m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate inline output filename detected in flattened inline mode: {} vs {}", inlFilename, {}, -1, firstHeaderPath, headerPath));
+                    }
+                    else
+                    {
+                        // Additional duplicate beyond the first two
+                        HYP_LOG(BuildTool, Error, "Duplicate inline output filename '{}' also produced by: {} (first seen at {})", inlFilename, headerPath, firstHeaderPath);
+                        m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate inline output filename detected in flattened inline mode", {}, -1, headerPath));
+                    }
+                }
+                else
+                {
+                    seenInlNames[inlFilename] = headerPath;
+                }
+            }
+            // Inline mode: generate one small cpp for builtins and per-module .inl files
+            if (builtinsModule->GetHypClasses().Any())
+            {
+                FilePath builtinsCppPath = m_analyzer.GetCXXOutputDirectory() / "Builtins.cpp";
+                FileByteWriter builtinsWriter(builtinsCppPath);
+
+                if (!builtinsWriter.IsOpen())
+                {
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open builtins output file: {}", {}, -1, builtinsCppPath));
+                }
+                else
+                {
+                    builtinsWriter.WriteString(GetGeneratedFilePreamble(String::empty));
+                    builtinsWriter.WriteString("#include <core/reflection/HypClassUtils.hpp>\n");
+                    if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, builtinsWriter); res.HasError())
+                    {
+                        m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
+                    }
+                    builtinsWriter.Close();
+                }
+            }
+
+            for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
+            {
+                if (mod->GetHypClasses().Empty())
+                {
+                    continue;
+                }
+
+                // Skip modules that would generate a duplicate flattened inline filename
+                {
+                    const FilePath& headerPath = mod->GetPath();
+                    if (headerPath.Any())
+                    {
+                        const String stem = StringUtil::StripExtension(headerPath.Basename());
+                        const String inlFilename = stem + ".generated.inl";
+                        if (duplicateInlNames.Contains(inlFilename))
+                        {
+                            // Error already recorded in the pre-scan; skip generating/including to avoid overwrite
+                            continue;
+                        }
+                    }
+                }
+
+                FilePath inlPath = cxxModuleGenerator->GetInlineOutputFilePath(m_analyzer, *mod);
+                Assert(inlPath.BasePath().MkDir(), "Failed to create output directory for {}", inlPath);
+
+                FileByteWriter inlWriter(inlPath);
+                if (!inlWriter.IsOpen())
+                {
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open inline output file: {}", {}, -1, inlPath));
+                    continue;
+                }
+
+                // Generate inline content without includes
+                if (Result res = cxxModuleGenerator->GenerateInline(m_analyzer, *mod, inlWriter); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+                    inlWriter.Close();
+                    continue;
+                }
+
+                inlWriter.Close();
+
+                // Inject include into the corresponding .cpp file
+                Result res = InjectInlineIncludeForModule(*mod, inlPath);
+
+                if (res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+                    continue;
+                }
+            }
+
+            TaskSystem::GetInstance().EnqueueBatch(batch);
+
+            return task;
         }
 
         static constexpr uint32 idealCxxModuleFileSize = JumboBuildEnabled ? JumboBuildIdealFileSize : 1;
@@ -767,6 +902,121 @@ private:
         TaskSystem::GetInstance().EnqueueBatch(batch);
 
         return task;
+    }
+
+    Result InjectInlineIncludeForModule(const Module& mod, const FilePath& inlPath)
+    {
+        // Compute expected source file path by replacing extension with .cpp (try variants)
+        const FilePath& headerPath = mod.GetPath();
+        if (!headerPath.Any())
+        {
+            return {}; // nothing to do
+        }
+
+        const String stem = StringUtil::StripExtension(headerPath.Basename());
+        const FilePath baseDir = headerPath.BasePath();
+
+        const FilePath cxxPath = baseDir / (stem + ".cpp");
+        if (!cxxPath.Exists() || cxxPath.IsDirectory())
+        {
+            // No implementation file exists in src; create a small generated .cpp that includes the header and the .inl
+            FilePath relHeaderPath = FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory());
+            FilePath genCppPath = inlPath.BasePath() / (stem + ".generated.cpp");
+
+            Assert(genCppPath.BasePath().MkDir(), "Failed to create output directory for {}", genCppPath);
+
+            // Compute include path for .inl relative to generated dir
+            FilePath relInlPathForGen = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
+            String includeInlPathStr = relInlPathForGen.Data();
+            includeInlPathStr.ReplaceAll("\\", "/");
+
+            String includeHeaderStr = relHeaderPath.Data();
+            includeHeaderStr.ReplaceAll("\\", "/");
+
+            FileByteWriter writer { genCppPath };
+            if (!writer.IsOpen())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to open generated implementation file '{}' for writing", genCppPath);
+            }
+
+            writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory())));
+            writer.WriteString(HYP_FORMAT("#include <{}>\n", includeHeaderStr));
+            writer.WriteString(HYP_FORMAT("#include <{}>\n", includeInlPathStr));
+            writer.Close();
+
+            return {};
+        }
+
+        // Compute include path relative to generated include root
+        FilePath relInlPath = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
+        String includePathStr = relInlPath.Data();
+        includePathStr.ReplaceAll("\\", "/");
+        const String includeLine = HYP_FORMAT("#include <{}>", includePathStr);
+
+        // Read source file lines
+        FileBufferedReaderSource source { cxxPath };
+
+        if (!source.IsOK())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for reading during inline include injection", cxxPath);
+        }
+
+        BufferedByteReader reader { &source };
+
+        Array<String> lines = reader.ReadAllLines();
+
+        // Search for existing generated.inl include
+        bool replaced = false;
+        for (String& line : lines)
+        {
+            if (line.Contains(".generated.inl"))
+            {
+                line = includeLine;
+                replaced = true;
+                break;
+            }
+        }
+
+        if (!replaced)
+        {
+            SizeType insertIndex = -1;
+            for (SizeType i = 0; i < lines.Size(); ++i)
+            {
+                const String& l = lines[i].Trimmed();
+                if (l.StartsWith("#include"))
+                {
+                    insertIndex = i; // keep last include
+                }
+                else if (l.StartsWith("namespace"))
+                {
+                    // don't want to insert within namespace!
+                    break;
+                }
+            }
+
+            if (insertIndex == SizeType(-1))
+            {
+                // Insert at top
+                lines.Insert(lines.Begin(), includeLine);
+            }
+            else
+            {
+                lines.Insert(lines.Begin() + insertIndex + 1, "\n" + includeLine);
+            }
+        }
+
+        // Write back to file
+        FileByteWriter writer { cxxPath };
+        if (!writer.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for writing during inline include injection", cxxPath);
+        }
+
+        const String joined = String::Join(lines, '\n') + '\n';
+        writer.WriteString(joined);
+        writer.Close();
+
+        return {};
     }
 
     Array<Module*> SortModulesTopologically()
@@ -946,6 +1196,7 @@ private:
 
     WorkerThreadPool m_threadPool;
     Analyzer m_analyzer;
+    CXXGenerationMode m_cxxMode = CXXGenerationMode::INL;
 };
 
 } // namespace buildtool
@@ -974,6 +1225,7 @@ int main(int argc, char** argv)
     definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
+    definitions.Add("CXXMode", "", "C++ code generation mode (Cpp or Inl)", CommandLineArgumentFlags::NONE, Array<String> { "Cpp", "Inl" }, String("Inl"));
 
     CommandLineParser commandLineParser { &definitions };
 
@@ -1026,6 +1278,13 @@ int main(int argc, char** argv)
             }
         }
 
+        const String cxxModeStr = parseResult.GetValue()["CXXMode"].AsString();
+        buildtool::HypBuildTool::CXXGenerationMode cxxMode = buildtool::HypBuildTool::CXXGenerationMode::CPP;
+        if (cxxModeStr.ToLower() == "inl")
+        {
+            cxxMode = buildtool::HypBuildTool::CXXGenerationMode::INL;
+        }
+
         buildtool::HypBuildTool buildTool {
             workingDirectory,
             sourceDirectory,
@@ -1033,7 +1292,8 @@ int main(int argc, char** argv)
             csharpOutputDirectory,
             hypscriptOutputDirectory,
             excludeDirectories,
-            excludeFiles
+            excludeFiles,
+            cxxMode
         };
 
         Result res = buildTool.Run();

@@ -46,7 +46,6 @@ class HypStructInstance;
 enum EnginePoolName : int;
 #endif
 
-HYP_ENUM()
 enum class HypClassFlags : uint8
 {
     NONE = 0x0,

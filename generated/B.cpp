@@ -5,299 +5,23 @@
 #include <core/reflection/HypClassUtils.hpp>
 /* Generated from: asset/AssetPath.hpp */
 
-#include <editor/EditorTask.hpp>
-
-namespace hyperion {
-
-#pragma region EditorTaskBase Reflection Data
-
-HYP_BEGIN_CLASS(EditorTaskBase, 42, 3, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(IsCommitted)), &EditorTaskBase::IsCommitted),
-    HypMethod(NAME(HYP_STR(Cancel)), &EditorTaskBase::Cancel),
-    HypMethod(NAME(HYP_STR(IsCompleted)), &EditorTaskBase::IsCompleted),
-    HypMethod(NAME(HYP_STR(Process)), &EditorTaskBase::Process),
-    HypMethod(NAME(HYP_STR(Commit)), &EditorTaskBase::Commit),
-    HypField(NAME(HYP_STR(OnComplete)), &EditorTaskBase::OnComplete, offsetof(EditorTaskBase, OnComplete), Span<const HypClassAttribute> { { HypClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnCancel)), &EditorTaskBase::OnCancel, offsetof(EditorTaskBase, OnCancel), Span<const HypClassAttribute> { { HypClassAttribute("scriptabledelegate", true) } })
-        HYP_END_CLASS
-
-#pragma endregion EditorTaskBase Reflection Data
-
-} // namespace hyperion
-
-#include <scripting/ScriptObjectResource.hpp>
-
-#include <dotnet/ManagedObject.hpp>
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
-
-namespace hyperion {
-
-#pragma region LongRunningEditorTask Reflection Data
-
-HYP_BEGIN_CLASS(LongRunningEditorTask, 43, 0, NAME("EditorTaskBase"), HypClassAttribute("abstract", true), HypClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
-HypMethod(NAME(HYP_STR(IsCommitted)), &LongRunningEditorTask::IsCommitted),
-    HypMethod(NAME(HYP_STR(Cancel)), &LongRunningEditorTask::Cancel, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(IsCompleted)), &LongRunningEditorTask::IsCompleted, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Process)), &LongRunningEditorTask::Process, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Commit)), &LongRunningEditorTask::Commit)
-        HYP_END_CLASS
-
-#pragma endregion LongRunningEditorTask Reflection Data
-
-#pragma region LongRunningEditorTask Scriptable Methods
-
-void LongRunningEditorTask::Cancel()
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("Cancel");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            managed_object->InvokeMethod<void>(method_ptr);
-            return;
-        }
-    }
-
-    Cancel_Impl();
-}
-bool LongRunningEditorTask::IsCompleted() const
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("IsCompleted");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr);
-        }
-    }
-
-    return IsCompleted_Impl();
-}
-void LongRunningEditorTask::Process()
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("Process");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            managed_object->InvokeMethod<void>(method_ptr);
-            return;
-        }
-    }
-
-    Process_Impl();
-}
-#pragma endregion LongRunningEditorTask Scriptable Methods
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region TickableEditorTask Reflection Data
-
-HYP_BEGIN_CLASS(TickableEditorTask, 44, 1, NAME("EditorTaskBase"), HypClassAttribute("abstract", true), HypClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
-HypMethod(NAME(HYP_STR(IsCommitted)), &TickableEditorTask::IsCommitted),
-    HypMethod(NAME(HYP_STR(Cancel)), &TickableEditorTask::Cancel, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(IsCompleted)), &TickableEditorTask::IsCompleted, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Process)), &TickableEditorTask::Process, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(Commit)), &TickableEditorTask::Commit),
-    HypMethod(NAME(HYP_STR(Tick)), &TickableEditorTask::Tick, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } })
-        HYP_END_CLASS
-
-#pragma endregion TickableEditorTask Reflection Data
-
-#pragma region TickableEditorTask Scriptable Methods
-
-void TickableEditorTask::Cancel()
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("Cancel");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            managed_object->InvokeMethod<void>(method_ptr);
-            return;
-        }
-    }
-
-    Cancel_Impl();
-}
-bool TickableEditorTask::IsCompleted() const
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("IsCompleted");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr);
-        }
-    }
-
-    return IsCompleted_Impl();
-}
-void TickableEditorTask::Process()
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("Process");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            managed_object->InvokeMethod<void>(method_ptr);
-            return;
-        }
-    }
-
-    Process_Impl();
-}
-void TickableEditorTask::Tick(float delta)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("Tick");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            managed_object->InvokeMethod<void>(method_ptr, delta);
-            return;
-        }
-    }
-
-    Tick_Impl(delta);
-}
-#pragma endregion TickableEditorTask Scriptable Methods
-} // namespace hyperion
-
-/* Generated from: editor\HyperionEditor.hpp */
-
-#include <editor/HyperionEditor.hpp>
-
-namespace hyperion {
-
-#pragma region HyperionEditor Reflection Data
-
-HYP_BEGIN_CLASS(HyperionEditor, 54, 0, NAME("Game"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion HyperionEditor Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: editor\script\EditorMain.hpp */
-
-#include <editor/script/EditorMain.hpp>
-#include <scene/World.hpp>
-#include <scene/Scene.hpp>
-#include <scene/Entity.hpp>
-#include <ui/UIObject.hpp>
-#include <input/Mouse.hpp>
-
-namespace hyperion {
-
-#pragma region EditorMain Reflection Data
-
-HYP_BEGIN_CLASS(EditorMain, 46, 0, NAME("HypObjectBase"))
-HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
-    HypMethod(NAME(HYP_STR(OnAdded)), &EditorMain::OnAdded),
-    HypMethod(NAME(HYP_STR(OpenProjectClicked)), &EditorMain::OpenProjectClicked),
-    HypMethod(NAME(HYP_STR(SaveClicked)), &EditorMain::SaveClicked),
-    HypMethod(NAME(HYP_STR(UndoClicked)), &EditorMain::UndoClicked),
-    HypMethod(NAME(HYP_STR(RedoClicked)), &EditorMain::RedoClicked),
-    HypMethod(NAME(HYP_STR(UpdateUndoMenuItem)), &EditorMain::UpdateUndoMenuItem),
-    HypMethod(NAME(HYP_STR(UpdateRedoMenuItem)), &EditorMain::UpdateRedoMenuItem),
-    HypMethod(NAME(HYP_STR(SimulateClicked)), &EditorMain::SimulateClicked),
-    HypMethod(NAME(HYP_STR(RebuildLightmaps)), &EditorMain::RebuildLightmaps),
-    HypMethod(NAME(HYP_STR(AddPointLight)), &EditorMain::AddPointLight),
-    HypMethod(NAME(HYP_STR(AddAreaRectLight)), &EditorMain::AddAreaRectLight),
-    HypMethod(NAME(HYP_STR(AddReflectionProbe)), &EditorMain::AddReflectionProbe),
-    HypMethod(NAME(HYP_STR(AddLightmapVolume)), &EditorMain::AddLightmapVolume),
-    HypMethod(NAME(HYP_STR(AddNode)), &EditorMain::AddNode),
-    HypMethod(NAME(HYP_STR(AddEntity)), &EditorMain::AddEntity)
-        HYP_END_CLASS
-
-#pragma endregion EditorMain Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: editor\ui\EditorPropertyPanel.hpp */
-
-#include <editor/ui/EditorPropertyPanel.hpp>
-#include <scripting/ScriptObjectResource.hpp>
-
-#include <dotnet/ManagedObject.hpp>
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
-
-namespace hyperion {
-
-#pragma region EditorPropertyPanelBase Reflection Data
-
-HYP_BEGIN_CLASS(EditorPropertyPanelBase, 200, 1, NAME("UIPanel"), HypClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(Build)), &EditorPropertyPanelBase::Build, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } })
-    HYP_END_CLASS
-
-#pragma endregion EditorPropertyPanelBase Reflection Data
-
-#pragma region EditorPropertyPanelBase Scriptable Methods
-
-void EditorPropertyPanelBase::Build(const HypData& hypData, const HypProperty* property)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("Build");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            managed_object->InvokeMethod<void>(method_ptr, hypData, property);
-            return;
-        }
-    }
-
-    Build_Impl(hypData, property);
-}
-#pragma endregion EditorPropertyPanelBase Scriptable Methods
-} // namespace hyperion
-
-/* Generated from: editor\ui\debug\EditorDebugOverlay.hpp */
-
-#include <editor/ui/debug/EditorDebugOverlay.hpp>
-#include <ui/UIObject.hpp>
+#include <asset/AssetPath.hpp>
 #include <core/NameInternal.hpp>
+
 
 namespace hyperion {
 
 #pragma region AssetPath Reflection Data
 
-HYP_BEGIN_STRUCT(AssetPath, 264, 0, {}, HypClassAttribute("size", 8))
-HypProperty(NAME(HYP_STR(Value)), &AssetPath::ToString, &AssetPath::Set),
-    HypField(NAME(HYP_STR(Chain)), &AssetPath::chain, offsetof(AssetPath, chain), Span<const HypClassAttribute> { { HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
+HYP_BEGIN_STRUCT(AssetPath, 263, 0, {}, HypClassAttribute("size", 8))
+    HypProperty(NAME(HYP_STR(Value)), &AssetPath::ToString, &AssetPath::Set),
+    HypField(NAME(HYP_STR(Chain)), &AssetPath::chain, offsetof(AssetPath, chain), Span<const HypClassAttribute> { {HypClassAttribute("noscriptbindings", true), HypClassAttribute("transient", true) } }),
     HypMethod(NAME(HYP_STR(IsValid)), &AssetPath::IsValid),
     HypMethod(NAME(HYP_STR(GetName)), &AssetPath::GetName),
     HypMethod(NAME(HYP_STR(GetChain)), &AssetPath::GetChain),
     HypMethod(NAME(HYP_STR(SetChain)), &AssetPath::SetChain),
     HypMethod(NAME(HYP_STR(ToString)), &AssetPath::ToString)
-        HYP_END_STRUCT
+HYP_END_STRUCT
 
 #pragma endregion AssetPath Reflection Data
 
@@ -310,40 +34,43 @@ static_assert(sizeof(AssetPath) == 8, "Expected sizeof(AssetPath) to be 8 bytes"
 #include <core/math/Vertex.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
+
 namespace hyperion {
 
 #pragma region MeshData Reflection Data
 
-HYP_BEGIN_STRUCT(MeshData, 265, 0, {})
-HypField(NAME(HYP_STR(VertexData)), &MeshData::vertexData, offsetof(MeshData, vertexData), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } }),
-    HypField(NAME(HYP_STR(IndexData)), &MeshData::indexData, offsetof(MeshData, indexData), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } })
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(MeshData, 264, 0, {})
+    HypField(NAME(HYP_STR(VertexData)), &MeshData::vertexData, offsetof(MeshData, vertexData), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } }),
+    HypField(NAME(HYP_STR(IndexData)), &MeshData::indexData, offsetof(MeshData, indexData), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } })
+HYP_END_STRUCT
 
 #pragma endregion MeshData Reflection Data
 
 } // namespace hyperion
+
 
 namespace hyperion {
 
 #pragma region MeshAsset Reflection Data
 
 HYP_BEGIN_CLASS(MeshAsset, 49, 0, NAME("AssetObject"))
-HypField(NAME(HYP_STR(MeshDesc)), &MeshAsset::m_meshDesc, offsetof(MeshAsset, m_meshDesc), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } })
-    HYP_END_CLASS
+    HypField(NAME(HYP_STR(MeshDesc)), &MeshAsset::m_meshDesc, offsetof(MeshAsset, m_meshDesc), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
+HYP_END_CLASS
 
 #pragma endregion MeshAsset Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MeshDesc Reflection Data
 
-HYP_BEGIN_STRUCT(MeshDesc, 266, 0, {})
-HypField(NAME(HYP_STR(MeshAttributes)), &MeshDesc::meshAttributes, offsetof(MeshDesc, meshAttributes), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(NumVertices)), &MeshDesc::numVertices, offsetof(MeshDesc, numVertices), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(NumIndices)), &MeshDesc::numIndices, offsetof(MeshDesc, numIndices), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } })
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(MeshDesc, 265, 0, {})
+    HypField(NAME(HYP_STR(MeshAttributes)), &MeshDesc::meshAttributes, offsetof(MeshDesc, meshAttributes), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(NumVertices)), &MeshDesc::numVertices, offsetof(MeshDesc, numVertices), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(NumIndices)), &MeshDesc::numIndices, offsetof(MeshDesc, numIndices), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion MeshDesc Reflection Data
 
@@ -357,41 +84,43 @@ namespace hyperion {
 
 #pragma region AssetChangeType Reflection Data
 
-HYP_BEGIN_ENUM(AssetChangeType, 267, 0, {})
-HypConstant(NAME(HYP_STR(CHANGED)), AssetChangeType::CHANGED),
+HYP_BEGIN_ENUM(AssetChangeType, 266, 0, {})
+    HypConstant(NAME(HYP_STR(CHANGED)), AssetChangeType::CHANGED),
     HypConstant(NAME(HYP_STR(CREATED)), AssetChangeType::CREATED),
     HypConstant(NAME(HYP_STR(DELETED)), AssetChangeType::DELETED),
     HypConstant(NAME(HYP_STR(RENAMED)), AssetChangeType::RENAMED),
     HypConstant(NAME(HYP_STR(MAX)), AssetChangeType::MAX)
-        HYP_END_ENUM
+HYP_END_ENUM
 
 #pragma endregion AssetChangeType Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region AssetLoaderDefinition Reflection Data
 
-HYP_BEGIN_STRUCT(AssetLoaderDefinition, 268, 0, {})
+HYP_BEGIN_STRUCT(AssetLoaderDefinition, 267, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion AssetLoaderDefinition Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region AssetManager Reflection Data
 
 HYP_BEGIN_CLASS(AssetManager, 55, 0, NAME("HypObjectBase"))
-HypMethod(NAME(HYP_STR(GetInstance)), &AssetManager::GetInstance),
+    HypMethod(NAME(HYP_STR(GetInstance)), &AssetManager::GetInstance),
     HypMethod(NAME(HYP_STR(GetBasePath)), &AssetManager::GetBasePath),
     HypMethod(NAME(HYP_STR(SetBasePath)), &AssetManager::SetBasePath),
     HypMethod(NAME(HYP_STR(GetBaseAssetCollector)), &AssetManager::GetBaseAssetCollector),
     HypMethod(NAME(HYP_STR(AddAssetCollector)), &AssetManager::AddAssetCollector),
     HypMethod(NAME(HYP_STR(RemoveAssetCollector)), &AssetManager::RemoveAssetCollector)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion AssetManager Reflection Data
 
@@ -408,14 +137,14 @@ namespace hyperion {
 #pragma region AssetCollector Reflection Data
 
 HYP_BEGIN_CLASS(AssetCollector, 56, 0, NAME("HypObjectBase"))
-HypMethod(NAME(HYP_STR(GetBasePath)), &AssetCollector::GetBasePath, Span<const HypClassAttribute> { { HypClassAttribute("property", "BasePath"), HypClassAttribute("serialize", true) } }),
-    HypMethod(NAME(HYP_STR(SetBasePath)), &AssetCollector::SetBasePath, Span<const HypClassAttribute> { { HypClassAttribute("property", "BasePath"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(GetBasePath)), &AssetCollector::GetBasePath, Span<const HypClassAttribute> { {HypClassAttribute("property", "BasePath"), HypClassAttribute("serialize", true) } }),
+    HypMethod(NAME(HYP_STR(SetBasePath)), &AssetCollector::SetBasePath, Span<const HypClassAttribute> { {HypClassAttribute("property", "BasePath"), HypClassAttribute("serialize", true) } }),
     HypMethod(NAME(HYP_STR(NotifyAssetChanged)), &AssetCollector::NotifyAssetChanged),
-    HypMethod(NAME(HYP_STR(IsWatching)), &AssetCollector::IsWatching, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(StartWatching)), &AssetCollector::StartWatching, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(StopWatching)), &AssetCollector::StopWatching, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnAssetChanged)), &AssetCollector::OnAssetChanged, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } })
-        HYP_END_CLASS
+    HypMethod(NAME(HYP_STR(IsWatching)), &AssetCollector::IsWatching, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(StartWatching)), &AssetCollector::StartWatching, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(StopWatching)), &AssetCollector::StopWatching, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnAssetChanged)), &AssetCollector::OnAssetChanged, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } })
+HYP_END_CLASS
 
 #pragma endregion AssetCollector Reflection Data
 
@@ -423,13 +152,11 @@ HypMethod(NAME(HYP_STR(GetBasePath)), &AssetCollector::GetBasePath, Span<const H
 
 bool AssetCollector::IsWatching() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("IsWatching");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<bool>(method_ptr);
         }
@@ -439,13 +166,11 @@ bool AssetCollector::IsWatching() const
 }
 void AssetCollector::StartWatching()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("StartWatching");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -456,13 +181,11 @@ void AssetCollector::StartWatching()
 }
 void AssetCollector::StopWatching()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("StopWatching");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -471,15 +194,13 @@ void AssetCollector::StopWatching()
 
     StopWatching_Impl();
 }
-void AssetCollector::OnAssetChanged(const FilePath& path, AssetChangeType changeType)
+void AssetCollector::OnAssetChanged(const FilePath & path, AssetChangeType changeType)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnAssetChanged");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, path, changeType);
             return;
@@ -529,7 +250,7 @@ namespace hyperion {
 
 #pragma region UILoader Reflection Data
 
-HYP_BEGIN_CLASS(TransformEditorPropertyPanel, 201, 0, NAME("EditorPropertyPanelBase"))
+HYP_BEGIN_CLASS(UILoader, 32, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion UILoader Reflection Data
@@ -559,334 +280,160 @@ namespace hyperion {
 
 #pragma region FBOMModelLoader Reflection Data
 
-HYP_BEGIN_ENUM(EnginePoolName, 258, 0, {})
-HypConstant(NAME(HYP_STR(EPN_INVALID)), EnginePoolName::EPN_INVALID),
-    HypConstant(NAME(HYP_STR(EPN_CORE)), EnginePoolName::EPN_CORE),
-    HypConstant(NAME(HYP_STR(EPN_RENDER)), EnginePoolName::EPN_RENDER),
-    HypConstant(NAME(HYP_STR(EPN_SCENE)), EnginePoolName::EPN_SCENE),
-    HypConstant(NAME(HYP_STR(EPN_MAX)), EnginePoolName::EPN_MAX)
-        HYP_END_ENUM
-
-#pragma endregion KeyCode Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region KeyboardEvent Reflection Data
-
-HYP_BEGIN_STRUCT(KeyboardEvent, 271, 0, {}, HypClassAttribute("size", 16))
-HypField(NAME(HYP_STR(InputManager)), &KeyboardEvent::inputManager, offsetof(KeyboardEvent, inputManager)),
-    HypField(NAME(HYP_STR(KeyCode)), &KeyboardEvent::keyCode, offsetof(KeyboardEvent, keyCode))
-        HYP_END_STRUCT
-
-#pragma endregion KeyboardEvent Reflection Data
-
-static_assert(sizeof(KeyboardEvent) == 16, "Expected sizeof(KeyboardEvent) to be 16 bytes");
-} // namespace hyperion
-
-/* Generated from: input/InputManager.hpp */
-
-#include <input/InputManager.hpp>
-#include <input/Keyboard.hpp>
-#include <input/Mouse.hpp>
-
-namespace hyperion {
-
-#pragma region InputManager Reflection Data
-
-HYP_BEGIN_CLASS(InputManager, 57, 0, NAME("HypObjectBase"))
-HypMethod(NAME(HYP_STR(IsMouseLocked)), &InputManager::IsMouseLocked),
-    HypMethod(NAME(HYP_STR(PushMouseLockState)), &InputManager::PushMouseLockState),
-    HypMethod(NAME(HYP_STR(PopMouseLockState)), &InputManager::PopMouseLockState),
-    HypMethod(NAME(HYP_STR(GetMousePosition)), &InputManager::GetMousePosition),
-    HypMethod(NAME(HYP_STR(SetMousePosition)), &InputManager::SetMousePosition),
-    HypMethod(NAME(HYP_STR(GetWindowSize)), &InputManager::GetWindowSize),
-    HypMethod(NAME(HYP_STR(IsKeyDown)), &InputManager::IsKeyDown),
-    HypMethod(NAME(HYP_STR(IsKeyUp)), &InputManager::IsKeyUp),
-    HypMethod(NAME(HYP_STR(IsShiftDown)), &InputManager::IsShiftDown),
-    HypMethod(NAME(HYP_STR(IsAltDown)), &InputManager::IsAltDown),
-    HypMethod(NAME(HYP_STR(IsCtrlDown)), &InputManager::IsCtrlDown),
-    HypMethod(NAME(HYP_STR(IsButtonDown)), &InputManager::IsButtonDown),
-    HypMethod(NAME(HYP_STR(IsButtonUp)), &InputManager::IsButtonUp)
-        HYP_END_CLASS
-
-#pragma endregion InputManager Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: input/Mouse.hpp */
-
-#include <input/Mouse.hpp>
-#include <input/InputManager.hpp>
-
-namespace hyperion {
-
-#pragma region MouseButtonState Reflection Data
-
-HYP_BEGIN_ENUM(MouseButtonState, 272, 0, {})
-HypConstant(NAME(HYP_STR(NONE)), MouseButtonState::NONE),
-    HypConstant(NAME(HYP_STR(LEFT)), MouseButtonState::LEFT),
-    HypConstant(NAME(HYP_STR(MIDDLE)), MouseButtonState::MIDDLE),
-    HypConstant(NAME(HYP_STR(RIGHT)), MouseButtonState::RIGHT)
-        HYP_END_ENUM
-
-#pragma endregion MouseButtonState Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region MouseEvent Reflection Data
-
-HYP_BEGIN_STRUCT(MouseEvent, 273, 0, {}, HypClassAttribute("size", 56))
-HypField(NAME(HYP_STR(InputManager)), &MouseEvent::inputManager, offsetof(MouseEvent, inputManager)),
-    HypField(NAME(HYP_STR(Position)), &MouseEvent::position, offsetof(MouseEvent, position)),
-    HypField(NAME(HYP_STR(PreviousPosition)), &MouseEvent::previousPosition, offsetof(MouseEvent, previousPosition)),
-    HypField(NAME(HYP_STR(AbsolutePosition)), &MouseEvent::absolutePosition, offsetof(MouseEvent, absolutePosition)),
-    HypField(NAME(HYP_STR(MouseButtons)), &MouseEvent::mouseButtons, offsetof(MouseEvent, mouseButtons)),
-    HypField(NAME(HYP_STR(Wheel)), &MouseEvent::wheel, offsetof(MouseEvent, wheel)),
-    HypField(NAME(HYP_STR(IsDown)), &MouseEvent::isDown, offsetof(MouseEvent, isDown), Span<const HypClassAttribute> { { HypClassAttribute("deprecated", true) } })
-        HYP_END_STRUCT
-
-#pragma endregion MouseEvent Reflection Data
-
-static_assert(sizeof(MouseEvent) == 56, "Expected sizeof(MouseEvent) to be 56 bytes");
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region MouseButtonKey Reflection Data
-
-HYP_BEGIN_ENUM(MouseButtonKey, 274, 0, {})
-HypConstant(NAME(HYP_STR(MBK_INVALID)), MouseButtonKey::MBK_INVALID),
-    HypConstant(NAME(HYP_STR(MBK_LEFT)), MouseButtonKey::MBK_LEFT),
-    HypConstant(NAME(HYP_STR(MBK_MIDDLE)), MouseButtonKey::MBK_MIDDLE),
-    HypConstant(NAME(HYP_STR(MBK_RIGHT)), MouseButtonKey::MBK_RIGHT),
-    HypConstant(NAME(HYP_STR(MBK_MAX)), MouseButtonKey::MBK_MAX)
-        HYP_END_ENUM
-
-#pragma endregion MouseButtonKey Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: input/InputHandler.hpp */
-
-#include <input/InputHandler.hpp>
-#include <input/Keyboard.hpp>
-#include <input/Mouse.hpp>
-
-#include <scripting/ScriptObjectResource.hpp>
-
-#include <dotnet/ManagedObject.hpp>
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
-
-namespace hyperion {
-
-#pragma region InputHandlerBase Reflection Data
-
-HYP_BEGIN_CLASS(InputHandlerBase, 58, 3, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(OnKeyDown)), &InputHandlerBase::OnKeyDown, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnKeyUp)), &InputHandlerBase::OnKeyUp, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnMouseDown)), &InputHandlerBase::OnMouseDown, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnMouseUp)), &InputHandlerBase::OnMouseUp, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnMouseMove)), &InputHandlerBase::OnMouseMove, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnMouseDrag)), &InputHandlerBase::OnMouseDrag, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnMouseLeave)), &InputHandlerBase::OnMouseLeave, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnClick)), &InputHandlerBase::OnClick, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
-    HypMethod(NAME(HYP_STR(OnKeyDown_Impl)), &InputHandlerBase::OnKeyDown_Impl),
-    HypMethod(NAME(HYP_STR(OnKeyUp_Impl)), &InputHandlerBase::OnKeyUp_Impl),
-    HypMethod(NAME(HYP_STR(OnMouseDown_Impl)), &InputHandlerBase::OnMouseDown_Impl),
-    HypMethod(NAME(HYP_STR(OnMouseUp_Impl)), &InputHandlerBase::OnMouseUp_Impl),
-    HypMethod(NAME(HYP_STR(OnMouseMove_Impl)), &InputHandlerBase::OnMouseMove_Impl),
-    HypMethod(NAME(HYP_STR(OnMouseDrag_Impl)), &InputHandlerBase::OnMouseDrag_Impl),
-    HypMethod(NAME(HYP_STR(OnMouseLeave_Impl)), &InputHandlerBase::OnMouseLeave_Impl),
-    HypMethod(NAME(HYP_STR(OnClick_Impl)), &InputHandlerBase::OnClick_Impl)
-        HYP_END_CLASS
-
-#pragma endregion InputHandlerBase Reflection Data
-
-#pragma region InputHandlerBase Scriptable Methods
-
-bool InputHandlerBase::OnKeyDown(const KeyboardEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnKeyDown");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnKeyDown_Impl(evt);
-}
-bool InputHandlerBase::OnKeyUp(const KeyboardEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnKeyUp");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnKeyUp_Impl(evt);
-}
-bool InputHandlerBase::OnMouseDown(const MouseEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseDown");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnMouseDown_Impl(evt);
-}
-bool InputHandlerBase::OnMouseUp(const MouseEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseUp");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnMouseUp_Impl(evt);
-}
-bool InputHandlerBase::OnMouseMove(const MouseEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseMove");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnMouseMove_Impl(evt);
-}
-bool InputHandlerBase::OnMouseDrag(const MouseEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseDrag");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnMouseDrag_Impl(evt);
-}
-bool InputHandlerBase::OnMouseLeave(const MouseEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseLeave");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnMouseLeave_Impl(evt);
-}
-bool InputHandlerBase::OnClick(const MouseEvent& evt)
-{
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
-        constexpr HashCode hash_code = HashCode::GetHashCode("OnClick");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
-            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
-
-            return managed_object->InvokeMethod<bool>(method_ptr, evt);
-        }
-    }
-
-    return OnClick_Impl(evt);
-}
-#pragma endregion InputHandlerBase Scriptable Methods
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region NullInputHandler Reflection Data
-
-HYP_BEGIN_CLASS(NullInputHandler, 59, 0, NAME("InputHandlerBase"))
+HYP_BEGIN_CLASS(FBOMModelLoader, 34, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
-#pragma endregion NullInputHandler Reflection Data
+#pragma endregion FBOMModelLoader Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: game/Game.hpp */
+/* Generated from: asset/model_loaders/OBJModelLoader.hpp */
 
-#include <game/Game.hpp>
-#include <scene/World.hpp>
+#include <asset/model_loaders/OBJModelLoader.hpp>
 
 namespace hyperion {
 
-#pragma region Game Reflection Data
+#pragma region OBJModelLoader Reflection Data
 
-HYP_BEGIN_CLASS(Game, 62, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
-HypMethod(NAME(HYP_STR(GetWorld)), &Game::GetWorld)
-    HYP_END_CLASS
+HYP_BEGIN_CLASS(OBJModelLoader, 35, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
 
-#pragma endregion Game Reflection Data
+#pragma endregion OBJModelLoader Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: streaming/Streamable.hpp */
+/* Generated from: asset/model_loaders/FBXModelLoader.hpp */
 
-#include <streaming/Streamable.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <core/NameInternal.hpp>
-
-#include <scripting/ScriptObjectResource.hpp>
-
-#include <dotnet/ManagedObject.hpp>
-#include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
+#include <asset/model_loaders/FBXModelLoader.hpp>
 
 namespace hyperion {
 
-#pragma region StreamableBase Reflection Data
+#pragma region FBXModelLoader Reflection Data
 
-HYP_BEGIN_ENUM(KeyCode, 259, 0, {})
-HypConstant(NAME(HYP_STR(UNKNOWN)), KeyCode::UNKNOWN),
+HYP_BEGIN_CLASS(FBXModelLoader, 36, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion FBXModelLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/model_loaders/OgreXMLModelLoader.hpp */
+
+#include <asset/model_loaders/OgreXMLModelLoader.hpp>
+
+namespace hyperion {
+
+#pragma region OgreXMLModelLoader Reflection Data
+
+HYP_BEGIN_CLASS(OgreXMLModelLoader, 37, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion OgreXMLModelLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/font_loaders/FontAtlasLoader.hpp */
+
+#include <asset/font_loaders/FontAtlasLoader.hpp>
+
+namespace hyperion {
+
+#pragma region FontAtlasLoader Reflection Data
+
+HYP_BEGIN_CLASS(FontAtlasLoader, 38, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion FontAtlasLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/font_loaders/FontFaceLoader.hpp */
+
+#include <asset/font_loaders/FontFaceLoader.hpp>
+
+namespace hyperion {
+
+#pragma region FontFaceLoader Reflection Data
+
+HYP_BEGIN_CLASS(FontFaceLoader, 39, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion FontFaceLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/texture_loaders/TextureLoader.hpp */
+
+#include <asset/texture_loaders/TextureLoader.hpp>
+
+namespace hyperion {
+
+#pragma region TextureLoader Reflection Data
+
+HYP_BEGIN_CLASS(TextureLoader, 40, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion TextureLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/material_loaders/MTLMaterialLoader.hpp */
+
+#include <asset/material_loaders/MTLMaterialLoader.hpp>
+
+namespace hyperion {
+
+#pragma region MTLMaterialLoader Reflection Data
+
+HYP_BEGIN_CLASS(MTLMaterialLoader, 41, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion MTLMaterialLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: asset/data_loaders/JSONLoader.hpp */
+
+#include <asset/data_loaders/JSONLoader.hpp>
+
+namespace hyperion {
+
+#pragma region JSONLoader Reflection Data
+
+HYP_BEGIN_CLASS(JSONLoader, 42, 0, NAME("AssetLoaderBase"), HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion JSONLoader Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: util/octree/Octree.hpp */
+
+#include <util/octree/Octree.hpp>
+
+namespace hyperion {
+
+#pragma region OctantId Reflection Data
+
+HYP_BEGIN_STRUCT(OctantId, 268, 0, {})
+HYP_END_STRUCT
+
+#pragma endregion OctantId Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: input/Keyboard.hpp */
+
+#include <input/Keyboard.hpp>
+#include <input/InputManager.hpp>
+
+
+namespace hyperion {
+
+#pragma region KeyCode Reflection Data
+
+HYP_BEGIN_ENUM(KeyCode, 269, 0, {})
+    HypConstant(NAME(HYP_STR(UNKNOWN)), KeyCode::UNKNOWN),
     HypConstant(NAME(HYP_STR(KEY_A)), KeyCode::KEY_A),
     HypConstant(NAME(HYP_STR(KEY_B)), KeyCode::KEY_B),
     HypConstant(NAME(HYP_STR(KEY_C)), KeyCode::KEY_C),
@@ -955,7 +502,328 @@ HypConstant(NAME(HYP_STR(UNKNOWN)), KeyCode::UNKNOWN),
     HypConstant(NAME(HYP_STR(ARROW_DOWN)), KeyCode::ARROW_DOWN),
     HypConstant(NAME(HYP_STR(ARROW_UP)), KeyCode::ARROW_UP),
     HypConstant(NAME(HYP_STR(ESC)), KeyCode::ESC)
-        HYP_END_ENUM
+HYP_END_ENUM
+
+#pragma endregion KeyCode Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region KeyboardEvent Reflection Data
+
+HYP_BEGIN_STRUCT(KeyboardEvent, 270, 0, {}, HypClassAttribute("size", 16))
+    HypField(NAME(HYP_STR(InputManager)), &KeyboardEvent::inputManager, offsetof(KeyboardEvent, inputManager)),
+    HypField(NAME(HYP_STR(KeyCode)), &KeyboardEvent::keyCode, offsetof(KeyboardEvent, keyCode))
+HYP_END_STRUCT
+
+#pragma endregion KeyboardEvent Reflection Data
+
+static_assert(sizeof(KeyboardEvent) == 16, "Expected sizeof(KeyboardEvent) to be 16 bytes");
+} // namespace hyperion
+
+/* Generated from: input/InputManager.hpp */
+
+#include <input/InputManager.hpp>
+#include <input/Keyboard.hpp>
+#include <input/Mouse.hpp>
+
+
+namespace hyperion {
+
+#pragma region InputManager Reflection Data
+
+HYP_BEGIN_CLASS(InputManager, 57, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(IsMouseLocked)), &InputManager::IsMouseLocked),
+    HypMethod(NAME(HYP_STR(PushMouseLockState)), &InputManager::PushMouseLockState),
+    HypMethod(NAME(HYP_STR(PopMouseLockState)), &InputManager::PopMouseLockState),
+    HypMethod(NAME(HYP_STR(GetMousePosition)), &InputManager::GetMousePosition),
+    HypMethod(NAME(HYP_STR(SetMousePosition)), &InputManager::SetMousePosition),
+    HypMethod(NAME(HYP_STR(GetWindowSize)), &InputManager::GetWindowSize),
+    HypMethod(NAME(HYP_STR(IsKeyDown)), &InputManager::IsKeyDown),
+    HypMethod(NAME(HYP_STR(IsKeyUp)), &InputManager::IsKeyUp),
+    HypMethod(NAME(HYP_STR(IsShiftDown)), &InputManager::IsShiftDown),
+    HypMethod(NAME(HYP_STR(IsAltDown)), &InputManager::IsAltDown),
+    HypMethod(NAME(HYP_STR(IsCtrlDown)), &InputManager::IsCtrlDown),
+    HypMethod(NAME(HYP_STR(IsButtonDown)), &InputManager::IsButtonDown),
+    HypMethod(NAME(HYP_STR(IsButtonUp)), &InputManager::IsButtonUp)
+HYP_END_CLASS
+
+#pragma endregion InputManager Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: input/Mouse.hpp */
+
+#include <input/Mouse.hpp>
+#include <input/InputManager.hpp>
+
+
+namespace hyperion {
+
+#pragma region MouseButtonState Reflection Data
+
+HYP_BEGIN_ENUM(MouseButtonState, 271, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), MouseButtonState::NONE),
+    HypConstant(NAME(HYP_STR(LEFT)), MouseButtonState::LEFT),
+    HypConstant(NAME(HYP_STR(MIDDLE)), MouseButtonState::MIDDLE),
+    HypConstant(NAME(HYP_STR(RIGHT)), MouseButtonState::RIGHT)
+HYP_END_ENUM
+
+#pragma endregion MouseButtonState Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region MouseEvent Reflection Data
+
+HYP_BEGIN_STRUCT(MouseEvent, 272, 0, {}, HypClassAttribute("size", 56))
+    HypField(NAME(HYP_STR(InputManager)), &MouseEvent::inputManager, offsetof(MouseEvent, inputManager)),
+    HypField(NAME(HYP_STR(Position)), &MouseEvent::position, offsetof(MouseEvent, position)),
+    HypField(NAME(HYP_STR(PreviousPosition)), &MouseEvent::previousPosition, offsetof(MouseEvent, previousPosition)),
+    HypField(NAME(HYP_STR(AbsolutePosition)), &MouseEvent::absolutePosition, offsetof(MouseEvent, absolutePosition)),
+    HypField(NAME(HYP_STR(MouseButtons)), &MouseEvent::mouseButtons, offsetof(MouseEvent, mouseButtons)),
+    HypField(NAME(HYP_STR(Wheel)), &MouseEvent::wheel, offsetof(MouseEvent, wheel)),
+    HypField(NAME(HYP_STR(IsDown)), &MouseEvent::isDown, offsetof(MouseEvent, isDown), Span<const HypClassAttribute> { {HypClassAttribute("deprecated", true) } })
+HYP_END_STRUCT
+
+#pragma endregion MouseEvent Reflection Data
+
+static_assert(sizeof(MouseEvent) == 56, "Expected sizeof(MouseEvent) to be 56 bytes");
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region MouseButtonKey Reflection Data
+
+HYP_BEGIN_ENUM(MouseButtonKey, 273, 0, {})
+    HypConstant(NAME(HYP_STR(MBK_INVALID)), MouseButtonKey::MBK_INVALID),
+    HypConstant(NAME(HYP_STR(MBK_LEFT)), MouseButtonKey::MBK_LEFT),
+    HypConstant(NAME(HYP_STR(MBK_MIDDLE)), MouseButtonKey::MBK_MIDDLE),
+    HypConstant(NAME(HYP_STR(MBK_RIGHT)), MouseButtonKey::MBK_RIGHT),
+    HypConstant(NAME(HYP_STR(MBK_MAX)), MouseButtonKey::MBK_MAX)
+HYP_END_ENUM
+
+#pragma endregion MouseButtonKey Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: input/InputHandler.hpp */
+
+#include <input/InputHandler.hpp>
+#include <input/Keyboard.hpp>
+#include <input/Mouse.hpp>
+
+#include <scripting/ScriptObjectResource.hpp>
+
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/Method.hpp>
+
+namespace hyperion {
+
+#pragma region InputHandlerBase Reflection Data
+
+HYP_BEGIN_CLASS(InputHandlerBase, 58, 3, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+    HypMethod(NAME(HYP_STR(OnKeyDown)), &InputHandlerBase::OnKeyDown, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnKeyUp)), &InputHandlerBase::OnKeyUp, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnMouseDown)), &InputHandlerBase::OnMouseDown, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnMouseUp)), &InputHandlerBase::OnMouseUp, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnMouseMove)), &InputHandlerBase::OnMouseMove, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnMouseDrag)), &InputHandlerBase::OnMouseDrag, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnMouseLeave)), &InputHandlerBase::OnMouseLeave, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnClick)), &InputHandlerBase::OnClick, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnKeyDown_Impl)), &InputHandlerBase::OnKeyDown_Impl),
+    HypMethod(NAME(HYP_STR(OnKeyUp_Impl)), &InputHandlerBase::OnKeyUp_Impl),
+    HypMethod(NAME(HYP_STR(OnMouseDown_Impl)), &InputHandlerBase::OnMouseDown_Impl),
+    HypMethod(NAME(HYP_STR(OnMouseUp_Impl)), &InputHandlerBase::OnMouseUp_Impl),
+    HypMethod(NAME(HYP_STR(OnMouseMove_Impl)), &InputHandlerBase::OnMouseMove_Impl),
+    HypMethod(NAME(HYP_STR(OnMouseDrag_Impl)), &InputHandlerBase::OnMouseDrag_Impl),
+    HypMethod(NAME(HYP_STR(OnMouseLeave_Impl)), &InputHandlerBase::OnMouseLeave_Impl),
+    HypMethod(NAME(HYP_STR(OnClick_Impl)), &InputHandlerBase::OnClick_Impl)
+HYP_END_CLASS
+
+#pragma endregion InputHandlerBase Reflection Data
+
+#pragma region InputHandlerBase Scriptable Methods
+
+bool InputHandlerBase::OnKeyDown(const KeyboardEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnKeyDown");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnKeyDown_Impl(evt);
+}
+bool InputHandlerBase::OnKeyUp(const KeyboardEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnKeyUp");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnKeyUp_Impl(evt);
+}
+bool InputHandlerBase::OnMouseDown(const MouseEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseDown");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnMouseDown_Impl(evt);
+}
+bool InputHandlerBase::OnMouseUp(const MouseEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseUp");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnMouseUp_Impl(evt);
+}
+bool InputHandlerBase::OnMouseMove(const MouseEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseMove");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnMouseMove_Impl(evt);
+}
+bool InputHandlerBase::OnMouseDrag(const MouseEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseDrag");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnMouseDrag_Impl(evt);
+}
+bool InputHandlerBase::OnMouseLeave(const MouseEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnMouseLeave");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnMouseLeave_Impl(evt);
+}
+bool InputHandlerBase::OnClick(const MouseEvent & evt)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("OnClick");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, evt);
+        }
+    }
+
+    return OnClick_Impl(evt);
+}
+#pragma endregion InputHandlerBase Scriptable Methods
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region NullInputHandler Reflection Data
+
+HYP_BEGIN_CLASS(NullInputHandler, 59, 0, NAME("InputHandlerBase"))
+HYP_END_CLASS
+
+#pragma endregion NullInputHandler Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: game/Game.hpp */
+
+#include <game/Game.hpp>
+#include <scene/World.hpp>
+
+
+namespace hyperion {
+
+#pragma region Game Reflection Data
+
+HYP_BEGIN_CLASS(Game, 62, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+    HypMethod(NAME(HYP_STR(GetWorld)), &Game::GetWorld)
+HYP_END_CLASS
+
+#pragma endregion Game Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: streaming/Streamable.hpp */
+
+#include <streaming/Streamable.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/utilities/Uuid.hpp>
+#include <core/NameInternal.hpp>
+
+#include <scripting/ScriptObjectResource.hpp>
+
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/Method.hpp>
+
+namespace hyperion {
+
+#pragma region StreamableBase Reflection Data
+
+HYP_BEGIN_CLASS(StreamableBase, 64, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+    HypMethod(NAME(HYP_STR(GetKey)), &StreamableBase::GetKey),
+    HypMethod(NAME(HYP_STR(GetBoundingBox)), &StreamableBase::GetBoundingBox, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnStreamStart)), &StreamableBase::OnStreamStart, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnLoaded)), &StreamableBase::OnLoaded, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(OnRemoved)), &StreamableBase::OnRemoved, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetBoundingBox_Impl)), &StreamableBase::GetBoundingBox_Impl),
+    HypMethod(NAME(HYP_STR(OnStreamStart_Impl)), &StreamableBase::OnStreamStart_Impl),
+    HypMethod(NAME(HYP_STR(OnLoaded_Impl)), &StreamableBase::OnLoaded_Impl),
+    HypMethod(NAME(HYP_STR(OnRemoved_Impl)), &StreamableBase::OnRemoved_Impl)
+HYP_END_CLASS
 
 #pragma endregion StreamableBase Reflection Data
 
@@ -963,13 +831,11 @@ HypConstant(NAME(HYP_STR(UNKNOWN)), KeyCode::UNKNOWN),
 
 BoundingBox StreamableBase::GetBoundingBox() const
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("GetBoundingBox");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             return managed_object->InvokeMethod<BoundingBox>(method_ptr);
         }
@@ -979,13 +845,11 @@ BoundingBox StreamableBase::GetBoundingBox() const
 }
 void StreamableBase::OnStreamStart()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnStreamStart");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -996,13 +860,11 @@ void StreamableBase::OnStreamStart()
 }
 void StreamableBase::OnLoaded()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnLoaded");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -1013,13 +875,11 @@ void StreamableBase::OnLoaded()
 }
 void StreamableBase::OnRemoved()
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnRemoved");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr);
             return;
@@ -1031,14 +891,15 @@ void StreamableBase::OnRemoved()
 #pragma endregion StreamableBase Scriptable Methods
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region StreamableKey Reflection Data
 
-HYP_BEGIN_STRUCT(KeyboardEvent, 260, 0, {}, HypClassAttribute("size", 16))
-HypField(NAME(HYP_STR(InputManager)), &KeyboardEvent::inputManager, offsetof(KeyboardEvent, inputManager)),
-    HypField(NAME(HYP_STR(KeyCode)), &KeyboardEvent::keyCode, offsetof(KeyboardEvent, keyCode))
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(StreamableKey, 274, 0, {})
+    HypField(NAME(HYP_STR(Uuid)), &StreamableKey::uuid, offsetof(StreamableKey, uuid), Span<const HypClassAttribute> { {HypClassAttribute("property", "Uuid"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(AssetPath)), &StreamableKey::assetPath, offsetof(StreamableKey, assetPath), Span<const HypClassAttribute> { {HypClassAttribute("property", "AssetPath"), HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion StreamableKey Reflection Data
 
@@ -1049,66 +910,30 @@ HypField(NAME(HYP_STR(InputManager)), &KeyboardEvent::inputManager, offsetof(Key
 #include <streaming/StreamingCell.hpp>
 #include <core/math/BoundingBox.hpp>
 
+
 namespace hyperion {
 
 #pragma region StreamingCellNeighbor Reflection Data
 
-HYP_BEGIN_ENUM(MouseButtonState, 261, 0, {})
-HypConstant(NAME(HYP_STR(NONE)), MouseButtonState::NONE),
-    HypConstant(NAME(HYP_STR(LEFT)), MouseButtonState::LEFT),
-    HypConstant(NAME(HYP_STR(MIDDLE)), MouseButtonState::MIDDLE),
-    HypConstant(NAME(HYP_STR(RIGHT)), MouseButtonState::RIGHT)
-        HYP_END_ENUM
-
-#pragma endregion MouseButtonState Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region MouseEvent Reflection Data
-
-HYP_BEGIN_STRUCT(MouseEvent, 262, 0, {}, HypClassAttribute("size", 56))
-HypField(NAME(HYP_STR(InputManager)), &MouseEvent::inputManager, offsetof(MouseEvent, inputManager)),
-    HypField(NAME(HYP_STR(Position)), &MouseEvent::position, offsetof(MouseEvent, position)),
-    HypField(NAME(HYP_STR(PreviousPosition)), &MouseEvent::previousPosition, offsetof(MouseEvent, previousPosition)),
-    HypField(NAME(HYP_STR(AbsolutePosition)), &MouseEvent::absolutePosition, offsetof(MouseEvent, absolutePosition)),
-    HypField(NAME(HYP_STR(MouseButtons)), &MouseEvent::mouseButtons, offsetof(MouseEvent, mouseButtons)),
-    HypField(NAME(HYP_STR(Wheel)), &MouseEvent::wheel, offsetof(MouseEvent, wheel)),
-    HypField(NAME(HYP_STR(IsDown)), &MouseEvent::isDown, offsetof(MouseEvent, isDown), Span<const HypClassAttribute> { { HypClassAttribute("deprecated", true) } })
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(StreamingCellNeighbor, 275, 0, {})
+    HypField(NAME(HYP_STR(Coord)), &StreamingCellNeighbor::coord, offsetof(StreamingCellNeighbor, coord), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Coord") } })
+HYP_END_STRUCT
 
 #pragma endregion StreamingCellNeighbor Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region StreamingCellInfo Reflection Data
 
-HYP_BEGIN_ENUM(MouseButtonKey, 263, 0, {})
-HypConstant(NAME(HYP_STR(MBK_INVALID)), MouseButtonKey::MBK_INVALID),
-    HypConstant(NAME(HYP_STR(MBK_LEFT)), MouseButtonKey::MBK_LEFT),
-    HypConstant(NAME(HYP_STR(MBK_MIDDLE)), MouseButtonKey::MBK_MIDDLE),
-    HypConstant(NAME(HYP_STR(MBK_RIGHT)), MouseButtonKey::MBK_RIGHT),
-    HypConstant(NAME(HYP_STR(MBK_MAX)), MouseButtonKey::MBK_MAX)
-        HYP_END_ENUM
-
-#pragma endregion MouseButtonKey Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: physics\PhysicsMaterial.hpp */
-
-#include <physics/PhysicsMaterial.hpp>
-
-namespace hyperion {
-
-#pragma region PhysicsMaterial Reflection Data
-
-HYP_BEGIN_STRUCT(PhysicsMaterial, 264, 0, {})
-HypField(NAME(HYP_STR(Mass)), &PhysicsMaterial::mass, offsetof(PhysicsMaterial, mass), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true), HypClassAttribute("property", "Mass") } })
-    HYP_END_STRUCT
+HYP_BEGIN_STRUCT(StreamingCellInfo, 276, 0, {}, HypClassAttribute("size", 80))
+    HypField(NAME(HYP_STR(Coord)), &StreamingCellInfo::coord, offsetof(StreamingCellInfo, coord), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Coord") } }),
+    HypField(NAME(HYP_STR(Extent)), &StreamingCellInfo::extent, offsetof(StreamingCellInfo, extent), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Extent") } }),
+    HypField(NAME(HYP_STR(Scale)), &StreamingCellInfo::scale, offsetof(StreamingCellInfo, scale), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Scale") } }),
+    HypField(NAME(HYP_STR(Bounds)), &StreamingCellInfo::bounds, offsetof(StreamingCellInfo, bounds), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Bounds") } })
+HYP_END_STRUCT
 
 #pragma endregion StreamingCellInfo Reflection Data
 
@@ -1126,11 +951,11 @@ namespace hyperion {
 #pragma region StreamingCell Reflection Data
 
 HYP_BEGIN_CLASS(StreamingCell, 65, 1, NAME("StreamableBase"))
-HypMethod(NAME(HYP_STR(GetPatchInfo)), &StreamingCell::GetPatchInfo),
-    HypMethod(NAME(HYP_STR(Update)), &StreamingCell::Update, Span<const HypClassAttribute> { { HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetPatchInfo)), &StreamingCell::GetPatchInfo),
+    HypMethod(NAME(HYP_STR(Update)), &StreamingCell::Update, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(GetBoundingBox_Impl)), &StreamingCell::GetBoundingBox_Impl),
     HypMethod(NAME(HYP_STR(Update_Impl)), &StreamingCell::Update_Impl)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion StreamingCell Reflection Data
 
@@ -1138,13 +963,11 @@ HypMethod(NAME(HYP_STR(GetPatchInfo)), &StreamingCell::GetPatchInfo),
 
 void StreamingCell::Update(float delta)
 {
-    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass())
-    {
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Update");
-        if (dotnet::Method* method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code))
-        {
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
-            dotnet::ManagedObject* managed_object = managed_object_resource->GetManagedObject();
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
             managed_object->InvokeMethod<void>(method_ptr, delta);
             return;
@@ -1156,17 +979,20 @@ void StreamingCell::Update(float delta)
 #pragma endregion StreamingCell Scriptable Methods
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region StreamingCellState Reflection Data
 
-HYP_BEGIN_ENUM(PhysicsShapeType, 265, 0, {})
-HypConstant(NAME(HYP_STR(NONE)), PhysicsShapeType::NONE),
-    HypConstant(NAME(HYP_STR(BOX)), PhysicsShapeType::BOX),
-    HypConstant(NAME(HYP_STR(SPHERE)), PhysicsShapeType::SPHERE),
-    HypConstant(NAME(HYP_STR(PLANE)), PhysicsShapeType::PLANE),
-    HypConstant(NAME(HYP_STR(CONVEX_HULL)), PhysicsShapeType::CONVEX_HULL)
-        HYP_END_ENUM
+HYP_BEGIN_ENUM(StreamingCellState, 277, 0, {})
+    HypConstant(NAME(HYP_STR(INVALID)), StreamingCellState::INVALID),
+    HypConstant(NAME(HYP_STR(UNLOADED)), StreamingCellState::UNLOADED),
+    HypConstant(NAME(HYP_STR(UNLOADING)), StreamingCellState::UNLOADING),
+    HypConstant(NAME(HYP_STR(WAITING)), StreamingCellState::WAITING),
+    HypConstant(NAME(HYP_STR(LOADING)), StreamingCellState::LOADING),
+    HypConstant(NAME(HYP_STR(LOADED)), StreamingCellState::LOADED),
+    HypConstant(NAME(HYP_STR(MAX)), StreamingCellState::MAX)
+HYP_END_ENUM
 
 #pragma endregion StreamingCellState Reflection Data
 
@@ -1177,14 +1003,15 @@ HypConstant(NAME(HYP_STR(NONE)), PhysicsShapeType::NONE),
 #include <streaming/StreamingManager.hpp>
 #include <streaming/StreamingVolume.hpp>
 
+
 namespace hyperion {
 
 #pragma region StreamingManager Reflection Data
 
 HYP_BEGIN_CLASS(StreamingManager, 67, 0, NAME("HypObjectBase"))
-HypMethod(NAME(HYP_STR(AddStreamingVolume)), &StreamingManager::AddStreamingVolume),
+    HypMethod(NAME(HYP_STR(AddStreamingVolume)), &StreamingManager::AddStreamingVolume),
     HypMethod(NAME(HYP_STR(RemoveStreamingVolume)), &StreamingManager::RemoveStreamingVolume)
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion StreamingManager Reflection Data
 
@@ -1196,212 +1023,17 @@ HypMethod(NAME(HYP_STR(AddStreamingVolume)), &StreamingManager::AddStreamingVolu
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
 
+
 namespace hyperion {
 
 #pragma region StreamingVolumeShape Reflection Data
 
-HYP_BEGIN_CLASS(SpherePhysicsShape, 62, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion SpherePhysicsShape Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region ConvexHullPhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(ConvexHullPhysicsShape, 63, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion ConvexHullPhysicsShape Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region BoxPhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(BoxPhysicsShape, 64, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion BoxPhysicsShape Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region PhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(PhysicsShape, 61, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
-HYP_END_CLASS
-
-#pragma endregion PhysicsShape Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region PlanePhysicsShape Reflection Data
-
-HYP_BEGIN_CLASS(PlanePhysicsShape, 65, 0, NAME("PhysicsShape"))
-HYP_END_CLASS
-
-#pragma endregion PlanePhysicsShape Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\Deferred.hpp */
-
-#include <rendering/Deferred.hpp>
-
-namespace hyperion {
-
-#pragma region TonemapPass Reflection Data
-
-HYP_BEGIN_CLASS(TonemapPass, 67, 0, NAME("FullScreenPass"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion TonemapPass Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region LightmapPass Reflection Data
-
-HYP_BEGIN_CLASS(LightmapPass, 68, 0, NAME("FullScreenPass"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion LightmapPass Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region RaytracingPassData Reflection Data
-
-HYP_BEGIN_CLASS(RaytracingPassData, 93, 0, NAME("PassData"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion RaytracingPassData Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region DeferredPassData Reflection Data
-
-HYP_BEGIN_CLASS(DeferredPassData, 94, 0, NAME("PassData"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion DeferredPassData Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region ReflectionsPass Reflection Data
-
-HYP_BEGIN_CLASS(ReflectionsPass, 69, 0, NAME("FullScreenPass"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion ReflectionsPass Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region DeferredPass Reflection Data
-
-HYP_BEGIN_CLASS(DeferredPass, 70, 0, NAME("FullScreenPass"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion DeferredPass Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region EnvGridPass Reflection Data
-
-HYP_BEGIN_CLASS(EnvGridPass, 71, 0, NAME("FullScreenPass"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion EnvGridPass Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\FullScreenPass.hpp */
-
-#include <rendering/FullScreenPass.hpp>
-
-namespace hyperion {
-
-#pragma region FullScreenPass Reflection Data
-
-HYP_BEGIN_CLASS(FullScreenPass, 66, 7, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion FullScreenPass Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\GaussianSplatting.hpp */
-
-#include <rendering/GaussianSplatting.hpp>
-
-namespace hyperion {
-
-#pragma region GaussianSplattingInstance Reflection Data
-
-HYP_BEGIN_CLASS(GaussianSplattingInstance, 74, 0, NAME("HypObjectBase"))
-HYP_END_CLASS
-
-#pragma endregion GaussianSplattingInstance Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region GaussianSplatting Reflection Data
-
-HYP_BEGIN_CLASS(GaussianSplatting, 75, 0, NAME("HypObjectBase"))
-HYP_END_CLASS
-
-#pragma endregion GaussianSplatting Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\GBuffer.hpp */
-
-#include <rendering/GBuffer.hpp>
-
-namespace hyperion {
-
-#pragma region GBuffer Reflection Data
-
-HYP_BEGIN_CLASS(GBuffer, 76, 0, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion GBuffer Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region GBufferTargetName Reflection Data
-
-HYP_BEGIN_ENUM(GBufferTargetName, 266, 0, {})
-HypConstant(NAME(HYP_STR(GTN_ALBEDO)), GBufferTargetName::GTN_ALBEDO),
-    HypConstant(NAME(HYP_STR(GTN_NORMALS)), GBufferTargetName::GTN_NORMALS),
-    HypConstant(NAME(HYP_STR(GTN_MATERIAL)), GBufferTargetName::GTN_MATERIAL),
-    HypConstant(NAME(HYP_STR(GTN_LIGHTMAP)), GBufferTargetName::GTN_LIGHTMAP),
-    HypConstant(NAME(HYP_STR(GTN_VELOCITY)), GBufferTargetName::GTN_VELOCITY),
-    HypConstant(NAME(HYP_STR(GTN_WS_NORMALS)), GBufferTargetName::GTN_WS_NORMALS),
-    HypConstant(NAME(HYP_STR(GTN_DEPTH)), GBufferTargetName::GTN_DEPTH),
-    HypConstant(NAME(HYP_STR(GTN_MAX)), GBufferTargetName::GTN_MAX)
-        HYP_END_ENUM
+HYP_BEGIN_ENUM(StreamingVolumeShape, 278, 0, {})
+    HypConstant(NAME(HYP_STR(SPHERE)), StreamingVolumeShape::SPHERE),
+    HypConstant(NAME(HYP_STR(BOX)), StreamingVolumeShape::BOX),
+    HypConstant(NAME(HYP_STR(MAX)), StreamingVolumeShape::MAX),
+    HypConstant(NAME(HYP_STR(INVALID)), StreamingVolumeShape::INVALID)
+HYP_END_ENUM
 
 #pragma endregion StreamingVolumeShape Reflection Data
 
@@ -1417,101 +1049,426 @@ namespace hyperion {
 
 #pragma region StreamingVolumeBase Reflection Data
 
-HYP_BEGIN_STRUCT(HBAOConfig, 267, 0, {}, HypClassAttribute("configname", "GlobalConfig"), HypClassAttribute("jsonpath", "Rendering.HBAO"))
-HypField(NAME(HYP_STR(Radius)), &HBAOConfig::radius, offsetof(HBAOConfig, radius)),
-    HypField(NAME(HYP_STR(Power)), &HBAOConfig::power, offsetof(HBAOConfig, power)),
-    HypField(NAME(HYP_STR(UseTemporalBlending)), &HBAOConfig::useTemporalBlending, offsetof(HBAOConfig, useTemporalBlending))
-        HYP_END_STRUCT
+HYP_BEGIN_CLASS(StreamingVolumeBase, 68, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+    HypMethod(NAME(HYP_STR(GetShape)), &StreamingVolumeBase::GetShape, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetBoundingBox)), &StreamingVolumeBase::GetBoundingBox, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetBoundingSphere)), &StreamingVolumeBase::GetBoundingSphere, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(ContainsPoint)), &StreamingVolumeBase::ContainsPoint, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(GetShape_Impl)), &StreamingVolumeBase::GetShape_Impl),
+    HypMethod(NAME(HYP_STR(GetBoundingBox_Impl)), &StreamingVolumeBase::GetBoundingBox_Impl),
+    HypMethod(NAME(HYP_STR(GetBoundingSphere_Impl)), &StreamingVolumeBase::GetBoundingSphere_Impl),
+    HypMethod(NAME(HYP_STR(ContainsPoint_Impl)), &StreamingVolumeBase::ContainsPoint_Impl),
+    HypMethod(NAME(HYP_STR(NotifyUpdate)), &StreamingVolumeBase::NotifyUpdate)
+HYP_END_CLASS
+
+#pragma endregion StreamingVolumeBase Reflection Data
+
+#pragma region StreamingVolumeBase Scriptable Methods
+
+StreamingVolumeShape StreamingVolumeBase::GetShape() const
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("GetShape");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<StreamingVolumeShape>(method_ptr);
+        }
+    }
+
+    return GetShape_Impl();
+}
+bool StreamingVolumeBase::GetBoundingBox(BoundingBox & outAabb) const
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("GetBoundingBox");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, outAabb);
+        }
+    }
+
+    return GetBoundingBox_Impl(outAabb);
+}
+bool StreamingVolumeBase::GetBoundingSphere(BoundingSphere & outSphere) const
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("GetBoundingSphere");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, outSphere);
+        }
+    }
+
+    return GetBoundingSphere_Impl(outSphere);
+}
+bool StreamingVolumeBase::ContainsPoint(const Vec3f & point) const
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("ContainsPoint");
+        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<bool>(method_ptr, point);
+        }
+    }
+
+    return ContainsPoint_Impl(point);
+}
+#pragma endregion StreamingVolumeBase Scriptable Methods
+} // namespace hyperion
+
+/* Generated from: system/AppContext.hpp */
+
+#include <system/AppContext.hpp>
+
+namespace hyperion {
+
+#pragma region SDLAppContext Reflection Data
+
+HYP_BEGIN_CLASS(SDLAppContext, 71, 0, NAME("AppContextBase"))
+HYP_END_CLASS
+
+#pragma endregion SDLAppContext Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AppContextBase Reflection Data
+
+HYP_BEGIN_CLASS(AppContextBase, 70, 2, NAME("HypObjectBase"))
+HYP_END_CLASS
+
+#pragma endregion AppContextBase Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region SDLApplicationWindow Reflection Data
+
+HYP_BEGIN_CLASS(SDLApplicationWindow, 74, 0, NAME("ApplicationWindow"))
+HYP_END_CLASS
+
+#pragma endregion SDLApplicationWindow Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region Win32ApplicationWindow Reflection Data
+
+HYP_BEGIN_CLASS(Win32ApplicationWindow, 75, 0, NAME("ApplicationWindow"))
+HYP_END_CLASS
+
+#pragma endregion Win32ApplicationWindow Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region ApplicationWindow Reflection Data
+
+HYP_BEGIN_CLASS(ApplicationWindow, 73, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_END_CLASS
+
+#pragma endregion ApplicationWindow Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region Win32AppContext Reflection Data
+
+HYP_BEGIN_CLASS(Win32AppContext, 72, 0, NAME("AppContextBase"))
+HYP_END_CLASS
+
+#pragma endregion Win32AppContext Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: audio/AudioSource.hpp */
+
+#include <audio/AudioSource.hpp>
+
+namespace hyperion {
+
+#pragma region AudioSource Reflection Data
+
+HYP_BEGIN_CLASS(AudioSource, 76, 0, NAME("HypObjectBase"))
+    HypMethod(NAME(HYP_STR(GetFormat)), &AudioSource::GetFormat, Span<const HypClassAttribute> { {HypClassAttribute("property", "Format"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(SetFormat)), &AudioSource::SetFormat, Span<const HypClassAttribute> { {HypClassAttribute("property", "Format"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(GetFreq)), &AudioSource::GetFreq, Span<const HypClassAttribute> { {HypClassAttribute("property", "Freq"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(SetFreq)), &AudioSource::SetFreq, Span<const HypClassAttribute> { {HypClassAttribute("property", "Freq"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(GetData)), &AudioSource::GetData, Span<const HypClassAttribute> { {HypClassAttribute("property", "Data"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(SetData)), &AudioSource::SetData, Span<const HypClassAttribute> { {HypClassAttribute("property", "Data"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(GetSampleLength)), &AudioSource::GetSampleLength, Span<const HypClassAttribute> { {HypClassAttribute("property", "SampleLength"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(SetSampleLength)), &AudioSource::SetSampleLength, Span<const HypClassAttribute> { {HypClassAttribute("property", "SampleLength"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(GetDuration)), &AudioSource::GetDuration, Span<const HypClassAttribute> { {HypClassAttribute("property", "Duration"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
+    HypMethod(NAME(HYP_STR(SetDuration)), &AudioSource::SetDuration, Span<const HypClassAttribute> { {HypClassAttribute("property", "Duration"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } })
+HYP_END_CLASS
+
+#pragma endregion AudioSource Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AudioSourceFormat Reflection Data
+
+HYP_BEGIN_ENUM(AudioSourceFormat, 279, 0, {})
+    HypConstant(NAME(HYP_STR(MONO8)), AudioSourceFormat::MONO8),
+    HypConstant(NAME(HYP_STR(MONO16)), AudioSourceFormat::MONO16),
+    HypConstant(NAME(HYP_STR(STEREO8)), AudioSourceFormat::STEREO8),
+    HypConstant(NAME(HYP_STR(STEREO16)), AudioSourceFormat::STEREO16)
+HYP_END_ENUM
+
+#pragma endregion AudioSourceFormat Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region AudioSourceState Reflection Data
+
+HYP_BEGIN_ENUM(AudioSourceState, 280, 0, {})
+    HypConstant(NAME(HYP_STR(UNDEFINED)), AudioSourceState::UNDEFINED),
+    HypConstant(NAME(HYP_STR(STOPPED)), AudioSourceState::STOPPED),
+    HypConstant(NAME(HYP_STR(PLAYING)), AudioSourceState::PLAYING),
+    HypConstant(NAME(HYP_STR(PAUSED)), AudioSourceState::PAUSED)
+HYP_END_ENUM
+
+#pragma endregion AudioSourceState Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: rendering/RenderGlobalState.hpp */
+
+#include <rendering/RenderGlobalState.hpp>
+
+namespace hyperion {
+
+#pragma region GlobalRenderBuffer Reflection Data
+
+HYP_BEGIN_ENUM(GlobalRenderBuffer, 281, 0, {})
+    HypConstant(NAME(HYP_STR(GRB_INVALID)), GlobalRenderBuffer::GRB_INVALID),
+    HypConstant(NAME(HYP_STR(GRB_WORLDS)), GlobalRenderBuffer::GRB_WORLDS),
+    HypConstant(NAME(HYP_STR(GRB_CAMERAS)), GlobalRenderBuffer::GRB_CAMERAS),
+    HypConstant(NAME(HYP_STR(GRB_LIGHTS)), GlobalRenderBuffer::GRB_LIGHTS),
+    HypConstant(NAME(HYP_STR(GRB_ENTITIES)), GlobalRenderBuffer::GRB_ENTITIES),
+    HypConstant(NAME(HYP_STR(GRB_MATERIALS)), GlobalRenderBuffer::GRB_MATERIALS),
+    HypConstant(NAME(HYP_STR(GRB_SKELETONS)), GlobalRenderBuffer::GRB_SKELETONS),
+    HypConstant(NAME(HYP_STR(GRB_ENV_PROBES)), GlobalRenderBuffer::GRB_ENV_PROBES),
+    HypConstant(NAME(HYP_STR(GRB_ENV_GRIDS)), GlobalRenderBuffer::GRB_ENV_GRIDS),
+    HypConstant(NAME(HYP_STR(GRB_LIGHTMAP_VOLUMES)), GlobalRenderBuffer::GRB_LIGHTMAP_VOLUMES),
+    HypConstant(NAME(HYP_STR(GRB_MAX)), GlobalRenderBuffer::GRB_MAX)
+HYP_END_ENUM
+
+#pragma endregion GlobalRenderBuffer Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region GlobalRendererType Reflection Data
+
+HYP_BEGIN_ENUM(GlobalRendererType, 282, 0, {})
+    HypConstant(NAME(HYP_STR(GRT_NONE)), GlobalRendererType::GRT_NONE),
+    HypConstant(NAME(HYP_STR(GRT_ENV_PROBE)), GlobalRendererType::GRT_ENV_PROBE),
+    HypConstant(NAME(HYP_STR(GRT_ENV_GRID)), GlobalRendererType::GRT_ENV_GRID),
+    HypConstant(NAME(HYP_STR(GRT_SHADOW_MAP)), GlobalRendererType::GRT_SHADOW_MAP),
+    HypConstant(NAME(HYP_STR(GRT_UI)), GlobalRendererType::GRT_UI),
+    HypConstant(NAME(HYP_STR(GRT_MAX)), GlobalRendererType::GRT_MAX)
+HYP_END_ENUM
+
+#pragma endregion GlobalRendererType Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: rendering/RenderFramebuffer.hpp */
+
+#include <rendering/RenderFramebuffer.hpp>
+
+namespace hyperion {
+
+#pragma region FramebufferBase Reflection Data
+
+HYP_BEGIN_CLASS(FramebufferBase, 77, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
+HYP_END_CLASS
+
+#pragma endregion FramebufferBase Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: rendering/RenderBucket.hpp */
+
+#include <rendering/RenderBucket.hpp>
+
+namespace hyperion {
+
+#pragma region RenderBucket Reflection Data
+
+HYP_BEGIN_ENUM(RenderBucket, 283, 0, {})
+    HypConstant(NAME(HYP_STR(RB_NONE)), RenderBucket::RB_NONE),
+    HypConstant(NAME(HYP_STR(RB_OPAQUE)), RenderBucket::RB_OPAQUE),
+    HypConstant(NAME(HYP_STR(RB_LIGHTMAP)), RenderBucket::RB_LIGHTMAP),
+    HypConstant(NAME(HYP_STR(RB_TRANSLUCENT)), RenderBucket::RB_TRANSLUCENT),
+    HypConstant(NAME(HYP_STR(RB_SKYBOX)), RenderBucket::RB_SKYBOX),
+    HypConstant(NAME(HYP_STR(RB_DEBUG)), RenderBucket::RB_DEBUG),
+    HypConstant(NAME(HYP_STR(RB_MAX)), RenderBucket::RB_MAX)
+HYP_END_ENUM
+
+#pragma endregion RenderBucket Reflection Data
+
+} // namespace hyperion
+
+/* Generated from: rendering/RenderDescriptorSet.hpp */
+
+#include <rendering/RenderDescriptorSet.hpp>
+#include <core/NameInternal.hpp>
+
+
+namespace hyperion {
+
+#pragma region DescriptorSetElementType Reflection Data
+
+HYP_BEGIN_ENUM(DescriptorSetElementType, 284, 0, {})
+    HypConstant(NAME(HYP_STR(UNSET)), DescriptorSetElementType::UNSET),
+    HypConstant(NAME(HYP_STR(UNIFORM_BUFFER)), DescriptorSetElementType::UNIFORM_BUFFER),
+    HypConstant(NAME(HYP_STR(UNIFORM_BUFFER_DYNAMIC)), DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC),
+    HypConstant(NAME(HYP_STR(SSBO)), DescriptorSetElementType::SSBO),
+    HypConstant(NAME(HYP_STR(STORAGE_BUFFER_DYNAMIC)), DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC),
+    HypConstant(NAME(HYP_STR(IMAGE)), DescriptorSetElementType::IMAGE),
+    HypConstant(NAME(HYP_STR(IMAGE_STORAGE)), DescriptorSetElementType::IMAGE_STORAGE),
+    HypConstant(NAME(HYP_STR(SAMPLER)), DescriptorSetElementType::SAMPLER),
+    HypConstant(NAME(HYP_STR(TLAS)), DescriptorSetElementType::TLAS),
+    HypConstant(NAME(HYP_STR(MAX)), DescriptorSetElementType::MAX)
+HYP_END_ENUM
+
+#pragma endregion DescriptorSetElementType Reflection Data
+
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region DescriptorTableDeclaration Reflection Data
+
+HYP_BEGIN_STRUCT(DescriptorTableDeclaration, 285, 0, {})
+    HypField(NAME(HYP_STR(Elements)), &DescriptorTableDeclaration::elements, offsetof(DescriptorTableDeclaration, elements), Span<const HypClassAttribute> { {HypClassAttribute("property", "Elements"), HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion DescriptorTableDeclaration Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorTableBase Reflection Data
 
-HYP_BEGIN_CLASS(DescriptorTableBase, 79, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(DescriptorTableBase, 79, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion DescriptorTableBase Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorSetOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 287, 0, {})
+HYP_BEGIN_STRUCT(DescriptorSetOffsetMap, 286, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorSetOffsetMap Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorDeclaration, 288, 0, {})
-HypField(NAME(HYP_STR(Slot)), &DescriptorDeclaration::slot, offsetof(DescriptorDeclaration, slot), Span<const HypClassAttribute> { { HypClassAttribute("property", "Slot"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Name)), &DescriptorDeclaration::name, offsetof(DescriptorDeclaration, name), Span<const HypClassAttribute> { { HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Count)), &DescriptorDeclaration::count, offsetof(DescriptorDeclaration, count), Span<const HypClassAttribute> { { HypClassAttribute("property", "Count"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Size)), &DescriptorDeclaration::size, offsetof(DescriptorDeclaration, size), Span<const HypClassAttribute> { { HypClassAttribute("property", "Size"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(IsDynamic)), &DescriptorDeclaration::isDynamic, offsetof(DescriptorDeclaration, isDynamic), Span<const HypClassAttribute> { { HypClassAttribute("property", "IsDynamic"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Index)), &DescriptorDeclaration::index, offsetof(DescriptorDeclaration, index), Span<const HypClassAttribute> { { HypClassAttribute("property", "Index"), HypClassAttribute("transient", true), HypClassAttribute("serialize", false) } })
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(DescriptorDeclaration, 287, 0, {})
+    HypField(NAME(HYP_STR(Slot)), &DescriptorDeclaration::slot, offsetof(DescriptorDeclaration, slot), Span<const HypClassAttribute> { {HypClassAttribute("property", "Slot"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Name)), &DescriptorDeclaration::name, offsetof(DescriptorDeclaration, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Count)), &DescriptorDeclaration::count, offsetof(DescriptorDeclaration, count), Span<const HypClassAttribute> { {HypClassAttribute("property", "Count"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Size)), &DescriptorDeclaration::size, offsetof(DescriptorDeclaration, size), Span<const HypClassAttribute> { {HypClassAttribute("property", "Size"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(IsDynamic)), &DescriptorDeclaration::isDynamic, offsetof(DescriptorDeclaration, isDynamic), Span<const HypClassAttribute> { {HypClassAttribute("property", "IsDynamic"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Index)), &DescriptorDeclaration::index, offsetof(DescriptorDeclaration, index), Span<const HypClassAttribute> { {HypClassAttribute("property", "Index"), HypClassAttribute("transient", true), HypClassAttribute("serialize", false) } })
+HYP_END_STRUCT
 
 #pragma endregion DescriptorDeclaration Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorSetDeclaration Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetDeclaration, 289, 0, {})
-HypField(NAME(HYP_STR(SetIndex)), &DescriptorSetDeclaration::setIndex, offsetof(DescriptorSetDeclaration, setIndex), Span<const HypClassAttribute> { { HypClassAttribute("property", "SetIndex"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Name)), &DescriptorSetDeclaration::name, offsetof(DescriptorSetDeclaration, name), Span<const HypClassAttribute> { { HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Slots)), &DescriptorSetDeclaration::slots, offsetof(DescriptorSetDeclaration, slots), Span<const HypClassAttribute> { { HypClassAttribute("property", "Slots"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &DescriptorSetDeclaration::flags, offsetof(DescriptorSetDeclaration, flags), Span<const HypClassAttribute> { { HypClassAttribute("property", "Flags"), HypClassAttribute("serialize", true) } })
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(DescriptorSetDeclaration, 288, 0, {})
+    HypField(NAME(HYP_STR(SetIndex)), &DescriptorSetDeclaration::setIndex, offsetof(DescriptorSetDeclaration, setIndex), Span<const HypClassAttribute> { {HypClassAttribute("property", "SetIndex"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Name)), &DescriptorSetDeclaration::name, offsetof(DescriptorSetDeclaration, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Slots)), &DescriptorSetDeclaration::slots, offsetof(DescriptorSetDeclaration, slots), Span<const HypClassAttribute> { {HypClassAttribute("property", "Slots"), HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Flags)), &DescriptorSetDeclaration::flags, offsetof(DescriptorSetDeclaration, flags), Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion DescriptorSetDeclaration Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorSetBase Reflection Data
 
-HYP_BEGIN_CLASS(DescriptorSetBase, 81, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(DescriptorSetBase, 81, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion DescriptorSetBase Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorSetDeclarationFlags Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSetDeclarationFlags, 290, 0, {})
-HypConstant(NAME(HYP_STR(NONE)), DescriptorSetDeclarationFlags::NONE),
+HYP_BEGIN_ENUM(DescriptorSetDeclarationFlags, 289, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), DescriptorSetDeclarationFlags::NONE),
     HypConstant(NAME(HYP_STR(REFERENCE)), DescriptorSetDeclarationFlags::REFERENCE),
     HypConstant(NAME(HYP_STR(TEMPLATE)), DescriptorSetDeclarationFlags::TEMPLATE)
-        HYP_END_ENUM
+HYP_END_ENUM
 
 #pragma endregion DescriptorSetDeclarationFlags Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorSlot Reflection Data
 
-HYP_BEGIN_ENUM(DescriptorSlot, 291, 0, {})
-HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_NONE)), DescriptorSlot::DESCRIPTOR_SLOT_NONE),
+HYP_BEGIN_ENUM(DescriptorSlot, 290, 0, {})
+    HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_NONE)), DescriptorSlot::DESCRIPTOR_SLOT_NONE),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_SRV)), DescriptorSlot::DESCRIPTOR_SLOT_SRV),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_UAV)), DescriptorSlot::DESCRIPTOR_SLOT_UAV),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_CBUFF)), DescriptorSlot::DESCRIPTOR_SLOT_CBUFF),
@@ -1519,32 +1476,34 @@ HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_NONE)), DescriptorSlot::DESCRIPTOR_SLOT
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE)), DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_SAMPLER)), DescriptorSlot::DESCRIPTOR_SLOT_SAMPLER),
     HypConstant(NAME(HYP_STR(DESCRIPTOR_SLOT_MAX)), DescriptorSlot::DESCRIPTOR_SLOT_MAX)
-        HYP_END_ENUM
+HYP_END_ENUM
 
 #pragma endregion DescriptorSlot Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorSetLayoutElement Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorSetLayoutElement, 292, 0, {})
-HypField(NAME(HYP_STR(Type)), &DescriptorSetLayoutElement::type, offsetof(DescriptorSetLayoutElement, type)),
+HYP_BEGIN_STRUCT(DescriptorSetLayoutElement, 291, 0, {})
+    HypField(NAME(HYP_STR(Type)), &DescriptorSetLayoutElement::type, offsetof(DescriptorSetLayoutElement, type)),
     HypField(NAME(HYP_STR(Binding)), &DescriptorSetLayoutElement::binding, offsetof(DescriptorSetLayoutElement, binding)),
     HypField(NAME(HYP_STR(Count)), &DescriptorSetLayoutElement::count, offsetof(DescriptorSetLayoutElement, count)),
     HypField(NAME(HYP_STR(Size)), &DescriptorSetLayoutElement::size, offsetof(DescriptorSetLayoutElement, size))
-        HYP_END_STRUCT
+HYP_END_STRUCT
 
 #pragma endregion DescriptorSetLayoutElement Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region DescriptorTableOffsetMap Reflection Data
 
-HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 293, 0, {})
+HYP_BEGIN_STRUCT(DescriptorTableOffsetMap, 292, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion DescriptorTableOffsetMap Reflection Data
@@ -1557,12 +1516,13 @@ HYP_END_STRUCT
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Texture.hpp>
 
+
 namespace hyperion {
 
 #pragma region Material Reflection Data
 
 HYP_BEGIN_CLASS(Material, 50, 0, NAME("AssetObject"))
-HypMethod(NAME(HYP_STR(IsStatic)), &Material::IsStatic),
+    HypMethod(NAME(HYP_STR(IsStatic)), &Material::IsStatic),
     HypMethod(NAME(HYP_STR(IsDynamic)), &Material::IsDynamic),
     HypMethod(NAME(HYP_STR(SetIsDynamic)), &Material::SetIsDynamic),
     HypMethod(NAME(HYP_STR(Clone)), &Material::Clone),
@@ -1570,18 +1530,19 @@ HypMethod(NAME(HYP_STR(IsStatic)), &Material::IsStatic),
     HypField(NAME(HYP_STR(Textures)), &Material::m_textures, offsetof(Material, m_textures)),
     HypField(NAME(HYP_STR(Attributes)), &Material::m_attributes, offsetof(Material, m_attributes)),
     HypField(NAME(HYP_STR(IsDynamic)), &Material::m_isDynamic, offsetof(Material, m_isDynamic))
-        HYP_END_CLASS
+HYP_END_CLASS
 
 #pragma endregion Material Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialTextureKey Reflection Data
 
-HYP_BEGIN_ENUM(MaterialTextureKey, 268, 0, {})
-HypConstant(NAME(HYP_STR(NONE)), MaterialTextureKey::NONE),
+HYP_BEGIN_ENUM(MaterialTextureKey, 293, 0, {})
+    HypConstant(NAME(HYP_STR(NONE)), MaterialTextureKey::NONE),
     HypConstant(NAME(HYP_STR(ALBEDO_MAP)), MaterialTextureKey::ALBEDO_MAP),
     HypConstant(NAME(HYP_STR(NORMAL_MAP)), MaterialTextureKey::NORMAL_MAP),
     HypConstant(NAME(HYP_STR(AO_MAP)), MaterialTextureKey::AO_MAP),
@@ -1609,11 +1570,12 @@ HypConstant(NAME(HYP_STR(NONE)), MaterialTextureKey::NONE),
     HypConstant(NAME(HYP_STR(TERRAIN_LEVEL2_NORMAL_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_NORMAL_MAP),
     HypConstant(NAME(HYP_STR(TERRAIN_LEVEL2_AO_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_AO_MAP),
     HypConstant(NAME(HYP_STR(TERRAIN_LEVEL2_PARALLAX_MAP)), MaterialTextureKey::TERRAIN_LEVEL2_PARALLAX_MAP)
-        HYP_END_ENUM
+HYP_END_ENUM
 
 #pragma endregion MaterialTextureKey Reflection Data
 
 } // namespace hyperion
+
 
 namespace hyperion {
 
@@ -1626,11 +1588,12 @@ HYP_END_CLASS
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialParameterValue Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameterValue, 269, 0, {}, HypClassAttribute("serialize", "bitwise"), HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(MaterialParameterValue, 294, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 16))
 HYP_END_STRUCT
 
 #pragma endregion MaterialParameterValue Reflection Data
@@ -1638,24 +1601,26 @@ HYP_END_STRUCT
 static_assert(sizeof(MaterialParameterValue) == 16, "Expected sizeof(MaterialParameterValue) to be 16 bytes");
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialParameters Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameters, 270, 0, {})
-HypField(NAME(HYP_STR(Values)), &MaterialParameters::m_values, offsetof(MaterialParameters, m_values), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } })
-    HYP_END_STRUCT
+HYP_BEGIN_STRUCT(MaterialParameters, 295, 0, {})
+    HypField(NAME(HYP_STR(Values)), &MaterialParameters::m_values, offsetof(MaterialParameters, m_values), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion MaterialParameters Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialParameterKey Reflection Data
 
-HYP_BEGIN_ENUM(MaterialParameterKey, 271, 0, {})
-HypConstant(NAME(HYP_STR(MATERIAL_KEY_NONE)), MaterialParameterKey::MATERIAL_KEY_NONE),
+HYP_BEGIN_ENUM(MaterialParameterKey, 296, 0, {})
+    HypConstant(NAME(HYP_STR(MATERIAL_KEY_NONE)), MaterialParameterKey::MATERIAL_KEY_NONE),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_ALBEDO)), MaterialParameterKey::MATERIAL_KEY_ALBEDO),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_METALNESS)), MaterialParameterKey::MATERIAL_KEY_METALNESS),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_ROUGHNESS)), MaterialParameterKey::MATERIAL_KEY_ROUGHNESS),
@@ -1678,18 +1643,19 @@ HypConstant(NAME(HYP_STR(MATERIAL_KEY_NONE)), MaterialParameterKey::MATERIAL_KEY
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_TERRAIN_LEVEL_1_HEIGHT)), MaterialParameterKey::MATERIAL_KEY_TERRAIN_LEVEL_1_HEIGHT),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_TERRAIN_LEVEL_2_HEIGHT)), MaterialParameterKey::MATERIAL_KEY_TERRAIN_LEVEL_2_HEIGHT),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_TERRAIN_LEVEL_3_HEIGHT)), MaterialParameterKey::MATERIAL_KEY_TERRAIN_LEVEL_3_HEIGHT)
-        HYP_END_ENUM
+HYP_END_ENUM
 
 #pragma endregion MaterialParameterKey Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialParameterType Reflection Data
 
-HYP_BEGIN_ENUM(MaterialParameterType, 272, 0, {})
-HypConstant(NAME(HYP_STR(MPT_NONE)), MaterialParameterType::MPT_NONE),
+HYP_BEGIN_ENUM(MaterialParameterType, 297, 0, {})
+    HypConstant(NAME(HYP_STR(MPT_NONE)), MaterialParameterType::MPT_NONE),
     HypConstant(NAME(HYP_STR(MPT_FLOAT)), MaterialParameterType::MPT_FLOAT),
     HypConstant(NAME(HYP_STR(MPT_FLOAT2)), MaterialParameterType::MPT_FLOAT2),
     HypConstant(NAME(HYP_STR(MPT_FLOAT3)), MaterialParameterType::MPT_FLOAT3),
@@ -1698,257 +1664,36 @@ HypConstant(NAME(HYP_STR(MPT_NONE)), MaterialParameterType::MPT_NONE),
     HypConstant(NAME(HYP_STR(MPT_INT2)), MaterialParameterType::MPT_INT2),
     HypConstant(NAME(HYP_STR(MPT_INT3)), MaterialParameterType::MPT_INT3),
     HypConstant(NAME(HYP_STR(MPT_INT4)), MaterialParameterType::MPT_INT4)
-        HYP_END_ENUM
+HYP_END_ENUM
 
 #pragma endregion MaterialParameterType Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialTextures Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialTextures, 273, 0, {})
-HypField(NAME(HYP_STR(Values)), &MaterialTextures::m_values, offsetof(MaterialTextures, m_values), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } })
-    HYP_END_STRUCT
+HYP_BEGIN_STRUCT(MaterialTextures, 298, 0, {})
+    HypField(NAME(HYP_STR(Values)), &MaterialTextures::m_values, offsetof(MaterialTextures, m_values), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion MaterialTextures Reflection Data
 
 } // namespace hyperion
 
+
 namespace hyperion {
 
 #pragma region MaterialParameter Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameter, 274, 0, {})
-HypField(NAME(HYP_STR(Value)), &MaterialParameter::value, offsetof(MaterialParameter, value), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Type)), &MaterialParameter::type, offsetof(MaterialParameter, type), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } })
-        HYP_END_STRUCT
+HYP_BEGIN_STRUCT(MaterialParameter, 299, 0, {})
+    HypField(NAME(HYP_STR(Value)), &MaterialParameter::value, offsetof(MaterialParameter, value), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
+    HypField(NAME(HYP_STR(Type)), &MaterialParameter::type, offsetof(MaterialParameter, type), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
+HYP_END_STRUCT
 
 #pragma endregion MaterialParameter Reflection Data
 
 } // namespace hyperion
 
-/* Generated from: rendering\Mesh.hpp */
-
-#include <rendering/Mesh.hpp>
-#include <core/utilities/Result.hpp>
-#include <core/NameInternal.hpp>
-#include <core/math/Vertex.hpp>
-#include <rendering/Shared.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <asset/AssetReference.hpp>
-#include <scene/BVH.hpp>
-
-namespace hyperion {
-
-#pragma region Mesh Reflection Data
-
-HYP_BEGIN_CLASS(Mesh, 22, 0, NAME("AssetObject"))
-HypMethod(NAME(HYP_STR(GetFlags)), &Mesh::GetFlags),
-    HypMethod(NAME(HYP_STR(SetFlags)), &Mesh::SetFlags),
-    HypMethod(NAME(HYP_STR(Rename)), &Mesh::Rename),
-    HypMethod(NAME(HYP_STR(NumIndices)), &Mesh::NumIndices),
-    HypMethod(NAME(HYP_STR(GetVertexAttributes)), &Mesh::GetVertexAttributes, Span<const HypClassAttribute> { { HypClassAttribute("property", "VertexAttributes"), HypClassAttribute("transient", true) } }),
-    HypMethod(NAME(HYP_STR(GetTopology)), &Mesh::GetTopology, Span<const HypClassAttribute> { { HypClassAttribute("property", "Topology"), HypClassAttribute("transient", true) } }),
-    HypMethod(NAME(HYP_STR(GetAABB)), &Mesh::GetAABB, Span<const HypClassAttribute> { { HypClassAttribute("property", "AABB"), HypClassAttribute("editor", true) } }),
-    HypMethod(NAME(HYP_STR(SetAABB)), &Mesh::SetAABB, Span<const HypClassAttribute> { { HypClassAttribute("property", "AABB"), HypClassAttribute("editor", true) } }),
-    HypMethod(NAME(HYP_STR(GetMeshAsset)), &Mesh::GetMeshAsset, Span<const HypClassAttribute> { { HypClassAttribute("property", "MeshAsset") } }),
-    HypMethod(NAME(HYP_STR(SetMeshAsset)), &Mesh::SetMeshAsset, Span<const HypClassAttribute> { { HypClassAttribute("property", "MeshAsset") } }),
-    HypField(NAME(HYP_STR(Aabb)), &Mesh::m_aabb, offsetof(Mesh, m_aabb), Span<const HypClassAttribute> { { HypClassAttribute("property", "AABB") } }),
-    HypField(NAME(HYP_STR(Bvh)), &Mesh::m_bvh, offsetof(Mesh, m_bvh), Span<const HypClassAttribute> { { HypClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &Mesh::m_flags, offsetof(Mesh, m_flags))
-        HYP_END_CLASS
-
-#pragma endregion Mesh Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region MeshFlags Reflection Data
-
-HYP_BEGIN_ENUM(MeshFlags, 275, 0, {})
-HypConstant(NAME(HYP_STR(MF_NONE)), MeshFlags::MF_NONE),
-    HypConstant(NAME(HYP_STR(MF_VIEW_INDEPENDENT)), MeshFlags::MF_VIEW_INDEPENDENT)
-        HYP_END_ENUM
-
-#pragma endregion MeshFlags Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\MeshInstanceData.hpp */
-
-#include <rendering/MeshInstanceData.hpp>
-
-namespace hyperion {
-
-#pragma region MeshInstanceData Reflection Data
-
-HYP_BEGIN_STRUCT(MeshInstanceData, 276, 0, {}, HypClassAttribute("postload", "MeshInstanceData_OnPostLoad"), HypClassAttribute("size", 88))
-HypField(NAME(HYP_STR(NumInstances)), &MeshInstanceData::numInstances, offsetof(MeshInstanceData, numInstances), Span<const HypClassAttribute> { { HypClassAttribute("property", "NumInstances"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true), HypClassAttribute("description", "The number of instances of this mesh. This is used to determine how many instances to render in a single draw call. If this is set to 1, the mesh will be rendered as a single instance. If this is greater than 1, the mesh will be rendered as multiple instances.") } }),
-    HypField(NAME(HYP_STR(EnableAutoInstancing)), &MeshInstanceData::enableAutoInstancing, offsetof(MeshInstanceData, enableAutoInstancing), Span<const HypClassAttribute> { { HypClassAttribute("property", "EnableAutoInstancing"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true), HypClassAttribute("description", "Enable automatic instancing for this mesh instance data. If enabled, the renderer will automatically batch instances of this mesh together for rendering, regardless of the explicitly set number of instances. This can improve performance by reducing draw calls for duplicate meshes, but may consume more GPU memory if instancing is under utilized for this mesh.") } }),
-    HypField(NAME(HYP_STR(Buffers)), &MeshInstanceData::buffers, offsetof(MeshInstanceData, buffers), Span<const HypClassAttribute> { { HypClassAttribute("property", "Buffers"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(BufferStructSizes)), &MeshInstanceData::bufferStructSizes, offsetof(MeshInstanceData, bufferStructSizes), Span<const HypClassAttribute> { { HypClassAttribute("property", "BufferStructSizes"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(BufferStructAlignments)), &MeshInstanceData::bufferStructAlignments, offsetof(MeshInstanceData, bufferStructAlignments), Span<const HypClassAttribute> { { HypClassAttribute("property", "BufferStructAlignments"), HypClassAttribute("serialize", true) } })
-        HYP_END_STRUCT
-
-#pragma endregion MeshInstanceData Reflection Data
-
-static_assert(sizeof(MeshInstanceData) == 88, "Expected sizeof(MeshInstanceData) to be 88 bytes");
-static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_MeshInstanceData(TypeId::ForType<MeshInstanceData>(), ValueWrapper<MeshInstanceData_OnPostLoad>());
-} // namespace hyperion
-
-/* Generated from: rendering\ParticleSystem.hpp */
-
-#include <rendering/ParticleSystem.hpp>
-
-namespace hyperion {
-
-#pragma region ParticleSpawner Reflection Data
-
-HYP_BEGIN_CLASS(ParticleSpawner, 78, 0, NAME("HypObjectBase"))
-HYP_END_CLASS
-
-#pragma endregion ParticleSpawner Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region ParticleSystem Reflection Data
-
-HYP_BEGIN_CLASS(ParticleSystem, 79, 0, NAME("HypObjectBase"))
-HYP_END_CLASS
-
-#pragma endregion ParticleSystem Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\PostFX.hpp */
-
-#include <rendering/PostFX.hpp>
-
-namespace hyperion {
-
-#pragma region PostFXPass Reflection Data
-
-HYP_BEGIN_CLASS(PostFXPass, 73, 0, NAME("FullScreenPass"), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion PostFXPass Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\RenderableAttributes.hpp */
-
-#include <rendering/RenderableAttributes.hpp>
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
-#include <rendering/RenderBucket.hpp>
-#include <rendering/Shared.hpp>
-#include <core/math/Vertex.hpp>
-
-namespace hyperion {
-
-#pragma region MaterialAttributeFlags Reflection Data
-
-HYP_BEGIN_ENUM(MaterialAttributeFlags, 277, 0, {})
-HypConstant(NAME(HYP_STR(MAF_NONE)), MaterialAttributeFlags::MAF_NONE),
-    HypConstant(NAME(HYP_STR(MAF_DEPTH_WRITE)), MaterialAttributeFlags::MAF_DEPTH_WRITE),
-    HypConstant(NAME(HYP_STR(MAF_DEPTH_TEST)), MaterialAttributeFlags::MAF_DEPTH_TEST),
-    HypConstant(NAME(HYP_STR(MAF_ALPHA_DISCARD)), MaterialAttributeFlags::MAF_ALPHA_DISCARD)
-        HYP_END_ENUM
-
-#pragma endregion MaterialAttributeFlags Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region MaterialAttributes Reflection Data
-
-HYP_BEGIN_STRUCT(MaterialAttributes, 278, 0, {})
-HypField(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(BlendFunction)), &MaterialAttributes::blendFunction, offsetof(MaterialAttributes, blendFunction), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(CullFaces)), &MaterialAttributes::cullFaces, offsetof(MaterialAttributes, cullFaces), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &MaterialAttributes::flags, offsetof(MaterialAttributes, flags), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(StencilFunction)), &MaterialAttributes::stencilFunction, offsetof(MaterialAttributes, stencilFunction), Span<const HypClassAttribute> { { HypClassAttribute("serialize", true) } })
-        HYP_END_STRUCT
-
-#pragma endregion MaterialAttributes Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region MeshAttributes Reflection Data
-
-HYP_BEGIN_STRUCT(MeshAttributes, 279, 0, {})
-HypField(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const HypClassAttribute> { { HypClassAttribute("property", "VertexAttributes"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const HypClassAttribute> { { HypClassAttribute("property", "Topology"), HypClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const HypClassAttribute> { { HypClassAttribute("property", "IndexBufferElemType"), HypClassAttribute("serialize", true) } })
-        HYP_END_STRUCT
-
-#pragma endregion MeshAttributes Reflection Data
-
-} // namespace hyperion
-
-/* Generated from: rendering\RenderAttachment.hpp */
-
-#include <rendering/RenderAttachment.hpp>
-
-namespace hyperion {
-
-#pragma region StoreOperation Reflection Data
-
-HYP_BEGIN_ENUM(StoreOperation, 280, 0, {})
-HypConstant(NAME(HYP_STR(UNDEFINED)), StoreOperation::UNDEFINED),
-    HypConstant(NAME(HYP_STR(NONE)), StoreOperation::NONE),
-    HypConstant(NAME(HYP_STR(STORE)), StoreOperation::STORE)
-        HYP_END_ENUM
-
-#pragma endregion StoreOperation Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region LoadOperation Reflection Data
-
-HYP_BEGIN_ENUM(LoadOperation, 281, 0, {})
-HypConstant(NAME(HYP_STR(UNDEFINED)), LoadOperation::UNDEFINED),
-    HypConstant(NAME(HYP_STR(NONE)), LoadOperation::NONE),
-    HypConstant(NAME(HYP_STR(CLEAR)), LoadOperation::CLEAR),
-    HypConstant(NAME(HYP_STR(LOAD)), LoadOperation::LOAD)
-        HYP_END_ENUM
-
-#pragma endregion LoadOperation Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region AttachmentBase Reflection Data
-
-HYP_BEGIN_CLASS(AttachmentBase, 80, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true), HypClassAttribute("noscriptbindings", true))
-HYP_END_CLASS
-
-#pragma endregion AttachmentBase Reflection Data
-
-} // namespace hyperion
-
-namespace hyperion {
-
-#pragma region RenderPassStage Reflection Data
-
-HYP_BEGIN_ENUM(RenderPassStage, 282, 0, {})
-HypConstant(NAME(HYP_STR(NONE)), RenderPassStage::NONE),
-    HypConstant(NAME(HYP_STR(PRESENT)), RenderPassStage::PRESENT),
-    HypConstant(NAME(HYP_STR(SHADER)), RenderPassStage::SHADER)
-        HYP_END_ENUM
-
-#pragma endregion RenderPassStage Reflection Data
-
-} // namespace hyperion

@@ -20,6 +20,10 @@ public:
     virtual Result Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const override;
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
+    // Inline (.inl) generation helpers for non-jumbo mode
+    Result GenerateInline(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const;
+    FilePath GetInlineOutputFilePath(const Analyzer& analyzer, const Module& mod) const;
+
     Result GenerateHypClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
     Result GenerateHypClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const;
 
