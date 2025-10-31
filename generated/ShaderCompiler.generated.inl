@@ -43,7 +43,8 @@ namespace hyperion {
 
 HYP_BEGIN_ENUM(ShaderPropertyFlags, 341, 0, {})
     HypConstant(NAME(HYP_STR(SPF_NONE)), ShaderPropertyFlags::SPF_NONE),
-    HypConstant(NAME(HYP_STR(SPF_VERTEX_ATTRIBUTE)), ShaderPropertyFlags::SPF_VERTEX_ATTRIBUTE)
+    HypConstant(NAME(HYP_STR(SPF_VERTEX_ATTRIBUTE)), ShaderPropertyFlags::SPF_VERTEX_ATTRIBUTE),
+    HypConstant(NAME(HYP_STR(SPF_PERMUTATION)), ShaderPropertyFlags::SPF_PERMUTATION)
 HYP_END_ENUM
 
 #pragma endregion ShaderPropertyFlags Reflection Data
@@ -100,7 +101,6 @@ namespace hyperion {
 
 HYP_BEGIN_STRUCT(ShaderProperty, 345, 0, {})
     HypField(NAME(HYP_STR(Name)), &ShaderProperty::name, offsetof(ShaderProperty, name)),
-    HypField(NAME(HYP_STR(IsPermutation)), &ShaderProperty::isPermutation, offsetof(ShaderProperty, isPermutation)),
     HypField(NAME(HYP_STR(Flags)), &ShaderProperty::flags, offsetof(ShaderProperty, flags)),
     HypField(NAME(HYP_STR(CurrentValue)), &ShaderProperty::currentValue, offsetof(ShaderProperty, currentValue)),
     HypField(NAME(HYP_STR(EnumValues)), &ShaderProperty::enumValues, offsetof(ShaderProperty, enumValues))

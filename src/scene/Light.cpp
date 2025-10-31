@@ -50,10 +50,10 @@ static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
 };
 
 static const ShaderProperty s_shadowMapFilterProperties[SMF_MAX] = {
-    ShaderProperty(NAME("MODE"), false, String("STANDARD")),
-    ShaderProperty(NAME("MODE"), false, String("PCF")),
-    ShaderProperty(NAME("MODE"), false, String("CONTACT_HARDENED")),
-    ShaderProperty(NAME("MODE"), false, String("VSM"))
+    ShaderProperty(NAME("MODE"), String("STANDARD")),
+    ShaderProperty(NAME("MODE"), String("PCF")),
+    ShaderProperty(NAME("MODE"), String("CONTACT_HARDENED")),
+    ShaderProperty(NAME("MODE"), String("VSM"))
 };
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS

@@ -179,67 +179,49 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
     static const GlobalConfig& s_globalConfig = CoreApi_GetGlobalConfig();
 
 #if defined(HYP_VULKAN) && HYP_VULKAN
-    properties.Set(ShaderProperty(NAME("HYP_VULKAN"), false));
-
-    constexpr uint32 vulkanVersion = HYP_VULKAN_API_VERSION;
-
-    switch (vulkanVersion)
-    {
-    case VK_API_VERSION_1_1:
-        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_1"), false));
-        break;
-    case VK_API_VERSION_1_2:
-        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_2"), false));
-        break;
-#ifdef VK_API_VERSION_1_3
-    case VK_API_VERSION_1_3:
-        properties.Set(ShaderProperty(NAME("HYP_VULKAN_1_3"), false));
-        break;
-#endif
-    default:
-        break;
-    }
+    constexpr int VulkanVersion = HYP_VULKAN_API_VERSION;
+    properties.Set(ShaderProperty(NAME("HYP_VULKAN"), VulkanVersion));
 #endif
 
 #if defined(HYP_WINDOWS)
-    properties.Set(ShaderProperty(NAME("HYP_WINDOWS"), false));
+    properties.Set(ShaderProperty(NAME("HYP_WINDOWS")));
 #elif defined(HYP_LINUX)
-    properties.Set(ShaderProperty(NAME("HYP_LINUX"), false));
+    properties.Set(ShaderProperty(NAME("HYP_LINUX")));
 #elif defined(HYP_MACOS)
-    properties.Set(ShaderProperty(NAME("HYP_MACOS"), false));
+    properties.Set(ShaderProperty(NAME("HYP_MACOS")));
 #elif defined(HYP_IOS)
-    properties.Set(ShaderProperty(NAME("HYP_IOS"), false));
+    properties.Set(ShaderProperty(NAME("HYP_IOS")));
 #endif
 
-    properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), false, ShaderProperty::Value(int(NumGbufferTargets))));
+    properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGbufferTargets))));
 
     if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
     {
-        properties.Set(ShaderProperty(NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING"), false));
+        properties.Set(ShaderProperty(NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING")));
     }
 
     if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
-        properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES"), false));
+        properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
     }
 
     if (!g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
     {
-        properties.Set(ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA"), false));
+        properties.Set(ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA")));
     }
 
     if (s_globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
     {
-        properties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS"), false));
+        properties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
     }
 
     if (s_globalConfig.Get("Rendering.Irradiance.Enabled").ToBool(false))
     {
-        properties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE"), false));
+        properties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
     }
 
-    // props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS", false));
-    // props.Set(ShaderProperty("HYP_MAX_BONES", false));
+    // props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS"));
+    // props.Set(ShaderProperty("HYP_MAX_BONES"));
 }
 
 static bool SatisfiesRequestedPropertySet(const ShaderProperties& requested, const ShaderProperties& candidate)
@@ -907,7 +889,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
                 if (type->isStruct())
                 {
                     for (auto it = type->getStruct()->begin();
-                         it != type->getStruct()->end(); ++it)
+                        it != type->getStruct()->end(); ++it)
                     {
                         String fieldTypeName;
 
@@ -925,8 +907,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
                             outDescriptorUsageType
                                 .AddField(CreateNameFromDynamicString(
                                               it->type->getFieldName().data()),
-                                    DescriptorUsageType(
-                                        CreateNameFromDynamicString(fieldTypeName)))
+                                    DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName)))
                                 .second;
 
                         HandleType(it->type, field);
@@ -1097,7 +1078,7 @@ static void ForEachPermutation(
         {
             valueGroups.PushBack(property);
         }
-        else if (property.isPermutation)
+        else if (property.IsPermutable())
         {
             variableProperties.PushBack(property);
         }
@@ -1163,7 +1144,7 @@ static void ForEachPermutation(
 
                 const ShaderProperty::Value& shaderVal = valueGroup.enumValues[valueIndex];
 
-                mergedProperties.Set(ShaderProperty(valueGroup.name, /* isPermutation */ false, shaderVal));
+                mergedProperties.Set(ShaderProperty(valueGroup.name, shaderVal));
 
                 currentGroupCombinations[existingCombinationIndex + (valueIndex * currentCombinations->Size())] = std::move(mergedProperties);
             }
@@ -1299,8 +1280,7 @@ String ShaderProperty::GetValueString() const
 
 #pragma region ShaderProperties
 
-ShaderProperties& ShaderProperties::Set(const ShaderProperty& property,
-    bool enabled)
+ShaderProperties& ShaderProperties::Set(const ShaderProperty& property, bool enabled)
 {
     if (property.IsVertexAttribute())
     {
@@ -2455,9 +2435,9 @@ bool ShaderCompiler::CompileBundle(
 
         const auto mergeAdditionalVersion = [](ShaderProperties& target, const ShaderProperty& additional) -> Result
         {
-            auto targetIt = target.Find(additional.name);
+            auto targetIt = target.Find(WeakName(additional.name));
 
-            if (additional.isPermutation)
+            if (additional.IsPermutable())
             {
                 target.AddPermutation(additional.name);
 
@@ -2657,7 +2637,7 @@ bool ShaderCompiler::CompileBundle(
 
                     for (const ShaderProperty& property : properties.ToArray())
                     {
-                        if (property.isPermutation)
+                        if (property.IsPermutable())
                         {
                             if (!variablePropertiesString.Empty())
                             {
