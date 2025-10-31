@@ -279,10 +279,6 @@ protected:
 
         out = HypData(std::move(array));
 
-        // debugging
-        HYP_CORE_ASSERT(out.Is<Array<T>>());
-        HYP_CORE_ASSERT(out.GetTypeId() == TypeId::ForType<Array<T>>());
-
         return true;
     }
 };
