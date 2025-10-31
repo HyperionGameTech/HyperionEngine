@@ -3,4 +3,6 @@
  */
 
 #include <scene/ComponentContainer.hpp>
+#include <core/reflection/TypeId.hpp>
+
 #include <ComponentContainer.generated.inl>

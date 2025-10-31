@@ -7,8 +7,6 @@
 #include <core/reflection/Handle.hpp>
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObject.hpp>
-
 #include <core/math/Frustum.hpp>
 
 namespace hyperion {

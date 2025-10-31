@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/SkyComponent.hpp>
+#include <rendering/subsystems/sky/SkydomeRenderer.hpp>
+
 #include <SkyComponent.generated.inl>

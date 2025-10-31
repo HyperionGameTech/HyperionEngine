@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <input/Keyboard.hpp>
+#include <input/InputManager.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -18,11 +19,11 @@ HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, cha
 
     if (uint32(keyCode) >= uint32(KeyCode::KEY_0) && uint32(keyCode) <= uint32(KeyCode::KEY_9))
     {
-        static const char numCodes[] = {
+        static constexpr char NumericKeyCodes[] = {
             ')', '!', '@', '#', '$', '%', '^', '&', '*', '('
         };
 
-        outChar = (shift ? numCodes[uint32(keyCode) - uint32(KeyCode::KEY_0)] : (char(uint32(keyCode) - uint32(KeyCode::KEY_0)) + '0'));
+        outChar = (shift ? NumericKeyCodes[uint32(keyCode) - uint32(KeyCode::KEY_0)] : (char(uint32(keyCode) - uint32(KeyCode::KEY_0)) + '0'));
         return true;
     }
 

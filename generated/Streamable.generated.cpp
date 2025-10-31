@@ -3,4 +3,8 @@
  */
 
 #include <streaming/Streamable.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/utilities/Uuid.hpp>
+#include <core/NameInternal.hpp>
+
 #include <Streamable.generated.inl>

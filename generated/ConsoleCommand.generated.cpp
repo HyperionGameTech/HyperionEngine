@@ -3,4 +3,7 @@
  */
 
 #include <console/ConsoleCommand.hpp>
+#include <core/utilities/Result.hpp>
+#include <core/cli/CommandLine.hpp>
+
 #include <ConsoleCommand.generated.inl>

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 

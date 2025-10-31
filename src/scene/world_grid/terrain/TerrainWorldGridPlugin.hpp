@@ -4,6 +4,8 @@
 
 #include <scene/world_grid/WorldGridLayer.hpp>
 
+#include <streaming/StreamingCell.hpp>
+
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {

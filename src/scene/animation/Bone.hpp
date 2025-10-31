@@ -7,8 +7,6 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/reflection/HypObject.hpp>
-
 #include <core/math/Transform.hpp>
 
 namespace hyperion {

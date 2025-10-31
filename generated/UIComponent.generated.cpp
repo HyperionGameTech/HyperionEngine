@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/UIComponent.hpp>
+#include <ui/UIObject.hpp>
+
 #include <UIComponent.generated.inl>

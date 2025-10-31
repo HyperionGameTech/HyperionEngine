@@ -5,6 +5,8 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
+#include <core/reflection/HypObjectMacros.hpp>
+
 namespace hyperion {
 
 HYP_ENUM()

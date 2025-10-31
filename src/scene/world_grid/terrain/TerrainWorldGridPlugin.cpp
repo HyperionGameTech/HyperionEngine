@@ -33,16 +33,16 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static const float baseHeight = 2.0f;
-static const float mountainHeight = 35.0f;
-static const float globalTerrainNoiseScale = 1.0f;
+static constexpr float BaseHeight = 2.0f;
+static constexpr float MountainHeight = 35.0f;
+static constexpr float NoiseScale = 1.0f;
 
 namespace terrain {
 
 struct TerrainHeight
 {
     float height;
-    float erosion;
+    float Erosion;
     float sediment;
     float water;
     float newWater;
@@ -75,32 +75,30 @@ struct TerrainHeightData
 
 class TerrainErosion
 {
-    static constexpr uint32 numIterations = 250u;
-    static constexpr float erosionScale = 0.05f;
-    static constexpr float evaporation = 0.9f;
-    static constexpr float erosion = 0.004f * erosionScale;
-    static constexpr float deposition = 0.0000002f * erosionScale;
+    static constexpr uint32 NumIterations = 250u;
+    static constexpr float ErosionScale = 0.05f;
+    static constexpr float Evaporation = 0.9f;
+    static constexpr float Erosion = 0.004f * ErosionScale;
+    static constexpr float Deposition = 0.0000002f * ErosionScale;
 
-    static const FixedArray<Pair<int, int>, 8> offsets;
+    static constexpr FixedArray<Pair<int, int>, 8> Offsets = {
+        Pair<int, int> { 1, 0 },
+        Pair<int, int> { 1, 1 },
+        Pair<int, int> { 1, -1 },
+        Pair<int, int> { 0, 1 },
+        Pair<int, int> { 0, -1 },
+        Pair<int, int> { -1, 0 },
+        Pair<int, int> { -1, 1 },
+        Pair<int, int> { -1, -1 }
+    };
 
 public:
     static void Erode(TerrainHeightData& heightData);
 };
 
-const FixedArray<Pair<int, int>, 8> TerrainErosion::offsets {
-    Pair<int, int> { 1, 0 },
-    Pair<int, int> { 1, 1 },
-    Pair<int, int> { 1, -1 },
-    Pair<int, int> { 0, 1 },
-    Pair<int, int> { 0, -1 },
-    Pair<int, int> { -1, 0 },
-    Pair<int, int> { -1, 1 },
-    Pair<int, int> { -1, -1 }
-};
-
 void TerrainErosion::Erode(TerrainHeightData& heightData)
 {
-    for (uint32 iteration = 0; iteration < numIterations; iteration++)
+    for (uint32 iteration = 0; iteration < NumIterations; iteration++)
     {
         for (int z = 1; z < heightData.cellInfo.extent.z - 2; z++)
         {
@@ -109,7 +107,7 @@ void TerrainErosion::Erode(TerrainHeightData& heightData)
                 TerrainHeight& heightInfo = heightData.heights[heightData.GetHeightIndex(x, z)];
                 heightInfo.displacement = 0.0f;
 
-                for (const auto& offset : offsets)
+                for (const auto& offset : Offsets)
                 {
                     const auto& neighborHeightInfo = heightData.heights[heightData.GetHeightIndex(x + offset.first, z + offset.second)];
 
@@ -118,11 +116,11 @@ void TerrainErosion::Erode(TerrainHeightData& heightData)
 
                 if (heightInfo.displacement != 0.0f)
                 {
-                    float water = heightInfo.water * evaporation;
-                    float stayingWater = (water * 0.0002f) / (heightInfo.displacement * erosionScale + 1);
+                    float water = heightInfo.water * Evaporation;
+                    float stayingWater = (water * 0.0002f) / (heightInfo.displacement * ErosionScale + 1);
                     water -= stayingWater;
 
-                    for (const auto& offset : offsets)
+                    for (const auto& offset : Offsets)
                     {
                         auto& neighborHeightInfo = heightData.heights[heightData.GetHeightIndex(x + offset.first, z + offset.second)];
 
@@ -144,8 +142,8 @@ void TerrainErosion::Erode(TerrainHeightData& heightData)
                 heightInfo.newWater = 0.0f;
 
                 const float oldHeight = heightInfo.height;
-                heightInfo.height += (-(heightInfo.displacement - (0.005f / erosionScale)) * heightInfo.water) * erosion + heightInfo.water * deposition;
-                heightInfo.erosion = oldHeight - heightInfo.height;
+                heightInfo.height += (-(heightInfo.displacement - (0.005f / ErosionScale)) * heightInfo.water) * Erosion + heightInfo.water * Deposition;
+                heightInfo.Erosion = oldHeight - heightInfo.height;
 
                 if (oldHeight < heightInfo.height)
                 {
@@ -196,7 +194,7 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noiseCombinator)
 
             m_heightData.heights[index] = TerrainHeight {
                 .height = noiseCombinator.GetNoise(Vec2f(xOffset, zOffset)),
-                .erosion = 0.0f,
+                .Erosion = 0.0f,
                 .sediment = 0.0f,
                 .water = 1.0f,
                 .newWater = 0.0f,
@@ -306,19 +304,19 @@ static NoiseCombinator& GetTerrainNoiseCombinator()
         NoiseCombinator noiseCombinator;
         TerrainNoiseCombinatorInitializer()
         {
-            noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, mountainHeight, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * globalTerrainNoiseScale)
-                // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, baseHeight, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, baseHeight * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, baseHeight * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, baseHeight * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, baseHeight * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, baseHeight * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * globalTerrainNoiseScale)
-                .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, baseHeight * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * globalTerrainNoiseScale);
+            noiseCombinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, MountainHeight, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * NoiseScale)
+                // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, BaseHeight, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * NoiseScale)
+                .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * NoiseScale);
         }
-    } initializer;
+    } s_initializer;
 
-    return initializer.noiseCombinator;
+    return s_initializer.noiseCombinator;
 }
 
 } // namespace terrain
@@ -373,7 +371,6 @@ void TerrainStreamingCell::OnLoaded_Impl()
     Handle<Entity> entity = entityManager->AddEntity();
     entityManager->GetComponent<TransformComponent>(entity) = TransformComponent { transform };
     entityManager->GetComponent<VisibilityStateComponent>(entity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
-
     entityManager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { m_mesh->GetAABB() });
 
     MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(entity);

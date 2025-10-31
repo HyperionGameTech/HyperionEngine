@@ -3,4 +3,8 @@
  */
 
 #include <scene/camera/streaming/CameraStreamingVolume.hpp>
+#include <streaming/StreamingVolume.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/BoundingSphere.hpp>
+
 #include <CameraStreamingVolume.generated.inl>

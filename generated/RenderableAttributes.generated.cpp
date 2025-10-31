@@ -3,4 +3,9 @@
  */
 
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/RenderBucket.hpp>
+#include <rendering/Shared.hpp>
+#include <core/math/Vertex.hpp>
+
 #include <RenderableAttributes.generated.inl>
