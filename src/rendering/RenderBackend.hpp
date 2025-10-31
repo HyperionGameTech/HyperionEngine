@@ -8,15 +8,12 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderMemory.hpp>
 
-#include <core/functional/Proc.hpp>
 #include <core/functional/Delegate.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/Span.hpp>
-
-#include <core/reflection/Handle.hpp>
 
 #include <core/Defines.hpp>
 
@@ -39,6 +36,9 @@ struct DescriptorTableDeclaration;
 
 enum class GpuBufferType : uint8;
 enum class RenderPassStage : uint8;
+
+template <class T>
+struct Handle;
 
 struct QueryImageCapabilitiesResult
 {
