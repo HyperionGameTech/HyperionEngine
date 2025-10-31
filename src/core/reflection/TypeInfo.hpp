@@ -2070,6 +2070,11 @@ inline const Name& TypeInfo_GetName(const TypeInfo& typeInfo)
     return typeInfo.name;
 }
 
+inline const HypClass* TypeInfo_GetClass(const TypeInfo& typeInfo)
+{
+    return typeInfo.GetHypClass();
+}
+
 inline SizeType TypeInfo_GetSize(const TypeInfo& typeInfo)
 {
     return typeInfo.size;

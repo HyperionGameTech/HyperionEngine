@@ -151,7 +151,7 @@ public:
         const HypData& target = value;
 
         const HypClass* hypClass = GetClass(value.GetTypeId());
-        Assert(hypClass != nullptr, "No HypClass registered for TypeId %u", value.GetTypeId().Value());
+        Assert(hypClass != nullptr);
 
         if (value.IsNull())
         {

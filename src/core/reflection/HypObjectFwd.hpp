@@ -367,7 +367,7 @@ static inline const WeakHandle<Other>& ObjCast(const WeakHandle<T>& handle)
         return WeakHandle<Other>::empty;
     }
 
-    if (IsA(GetClass(handle.GetTypeId()), Other::Class()))
+    if (IsA(TypeInfo_GetClass(*handle.GetTypeInfo()), Other::Class()))
     {
         return reinterpret_cast<const WeakHandle<Other>&>(handle);
     }
@@ -385,7 +385,7 @@ static inline WeakHandle<Other> ObjCast(WeakHandle<T>&& handle)
         return WeakHandle<Other>::empty;
     }
 
-    if (IsA(GetClass(handle.GetTypeId()), Other::Class()))
+    if (IsA(TypeInfo_GetClass(*handle.GetTypeInfo()), Other::Class()))
     {
         return reinterpret_cast<WeakHandle<Other>&&>(handle);
     }

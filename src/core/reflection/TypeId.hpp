@@ -37,7 +37,12 @@ public:
     static TypeId ForType()
 #endif
     {
+#if HYP_TYPE_ID_COMPILE_TIME
         return TypeId { TypeIdValue(CONSTEXPR_TYPE_ID(T)) };
+#else
+        static const TypeId s_typeId { TypeIdValue(CONSTEXPR_TYPE_ID(T)) };
+        return s_typeId;
+#endif
     }
     
 #if HYP_TYPE_ID_COMPILE_TIME

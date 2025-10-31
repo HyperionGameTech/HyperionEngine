@@ -62,7 +62,7 @@ constexpr std::index_sequence<(Offset + Indices)...> makeOffsetIndexSequence(std
 }
 
 template <SizeType N, SizeType Offset>
-using make_offset_index_sequence_t = decltype(makeOffsetIndexSequence<Offset>(std::make_index_sequence<N>()));
+using OffsetSequence = decltype(makeOffsetIndexSequence<Offset>(std::make_index_sequence<N>()));
 
 // Fwd decl of IntegerSequenceFromString template
 template <auto StaticString>
@@ -411,7 +411,7 @@ struct Substr_Impl<String, Start, End, true>
 template <auto String, SizeType Start, SizeType End>
 struct Substr
 {
-    static constexpr auto value = Substr_Impl<String, Start, End, Start >= (End >= String.size ? String.size - 1 : End)>()(containers::make_offset_index_sequence_t<(End >= String.size ? String.size - 1 : End) - Start, Start>());
+    static constexpr auto value = Substr_Impl<String, Start, End, Start >= (End >= String.size ? String.size - 1 : End)>()(containers::OffsetSequence<(End >= String.size ? String.size - 1 : End) - Start, Start>());
 };
 
 /*template <auto String, SizeType Start>
@@ -420,7 +420,7 @@ struct Substr<String, Start, SizeType(-1)>
     static_assert(Start <= String.size - 1, "Start must be less than or equal to end");
     static_assert(Start < String.size, "Start must be less than string size");
 
-    static constexpr auto value = Substr_Impl<String, Start, String.size - 1, Start >= String.size - 1>()(containers::make_offset_index_sequence_t<(String.size - 1) - Start, Start>());
+    static constexpr auto value = Substr_Impl<String, Start, String.size - 1, Start >= String.size - 1>()(containers::OffsetSequence<(String.size - 1) - Start, Start>());
 };*/
 
 #pragma endregion Substr

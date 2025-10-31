@@ -70,9 +70,7 @@ struct Handle final : HandleBase
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an Id for a type that doesn't have a container.
-            HYP_CORE_ASSERT(container != nullptr,
-                "Container is not initialized for type! Possibly using an id created without pointing to a valid %s instance?",
-                LookupTypeName(id.GetTypeId()));
+            HYP_CORE_ASSERT(container != nullptr);
 
             HypObjectContainerBase::LockGuard guard;
 
@@ -394,9 +392,7 @@ struct WeakHandle final
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an Id for a type that doesn't have a container.
-            HYP_CORE_ASSERT(container != nullptr,
-                "Container is not initialized for type! Possibly using an id created without pointing to a valid %s instance?",
-                LookupTypeName(id.GetTypeId()));
+            HYP_CORE_ASSERT(container != nullptr);
 
             HypObjectContainerBase::LockGuard guard;
 

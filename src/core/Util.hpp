@@ -106,14 +106,14 @@ constexpr auto ParseTypeName()
         static_assert(leftArrowIndex < rightArrowIndex, "Left arrow index must be less than right arrow index or parsing will fail!");
 
         return containers::helpers::Concat<
-            TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, 0, leftArrowIndex>::value>::value,
+            containers::helpers::TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, 0, leftArrowIndex>::value>::value,
             StaticString("<"),
-            TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, leftArrowIndex + 1, rightArrowIndex>::value>::value,
+            containers::helpers::TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, leftArrowIndex + 1, rightArrowIndex>::value>::value,
             StaticString(">")>::value;
     }
     else
     {
-        return TransformSplit<TypeNameStringTransformer<ShouldStripNamespace>, Str>::value;
+        return containers::helpers::TransformSplit<TypeNameStringTransformer<ShouldStripNamespace>, Str>::value;
     }
 }
 
