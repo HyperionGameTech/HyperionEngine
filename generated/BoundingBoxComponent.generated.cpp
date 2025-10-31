@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/BoundingBoxComponent.hpp>
+#include <core/math/BoundingBox.hpp>
+
 #include <BoundingBoxComponent.generated.inl>

@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/TransformComponent.hpp>
+#include <core/math/Transform.hpp>
+
 #include <TransformComponent.generated.inl>

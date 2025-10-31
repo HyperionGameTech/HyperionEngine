@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/ReflectionProbeComponent.hpp>
+#include <scene/EnvProbe.hpp>
+
 #include <ReflectionProbeComponent.generated.inl>

@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/LightmapVolumeComponent.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
+
 #include <LightmapVolumeComponent.generated.inl>

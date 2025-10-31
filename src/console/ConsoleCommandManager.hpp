@@ -4,8 +4,6 @@
 
 #include <core/Defines.hpp>
 
-#include <core/reflection/HypObject.hpp>
-
 #include <core/utilities/Result.hpp>
 
 #include <core/reflection/Handle.hpp>

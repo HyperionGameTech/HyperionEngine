@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/AudioComponent.hpp>
+#include <audio/AudioSource.hpp>
+
 #include <AudioComponent.generated.inl>

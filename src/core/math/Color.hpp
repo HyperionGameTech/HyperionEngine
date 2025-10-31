@@ -8,7 +8,7 @@
 
 #include <core/utilities/FormatFwd.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/memory/Memory.hpp>
 

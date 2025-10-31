@@ -14,7 +14,7 @@
 
 #include <core/memory/Pimpl.hpp>
 
-#include <core/reflection/HypObject.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/Defines.hpp>
 

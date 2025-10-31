@@ -941,6 +941,28 @@ private:
 
             writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory())));
             writer.WriteString(HYP_FORMAT("#include <{}>\n", includeHeaderStr));
+
+            // Include dependency module headers (relative to source directory), like the non-inline path
+            if (mod.GetDependencyModules().Any())
+            {
+                for (Module* dependencyModule : mod.GetDependencyModules())
+                {
+                    Assert(dependencyModule != nullptr);
+
+                    if (!dependencyModule->GetPath().Any())
+                    {
+                        HYP_LOG(BuildTool, Error, "Dependency module has no path! Skipping include.");
+                        continue;
+                    }
+
+                    FilePath relDepPath = FilePath::Relative(dependencyModule->GetPath(), m_analyzer.GetSourceDirectory());
+                    String includeDepPathStr = relDepPath.Data();
+                    includeDepPathStr.ReplaceAll("\\", "/");
+                    writer.WriteString(HYP_FORMAT("#include <{}>\n", includeDepPathStr));
+                }
+
+                writer.WriteString("\n");
+            }
             writer.WriteString(HYP_FORMAT("#include <{}>\n", includeInlPathStr));
             writer.Close();
 
@@ -965,7 +987,7 @@ private:
 
         Array<String> lines = reader.ReadAllLines();
 
-        for (const String& line : lines)
+        for (String& line : lines)
         {
             if (line.Contains(includeLine))
             {

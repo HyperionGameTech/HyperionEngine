@@ -15,9 +15,9 @@
 
 namespace hyperion {
 
-constexpr bool createObjIndices = true;
-constexpr bool meshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
-constexpr bool loadMaterials = true;
+constexpr bool ShouldCreateIndices = true;
+constexpr bool ShouldCreateNewMeshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
+constexpr bool ShouldLoadMaterials = true;
 
 using PLYModel = PLYModelLoader::PLYModel;
 

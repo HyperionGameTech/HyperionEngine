@@ -3,4 +3,6 @@
  */
 
 #include <asset/TextureAsset.hpp>
+#include <rendering/Shared.hpp>
+
 #include <TextureAsset.generated.inl>

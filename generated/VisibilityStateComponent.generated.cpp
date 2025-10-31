@@ -3,4 +3,7 @@
  */
 
 #include <scene/components/VisibilityStateComponent.hpp>
+#include <util/octree/Octree.hpp>
+#include <scene/VisibilityState.hpp>
+
 #include <VisibilityStateComponent.generated.inl>

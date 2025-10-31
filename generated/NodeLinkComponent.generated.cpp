@@ -3,4 +3,6 @@
  */
 
 #include <scene/components/NodeLinkComponent.hpp>
+#include <scene/Node.hpp>
+
 #include <NodeLinkComponent.generated.inl>

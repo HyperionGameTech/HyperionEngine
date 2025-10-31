@@ -3,4 +3,7 @@
  */
 
 #include <scene/components/ScriptComponent.hpp>
+#include <asset/ScriptAsset.hpp>
+#include <asset/AssetReference.hpp>
+
 #include <ScriptComponent.generated.inl>

@@ -34,6 +34,8 @@ namespace hyperion {
 class HypClass;
 struct HypData;
 
+HYP_API extern TypeId GetTypeIdForClass(const HypClass* hypClass);
+
 enum class FBOMObjectSerializeFlags : uint32
 {
     NONE = 0x0,

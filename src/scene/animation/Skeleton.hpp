@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/HypObject.hpp>
+#include <asset/AssetObject.hpp>
+#include <asset/AssetReference.hpp>
+#include <asset/SkeletonAsset.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -12,10 +13,6 @@
 #include <core/debug/Debug.hpp>
 
 #include <core/math/Mat4f.hpp>
-
-#include <asset/AssetObject.hpp>
-#include <asset/AssetReference.hpp>
-#include <asset/SkeletonAsset.hpp>
 
 #include <core/Types.hpp>
 
