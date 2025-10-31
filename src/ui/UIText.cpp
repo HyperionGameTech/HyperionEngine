@@ -99,9 +99,9 @@ static void ForEachCharacter(
 
     for (SizeType i = 0; i < length; i++)
     {
-        const utf::u32char ch = text.GetChar(i);
+        const utf::Char32 ch = text.GetChar(i);
 
-        if (ch == utf::u32char(' '))
+        if (ch == utf::Char32(' '))
         {
             if (currentWordChars.Any() && parentBounds.x != 0 && (currentWordChars.Back().placement.x + currentWordChars.Back().charWidth) * textSize >= float(parentBounds.x))
             {
@@ -125,7 +125,7 @@ static void ForEachCharacter(
             continue;
         }
 
-        if (ch == utf::u32char('\n'))
+        if (ch == utf::Char32('\n'))
         {
             // reset placement, add room for newline
             placement.x = 0.0f;

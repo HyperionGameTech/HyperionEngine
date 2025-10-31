@@ -43,7 +43,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader* reader)
          inAttributeValue = false,
          inAttributeName = false;
 
-    utf::u32char lastChar = utf::u32char(-1);
+    utf::Char32 lastChar = utf::Char32(-1);
     String elementStr, commentStr, valueStr;
     Array<Pair<String, String>> attribs;
 

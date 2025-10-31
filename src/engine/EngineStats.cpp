@@ -82,7 +82,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
 {
     HYP_SCOPE;
 
-    static constexpr utf::u32char PathSeparator = utf::u32char('/');
+    static constexpr utf::Char32 PathSeparator = utf::Char32('/');
 
     EngineStatBase* currentStat = root;
 
@@ -92,7 +92,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
         SizeType characterIndex = 0;
         bool separatorFound = false;
 
-        for (utf::u32char ch : path)
+        for (utf::Char32 ch : path)
         {
             if (ch == PathSeparator)
             {
@@ -190,9 +190,9 @@ EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineS
         SizeType characterIndex = 0;
         bool separatorFound = false;
 
-        for (utf::u32char ch : remainingPath)
+        for (utf::Char32 ch : remainingPath)
         {
-            if (ch == utf::u32char('/'))
+            if (ch == utf::Char32('/'))
             {
                 curr = remainingPath.Substr(0, characterIndex);
                 remainingPath = remainingPath.Substr(characterIndex + 1, SizeType(-1));

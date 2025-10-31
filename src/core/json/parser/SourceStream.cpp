@@ -17,7 +17,7 @@ SourceStream::SourceStream(const SourceStream& other)
 {
 }
 
-utf::u32char SourceStream::Peek() const
+utf::Char32 SourceStream::Peek() const
 {
     SizeType pos = m_position;
     if (pos >= m_file->GetSize())
@@ -29,8 +29,8 @@ utf::u32char SourceStream::Peek() const
     char ch = m_file->GetBuffer()[pos];
 
     // the character as a utf-32 character
-    utf::u32char u32Ch = 0;
-    char* bytes = utf::asUtf8Char(u32Ch);
+    utf::Char32 u32Ch = 0;
+    char* bytes = utf::ToUtf8Chars(u32Ch);
 
     // check to see if it is a utf-8 character
     const unsigned char uc = (unsigned char)ch;
@@ -64,33 +64,33 @@ utf::u32char SourceStream::Peek() const
     else
     {
         // invalid utf-8
-        u32Ch = (utf::u32char)('\0');
+        u32Ch = (utf::Char32)('\0');
     }
 
     return u32Ch;
 }
 
-utf::u32char SourceStream::Next()
+utf::Char32 SourceStream::Next()
 {
     int tmp;
     return Next(tmp);
 }
 
-utf::u32char SourceStream::Next(int& posChange)
+utf::Char32 SourceStream::Next(int& posChange)
 {
     int posBefore = m_position;
 
     if (m_position >= m_file->GetSize())
     {
-        return (utf::u32char)('\0');
+        return (utf::Char32)('\0');
     }
 
     // the current character
     char ch = m_file->GetBuffer()[m_position++];
 
     // the character as a utf-32 character
-    utf::u32char u32Ch = 0;
-    char* bytes = utf::asUtf8Char(u32Ch);
+    utf::Char32 u32Ch = 0;
+    char* bytes = utf::ToUtf8Chars(u32Ch);
 
     // check to see if it is a utf-8 character
     const unsigned char uc = (unsigned char)ch;
@@ -124,7 +124,7 @@ utf::u32char SourceStream::Next(int& posChange)
     else
     {
         // invalid utf-8
-        u32Ch = (utf::u32char)('\0');
+        u32Ch = (utf::Char32)('\0');
     }
 
     posChange = m_position - posBefore;

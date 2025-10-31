@@ -34,7 +34,7 @@ public:
     /** Reads the next token and returns it */
     Token NextToken();
     /** Reads two characters that make up an escape code and returns actual value */
-    utf::u32char ReadEscapeCode();
+    utf::Char32 ReadEscapeCode();
     /** Reads a string literal and returns the token */
     Token ReadStringLiteral();
     /** Reads a number literal and returns the token */
