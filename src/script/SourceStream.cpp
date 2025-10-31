@@ -16,7 +16,7 @@ SourceStream::SourceStream(const SourceStream& other)
 {
 }
 
-utf::u32char SourceStream::Peek() const
+utf::Char32 SourceStream::Peek() const
 {
     SizeType pos = m_position;
     if (pos >= m_file->GetSize())
@@ -30,8 +30,8 @@ utf::u32char SourceStream::Peek() const
     // the character as a utf-32 character
     union
     {
-        utf::u32char u32Ch;
-        utf::u8char bytes[sizeof(utf::u32char)];
+        utf::Char32 u32Ch;
+        utf::Char8 bytes[sizeof(utf::Char32)];
     };
 
     u32Ch = 0;
@@ -68,25 +68,25 @@ utf::u32char SourceStream::Peek() const
     else
     {
         // invalid utf-8
-        u32Ch = (utf::u32char)('\0');
+        u32Ch = (utf::Char32)('\0');
     }
 
     return u32Ch;
 }
 
-utf::u32char SourceStream::Next()
+utf::Char32 SourceStream::Next()
 {
     int tmp;
     return Next(tmp);
 }
 
-utf::u32char SourceStream::Next(int& posChange)
+utf::Char32 SourceStream::Next(int& posChange)
 {
     int posBefore = m_position;
 
     if (m_position >= m_file->GetSize())
     {
-        return (utf::u32char)('\0');
+        return (utf::Char32)('\0');
     }
 
     // the current character
@@ -95,8 +95,8 @@ utf::u32char SourceStream::Next(int& posChange)
     // the character as a utf-32 character
     union
     {
-        utf::u32char u32Ch;
-        utf::u8char bytes[sizeof(utf::u32char)];
+        utf::Char32 u32Ch;
+        utf::Char8 bytes[sizeof(utf::Char32)];
     };
 
     u32Ch = 0;
@@ -133,7 +133,7 @@ utf::u32char SourceStream::Next(int& posChange)
     else
     {
         // invalid utf-8
-        u32Ch = (utf::u32char)('\0');
+        u32Ch = (utf::Char32)('\0');
     }
 
     posChange = m_position - posBefore;

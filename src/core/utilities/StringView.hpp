@@ -46,8 +46,8 @@ public:
 
     static_assert(!isUtf8 || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
     static_assert(!isAnsi || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
-    static_assert(!isUtf16 || std::is_same_v<CharType, utf::u16char>, "UTF-16 Strings must have CharType equal to utf::u16char");
-    static_assert(!isUtf32 || std::is_same_v<CharType, utf::u32char>, "UTF-32 Strings must have CharType equal to utf::u32char");
+    static_assert(!isUtf16 || std::is_same_v<CharType, utf::Char16>, "UTF-16 Strings must have CharType equal to utf::Char16");
+    static_assert(!isUtf32 || std::is_same_v<CharType, utf::Char32>, "UTF-32 Strings must have CharType equal to utf::Char32");
     static_assert(!isWide || std::is_same_v<CharType, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
 
 private:
@@ -78,7 +78,7 @@ private:
             if constexpr (isUtf8)
             {
                 SizeType codepoints;
-                utf::Char8to32(ptr, sizeof(utf::u32char), codepoints);
+                utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
                 ptr += codepoints;
             }
@@ -95,7 +95,7 @@ private:
             if constexpr (isUtf8)
             {
                 SizeType codepoints;
-                utf::Char8to32(ptr, sizeof(utf::u32char), codepoints);
+                utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
                 return { ptr + codepoints };
             }
@@ -114,7 +114,7 @@ private:
                 for (SizeType i = 0; i < n; i++)
                 {
                     SizeType codepoints;
-                    utf::Char8to32(it.ptr, sizeof(utf::u32char), codepoints);
+                    utf::Char8to32(it.ptr, sizeof(utf::Char32), codepoints);
 
                     it.ptr += codepoints;
                 }
@@ -134,7 +134,7 @@ private:
                 for (SizeType i = 0; i < n; i++)
                 {
                     SizeType codepoints;
-                    utf::Char8to32(ptr, sizeof(utf::u32char), codepoints);
+                    utf::Char8to32(ptr, sizeof(utf::Char32), codepoints);
 
                     ptr += codepoints;
                 }
@@ -209,7 +209,7 @@ public:
     constexpr StringView(const CharType (&str)[Sz])
         : m_begin(&str[0]),
           m_end(&str[0] + Sz),
-          m_length(utf::utfStrlen<CharType, isUtf8>(str))
+          m_length(utf::StringLength<CharType, isUtf8>(str))
     {
     }
 
@@ -219,7 +219,7 @@ public:
           m_length(0)
     {
         SizeType codepoints = 0;
-        m_length = utf::utfStrlen<CharType, isUtf8>(str, codepoints);
+        m_length = utf::StringLength<CharType, isUtf8>(str, codepoints);
         m_end = m_begin + codepoints;
     }
 
@@ -230,7 +230,7 @@ public:
     {
         if constexpr (isUtf8)
         {
-            m_length = utf::utf8Strlen(_begin, _end);
+            m_length = utf::StringLength(_begin, _end);
         }
         else
         {
@@ -242,14 +242,14 @@ public:
     // constexpr StringView(const StaticString<Sz> &str)
     //     : m_begin(str.Begin()),
     //       m_end(str.Begin() + Sz),
-    //       m_length(utf::utfStrlen< CharType, isUtf8 >(str.data))
+    //       m_length(utf::StringLength< CharType, isUtf8 >(str.data))
     // {
     // }
 
     constexpr StringView(ConstByteView byteView)
         : m_begin(reinterpret_cast<const CharType*>(byteView.Data())),
           m_end(reinterpret_cast<const CharType*>(byteView.Data() + byteView.Size())),
-          m_length(utf::utfStrlen<CharType, isUtf8>(reinterpret_cast<const CharType*>(byteView.Data())))
+          m_length(utf::StringLength<CharType, isUtf8>(reinterpret_cast<const CharType*>(byteView.Data())))
     {
     }
 
@@ -352,7 +352,7 @@ public:
 
         if constexpr (isUtf8)
         {
-            WidestCharType ch = utf::utf8Charat(reinterpret_cast<const utf::u8char*>(Data()), size, index);
+            WidestCharType ch = utf::CharAt(reinterpret_cast<const utf::Char8*>(Data()), size, index);
             if (ch == WidestCharType(-1))
             {
                 // invalid utf8
@@ -437,7 +437,7 @@ public:
         {
             if constexpr (isUtf8)
             {
-                return utf::utf8Strlen(m_begin, str.m_begin);
+                return utf::StringLength(m_begin, str.m_begin);
             }
             else
             {
@@ -592,7 +592,7 @@ constexpr bool operator<(const StringView<TStringType>& lhs, const StringView<TS
         return false;
     }
 
-    return utf::utfStrncmp<typename StringView<TStringType>::CharType, StringView<TStringType>::isUtf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
+    return utf::StringCompare<typename StringView<TStringType>::CharType, StringView<TStringType>::isUtf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
 template <int TStringType>

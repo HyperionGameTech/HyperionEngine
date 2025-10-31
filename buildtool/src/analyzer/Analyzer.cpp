@@ -73,7 +73,7 @@ static void ParseInnerContent(const String& content, String& outResult)
 
     for (auto it = sv.Begin(); it != sv.End(); ++it)
     {
-        const utf::u32char ch = *it;
+        const utf::Char32 ch = *it;
 
         if (ch == 0)
         {
@@ -372,7 +372,7 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
             // skip whitespace after macro name
             for (SizeType i = outEndIndex; i < line.Length(); i++)
             {
-                const utf::u32char ch = line.GetChar(i);
+                const utf::Char32 ch = line.GetChar(i);
                 if (ch == ' ' || ch == '\t')
                 {
                     outEndIndex++;
@@ -407,7 +407,7 @@ static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMac
 
                 for (; outEndIndex < line.Length(); outEndIndex++)
                 {
-                    const utf::u32char ch = line.GetChar(outEndIndex);
+                    const utf::Char32 ch = line.GetChar(outEndIndex);
                     if (ch == '(')
                     {
                         parenDepth++;
