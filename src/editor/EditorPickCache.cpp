@@ -83,7 +83,7 @@ static int ComputeResidency(const EditorPickCacheEntry& entry)
 }
 
 EditorPickCache::EditorPickCache()
-    : m_pImpl(MakePimpl<EditorPickCacheImpl>())
+    : m_impl(MakePimpl<EditorPickCacheImpl>())
 {
 }
 
@@ -93,7 +93,7 @@ EditorPickCache::~EditorPickCache()
 
 RenderProxyList& EditorPickCache::GetRenderProxyList() const
 {
-    return m_pImpl->renderProxyList;
+    return m_impl->renderProxyList;
 }
 
 bool EditorPickCache::HasEntry(const Mesh* mesh) const
@@ -103,7 +103,7 @@ bool EditorPickCache::HasEntry(const Mesh* mesh) const
         return false;
     }
 
-    return m_pImpl->cache.HasIndex(mesh->Id().ToIndex());
+    return m_impl->cache.HasIndex(mesh->Id().ToIndex());
 }
 
 void EditorPickCache::PutEntry(const Mesh* mesh)
@@ -122,9 +122,9 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     const uint32 fc = RenderApi::GetFrameCounter();
 
-    if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
+    if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        EditorPickCacheEntry& entry = m_pImpl->cache[mesh->Id().ToIndex()];
+        EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
 
         const int currResidency = entry.residency;
 
@@ -136,14 +136,14 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         if (newResidency != currResidency)
         {
             // update residency map
-            AssertDebug(currResidency < m_pImpl->residencyMap.Size() && newResidency < m_pImpl->residencyMap.Size());
+            AssertDebug(currResidency < m_impl->residencyMap.Size() && newResidency < m_impl->residencyMap.Size());
 
-            auto& arr = m_pImpl->residencyMap[currResidency];
+            auto& arr = m_impl->residencyMap[currResidency];
             arr.Set(mesh->Id().ToIndex(), false);
 
             entry.residency = newResidency;
 
-            m_pImpl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
+            m_impl->residencyMap[newResidency].Set(mesh->Id().ToIndex(), true);
         }
 
         return; // already exists
@@ -193,8 +193,8 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     entry.residency = ComputeResidency(entry);
 
-    auto& set = m_pImpl->residencyMap[entry.residency];
-    auto iter = m_pImpl->cache.Emplace(mesh->Id().ToIndex(), std::move(entry));
+    auto& set = m_impl->residencyMap[entry.residency];
+    auto iter = m_impl->cache.Emplace(mesh->Id().ToIndex(), std::move(entry));
     set.Set(mesh->Id().ToIndex(), true);
 }
 
@@ -210,16 +210,16 @@ void EditorPickCache::RemoveEntry(const Mesh* mesh)
         return;
     }
 
-    if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
+    if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        EditorPickCacheEntry& entry = m_pImpl->cache[mesh->Id().ToIndex()];
+        EditorPickCacheEntry& entry = m_impl->cache[mesh->Id().ToIndex()];
 
         const int residency = entry.residency;
 
-        auto& arr = m_pImpl->residencyMap[residency];
+        auto& arr = m_impl->residencyMap[residency];
         arr.Set(mesh->Id().ToIndex(), false);
 
-        m_pImpl->cache.EraseAt(mesh->Id().ToIndex());
+        m_impl->cache.EraseAt(mesh->Id().ToIndex());
     }
 }
 
@@ -235,9 +235,9 @@ EditorPickCacheEntry* EditorPickCache::GetEntry(const Mesh* mesh)
         return nullptr;
     }
 
-    if (m_pImpl->cache.HasIndex(mesh->Id().ToIndex()))
+    if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
-        return &m_pImpl->cache.Get(mesh->Id().ToIndex());
+        return &m_impl->cache.Get(mesh->Id().ToIndex());
     }
 
     return nullptr;
@@ -248,9 +248,9 @@ void EditorPickCache::Clear()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    m_pImpl->cache.Clear();
+    m_impl->cache.Clear();
 
-    for (auto& it : m_pImpl->residencyMap)
+    for (auto& it : m_impl->residencyMap)
     {
         it.Clear();
     }
@@ -276,16 +276,16 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
             break;
         }
 
-        auto& entrySet = m_pImpl->residencyMap[residency];
+        auto& entrySet = m_impl->residencyMap[residency];
 
         Array<Pair<EditorPickCacheEntry*, uint32>> sortedEntries;
         sortedEntries.Reserve(entrySet.Count());
 
         for (Bitset::BitIndex bit : entrySet)
         {
-            AssertDebug(m_pImpl->cache.HasIndex(bit));
+            AssertDebug(m_impl->cache.HasIndex(bit));
 
-            sortedEntries.EmplaceBack(&m_pImpl->cache.Get(bit), bit);
+            sortedEntries.EmplaceBack(&m_impl->cache.Get(bit), bit);
         }
 
         // sort by size in this bucket (largest first)
@@ -309,7 +309,7 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
             currentMemoryUsageBytes -= infoSize;
 
             entrySet.Set(pair.second, false);
-            m_pImpl->cache.EraseAt(pair.second);
+            m_impl->cache.EraseAt(pair.second);
         }
     }
 
@@ -321,22 +321,22 @@ void EditorPickCache::Update(float delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    if (m_pImpl->updateCounter.Waiting())
+    if (m_impl->updateCounter.Waiting())
     {
         return;
     }
 
-    m_pImpl->updateCounter.NextTick();
+    m_impl->updateCounter.NextTick();
 
     // update residencies
     for (int residency = MinResidency; residency <= MaxResidency; ++residency)
     {
-        auto& entrySet = m_pImpl->residencyMap[residency];
+        auto& entrySet = m_impl->residencyMap[residency];
 
         for (Bitset::BitIndex bit : entrySet)
         {
-            AssertDebug(m_pImpl->cache.HasIndex(bit));
-            EditorPickCacheEntry& entry = m_pImpl->cache.Get(bit);
+            AssertDebug(m_impl->cache.HasIndex(bit));
+            EditorPickCacheEntry& entry = m_impl->cache.Get(bit);
 
             const int newResidency = ComputeResidency(entry);
 
@@ -347,7 +347,7 @@ void EditorPickCache::Update(float delta)
 
                 entry.residency = newResidency;
 
-                m_pImpl->residencyMap[newResidency].Set(bit, true);
+                m_impl->residencyMap[newResidency].Set(bit, true);
             }
         }
     }
