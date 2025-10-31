@@ -5,6 +5,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <WAVAudioLoader.generated.inl>
+
 namespace hyperion {
 
 using WAVAudio = WAVAudioLoader::WAVAudio;

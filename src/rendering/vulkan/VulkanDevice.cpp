@@ -15,6 +15,8 @@
 #include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
+#include <VulkanDevice.generated.inl>
+
 namespace hyperion {
 
 VulkanDevice::VulkanDevice(VkPhysicalDevice physical, VkSurfaceKHR surface)

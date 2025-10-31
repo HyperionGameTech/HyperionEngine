@@ -16,6 +16,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <FpsCounter.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);

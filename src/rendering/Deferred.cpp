@@ -61,6 +61,8 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
+#include <Deferred.generated.inl>
+
 namespace hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;

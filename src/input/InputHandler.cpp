@@ -5,6 +5,8 @@
 
 #include <core/utilities/ByteUtil.hpp>
 
+#include <InputHandler.generated.inl>
+
 namespace hyperion {
 
 #pragma region InputHandlerBase

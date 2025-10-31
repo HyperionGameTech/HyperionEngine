@@ -8,6 +8,8 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
+#include <MeshComponent.generated.inl>
+
 namespace hyperion {
 
 MeshComponent& MeshComponent::operator=(const MeshComponent& other)

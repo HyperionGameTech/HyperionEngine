@@ -35,6 +35,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <AssetRegistry.generated.inl>
+
 namespace hyperion {
 
 static const ThreadId& s_assetRegistryThread = g_gameThread;

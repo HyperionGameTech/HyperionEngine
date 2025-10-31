@@ -16,6 +16,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <RenderStats.generated.inl>
+
 namespace hyperion {
 
 #pragma region SuppressRenderStatsScope

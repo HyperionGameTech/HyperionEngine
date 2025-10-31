@@ -7,6 +7,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <OrthoCamera.generated.inl>
+
 namespace hyperion {
 OrthoCameraController::OrthoCameraController()
     : OrthoCameraController(

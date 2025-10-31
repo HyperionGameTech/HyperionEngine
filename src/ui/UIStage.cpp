@@ -38,6 +38,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <UIStage.generated.inl>
+
 namespace hyperion {
 
 static constexpr float g_minHoldTimeToDrag = 0.05f;

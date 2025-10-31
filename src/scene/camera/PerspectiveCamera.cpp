@@ -4,6 +4,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <PerspectiveCamera.generated.inl>
+
 namespace hyperion {
 
 PerspectiveCameraController::PerspectiveCameraController()

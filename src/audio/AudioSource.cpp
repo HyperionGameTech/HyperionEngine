@@ -3,6 +3,8 @@
 #include <audio/AudioSource.hpp>
 #include <audio/AudioManager.hpp>
 
+#include <AudioSource.generated.inl>
+
 namespace hyperion {
 
 AudioSource::AudioSource()

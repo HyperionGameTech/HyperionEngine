@@ -16,6 +16,8 @@
 
 #include <core/Types.hpp>
 
+#include <VulkanCommandBuffer.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

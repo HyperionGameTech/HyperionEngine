@@ -5,6 +5,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <MeshInstanceData.generated.inl>
+
 namespace hyperion {
 
 void MeshInstanceData_OnPostLoad(MeshInstanceData& meshInstanceData)

@@ -1,6 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <ui/UIDataSource.hpp>
+#include <ui/UIObject.hpp>
+
+#include <UIDataSource.generated.inl>
 
 namespace hyperion {
 
@@ -17,7 +20,7 @@ Handle<UIElementFactoryBase> UIDataSource::GetElementFactoryForType(TypeId typeI
     if (it != m_elementFactories.End())
     {
         AssertDebug(it->second != nullptr);
-        
+
         return it->second;
     }
 
@@ -34,7 +37,7 @@ Handle<UIElementFactoryBase> UIDataSource::GetElementFactoryForType(TypeId typeI
                 if (::hyperion::IsA(GetClass(jt->first), hypClass))
                 {
                     const int currSubclassIndex = GetSubclassIndex(jt->first, typeId);
-                    
+
                     if (currSubclassIndex >= 0)
                     {
                         if (currSubclassIndex < subclassIndex || subclassIndex < 0)
@@ -51,7 +54,7 @@ Handle<UIElementFactoryBase> UIDataSource::GetElementFactoryForType(TypeId typeI
     if (it != m_elementFactories.End())
     {
         AssertDebug(it->second != nullptr);
-        
+
         return it->second;
     }
 
@@ -95,7 +98,7 @@ Handle<UIElementFactoryBase> UIElementFactoryRegistry::GetFactory(TypeId typeId)
             }
         }
     }
-    
+
     if (it == m_elementFactories.End())
     {
         return nullptr;

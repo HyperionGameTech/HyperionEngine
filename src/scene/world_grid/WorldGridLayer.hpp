@@ -9,12 +9,14 @@
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 
-#include <streaming/StreamingCell.hpp>
-
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
 namespace hyperion {
+
+class WorldGrid;
+class StreamingCell;
+struct StreamingCellInfo;
 
 HYP_STRUCT(Size = 80)
 struct WorldGridLayerInfo
@@ -57,15 +59,17 @@ class HYP_API WorldGridLayer : public HypObjectBase
 public:
     WorldGridLayer() = default;
 
-    WorldGridLayer(const WorldGridLayerInfo& layerInfo)
+    explicit WorldGridLayer(const WorldGridLayerInfo& layerInfo)
         : m_layerInfo(layerInfo)
     {
     }
 
     WorldGridLayer(const WorldGridLayer& other) = delete;
     WorldGridLayer& operator=(const WorldGridLayer& other) = delete;
+
     WorldGridLayer(WorldGridLayer&& other) = delete;
     WorldGridLayer& operator=(WorldGridLayer&& other) = delete;
+
     virtual ~WorldGridLayer() = default;
 
     HYP_METHOD()
@@ -98,10 +102,7 @@ protected:
     }
 
     HYP_METHOD()
-    virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo)
-    {
-        return CreateObject<StreamingCell>(cellInfo);
-    }
+    virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo);
 
     HYP_METHOD(Scriptable)
     virtual WorldGridLayerInfo CreateLayerInfo() const;

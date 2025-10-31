@@ -8,6 +8,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <UIButton.generated.inl>
+
 namespace hyperion {
 
 UIButton::UIButton()

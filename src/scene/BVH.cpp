@@ -3,6 +3,8 @@
 #include <scene/BVH.hpp>
 #include <core/profiling/ProfileScope.hpp>
 
+#include <BVH.generated.inl>
+
 namespace hyperion {
 
 void BVHNode::QuantizeTriangleData(

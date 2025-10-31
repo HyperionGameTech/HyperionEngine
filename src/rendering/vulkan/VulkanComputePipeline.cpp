@@ -19,6 +19,8 @@
 
 #include <cstring>
 
+#include <VulkanComputePipeline.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

@@ -34,6 +34,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <EnvProbeRenderer.generated.inl>
+
 namespace hyperion {
 
 static constexpr Vec2u ShNumSamples = { 16, 16 };

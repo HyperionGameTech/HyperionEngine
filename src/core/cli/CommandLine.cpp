@@ -8,6 +8,10 @@
 
 #include <core/utilities/StringUtil.hpp>
 
+#ifndef HYP_BUILDTOOL
+#include <CommandLine.generated.inl>
+#endif
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);

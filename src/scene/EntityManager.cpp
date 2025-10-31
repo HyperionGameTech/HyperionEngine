@@ -23,6 +23,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <EntityManager.generated.inl>
+
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially

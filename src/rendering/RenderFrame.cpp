@@ -10,6 +10,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <RenderFrame.generated.inl>
+
 namespace hyperion {
 void FrameBase::MarkDescriptorSetUsed(DescriptorSetBase* descriptorSet)
 {

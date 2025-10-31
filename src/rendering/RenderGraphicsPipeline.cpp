@@ -9,6 +9,8 @@
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
+#include <RenderGraphicsPipeline.generated.inl>
+
 namespace hyperion {
 
 GraphicsPipelineBase::~GraphicsPipelineBase()

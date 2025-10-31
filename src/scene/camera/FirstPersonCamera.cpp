@@ -7,6 +7,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <FirstPersonCamera.generated.inl>
+
 namespace hyperion {
 
 static const float mouseSensitivity = 1.0f;

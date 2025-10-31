@@ -3,31 +3,22 @@
 #include <ui/UIObject.hpp>
 #include <ui/UIStage.hpp>
 #include <ui/UIDataSource.hpp>
-
-#include <dotnet/DotNetSystem.hpp>
-#include <dotnet/ManagedClass.hpp>
-
-#include <ui/UIScriptDelegate.hpp> // must be included after dotnet headers
+#include <ui/UIScriptDelegate.hpp>
 
 #include <util/MeshBuilder.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 #include <scene/Scene.hpp>
-#include <scene/camera/OrthoCamera.hpp>
-#include <scene/camera/PerspectiveCamera.hpp>
+#include <scene/World.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
-#include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
 #include <scene/components/UIComponent.hpp>
 
 #include <rendering/Mesh.hpp>
-
-#include <input/InputManager.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -42,7 +33,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <system/AppContext.hpp>
+#include <UIObject.generated.inl>
 
 namespace hyperion {
 

@@ -18,6 +18,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <EnvProbe.generated.inl>
+
 namespace hyperion {
 
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)

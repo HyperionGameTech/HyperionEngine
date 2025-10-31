@@ -1,0 +1,15 @@
+#include <core/reflection/HypObjectMacros.hpp>
+#include <core/reflection/HypClassUtils.hpp>
+
+namespace hyperion {
+
+#pragma region Mat4f Reflection Data
+
+HYP_BEGIN_STRUCT(Mat4f, 240, 0, {}, HypClassAttribute("size", 64))
+HYP_END_STRUCT
+
+#pragma endregion Mat4f Reflection Data
+
+static_assert(sizeof(Mat4f) == 64, "Expected sizeof(Mat4f) to be 64 bytes");
+} // namespace hyperion
+

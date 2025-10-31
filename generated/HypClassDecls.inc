@@ -153,7 +153,6 @@ HYP_API extern const HypClass* g_clsHBAO;
 HYP_API extern const HypClass* g_clsHBAOConfig;
 HYP_API extern const HypClass* g_clsHashCode;
 HYP_API extern const HypClass* g_clsHashedShaderDefinition;
-HYP_API extern const HypClass* g_clsHypClassFlags;
 HYP_API extern const HypClass* g_clsHypObjectBase;
 HYP_API extern const HypClass* g_clsHyperionEditor;
 HYP_API extern const HypClass* g_clsImageSupport;

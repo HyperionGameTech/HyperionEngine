@@ -28,6 +28,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <VulkanDescriptorSet.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

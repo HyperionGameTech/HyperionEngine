@@ -3,6 +3,8 @@
 #include <scene/EntityTag.hpp>
 #include <scene/ComponentInterface.hpp>
 
+#include <EntityTag.generated.inl>
+
 namespace hyperion {
 
 HYP_REGISTER_ENTITY_TAG(NONE, false);

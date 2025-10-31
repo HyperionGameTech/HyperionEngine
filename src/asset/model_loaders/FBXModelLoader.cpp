@@ -42,6 +42,8 @@
 
 #ifdef HYP_ZLIB
 #include <zlib.h>
+
+#include <FBXModelLoader.generated.inl>
 #endif
 
 namespace hyperion {

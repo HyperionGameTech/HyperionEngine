@@ -28,6 +28,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <HbaoPass.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
