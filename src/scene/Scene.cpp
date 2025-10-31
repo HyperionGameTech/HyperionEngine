@@ -312,10 +312,6 @@ void Scene::SetRoot(const Handle<Node>& root)
         return;
     }
 
-#ifdef HYP_DEBUG_MODE
-    RemoveDelegateHandler(NAME("ValidateScene"));
-#endif
-
     Handle<Node> prevRoot = m_root;
 
     if (prevRoot.IsValid() && prevRoot->GetScene() == this)
@@ -328,27 +324,6 @@ void Scene::SetRoot(const Handle<Node>& root)
     if (m_root.IsValid())
     {
         m_root->SetScene(this);
-
-#ifdef HYP_DEBUG_MODE
-        AddDelegateHandler(
-            NAME("ValidateScene"),
-            m_root->GetDelegates()->OnChildAdded.Bind([weakThis = WeakHandleFromThis()](Node*, bool)
-                {
-                    Handle<Scene> scene = weakThis.Lock();
-
-                    if (!scene.IsValid())
-                    {
-                        return;
-                    }
-
-                    SceneValidationResult validationResult = SceneValidation::ValidateScene(scene.Get());
-
-                    if (validationResult.HasError())
-                    {
-                        HYP_LOG(Scene, Error, "Scene validation failed: {}", validationResult.GetError().GetMessage());
-                    }
-                }));
-#endif
     }
 
     OnRootNodeChanged(m_root, prevRoot);

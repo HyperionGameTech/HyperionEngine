@@ -81,7 +81,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
         {
             Handle<UIObject> translationElement = factory->CreateUIObject(this, HypData(transform.GetTranslation()), {});
 
-            AddDelegateHandler(translationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(translationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
                 {
                     Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -115,7 +115,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
         {
             Handle<UIObject> rotationElement = factory->CreateUIObject(this, HypData(transform.GetRotation()), {});
 
-            AddDelegateHandler(rotationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(rotationElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
                 {
                     Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
                     if (!strongThis)
@@ -149,7 +149,7 @@ void TransformEditorPropertyPanel::Build_Impl(const HypData& hypData, const HypP
         {
             Handle<UIObject> scaleElement = factory->CreateUIObject(this, HypData(transform.GetScale()), {});
 
-            AddDelegateHandler(scaleElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
+            m_delegateHandlers.Add(scaleElement->OnValueChange.Bind([this, weakThis = WeakHandleFromThis()](const HypData& value) -> UIEventHandlerResult
                 {
                     Handle<TransformEditorPropertyPanel> strongThis = weakThis.Lock();
                     if (!strongThis)

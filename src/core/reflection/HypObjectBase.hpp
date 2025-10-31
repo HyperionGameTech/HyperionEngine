@@ -14,8 +14,6 @@
 
 #include <core/threading/AtomicVar.hpp>
 
-#include <core/functional/Delegate.hpp>
-
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
@@ -24,14 +22,7 @@
 namespace hyperion {
 
 class HypClass;
-struct HypData;
 class ScriptObjectResource;
-
-template <class T>
-class HypClassInstance;
-
-template <class T>
-struct HypClassDefinition;
 
 template <class T>
 struct Handle;
@@ -164,8 +155,7 @@ protected:
     HypObjectBase& operator=(const HypObjectBase& other) = delete;
 
     HypObjectBase(HypObjectBase&& other) noexcept
-        : m_initState(other.m_initState.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE)),
-          m_delegateHandlers(std::move(other.m_delegateHandlers))
+        : m_initState(other.m_initState.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE))
     {
     }
 
@@ -177,7 +167,6 @@ protected:
         }
 
         m_initState.Set(other.m_initState.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
-        m_delegateHandlers = std::move(other.m_delegateHandlers);
 
         return *this;
     }
@@ -210,24 +199,8 @@ protected:
         HYP_CORE_ASSERT(IsInitCalled(), "Object has not had Init() called on it!");
     }
 
-    void AddDelegateHandler(Name name, DelegateHandler&& delegateHandler)
-    {
-        m_delegateHandlers.Add(name, std::move(delegateHandler));
-    }
-
-    void AddDelegateHandler(DelegateHandler&& delegateHandler)
-    {
-        m_delegateHandlers.Add(std::move(delegateHandler));
-    }
-
-    bool RemoveDelegateHandler(WeakName name)
-    {
-        return m_delegateHandlers.Remove(name);
-    }
-
     // Pointer to the header of the object, holding container, index and ref counts. Must be the first member.
     HypObjectHeader* m_header;
-    DelegateHandlerSet m_delegateHandlers;
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
     ScriptObjectResource* m_scriptObjectResource;

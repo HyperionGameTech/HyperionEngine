@@ -280,24 +280,22 @@ void Camera::Init()
             m_width = windowSize.x;
             m_height = windowSize.y;
 
-            RemoveDelegateHandler(NAME("HandleWindowSizeChanged"));
+            m_windowSizeChangedHandle.Reset();
 
-            AddDelegateHandler(
-                NAME("HandleWindowSizeChanged"),
-                g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded([this](Vec2i windowSize)
-                    {
-                        HYP_NAMED_SCOPE("Update Camera size based on window size");
+            m_windowSizeChangedHandle = g_appContext->GetMainWindow()->OnWindowSizeChanged.BindThreaded([this](Vec2i windowSize)
+                {
+                    HYP_NAMED_SCOPE("Update Camera size based on window size");
 
-                        Threads::AssertOnThread(g_gameThread);
+                    Threads::AssertOnThread(g_gameThread);
 
-                        windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
+                    windowSize = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(windowSize) * m_matchWindowSizeRatio)), Vec2i::One());
 
-                        m_width = windowSize.x;
-                        m_height = windowSize.y;
+                    m_width = windowSize.x;
+                    m_height = windowSize.y;
 
-                        HYP_LOG(Camera, Debug, "Camera window size (change): {}", windowSize);
-                    },
-                    g_gameThread));
+                    HYP_LOG(Camera, Debug, "Camera window size (change): {}", windowSize);
+                },
+                g_gameThread);
 
             return {};
         };

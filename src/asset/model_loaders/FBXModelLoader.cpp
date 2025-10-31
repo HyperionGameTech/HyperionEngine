@@ -50,15 +50,15 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-constexpr char headerString[] = "Kaydara FBX Binary  ";
-constexpr uint8 headerBytes[] = { 0x1A, 0x00 };
+constexpr char HeaderString[] = "Kaydara FBX Binary  ";
+constexpr uint8 HeaderBytes[] = { 0x1A, 0x00 };
 
 using FBXPropertyValue = Variant<int16, int32, int64, uint32, float, double, bool, String, ByteBuffer>;
 using FBXObjectID = int64;
 
 struct FBXProperty
 {
-    static const FBXProperty empty;
+    static const FBXProperty s_empty;
 
     FBXPropertyValue value;
     Array<FBXPropertyValue> arrayElements;
@@ -70,11 +70,11 @@ struct FBXProperty
     }
 };
 
-const FBXProperty FBXProperty::empty = {};
+const FBXProperty FBXProperty::s_empty = {};
 
 struct FBXObject
 {
-    static const FBXObject empty;
+    static const FBXObject s_empty;
 
     String name;
     Array<FBXProperty> properties;
@@ -84,7 +84,7 @@ struct FBXObject
     {
         if (index >= properties.Size())
         {
-            return FBXProperty::empty;
+            return FBXProperty::s_empty;
         }
 
         return properties[index];
@@ -123,7 +123,7 @@ struct FBXObject
             }
         }
 
-        return empty;
+        return s_empty;
     }
 
     const FBXObject& operator[](const String& childName) const
@@ -261,7 +261,7 @@ struct FBXNodeMapping
         data;
 };
 
-const FBXObject FBXObject::empty = {};
+const FBXObject FBXObject::s_empty = {};
 
 using FBXVersion = uint32;
 
@@ -274,24 +274,24 @@ static bool ReadMagic(ByteReader& reader);
 
 static bool ReadMagic(ByteReader& reader)
 {
-    if (reader.Max() < sizeof(headerString) + sizeof(headerBytes))
+    if (reader.Max() < sizeof(HeaderString) + sizeof(HeaderBytes))
     {
         return false;
     }
 
-    char readMagic[sizeof(headerString)] = { '\0' };
+    char readMagic[sizeof(HeaderString)] = { '\0' };
 
-    reader.Read(readMagic, sizeof(headerString));
+    reader.Read(readMagic, sizeof(HeaderString));
 
-    if (Memory::StrCmp(readMagic, headerString, sizeof(headerString)) != 0)
+    if (Memory::StrCmp(readMagic, HeaderString, sizeof(HeaderString)) != 0)
     {
         return false;
     }
 
-    uint8 bytes[sizeof(headerBytes)];
-    reader.Read(bytes, sizeof(headerBytes));
+    uint8 bytes[sizeof(HeaderBytes)];
+    reader.Read(bytes, sizeof(HeaderBytes));
 
-    if (std::memcmp(bytes, headerBytes, sizeof(headerBytes)) != 0)
+    if (std::memcmp(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
     {
         return false;
     }
@@ -790,7 +790,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     {
         if (!limbNode.skeletonHolderNodeId)
         {
-            return Handle<Skeleton>::empty;
+            return Handle<Skeleton>::Null();
         }
 
         FBXNode* skeletonHolderNode;
@@ -803,21 +803,21 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             }
         }
 
-        return Handle<Skeleton>::empty;
+        return Handle<Skeleton>::Null();
     };
 
     const auto applyClustersToMesh = [&](FBXMesh& mesh) -> Handle<Skeleton>
     {
         if (!mesh.skinId)
         {
-            return Handle<Skeleton>::empty;
+            return Handle<Skeleton>::Null();
         }
 
         FBXSkin* skin;
 
         if (!getFbxObject(mesh.skinId, skin))
         {
-            return Handle<Skeleton>::empty;
+            return Handle<Skeleton>::Null();
         }
 
         Handle<Skeleton> skeleton = rootSkeleton;

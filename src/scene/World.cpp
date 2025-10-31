@@ -116,14 +116,6 @@ World::~World()
 
 void World::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
-        {
-            if (m_worldGrid.IsValid())
-            {
-                m_worldGrid->Shutdown();
-            }
-        }));
-
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 

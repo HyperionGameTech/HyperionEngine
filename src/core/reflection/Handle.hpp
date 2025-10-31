@@ -7,6 +7,8 @@
 #include <core/reflection/HypObjectBase.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 
+#include <core/memory/AnyRef.hpp>
+
 #include <core/Util.hpp>
 
 namespace hyperion {

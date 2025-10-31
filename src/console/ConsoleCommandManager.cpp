@@ -3,8 +3,6 @@
 #include <console/ConsoleCommandManager.hpp>
 #include <console/ConsoleCommand.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-
 #include <core/threading/Mutex.hpp>
 
 #include <core/containers/HashSet.hpp>
@@ -55,8 +53,8 @@ ConsoleCommandManager& ConsoleCommandManager::GetInstance()
 }
 
 ConsoleCommandManager::ConsoleCommandManager()
+    : m_impl(MakePimpl<ConsoleCommandManagerImpl>())
 {
-    m_impl = MakeUnique<ConsoleCommandManagerImpl>();
 }
 
 ConsoleCommandManager::~ConsoleCommandManager()
