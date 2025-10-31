@@ -6,6 +6,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <UIImage.generated.inl>
+
 namespace hyperion {
 
 UIImage::UIImage()

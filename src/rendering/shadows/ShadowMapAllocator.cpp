@@ -24,6 +24,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <ShadowMapAllocator.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);

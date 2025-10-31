@@ -10,6 +10,8 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <VulkanGpuImageView.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

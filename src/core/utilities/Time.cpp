@@ -7,6 +7,10 @@
 #include "windows.h"
 #endif
 
+#ifndef HYP_BUILDTOOL
+#include <Time.generated.inl>
+#endif
+
 namespace hyperion {
 namespace utilities {
 

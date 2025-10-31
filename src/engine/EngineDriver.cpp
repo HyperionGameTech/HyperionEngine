@@ -63,6 +63,8 @@
 
 #include <HyperionEngine.hpp>
 
+#include <EngineDriver.generated.inl>
+
 #define HYP_LOG_FRAMES_PER_SECOND
 
 namespace hyperion {

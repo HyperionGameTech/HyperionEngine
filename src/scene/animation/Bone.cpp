@@ -3,6 +3,8 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Skeleton.hpp>
 
+#include <Bone.generated.inl>
+
 namespace hyperion {
 
 Bone::Bone()

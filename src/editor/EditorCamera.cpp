@@ -16,6 +16,8 @@
 
 #include <engine/EngineDriver.hpp>
 
+#include <EditorCamera.generated.inl>
+
 namespace hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();

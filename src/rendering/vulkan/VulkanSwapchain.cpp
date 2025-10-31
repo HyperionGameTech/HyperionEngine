@@ -18,6 +18,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <VulkanSwapchain.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

@@ -9,6 +9,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <AssetLoader.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

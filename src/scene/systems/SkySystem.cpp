@@ -29,6 +29,8 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
 
+#include <SkySystem.generated.inl>
+
 namespace hyperion {
 
 SkySystem::SkySystem(EntityManager& entityManager)

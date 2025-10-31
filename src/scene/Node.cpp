@@ -40,6 +40,8 @@
 
 #include <cstring>
 
+#include <Node.generated.inl>
+
 namespace hyperion {
 
 #ifdef HYP_EDITOR

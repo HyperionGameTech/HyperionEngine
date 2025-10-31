@@ -2,6 +2,10 @@
 
 #include <core/math/Vertex.hpp>
 
+#ifndef HYP_BUILDTOOL
+#include <Vertex.generated.inl>
+#endif
+
 namespace hyperion {
 
 #pragma region VertexAttributeSet

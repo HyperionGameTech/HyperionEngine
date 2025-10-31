@@ -11,6 +11,8 @@
 
 #include <algorithm>
 
+#include <PLYModelLoader.generated.inl>
+
 namespace hyperion {
 
 constexpr bool createObjIndices = true;

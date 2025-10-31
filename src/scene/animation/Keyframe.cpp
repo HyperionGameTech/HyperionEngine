@@ -4,6 +4,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <Keyframe.generated.inl>
+
 namespace hyperion {
 
 Keyframe Keyframe::Blend(const Keyframe& to, float blend) const

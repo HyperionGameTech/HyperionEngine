@@ -40,6 +40,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <View.generated.inl>
+
 // #define HYP_DISABLE_VISIBILITY_CHECK
 // #define HYP_VISIBILITY_CHECK_DEBUG
 

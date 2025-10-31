@@ -8,6 +8,8 @@
 
 #include <core/reflection/Handle.hpp>
 
+#include <PhysicsSystem.generated.inl>
+
 namespace hyperion {
 
 void PhysicsSystem::OnEntityAdded(Entity* entity)

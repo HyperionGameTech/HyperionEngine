@@ -4,6 +4,8 @@
 
 #include <scene/world_grid/WorldGrid.hpp>
 
+#include <StreamingCell.generated.inl>
+
 namespace hyperion {
 
 StreamingCell::StreamingCell(const StreamingCellInfo& cellInfo)

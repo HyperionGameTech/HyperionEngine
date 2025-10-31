@@ -42,6 +42,8 @@
 #include <engine/EngineDriver.hpp>
 #include <HyperionEngine.hpp>
 
+#include <Assets.generated.inl>
+
 namespace hyperion {
 
 class Skeleton;

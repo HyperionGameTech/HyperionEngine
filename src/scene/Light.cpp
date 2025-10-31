@@ -37,6 +37,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <Light.generated.inl>
+
 namespace hyperion {
 
 static constexpr TextureFormat PointLightShadowFormat = TF_RG16F;

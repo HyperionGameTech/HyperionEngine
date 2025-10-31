@@ -13,6 +13,8 @@
 
 #include <thirdparty/stb_image.h>
 
+#include <TextureLoader.generated.inl>
+
 namespace hyperion {
 
 struct LoadedTextureData

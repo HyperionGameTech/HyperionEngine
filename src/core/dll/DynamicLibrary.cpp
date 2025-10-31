@@ -8,6 +8,11 @@
 #include <windows.h>
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
 #include <dlfcn.h>
+
+#endif
+
+#ifndef HYP_BUILDTOOL
+#include <DynamicLibrary.generated.inl>
 #endif
 
 namespace hyperion {

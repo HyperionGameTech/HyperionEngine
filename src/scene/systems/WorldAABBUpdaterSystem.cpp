@@ -9,6 +9,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <WorldAABBUpdaterSystem.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Entity);

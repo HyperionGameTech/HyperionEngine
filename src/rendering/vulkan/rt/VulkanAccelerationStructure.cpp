@@ -20,6 +20,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <VulkanAccelerationStructure.generated.inl>
+
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

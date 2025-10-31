@@ -965,44 +965,114 @@ private:
 
         Array<String> lines = reader.ReadAllLines();
 
-        // Search for existing generated.inl include
-        bool replaced = false;
-        for (String& line : lines)
+        for (const String& line : lines)
         {
-            if (line.Contains(".generated.inl"))
+            if (line.Contains(includeLine))
             {
-                line = includeLine;
-                replaced = true;
-                break;
+                // Already included; don't write to file to avoid forcing unnecessary recompile
+                return {};
             }
         }
 
-        if (!replaced)
+        // To determine insertion point,
+        // - Prefer after the last #include at preprocessor depth 0
+        // - Otherwise, before the first 'namespace' encountered at depth 0
+        // - Never insert while within a preprocessor conditional block
+
+        auto isPPIf = [](const String& s)
         {
-            SizeType insertIndex = -1;
-            for (SizeType i = 0; i < lines.Size(); ++i)
+            return s.StartsWith("#if") || s.StartsWith("#ifdef") || s.StartsWith("#ifndef");
+        };
+
+        auto isPPEndif = [](const String& s)
+        {
+            return s.StartsWith("#endif");
+        };
+
+        auto isPPElseElif = [](const String& s)
+        {
+            return s.StartsWith("#else") || s.StartsWith("#elif");
+        };
+
+        SizeType lastIncludeAtDepth0 = SizeType(-1);
+        SizeType firstNamespaceAtDepth0 = SizeType(-1);
+        SizeType firstNonPPAtDepth0 = SizeType(-1);
+        int preprocessorDepth = 0;
+
+        for (SizeType i = 0; i < lines.Size(); ++i)
+        {
+            const String line = lines[i].Trimmed();
+
+            // preprocessor depth
+            if (line.StartsWith("#"))
             {
-                const String& l = lines[i].Trimmed();
-                if (l.StartsWith("#include"))
+                if (isPPIf(line))
                 {
-                    insertIndex = i; // keep last include
+                    ++preprocessorDepth;
                 }
-                else if (l.StartsWith("namespace"))
+                else if (isPPEndif(line))
                 {
-                    // don't want to insert within namespace!
-                    break;
+                    if (preprocessorDepth > 0)
+                    {
+                        --preprocessorDepth;
+                    }
+                }
+                else if (isPPElseElif(line))
+                {
+                    // depth unchanged
                 }
             }
 
-            if (insertIndex == SizeType(-1))
+            // Record last include at depth 0
+            if (preprocessorDepth == 0 && line.StartsWith("#include"))
             {
-                // Insert at top
-                lines.Insert(lines.Begin(), includeLine);
+                lastIncludeAtDepth0 = i;
             }
-            else
+
+            // Record first non-preprocessor, non-empty line at depth 0
+            if (preprocessorDepth == 0 && line.Any() && !line.StartsWith("#") && firstNonPPAtDepth0 == SizeType(-1))
             {
-                lines.Insert(lines.Begin() + insertIndex + 1, "\n" + includeLine);
+                firstNonPPAtDepth0 = i;
+
+                if (line.StartsWith("namespace") && firstNamespaceAtDepth0 == SizeType(-1))
+                {
+                    firstNamespaceAtDepth0 = i;
+                    break; // don't insert within namespace; earlier is better
+                }
             }
+        }
+
+        SizeType insertIndex = SizeType(-1);
+
+        if (lastIncludeAtDepth0 != SizeType(-1))
+        {
+            insertIndex = lastIncludeAtDepth0 + 1;
+        }
+        else if (firstNamespaceAtDepth0 != SizeType(-1))
+        {
+            insertIndex = firstNamespaceAtDepth0; // before namespace
+        }
+        else if (firstNonPPAtDepth0 != SizeType(-1))
+        {
+            insertIndex = firstNonPPAtDepth0; // before first code at depth 0
+        }
+        else
+        {
+            // Fallback: append at end (should be depth 0 by now)
+            insertIndex = lines.Size();
+        }
+
+        if (insertIndex <= 0)
+        {
+            lines.Insert(lines.Begin(), includeLine);
+        }
+        else if (insertIndex >= lines.Size())
+        {
+            lines.PushBack(includeLine);
+        }
+        else
+        {
+            lines.Insert(lines.Begin() + insertIndex, includeLine);
         }
 
         // Write back to file

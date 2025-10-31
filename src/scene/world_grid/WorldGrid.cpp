@@ -4,6 +4,7 @@
 #include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 #include <scene/Node.hpp>
 
 #include <scene/EntityManager.hpp>
@@ -24,6 +25,8 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+
+#include <WorldGrid.generated.inl>
 
 namespace hyperion {
 

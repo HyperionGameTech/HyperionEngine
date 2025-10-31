@@ -22,6 +22,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <SSRRenderer.generated.inl>
+
 namespace hyperion {
 
 static constexpr bool UseTemporalBlending = true;

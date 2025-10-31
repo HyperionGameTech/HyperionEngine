@@ -28,6 +28,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <LightmapVolume.generated.inl>
+
 namespace hyperion {
 
 #pragma region Render commands

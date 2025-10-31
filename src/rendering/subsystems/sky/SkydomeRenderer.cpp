@@ -23,6 +23,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <SkydomeRenderer.generated.inl>
+
 namespace hyperion {
 
 SkydomeRenderer::SkydomeRenderer(Vec2u dimensions)

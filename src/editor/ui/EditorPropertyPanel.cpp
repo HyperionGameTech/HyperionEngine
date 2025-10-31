@@ -6,6 +6,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <EditorPropertyPanel.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

@@ -9,6 +9,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <SkeletonAsset.generated.inl>
+
 namespace hyperion {
 
 } // namespace hyperion

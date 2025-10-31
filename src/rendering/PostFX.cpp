@@ -13,6 +13,8 @@
 
 #include <engine/EngineGlobals.hpp>
 
+#include <PostFX.generated.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);

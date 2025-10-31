@@ -32,6 +32,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
+#include <World.generated.inl>
+
 namespace hyperion {
 
 extern const GlobalConfig& CoreApi_GetGlobalConfig();

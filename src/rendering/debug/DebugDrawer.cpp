@@ -35,6 +35,8 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
 
+#include <DebugDrawer.generated.inl>
+
 namespace hyperion {
 
 extern EngineStatCounter<uint32> g_statDebugDraws;
