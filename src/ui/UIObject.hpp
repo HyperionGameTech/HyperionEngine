@@ -1346,12 +1346,6 @@ protected:
 
     Vec2f GetParentScrollOffset() const;
 
-    /*! \brief Add a DelegateHandler to be removed when the object is destructed */
-    void AddDelegateHandler(DelegateHandler&& delegateHandler)
-    {
-        m_delegateHandlers.PushBack(std::move(delegateHandler));
-    }
-
     void UpdateMeshData(bool updateChildren = true);
     virtual void UpdateMeshData_Internal();
 
@@ -1506,8 +1500,6 @@ private:
     Handle<Node> m_node;
 
     Array<Handle<UIObject>> m_childUiObjects;
-
-    Array<DelegateHandler> m_delegateHandlers;
 };
 
 #pragma endregion UIObject

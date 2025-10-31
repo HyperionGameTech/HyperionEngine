@@ -4,7 +4,7 @@
 
 #include <asset/AssetObject.hpp>
 
-#include <core/reflection/HypObjectFwd.hpp>
+#include <core/reflection/HypObjectMacros.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -74,8 +74,6 @@ struct SkeletonData
 
     const Handle<Animation>& GetAnimation(uint32 index) const
     {
-        HYP_SCOPE;
-
         if (index >= animations.Size())
         {
             return Handle<Animation>::empty;

@@ -48,7 +48,6 @@ static TArena<StreamingAllocator>* s_streamingArena;
 
 using StreamingTempAllocator = AllocatorInstance<TArena<StreamingAllocator>, &s_streamingArena>;
 
-
 #pragma region Helpers
 
 static const FixedArray<StreamingCellNeighbor, 8> GetCellNeighbors(const Vec2i& coord)
@@ -119,7 +118,7 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
         StreamingCellCollection<StreamingAllocator> cells;
         Array<StreamingCellUpdate, StreamingAllocator> cellUpdateQueue;
         // highest bit == pending removal flag, so we don't need to add another atomic + padding to eliminate false sharing
-        AtomicVar<uint32> lockCount { 0 }; 
+        AtomicVar<uint32> lockCount { 0 };
 
         LayerData(const Handle<WorldGridLayer>& layer)
             : layer(layer)
@@ -350,7 +349,7 @@ private:
             do
             {
                 DoWork(streamingManager);
-                
+
                 // Reset the streaming arena after each work cycle
                 s_streamingArena->Reset();
 
@@ -839,11 +838,6 @@ void StreamingManager::Stop()
 
 void StreamingManager::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
-        {
-            Stop();
-        }));
-
     HypObjectBase::Init();
 
     SetReady(true);

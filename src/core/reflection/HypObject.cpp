@@ -160,8 +160,6 @@ HypObjectBase::HypObjectBase()
 
 HypObjectBase::~HypObjectBase()
 {
-    m_delegateHandlers = {};
-
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
     if (m_scriptObjectResource)

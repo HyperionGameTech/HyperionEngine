@@ -55,6 +55,9 @@ private:
     Handle<EditorProject> m_currentProject;
     EditorPickCache m_pickCache;
     mutable Mutex m_mutex;
+
+    DelegateHandler m_onAssetObjectAddedHandle;
+    DelegateHandler m_onProjectPackageChangedHandle;
 };
 
 } // namespace hyperion

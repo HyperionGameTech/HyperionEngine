@@ -39,6 +39,8 @@ protected:
     virtual MaterialParameters GetMaterialParameters() const override;
 
     Handle<UIPanel> m_panel;
+
+    DelegateHandlerSet m_delegateHandlers;
 };
 
 } // namespace hyperion

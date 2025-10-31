@@ -565,25 +565,14 @@ GaussianSplatting::GaussianSplatting()
 
 GaussianSplatting::~GaussianSplatting()
 {
-    if (IsInitCalled())
-    {
-        m_quadMesh.Reset();
-        m_gaussianSplattingInstance.Reset();
+    m_quadMesh.Reset();
+    m_gaussianSplattingInstance.Reset();
 
-        SafeDelete(std::move(m_stagingBuffer));
-    }
+    SafeDelete(std::move(m_stagingBuffer));
 }
 
 void GaussianSplatting::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
-        {
-            m_quadMesh.Reset();
-            m_gaussianSplattingInstance.Reset();
-
-            SafeDelete(std::move(m_stagingBuffer));
-        }));
-
     static const Array<Vertex> vertices = {
         Vertex { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
         Vertex { { 1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },

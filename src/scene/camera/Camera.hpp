@@ -619,6 +619,8 @@ private:
     InputMouseLockScope m_mouseLockScope;
 
     Handle<CameraStreamingVolume> m_streamingVolume;
+
+    DelegateHandler m_windowSizeChangedHandle;
 };
 
 } // namespace hyperion
