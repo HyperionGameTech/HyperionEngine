@@ -248,7 +248,7 @@ public:
     void (*fatalErrorHook)(const char*);
 
 private:
-    Pimpl<LoggerImpl> m_pImpl;
+    Pimpl<LoggerImpl> m_impl;
 };
 
 struct LogOnceHelper

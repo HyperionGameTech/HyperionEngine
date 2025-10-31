@@ -528,7 +528,7 @@ Logger::Logger()
 }
 
 Logger::Logger(ILoggerOutputStream& outputStream)
-    : m_pImpl(MakePimpl<LoggerImpl>(outputStream)),
+    : m_impl(MakePimpl<LoggerImpl>(outputStream)),
       fatalErrorHook(nullptr)
 {
 }
@@ -537,12 +537,12 @@ Logger::~Logger() = default;
 
 ILoggerOutputStream* Logger::GetOutputStream() const
 {
-    return m_pImpl->m_outputStream;
+    return m_impl->m_outputStream;
 }
 
 const LogChannel* Logger::FindLogChannel(WeakName name) const
 {
-    for (LogChannel* channel : m_pImpl->m_logChannels)
+    for (LogChannel* channel : m_impl->m_logChannels)
     {
         if (!channel)
         {
@@ -555,9 +555,9 @@ const LogChannel* Logger::FindLogChannel(WeakName name) const
         }
     }
 
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
+    Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
-    for (LogChannel* channel : m_pImpl->m_dynamicLogChannels)
+    for (LogChannel* channel : m_impl->m_dynamicLogChannels)
     {
         AssertDebug(channel != nullptr);
 
@@ -575,18 +575,18 @@ const LogChannel* Logger::FindLogChannel(WeakName name) const
 void Logger::RegisterChannel(LogChannel* channel)
 {
     HYP_CORE_ASSERT(channel != nullptr);
-    HYP_CORE_ASSERT(channel->id < m_pImpl->m_logChannels.Size());
+    HYP_CORE_ASSERT(channel->id < m_impl->m_logChannels.Size());
 
-    m_pImpl->m_logChannels[channel->id] = channel;
+    m_impl->m_logChannels[channel->id] = channel;
 }
 
 DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* parentChannel)
 {
     AssertDebug(s_registerAllCalled);
 
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
+    Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
-    LogChannel* channel = m_pImpl->m_dynamicLogChannels.PushBack(new LogChannel(name));
+    LogChannel* channel = m_impl->m_dynamicLogChannels.PushBack(new LogChannel(name));
 
     channel->id = AtomicIncrement(&s_maxLogChannelId);
     channel->maskBitset = Bitset(1ull << channel->id);
@@ -604,9 +604,9 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* p
 
 DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
 {
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
+    Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
-    m_pImpl->m_dynamicLogChannels.PushBack(&channel);
+    m_impl->m_dynamicLogChannels.PushBack(&channel);
 
     if (channel.id == ~0u)
     {
@@ -622,33 +622,33 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
 
 void Logger::RemoveDynamicLogChannel(Name name)
 {
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
+    Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
-    auto it = m_pImpl->m_dynamicLogChannels.FindIf([name](LogChannel* channel)
+    auto it = m_impl->m_dynamicLogChannels.FindIf([name](LogChannel* channel)
         {
             return channel->name == name;
         });
 
-    if (it == m_pImpl->m_dynamicLogChannels.End())
+    if (it == m_impl->m_dynamicLogChannels.End())
     {
         return;
     }
 
-    m_pImpl->m_dynamicLogChannels.Erase(it);
+    m_impl->m_dynamicLogChannels.Erase(it);
 }
 
 void Logger::RemoveDynamicLogChannel(LogChannel* channel)
 {
-    Mutex::Guard guard(m_pImpl->m_dynamicLogChannelsMutex);
+    Mutex::Guard guard(m_impl->m_dynamicLogChannelsMutex);
 
-    auto it = m_pImpl->m_dynamicLogChannels.Find(channel);
+    auto it = m_impl->m_dynamicLogChannels.Find(channel);
 
-    if (it == m_pImpl->m_dynamicLogChannels.End())
+    if (it == m_impl->m_dynamicLogChannels.End())
     {
         return;
     }
 
-    m_pImpl->m_dynamicLogChannels.Erase(it);
+    m_impl->m_dynamicLogChannels.Erase(it);
 }
 
 void Logger::RemoveDynamicLogChannel(DynamicLogChannelHandle& channelHandle)
@@ -668,18 +668,18 @@ bool Logger::IsChannelEnabled(const LogChannel& channel) const
 {
     const uint64 channelMaskBitset = channel.maskBitset.ToUInt64();
 
-    return (m_pImpl->m_logMask.Get(MemoryOrder::RELAXED) & channelMaskBitset) == channelMaskBitset;
+    return (m_impl->m_logMask.Get(MemoryOrder::RELAXED) & channelMaskBitset) == channelMaskBitset;
 }
 
 void Logger::SetChannelEnabled(const LogChannel& channel, bool enabled)
 {
     if (enabled)
     {
-        m_pImpl->m_logMask.BitOr(1ull << channel.id, MemoryOrder::RELAXED);
+        m_impl->m_logMask.BitOr(1ull << channel.id, MemoryOrder::RELAXED);
     }
     else
     {
-        m_pImpl->m_logMask.BitAnd(~(1ull << channel.id), MemoryOrder::RELAXED);
+        m_impl->m_logMask.BitAnd(~(1ull << channel.id), MemoryOrder::RELAXED);
     }
 }
 
@@ -687,11 +687,11 @@ void Logger::Log(const LogChannel& channel, const LogMessage& message)
 {
     if (uint32(message.level) >= uint32(LogLevel::WARNING))
     {
-        m_pImpl->m_outputStream->WriteError(channel, message);
+        m_impl->m_outputStream->WriteError(channel, message);
     }
     else
     {
-        m_pImpl->m_outputStream->Write(channel, message);
+        m_impl->m_outputStream->Write(channel, message);
     }
 }
 
@@ -700,7 +700,7 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     Log(channel, message);
 
     // flush the output stream to ensure that the message is written before we call the fatal error hook
-    m_pImpl->m_outputStream->Flush();
+    m_impl->m_outputStream->Flush();
 
     MemoryByteWriter writer;
 
