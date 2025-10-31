@@ -9,6 +9,78 @@ class HypClass;
 template <class T>
 const HypClass* GetClass();
 
+/// Macro for class / struct / enum declaration ///
+
+// clang-format off
+
+#define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parentClass, ...)                                                                \
+    HYP_API extern const HypClass* g_cls##cls;                                                                                                  \
+                                                                                                                                                \
+    static struct HypClassInitializer_##cls                                                                                                     \
+    {                                                                                                                                           \
+        using Type = cls;                                                                                                                       \
+        using RegistrationType = ::hyperion::HypStructRegistration<Type>;                                                                       \
+                                                                                                                                                \
+        static RegistrationType s_classRegistration;                                                                                            \
+                                                                                                                                                \
+        HypClassInitializer_##cls ()                                                                                                            \
+        {                                                                                                                                       \
+        }                                                                                                                                       \
+    } g_classInitializer_##cls {};                                                                                                              \
+                                                                                                                                                \
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+
+#define HYP_END_STRUCT \
+    }                  \
+    }                  \
+    };                 \
+
+#define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parentClass, ...)                                                                 \
+    HYP_API extern const HypClass* g_cls##cls;                                                                                                  \
+                                                                                                                                                \
+    static struct HypClassInitializer_##cls                                                                                                     \
+    {                                                                                                                                           \
+        using Type = cls;                                                                                                                       \
+        using RegistrationType = ::hyperion::HypClassRegistration<Type>;                                                                        \
+                                                                                                                                                \
+        static RegistrationType s_classRegistration;                                                                                            \
+                                                                                                                                                \
+        HypClassInitializer_##cls ()                                                                                                            \
+        {                                                                                                                                       \
+        }                                                                                                                                       \
+    } g_classInitializer_##cls {};                                                                                                              \
+                                                                                                                                                \
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, parentClass, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+
+#define HYP_END_CLASS \
+    }                 \
+    }                 \
+    };                \
+
+#define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)                                                                               \
+    HYP_API extern const HypClass* g_cls##cls;                                                                                                  \
+                                                                                                                                                \
+    static struct HypClassInitializer_##cls                                                                                                     \
+    {                                                                                                                                           \
+        using Type = cls;                                                                                                                       \
+        using RegistrationType = ::hyperion::HypEnumRegistration<Type>;                                                                        \
+                                                                                                                                                \
+        static RegistrationType s_classRegistration;                                                                                            \
+                                                                                                                                                \
+        HypClassInitializer_##cls ()                                                                                                            \
+        {                                                                                                                                       \
+        }                                                                                                                                       \
+    } g_classInitializer_##cls {};                                                                                                              \
+                                                                                                                                                \
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_classRegistration = { &g_cls##cls, NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+
+#define HYP_END_ENUM \
+    }                \
+    }                \
+    };
+
+// clang-format on
+
 /// Macros for class / struct body ///
 
 #define HYP_OBJECT_BODY(T, ...)                                                  \

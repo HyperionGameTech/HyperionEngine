@@ -87,6 +87,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/generated
 )
 
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})

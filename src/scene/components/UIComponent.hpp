@@ -7,6 +7,8 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Optional.hpp>
 
+#include <core/reflection/Handle.hpp>
+
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
