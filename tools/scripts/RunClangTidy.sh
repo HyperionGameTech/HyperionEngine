@@ -79,4 +79,4 @@ fi
 clang-tidy -p build $fix_flag -format-style=file "${files[@]}" \
   --header-filter=.* \
   --exclude-header-filter="^(.*(thirdparty).*)|(include/.*)" \
-  -- -I./src -I./include
+  -- -I./thirdparty

@@ -116,6 +116,9 @@ World::~World()
 
 void World::Init()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
 
@@ -211,6 +214,8 @@ void World::Init()
     }
 
     m_physicsWorld.Init();
+
+    HypObjectBase::Init();
 
     SetReady(true);
 }
@@ -638,7 +643,7 @@ bool World::RemoveScene(Scene* scene)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
-    typename Array<Handle<Scene>>::Iterator it = m_scenes.Find(scene);
+    auto it = m_scenes.Find(scene);
 
     if (it == m_scenes.End())
     {
@@ -763,11 +768,6 @@ void World::RemoveView(View* view)
         return;
     }
 
-    typename Array<Handle<View>>::Iterator it = m_views.FindIf([view](const Handle<View>& other)
-        {
-            return other.Get() == view;
-        });
-
     if (IsReady())
     {
         view->m_raytracingView.Reset();
@@ -786,6 +786,11 @@ void World::RemoveView(View* view)
             }
         }
     }
+
+    auto it = m_views.FindIf([view](const Handle<View>& other)
+        {
+            return other.Get() == view;
+        });
 
     if (it != m_views.End())
     {

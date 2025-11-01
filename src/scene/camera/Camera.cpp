@@ -743,22 +743,16 @@ void Camera::UpdateMouseLocked()
 
 void Camera::OnAddedToWorld(World* world)
 {
-    if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid())
-    {
-        AssertDebug(GetStreamingVolume().IsValid());
+    AssertDebug(GetStreamingVolume().IsValid());
 
-        worldGrid->GetStreamingManager()->AddStreamingVolume(GetStreamingVolume());
-    }
+    g_streamingManager->AddStreamingVolume(GetStreamingVolume());
 
     Entity::OnAddedToWorld(world);
 }
 
 void Camera::OnRemovedFromWorld(World* world)
 {
-    if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid())
-    {
-        worldGrid->GetStreamingManager()->RemoveStreamingVolume(GetStreamingVolume());
-    }
+    g_streamingManager->RemoveStreamingVolume(GetStreamingVolume());
 
     Entity::OnRemovedFromWorld(world);
 }

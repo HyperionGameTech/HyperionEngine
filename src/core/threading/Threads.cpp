@@ -131,8 +131,8 @@ void Threads::SetCurrentThreadId(const ThreadId& id)
 
 void Threads::RegisterThread(const ThreadId& id, ThreadBase* thread)
 {
-    HYP_CORE_ASSERT(id.IsValid());
-    HYP_CORE_ASSERT(thread != nullptr);
+    AssertDebug(id.IsValid());
+    AssertDebug(thread != nullptr);
 
     bool success = false;
 
@@ -145,7 +145,7 @@ void Threads::RegisterThread(const ThreadId& id, ThreadBase* thread)
         success = g_staticThreadMap.Add(thread);
     }
 
-    HYP_CORE_ASSERT(success, "Thread %u (%s) could not be registered",
+    AssertDebug(success, "Thread {} ({}) could not be registered",
         id.GetValue(), *id.GetName());
 }
 
@@ -207,9 +207,9 @@ ThreadBase* Threads::CurrentThreadObject()
 
 void Threads::SetCurrentThreadObject(ThreadBase* thread)
 {
-    HYP_CORE_ASSERT(thread != nullptr);
+    AssertDebug(thread != nullptr);
 
-    HYP_CORE_ASSERT(IsThreadRegistered(thread->Id()), "Thread %u (%s) is not registered",
+    AssertDebug(IsThreadRegistered(thread->Id()), "Thread %u (%s) is not registered",
         thread->Id().GetValue(), *thread->Id().GetName());
 
     g_currentThread = thread;
@@ -224,9 +224,9 @@ void Threads::AssertOnThread(ThreadMask mask, const char* message)
 #ifdef HYP_ENABLE_THREAD_ID
     thread_local const ThreadId& currentThreadId = CurrentThreadId();
 
-    HYP_CORE_ASSERT(
+    AssertDebug(
         mask & currentThreadId.GetMask(),
-        "Expected current thread to be in mask %u, but got %u (%s). Message: %s",
+        "Expected current thread to be in mask {}, but got {} ({}). Message: {}",
         mask,
         currentThreadId.GetMask(),
         currentThreadId.GetName().LookupString(),
@@ -244,9 +244,9 @@ void Threads::AssertOnThread(const ThreadId& threadId, const char* message)
 #ifdef HYP_ENABLE_THREAD_ID
     thread_local const ThreadId& currentThreadId = CurrentThreadId();
 
-    HYP_CORE_ASSERT(
+    AssertDebug(
         threadId == currentThreadId,
-        "Expected current thread to be %s, but got %s. Message: %s",
+        "Expected current thread to be {}, but got {}. Message: {}",
         threadId.GetName().LookupString(),
         currentThreadId.GetName().LookupString(),
         message ? message : "(no message)");
@@ -396,14 +396,26 @@ void Threads::SetCurrentThreadPriority(ThreadPriorityValue priority)
 #endif
 }
 
-uint32 Threads::NumCores()
+uint32 Threads::NumCores() /// TODO: Refactor thread affinity setting per-thread
 {
-    return std::thread::hardware_concurrency();
+#ifdef HYP_WINDOWS
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
+#elif defined(HYP_UNIX)
+    return sysconf(_SC_NPROCESSORS_ONLN);
+#else
+    return 1;
+#endif
 }
 
 void Threads::Sleep(uint32 milliseconds)
 {
-    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+#ifdef HYP_WINDOWS
+    ::Sleep(milliseconds);
+#elif defined(HYP_UNIX)
+    usleep(milliseconds * 1000);
+#endif
 }
 
 } // namespace threading

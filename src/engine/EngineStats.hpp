@@ -102,9 +102,6 @@ public:
     void Prepare();
     void Advance();
 
-    void BeginGameStatsFrame();
-    void PublishGameChannel();
-
     /*! \brief Record a value set to be integrated into samples.
      *  Call this to add values that will be included in the next Advance() calculation.
      * Call only from Render thread! */

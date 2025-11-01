@@ -1023,8 +1023,6 @@ void BeginFrame_GameThread()
     s_threadFrameIndex = &s_frameIndex[PRODUCER];
 
     s_freeSemaphore.acquire();
-
-    g_engineStatsRecorder->BeginGameStatsFrame();
 }
 
 void EndFrame_GameThread()
@@ -1035,7 +1033,7 @@ void EndFrame_GameThread()
     const uint32 slot = s_frameIndex[PRODUCER];
     FrameData& frameData = s_frameData[slot];
 
-    g_engineStatsRecorder->PublishGameChannel();
+    g_sceneArena->Reset();
 
     s_frameIndex[PRODUCER] = (s_frameIndex[PRODUCER] + 1) % NumMultiBuffers;
 
@@ -1169,8 +1167,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                i != Bitset::NotFound;
-                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                 i != Bitset::NotFound;
+                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1323,6 +1321,8 @@ void EndFrame_RenderThread()
     g_engineStatsRecorder->Advance();
 
     g_safeDeleter->Iterate();
+
+    g_renderArena->Reset();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
 

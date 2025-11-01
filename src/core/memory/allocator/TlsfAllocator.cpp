@@ -6,7 +6,7 @@
 #include <core/utilities/ByteUtil.hpp>
 
 #if defined(HYP_USE_THIRD_PARTY_TLSF) && HYP_USE_THIRD_PARTY_TLSF
-#include <thirdparty/tlsf/tlsf.h>
+#include <tlsf/tlsf.h>
 #endif
 
 namespace hyperion {

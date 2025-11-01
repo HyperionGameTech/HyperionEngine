@@ -9,11 +9,14 @@
 #include <core/Core.hpp>
 
 #include <core/reflection/HypClassRegistry.hpp>
-
 #include <core/reflection/TypeInfo.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
+
+#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <core/memory/pool/Pool.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -45,9 +48,9 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <core/reflection/Handle.hpp>
-
 #include <script/HypScript.hpp>
+
+#include <streaming/StreamingManager.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineMemory.hpp>
@@ -71,6 +74,11 @@ static constexpr SizeType ScenePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType TaskPoolBlockSize = 4 * 1024 * 1024;
 static constexpr SizeType ResourcePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType AssetPoolBlockSize = 16 * 1024 * 1024;
+static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024;
+
+static constexpr SizeType SceneArenaSize = 8 * 1024 * 1024;     // 8 MB
+static constexpr SizeType RenderArenaSize = 8 * 1024 * 1024;    // 8 MB
+static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024; // 1 MB -- not much needed for now, we'll adjust as needed
 
 HYP_API Pool* g_objectPool;
 HYP_API Pool* g_renderPool;
@@ -79,6 +87,11 @@ HYP_API Pool* g_scenePool;
 HYP_API Pool* g_taskPool;
 HYP_API Pool* g_resourcePool;
 HYP_API Pool* g_assetPool;
+HYP_API Pool* g_streamingPool;
+
+HYP_API TArena<RenderAllocator>* g_renderArena;
+HYP_API TArena<SceneAllocator>* g_sceneArena;
+HYP_API TArena<StreamingAllocator>* g_streamingArena;
 
 Pool* const* g_enginePools[EPN_MAX] = {
     &g_objectPool, // EPN_CORE
@@ -99,6 +112,7 @@ Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
 Handle<EditorState> g_editorState;
 Handle<AppContextBase> g_appContext;
+Handle<StreamingManager> g_streamingManager;
 Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialSystem;
@@ -166,6 +180,11 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     g_taskPool = new Pool(TaskPoolBlockSize, PF_THREAD_SAFE);
     g_resourcePool = new Pool(ResourcePoolBlockSize, PF_THREAD_SAFE);
     g_assetPool = new Pool(AssetPoolBlockSize, PF_THREAD_SAFE);
+    g_streamingPool = new Pool(StreamingPoolBlockSize, PF_THREAD_SAFE);
+
+    g_sceneArena = new TArena<SceneAllocator>(SceneArenaSize);
+    g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
+    g_streamingArena = new TArena<StreamingAllocator>(StreamingArenaSize);
 
     g_logger = CreateObject<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
@@ -203,6 +222,10 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     ConfigurationTable renderGlobalConfigOverrides;
 
     g_engineDriver = CreateObject<EngineDriver>();
+
+    g_streamingManager = CreateObject<StreamingManager>();
+    InitObject(g_streamingManager);
+    g_streamingManager->Start();
 
     g_assetManager = CreateObject<AssetManager>();
     InitObject(g_assetManager);
@@ -298,6 +321,7 @@ HYP_API void DestroyEngine()
     CoreApi_Shutdown();
 
     g_assetManager.Reset();
+    g_streamingManager.Reset();
     g_editorState.Reset();
 
     delete g_shaderCompiler;
@@ -314,8 +338,20 @@ HYP_API void DestroyEngine()
     delete g_renderBackend;
     g_renderBackend = nullptr;
 
+    delete g_renderArena;
+    g_renderArena = nullptr;
+
+    delete g_sceneArena;
+    g_sceneArena = nullptr;
+
+    delete g_streamingArena;
+    g_streamingArena = nullptr;
+
     delete g_scenePool;
     g_scenePool = nullptr;
+
+    delete g_streamingPool;
+    g_streamingPool = nullptr;
 
     delete g_taskPool;
     g_taskPool = nullptr;

@@ -85,13 +85,6 @@ namespace Hyperion
                 return resultData.ReadObject<Scene>();
             }
         }
-        public static Array GetScenes(this World obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(11583594789596709586)).InvokeNative(obj))
-            {
-                return (Array)resultData.GetValue();
-            }
-        }
         public static void AddView(this World obj, View view)
         {
             obj.GetMethod(new Name(2174235128225728685)).InvokeNative(obj, view);

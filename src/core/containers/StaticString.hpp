@@ -85,10 +85,28 @@ struct StaticString
     CharType data[Sz];
 
     constexpr StaticString(const CharType (&str)[Sz])
+        : data { '\0' }
     {
         for (SizeType i = 0; i < Sz; ++i)
         {
             data[i] = str[i];
+        }
+    }
+
+    constexpr StaticString(const CharType* begin, const CharType* end)
+        : data { '\0' }
+    {
+        SizeType index = 0;
+
+        for (const CharType* ptr = begin; ptr != end && index < Sz; ++ptr, ++index)
+        {
+            data[index] = *ptr;
+        }
+
+        // null terminate
+        if (index < Sz)
+        {
+            data[index] = '\0';
         }
     }
 

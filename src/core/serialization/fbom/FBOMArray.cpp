@@ -77,11 +77,11 @@ FBOMData& FBOMArray::GetElement(SizeType index)
 const FBOMData& FBOMArray::GetElement(SizeType index) const
 {
     // invalid result
-    static const FBOMData defaultValue {};
+    static const FBOMData s_defaultValue {};
 
     if (index >= m_values.Size())
     {
-        return defaultValue;
+        return s_defaultValue;
     }
 
     return m_values[index];

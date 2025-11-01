@@ -13,13 +13,6 @@ namespace Hyperion
                 return resultData.ReadObject<World>();
             }
         }
-        public static StreamingManager GetStreamingManager(this WorldGrid obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(8343366249610964608)).InvokeNative(obj))
-            {
-                return resultData.ReadObject<StreamingManager>();
-            }
-        }
         public static void AddLayer(this WorldGrid obj, WorldGridLayer layer)
         {
             obj.GetMethod(new Name(9626112673436533185)).InvokeNative(obj, layer);

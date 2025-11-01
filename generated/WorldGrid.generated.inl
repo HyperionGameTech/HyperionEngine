@@ -7,7 +7,6 @@ namespace hyperion {
 
 HYP_BEGIN_CLASS(WorldGrid, 175, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetWorld)), &WorldGrid::GetWorld),
-    HypMethod(NAME(HYP_STR(GetStreamingManager)), &WorldGrid::GetStreamingManager),
     HypMethod(NAME(HYP_STR(AddLayer)), &WorldGrid::AddLayer),
     HypMethod(NAME(HYP_STR(RemoveLayer)), &WorldGrid::RemoveLayer),
     HypMethod(NAME(HYP_STR(GetLayers)), &WorldGrid::GetLayers),

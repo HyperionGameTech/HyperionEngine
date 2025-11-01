@@ -17,7 +17,7 @@ set "WORKING_DIR=%cd%"
 
 rem -- version‐based rebuild logic start --
 set "REBUILD=false"
-set "INC_FILE=%WORKING_DIR%\build\generated\BuildToolOutput.inc"
+set "INC_FILE=%WORKING_DIR%\generated\BuildToolOutput.inc"
 
 rem -- Check if both the build tool and version file exist --
 if not exist "%WORKING_DIR%\build\hyperion-buildtool.exe" (
@@ -50,6 +50,8 @@ for /f "tokens=3,4 delims=. " %%a in ("!line!") do (
     set "fileMajor=%%a"
     set "fileMinor=%%b"
 )
+
+echo Detected build tool version: !fileMajor!.!fileMinor! in file: %INC_FILE%
 
 set "fileMajorClean=!fileMajor: =!"
 set "fileMinorClean=!fileMinor: =!"

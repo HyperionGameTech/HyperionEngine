@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <thirdparty/OpenSimplexNoise.hpp>
+#include <OpenSimplexNoise.hpp>
 
 #define OSN_OCTAVE_COUNT 8
 
