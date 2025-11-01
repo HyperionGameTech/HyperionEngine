@@ -59,27 +59,27 @@ HYP_API const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
 
 #pragma region Helpers
 
-const HypClass* GetClass(TypeId typeId)
+HYP_API const HypClass* GetClass(TypeId typeId)
 {
     return HypClassRegistry::GetInstance().GetClass(typeId);
 }
 
-const HypClass* GetClass(WeakName typeName)
+HYP_API const HypClass* GetClass(WeakName typeName)
 {
     return HypClassRegistry::GetInstance().GetClass(typeName);
 }
 
-const HypClass* GetEnum(TypeId typeId)
+HYP_API const HypClass* GetEnum(TypeId typeId)
 {
     return HypClassRegistry::GetInstance().GetEnum(typeId);
 }
 
-const HypClass* GetEnum(WeakName typeName)
+HYP_API const HypClass* GetEnum(WeakName typeName)
 {
     return HypClassRegistry::GetInstance().GetEnum(typeName);
 }
 
-bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId)
+HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId)
 {
     if (!ptr)
     {
@@ -131,7 +131,7 @@ bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId)
     return false;
 }
 
-bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass)
+HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass)
 {
     if (!hypClass || !instanceHypClass)
     {
@@ -159,7 +159,7 @@ bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass)
     return false;
 }
 
-int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
+HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
 {
     const HypClass* base = GetClass(baseTypeId);
     if (!base)
@@ -196,7 +196,7 @@ int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
     return -2;
 }
 
-SizeType GetNumDescendants(TypeId typeId)
+HYP_API SizeType GetNumDescendants(TypeId typeId)
 {
     const HypClass* base = GetClass(typeId);
     if (!base)
@@ -210,7 +210,7 @@ SizeType GetNumDescendants(TypeId typeId)
 #if 0
 HypProperty* MakeHypProperty(const HypField* field)
 {
-    HYP_CORE_ASSERT(field != nullptr);
+    AssertDebug(field != nullptr);
 
     Name propertyName;
 
@@ -301,7 +301,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (typeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*typeInfo == fieldTypeInfo, "Getter type (%s) does not match field type (%s)", *typeInfo->name, *fieldTypeInfo.name);
+            AssertDebug(*typeInfo == fieldTypeInfo, "Getter type (%s) does not match field type (%s)", *typeInfo->name, *fieldTypeInfo.name);
         }
         else
         {
@@ -310,7 +310,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (targetTypeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target type (%s) does not match field target type (%s)", *targetTypeInfo->name, *field->GetTargetTypeInfo().name);
+            AssertDebug(*targetTypeInfo == field->GetTargetTypeInfo(), "Getter target type (%s) does not match field target type (%s)", *targetTypeInfo->name, *field->GetTargetTypeInfo().name);
         }
         else
         {
@@ -333,7 +333,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (typeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*typeInfo == setterTypeInfo, "Getter/field type (%s) does not match setter type (%s)", *typeInfo->name, *setterTypeInfo.name);
+            AssertDebug(*typeInfo == setterTypeInfo, "Getter/field type (%s) does not match setter type (%s)", *typeInfo->name, *setterTypeInfo.name);
         }
         else
         {
@@ -342,7 +342,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
         if (targetTypeInfo != nullptr)
         {
-            HYP_CORE_ASSERT(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target type (%s) does not match setter target type (%s)", *targetTypeInfo->name, *setter->GetTargetTypeInfo().name);
+            AssertDebug(*targetTypeInfo == setter->GetTargetTypeInfo(), "Getter/field target type (%s) does not match setter target type (%s)", *targetTypeInfo->name, *setter->GetTargetTypeInfo().name);
         }
         else
         {
@@ -352,8 +352,8 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
         result.m_attributes.Merge(setter->GetAttributes());
     }
 
-    HYP_CORE_ASSERT(propertyAttributeOpt.HasValue());
-    HYP_CORE_ASSERT(typeInfo != nullptr, "Cannot determine TypeId from getter/setter pair or field");
+    AssertDebug(propertyAttributeOpt.HasValue());
+    AssertDebug(typeInfo != nullptr, "Cannot determine TypeId from getter/setter pair or field");
 
     result.m_name = CreateNameFromDynamicString(*propertyAttributeOpt);
     result.m_typeInfo = typeInfo;
@@ -664,7 +664,7 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
 {
     // needs to be set after name is set
     m_typeInfo = &TypeInfo::ForHypClass(this);
-    HYP_CORE_ASSERT(m_typeInfo != nullptr);
+    AssertDebug(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     // objects pool
@@ -766,7 +766,7 @@ void HypClass::Initialize()
 {
     HYP_LOG(Object, Info, "Initializing HypClass \"{}\"", m_name);
 
-    HYP_CORE_ASSERT(m_typeInfo != nullptr);
+    AssertDebug(m_typeInfo != nullptr);
 
     m_serializationMode = HypClassSerializationMode::DEFAULT;
 
@@ -808,14 +808,14 @@ void HypClass::Initialize()
             {
                 if (!IsPodType())
                 {
-                    HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: %s", m_name.LookupString());
+                    HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: {}", m_name);
                 }
 
                 m_serializationMode = HypClassSerializationMode::BITWISE | HypClassSerializationMode::USE_MARSHAL_CLASS;
             }
             else
             {
-                HYP_FAIL("Unknown serialization mode: %s", stringValue.Data());
+                HYP_FAIL("Unknown serialization mode: {}", stringValue);
             }
         }
         else if (!serializeAttribute.GetBool())
@@ -842,11 +842,11 @@ void HypClass::Initialize()
             m_parent = GetClass(m_parentName);
         }
 
-        HYP_CORE_ASSERT(m_parent != nullptr, "Invalid parent class: %s", m_parentName.LookupString());
+        AssertDebug(m_parent != nullptr, "Invalid parent class: {}", m_parentName);
 
         if (!IsDynamic())
         {
-            HYP_CORE_ASSERT(!m_parent->IsDynamic(), "Non-dynamic HypClass cannot have a dynamic parent class!");
+            AssertDebug(!m_parent->IsDynamic(), "Non-dynamic HypClass cannot have a dynamic parent class!");
         }
     }
 
@@ -904,8 +904,8 @@ void HypClass::Initialize()
                 findGetterIt != it.second.End() ? static_cast<HypMethod*>(*findGetterIt) : nullptr,
                 findSetterIt != it.second.End() ? static_cast<HypMethod*>(*findSetterIt) : nullptr);
 
-            HYP_CORE_ASSERT(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
-            HYP_CORE_ASSERT(!GetProperty(pProperty->GetName(), /* deep */ false), "Property with name \"%s\" already exists in class \"%s\"", *pProperty->GetName(), *GetName());
+            AssertDebug(pProperty->m_ownerClass && pProperty->m_ownerClass->IsBaseOf(this));
+            AssertDebug(!GetProperty(pProperty->GetName(), /* deep */ false), "Property with name \"{}\" already exists in class \"{}\"", *pProperty->GetName(), *GetName());
 
             m_properties.PushBack(pProperty);
             m_propertiesByName.Set(pProperty->GetName(), pProperty);
@@ -1148,9 +1148,9 @@ Array<HypConstant*> HypClass::GetConstantsInherited() const
 
 void HypClass::AddProperty(HypProperty* property)
 {
-    HYP_CORE_ASSERT(property != nullptr, "Cannot add null property to HypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(m_propertiesByName.Find(property->GetName()) == m_propertiesByName.End(),
-        "Property with name %s already exists in HypClass %s", property->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(property != nullptr, "Cannot add null property to HypClass {}", GetName());
+    AssertDebug(m_propertiesByName.Find(property->GetName()) == m_propertiesByName.End(),
+        "Property with name {} already exists in HypClass {}", property->GetName(), GetName());
 
     m_properties.PushBack(property);
     m_propertiesByName[property->GetName()] = property;
@@ -1158,9 +1158,9 @@ void HypClass::AddProperty(HypProperty* property)
 
 void HypClass::AddMethod(HypMethod* method)
 {
-    HYP_CORE_ASSERT(method != nullptr, "Cannot add null method to HypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(m_methodsByName.Find(method->GetName()) == m_methodsByName.End(),
-        "Method with name %s already exists in HypClass %s", method->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(method != nullptr, "Cannot add null method to HypClass {}", GetName());
+    AssertDebug(m_methodsByName.Find(method->GetName()) == m_methodsByName.End(),
+        "Method with name {} already exists in HypClass {}", method->GetName(), GetName());
 
     m_methods.PushBack(method);
     m_methodsByName[method->GetName()] = method;
@@ -1168,9 +1168,9 @@ void HypClass::AddMethod(HypMethod* method)
 
 void HypClass::AddField(HypField* field)
 {
-    HYP_CORE_ASSERT(field != nullptr, "Cannot add null field to HypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(m_fieldsByName.Find(field->GetName()) == m_fieldsByName.End(),
-        "Field with name %s already exists in HypClass %s", field->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(field != nullptr, "Cannot add null field to HypClass {}", GetName());
+    AssertDebug(m_fieldsByName.Find(field->GetName()) == m_fieldsByName.End(),
+        "Field with name {} already exists in HypClass {}", field->GetName(), GetName());
 
     m_fields.PushBack(field);
     m_fieldsByName[field->GetName()] = field;
@@ -1178,9 +1178,9 @@ void HypClass::AddField(HypField* field)
 
 void HypClass::AddConstant(HypConstant* constant)
 {
-    HYP_CORE_ASSERT(constant != nullptr, "Cannot add null constant to HypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(m_constantsByName.Find(constant->GetName()) == m_constantsByName.End(),
-        "Constant with name %s already exists in HypClass %s", constant->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(constant != nullptr, "Cannot add null constant to HypClass {}", GetName());
+    AssertDebug(m_constantsByName.Find(constant->GetName()) == m_constantsByName.End(),
+        "Constant with name {} already exists in HypClass {}", constant->GetName(), GetName());
 
     m_constants.PushBack(constant);
     m_constantsByName[constant->GetName()] = constant;
@@ -1332,7 +1332,7 @@ DynamicHypClassInstance::DynamicHypClassInstance(
 
     auto calculateDynamicHypClassSize = [](const HypClass* hypClass, SizeType& dynamicSize, SizeType& dynamicAlignment)
     {
-        HYP_CORE_ASSERT(hypClass->IsDynamic());
+        AssertDebug(hypClass->IsDynamic());
 
         for (const HypField* field : hypClass->GetFields())
         {
@@ -1342,9 +1342,9 @@ DynamicHypClassInstance::DynamicHypClassInstance(
 
             dynamicSize = ByteUtil::AlignAs(dynamicSize, fieldAlignment);
 
-            HYP_CORE_ASSERT(field != nullptr);
-            HYP_CORE_ASSERT(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: %s, class: %s), expected %llu, got %llu",
-                field->GetName().LookupString(), hypClass->GetName().LookupString(),
+            AssertDebug(field != nullptr);
+            AssertDebug(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: {}, class: {}), expected {}, got {}",
+                field->GetName(), hypClass->GetName(),
                 dynamicSize, field->GetOffset());
 
             dynamicSize += fieldSize;
@@ -1571,7 +1571,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
             {
                 // stop after first non-dynamic parent class
                 HYP_FAIL("Non-dynamic parent class construction not yet implemented for dynamic class {}, Parent class: {}",
-                    GetName().LookupString(), topParent->GetName().LookupString());
+                    GetName(), topParent->GetName());
 
                 HYP_NOT_IMPLEMENTED(); // non-dynamic parent class construction not yet implemented
 
@@ -1598,8 +1598,8 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 
     // add 'class' field
     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
-    HYP_CORE_ASSERT(fieldOffset + sizeof(HypClassRef) <= m_size,
-        "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypClassRef), m_size);
+    AssertDebug(fieldOffset + sizeof(HypClassRef) <= m_size,
+        "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypClassRef), m_size);
 
     HypClassRef* classFieldPtr = (HypClassRef*)(UIntPtr(ptr) + fieldOffset);
     new (classFieldPtr) HypClassRef(this);
@@ -1608,7 +1608,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     for (SizeType i = dynamicParents.Size(); i > 0; i--)
     {
         const HypClass* dynamicParent = dynamicParents[i - 1];
-        HYP_CORE_ASSERT(dynamicParent->IsDynamic(), "Expected dynamic parent class");
+        AssertDebug(dynamicParent->IsDynamic(), "Expected dynamic parent class");
 
         const DynamicHypClassInstance* dynamicParentInstance = static_cast<const DynamicHypClassInstance*>(dynamicParent);
 
@@ -1618,8 +1618,8 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
             // align field offset
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
 
-            HYP_CORE_ASSERT(fieldOffset + sizeof(HypData) <= m_size,
-                "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypData), m_size);
+            AssertDebug(fieldOffset + sizeof(HypData) <= m_size,
+                "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypData), m_size);
 
             HypData* fieldPtr = (HypData*)(UIntPtr(ptr) + fieldOffset);
             new (fieldPtr) HypData();
@@ -1633,8 +1633,8 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     {
         // align field offset
         fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));
-        HYP_CORE_ASSERT(fieldOffset + sizeof(HypData) <= m_size,
-            "Field offset out of bounds: %zu + %zu > %zu", fieldOffset, sizeof(HypData), m_size);
+        AssertDebug(fieldOffset + sizeof(HypData) <= m_size,
+            "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypData), m_size);
 
         HypData* fieldPtr = (HypData*)(UIntPtr(ptr) + fieldOffset);
         new (fieldPtr) HypData();
@@ -1666,9 +1666,8 @@ bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> element
 
 void DynamicHypClassInstance::SetField(uint32 index, HypField* field)
 {
-    HYP_CORE_ASSERT(field != nullptr, "Cannot set null field to DynamicHypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(!m_fieldsByName.Contains(field->GetName()),
-        "Field with name %s already exists in DynamicHypClass %s", field->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(field != nullptr, "Cannot set null field to DynamicHypClass {}", GetName());
+    AssertDebug(!m_fieldsByName.Contains(field->GetName()), "Field with name {} already exists in DynamicHypClass {}", field->GetName(), GetName());
 
     if (index >= m_fields.Size())
     {
@@ -1681,9 +1680,8 @@ void DynamicHypClassInstance::SetField(uint32 index, HypField* field)
 
 void DynamicHypClassInstance::SetMethod(uint32 index, HypMethod* method)
 {
-    HYP_CORE_ASSERT(method != nullptr, "Cannot set null method to DynamicHypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(!m_methodsByName.Contains(method->GetName()),
-        "Method with name %s already exists in DynamicHypClass %s", method->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(method != nullptr, "Cannot set null method to DynamicHypClass {}", GetName());
+    AssertDebug(!m_methodsByName.Contains(method->GetName()), "Method with name {} already exists in DynamicHypClass {}", method->GetName(), GetName());
 
     if (index >= m_methods.Size())
     {
@@ -1696,9 +1694,8 @@ void DynamicHypClassInstance::SetMethod(uint32 index, HypMethod* method)
 
 void DynamicHypClassInstance::SetProperty(uint32 index, HypProperty* property)
 {
-    HYP_CORE_ASSERT(property != nullptr, "Cannot set null property to DynamicHypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(!m_propertiesByName.Contains(property->GetName()),
-        "Property with name %s already exists in DynamicHypClass %s", property->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(property != nullptr, "Cannot set null property to DynamicHypClass {}", GetName());
+    AssertDebug(!m_propertiesByName.Contains(property->GetName()), "Property with name {} already exists in DynamicHypClass {}", property->GetName(), GetName());
 
     if (index >= m_properties.Size())
     {
@@ -1711,9 +1708,8 @@ void DynamicHypClassInstance::SetProperty(uint32 index, HypProperty* property)
 
 void DynamicHypClassInstance::SetConstant(uint32 index, HypConstant* constant)
 {
-    HYP_CORE_ASSERT(constant != nullptr, "Cannot set null constant to DynamicHypClass %s", GetName().LookupString());
-    HYP_CORE_ASSERT(!m_constantsByName.Contains(constant->GetName()),
-        "Constant with name %s already exists in DynamicHypClass %s", constant->GetName().LookupString(), GetName().LookupString());
+    AssertDebug(constant != nullptr, "Cannot set null constant to DynamicHypClass {}", GetName());
+    AssertDebug(!m_constantsByName.Contains(constant->GetName()), "Constant with name {} already exists in DynamicHypClass {}", constant->GetName(), GetName());
 
     if (index >= m_constants.Size())
     {

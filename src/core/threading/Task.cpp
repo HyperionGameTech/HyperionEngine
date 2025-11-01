@@ -72,7 +72,7 @@ HYP_API void Task_DeleteAllDeferredTasks()
     {
         for (TaskExecutorBase* taskExecutor : toDelete)
         {
-            HYP_CORE_ASSERT(taskExecutor->IsCompleted());
+            AssertDebug(taskExecutor->IsCompleted());
 
             delete taskExecutor;
         }
@@ -182,16 +182,12 @@ bool TaskBase::Cancel()
 
 void TaskBase::Await_Internal() const
 {
-    HYP_CORE_ASSERT(IsValid());
+    AssertDebug(IsValid());
 
     TaskExecutorBase* executor = GetTaskExecutor();
-    HYP_CORE_ASSERT(executor != nullptr);
+    AssertDebug(executor != nullptr);
 
     executor->GetNotifier().Await();
-
-#ifdef HYP_DEBUG_MODE
-    HYP_CORE_ASSERT(IsCompleted());
-#endif
 }
 
 #pragma endregion TaskBase

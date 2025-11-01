@@ -11,7 +11,7 @@
 
 #include <util/img/ImageUtil.hpp>
 
-#include <thirdparty/stb_image.h>
+#include <stb_image.h>
 
 #include <TextureLoader.generated.inl>
 

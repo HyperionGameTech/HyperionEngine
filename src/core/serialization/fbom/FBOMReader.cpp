@@ -36,8 +36,8 @@ namespace serialization {
 
 FBOMResult FBOMReader::FBOMStaticDataIndexMap::Element::Initialize(FBOMLoadContext& context, FBOMReader* reader)
 {
-    HYP_CORE_ASSERT(reader != nullptr);
-    HYP_CORE_ASSERT(IsValid());
+    AssertDebug(reader != nullptr);
+    AssertDebug(IsValid());
 
     if (IsInitialized())
     {
@@ -91,7 +91,7 @@ FBOMResult FBOMReader::FBOMStaticDataIndexMap::Element::Initialize(FBOMLoadConte
             return err;
         }
 
-        HYP_CORE_ASSERT(static_cast<FBOMData*>(ptr.Get())->TotalSize() != 0);
+        AssertDebug(static_cast<FBOMData*>(ptr.Get())->TotalSize() != 0);
 
         break;
     }
@@ -349,7 +349,7 @@ FBOMResult FBOMReader::LoadFromFile(FBOMLoadContext& context, const String& path
 
     BufferedReader reader { &source };
 
-    HYP_CORE_ASSERT(!reader.Eof());
+    AssertDebug(!reader.Eof());
 
     return Deserialize(context, reader, out);
 }
@@ -387,7 +387,7 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, FBOMObject& out)
     }
 
     BufferedReader reader { &source };
-    HYP_CORE_ASSERT(!reader.Eof());
+    AssertDebug(!reader.Eof());
 
     FBOMLoadContext context;
 
@@ -403,7 +403,7 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, HypData& out)
         return err;
     }
 
-    HYP_CORE_ASSERT(object.m_deserializedObject != nullptr);
+    AssertDebug(object.m_deserializedObject != nullptr);
 
     if (object.m_deserializedObject != nullptr)
     {
@@ -416,7 +416,7 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, HypData& out)
 
 FBOMCommand FBOMReader::NextCommand(BufferedReader* reader)
 {
-    HYP_CORE_ASSERT(!reader->Eof());
+    AssertDebug(!reader->Eof());
 
     uint8 ins = -1;
     reader->Read(&ins);
@@ -427,7 +427,7 @@ FBOMCommand FBOMReader::NextCommand(BufferedReader* reader)
 
 FBOMCommand FBOMReader::PeekCommand(BufferedReader* reader)
 {
-    HYP_CORE_ASSERT(!reader->Eof());
+    AssertDebug(!reader->Eof());
 
     uint8 ins = -1;
     reader->Peek(&ins);
@@ -643,7 +643,7 @@ FBOMResult FBOMReader::ReadObjectLibrary(FBOMLoadContext& context, BufferedReade
         MemoryBufferedReaderSource source { buffer.ToByteView() };
         BufferedReader byteReader { &source };
 
-        HYP_CORE_ASSERT(!byteReader.Eof());
+        AssertDebug(!byteReader.Eof());
 
         FBOMReader deserializer(m_config);
 
@@ -894,16 +894,6 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
         {
             return { FBOMResult::FBOM_ERR, "Invalid array in static data pool" };
         }
-
-        // HYP_CORE_ASSERT(offset < m_staticDataPool.Size(),
-        //     "Offset out of bounds of static data pool: %u >= %u",
-        //     offset,
-        //     m_staticDataPool.Size());
-
-        // // grab from static data pool
-        // FBOMArray *asArray = m_staticDataPool[offset].data.TryGetAsDynamic<FBOMArray>();
-        // HYP_CORE_ASSERT(asArray != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_staticDataPool[offset].data.GetTypeId().Value());
-        // outArray = *asArray;
     }
 
     return FBOMResult::FBOM_OK;
@@ -918,7 +908,7 @@ FBOMResult FBOMReader::ReadPropertyName(FBOMLoadContext& context, BufferedReader
         return err;
     }
 
-    HYP_CORE_ASSERT(nameData.TotalSize() != 0);
+    AssertDebug(nameData.TotalSize() != 0);
 
     if (FBOMResult err = nameData.ReadName(&outPropertyName))
     {
@@ -1200,7 +1190,7 @@ FBOMResult FBOMReader::ReadRawData(BufferedReader* reader, SizeType count, ByteB
 
 FBOMResult FBOMReader::Handle(FBOMLoadContext& context, BufferedReader* reader, FBOMCommand command, FBOMObject* root)
 {
-    HYP_CORE_ASSERT(root != nullptr);
+    AssertDebug(root != nullptr);
 
     switch (command)
     {
@@ -1224,7 +1214,7 @@ FBOMResult FBOMReader::Handle(FBOMLoadContext& context, BufferedReader* reader, 
             return { FBOMResult::FBOM_ERR, "Static data pool already exists!" };
         }
 
-        HYP_CORE_ASSERT(!m_inStaticData);
+        AssertDebug(!m_inStaticData);
 
         if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_START))
         {
@@ -1318,7 +1308,7 @@ FBOMResult FBOMReader::Handle(FBOMLoadContext& context, BufferedReader* reader, 
         break;
     }
     default:
-        HYP_FAIL("Cannot process command %d in top level at position: %u", int(command), reader->Position() - sizeof(FBOMCommand));
+        HYP_FAIL("Cannot process command {} in top level at position: {}", int(command), reader->Position() - sizeof(FBOMCommand));
 
         break;
     }

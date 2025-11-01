@@ -367,16 +367,6 @@ void EngineStatsRecorder::Prepare()
     }
 }
 
-void EngineStatsRecorder::BeginGameStatsFrame()
-{
-    // m_impl->gameChannel.BeginFrame(uint8(RenderApi::GetFrameIndex()));
-}
-
-void EngineStatsRecorder::PublishGameChannel()
-{
-    // m_impl->gameChannel.Publish();
-}
-
 void EngineStatsRecorder::RecordValueSet(const EngineStatsValueSet& valueSet)
 {
     HYP_SCOPE;

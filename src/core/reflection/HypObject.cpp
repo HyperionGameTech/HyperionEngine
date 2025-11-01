@@ -41,14 +41,14 @@ HYP_API extern const HypClass* g_clsHypObjectBase;
 HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
     : ptr(ptr)
 {
-    HYP_CORE_ASSERT(ptr.IsValid());
+    AssertDebug(ptr.IsValid());
 
     count = 0;
 
-    HYP_CORE_ASSERT(ptr.GetClass()->UseHandles());
+    AssertDebug(ptr.GetClass()->UseHandles());
 
     HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
-    HYP_CORE_ASSERT(target != nullptr, "HypObjectInitializerGuardBase: HypObjectPtr is not valid!");
+    AssertDebug(target != nullptr, "HypObjectInitializerGuardBase: HypObjectPtr is not valid!");
 
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
     PushGlobalContext(HypObjectInitializerContext {
@@ -66,7 +66,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     }
 
     const HypClass* hypClass = ptr.GetClass();
-    HYP_CORE_ASSERT(hypClass->UseHandles()); // check is HypObjectBase
+    AssertDebug(hypClass->UseHandles()); // check is HypObjectBase
 
     HypObjectBase* target = reinterpret_cast<HypObjectBase*>(ptr.GetPointer());
     AssertDebug(target->GetObjectHeader_Internal()->GetRefCountStrong() == 1);
@@ -89,9 +89,6 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
                 Assert(scriptObjectResource != nullptr);
                 scriptObjectResource->IncRef();
 
-                if (g_logger)
-                    HYP_LOG_TEMP("CSHARP : Setting script object resource for {} from thread {}", target->Id(), Threads::CurrentThreadId().GetName());
-
                 target->SetScriptObjectResource(scriptObjectResource);
 
                 return;
@@ -103,9 +100,6 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
             ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
             Assert(scriptObjectResource != nullptr);
-
-            if (g_logger)
-                HYP_LOG_TEMP("HYPSCRIPT : Setting script object resource for {} from thread {}", target->Id(), Threads::CurrentThreadId().GetName());
 
             target->SetScriptObjectResource(scriptObjectResource);
 
@@ -246,7 +240,7 @@ HYP_API uint32 HypObjectPtr::GetRefCountWeak() const
 
 HYP_API void HypObjectPtr::IncRef(bool weak)
 {
-    HYP_CORE_ASSERT(IsValid());
+    AssertDebug(IsValid());
 
     HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
 
@@ -262,7 +256,7 @@ HYP_API void HypObjectPtr::IncRef(bool weak)
 
 HYP_API void HypObjectPtr::DecRef(bool weak)
 {
-    HYP_CORE_ASSERT(IsValid());
+    AssertDebug(IsValid());
 
     HypObjectBase* hypObjectBase = reinterpret_cast<HypObjectBase*>(m_ptr);
 

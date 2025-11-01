@@ -1195,7 +1195,7 @@ public:
 
         if (!name.IsValid())
         {
-            name = Name::Unique(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
+            name = NAME_FMT("<unnamed {}>", T::Class()->GetName());
         }
 
         Handle<Entity> entity = CreateObject<Entity>();

@@ -32,7 +32,7 @@ ThreadPoolBase::ThreadPoolBase(Array<UniquePtr<ThreadBase>>&& threads)
 {
     for (const UniquePtr<ThreadBase>& thread : m_threads)
     {
-        HYP_CORE_ASSERT(thread != nullptr);
+        AssertDebug(thread != nullptr);
 
         m_threadMask |= thread->Id().GetMask();
     }
@@ -42,8 +42,8 @@ ThreadPoolBase::~ThreadPoolBase()
 {
     for (auto& it : m_threads)
     {
-        HYP_CORE_ASSERT(it != nullptr);
-        HYP_CORE_ASSERT(!it->IsRunning(), "ThreadPoolBase::Stop() must be called before ThreadPoolBase is destroyed");
+        AssertDebug(it != nullptr);
+        AssertDebug(!it->IsRunning(), "ThreadPoolBase::Stop() must be called before ThreadPoolBase is destroyed");
 
         if (it->CanJoin())
         {
@@ -134,7 +134,7 @@ void TaskThreadPool::Start()
 {
     for (auto& it : m_threads)
     {
-        HYP_CORE_ASSERT(it != nullptr);
+        AssertDebug(it != nullptr);
 
         TaskThread* taskThread = static_cast<TaskThread*>(it.Get());
         taskThread->Start();
@@ -206,7 +206,7 @@ BackgroundTaskThreadPool::BackgroundTaskThreadPool(ANSIStringView baseName, uint
       m_maxThreads(maxThreads),
       m_overseerThread(nullptr)
 {
-    HYP_CORE_ASSERT(maxThreads > 0, "BackgroundTaskThreadPool must have at least one thread");
+    AssertDebug(maxThreads > 0, "BackgroundTaskThreadPool must have at least one thread");
 }
 
 BackgroundTaskThreadPool::~BackgroundTaskThreadPool()

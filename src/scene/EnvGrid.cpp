@@ -117,6 +117,8 @@ EnvGrid::~EnvGrid()
 
 void LegacyEnvGrid::Init()
 {
+    HYP_SCOPE;
+
     EnvGrid::Init();
 
     const Vec2u probeDimensions = GetProbeDimensions(m_options.legacyEnvGridType);

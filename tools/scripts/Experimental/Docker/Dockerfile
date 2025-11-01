@@ -51,7 +51,7 @@ ENV SIGNALLING_SERVER_IP=ws://127.0.0.1
 ENV SIGNALLING_SERVER_PORT=8000
 
 COPY ./src ./src
-COPY ./include ./include
+COPY ./thirdparty ./thirdparty
 COPY ./res/shaders ./res/shaders
 COPY ./res/scripts ./res/scripts
 COPY ./res/*.def ./res/

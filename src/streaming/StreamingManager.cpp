@@ -37,16 +37,6 @@
 namespace hyperion {
 
 /// @TODO: Move declaration to EngineGlobals.hpp and init in HyperionEngine.cpp!
-static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024; // 4 MB
-static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;      // 1 MB -- not much needed for now, we'll adjust as needed
-
-Pool* g_streamingPool;
-
-using StreamingAllocator = AllocatorInstance<Pool, &g_streamingPool>;
-
-static TArena<StreamingAllocator>* s_streamingArena;
-
-using StreamingTempAllocator = AllocatorInstance<TArena<StreamingAllocator>, &s_streamingArena>;
 
 #pragma region Helpers
 
@@ -351,7 +341,8 @@ private:
                 DoWork(streamingManager);
 
                 // Reset the streaming arena after each work cycle
-                s_streamingArena->Reset();
+                // NEED to make sure only one manager thread exists and is working on this arena
+                g_streamingArena->Reset();
 
                 num = m_notifier.Release(num);
 
@@ -398,7 +389,7 @@ private:
     UniquePtr<StreamingThreadPool> m_threadPool;
 
     Array<Handle<StreamingVolumeBase>, StreamingAllocator> m_volumes;
-    LinkedList<LayerData> m_layers;
+    LinkedList<LayerData, StreamingAllocator> m_layers;
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cellUpdatesGameThread;
     LinkedList<Task<void>> m_gameThreadFutures;
@@ -422,7 +413,7 @@ void StreamingManagerThread::StartWorkerThreadPool()
 
 void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 {
-    Queue<Scheduler::ScheduledTask> tasks;
+    Array<Scheduler::ScheduledTask, StreamingTempAllocator> tasks;
 
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
     {
@@ -430,7 +421,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         while (tasks.Any())
         {
-            tasks.Pop().Execute();
+            tasks.PopBack().Execute();
         }
     }
 
@@ -732,32 +723,12 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layerData,
 #pragma region StreamingManager
 
 StreamingManager::StreamingManager()
-    : StreamingManager(WeakHandle<WorldGrid>())
 {
-}
-
-StreamingManager::StreamingManager(const WeakHandle<WorldGrid>& worldGrid)
-    : m_worldGrid(worldGrid)
-{
-    // @TODO: Assert only one StreamingManager exists!
-
-    if (!g_streamingPool)
-    {
-        g_streamingPool = new Pool(StreamingPoolBlockSize, PoolFlags::PF_THREAD_SAFE);
-    }
-
-    if (!s_streamingArena)
-    {
-        s_streamingArena = new TArena<AllocatorInstance<Pool, &g_streamingPool>>(StreamingArenaSize);
-    }
 }
 
 StreamingManager::~StreamingManager()
 {
     Stop();
-
-    delete s_streamingArena;
-    s_streamingArena = nullptr;
 }
 
 void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& volume)

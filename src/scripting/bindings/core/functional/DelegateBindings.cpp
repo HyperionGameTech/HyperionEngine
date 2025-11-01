@@ -9,16 +9,20 @@
 
 using namespace hyperion;
 
+#ifdef HYP_DOTNET
+using namespace hyperion::dotnet;
+#endif
+
 extern "C"
 {
 #ifdef HYP_DOTNET
-    HYP_EXPORT DelegateHandler* ScriptableDelegate_Bind(IScriptableDelegate* delegate, dotnet::ManagedClass* pClass, ObjectReference* objectReference)
+    HYP_EXPORT DelegateHandler* ScriptableDelegate_Bind(IScriptableDelegate* delegate, ManagedClass* pClass, ObjectReference* objectReference)
     {
         Assert(delegate != nullptr);
         Assert(objectReference != nullptr);
         Assert(pClass != nullptr);
 
-        return new DelegateHandler(delegate->BindManaged("DynamicInvoke", MakeUnique<dotnet::ManagedObject>(pClass->RefCountedPtrFromThis(), *objectReference, ObjectFlags::CREATED_FROM_MANAGED)));
+        return new DelegateHandler(delegate->BindManaged("DynamicInvoke", MakeUnique<ManagedObject>(pClass->RefCountedPtrFromThis(), *objectReference, ObjectFlags::CREATED_FROM_MANAGED)));
     }
 #endif
 

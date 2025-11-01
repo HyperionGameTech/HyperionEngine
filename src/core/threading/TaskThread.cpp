@@ -13,8 +13,8 @@ HYP_DECLARE_LOG_CHANNEL(Tasks);
 
 namespace threading {
 
-static const double g_taskThreadLagSpikeThreshold = 50.0;
-static const double g_taskThreadSingleTaskLagSpikeThreshold = 10.0;
+static const double TaskThreadLagSpikeThreshold = 50.0;
+static const double TaskThreadSingleTaskLagSpikeThreshold = 10.0;
 
 // #define HYP_ENABLE_LAG_SPIKE_DETECTION
 
@@ -90,7 +90,7 @@ void TaskThread::operator()()
 
                 ++numExecutedTasks;
 
-                if (taskPerformanceClock.Elapsed() / 1000.0 > g_taskThreadSingleTaskLagSpikeThreshold)
+                if (taskPerformanceClock.Elapsed() / 1000.0 > TaskThreadSingleTaskLagSpikeThreshold)
                 {
                     HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
                         Id().GetName(),
@@ -103,7 +103,7 @@ void TaskThread::operator()()
 #ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
             performanceClock.Stop();
 
-            if (performanceClock.Elapsed() / 1000.0 > g_taskThreadLagSpikeThreshold)
+            if (performanceClock.Elapsed() / 1000.0 > TaskThreadLagSpikeThreshold)
             {
                 HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected executing {} tasks: {}ms", Id().GetName(), numExecutedTasks, performanceClock.Elapsed() / 1000.0);
             }

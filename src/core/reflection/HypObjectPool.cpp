@@ -12,19 +12,15 @@
 
 namespace hyperion {
 
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-HYP_API extern Pool* g_objectPool;
-#endif
-
 HYP_API void ReleaseHypObject(HypObjectHeader* header)
 {
-    HYP_CORE_ASSERT(header != nullptr);
+    AssertDebug(header != nullptr);
 
     const HypClass* hypClass = header->hypClass;
-    HYP_CORE_ASSERT(hypClass != nullptr);
+    AssertDebug(hypClass != nullptr);
 
     HypObjectContainerBase* container = hypClass->GetObjectContainer();
-    HYP_CORE_ASSERT(container != nullptr, "HypClass has no HypObjectContainer");
+    AssertDebug(container != nullptr, "HypClass has no HypObjectContainer");
 
     hypClass->GetObjectContainer()->Release(header);
 }
@@ -50,9 +46,9 @@ HypObjectPool::ContainerMap& HypObjectPool::GetObjectContainerMap()
 
 HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const HypClass* hypClass, HypObjectContainerBase* (*createFn)(const HypClass* hypClass))
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
-    HYP_CORE_ASSERT(hypClass->GetTypeId() != TypeId::Void());
-    HYP_CORE_ASSERT(hypClass->GetSize() != 0 && hypClass->GetAlignment() != 0);
+    AssertDebug(hypClass != nullptr);
+    AssertDebug(hypClass->GetTypeId() != TypeId::Void());
+    AssertDebug(hypClass->GetSize() != 0 && hypClass->GetAlignment() != 0);
 
     Mutex::Guard guard(m_mutex);
 
@@ -67,14 +63,14 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
         {
             it->second = createFn(hypClass);
 
-            HYP_CORE_ASSERT(it->second != nullptr);
+            AssertDebug(it->second != nullptr);
         }
 
         return *it->second;
     }
 
     HypObjectContainerBase* container = createFn(hypClass);
-    HYP_CORE_ASSERT(container != nullptr);
+    AssertDebug(container != nullptr);
 
     container->m_typeId = typeId;
     container->m_hypClass = hypClass;
@@ -93,10 +89,10 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::Get(TypeId typeId)
 
     if (it == m_map.End())
     {
-        HYP_FAIL("No object container for HypClass: %s", LookupTypeName(typeId));
+        HYP_FAIL("No object container for HypClass: {}", LookupTypeName(typeId));
     }
 
-    HYP_CORE_ASSERT(it->second != nullptr);
+    AssertDebug(it->second != nullptr);
 
     return *it->second;
 }
@@ -112,8 +108,6 @@ HypObjectContainerBase* HypObjectPool::ContainerMap::TryGet(TypeId typeId)
 
     if (it == m_map.End())
     {
-        HYP_BREAKPOINT;
-
         return nullptr;
     }
 
@@ -140,11 +134,11 @@ static Pool* GetPool()
 
 static Pool* GetPoolForClass(const HypClass* hypClass)
 {
-    HYP_CORE_ASSERT(hypClass != nullptr);
+    AssertDebug(hypClass != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     Pool* const* pool = g_enginePools[hypClass->GetEnginePoolName()];
-    HYP_CORE_ASSERT(pool != nullptr && *pool != nullptr, "Engine pool not found for %u", uint32(hypClass->GetEnginePoolName()));
+    AssertDebug(pool != nullptr && *pool != nullptr, "Engine pool not found for %u", uint32(hypClass->GetEnginePoolName()));
 
     return *pool;
 #endif

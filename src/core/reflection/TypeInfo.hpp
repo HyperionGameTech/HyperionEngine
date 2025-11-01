@@ -596,7 +596,7 @@ struct TypeInfo
 
             TypeInfo result;
             result.id = typeId;
-            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<NormalizedT, true>::value>());
+            result.name = CreateNameFromStaticString(HashedName<TypeNameHelper<NormalizedT, false>::value>());
             result.size = uint16(sizeof(NormalizedT));
             result.alignment = uint16(alignof(NormalizedT));
             result.flags = TypeInfoFlags::NONE;
@@ -2109,8 +2109,8 @@ using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVectorHandler;
 
 using utilities::TypeInfo_ForHypClass;
-using utilities::TypeOf;
 using utilities::TypeInfo_Void;
+using utilities::TypeOf;
 
 using utilities::TypeInfo;
 using utilities::TypeInfo_Initialize;

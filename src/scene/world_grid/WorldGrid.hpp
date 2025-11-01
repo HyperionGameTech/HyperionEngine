@@ -50,12 +50,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<StreamingManager>& GetStreamingManager() const
-    {
-        return m_streamingManager;
-    }
-
-    HYP_METHOD()
     void AddLayer(const Handle<WorldGridLayer>& layer);
 
     HYP_METHOD()
@@ -78,8 +72,6 @@ private:
     void GetDesiredPatches(HashSet<Vec2i>& outPatchCoords) const;
 
     World* m_world;
-
-    Handle<StreamingManager> m_streamingManager;
 
     // Array<WorldGridPatchDesc> m_patches;
 

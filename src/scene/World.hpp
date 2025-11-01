@@ -13,6 +13,8 @@
 
 #include <physics/PhysicsWorld.hpp>
 
+#include <engine/EngineMemory.hpp>
+
 namespace hyperion {
 
 class EditorDelegates;
@@ -143,8 +145,7 @@ public:
     HYP_METHOD()
     const Handle<Scene>& GetSceneByName(Name name) const;
 
-    HYP_METHOD()
-    const Array<Handle<Scene>>& GetScenes() const
+    Span<const Handle<Scene>> GetScenes() const
     {
         return m_scenes;
     }
@@ -186,8 +187,8 @@ private:
 
     PhysicsWorld m_physicsWorld;
 
-    Array<Handle<Scene>> m_scenes;
-    Array<Handle<View>> m_views;
+    Array<Handle<Scene>, SceneAllocator> m_scenes;
+    Array<Handle<View>, SceneAllocator> m_views;
 
     // Views, buffered so the render thread can safely read from it
     Array<Array<View*>, FixedAllocator<NumMultiBuffers>> m_viewsPerFrame;
@@ -204,7 +205,7 @@ private:
     TaskBatch* m_viewCollectionBatch;
 
     // additional views to process for the current frame
-    Array<View*> m_processViews;
+    Array<View*, SceneTempAllocator> m_processViews;
 };
 
 } // namespace hyperion

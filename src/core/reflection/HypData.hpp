@@ -357,7 +357,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T, false>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeName<T>().Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, false>::Type;
@@ -368,7 +368,7 @@ struct HypData
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
                 "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
-                TypeNameHelper<T, false>::value.Data(),
+                TypeName<T>().Data(),
                 *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
@@ -388,7 +388,7 @@ struct HypData
         else
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeNameHelper<T, false>::value.Data(), *TypeInfo_GetName(*GetTypeInfo()));
+            HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeName<T>().Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
             using ReturnType = typename HypDataGetReturnTypeHelper<T, true>::Type;
@@ -399,7 +399,7 @@ struct HypData
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
                 "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
-                TypeNameHelper<T, false>::value.Data(),
+                TypeName<T>().Data(),
                 *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
@@ -2012,18 +2012,6 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
         if (const GenericArrayWrapper* arr = value.TryGet<GenericArrayWrapper>())
         {
-            // debug
-            if (TypeInfo_GetId(*arr->typeInfo) != arrayTypeId)
-            {
-                DebugLog(LogType::Debug, "HypDataHelper<Array>::Is - TypeInfo mismatch! Expected %s (%u), got %s (%u)",
-                    TypeNameHelper<Array<T, AllocatorType>, true>::value.Data(),
-                    arrayTypeId.Value(),
-                    *TypeInfo_GetName(*arr->typeInfo),
-                    TypeInfo_GetId(*arr->typeInfo).Value());
-
-                HYP_BREAKPOINT;
-            }
-
             return TypeInfo_GetId(*arr->typeInfo) == arrayTypeId;
         }
 

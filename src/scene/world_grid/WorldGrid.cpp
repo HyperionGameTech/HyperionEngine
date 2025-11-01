@@ -53,8 +53,7 @@ WorldGrid::WorldGrid()
 }
 
 WorldGrid::WorldGrid(World* world)
-    : m_world(world),
-      m_streamingManager(CreateObject<StreamingManager>(WeakHandleFromThis()))
+    : m_world(world)
 {
 }
 
@@ -68,8 +67,10 @@ WorldGrid::~WorldGrid()
 
 void WorldGrid::Init()
 {
-    InitObject(m_streamingManager);
-    m_streamingManager->Start(); // @TODO make g_streamingManager instead of per-worldgrid streaming managers
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
+    HypObjectBase::Init();
 
     // Add a default layer if none are provided
     if (m_layers.Empty())
@@ -85,7 +86,7 @@ void WorldGrid::Init()
 
         layer->OnAdded(this);
 
-        m_streamingManager->AddWorldGridLayer(layer);
+        g_streamingManager->AddWorldGridLayer(layer);
     }
 
     SetReady(true);
@@ -108,7 +109,7 @@ void WorldGrid::Shutdown()
         layer->OnRemoved(this);
     }
 
-    m_streamingManager->Stop();
+    g_streamingManager->Stop();
 
     SetReady(false);
 }
@@ -120,7 +121,7 @@ void WorldGrid::Update(float delta)
 
     AssertReady();
 
-    m_streamingManager->Update(delta);
+    g_streamingManager->Update(delta);
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
@@ -146,7 +147,7 @@ void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
 
         layer->OnAdded(this);
 
-        m_streamingManager->AddWorldGridLayer(layer);
+        g_streamingManager->AddWorldGridLayer(layer);
     }
 }
 
@@ -166,7 +167,7 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
     {
         (*it)->OnRemoved(this);
 
-        m_streamingManager->RemoveWorldGridLayer(*it);
+        g_streamingManager->RemoveWorldGridLayer(*it);
 
         m_layers.Erase(it);
 

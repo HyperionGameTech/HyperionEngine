@@ -5,9 +5,7 @@ namespace hyperion {
 
 HYP_API HypData GetEnumMemberValue(const IHypMember& enumMember)
 {
-#ifdef HYP_DEBUG_MODE
-    HYP_CORE_ASSERT(enumMember.GetMemberType() == HypMemberType::TYPE_CONSTANT);
-#endif
+    AssertDebug(enumMember.GetMemberType() == HypMemberType::TYPE_CONSTANT);
 
     return static_cast<const HypConstant&>(enumMember).Get();
 }

@@ -19,9 +19,9 @@ static const bool g_marshalParentClasses = true;
 
 FBOM& FBOM::GetInstance()
 {
-    static FBOM instance;
+    static FBOM s_instance;
 
-    return instance;
+    return s_instance;
 }
 
 FBOM::FBOM()
@@ -35,7 +35,7 @@ FBOM::~FBOM()
 
 void FBOM::RegisterLoader(TypeId typeId, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal)
 {
-    HYP_CORE_ASSERT(marshal != nullptr);
+    AssertDebug(marshal != nullptr);
 
     m_marshals.Set(typeId, Pair<ANSIString, UniquePtr<FBOMMarshalerBase>> { name, std::move(marshal) });
 }
@@ -100,7 +100,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(TypeId typeId, bool allowFallback) const
     if (allowFallback && (hypClass->GetSerializationMode() & (HypClassSerializationMode::MEMBERWISE | HypClassSerializationMode::BITWISE)))
     {
         // If the type has a HypClass defined, then use the default HypClass instance marshal
-        HYP_CORE_ASSERT(m_hypClassInstanceMarshal != nullptr);
+        AssertDebug(m_hypClassInstanceMarshal != nullptr);
         return m_hypClassInstanceMarshal.Get();
     }
 
@@ -178,7 +178,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView typeName, bool allowFallback)
 
     if (allowFallback && (hypClass->GetSerializationMode() & (HypClassSerializationMode::MEMBERWISE | HypClassSerializationMode::BITWISE)))
     {
-        HYP_CORE_ASSERT(m_hypClassInstanceMarshal != nullptr);
+        AssertDebug(m_hypClassInstanceMarshal != nullptr);
         return m_hypClassInstanceMarshal.Get();
     }
 

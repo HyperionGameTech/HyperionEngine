@@ -54,13 +54,13 @@ file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/../thirdparty
     ${CMAKE_SOURCE_DIR}/../src
     ${CMAKE_SOURCE_DIR}/../src/core
-    ${CMAKE_SOURCE_DIR}/../include
 )
 
 # need tlsf for memory management
-set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/../src/thirdparty/tlsf/tlsf.c)
+set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/../thirdparty/tlsf/tlsf.c)
 
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 

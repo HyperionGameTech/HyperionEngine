@@ -432,7 +432,7 @@ public:
 
         for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
         {
-            outContainer.Push(std::move(*it));
+            outContainer.Add(std::move(*it));
             m_numEnqueued.Decrement(1, MemoryOrder::RELEASE);
         }
 

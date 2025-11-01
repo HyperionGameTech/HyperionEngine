@@ -59,7 +59,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
     TypeId typeId, uint16 typeSize, uint16 typeAlignment,
     Mutex::Guard* outPGuard)
 {
-    HYP_CORE_ASSERT(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
+    AssertDebug(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
     if (outPGuard) // otherwise assumed to be called from a context where the mutex is already held
     {
@@ -75,7 +75,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
     }
 
     TypeInfo* pTypeInfo = (TypeInfo*)GetTypeInfoAllocator().Allocate();
-    HYP_CORE_ASSERT(pTypeInfo != nullptr);
+    AssertDebug(pTypeInfo != nullptr);
 
     typeAttributeCache.Insert({ typeId, pTypeInfo });
 
@@ -84,7 +84,7 @@ HYP_API TypeInfo* TypeInfo_Alloc(
 
 HYP_API TypeInfo* TypeInfo_FetchFromCache(TypeId typeId, uint16 size, uint16 alignment)
 {
-    HYP_CORE_ASSERT(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
+    AssertDebug(typeId != TypeId::Void(), "Cannot allocate TypeInfo for void type");
 
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
@@ -103,7 +103,7 @@ HYP_API void TypeInfo_Initialize()
 {
     Threads::AssertOnThread(g_mainThread, "TypeInfo system must be initialized on the main thread");
 
-    HYP_CORE_ASSERT(!s_typeInfoSystemInitialized, "TypeInfo system is already initialized");
+    AssertDebug(!s_typeInfoSystemInitialized, "TypeInfo system is already initialized");
 
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
@@ -120,7 +120,7 @@ HYP_API void TypeInfo_Shutdown()
 
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
-    HYP_CORE_ASSERT(s_typeInfoSystemInitialized, "TypeInfo system is not initialized");
+    AssertDebug(s_typeInfoSystemInitialized, "TypeInfo system is not initialized");
     s_typeInfoSystemInitialized = false;
 
     for (auto& pair : *s_typeInfoCache)
@@ -276,7 +276,7 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
     {
         if (s_typeInfoSystemInitialized) // don't check during static initialization
         {
-            HYP_CORE_ASSERT(it->second != nullptr && it->second->GetHypClass() == hypClass);
+            AssertDebug(it->second != nullptr && it->second->GetHypClass() == hypClass);
         }
         return *it->second;
     }
@@ -288,7 +288,7 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
         hypClass->GetAlignment(),
         nullptr);
 
-    HYP_CORE_ASSERT(pTypeInfo != nullptr);
+    AssertDebug(pTypeInfo != nullptr);
 
     new (pTypeInfo) TypeInfo();
     pTypeInfo->id = hypClass->GetTypeId();
@@ -297,7 +297,7 @@ const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
     pTypeInfo->alignment = uint16(hypClass->GetAlignment());
     pTypeInfo->flags = TypeInfoFlags::NONE;
 
-    HYP_CORE_ASSERT(pTypeInfo->name.IsValid());
+    AssertDebug(pTypeInfo->name.IsValid());
 
     if (hypClass->IsClassType())
     {

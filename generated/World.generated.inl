@@ -19,7 +19,6 @@ HYP_BEGIN_CLASS(World, 164, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(RemoveScene)), &World::RemoveScene),
     HypMethod(NAME(HYP_STR(HasScene)), &World::HasScene),
     HypMethod(NAME(HYP_STR(GetSceneByName)), &World::GetSceneByName),
-    HypMethod(NAME(HYP_STR(GetScenes)), &World::GetScenes),
     HypMethod(NAME(HYP_STR(AddView)), &World::AddView),
     HypMethod(NAME(HYP_STR(RemoveView)), &World::RemoveView),
     HypField(NAME(HYP_STR(Name)), &World::m_name, offsetof(World, m_name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } })

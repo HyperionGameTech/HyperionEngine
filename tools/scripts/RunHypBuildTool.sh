@@ -49,7 +49,7 @@ else
                 fi
                 
                 if [ "$REBUILD" = true ]; then
-                    echo "Rebuild needed: $REBUILD_REASON"
+                    echo "Rebuild needed: $REBUILD_REASON (file: $FILE_MAJOR.$FILE_MINOR, expected: $HYP_BUILD_TOOL_VERSION_MAJOR.$HYP_BUILD_TOOL_VERSION_MINOR)"
                 fi
             else
                 echo "Invalid version format. Running BuildHypBuildTool.sh ..."

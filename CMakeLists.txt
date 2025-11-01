@@ -93,7 +93,11 @@ add_definitions(-DHYP_DEBUG_MODE=1)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
 
-if(NOT HYP_DEBUG_MODE)
+
+if(HYP_DEBUG_MODE)
+    # experimental - use ctti library (it's faster than our compile time string manipulation for TypeId generation)
+    add_definitions(-DHYP_USE_CTTI=1)
+
     # enable TypeId generatation at compile time
     # will increase compile times slightly but improve runtime performance
     add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
@@ -386,7 +390,7 @@ add_definitions(-DHYP_SCRIPT=1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1
-    if(EXISTS "${CMAKE_SOURCE_DIR}/include/dotnetcore/hostfxr.h")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dotnetcore/hostfxr.h")
         message(STATUS ".NET headers found, building .NET core runtime")
         
         file(GLOB DOTNET_LIBS "${CMAKE_SOURCE_DIR}/submodules/runtime/artifacts/obj/dotnet-nethost/${HYP_BUILD_TYPE}/net8.0/**/output/*.dylib"
@@ -426,6 +430,9 @@ if(NOT HYP_NO_DOTNET)
         else()
             set(HYP_GENERATE_CSHARP_LIBRARIES false)
         endif()
+    else()
+        message(STATUS ".NET headers not found, skipping .NET core runtime")
+        set(HYP_GENERATE_CSHARP_LIBRARIES false)
     endif()
 endif()
 
@@ -480,6 +487,9 @@ endfunction()
 set(SUB_LIBRARIES "")
 collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
 source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES})
+
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty SOURCES SUB_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${SOURCES})
 
 file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
@@ -737,8 +747,6 @@ if(NOT IOS)
     endif()
 endif()
 
-set(HYPERION_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include ${HYP_GENERATED_DIR})
-
 # set to empty list
 set(COMMON_INCLUDE_DIRS "")
 
@@ -765,11 +773,12 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.cpp" AND E
 endif()
 
 include_directories(
-    ${HYPERION_INCLUDE_DIR}
+    ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}
     ${OPENAL_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
 if(NOT WIN32)

@@ -23,6 +23,7 @@ class RenderGlobalState;
 class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
+class StreamingManager;
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 
@@ -32,6 +33,7 @@ extern Handle<EngineDriver> g_engineDriver;
 extern Handle<AssetManager> g_assetManager;
 extern Handle<EditorState> g_editorState;
 extern Handle<AppContextBase> g_appContext;
+extern Handle<StreamingManager> g_streamingManager;
 extern ShaderManager* g_shaderManager;
 extern MaterialCache* g_materialSystem;
 extern SafeDeleter* g_safeDeleter;

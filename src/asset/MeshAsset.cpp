@@ -430,6 +430,7 @@ void MeshData::CalculateTangents()
 }
 
 #undef ADD_TANGENTS
+
 bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
     const BoundingBox meshAabb = CalculateAABB();

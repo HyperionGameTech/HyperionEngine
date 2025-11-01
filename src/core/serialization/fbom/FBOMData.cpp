@@ -132,11 +132,11 @@ FBOMData FBOMData::FromObject(const FBOMObject& object, bool keepNativeObject)
 
     if (FBOMResult err = object.Visit(&serializer, &byteWriter))
     {
-        HYP_FAIL("Failed to serialize object: %s", err.message.Data());
+        HYP_FAIL("Failed to serialize object: {}", err.message);
     }
 
     FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byteWriter.GetBuffer()));
-    HYP_CORE_ASSERT(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
+    AssertDebug(value.IsObject(), "Expected value to be object: Got type: {}", value.GetType().ToString());
 
     return value;
 }
@@ -152,11 +152,11 @@ FBOMData FBOMData::FromObject(FBOMObject&& object, bool keepNativeObject)
 
     if (FBOMResult err = object.Visit(&serializer, &byteWriter))
     {
-        HYP_FAIL("Failed to serialize object: %s", err.message.Data());
+        HYP_FAIL("Failed to serialize object: {}", err.message);
     }
 
     FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byteWriter.GetBuffer()));
-    HYP_CORE_ASSERT(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
+    AssertDebug(value.IsObject(), "Expected value to be object: Got type: {}", value.GetType().ToString());
 
     return value;
 }
@@ -186,11 +186,11 @@ FBOMData FBOMData::FromArray(const FBOMArray& array)
 
     if (FBOMResult err = array.Visit(&serializer, &byteWriter))
     {
-        HYP_FAIL("Failed to serialize array: %s", err.message.Data());
+        HYP_FAIL("Failed to serialize array: {}", err.message);
     }
 
     FBOMData value = FBOMData(FBOMArrayType(), std::move(byteWriter.GetBuffer()));
-    HYP_CORE_ASSERT(value.IsArray(), "Expected value to be array: Got type: %s", value.GetType().ToString().Data());
+    AssertDebug(value.IsArray(), "Expected value to be array: Got type: {}", value.GetType().ToString());
 
     return value;
 }
@@ -228,7 +228,7 @@ void FBOMData::SetBytes(const ByteBuffer& byteBuffer)
 {
     if (!m_type.IsUnbounded())
     {
-        HYP_CORE_ASSERT(byteBuffer.Size() <= m_type.size, "Attempt to insert data past size max size of object (%llu > %llu)", byteBuffer.Size(), m_type.size);
+        AssertDebug(byteBuffer.Size() <= m_type.size, "Attempt to insert data past size max size of object ({} > {})", byteBuffer.Size(), m_type.size);
     }
 
     m_bytes = byteBuffer;
@@ -238,7 +238,7 @@ void FBOMData::SetBytes(SizeType count, const void* data)
 {
     if (!m_type.IsUnbounded())
     {
-        HYP_CORE_ASSERT(count <= m_type.size, "Attempt to insert data past size max size of object (%llu > %llu)", count, m_type.size);
+        AssertDebug(count <= m_type.size, "Attempt to insert data past size max size of object ({} > {})", count, m_type.size);
     }
 
     m_bytes.SetSize(count);
