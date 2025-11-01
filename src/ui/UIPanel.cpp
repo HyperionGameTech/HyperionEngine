@@ -10,8 +10,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <UIPanel.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

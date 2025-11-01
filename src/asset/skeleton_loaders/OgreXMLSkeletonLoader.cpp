@@ -19,8 +19,6 @@
 
 #include <algorithm>
 
-#include <OgreXMLSkeletonLoader.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

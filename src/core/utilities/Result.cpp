@@ -1,9 +1,5 @@
 #include <core/utilities/Result.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Result.generated.inl>
-#endif
-
 namespace hyperion {
 namespace utilities {
 

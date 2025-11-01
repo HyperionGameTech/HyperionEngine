@@ -7,8 +7,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <EditorAction.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);

@@ -28,8 +28,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include <VulkanGpuImage.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

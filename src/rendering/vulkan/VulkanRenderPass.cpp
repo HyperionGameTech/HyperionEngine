@@ -10,8 +10,6 @@
 
 #include <core/containers/HashSet.hpp>
 
-#include <VulkanRenderPass.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

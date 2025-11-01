@@ -27,8 +27,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <TerrainWorldGridPlugin.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(WorldGrid);

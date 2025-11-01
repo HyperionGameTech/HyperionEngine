@@ -64,8 +64,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <Lightmapper.generated.inl>
-
 namespace hyperion {
 
 #pragma region Render commands

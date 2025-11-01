@@ -900,9 +900,34 @@ private:
             delete cxxModuleWriter;
         }
 
+        // In CPP mode, ensure any previously injected inline includes are removed
+        if (m_cxxMode == CXXGenerationMode::CPP)
+        {
+            for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
+            {
+                if (mod->GetHypClasses().Empty())
+                {
+                    continue;
+                }
+
+                const FilePath inlPath = cxxModuleGenerator->GetInlineOutputFilePath(m_analyzer, *mod);
+                if (Result res = RemoveInlineIncludeForModule(*mod, inlPath); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+                }
+            }
+        }
+
         TaskSystem::GetInstance().EnqueueBatch(batch);
 
         return task;
+    }
+
+    // Compute the exact include line used for inline includes so insertion/removal share one source of truth
+    String ComputeInlineIncludeLine(const FilePath& inlPath) const
+    {
+        const FilePath relInlPath = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
+        return HYP_FORMAT("#include <{}>", relInlPath.ReplaceAll("\\", "/"));
     }
 
     Result InjectInlineIncludeForModule(const Module& mod, const FilePath& inlPath)
@@ -965,10 +990,8 @@ private:
             return {};
         }
 
-        // Compute include path relative to generated include root
-        const FilePath relInlPath = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
-
-        const String includeLine = HYP_FORMAT("#include <{}>", relInlPath.ReplaceAll("\\", "/"));
+        // Compute include path relative to generated include root (single source of truth)
+        const String includeLine = ComputeInlineIncludeLine(inlPath);
 
         // Read source file lines
         FileBufferedReaderSource source { cxxPath };
@@ -1102,6 +1125,250 @@ private:
         const String joined = String::Join(lines, '\n') + '\n';
         writer.WriteString(joined);
         writer.Close();
+
+        return {};
+    }
+
+    // In CPP mode, remove the previously injected inline include line (exact match) and clean up nearby blank lines
+    Result RemoveInlineIncludeForModule(const Module& mod, const FilePath& inlPath)
+    {
+        const FilePath& headerPath = mod.GetPath();
+        if (!headerPath.Any())
+        {
+            return {}; // nothing to do
+        }
+
+        const String stem = StringUtil::StripExtension(headerPath.Basename());
+        const FilePath baseDir = headerPath.BasePath();
+
+        const FilePath cxxPath = baseDir / (stem + ".cpp");
+        const FilePath genCppPath = inlPath.BasePath() / (stem + ".generated.cpp");
+
+        const String includeLine = ComputeInlineIncludeLine(inlPath);
+
+        auto removeFromFile = [&](const FilePath& path) -> Result
+        {
+            if (!path.Exists() || path.IsDirectory())
+            {
+                return {};
+            }
+
+            FileBufferedReaderSource source { path };
+            if (!source.IsOK())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for reading during inline include removal", path);
+            }
+
+            BufferedByteReader reader { &source };
+            Array<String> lines = reader.ReadAllLines();
+
+            // Remove ALL exact matches of the include line to be safe, cleaning surrounding blank lines
+            for (;;)
+            {
+                // Find next include match (exact line)
+                SizeType matchIndex = SizeType(-1);
+                for (SizeType i = 0; i < lines.Size(); ++i)
+                {
+                    if (lines[i] == includeLine)
+                    {
+                        matchIndex = i;
+                        break;
+                    }
+                }
+
+                if (matchIndex == SizeType(-1))
+                {
+                    break; // nothing more to remove
+                }
+
+                // Before removing just the include line, check whether it's the only content in a simple
+                // preprocessor block like:
+                //   #ifndef HYP_BUILDTOOL
+                //   #include <Foo.generated.inl>
+                //   #endif
+                // If so, remove the entire block.
+
+                // Build stack of #if.../#endif pairs for this snapshot of lines
+                Array<Pair<SizeType, SizeType>> ifPairs; // (ifIndex, endifIndex)
+                Array<SizeType> ifStack;
+
+                auto isPPIf = [](const String& s)
+                {
+                    return s.StartsWith("#if") || s.StartsWith("#ifdef") || s.StartsWith("#ifndef");
+                };
+                auto isPPEndif = [](const String& s)
+                {
+                    return s.StartsWith("#endif");
+                };
+                auto isPPElseElif = [](const String& s)
+                {
+                    return s.StartsWith("#else") || s.StartsWith("#elif");
+                };
+
+                for (SizeType i = 0; i < lines.Size(); ++i)
+                {
+                    const String t = lines[i].Trimmed();
+                    if (isPPIf(t))
+                    {
+                        ifStack.PushBack(i);
+                    }
+                    else if (isPPEndif(t))
+                    {
+                        if (!ifStack.Empty())
+                        {
+                            const SizeType ifIdx = ifStack.PopBack();
+                            ifPairs.PushBack({ ifIdx, i });
+                        }
+                    }
+                }
+
+                // Select innermost enclosing pair (if any)
+                SizeType selIfStart = SizeType(-1);
+                SizeType selIfEnd = SizeType(-1);
+                for (const auto& pr : ifPairs)
+                {
+                    if (pr.first < matchIndex && matchIndex < pr.second)
+                    {
+                        if (selIfStart == SizeType(-1) || pr.first > selIfStart)
+                        {
+                            selIfStart = pr.first;
+                            selIfEnd = pr.second;
+                        }
+                    }
+                }
+
+                auto collapseBoundaryToSingleBlank = [&](SizeType boundaryIndex)
+                {
+                    // After a removal, maintain at most one blank line between the previous and next non-empty lines,
+                    // and ensure at least one blank if both sides are non-empty.
+                    if (lines.Empty())
+                        return;
+
+                    const SizeType prevIdx = boundaryIndex > 0 ? boundaryIndex - 1 : SizeType(-1);
+                    const SizeType nextIdx = boundaryIndex < lines.Size() ? boundaryIndex : SizeType(-1);
+
+                    const bool prevExists = prevIdx != SizeType(-1);
+                    const bool nextExists = nextIdx != SizeType(-1);
+
+                    const bool prevNonEmpty = prevExists && !lines[prevIdx].Trimmed().Empty();
+                    const bool nextNonEmpty = nextExists && !lines[nextIdx].Trimmed().Empty();
+
+                    // Compress multiple blank lines above to at most one
+                    if (prevExists && lines[prevIdx].Trimmed().Empty())
+                    {
+                        SizeType scan = prevIdx;
+                        while (scan > 0 && lines[scan - 1].Trimmed().Empty())
+                        {
+                            lines.Erase(lines.Begin() + (scan - 1));
+                            --scan;
+                            --boundaryIndex;
+                        }
+                    }
+
+                    // Recompute indices if array changed size
+                    const SizeType pIdx = boundaryIndex > 0 ? boundaryIndex - 1 : SizeType(-1);
+                    SizeType nIdx = boundaryIndex < lines.Size() ? boundaryIndex : SizeType(-1);
+
+                    bool blankAbove = pIdx != SizeType(-1) && lines[pIdx].Trimmed().Empty();
+                    bool blankBelow = nIdx != SizeType(-1) && lines[nIdx].Trimmed().Empty();
+
+                    // If both sides have a blank, drop one (prefer dropping below)
+                    if (blankAbove && blankBelow)
+                    {
+                        lines.Erase(lines.Begin() + nIdx);
+                        blankBelow = false;
+                    }
+
+                    // If there are multiple blank lines below, collapse to one
+                    if (blankBelow)
+                    {
+                        while ((nIdx + 1) < lines.Size() && lines[nIdx + 1].Trimmed().Empty())
+                        {
+                            lines.Erase(lines.Begin() + (nIdx + 1));
+                        }
+                    }
+
+                    // Ensure at least one blank line if both neighbors are non-empty and no blank exists
+                    const bool pNonEmpty = (pIdx != SizeType(-1)) && !lines[pIdx].Trimmed().Empty();
+                    const bool nNonEmpty = (nIdx != SizeType(-1)) && !lines[nIdx].Trimmed().Empty();
+                    if (pNonEmpty && nNonEmpty && !blankAbove && !blankBelow)
+                    {
+                        lines.Insert(lines.Begin() + nIdx, String::empty);
+                    }
+                };
+
+                bool removedBlock = false;
+                if (selIfStart != SizeType(-1))
+                {
+                    // Verify there are no #else/#elif in the block and the include is the only non-empty content
+                    bool anyElseOrElif = false;
+                    bool onlyInclude = true;
+                    for (SizeType i = selIfStart + 1; i < selIfEnd; ++i)
+                    {
+                        const String t = lines[i].Trimmed();
+                        if (isPPElseElif(t))
+                        {
+                            anyElseOrElif = true;
+                            break;
+                        }
+                        if (i == matchIndex)
+                        {
+                            continue;
+                        }
+                        if (t.Any())
+                        {
+                            onlyInclude = false;
+                            break;
+                        }
+                    }
+
+                    if (!anyElseOrElif && onlyInclude)
+                    {
+                        // Remove entire block [selIfStart, selIfEnd]
+                        const SizeType removeCount = selIfEnd - selIfStart + 1;
+                        for (SizeType c = 0; c < removeCount && selIfStart < lines.Size(); ++c)
+                        {
+                            lines.Erase(lines.Begin() + selIfStart);
+                        }
+
+                        // Normalize spacing at boundary where the block was
+                        collapseBoundaryToSingleBlank(selIfStart);
+                        removedBlock = true;
+                    }
+                }
+
+                if (!removedBlock)
+                {
+                    // Remove just the include line
+                    lines.Erase(lines.Begin() + matchIndex);
+                    // Normalize spacing at the removal point
+                    collapseBoundaryToSingleBlank(matchIndex);
+                }
+            }
+
+            FileByteWriter writer { path };
+            if (!writer.IsOpen())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to open source file '{}' for writing during inline include removal", path);
+            }
+
+            const String joined = String::Join(lines, '\n') + '\n';
+            writer.WriteString(joined);
+            writer.Close();
+
+            return {};
+        };
+
+        // Prefer removing from the real source .cpp; if it doesn't exist, try the generated .cpp (created in INL mode)
+        if (Result res = removeFromFile(cxxPath); res.HasError())
+        {
+            return res;
+        }
+
+        if (Result res = removeFromFile(genCppPath); res.HasError())
+        {
+            return res;
+        }
 
         return {};
     }
@@ -1312,7 +1579,7 @@ int main(int argc, char** argv)
     definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
-    definitions.Add("CXXMode", "", "C++ code generation mode (Cpp or Inl)", CommandLineArgumentFlags::NONE, Array<String> { "Cpp", "Inl" }, String("Inl"));
+    definitions.Add("CXXMode", "", "C++ code generation mode (Cpp or Inl)", CommandLineArgumentFlags::NONE, Array<String> { "Cpp", "Inl" }, String("Cpp"));
 
     CommandLineParser commandLineParser { &definitions };
 

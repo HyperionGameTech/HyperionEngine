@@ -32,8 +32,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <StreamingManager.generated.inl>
-
 namespace hyperion {
 
 /// @TODO: Move declaration to EngineGlobals.hpp and init in HyperionEngine.cpp!

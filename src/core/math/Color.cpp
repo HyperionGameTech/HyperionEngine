@@ -5,10 +5,6 @@
 
 #include <core/Constants.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Color.generated.inl>
-#endif
-
 namespace hyperion {
 
 Color::Color()

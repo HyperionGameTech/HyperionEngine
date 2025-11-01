@@ -43,7 +43,6 @@
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
 
-#include <ParticleSystem.generated.inl>
 #endif
 
 namespace hyperion {

@@ -4,8 +4,6 @@
 
 #include <rendering/Texture.hpp>
 
-#include <RenderAttachment.generated.inl>
-
 namespace hyperion {
 
 } // namespace hyperion

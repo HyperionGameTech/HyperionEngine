@@ -14,8 +14,6 @@
 
 #include <core/json/JSON.hpp>
 
-#include <FontAtlasLoader.generated.inl>
-
 namespace hyperion {
 
 using namespace json;

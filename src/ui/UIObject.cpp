@@ -33,8 +33,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <UIObject.generated.inl>
-
 namespace hyperion {
 
 enum class UIObjectFlags : uint32

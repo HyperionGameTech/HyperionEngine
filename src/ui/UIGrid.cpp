@@ -12,8 +12,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <UIGrid.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

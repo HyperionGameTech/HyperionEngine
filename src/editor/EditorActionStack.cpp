@@ -9,8 +9,6 @@
 
 #include <dotnet/ManagedObject.hpp>
 
-#include <EditorActionStack.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);

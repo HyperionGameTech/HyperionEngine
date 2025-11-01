@@ -3,10 +3,6 @@
 #include <core/math/BoundingSphere.hpp>
 #include <core/math/MathUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <BoundingSphere.generated.inl>
-#endif
-
 namespace hyperion {
 
 const BoundingSphere BoundingSphere::empty = BoundingSphere();

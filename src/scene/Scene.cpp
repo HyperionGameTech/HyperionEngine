@@ -34,8 +34,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <Scene.generated.inl>
-
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
 namespace hyperion {

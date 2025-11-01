@@ -37,8 +37,6 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
 
-#include <UISubsystem.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

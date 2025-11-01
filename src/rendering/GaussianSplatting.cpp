@@ -41,7 +41,6 @@
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
 
-#include <GaussianSplatting.generated.inl>
 #endif
 
 // #define HYP_GAUSSIAN_SPLATTING_CPU_SORT

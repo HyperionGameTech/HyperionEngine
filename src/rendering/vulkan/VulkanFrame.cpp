@@ -13,8 +13,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <VulkanFrame.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

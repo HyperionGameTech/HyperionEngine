@@ -32,8 +32,6 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <Entity.generated.inl>
-
 namespace hyperion {
 
 Entity::Entity()

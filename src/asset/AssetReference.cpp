@@ -8,8 +8,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <AssetReference.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

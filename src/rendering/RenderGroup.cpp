@@ -46,7 +46,6 @@
 #ifdef HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
 
-#include <RenderGroup.generated.inl>
 #endif
 
 namespace hyperion {

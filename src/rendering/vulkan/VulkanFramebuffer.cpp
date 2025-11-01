@@ -14,8 +14,6 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <VulkanFramebuffer.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

@@ -17,8 +17,6 @@
 
 #include <cstring>
 
-#include <VulkanGpuBuffer.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

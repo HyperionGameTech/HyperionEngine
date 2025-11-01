@@ -11,10 +11,6 @@
 
 #endif
 
-#ifndef HYP_BUILDTOOL
-#include <DynamicLibrary.generated.inl>
-#endif
-
 namespace hyperion {
 
 struct DynamicLibraryImpl

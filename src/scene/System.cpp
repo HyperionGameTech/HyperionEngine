@@ -7,8 +7,6 @@
 
 #include <core/reflection/HypClass.hpp>
 
-#include <System.generated.inl>
-
 namespace hyperion {
 
 Name SystemBase::GetName() const

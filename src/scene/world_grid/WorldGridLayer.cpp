@@ -5,8 +5,6 @@
 
 #include <streaming/StreamingCell.hpp>
 
-#include <WorldGridLayer.generated.inl>
-
 namespace hyperion {
 
 #pragma region WorldGridLayer

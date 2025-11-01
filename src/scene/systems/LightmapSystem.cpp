@@ -9,8 +9,6 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <LightmapSystem.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Lightmap);

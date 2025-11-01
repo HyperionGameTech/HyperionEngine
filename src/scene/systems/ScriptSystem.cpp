@@ -32,7 +32,6 @@
 #ifdef HYP_SCRIPT
 #include <script/HypScript.hpp>
 
-#include <ScriptSystem.generated.inl>
 #endif
 
 namespace hyperion {

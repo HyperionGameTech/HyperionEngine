@@ -24,8 +24,6 @@
 
 #include <cstring>
 
-#include <VulkanGraphicsPipeline.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

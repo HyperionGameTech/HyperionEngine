@@ -7,8 +7,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <RigidBody.generated.inl>
-
 namespace hyperion {
 
 RigidBody::RigidBody()

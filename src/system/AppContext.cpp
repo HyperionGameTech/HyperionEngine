@@ -24,7 +24,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
-#include <AppContext.generated.inl>
 #endif
 
 namespace hyperion {

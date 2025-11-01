@@ -14,8 +14,6 @@
 
 #include <core/filesystem/FsUtil.hpp>
 
-#include <FBOMModelLoader.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

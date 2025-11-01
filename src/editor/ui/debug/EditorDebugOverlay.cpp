@@ -11,8 +11,6 @@
 #include <ui/UIImage.hpp>
 #include <ui/UIText.hpp>
 
-#include <EditorDebugOverlay.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);

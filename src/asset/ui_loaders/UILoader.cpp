@@ -53,8 +53,6 @@
 
 #include <algorithm>
 
-#include <UILoader.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

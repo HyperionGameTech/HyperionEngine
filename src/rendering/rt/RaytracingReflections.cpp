@@ -22,8 +22,6 @@
 
 #include <engine/EngineGlobals.hpp>
 
-#include <RaytracingReflections.generated.inl>
-
 namespace hyperion {
 
 #pragma region Render commands

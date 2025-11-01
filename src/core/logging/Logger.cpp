@@ -22,10 +22,6 @@
 
 #include <numeric>
 
-#ifndef HYP_BUILDTOOL
-#include <Logger.generated.inl>
-#endif
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);

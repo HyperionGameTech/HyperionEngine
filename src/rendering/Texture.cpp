@@ -29,8 +29,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <Texture.generated.inl>
-
 namespace hyperion {
 
 class Texture;

@@ -3,10 +3,6 @@
 #include <core/math/Triangle.hpp>
 #include <core/math/MathUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Triangle.generated.inl>
-#endif
-
 namespace hyperion {
 
 Triangle::Triangle()

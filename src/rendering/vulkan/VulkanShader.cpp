@@ -15,8 +15,6 @@
 
 #include <algorithm>
 
-#include <VulkanShader.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

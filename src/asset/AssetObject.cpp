@@ -33,8 +33,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <AssetObject.generated.inl>
-
 namespace hyperion {
 
 //! for debugging

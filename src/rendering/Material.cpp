@@ -19,8 +19,6 @@
 #include <engine/EngineDriver.hpp>
 #include <core/Types.hpp>
 
-#include <Material.generated.inl>
-
 namespace hyperion {
 
 static const ShaderDefinition s_defaultShaderDefinition {

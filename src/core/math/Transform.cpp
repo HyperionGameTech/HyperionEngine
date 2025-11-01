@@ -2,10 +2,6 @@
 
 #include <core/math/Transform.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Transform.generated.inl>
-#endif
-
 namespace hyperion {
 
 const Transform Transform::identity {};
