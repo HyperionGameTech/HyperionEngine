@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region GBuffer Reflection Data
 
-HYP_BEGIN_CLASS(GBuffer, 103, 0, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(GBuffer, 76, 0, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion GBuffer Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region GBufferTargetName Reflection Data
 
-HYP_BEGIN_ENUM(GBufferTargetName, 326, 0, {})
+HYP_BEGIN_ENUM(GBufferTargetName, 265, 0, {})
     HypConstant(NAME(HYP_STR(GTN_ALBEDO)), GBufferTargetName::GTN_ALBEDO),
     HypConstant(NAME(HYP_STR(GTN_NORMALS)), GBufferTargetName::GTN_NORMALS),
     HypConstant(NAME(HYP_STR(GTN_MATERIAL)), GBufferTargetName::GTN_MATERIAL),

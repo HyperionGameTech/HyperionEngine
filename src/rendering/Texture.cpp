@@ -263,11 +263,6 @@ Texture::~Texture()
 
 void Texture::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
-        {
-            SafeDelete(std::move(m_gpuImage));
-        }));
-
     if (const Handle<TextureAsset>& asset = GetAsset())
     {
         if (!asset->IsRegistered())

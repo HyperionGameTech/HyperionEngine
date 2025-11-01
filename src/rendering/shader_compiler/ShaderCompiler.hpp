@@ -23,7 +23,8 @@ HYP_ENUM()
 enum ShaderPropertyFlags : uint32
 {
     SPF_NONE = 0x0,
-    SPF_VERTEX_ATTRIBUTE = 0x1
+    SPF_VERTEX_ATTRIBUTE = 0x1,
+    SPF_PERMUTATION = 0x2
 };
 
 HYP_ENUM()
@@ -47,13 +48,13 @@ struct VertexAttributeDefinition
 
     HYP_FIELD()
     String name;
-    
+
     HYP_FIELD()
     String typeClass;
-    
+
     HYP_FIELD()
     int location = -1;
-    
+
     HYP_FIELD()
     String condition;
 };
@@ -64,16 +65,13 @@ struct ShaderProperty
     HYP_STRUCT_BODY(ShaderProperty);
 
     using Value = Variant<String, int, float>;
-    
+
     HYP_FIELD()
     Name name;
-    
-    HYP_FIELD()
-    bool isPermutation;
-    
+
     HYP_FIELD()
     ShaderPropertyFlags flags;
-    
+
     HYP_FIELD()
     Value currentValue;
 
@@ -81,23 +79,18 @@ struct ShaderProperty
     Array<Value> enumValues;
 
     ShaderProperty()
-        : isPermutation(false),
-          flags(SPF_NONE)
+        : flags(SPF_NONE)
     {
     }
 
-    explicit ShaderProperty(Name name) = delete;
-
-    ShaderProperty(Name name, bool isPermutation, ShaderPropertyFlags flags = SPF_NONE)
+    ShaderProperty(Name name, ShaderPropertyFlags flags = SPF_NONE)
         : name(name),
-          isPermutation(isPermutation),
           flags(flags)
     {
     }
 
-    ShaderProperty(Name name, bool isPermutation, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
+    ShaderProperty(Name name, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
         : name(name),
-          isPermutation(isPermutation),
           flags(flags),
           currentValue(currentValue)
     {
@@ -105,7 +98,6 @@ struct ShaderProperty
 
     explicit ShaderProperty(VertexAttribute::Type vertexAttribute)
         : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + VertexAttribute::mapping.Get(vertexAttribute).name)),
-          isPermutation(false),
           flags(SPF_VERTEX_ATTRIBUTE),
           currentValue(Value(String(VertexAttribute::mapping.Get(vertexAttribute).name)))
     {
@@ -113,7 +105,6 @@ struct ShaderProperty
 
     ShaderProperty(const ShaderProperty& other)
         : name(other.name),
-          isPermutation(other.isPermutation),
           flags(other.flags),
           currentValue(other.currentValue),
           enumValues(other.enumValues)
@@ -128,7 +119,6 @@ struct ShaderProperty
         }
 
         name = other.name;
-        isPermutation = other.isPermutation;
         flags = other.flags;
         currentValue = other.currentValue;
         enumValues = other.enumValues;
@@ -138,13 +128,11 @@ struct ShaderProperty
 
     ShaderProperty(ShaderProperty&& other) noexcept
         : name(other.name),
-          isPermutation(other.isPermutation),
           flags(other.flags),
           currentValue(std::move(other.currentValue)),
           enumValues(std::move(other.enumValues))
     {
         other.name = Name();
-        other.isPermutation = false;
         other.flags = SPF_NONE;
     }
 
@@ -161,7 +149,6 @@ struct ShaderProperty
         enumValues = std::move(other.enumValues);
 
         other.name = Name();
-        other.isPermutation = false;
         other.flags = SPF_NONE;
 
         return *this;
@@ -219,12 +206,12 @@ struct ShaderProperty
 
     HYP_FORCE_INLINE bool IsPermutable() const
     {
-        return isPermutation;
+        return flags & SPF_PERMUTATION;
     }
 
     HYP_FORCE_INLINE bool IsStatic() const
     {
-        return !isPermutation && !IsValueGroup();
+        return !IsPermutable() && !IsValueGroup();
     }
 
     HYP_FORCE_INLINE bool IsVertexAttribute() const
@@ -273,7 +260,7 @@ public:
     {
         for (const ShaderProperty& property : props)
         {
-            Set(property);
+            Set(property, true);
         }
     }
 
@@ -283,7 +270,7 @@ public:
     {
         for (Name propKey : props)
         {
-            Set(ShaderProperty(propKey, true)); // default to permutable
+            Set(ShaderProperty(propKey, SPF_PERMUTATION), true); // default to permutable
         }
     }
 
@@ -293,7 +280,7 @@ public:
     {
         for (const ShaderProperty& property : props)
         {
-            Set(property);
+            Set(property, true);
         }
     }
 
@@ -304,7 +291,7 @@ public:
     {
         for (Name propKey : props)
         {
-            m_props.Insert(ShaderProperty(propKey, true)); // default to permutable
+            m_props.Insert(ShaderProperty(propKey, SPF_PERMUTATION)); // default to permutable
         }
     }
 
@@ -390,17 +377,14 @@ public:
 
     HYP_FORCE_INLINE bool Has(WeakName name) const
     {
-        // HashCode for WeakName("foo") MUST be equal to ShaderProperty's hashcode if the ShaderProperty's name is "foo"
-        AssertDebug(ShaderProperty(NAME("Foo"), false).GetHashCode() == WeakName("Foo").GetHashCode());
-
         return m_props.FindByHashCode(name.GetHashCode()) != m_props.End();
     }
 
     HYP_API ShaderProperties& Set(const ShaderProperty& property, bool enabled = true);
 
-    HYP_FORCE_INLINE ShaderProperties& Set(Name name, bool enabled = true)
+    HYP_FORCE_INLINE ShaderProperties& Set(Name name, bool enabled, ShaderPropertyFlags flags = SPF_NONE)
     {
-        return Set(ShaderProperty(name, true), enabled);
+        return Set(ShaderProperty(name, flags), enabled);
     }
 
     /*! \brief Applies \ref{other} properties onto this set */
@@ -408,7 +392,7 @@ public:
     {
         for (const ShaderProperty& property : other.m_props)
         {
-            Set(property);
+            Set(property, true);
         }
 
         m_requiredVertexAttributes |= other.m_requiredVertexAttributes;
@@ -432,11 +416,11 @@ public:
 
     /*! \brief Adds a new permutation shader property
      *  Permutations create new shader variants based on their values.
-     *  Many permutations will drastically increase the number of shader variants generated, 
+     *  Many permutations will drastically increase the number of shader variants generated,
      *  so use them sparingly. (prefer value groups or static properties where appropriate) */
     ShaderProperties& AddPermutation(Name key)
     {
-        const ShaderProperty shaderProperty(key, true);
+        const ShaderProperty shaderProperty(key, SPF_PERMUTATION);
 
         const auto it = m_props.Find(shaderProperty);
 
@@ -454,11 +438,11 @@ public:
         return *this;
     }
 
-    /*! \brief Adds a new static property with key \ref{key} 
+    /*! \brief Adds a new static property with key \ref{key}
      *  Static properties are applied to every shader variant and do not create new permutations. */
     ShaderProperties& AddStatic(Name key)
     {
-        const ShaderProperty shaderProperty(key, false);
+        const ShaderProperty shaderProperty(key, SPF_NONE);
 
         const auto it = m_props.Find(shaderProperty);
 
@@ -482,7 +466,7 @@ public:
      *  shader variants generated compared to permutations. */
     ShaderProperties& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
     {
-        ShaderProperty shaderProperty(key, false);
+        ShaderProperty shaderProperty(key, SPF_NONE);
 
         if (enumValues.Any())
         {
@@ -609,10 +593,10 @@ private:
 
     HYP_FIELD()
     HashSet<ShaderProperty> m_props;
-    
+
     HYP_FIELD()
     VertexAttributeSet m_requiredVertexAttributes;
-    
+
     HYP_FIELD()
     VertexAttributeSet m_optionalVertexAttributes;
 
@@ -631,7 +615,7 @@ struct HashedShaderDefinition
 
     HYP_FIELD()
     HashCode propertySetHash;
-    
+
     HYP_FIELD()
     VertexAttributeSet requiredVertexAttributes;
 
@@ -1183,7 +1167,7 @@ struct CompiledShader
     FixedArray<ByteBuffer, SMT_MAX> modules;
 
     /// ===== Serialization only =====
-    HYP_METHOD(Property = "RevisionNumber")
+    HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
     uint64 GetRevisionNumber() const;
     /// ==============================
 

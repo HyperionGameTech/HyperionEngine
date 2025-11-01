@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region EditorPropertyPanelBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorPropertyPanelBase, 18, 1, NAME("UIPanel"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorPropertyPanelBase, 200, 1, NAME("UIPanel"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(Build)), &EditorPropertyPanelBase::Build, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } })
 HYP_END_CLASS
 

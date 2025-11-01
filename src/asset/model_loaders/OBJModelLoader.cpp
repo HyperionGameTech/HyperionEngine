@@ -86,9 +86,7 @@ static void AddMesh(OBJModel& model, const String& name, const String& material)
         uniqueName = name + String::ToString(++counter);
     }
 
-    model.meshes.PushBack(OBJMesh {
-        .name = uniqueName,
-        .material = material });
+    model.meshes.PushBack(OBJMesh { uniqueName, material });
 }
 
 static OBJMesh& LastMesh(OBJModel& model)

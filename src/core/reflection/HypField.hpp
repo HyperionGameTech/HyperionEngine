@@ -5,14 +5,15 @@
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/HypClassAttribute.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
+#include <core/reflection/TypeId.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
 
 #include <core/functional/Proc.hpp>
+#include <core/functional/Delegate.hpp>
 
-#include <core/reflection/TypeId.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Result.hpp>

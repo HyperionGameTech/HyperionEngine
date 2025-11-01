@@ -35,7 +35,7 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
     uint32 startIndex = 0;
     uint32 endIndex = 0;
 
-    for (utf::u32char ch : view)
+    for (utf::Char32 ch : view)
     {
         if (ch == separator)
         {
@@ -97,7 +97,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
         return subscriptWrapper;
     }
 
-    static constexpr utf::u32char PathSeparator = utf::u32char('.');
+    static constexpr utf::Char32 PathSeparator = utf::Char32('.');
 
     JSONSubscriptWrapper<T> elementSubscriptWrapper = subscriptWrapper;
 
@@ -106,7 +106,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
         SizeType characterIndex = 0;
         UTF8StringView curr = path;
 
-        for (utf::u32char ch : path)
+        for (utf::Char32 ch : path)
         {
             if (ch == PathSeparator)
             {

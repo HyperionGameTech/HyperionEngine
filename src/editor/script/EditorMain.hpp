@@ -13,7 +13,7 @@ class World;
 class Scene;
 class EditorProject;
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class HYP_API EditorMain : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorMain);

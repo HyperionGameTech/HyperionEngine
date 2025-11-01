@@ -128,7 +128,7 @@ void SSRRenderer::Create()
         TWM_CLAMP_TO_EDGE,
         1,
         IU_STORAGE | IU_SAMPLED });
-    
+
     m_uvsTexture->SetName(NAME("SSRTexture_SampledResult"));
     InitObject(m_sampledResultTexture);
 
@@ -174,13 +174,13 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     switch (SsrFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA8")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA8")));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA16F")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA16F")));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA32F")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA32F")));
         break;
     default:
         HYP_FAIL("Invalid SSR format type");

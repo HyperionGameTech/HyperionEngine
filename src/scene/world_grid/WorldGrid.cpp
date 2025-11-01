@@ -68,14 +68,6 @@ WorldGrid::~WorldGrid()
 
 void WorldGrid::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
-        {
-            if (IsReady())
-            {
-                Shutdown();
-            }
-        }));
-
     InitObject(m_streamingManager);
     m_streamingManager->Start(); // @TODO make g_streamingManager instead of per-worldgrid streaming managers
 

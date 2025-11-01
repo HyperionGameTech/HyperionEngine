@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region StreamingCellNeighbor Reflection Data
 
-HYP_BEGIN_STRUCT(StreamingCellNeighbor, 274, 0, {})
+HYP_BEGIN_STRUCT(StreamingCellNeighbor, 402, 0, {})
     HypField(NAME(HYP_STR(Coord)), &StreamingCellNeighbor::coord, offsetof(StreamingCellNeighbor, coord), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Coord") } })
 HYP_END_STRUCT
 
@@ -18,7 +18,7 @@ namespace hyperion {
 
 #pragma region StreamingCellInfo Reflection Data
 
-HYP_BEGIN_STRUCT(StreamingCellInfo, 275, 0, {}, HypClassAttribute("size", 80))
+HYP_BEGIN_STRUCT(StreamingCellInfo, 403, 0, {}, HypClassAttribute("size", 80))
     HypField(NAME(HYP_STR(Coord)), &StreamingCellInfo::coord, offsetof(StreamingCellInfo, coord), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Coord") } }),
     HypField(NAME(HYP_STR(Extent)), &StreamingCellInfo::extent, offsetof(StreamingCellInfo, extent), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Extent") } }),
     HypField(NAME(HYP_STR(Scale)), &StreamingCellInfo::scale, offsetof(StreamingCellInfo, scale), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true), HypClassAttribute("property", "Scale") } }),
@@ -39,7 +39,7 @@ namespace hyperion {
 
 #pragma region StreamingCell Reflection Data
 
-HYP_BEGIN_CLASS(StreamingCell, 65, 1, NAME("StreamableBase"))
+HYP_BEGIN_CLASS(StreamingCell, 179, 1, NAME("StreamableBase"))
     HypMethod(NAME(HYP_STR(GetPatchInfo)), &StreamingCell::GetPatchInfo),
     HypMethod(NAME(HYP_STR(Update)), &StreamingCell::Update, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(GetBoundingBox_Impl)), &StreamingCell::GetBoundingBox_Impl),
@@ -73,7 +73,7 @@ namespace hyperion {
 
 #pragma region StreamingCellState Reflection Data
 
-HYP_BEGIN_ENUM(StreamingCellState, 276, 0, {})
+HYP_BEGIN_ENUM(StreamingCellState, 404, 0, {})
     HypConstant(NAME(HYP_STR(INVALID)), StreamingCellState::INVALID),
     HypConstant(NAME(HYP_STR(UNLOADED)), StreamingCellState::UNLOADED),
     HypConstant(NAME(HYP_STR(UNLOADING)), StreamingCellState::UNLOADING),

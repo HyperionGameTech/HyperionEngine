@@ -56,7 +56,7 @@ public:
 private:
     bool EvictEntries(SizeType bytesNeeded);
 
-    Pimpl<struct EditorPickCacheImpl> m_pImpl;
+    Pimpl<struct EditorPickCacheImpl> m_impl;
 };
 
 } // namespace hyperion

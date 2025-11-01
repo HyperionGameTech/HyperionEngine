@@ -174,13 +174,13 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
     switch (m_imageFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA8")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA8")));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA16F")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA16F")));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), false, String("RGBA32F")));
+        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), String("RGBA32F")));
         break;
     default:
         HYP_NOT_IMPLEMENTED();
@@ -188,8 +188,8 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 
     static const String s_feedbackStrings[] = { "LOW", "MEDIUM", "HIGH" };
 
-    shaderProperties.Set(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), false, int(m_technique)));
-    shaderProperties.Set(ShaderProperty(NAME("FEEDBACK"), false, s_feedbackStrings[MathUtil::Min(uint32(m_feedback), ArraySize(s_feedbackStrings) - 1)]));
+    shaderProperties.Set(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique)));
+    shaderProperties.Set(ShaderProperty(NAME("FEEDBACK"), s_feedbackStrings[MathUtil::Min(uint32(m_feedback), ArraySize(s_feedbackStrings) - 1)]));
 
     return shaderProperties;
 }

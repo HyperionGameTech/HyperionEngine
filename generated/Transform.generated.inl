@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Transform Reflection Data
 
-HYP_BEGIN_STRUCT(Transform, 239, 0, {}, HypClassAttribute("size", 112),HypClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(Transform, 246, 0, {}, HypClassAttribute("size", 112),HypClassAttribute("serialize", "bitwise"))
     HypField(NAME(HYP_STR(Translation)), &Transform::translation, offsetof(Transform, translation)),
     HypField(NAME(HYP_STR(Scale)), &Transform::scale, offsetof(Transform, scale)),
     HypField(NAME(HYP_STR(Rotation)), &Transform::rotation, offsetof(Transform, rotation)),

@@ -1,8 +1,9 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
-#extension GL_ARB_separate_shader_objects : require
+
+#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
 #extension GL_EXT_nonuniform_qualifier : require
-#extension GL_EXT_scalar_block_layout : require
+#endif
 
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_screen_space_position;
@@ -113,6 +114,6 @@ void main()
         ui_color.a *= mix(1.0, roundedness, 1.0 - step(properties.border_radius, 0.0));
     }
 
-    gbuffer_albedo = ui_color * v_color;
+    gbuffer_albedo = vec4(v_texcoord0.xy, 0.0, 1.0); // ui_color * v_color;
     gbuffer_mask = GET_OBJECT_BUCKET(object) | OBJECT_MASK_UI;
 }

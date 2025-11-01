@@ -532,7 +532,8 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         }
 
         addedIncludes.Insert(include);
-        writer.WriteString(HYP_FORMAT("#include <{}>\n", include).ReplaceAll("\\", "/"));
+
+        writer.WriteString(HYP_FORMAT("#include <{}>\n", include.ReplaceAll("\\", "/")));
     };
 
     if (mod.GetPath().Any())

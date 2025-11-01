@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region SSRRendererConfig Reflection Data
 
-HYP_BEGIN_STRUCT(SSRRendererConfig, 327, 0, {}, HypClassAttribute("configname", "GlobalConfig"),HypClassAttribute("jsonpath", "Rendering.SSR"))
+HYP_BEGIN_STRUCT(SSRRendererConfig, 323, 0, {}, HypClassAttribute("configname", "GlobalConfig"),HypClassAttribute("jsonpath", "Rendering.SSR"))
     HypField(NAME(HYP_STR(Enabled)), &SSRRendererConfig::enabled, offsetof(SSRRendererConfig, enabled)),
     HypField(NAME(HYP_STR(Quality)), &SSRRendererConfig::quality, offsetof(SSRRendererConfig, quality), Span<const HypClassAttribute> { {HypClassAttribute("description", "The quality level of the SSR effect. 0 = low, 1 = medium, 2 = high") } }),
     HypField(NAME(HYP_STR(RoughnessScattering)), &SSRRendererConfig::roughnessScattering, offsetof(SSRRendererConfig, roughnessScattering), Span<const HypClassAttribute> { {HypClassAttribute("description", "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.") } }),

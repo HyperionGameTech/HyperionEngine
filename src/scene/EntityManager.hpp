@@ -859,7 +859,7 @@ public:
             if constexpr (sizeof...(Components) > 0)
             {
                 // Make sure the element exists in m_componentEntitySets
-                for (TypeId componentTypeId : { TypeId::ForType<Components>()... })
+                for (TypeId componentTypeId : FixedArray<TypeId, sizeof...(Components)> { TypeId::ForType<Components>()... })
                 {
                     auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
 

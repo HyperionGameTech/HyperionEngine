@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Frustum Reflection Data
 
-HYP_BEGIN_STRUCT(Frustum, 246, 0, {}, HypClassAttribute("size", 224),HypClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(Frustum, 240, 0, {}, HypClassAttribute("size", 224),HypClassAttribute("serialize", "bitwise"))
     HypField(NAME(HYP_STR(Planes)), &Frustum::planes, offsetof(Frustum, planes)),
     HypField(NAME(HYP_STR(Corners)), &Frustum::corners, offsetof(Frustum, corners))
 HYP_END_STRUCT

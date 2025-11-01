@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Material Reflection Data
 
-HYP_BEGIN_CLASS(Material, 50, 0, NAME("AssetObject"))
+HYP_BEGIN_CLASS(Material, 21, 0, NAME("AssetObject"))
     HypMethod(NAME(HYP_STR(IsStatic)), &Material::IsStatic),
     HypMethod(NAME(HYP_STR(IsDynamic)), &Material::IsDynamic),
     HypMethod(NAME(HYP_STR(SetIsDynamic)), &Material::SetIsDynamic),
@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region MaterialTextureKey Reflection Data
 
-HYP_BEGIN_ENUM(MaterialTextureKey, 292, 0, {})
+HYP_BEGIN_ENUM(MaterialTextureKey, 267, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), MaterialTextureKey::NONE),
     HypConstant(NAME(HYP_STR(ALBEDO_MAP)), MaterialTextureKey::ALBEDO_MAP),
     HypConstant(NAME(HYP_STR(NORMAL_MAP)), MaterialTextureKey::NORMAL_MAP),
@@ -65,7 +65,7 @@ namespace hyperion {
 
 #pragma region MaterialGroup Reflection Data
 
-HYP_BEGIN_CLASS(MaterialGroup, 83, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(MaterialGroup, 77, 0, NAME("HypObjectBase"))
 HYP_END_CLASS
 
 #pragma endregion MaterialGroup Reflection Data
@@ -77,7 +77,7 @@ namespace hyperion {
 
 #pragma region MaterialParameterValue Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameterValue, 293, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(MaterialParameterValue, 268, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 16))
 HYP_END_STRUCT
 
 #pragma endregion MaterialParameterValue Reflection Data
@@ -90,7 +90,7 @@ namespace hyperion {
 
 #pragma region MaterialParameters Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameters, 294, 0, {})
+HYP_BEGIN_STRUCT(MaterialParameters, 269, 0, {})
     HypField(NAME(HYP_STR(Values)), &MaterialParameters::m_values, offsetof(MaterialParameters, m_values), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -103,7 +103,7 @@ namespace hyperion {
 
 #pragma region MaterialParameterKey Reflection Data
 
-HYP_BEGIN_ENUM(MaterialParameterKey, 295, 0, {})
+HYP_BEGIN_ENUM(MaterialParameterKey, 270, 0, {})
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_NONE)), MaterialParameterKey::MATERIAL_KEY_NONE),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_ALBEDO)), MaterialParameterKey::MATERIAL_KEY_ALBEDO),
     HypConstant(NAME(HYP_STR(MATERIAL_KEY_METALNESS)), MaterialParameterKey::MATERIAL_KEY_METALNESS),
@@ -138,7 +138,7 @@ namespace hyperion {
 
 #pragma region MaterialParameterType Reflection Data
 
-HYP_BEGIN_ENUM(MaterialParameterType, 296, 0, {})
+HYP_BEGIN_ENUM(MaterialParameterType, 271, 0, {})
     HypConstant(NAME(HYP_STR(MPT_NONE)), MaterialParameterType::MPT_NONE),
     HypConstant(NAME(HYP_STR(MPT_FLOAT)), MaterialParameterType::MPT_FLOAT),
     HypConstant(NAME(HYP_STR(MPT_FLOAT2)), MaterialParameterType::MPT_FLOAT2),
@@ -159,7 +159,7 @@ namespace hyperion {
 
 #pragma region MaterialTextures Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialTextures, 297, 0, {})
+HYP_BEGIN_STRUCT(MaterialTextures, 272, 0, {})
     HypField(NAME(HYP_STR(Values)), &MaterialTextures::m_values, offsetof(MaterialTextures, m_values), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
@@ -172,7 +172,7 @@ namespace hyperion {
 
 #pragma region MaterialParameter Reflection Data
 
-HYP_BEGIN_STRUCT(MaterialParameter, 298, 0, {})
+HYP_BEGIN_STRUCT(MaterialParameter, 273, 0, {})
     HypField(NAME(HYP_STR(Value)), &MaterialParameter::value, offsetof(MaterialParameter, value), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Type)), &MaterialParameter::type, offsetof(MaterialParameter, type), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT

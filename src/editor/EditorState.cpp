@@ -97,6 +97,8 @@ EditorState::EditorState()
 
 EditorState::~EditorState()
 {
+    m_onProjectPackageChangedHandle.Reset();
+    m_onAssetObjectAddedHandle.Reset();
 }
 
 void EditorState::Init()
@@ -105,7 +107,7 @@ void EditorState::Init()
     Assert(importsPackage.IsValid());
 
     // add newly imported assets to the current project's asset registry
-    AddDelegateHandler(importsPackage->OnAssetObjectAdded.Bind([weakThis = WeakHandleFromThis()](Handle<AssetObject> assetObject, bool isDirect)
+    m_onAssetObjectAddedHandle = importsPackage->OnAssetObjectAdded.Bind([weakThis = WeakHandleFromThis()](Handle<AssetObject> assetObject, bool isDirect)
         {
             Handle<EditorState> editorState = weakThis.Lock();
 
@@ -120,7 +122,7 @@ void EditorState::Init()
             {
                 RegisterImportedAsset(editorState->m_currentProject, assetObject);
             }
-        }));
+        });
 
     Mutex::Guard guard(m_mutex);
 
@@ -131,7 +133,7 @@ void EditorState::Init()
 
 void EditorState::ImportAssetsOrSetCallback(const Handle<EditorProject>& project)
 {
-    RemoveDelegateHandler("ProjectPackageCreated");
+    m_onProjectPackageChangedHandle.Reset();
 
     if (!IsInitCalled())
     {
@@ -151,18 +153,16 @@ void EditorState::ImportAssetsOrSetCallback(const Handle<EditorProject>& project
         return;
     }
 
-    AddDelegateHandler(
-        NAME("ProjectPackageCreated"),
-        m_currentProject->OnPackageCreated.Bind([weakProject = m_currentProject.ToWeak()](const Handle<AssetPackage>&)
+    m_onProjectPackageChangedHandle = m_currentProject->OnPackageCreated.Bind([weakProject = m_currentProject.ToWeak()](const Handle<AssetPackage>&)
+        {
+            Handle<EditorProject> project = weakProject.Lock();
+            if (!project)
             {
-                Handle<EditorProject> project = weakProject.Lock();
-                if (!project)
-                {
-                    return;
-                }
+                return;
+            }
 
-                RegisterPackageAssets(project, GetImportsPackage());
-            }));
+            RegisterPackageAssets(project, GetImportsPackage());
+        });
 }
 
 Handle<EditorProject> EditorState::GetCurrentProject() const

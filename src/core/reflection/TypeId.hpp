@@ -44,9 +44,9 @@ public:
         return s_typeId;
 #endif
     }
-    
+
 #if HYP_TYPE_ID_COMPILE_TIME
-    static consteval TypeId ForManagedType(const char* str)
+    static constexpr TypeId ForManagedType(const char* str)
 #else
     static TypeId ForManagedType(const char* str)
 #endif

@@ -296,7 +296,7 @@ public:
             return pascalCase;
         }
 
-        utf::u32char firstChar = pascalCase.GetChar(0);
+        utf::Char32 firstChar = pascalCase.GetChar(0);
         if (firstChar >= 128)
         {
             // If the first character is not a ascii we just return the string as is - we only convert
@@ -321,7 +321,7 @@ public:
 
         for (SizeType i = 0; i < str.Size(); i++)
         {
-            utf::u32char ch = str.GetChar(i);
+            utf::Char32 ch = str.GetChar(i);
 
             if (ch == ' ' || ch == '-' || ch == '_')
             {
@@ -343,7 +343,7 @@ public:
                 {
                     if (i + 1 < str.Size())
                     {
-                        utf::u32char nextCh = str.GetChar(i + 1);
+                        utf::Char32 nextCh = str.GetChar(i + 1);
                         if (nextCh >= 'a' && nextCh <= 'z')
                         {
                             result.Append('_');

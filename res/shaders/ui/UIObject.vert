@@ -1,9 +1,7 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : require
-#extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_scalar_block_layout : enable
 
 layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_screen_space_position;
@@ -41,7 +39,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly bu
     UIEntityInstanceBatch entity_instance_batch;
 };
 
-    // clang-format on
+// clang-format on
 
 #undef OBJECT_INDEX
 #define OBJECT_INDEX (entity_instance_batch.batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])

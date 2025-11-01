@@ -70,7 +70,7 @@ public:
                 }
                 else
                 {
-                    new (outReturn) ReturnType(object->InvokeMethodByName<ReturnType>(methodName, std::forward<Arg>(args)...));
+                    new (outReturn) ReturnType(object->InvokeMethodByName<ReturnType>(methodName, std::forward<Args>(args)...));
 
                     return true;
                 }

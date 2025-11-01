@@ -20,13 +20,13 @@ DOFBlur::~DOFBlur() = default;
 
 void DOFBlur::Create()
 {
-    ShaderRef blurHorizontalShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), false, String("HORIZONTAL")) }));
+    ShaderRef blurHorizontalShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), String("HORIZONTAL")) }));
     Assert(blurHorizontalShader.IsValid());
 
     m_blurHorizontalPass = CreateObject<FullScreenPass>(blurHorizontalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurHorizontalPass->Create();
 
-    ShaderRef blurVerticalShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), false, String("VERTICAL")) }));
+    ShaderRef blurVerticalShader = ShaderManager::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), String("VERTICAL")) }));
     Assert(blurVerticalShader.IsValid());
 
     m_blurVerticalPass = CreateObject<FullScreenPass>(blurVerticalShader, TF_RGBA8, m_extent, m_gbuffer);

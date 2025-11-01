@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EditorTaskBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorTaskBase, 201, 3, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorTaskBase, 42, 3, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(IsCommitted)), &EditorTaskBase::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &EditorTaskBase::Cancel),
     HypMethod(NAME(HYP_STR(IsCompleted)), &EditorTaskBase::IsCompleted),
@@ -28,7 +28,7 @@ namespace hyperion {
 
 #pragma region LongRunningEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(LongRunningEditorTask, 202, 0, NAME("EditorTaskBase"), HypClassAttribute("abstract", true),HypClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
+HYP_BEGIN_CLASS(LongRunningEditorTask, 43, 0, NAME("EditorTaskBase"), HypClassAttribute("abstract", true),HypClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
     HypMethod(NAME(HYP_STR(IsCommitted)), &LongRunningEditorTask::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &LongRunningEditorTask::Cancel, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(IsCompleted)), &LongRunningEditorTask::IsCompleted, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
@@ -96,7 +96,7 @@ namespace hyperion {
 
 #pragma region TickableEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(TickableEditorTask, 203, 1, NAME("EditorTaskBase"), HypClassAttribute("abstract", true),HypClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
+HYP_BEGIN_CLASS(TickableEditorTask, 44, 1, NAME("EditorTaskBase"), HypClassAttribute("abstract", true),HypClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
     HypMethod(NAME(HYP_STR(IsCommitted)), &TickableEditorTask::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &TickableEditorTask::Cancel, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(IsCompleted)), &TickableEditorTask::IsCompleted, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),

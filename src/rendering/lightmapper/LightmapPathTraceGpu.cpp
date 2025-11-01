@@ -269,10 +269,10 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
     switch (m_shadingType)
     {
     case LightmapShadingType::RADIANCE:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), false, String("RADIANCE")));
+        shaderProperties.Set(ShaderProperty(NAME("MODE"), String("RADIANCE")));
         break;
     case LightmapShadingType::IRRADIANCE:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), false, String("IRRADIANCE")));
+        shaderProperties.Set(ShaderProperty(NAME("MODE"), String("IRRADIANCE")));
         break;
     default:
         HYP_UNREACHABLE();

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EntityRenderProxySystem_Mesh Reflection Data
 
-HYP_BEGIN_CLASS(EntityRenderProxySystem_Mesh, 154, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(EntityRenderProxySystem_Mesh, 155, 0, NAME("SystemBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion EntityRenderProxySystem_Mesh Reflection Data

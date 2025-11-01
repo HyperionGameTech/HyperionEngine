@@ -69,7 +69,7 @@ Token Lexer::NextToken()
 {
     SourceLocation location = m_sourceLocation;
 
-    u32char ch[3] = { 0 };
+    Char32 ch[3] = { 0 };
     int totalPosChange = 0;
     for (int i = 0; i < 3; i++)
     {
@@ -89,7 +89,7 @@ Token Lexer::NextToken()
     {
         return ReadHexNumberLiteral();
     }
-    else if (utf32Isdigit(ch[0]) || (ch[0] == '.' && utf32Isdigit(ch[1])) || (ch[0] == '-' && utf32Isdigit(ch[1])) || (ch[0] == '+' && utf32Isdigit(ch[1])))
+    else if (IsDecimal(ch[0]) || (ch[0] == '.' && IsDecimal(ch[1])) || (ch[0] == '-' && IsDecimal(ch[1])) || (ch[0] == '+' && IsDecimal(ch[1])))
     {
         return ReadNumberLiteral();
     }
@@ -106,7 +106,7 @@ Token Lexer::NextToken()
             return ReadBlockComment();
         }*/
     }
-    else if (utf32Isalpha(ch[0]) || ch[0] == '_' || ch[0] == '$')
+    else if (IsAlphabetical(ch[0]) || ch[0] == '_' || ch[0] == '$')
     {
         return ReadIdentifier();
     }
@@ -183,9 +183,9 @@ Token Lexer::NextToken()
     else
     {
         int posChange = 0;
-        utf::u32char badToken = m_sourceStream.Next(posChange);
+        utf::Char32 badToken = m_sourceStream.Next(posChange);
 
-        utf::u8char badTokenStr[sizeof(utf::u32char) + 1] = { '\0' };
+        utf::Char8 badTokenStr[sizeof(utf::Char32) + 1] = { '\0' };
         utf::Char32to8(badToken, badTokenStr);
 
         m_compilationUnit->GetErrorList().AddError(CompilerError(
@@ -200,7 +200,7 @@ Token Lexer::NextToken()
     }
 }
 
-u32char Lexer::ReadEscapeCode()
+Char32 Lexer::ReadEscapeCode()
 {
     // location of the start of the escape code
     SourceLocation location = m_sourceLocation;
@@ -208,10 +208,10 @@ u32char Lexer::ReadEscapeCode()
     if (HasNext())
     {
         int posChange = 0;
-        utf::u32char esc = m_sourceStream.Next(posChange);
+        utf::Char32 esc = m_sourceStream.Next(posChange);
         m_sourceLocation.GetColumn() += posChange;
 
-        utf::u8char chars[sizeof(utf::u32char) + 1] = { '\0' };
+        utf::Char8 chars[sizeof(utf::Char32) + 1] = { '\0' };
         utf::Char32to8(esc, chars);
 
         // TODO: add support for unicode escapes
@@ -252,16 +252,16 @@ Token Lexer::ReadStringLiteral()
     String value;
     int posChange = 0;
 
-    u32char delim = m_sourceStream.Next(posChange);
+    Char32 delim = m_sourceStream.Next(posChange);
     m_sourceLocation.GetColumn() += posChange;
 
     // the character as utf-32
-    u32char ch = m_sourceStream.Next(posChange);
+    Char32 ch = m_sourceStream.Next(posChange);
     m_sourceLocation.GetColumn() += posChange;
 
     while (ch != delim)
     {
-        if (ch == (u32char)'\n' || !HasNext())
+        if (ch == (Char32)'\n' || !HasNext())
         {
             // unterminated string literal
             m_compilationUnit->GetErrorList().AddError(CompilerError(
@@ -269,7 +269,7 @@ Token Lexer::ReadStringLiteral()
                 MSG_UNTERMINATED_STRING_LITERAL,
                 m_sourceLocation));
 
-            if (ch == (u32char)'\n')
+            if (ch == (Char32)'\n')
             {
                 // increment line and reset column
                 m_sourceLocation.GetColumn() = 0;
@@ -280,16 +280,16 @@ Token Lexer::ReadStringLiteral()
         }
 
         // determine whether to read an escape sequence
-        if (ch == (u32char)'\\')
+        if (ch == (Char32)'\\')
         {
-            u32char esc = ReadEscapeCode();
+            Char32 esc = ReadEscapeCode();
             // append the bytes
-            value.Append(utf::asUtf8Char(esc));
+            value.Append(utf::ToUtf8Chars(esc));
         }
         else
         {
             // Append the character itself
-            value.Append(utf::asUtf8Char(ch));
+            value.Append(utf::ToUtf8Chars(ch));
         }
 
         ch = m_sourceStream.Next(posChange);
@@ -336,15 +336,15 @@ Token Lexer::ReadNumberLiteral()
 
     Token::Flags tokenFlags {};
 
-    u32char ch = m_sourceStream.Peek();
+    Char32 ch = m_sourceStream.Peek();
 
     bool hasExponent = false;
 
-    while (m_sourceStream.HasNext() && utf32Isdigit(ch))
+    while (m_sourceStream.HasNext() && IsDecimal(ch))
     {
         int posChange = 0;
-        u32char nextChar = m_sourceStream.Next(posChange);
-        value.Append(utf::asUtf8Char(nextChar));
+        Char32 nextChar = m_sourceStream.Next(posChange);
+        value.Append(utf::ToUtf8Chars(nextChar));
         m_sourceLocation.GetColumn() += posChange;
 
         if (tokenClass != TK_FLOAT)
@@ -352,19 +352,19 @@ Token Lexer::ReadNumberLiteral()
             if (m_sourceStream.HasNext())
             {
                 // the character as a utf-32 character
-                u32char ch = m_sourceStream.Peek();
-                if (ch == (u32char)'.')
+                Char32 ch = m_sourceStream.Peek();
+                if (ch == (Char32)'.')
                 {
                     // read next to check if after is a digit
                     int posChange = 0;
                     m_sourceStream.Next(posChange);
 
-                    u32char next = m_sourceStream.Peek();
-                    if (!utf::utf32Isalpha(next) && next != (u32char)'_')
+                    Char32 next = m_sourceStream.Peek();
+                    if (!utf::IsAlphabetical(next) && next != (Char32)'_')
                     {
                         // type is a float because of '.' and not an identifier after
                         tokenClass = TK_FLOAT;
-                        value.Append(utf::asUtf8Char(ch));
+                        value.Append(utf::ToUtf8Chars(ch));
                         m_sourceLocation.GetColumn() += posChange;
                     }
                     else
@@ -378,14 +378,14 @@ Token Lexer::ReadNumberLiteral()
 
         if (m_sourceStream.HasNext())
         {
-            u32char ch = m_sourceStream.Peek();
+            Char32 ch = m_sourceStream.Peek();
 
-            if (!hasExponent && (ch == (u32char)'e' || ch == (u32char)'E'))
+            if (!hasExponent && (ch == (Char32)'e' || ch == (Char32)'E'))
             {
                 hasExponent = true;
 
                 tokenClass = TK_FLOAT;
-                value.Append(utf::asUtf8Char(ch));
+                value.Append(utf::ToUtf8Chars(ch));
 
                 int posChange = 0;
                 m_sourceStream.Next(posChange);
@@ -394,9 +394,9 @@ Token Lexer::ReadNumberLiteral()
                 ch = m_sourceStream.Peek();
 
                 // Handle negative exponent
-                if (ch == (u32char)'-')
+                if (ch == (Char32)'-')
                 {
-                    value.Append(utf::asUtf8Char(ch));
+                    value.Append(utf::ToUtf8Chars(ch));
 
                     int posChange = 0;
                     m_sourceStream.Next(posChange);
@@ -446,21 +446,21 @@ Token Lexer::ReadHexNumberLiteral()
         }
 
         int posChange = 0;
-        u32char nextChar = m_sourceStream.Next(posChange);
-        value.Append(utf::asUtf8Char(nextChar));
+        Char32 nextChar = m_sourceStream.Next(posChange);
+        value.Append(utf::ToUtf8Chars(nextChar));
         m_sourceLocation.GetColumn() += posChange;
     }
 
     Token::Flags tokenFlags;
     std::memset(tokenFlags, 0, sizeof(tokenFlags));
 
-    u32char ch = m_sourceStream.Peek();
+    Char32 ch = m_sourceStream.Peek();
 
-    while (m_sourceStream.HasNext() && utf32Isxdigit(ch))
+    while (m_sourceStream.HasNext() && IsHexadecimal(ch))
     {
         int posChange = 0;
-        u32char nextChar = m_sourceStream.Next(posChange);
-        value.Append(utf::asUtf8Char(nextChar));
+        Char32 nextChar = m_sourceStream.Next(posChange);
+        value.Append(utf::ToUtf8Chars(nextChar));
         m_sourceLocation.GetColumn() += posChange;
         ch = m_sourceStream.Peek();
     }
@@ -522,17 +522,17 @@ Token Lexer::ReadBlockComment()
         m_sourceLocation.GetColumn() += posChange;
     }
 
-    u32char previous = 0;
+    Char32 previous = 0;
     while (HasNext())
     {
-        if (m_sourceStream.Peek() == (u32char)'/' && previous == (u32char)'*')
+        if (m_sourceStream.Peek() == (Char32)'/' && previous == (Char32)'*')
         {
             int posChange = 0;
             m_sourceStream.Next(posChange);
             m_sourceLocation.GetColumn() += posChange;
             break;
         }
-        else if (m_sourceStream.Peek() == (u32char)'\n')
+        else if (m_sourceStream.Peek() == (Char32)'\n')
         {
             // just reset column and increment line
             m_sourceLocation.GetColumn() = 0;
@@ -560,11 +560,11 @@ Token Lexer::ReadDocumentation()
         m_sourceLocation.GetColumn() += posChange;
     }
 
-    u32char previous = 0;
+    Char32 previous = 0;
 
     while (HasNext())
     {
-        if (m_sourceStream.Peek() == u32char('/') && previous == u32char('*'))
+        if (m_sourceStream.Peek() == Char32('/') && previous == Char32('*'))
         {
             int posChange = 0;
             m_sourceStream.Next(posChange);
@@ -573,12 +573,12 @@ Token Lexer::ReadDocumentation()
         }
         else
         {
-            utf::u8char ch[sizeof(utf::u32char) + 1] = { '\0' };
+            utf::Char8 ch[sizeof(utf::Char32) + 1] = { '\0' };
             utf::Char32to8(m_sourceStream.Peek(), ch);
             // append value
             value += reinterpret_cast<const String::CharType*>(ch);
 
-            if (m_sourceStream.Peek() == u32char('\n'))
+            if (m_sourceStream.Peek() == Char32('\n'))
             {
                 // just reset column and increment line
                 m_sourceLocation.GetColumn() = 0;
@@ -604,13 +604,13 @@ Token Lexer::ReadIdentifier()
     // the character as a utf-32 character
     auto ch = m_sourceStream.Peek();
 
-    while (utf32Isdigit(ch) || utf32Isalpha(ch) || ch == '_' || ch == '$')
+    while (IsDecimal(ch) || IsAlphabetical(ch) || ch == '_' || ch == '$')
     {
         int posChange = 0;
         ch = m_sourceStream.Next(posChange);
         m_sourceLocation.GetColumn() += posChange;
         // append the raw bytes
-        value.Append(utf::asUtf8Char(ch));
+        value.Append(utf::ToUtf8Chars(ch));
         // set ch to be the next character in the buffer
         ch = m_sourceStream.Peek();
 
@@ -645,10 +645,10 @@ bool Lexer::SkipWhitespace()
 {
     bool hadNewline = false;
 
-    while (m_sourceStream.HasNext() && utf32Isspace(m_sourceStream.Peek()))
+    while (m_sourceStream.HasNext() && IsWhitespace(m_sourceStream.Peek()))
     {
         int posChange = 0;
-        if (m_sourceStream.Next(posChange) == (u32char)'\n')
+        if (m_sourceStream.Next(posChange) == (Char32)'\n')
         {
             m_sourceLocation.GetLine()++;
             m_sourceLocation.GetColumn() = 0;

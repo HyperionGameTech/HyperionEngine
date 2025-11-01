@@ -1452,7 +1452,7 @@ void EditorSubsystem::InitViewport()
     uiSubsystem->GetUIStage()->UpdateSize(true);
 
     // bind console key
-    AddDelegateHandler(uiSubsystem->GetUIStage()->OnKeyDown.Bind([this](const KeyboardEvent& event)
+    m_delegateHandlers.Add(uiSubsystem->GetUIStage()->OnKeyDown.Bind([this](const KeyboardEvent& event)
         {
             // Check we aren't entering text in non-console text field
             UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();

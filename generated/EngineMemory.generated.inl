@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EnginePoolName Reflection Data
 
-HYP_BEGIN_ENUM(EnginePoolName, 415, 0, {})
+HYP_BEGIN_ENUM(EnginePoolName, 257, 0, {})
     HypConstant(NAME(HYP_STR(EPN_INVALID)), EnginePoolName::EPN_INVALID),
     HypConstant(NAME(HYP_STR(EPN_CORE)), EnginePoolName::EPN_CORE),
     HypConstant(NAME(HYP_STR(EPN_RENDER)), EnginePoolName::EPN_RENDER),

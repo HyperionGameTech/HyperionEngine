@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Time Reflection Data
 
-HYP_BEGIN_STRUCT(Time, 249, 0, {}, HypClassAttribute("serialize", "bitwise"))
+HYP_BEGIN_STRUCT(Time, 253, 0, {}, HypClassAttribute("serialize", "bitwise"))
 HYP_END_STRUCT
 
 #pragma endregion Time Reflection Data

@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region AnimationComponent Reflection Data
 
-HYP_BEGIN_STRUCT(AnimationComponent, 399, 0, {}, HypClassAttribute("component", true))
+HYP_BEGIN_STRUCT(AnimationComponent, 371, 0, {}, HypClassAttribute("component", true))
     HypField(NAME(HYP_STR(PlaybackState)), &AnimationComponent::playbackState, offsetof(AnimationComponent, playbackState), Span<const HypClassAttribute> { {HypClassAttribute("property", "PlaybackState"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } })
 HYP_END_STRUCT
 
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region AnimationPlaybackState Reflection Data
 
-HYP_BEGIN_STRUCT(AnimationPlaybackState, 400, 0, {})
+HYP_BEGIN_STRUCT(AnimationPlaybackState, 372, 0, {})
     HypField(NAME(HYP_STR(AnimationIndex)), &AnimationPlaybackState::animationIndex, offsetof(AnimationPlaybackState, animationIndex), Span<const HypClassAttribute> { {HypClassAttribute("property", "AnimationIndex"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Status)), &AnimationPlaybackState::status, offsetof(AnimationPlaybackState, status), Span<const HypClassAttribute> { {HypClassAttribute("property", "Status"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(LoopMode)), &AnimationPlaybackState::loopMode, offsetof(AnimationPlaybackState, loopMode), Span<const HypClassAttribute> { {HypClassAttribute("property", "LoopMode"), HypClassAttribute("editor", true) } }),
@@ -37,7 +37,7 @@ namespace hyperion {
 
 #pragma region AnimationLoopMode Reflection Data
 
-HYP_BEGIN_ENUM(AnimationLoopMode, 401, 0, {})
+HYP_BEGIN_ENUM(AnimationLoopMode, 373, 0, {})
     HypConstant(NAME(HYP_STR(ONCE)), AnimationLoopMode::ONCE),
     HypConstant(NAME(HYP_STR(REPEAT)), AnimationLoopMode::REPEAT)
 HYP_END_ENUM
@@ -51,7 +51,7 @@ namespace hyperion {
 
 #pragma region AnimationPlaybackStatus Reflection Data
 
-HYP_BEGIN_ENUM(AnimationPlaybackStatus, 402, 0, {})
+HYP_BEGIN_ENUM(AnimationPlaybackStatus, 374, 0, {})
     HypConstant(NAME(HYP_STR(STOPPED)), AnimationPlaybackStatus::STOPPED),
     HypConstant(NAME(HYP_STR(PAUSED)), AnimationPlaybackStatus::PAUSED),
     HypConstant(NAME(HYP_STR(PLAYING)), AnimationPlaybackStatus::PLAYING)

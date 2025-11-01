@@ -200,7 +200,6 @@ private:
             const Vec3f& min = aabb.GetMin();
             const Vec3f& max = aabb.GetMax();
 
-            // 8 children (octants), same as your original
             for (int i = 0; i < 2; i++)
             {
                 for (int j = 0; j < 2; j++)

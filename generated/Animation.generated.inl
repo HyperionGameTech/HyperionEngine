@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AnimationTrack Reflection Data
 
-HYP_BEGIN_CLASS(AnimationTrack, 190, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(AnimationTrack, 165, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetBoneName)), &AnimationTrack::GetBoneName),
     HypMethod(NAME(HYP_STR(SetBoneName)), &AnimationTrack::SetBoneName),
     HypMethod(NAME(HYP_STR(AddKeyframe)), &AnimationTrack::AddKeyframe),
@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region Animation Reflection Data
 
-HYP_BEGIN_CLASS(Animation, 191, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(Animation, 166, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetName)), &Animation::GetName, Span<const HypClassAttribute> { {HypClassAttribute("property", "Name") } }),
     HypMethod(NAME(HYP_STR(SetName)), &Animation::SetName, Span<const HypClassAttribute> { {HypClassAttribute("property", "Name") } }),
     HypMethod(NAME(HYP_STR(GetLength)), &Animation::GetLength, Span<const HypClassAttribute> { {HypClassAttribute("property", "Length"), HypClassAttribute("transient", true) } }),

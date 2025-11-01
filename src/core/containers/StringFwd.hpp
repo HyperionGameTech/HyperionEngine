@@ -40,22 +40,22 @@ struct StringTypeImpl<ANSI>
 template <>
 struct StringTypeImpl<UTF8>
 {
-    using CharType = char;
-    using WidestCharType = utf::u32char;
+    using CharType = utf::Char8;
+    using WidestCharType = utf::Char32;
 };
 
 template <>
 struct StringTypeImpl<UTF16>
 {
-    using CharType = utf::u16char;
-    using WidestCharType = utf::u16char;
+    using CharType = utf::Char16;
+    using WidestCharType = utf::Char16;
 };
 
 template <>
 struct StringTypeImpl<UTF32>
 {
-    using CharType = utf::u32char;
-    using WidestCharType = utf::u32char;
+    using CharType = utf::Char32;
+    using WidestCharType = utf::Char32;
 };
 
 template <>

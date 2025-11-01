@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ComponentRWFlags Reflection Data
 
-HYP_BEGIN_ENUM(ComponentRWFlags, 374, 0, {})
+HYP_BEGIN_ENUM(ComponentRWFlags, 352, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), ComponentRWFlags::NONE),
     HypConstant(NAME(HYP_STR(READ)), ComponentRWFlags::READ),
     HypConstant(NAME(HYP_STR(WRITE)), ComponentRWFlags::WRITE),
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region ComponentInfo Reflection Data
 
-HYP_BEGIN_STRUCT(ComponentInfo, 375, 0, {}, HypClassAttribute("size", 12))
+HYP_BEGIN_STRUCT(ComponentInfo, 353, 0, {}, HypClassAttribute("size", 12))
     HypField(NAME(HYP_STR(TypeId)), &ComponentInfo::typeId, offsetof(ComponentInfo, typeId)),
     HypField(NAME(HYP_STR(RwFlags)), &ComponentInfo::rwFlags, offsetof(ComponentInfo, rwFlags)),
     HypField(NAME(HYP_STR(ReceivesEvents)), &ComponentInfo::receivesEvents, offsetof(ComponentInfo, receivesEvents))

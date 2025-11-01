@@ -526,7 +526,7 @@ protected:
         AFTER_CHILDREN
     };
 
-    UIObject(const ThreadId& ownerThreadId);
+    explicit UIObject(const ThreadId& ownerThreadId);
 
 public:
     friend class UISubsystem;
@@ -536,14 +536,14 @@ public:
 
     static constexpr int scrollbarSize = 15;
 
-    HYP_FIELD()
-    static constexpr int tmpField = 4;
-
     UIObject();
+
     UIObject(const UIObject& other) = delete;
     UIObject& operator=(const UIObject& other) = delete;
+
     UIObject(UIObject&& other) noexcept = delete;
     UIObject& operator=(UIObject&& other) noexcept = delete;
+
     virtual ~UIObject();
 
     virtual void Update(float delta) final;
@@ -1346,12 +1346,6 @@ protected:
 
     Vec2f GetParentScrollOffset() const;
 
-    /*! \brief Add a DelegateHandler to be removed when the object is destructed */
-    void AddDelegateHandler(DelegateHandler&& delegateHandler)
-    {
-        m_delegateHandlers.PushBack(std::move(delegateHandler));
-    }
-
     void UpdateMeshData(bool updateChildren = true);
     virtual void UpdateMeshData_Internal();
 
@@ -1506,8 +1500,6 @@ private:
     Handle<Node> m_node;
 
     Array<Handle<UIObject>> m_childUiObjects;
-
-    Array<DelegateHandler> m_delegateHandlers;
 };
 
 #pragma endregion UIObject

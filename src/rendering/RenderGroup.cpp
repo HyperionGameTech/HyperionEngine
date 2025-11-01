@@ -107,14 +107,6 @@ void RenderGroup::Init()
 {
     HYP_SCOPE;
 
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
-        {
-            HYP_SCOPE;
-
-            SafeDelete(std::move(m_shader));
-            SafeDelete(std::move(m_descriptorTable));
-        }));
-
     HypObjectBase::Init();
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
@@ -441,7 +433,7 @@ static void RenderAll(
         {
             frame->renderQueue << BindVertexBuffer(instancedDrawCalls.meshes[i]->GetVertexBuffer());
             frame->renderQueue << BindIndexBuffer(instancedDrawCalls.meshes[i]->GetIndexBuffer());
-            
+
 #if HYP_MATERIAL_DEBUG
             AssertDebug(instancedDrawCalls.materials[i] != nullptr && instancedDrawCalls.materials[i]->IsReady());
             if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
@@ -596,7 +588,7 @@ static void RenderAll_Parallel(
                     {
                         renderQueue << BindVertexBuffer(drawCalls.meshes[i]->GetVertexBuffer());
                         renderQueue << BindIndexBuffer(drawCalls.meshes[i]->GetIndexBuffer());
-                        
+
 #if HYP_MATERIAL_DEBUG
                         AssertDebug(drawCalls.materials[i] != nullptr && drawCalls.materials[i]->IsReady());
                         if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
@@ -701,7 +693,7 @@ static void RenderAll_Parallel(
                     {
                         renderQueue << BindVertexBuffer(instancedDrawCalls.meshes[i]->GetVertexBuffer());
                         renderQueue << BindIndexBuffer(instancedDrawCalls.meshes[i]->GetIndexBuffer());
-                        
+
 #if HYP_MATERIAL_DEBUG
                         AssertDebug(instancedDrawCalls.materials[i] != nullptr && instancedDrawCalls.materials[i]->IsReady());
                         if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))

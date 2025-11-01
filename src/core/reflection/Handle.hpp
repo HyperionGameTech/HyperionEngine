@@ -7,6 +7,8 @@
 #include <core/reflection/HypObjectBase.hpp>
 #include <core/reflection/TypeInfoFwd.hpp>
 
+#include <core/memory/AnyRef.hpp>
+
 #include <core/Util.hpp>
 
 namespace hyperion {
@@ -924,7 +926,11 @@ inline Handle<T> CreateObject(Args&&... args)
     HypObjectHeader* header = container->Allocate(sizeof(T));
 
     HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
-    Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
+
+    {
+        HypObjectInitializerGuard<T> guard(ptr);
+        new (ptr) T(std::forward<Args>(args)...);
+    }
 
     Handle<T> handle;
     handle.ptr = ptr;

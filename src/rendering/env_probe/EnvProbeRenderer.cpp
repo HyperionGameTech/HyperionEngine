@@ -166,7 +166,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     HYP_DEFER({ rpl.EndRead(); });
 
     // special checks for Sky + caching result based on light position + intensity
-    if (envProbe->IsA<SkyProbe>())
+    if (envProbe->IsA(SkyProbe::Class()))
     {
         if (!renderSetup.light)
         {
@@ -289,8 +289,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     };
 
     ShaderProperties shaderProperties;
-    shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), /* isPermutation */ false, 0.94f));
-    shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), /* isPermutation */ false, 64));
+    shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), 0.94f));
+    shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 64));
 
     if (!envProbe->IsSkyProbe())
     {
@@ -333,10 +333,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     uniforms.numBoundLights = numBoundLights;
 
-    HYP_LOG_TEMP("Num bound lights for env probe : {}", uniforms.numBoundLights);
-
     GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-    HYP_GFX_ASSERT(uniformBuffer->Create());
+    Assert(uniformBuffer->Create());
     uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
     const ViewOutputTarget& outputTarget = view->GetOutputTarget();
@@ -349,9 +347,9 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     AttachmentBase* normalsAttachment = framebuffer->GetAttachment(1);
     AttachmentBase* momentsAttachment = framebuffer->GetAttachment(2);
 
-    Assert(colorAttachment != nullptr);
-    Assert(normalsAttachment != nullptr);
-    Assert(momentsAttachment != nullptr);
+    AssertDebug(colorAttachment != nullptr);
+    AssertDebug(normalsAttachment != nullptr);
+    AssertDebug(momentsAttachment != nullptr);
 
     const DescriptorTableDeclaration& descriptorTableDecl = convolveProbeShader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
@@ -361,7 +359,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet", frameIndex);
-        Assert(descriptorSet.IsValid());
+        AssertDebug(descriptorSet != nullptr);
 
         descriptorSet->SetElement("UniformBuffer", uniformBuffer);
         descriptorSet->SetElement("ColorTexture", colorAttachment->GetImageView());
@@ -372,10 +370,10 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
         descriptorSet->SetElement("OutImage", g_renderBackend->GetTextureImageView(prefilteredEnvMap));
     }
 
-    HYP_GFX_ASSERT(descriptorTable->Create());
+    Assert(descriptorTable->Create());
 
     ComputePipelineRef convolveProbeComputePipeline = g_renderBackend->MakeComputePipeline(convolveProbeShader, descriptorTable);
-    HYP_GFX_ASSERT(convolveProbeComputePipeline->Create());
+    Assert(convolveProbeComputePipeline->Create());
 
     frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS);
 
@@ -447,7 +445,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
         shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
         shTilesBuffers[i]->SetRequireCpuAccessible(true);
-        HYP_GFX_ASSERT(shTilesBuffers[i]->Create());
+        Assert(shTilesBuffers[i]->Create());
     }
 
     ShaderProperties shaderProperties;
@@ -457,7 +455,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         shaderProperties.Set(NAME("LIGHTING"));
     }
 
-    enum 
+    enum
     {
         MODE_CLEAR,
         MODE_BUILD_COEFFICIENTS,
@@ -468,10 +466,10 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     };
 
     FixedArray<Pair<ShaderRef, ComputePipelineRef>, MODE_MAX> pipelines = {
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("CLEAR")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("BUILD_COEFFICIENTS")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("REDUCE")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), false, String("FINALIZE")) } })), ComputePipelineRef::Null() }
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("CLEAR")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("BUILD_COEFFICIENTS")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("REDUCE")) } })), ComputePipelineRef::Null() },
+        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), String("FINALIZE")) } })), ComputePipelineRef::Null() }
     };
 
     ShaderRef firstShader;
@@ -524,7 +522,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
             it.first,
             computeShDescriptorTables[0]);
 
-        HYP_GFX_ASSERT(pipeline->Create());
+        Assert(pipeline->Create());
     }
 
     // Bind a directional light and sky envprobe if available

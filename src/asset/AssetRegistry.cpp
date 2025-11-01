@@ -74,7 +74,7 @@ HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr)
 
     for (auto it = nameStr.Begin(); it != nameStr.End(); ++it)
     {
-        const utf::u32char c = *it;
+        const utf::Char32 c = *it;
 
         if (!std::isalnum(int(c)) && c != '$')
         {
@@ -147,7 +147,7 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
 
     for (auto it : UTF8StringView(str))
     {
-        if (utf::utf32Isalpha(it) || utf::utf32Isdigit(it))
+        if (utf::IsAlphabetical(it) || utf::IsDecimal(it))
         {
             friendlyNameStr.Append(it);
         }
@@ -334,7 +334,7 @@ void AssetPackage::SetAssetObjects(const AssetObjectSet& assetObjects)
         {
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
-            
+
             assetObject->SetIsTransientByProxy(IsTransient());
 
             if (isPackageSavedInFilesystem)
@@ -436,9 +436,9 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             {
                 assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
             }
-            
+
             assetObject->SetIsTransientByProxy(IsTransient());
-            
+
             if (isPackageSavedInFilesystem)
             {
                 // set a filepath for the asset object to be saved at, based on our package's filepath.
@@ -985,7 +985,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory)
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
                 continue;
             }
-            
+
             assetObject->SetIsTransientByProxy(false);
         }
 
@@ -1359,9 +1359,9 @@ void AssetRegistry::Update(float delta)
         TaskBatch* taskBatch = new TaskBatch;
         taskBatch->pool = assetWorkerThreadPool;
         taskBatch->OnComplete.Bind([taskBatch]()
-            {
-                delete taskBatch;
-            })
+                                 {
+                                     delete taskBatch;
+                                 })
             .Detach();
 
         { // collect tasks
@@ -2375,7 +2375,7 @@ Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8String
 
     for (auto it = path.Begin(); it != path.End(); ++it)
     {
-        if (*it == utf::u32char('/') || *it == utf::u32char('\\'))
+        if (*it == utf::Char32('/') || *it == utf::Char32('\\'))
         {
             currentPackage = GetSubpackage(currentPackage, CreateNameFromDynamicString(currentString), createIfNotExist);
 

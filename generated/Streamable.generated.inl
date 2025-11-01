@@ -9,7 +9,7 @@ namespace hyperion {
 
 #pragma region StreamableBase Reflection Data
 
-HYP_BEGIN_CLASS(StreamableBase, 64, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(StreamableBase, 178, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetKey)), &StreamableBase::GetKey),
     HypMethod(NAME(HYP_STR(GetBoundingBox)), &StreamableBase::GetBoundingBox, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(OnStreamStart)), &StreamableBase::OnStreamStart, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
@@ -92,7 +92,7 @@ namespace hyperion {
 
 #pragma region StreamableKey Reflection Data
 
-HYP_BEGIN_STRUCT(StreamableKey, 273, 0, {})
+HYP_BEGIN_STRUCT(StreamableKey, 401, 0, {})
     HypField(NAME(HYP_STR(Uuid)), &StreamableKey::uuid, offsetof(StreamableKey, uuid), Span<const HypClassAttribute> { {HypClassAttribute("property", "Uuid"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(AssetPath)), &StreamableKey::assetPath, offsetof(StreamableKey, assetPath), Span<const HypClassAttribute> { {HypClassAttribute("property", "AssetPath"), HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT

@@ -345,15 +345,10 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
 
 void AssetManager::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
-        {
-            if (m_threadPool)
-            {
-                m_threadPool->Stop();
-                m_threadPool.Reset();
-            }
-        }));
-
+    HYP_SCOPE;
+    
+    HypObjectBase::Init();
+    
     RegisterDefaultLoaders();
 
     m_assetRegistry = CreateObject<AssetRegistry>();

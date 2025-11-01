@@ -1,20 +1,17 @@
-#extension GL_EXT_scalar_block_layout : require
-#extension GL_EXT_nonuniform_qualifier : require
-
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #ifndef OUTPUT_FORMAT
-    #if defined(OUTPUT_RGBA8)
-        #define OUTPUT_FORMAT rgba8
-        #define TEMPORAL_BLENDING_GAMMA_CORRECTION
-    #elif defined(OUTPUT_RGBA16F)
-        #define OUTPUT_FORMAT rgba16f
-    #elif defined(OUTPUT_RGBA32F)
-        #define OUTPUT_FORMAT rgba32f
-    #else
-        #define OUTPUT_FORMAT rgba8
-        #define TEMPORAL_BLENDING_GAMMA_CORRECTION
-    #endif
+#if defined(OUTPUT_RGBA8)
+#define OUTPUT_FORMAT rgba8
+#define TEMPORAL_BLENDING_GAMMA_CORRECTION
+#elif defined(OUTPUT_RGBA16F)
+#define OUTPUT_FORMAT rgba16f
+#elif defined(OUTPUT_RGBA32F)
+#define OUTPUT_FORMAT rgba32f
+#else
+#define OUTPUT_FORMAT rgba8
+#define TEMPORAL_BLENDING_GAMMA_CORRECTION
+#endif
 #endif
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

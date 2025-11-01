@@ -118,7 +118,7 @@ private:
 
     void RecordStat(int statId, EngineStatType type, double value);
 
-    Pimpl<struct EngineStatsRecorderImpl> m_pImpl;
+    Pimpl<struct EngineStatsRecorderImpl> m_impl;
 };
 
 class HYP_API EngineStatGroup : public EngineStatBase

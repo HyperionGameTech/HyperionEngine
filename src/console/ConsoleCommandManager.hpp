@@ -6,6 +6,8 @@
 
 #include <core/utilities/Result.hpp>
 
+#include <core/memory/Pimpl.hpp>
+
 #include <core/reflection/Handle.hpp>
 
 namespace hyperion {
@@ -35,7 +37,7 @@ public:
 private:
     int FindAndRegisterCommands();
 
-    UniquePtr<ConsoleCommandManagerImpl> m_impl;
+    Pimpl<ConsoleCommandManagerImpl> m_impl;
 };
 
 } // namespace hyperion

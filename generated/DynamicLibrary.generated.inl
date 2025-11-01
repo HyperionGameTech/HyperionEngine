@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region DynamicLibrary Reflection Data
 
-HYP_BEGIN_STRUCT(DynamicLibrary, 253, 0, {}, HypClassAttribute("size", 8))
+HYP_BEGIN_STRUCT(DynamicLibrary, 235, 0, {}, HypClassAttribute("size", 8))
     HypMethod(NAME(HYP_STR(GetPath)), &DynamicLibrary::GetPath),
     HypMethod(NAME(HYP_STR(SetPath)), &DynamicLibrary::SetPath),
     HypMethod(NAME(HYP_STR(Load)), &DynamicLibrary::Load),
