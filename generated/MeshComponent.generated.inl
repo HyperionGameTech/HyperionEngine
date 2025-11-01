@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region MeshComponent Reflection Data
 
-HYP_BEGIN_STRUCT(MeshComponent, 391, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 240),HypClassAttribute("label", "Mesh Component"),HypClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),HypClassAttribute("editor", true))
+HYP_BEGIN_STRUCT(MeshComponent, 382, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 240),HypClassAttribute("label", "Mesh Component"),HypClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),HypClassAttribute("editor", true))
     HypField(NAME(HYP_STR(Mesh)), &MeshComponent::mesh, offsetof(MeshComponent, mesh), Span<const HypClassAttribute> { {HypClassAttribute("property", "Mesh"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Material)), &MeshComponent::material, offsetof(MeshComponent, material), Span<const HypClassAttribute> { {HypClassAttribute("property", "Material"), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Skeleton)), &MeshComponent::skeleton, offsetof(MeshComponent, skeleton), Span<const HypClassAttribute> { {HypClassAttribute("property", "Skeleton"), HypClassAttribute("editor", true) } }),

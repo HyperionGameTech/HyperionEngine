@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region View Reflection Data
 
-HYP_BEGIN_CLASS(View, 180, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(View, 163, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetScenes)), &View::GetScenes),
     HypMethod(NAME(HYP_STR(AddScene)), &View::AddScene),
     HypMethod(NAME(HYP_STR(RemoveScene)), &View::RemoveScene),

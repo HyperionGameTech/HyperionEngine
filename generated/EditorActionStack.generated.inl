@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EditorActionStack Reflection Data
 
-HYP_BEGIN_CLASS(EditorActionStack, 196, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EditorActionStack, 36, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(Push)), &EditorActionStack::Push),
     HypMethod(NAME(HYP_STR(CanUndo)), &EditorActionStack::CanUndo),
     HypMethod(NAME(HYP_STR(CanRedo)), &EditorActionStack::CanRedo),
@@ -29,7 +29,7 @@ namespace hyperion {
 
 #pragma region EditorActionStackState Reflection Data
 
-HYP_BEGIN_ENUM(EditorActionStackState, 416, 0, {})
+HYP_BEGIN_ENUM(EditorActionStackState, 255, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), EditorActionStackState::NONE),
     HypConstant(NAME(HYP_STR(CAN_UNDO)), EditorActionStackState::CAN_UNDO),
     HypConstant(NAME(HYP_STR(CAN_REDO)), EditorActionStackState::CAN_REDO)

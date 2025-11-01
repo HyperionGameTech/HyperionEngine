@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region FrameBase Reflection Data
 
-HYP_BEGIN_CLASS(FrameBase, 115, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(FrameBase, 99, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion FrameBase Reflection Data

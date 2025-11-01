@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region BoundingBoxComponent Reflection Data
 
-HYP_BEGIN_STRUCT(BoundingBoxComponent, 394, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 64),HypClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(BoundingBoxComponent, 380, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 64),HypClassAttribute("editor", false))
     HypField(NAME(HYP_STR(LocalAabb)), &BoundingBoxComponent::localAabb, offsetof(BoundingBoxComponent, localAabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "LocalAABB") } }),
     HypField(NAME(HYP_STR(WorldAabb)), &BoundingBoxComponent::worldAabb, offsetof(BoundingBoxComponent, worldAabb), Span<const HypClassAttribute> { {HypClassAttribute("property", "WorldAABB") } })
 HYP_END_STRUCT

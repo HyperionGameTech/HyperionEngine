@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region MouseButtonState Reflection Data
 
-HYP_BEGIN_ENUM(MouseButtonState, 270, 0, {})
+HYP_BEGIN_ENUM(MouseButtonState, 260, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), MouseButtonState::NONE),
     HypConstant(NAME(HYP_STR(LEFT)), MouseButtonState::LEFT),
     HypConstant(NAME(HYP_STR(MIDDLE)), MouseButtonState::MIDDLE),
@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region MouseEvent Reflection Data
 
-HYP_BEGIN_STRUCT(MouseEvent, 271, 0, {}, HypClassAttribute("size", 56))
+HYP_BEGIN_STRUCT(MouseEvent, 261, 0, {}, HypClassAttribute("size", 56))
     HypField(NAME(HYP_STR(InputManager)), &MouseEvent::inputManager, offsetof(MouseEvent, inputManager)),
     HypField(NAME(HYP_STR(Position)), &MouseEvent::position, offsetof(MouseEvent, position)),
     HypField(NAME(HYP_STR(PreviousPosition)), &MouseEvent::previousPosition, offsetof(MouseEvent, previousPosition)),
@@ -41,7 +41,7 @@ namespace hyperion {
 
 #pragma region MouseButtonKey Reflection Data
 
-HYP_BEGIN_ENUM(MouseButtonKey, 272, 0, {})
+HYP_BEGIN_ENUM(MouseButtonKey, 262, 0, {})
     HypConstant(NAME(HYP_STR(MBK_INVALID)), MouseButtonKey::MBK_INVALID),
     HypConstant(NAME(HYP_STR(MBK_LEFT)), MouseButtonKey::MBK_LEFT),
     HypConstant(NAME(HYP_STR(MBK_MIDDLE)), MouseButtonKey::MBK_MIDDLE),

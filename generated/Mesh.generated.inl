@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Mesh Reflection Data
 
-HYP_BEGIN_CLASS(Mesh, 52, 0, NAME("AssetObject"))
+HYP_BEGIN_CLASS(Mesh, 22, 0, NAME("AssetObject"))
     HypMethod(NAME(HYP_STR(GetFlags)), &Mesh::GetFlags),
     HypMethod(NAME(HYP_STR(SetFlags)), &Mesh::SetFlags),
     HypMethod(NAME(HYP_STR(Rename)), &Mesh::Rename),
@@ -30,7 +30,7 @@ namespace hyperion {
 
 #pragma region MeshFlags Reflection Data
 
-HYP_BEGIN_ENUM(MeshFlags, 336, 0, {})
+HYP_BEGIN_ENUM(MeshFlags, 274, 0, {})
     HypConstant(NAME(HYP_STR(MF_NONE)), MeshFlags::MF_NONE),
     HypConstant(NAME(HYP_STR(MF_VIEW_INDEPENDENT)), MeshFlags::MF_VIEW_INDEPENDENT)
 HYP_END_ENUM

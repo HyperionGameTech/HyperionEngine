@@ -64,8 +64,8 @@ public:
     static constexpr bool isUtf32 = TStringType == UTF32;
     static constexpr bool isWide = TStringType == WIDE_CHAR;
 
-    static_assert(!isUtf8 || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
-    static_assert(!isAnsi || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
+    static_assert(!isAnsi || std::is_same_v<CharType, char>, "ANSI Strings must have CharType equal to char");
+    static_assert(!isUtf8 || std::is_same_v<CharType, utf::Char8>, "UTF8 Strings must have CharType equal to utf::Char8");
     static_assert(!isUtf16 || std::is_same_v<CharType, utf::Char16>, "UTF-16 Strings must have CharType equal to utf::Char16");
     static_assert(!isUtf32 || std::is_same_v<CharType, utf::Char32>, "UTF-32 Strings must have CharType equal to utf::Char32");
     static_assert(!isWide || std::is_same_v<CharType, wchar_t>, "Wide Strings must have CharType equal to wchar_t");
@@ -73,8 +73,6 @@ public:
     static constexpr int stringType = TStringType;
 
     static constexpr SizeType NotFound = SizeType(-1);
-
-    static_assert(!isUtf8 || std::is_same_v<CharType, char>, "UTF-8 Strings must have CharType equal to char");
 
     template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator<(const containers::String<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
@@ -679,7 +677,7 @@ public:
 
     HYP_NODISCARD static String Base64Encode(const Array<ubyte>& bytes)
     {
-        static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        static const utf::Char8 alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
         String out;
 
@@ -1793,7 +1791,7 @@ inline containers::String<TStringType> operator+(const typename containers::Stri
     return containers::String<TStringType>(lhs) + rhs;
 }
 
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, char>>>
+template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, utf::Char8>>>
 std::ostream& operator<<(std::ostream& os, const containers::String<TStringType>& str)
 {
     os << str.Data();

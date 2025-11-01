@@ -526,7 +526,7 @@ protected:
         AFTER_CHILDREN
     };
 
-    UIObject(const ThreadId& ownerThreadId);
+    explicit UIObject(const ThreadId& ownerThreadId);
 
 public:
     friend class UISubsystem;
@@ -536,14 +536,14 @@ public:
 
     static constexpr int scrollbarSize = 15;
 
-    HYP_FIELD()
-    static constexpr int tmpField = 4;
-
     UIObject();
+
     UIObject(const UIObject& other) = delete;
     UIObject& operator=(const UIObject& other) = delete;
+
     UIObject(UIObject&& other) noexcept = delete;
     UIObject& operator=(UIObject&& other) noexcept = delete;
+
     virtual ~UIObject();
 
     virtual void Update(float delta) final;

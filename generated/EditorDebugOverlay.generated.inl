@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region TextureEditorDebugOverlay Reflection Data
 
-HYP_BEGIN_CLASS(TextureEditorDebugOverlay, 211, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(TextureEditorDebugOverlay, 48, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion TextureEditorDebugOverlay Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region TextEditorDebugOverlay Reflection Data
 
-HYP_BEGIN_CLASS(TextEditorDebugOverlay, 212, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(TextEditorDebugOverlay, 49, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion TextEditorDebugOverlay Reflection Data
@@ -33,7 +33,7 @@ namespace hyperion {
 
 #pragma region EditorDebugOverlayBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorDebugOverlayBase, 208, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorDebugOverlayBase, 47, 4, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetUIObject)), &EditorDebugOverlayBase::GetUIObject),
     HypMethod(NAME(HYP_STR(GetPlacement)), &EditorDebugOverlayBase::GetPlacement, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(Update)), &EditorDebugOverlayBase::Update, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),

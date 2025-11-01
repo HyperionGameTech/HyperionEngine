@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region FullScreenPass Reflection Data
 
-HYP_BEGIN_CLASS(FullScreenPass, 121, 7, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(FullScreenPass, 66, 7, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion FullScreenPass Reflection Data

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Skeleton Reflection Data
 
-HYP_BEGIN_CLASS(Skeleton, 54, 0, NAME("AssetObject"))
+HYP_BEGIN_CLASS(Skeleton, 25, 0, NAME("AssetObject"))
     HypMethod(NAME(HYP_STR(GetRootBone)), &Skeleton::GetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("property", "RootBone") } }),
     HypMethod(NAME(HYP_STR(SetRootBone)), &Skeleton::SetRootBone, Span<const HypClassAttribute> { {HypClassAttribute("property", "RootBone") } }),
     HypMethod(NAME(HYP_STR(GetSkeletonAsset)), &Skeleton::GetSkeletonAsset, Span<const HypClassAttribute> { {HypClassAttribute("property", "SkeletonAsset") } }),

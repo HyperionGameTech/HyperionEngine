@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region NodeFlags Reflection Data
 
-HYP_BEGIN_ENUM(NodeFlags, 376, 0, {}, HypClassAttribute("flags", true))
+HYP_BEGIN_ENUM(NodeFlags, 361, 0, {}, HypClassAttribute("flags", true))
     HypConstant(NAME(HYP_STR(NONE)), NodeFlags::NONE),
     HypConstant(NAME(HYP_STR(IGNORE_PARENT_TRANSLATION)), NodeFlags::IGNORE_PARENT_TRANSLATION),
     HypConstant(NAME(HYP_STR(IGNORE_PARENT_SCALE)), NodeFlags::IGNORE_PARENT_SCALE),
@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region NodeTagSet Reflection Data
 
-HYP_BEGIN_STRUCT(NodeTagSet, 377, 0, {})
+HYP_BEGIN_STRUCT(NodeTagSet, 362, 0, {})
 HYP_END_STRUCT
 
 #pragma endregion NodeTagSet Reflection Data
@@ -37,7 +37,7 @@ namespace hyperion {
 
 #pragma region NodeTag Reflection Data
 
-HYP_BEGIN_STRUCT(NodeTag, 378, 0, {})
+HYP_BEGIN_STRUCT(NodeTag, 363, 0, {})
     HypField(NAME(HYP_STR(Name)), &NodeTag::name, offsetof(NodeTag, name), Span<const HypClassAttribute> { {HypClassAttribute("property", "Name"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Data)), &NodeTag::data, offsetof(NodeTag, data), Span<const HypClassAttribute> { {HypClassAttribute("property", "Data"), HypClassAttribute("serialize", true) } })
 HYP_END_STRUCT
@@ -51,7 +51,7 @@ namespace hyperion {
 
 #pragma region Node Reflection Data
 
-HYP_BEGIN_CLASS(Node, 165, 14, NAME("HypObjectBase"), HypClassAttribute("postload", "Node_OnPostLoad"))
+HYP_BEGIN_CLASS(Node, 131, 14, NAME("HypObjectBase"), HypClassAttribute("postload", "Node_OnPostLoad"))
     HypMethod(NAME(HYP_STR(GetUUID)), &Node::GetUUID),
     HypMethod(NAME(HYP_STR(GetName)), &Node::GetName),
     HypMethod(NAME(HYP_STR(SetName)), &Node::SetName),

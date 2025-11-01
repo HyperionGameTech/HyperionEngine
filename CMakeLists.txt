@@ -43,8 +43,8 @@ string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 set(HYP_BUILD_TYPE "Release")
 
 set(HYP_BUILD_TOOL_VERSION_MAJOR 0)
-set(HYP_BUILD_TOOL_VERSION_MINOR 5)
-set(HYP_BUILD_TOOL_VERSION_PATCH 1)
+set(HYP_BUILD_TOOL_VERSION_MINOR 6)
+set(HYP_BUILD_TOOL_VERSION_PATCH 0)
 
 set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
 set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
@@ -93,11 +93,11 @@ add_definitions(-DHYP_DEBUG_MODE=1)
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
 
-# if(NOT HYP_DEBUG_MODE)
+if(NOT HYP_DEBUG_MODE)
     # enable TypeId generatation at compile time
     # will increase compile times slightly but improve runtime performance
     add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
-# endif()
+endif()
 
 # platform and compiler definitions
 if(MSVC)
@@ -382,7 +382,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 add_definitions(-DHYP_SCRIPT=1)
 
 # uncomment to explicitly disable dotnet
-set(HYP_NO_DOTNET 1)
+# set(HYP_NO_DOTNET 1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1

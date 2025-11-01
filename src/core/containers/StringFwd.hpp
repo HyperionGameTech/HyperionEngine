@@ -40,7 +40,7 @@ struct StringTypeImpl<ANSI>
 template <>
 struct StringTypeImpl<UTF8>
 {
-    using CharType = char;
+    using CharType = utf::Char8;
     using WidestCharType = utf::Char32;
 };
 

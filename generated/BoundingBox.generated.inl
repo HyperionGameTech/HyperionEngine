@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region BoundingBox Reflection Data
 
-HYP_BEGIN_STRUCT(BoundingBox, 248, 0, {}, HypClassAttribute("size", 32))
+HYP_BEGIN_STRUCT(BoundingBox, 237, 0, {}, HypClassAttribute("size", 32))
     HypField(NAME(HYP_STR(Min)), &BoundingBox::min, offsetof(BoundingBox, min), Span<const HypClassAttribute> { {HypClassAttribute("property", "Min"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
     HypField(NAME(HYP_STR(Max)), &BoundingBox::max, offsetof(BoundingBox, max), Span<const HypClassAttribute> { {HypClassAttribute("property", "Max"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } })
 HYP_END_STRUCT

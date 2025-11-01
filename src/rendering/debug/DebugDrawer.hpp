@@ -251,13 +251,11 @@ public:
     DebugDrawer();
     ~DebugDrawer() override;
 
-    HYP_METHOD()
     HYP_FORCE_INLINE bool IsEnabled() const
     {
         return m_config.enabled;
     }
 
-    HYP_METHOD(Property = "Config")
     HYP_FORCE_INLINE const DebugDrawerConfig& GetConfig() const
     {
         return m_config;

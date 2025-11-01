@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region NodeLinkComponent Reflection Data
 
-HYP_BEGIN_STRUCT(NodeLinkComponent, 410, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 8),HypClassAttribute("serialize", false),HypClassAttribute("editor", false))
+HYP_BEGIN_STRUCT(NodeLinkComponent, 383, 0, {}, HypClassAttribute("component", true),HypClassAttribute("size", 8),HypClassAttribute("serialize", false),HypClassAttribute("editor", false))
     HypField(NAME(HYP_STR(Node)), &NodeLinkComponent::node, offsetof(NodeLinkComponent, node))
 HYP_END_STRUCT
 

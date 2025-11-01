@@ -70,9 +70,9 @@ public:
                 return;
             }
 
-            const auto x = StringUtil::Parse<float>(attributes.At("x"));
-            const auto y = StringUtil::Parse<float>(attributes.At("y"));
-            const auto z = StringUtil::Parse<float>(attributes.At("z"));
+            const float x = StringUtil::Parse<float>(attributes.At("x"));
+            const float y = StringUtil::Parse<float>(attributes.At("y"));
+            const float z = StringUtil::Parse<float>(attributes.At("z"));
 
             m_model.positions.PushBack(Vec3f(x, y, z));
         }
@@ -83,9 +83,9 @@ public:
                 return;
             }
 
-            const auto x = StringUtil::Parse<float>(attributes.At("x"));
-            const auto y = StringUtil::Parse<float>(attributes.At("y"));
-            const auto z = StringUtil::Parse<float>(attributes.At("z"));
+            const float x = StringUtil::Parse<float>(attributes.At("x"));
+            const float y = StringUtil::Parse<float>(attributes.At("y"));
+            const float z = StringUtil::Parse<float>(attributes.At("z"));
 
             m_model.normals.PushBack(Vec3f(x, y, z));
         }
@@ -96,8 +96,8 @@ public:
                 return;
             }
 
-            const auto x = StringUtil::Parse<float>(attributes.At("u"));
-            const auto y = StringUtil::Parse<float>(attributes.At("v"));
+            const float x = StringUtil::Parse<float>(attributes.At("u"));
+            const float y = StringUtil::Parse<float>(attributes.At("v"));
 
             m_model.texcoords.PushBack(Vec2f(x, y));
         }
@@ -127,9 +127,9 @@ public:
         }
         else if (name == "vertexboneassignment")
         {
-            const auto vertexIndex = StringUtil::Parse<uint32>(attributes.At("vertexindex"));
-            const auto boneIndex = StringUtil::Parse<uint32>(attributes.At("boneindex"));
-            const auto boneWeight = StringUtil::Parse<float>(attributes.At("weight"));
+            const uint32 vertexIndex = StringUtil::Parse<uint32>(attributes.At("vertexindex"));
+            const uint32 boneIndex = StringUtil::Parse<uint32>(attributes.At("boneindex"));
+            const float boneWeight = StringUtil::Parse<float>(attributes.At("weight"));
 
             AddBoneAssignment(vertexIndex, { boneIndex, boneWeight });
         }

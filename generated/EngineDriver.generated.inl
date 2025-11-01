@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EngineDriver Reflection Data
 
-HYP_BEGIN_CLASS(EngineDriver, 195, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EngineDriver, 52, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetInstance)), &EngineDriver::GetInstance),
     HypMethod(NAME(HYP_STR(GetCurrentWorld)), &EngineDriver::GetCurrentWorld),
     HypMethod(NAME(HYP_STR(SetCurrentWorld)), &EngineDriver::SetCurrentWorld),

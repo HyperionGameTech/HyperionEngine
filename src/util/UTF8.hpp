@@ -85,9 +85,9 @@ inline Array<char> ToMultiByte(const wchar_t* wstr)
 #define HYP_UTF8_CHECK_BOUNDS(...)
 #endif
 
-using Char32 = uint32;
-using Char16 = uint16;
-using Char8 = uint8;
+using Char32 = char32_t;
+using Char16 = char16_t;
+using Char8 = char; //  backwards compatibility
 
 inline void Init()
 {

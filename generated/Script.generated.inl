@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region ScriptData Reflection Data
 
-HYP_BEGIN_STRUCT(ScriptData, 229, 0, {})
+HYP_BEGIN_STRUCT(ScriptData, 398, 0, {})
     HypField(NAME(HYP_STR(Uuid)), &ScriptData::uuid, offsetof(ScriptData, uuid), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Language)), &ScriptData::language, offsetof(ScriptData, language), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Path)), &ScriptData::path, offsetof(ScriptData, path), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
