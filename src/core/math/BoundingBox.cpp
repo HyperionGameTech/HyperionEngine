@@ -4,10 +4,6 @@
 #include <core/math/Triangle.hpp>
 #include <core/math/MathUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <BoundingBox.generated.inl>
-#endif
-
 namespace hyperion {
 
 HYP_API BoundingBox operator*(const Mat4f& transform, const BoundingBox& aabb)

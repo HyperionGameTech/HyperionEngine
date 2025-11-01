@@ -8,8 +8,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <VulkanSampler.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

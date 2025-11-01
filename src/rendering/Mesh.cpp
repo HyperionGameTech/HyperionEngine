@@ -25,8 +25,6 @@
 
 #include <cstring>
 
-#include <Mesh.generated.inl>
-
 namespace hyperion {
 
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");

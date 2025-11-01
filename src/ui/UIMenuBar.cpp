@@ -14,8 +14,6 @@
 #include <core/utilities/Format.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <UIMenuBar.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

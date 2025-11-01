@@ -8,8 +8,6 @@
 
 #include <rendering/Buffers.hpp>
 
-#include <RenderDescriptorSet.generated.inl>
-
 namespace hyperion {
 #pragma region DescriptorSetDeclaration
 

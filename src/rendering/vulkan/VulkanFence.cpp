@@ -10,8 +10,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <VulkanFence.generated.inl>
-
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
 namespace hyperion {

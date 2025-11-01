@@ -3,8 +3,6 @@
 #include <streaming/StreamingVolume.hpp>
 #include <streaming/StreamingManager.hpp>
 
-#include <StreamingVolume.generated.inl>
-
 namespace hyperion {
 
 void StreamingVolumeBase::NotifyUpdate()

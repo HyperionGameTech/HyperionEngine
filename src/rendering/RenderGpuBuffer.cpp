@@ -2,8 +2,6 @@
 
 #include <rendering/RenderGpuBuffer.hpp>
 
-#include <RenderGpuBuffer.generated.inl>
-
 namespace hyperion {
 
 } // namespace hyperion

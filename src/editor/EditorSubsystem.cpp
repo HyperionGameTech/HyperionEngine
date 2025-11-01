@@ -91,8 +91,6 @@
 
 #include <HyperionEngine.hpp>
 
-#include <EditorSubsystem.generated.inl>
-
 namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);

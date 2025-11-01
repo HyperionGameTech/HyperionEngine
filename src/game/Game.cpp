@@ -35,8 +35,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <Game.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(GameThread);

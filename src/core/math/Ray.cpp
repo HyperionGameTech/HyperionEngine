@@ -8,10 +8,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Ray.generated.inl>
-#endif
-
 namespace hyperion {
 
 HYP_API Ray operator*(const Mat4f& transform, const Ray& ray)

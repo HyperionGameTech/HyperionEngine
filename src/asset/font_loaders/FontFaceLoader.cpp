@@ -2,8 +2,6 @@
 
 #include <asset/font_loaders/FontFaceLoader.hpp>
 
-#include <FontFaceLoader.generated.inl>
-
 namespace hyperion {
 
 AssetLoadResult FontFaceLoader::LoadAsset(LoaderState& state) const

@@ -17,8 +17,6 @@
 
 #include <cstring>
 
-#include <VulkanRaytracingPipeline.generated.inl>
-
 namespace hyperion {
 
 extern IRenderBackend* g_renderBackend;

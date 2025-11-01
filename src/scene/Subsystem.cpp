@@ -2,8 +2,6 @@
 
 #include <scene/Subsystem.hpp>
 
-#include <Subsystem.generated.inl>
-
 namespace hyperion {
 
 Subsystem::Subsystem()

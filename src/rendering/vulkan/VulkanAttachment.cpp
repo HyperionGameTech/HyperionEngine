@@ -10,8 +10,6 @@
 
 #include <rendering/RenderBackend.hpp>
 
-#include <VulkanAttachment.generated.inl>
-
 namespace hyperion {
 #pragma region Helpers
 

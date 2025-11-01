@@ -5,8 +5,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <UIDockableContainer.generated.inl>
-
 namespace hyperion {
 
 static const HashMap<String, UIDockableItemPosition> g_dockableItemPositionMap = {

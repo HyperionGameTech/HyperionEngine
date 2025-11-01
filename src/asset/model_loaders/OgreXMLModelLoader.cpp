@@ -28,8 +28,6 @@
 
 #include <util/xml/SAXParser.hpp>
 
-#include <OgreXMLModelLoader.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

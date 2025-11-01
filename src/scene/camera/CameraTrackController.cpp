@@ -2,8 +2,6 @@
 
 #include <scene/camera/CameraTrackController.hpp>
 
-#include <CameraTrackController.generated.inl>
-
 namespace hyperion {
 CameraTrackController::CameraTrackController()
     : PerspectiveCameraController(),

@@ -11,8 +11,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <VisibilityStateUpdaterSystem.generated.inl>
-
 namespace hyperion {
 
 bool VisibilityStateUpdaterSystem::ShouldCreateForScene(Scene* scene) const

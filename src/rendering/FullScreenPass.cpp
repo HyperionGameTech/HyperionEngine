@@ -33,8 +33,6 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <FullScreenPass.generated.inl>
-
 namespace hyperion {
 
 struct MergeHalfResTexturesUniforms

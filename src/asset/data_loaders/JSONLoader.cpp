@@ -6,8 +6,6 @@
 #include <stack>
 #include <string>
 
-#include <JSONLoader.generated.inl>
-
 namespace hyperion {
 
 AssetLoadResult JSONLoader::LoadAsset(LoaderState& state) const

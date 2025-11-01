@@ -26,8 +26,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <WorldGrid.generated.inl>
-
 namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(WorldGrid, Scene);

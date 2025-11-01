@@ -22,8 +22,6 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <LightmapperSubsystem.generated.inl>
-
 namespace hyperion {
 
 #pragma region LightmapperSubsystem

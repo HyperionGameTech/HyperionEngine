@@ -10,10 +10,6 @@
 
 #include <random>
 
-#ifndef HYP_BUILDTOOL
-#include <Uuid.generated.inl>
-#endif
-
 namespace hyperion {
 namespace utilities {
 

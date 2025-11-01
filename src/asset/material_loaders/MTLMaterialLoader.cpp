@@ -20,8 +20,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <MTLMaterialLoader.generated.inl>
-
 namespace hyperion {
 
 using Tokens = Array<String>;

@@ -13,8 +13,6 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <UIListView.generated.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

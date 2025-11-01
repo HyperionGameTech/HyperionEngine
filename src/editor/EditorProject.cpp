@@ -30,8 +30,6 @@
 
 #include <HyperionEngine.hpp>
 
-#include <EditorProject.generated.inl>
-
 namespace hyperion {
 
 struct EditorProjectSaveContext

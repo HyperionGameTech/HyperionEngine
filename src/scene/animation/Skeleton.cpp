@@ -18,8 +18,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 
-#include <Skeleton.generated.inl>
-
 namespace hyperion {
 
 static const Name s_nameSkeletonDefault = NAME("<unnamed skeleton>");

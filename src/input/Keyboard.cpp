@@ -5,8 +5,6 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <Keyboard.generated.inl>
-
 namespace hyperion {
 
 HYP_API bool KeyCodeToChar(KeyCode keyCode, bool shift, bool alt, bool ctrl, char& outChar)

@@ -56,7 +56,6 @@
 #ifdef HYP_VULKAN
 #include <vulkan/vulkan.h>
 
-#include <ShaderCompiler.generated.inl>
 #endif
 
 namespace hyperion {

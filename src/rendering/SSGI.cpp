@@ -30,8 +30,6 @@
 
 #include <engine/EngineGlobals.hpp>
 
-#include <SSGI.generated.inl>
-
 namespace hyperion {
 
 static constexpr bool UseTemporalBlending = true;

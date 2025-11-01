@@ -5,10 +5,6 @@
 #include <core/math/Rect.hpp>
 #include <core/math/Halton.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Mat4f.generated.inl>
-#endif
-
 namespace hyperion {
 
 const Mat4f Mat4f::identity = Mat4f::Identity();

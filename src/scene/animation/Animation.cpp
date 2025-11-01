@@ -6,8 +6,6 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <Animation.generated.inl>
-
 namespace hyperion {
 
 #pragma region AnimationTrack

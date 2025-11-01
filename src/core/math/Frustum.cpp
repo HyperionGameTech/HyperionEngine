@@ -2,10 +2,6 @@
 
 #include <core/math/Frustum.hpp>
 
-#ifndef HYP_BUILDTOOL
-#include <Frustum.generated.inl>
-#endif
-
 namespace hyperion {
 
 static const FixedArray<Vec4f, 8> s_corners {
