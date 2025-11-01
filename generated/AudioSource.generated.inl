@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AudioSource Reflection Data
 
-HYP_BEGIN_CLASS(AudioSource, 76, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(AudioSource, 30, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetFormat)), &AudioSource::GetFormat, Span<const HypClassAttribute> { {HypClassAttribute("property", "Format"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(SetFormat)), &AudioSource::SetFormat, Span<const HypClassAttribute> { {HypClassAttribute("property", "Format"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(GetFreq)), &AudioSource::GetFreq, Span<const HypClassAttribute> { {HypClassAttribute("property", "Freq"), HypClassAttribute("serialize", true), HypClassAttribute("editor", true) } }),
@@ -27,7 +27,7 @@ namespace hyperion {
 
 #pragma region AudioSourceFormat Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceFormat, 278, 0, {})
+HYP_BEGIN_ENUM(AudioSourceFormat, 227, 0, {})
     HypConstant(NAME(HYP_STR(MONO8)), AudioSourceFormat::MONO8),
     HypConstant(NAME(HYP_STR(MONO16)), AudioSourceFormat::MONO16),
     HypConstant(NAME(HYP_STR(STEREO8)), AudioSourceFormat::STEREO8),
@@ -43,7 +43,7 @@ namespace hyperion {
 
 #pragma region AudioSourceState Reflection Data
 
-HYP_BEGIN_ENUM(AudioSourceState, 279, 0, {})
+HYP_BEGIN_ENUM(AudioSourceState, 228, 0, {})
     HypConstant(NAME(HYP_STR(UNDEFINED)), AudioSourceState::UNDEFINED),
     HypConstant(NAME(HYP_STR(STOPPED)), AudioSourceState::STOPPED),
     HypConstant(NAME(HYP_STR(PLAYING)), AudioSourceState::PLAYING),

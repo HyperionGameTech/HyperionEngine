@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region UIPanel Reflection Data
 
-HYP_BEGIN_CLASS(UIPanel, 7, 12, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIPanel, 199, 12, NAME("UIObject"))
     HypMethod(NAME(HYP_STR(IsHorizontalScrollEnabled)), &UIPanel::IsHorizontalScrollEnabled),
     HypMethod(NAME(HYP_STR(IsVerticalScrollEnabled)), &UIPanel::IsVerticalScrollEnabled),
     HypMethod(NAME(HYP_STR(SetIsScrollEnabled)), &UIPanel::SetIsScrollEnabled)

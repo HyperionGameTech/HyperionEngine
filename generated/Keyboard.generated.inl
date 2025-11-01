@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region KeyCode Reflection Data
 
-HYP_BEGIN_ENUM(KeyCode, 268, 0, {})
+HYP_BEGIN_ENUM(KeyCode, 258, 0, {})
     HypConstant(NAME(HYP_STR(UNKNOWN)), KeyCode::UNKNOWN),
     HypConstant(NAME(HYP_STR(KEY_A)), KeyCode::KEY_A),
     HypConstant(NAME(HYP_STR(KEY_B)), KeyCode::KEY_B),
@@ -86,7 +86,7 @@ namespace hyperion {
 
 #pragma region KeyboardEvent Reflection Data
 
-HYP_BEGIN_STRUCT(KeyboardEvent, 269, 0, {}, HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(KeyboardEvent, 259, 0, {}, HypClassAttribute("size", 16))
     HypField(NAME(HYP_STR(InputManager)), &KeyboardEvent::inputManager, offsetof(KeyboardEvent, inputManager)),
     HypField(NAME(HYP_STR(KeyCode)), &KeyboardEvent::keyCode, offsetof(KeyboardEvent, keyCode))
 HYP_END_STRUCT

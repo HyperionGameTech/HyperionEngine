@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region LightmapElement Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapElement, 388, 0, {}, HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_STRUCT(LightmapElement, 394, 0, {}, HypClassAttribute("noscriptbindings", true))
     HypField(NAME(HYP_STR(Id)), &LightmapElement::id, offsetof(LightmapElement, id), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(OffsetUv)), &LightmapElement::offsetUv, offsetof(LightmapElement, offsetUv), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(OffsetCoords)), &LightmapElement::offsetCoords, offsetof(LightmapElement, offsetCoords), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
@@ -23,7 +23,7 @@ namespace hyperion {
 
 #pragma region LightmapVolumeAtlas Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapVolumeAtlas, 389, 0, {})
+HYP_BEGIN_STRUCT(LightmapVolumeAtlas, 395, 0, {})
     HypProperty(NAME(HYP_STR(AtlasDimensions)), &LightmapVolumeAtlas::atlasDimensions),
     HypProperty(NAME(HYP_STR(Elements)), &LightmapVolumeAtlas::elements),
     HypProperty(NAME(HYP_STR(FreeSpaces)), &LightmapVolumeAtlas::freeSpaces)
@@ -40,7 +40,7 @@ namespace hyperion {
 
 #pragma region LightmapVolume Reflection Data
 
-HYP_BEGIN_CLASS(LightmapVolume, 178, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(LightmapVolume, 144, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetUUID)), &LightmapVolume::GetUUID, Span<const HypClassAttribute> { {HypClassAttribute("property", "UUID") } }),
     HypMethod(NAME(HYP_STR(GetAtlasTexture)), &LightmapVolume::GetAtlasTexture),
     HypField(NAME(HYP_STR(Uuid)), &LightmapVolume::m_uuid, offsetof(LightmapVolume, m_uuid), Span<const HypClassAttribute> { {HypClassAttribute("property", "UUID") } }),
@@ -59,7 +59,7 @@ namespace hyperion {
 
 #pragma region LightmapTextureType Reflection Data
 
-HYP_BEGIN_ENUM(LightmapTextureType, 390, 0, {})
+HYP_BEGIN_ENUM(LightmapTextureType, 396, 0, {})
     HypConstant(NAME(HYP_STR(LTT_INVALID)), LightmapTextureType::LTT_INVALID),
     HypConstant(NAME(HYP_STR(LTT_RADIANCE)), LightmapTextureType::LTT_RADIANCE),
     HypConstant(NAME(HYP_STR(LTT_IRRADIANCE)), LightmapTextureType::LTT_IRRADIANCE),

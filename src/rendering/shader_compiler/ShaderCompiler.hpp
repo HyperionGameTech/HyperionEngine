@@ -1167,7 +1167,7 @@ struct CompiledShader
     FixedArray<ByteBuffer, SMT_MAX> modules;
 
     /// ===== Serialization only =====
-    HYP_METHOD(Property = "RevisionNumber")
+    HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
     uint64 GetRevisionNumber() const;
     /// ==============================
 

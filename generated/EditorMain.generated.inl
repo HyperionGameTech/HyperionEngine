@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EditorMain Reflection Data
 
-HYP_BEGIN_CLASS(EditorMain, 213, 0, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(EditorMain, 46, 0, NAME("HypObjectBase"), HypClassAttribute("noscriptbindings", true))
     HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
     HypMethod(NAME(HYP_STR(OnAdded)), &EditorMain::OnAdded),
     HypMethod(NAME(HYP_STR(OpenProjectClicked)), &EditorMain::OpenProjectClicked),

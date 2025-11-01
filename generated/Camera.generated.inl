@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region CameraProjectionMode Reflection Data
 
-HYP_BEGIN_ENUM(CameraProjectionMode, 385, 0, {})
+HYP_BEGIN_ENUM(CameraProjectionMode, 368, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), CameraProjectionMode::NONE),
     HypConstant(NAME(HYP_STR(PERSPECTIVE)), CameraProjectionMode::PERSPECTIVE),
     HypConstant(NAME(HYP_STR(ORTHOGRAPHIC)), CameraProjectionMode::ORTHOGRAPHIC)
@@ -20,7 +20,7 @@ namespace hyperion {
 
 #pragma region CameraFlags Reflection Data
 
-HYP_BEGIN_ENUM(CameraFlags, 386, 0, {})
+HYP_BEGIN_ENUM(CameraFlags, 369, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), CameraFlags::NONE),
     HypConstant(NAME(HYP_STR(MATCH_WINDOW_SIZE)), CameraFlags::MATCH_WINDOW_SIZE)
 HYP_END_ENUM
@@ -34,7 +34,7 @@ namespace hyperion {
 
 #pragma region CameraController Reflection Data
 
-HYP_BEGIN_CLASS(CameraController, 182, 7, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(CameraController, 167, 7, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetInputHandler)), &CameraController::GetInputHandler, Span<const HypClassAttribute> { {HypClassAttribute("property", "InputHandler") } }),
     HypMethod(NAME(HYP_STR(SetInputHandler)), &CameraController::SetInputHandler, Span<const HypClassAttribute> { {HypClassAttribute("property", "InputHandler") } }),
     HypMethod(NAME(HYP_STR(GetCamera)), &CameraController::GetCamera, Span<const HypClassAttribute> { {HypClassAttribute("property", "Camera") } }),
@@ -61,7 +61,7 @@ namespace hyperion {
 
 #pragma region Camera Reflection Data
 
-HYP_BEGIN_CLASS(Camera, 177, 0, NAME("Entity"))
+HYP_BEGIN_CLASS(Camera, 143, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetCameraFlags)), &Camera::GetCameraFlags, Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(SetCameraFlags)), &Camera::SetCameraFlags, Span<const HypClassAttribute> { {HypClassAttribute("property", "Flags"), HypClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(GetCameraControllers)), &Camera::GetCameraControllers, Span<const HypClassAttribute> { {HypClassAttribute("property", "CameraControllers") } }),
@@ -130,7 +130,7 @@ namespace hyperion {
 
 #pragma region NullCameraController Reflection Data
 
-HYP_BEGIN_CLASS(NullCameraController, 189, 0, NAME("CameraController"))
+HYP_BEGIN_CLASS(NullCameraController, 168, 0, NAME("CameraController"))
 HYP_END_CLASS
 
 #pragma endregion NullCameraController Reflection Data

@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region BlendFunction Reflection Data
 
-HYP_BEGIN_STRUCT(BlendFunction, 299, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 4))
+HYP_BEGIN_STRUCT(BlendFunction, 302, 0, {}, HypClassAttribute("serialize", "bitwise"),HypClassAttribute("size", 4))
 HYP_END_STRUCT
 
 #pragma endregion BlendFunction Reflection Data
@@ -18,7 +18,7 @@ namespace hyperion {
 
 #pragma region Topology Reflection Data
 
-HYP_BEGIN_ENUM(Topology, 300, 0, {})
+HYP_BEGIN_ENUM(Topology, 303, 0, {})
     HypConstant(NAME(HYP_STR(TOP_TRIANGLES)), Topology::TOP_TRIANGLES),
     HypConstant(NAME(HYP_STR(TOP_TRIANGLE_FAN)), Topology::TOP_TRIANGLE_FAN),
     HypConstant(NAME(HYP_STR(TOP_TRIANGLE_STRIP)), Topology::TOP_TRIANGLE_STRIP),
@@ -35,7 +35,7 @@ namespace hyperion {
 
 #pragma region BlendModeFactor Reflection Data
 
-HYP_BEGIN_ENUM(BlendModeFactor, 301, 0, {})
+HYP_BEGIN_ENUM(BlendModeFactor, 304, 0, {})
     HypConstant(NAME(HYP_STR(BMF_NONE)), BlendModeFactor::BMF_NONE),
     HypConstant(NAME(HYP_STR(BMF_ONE)), BlendModeFactor::BMF_ONE),
     HypConstant(NAME(HYP_STR(BMF_ZERO)), BlendModeFactor::BMF_ZERO),
@@ -59,7 +59,7 @@ namespace hyperion {
 
 #pragma region ImageUsage Reflection Data
 
-HYP_BEGIN_ENUM(ImageUsage, 302, 0, {})
+HYP_BEGIN_ENUM(ImageUsage, 305, 0, {})
     HypConstant(NAME(HYP_STR(IU_NONE)), ImageUsage::IU_NONE),
     HypConstant(NAME(HYP_STR(IU_SAMPLED)), ImageUsage::IU_SAMPLED),
     HypConstant(NAME(HYP_STR(IU_STORAGE)), ImageUsage::IU_STORAGE),
@@ -76,7 +76,7 @@ namespace hyperion {
 
 #pragma region ResourceState Reflection Data
 
-HYP_BEGIN_ENUM(ResourceState, 303, 0, {})
+HYP_BEGIN_ENUM(ResourceState, 306, 0, {})
     HypConstant(NAME(HYP_STR(RS_UNDEFINED)), ResourceState::RS_UNDEFINED),
     HypConstant(NAME(HYP_STR(RS_PRE_INITIALIZED)), ResourceState::RS_PRE_INITIALIZED),
     HypConstant(NAME(HYP_STR(RS_COMMON)), ResourceState::RS_COMMON),
@@ -107,7 +107,7 @@ namespace hyperion {
 
 #pragma region TextureFormat Reflection Data
 
-HYP_BEGIN_ENUM(TextureFormat, 304, 0, {})
+HYP_BEGIN_ENUM(TextureFormat, 307, 0, {})
     HypConstant(NAME(HYP_STR(TF_NONE)), TextureFormat::TF_NONE),
     HypConstant(NAME(HYP_STR(TF_R8)), TextureFormat::TF_R8),
     HypConstant(NAME(HYP_STR(TF_RG8)), TextureFormat::TF_RG8),
@@ -161,7 +161,7 @@ namespace hyperion {
 
 #pragma region GpuElemType Reflection Data
 
-HYP_BEGIN_ENUM(GpuElemType, 305, 0, {})
+HYP_BEGIN_ENUM(GpuElemType, 308, 0, {})
     HypConstant(NAME(HYP_STR(GET_UNSIGNED_BYTE)), GpuElemType::GET_UNSIGNED_BYTE),
     HypConstant(NAME(HYP_STR(GET_SIGNED_BYTE)), GpuElemType::GET_SIGNED_BYTE),
     HypConstant(NAME(HYP_STR(GET_UNSIGNED_SHORT)), GpuElemType::GET_UNSIGNED_SHORT),
@@ -181,7 +181,7 @@ namespace hyperion {
 
 #pragma region StencilOp Reflection Data
 
-HYP_BEGIN_ENUM(StencilOp, 306, 0, {})
+HYP_BEGIN_ENUM(StencilOp, 309, 0, {})
     HypConstant(NAME(HYP_STR(SO_KEEP)), StencilOp::SO_KEEP),
     HypConstant(NAME(HYP_STR(SO_ZERO)), StencilOp::SO_ZERO),
     HypConstant(NAME(HYP_STR(SO_REPLACE)), StencilOp::SO_REPLACE),
@@ -198,7 +198,7 @@ namespace hyperion {
 
 #pragma region TextureWrapMode Reflection Data
 
-HYP_BEGIN_ENUM(TextureWrapMode, 307, 0, {})
+HYP_BEGIN_ENUM(TextureWrapMode, 310, 0, {})
     HypConstant(NAME(HYP_STR(TWM_CLAMP_TO_EDGE)), TextureWrapMode::TWM_CLAMP_TO_EDGE),
     HypConstant(NAME(HYP_STR(TWM_CLAMP_TO_BORDER)), TextureWrapMode::TWM_CLAMP_TO_BORDER),
     HypConstant(NAME(HYP_STR(TWM_REPEAT)), TextureWrapMode::TWM_REPEAT)
@@ -213,7 +213,7 @@ namespace hyperion {
 
 #pragma region FaceCullMode Reflection Data
 
-HYP_BEGIN_ENUM(FaceCullMode, 308, 0, {})
+HYP_BEGIN_ENUM(FaceCullMode, 311, 0, {})
     HypConstant(NAME(HYP_STR(FCM_NONE)), FaceCullMode::FCM_NONE),
     HypConstant(NAME(HYP_STR(FCM_BACK)), FaceCullMode::FCM_BACK),
     HypConstant(NAME(HYP_STR(FCM_FRONT)), FaceCullMode::FCM_FRONT)
@@ -228,7 +228,7 @@ namespace hyperion {
 
 #pragma region StencilFunction Reflection Data
 
-HYP_BEGIN_STRUCT(StencilFunction, 309, 0, {})
+HYP_BEGIN_STRUCT(StencilFunction, 312, 0, {})
     HypField(NAME(HYP_STR(PassOp)), &StencilFunction::passOp, offsetof(StencilFunction, passOp), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(FailOp)), &StencilFunction::failOp, offsetof(StencilFunction, failOp), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(DepthFailOp)), &StencilFunction::depthFailOp, offsetof(StencilFunction, depthFailOp), Span<const HypClassAttribute> { {HypClassAttribute("serialize", true) } }),
@@ -246,7 +246,7 @@ namespace hyperion {
 
 #pragma region TextureDesc Reflection Data
 
-HYP_BEGIN_STRUCT(TextureDesc, 310, 0, {})
+HYP_BEGIN_STRUCT(TextureDesc, 313, 0, {})
     HypField(NAME(HYP_STR(Type)), &TextureDesc::type, offsetof(TextureDesc, type), Span<const HypClassAttribute> { {HypClassAttribute("property", "Type"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Format)), &TextureDesc::format, offsetof(TextureDesc, format), Span<const HypClassAttribute> { {HypClassAttribute("property", "Format"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Extent)), &TextureDesc::extent, offsetof(TextureDesc, extent), Span<const HypClassAttribute> { {HypClassAttribute("property", "Extent"), HypClassAttribute("serialize", true) } }),
@@ -266,7 +266,7 @@ namespace hyperion {
 
 #pragma region StencilCompareOp Reflection Data
 
-HYP_BEGIN_ENUM(StencilCompareOp, 311, 0, {})
+HYP_BEGIN_ENUM(StencilCompareOp, 314, 0, {})
     HypConstant(NAME(HYP_STR(SCO_ALWAYS)), StencilCompareOp::SCO_ALWAYS),
     HypConstant(NAME(HYP_STR(SCO_NEVER)), StencilCompareOp::SCO_NEVER),
     HypConstant(NAME(HYP_STR(SCO_EQUAL)), StencilCompareOp::SCO_EQUAL),
@@ -282,7 +282,7 @@ namespace hyperion {
 
 #pragma region ImageSupport Reflection Data
 
-HYP_BEGIN_ENUM(ImageSupport, 312, 0, {})
+HYP_BEGIN_ENUM(ImageSupport, 315, 0, {})
     HypConstant(NAME(HYP_STR(IS_SRV)), ImageSupport::IS_SRV),
     HypConstant(NAME(HYP_STR(IS_UAV)), ImageSupport::IS_UAV),
     HypConstant(NAME(HYP_STR(IS_DEPTH)), ImageSupport::IS_DEPTH)
@@ -297,7 +297,7 @@ namespace hyperion {
 
 #pragma region FillMode Reflection Data
 
-HYP_BEGIN_ENUM(FillMode, 313, 0, {})
+HYP_BEGIN_ENUM(FillMode, 316, 0, {})
     HypConstant(NAME(HYP_STR(FM_FILL)), FillMode::FM_FILL),
     HypConstant(NAME(HYP_STR(FM_LINE)), FillMode::FM_LINE)
 HYP_END_ENUM
@@ -311,7 +311,7 @@ namespace hyperion {
 
 #pragma region DefaultImageFormat Reflection Data
 
-HYP_BEGIN_ENUM(DefaultImageFormat, 314, 0, {})
+HYP_BEGIN_ENUM(DefaultImageFormat, 317, 0, {})
     HypConstant(NAME(HYP_STR(DIF_NONE)), DefaultImageFormat::DIF_NONE),
     HypConstant(NAME(HYP_STR(DIF_COLOR)), DefaultImageFormat::DIF_COLOR),
     HypConstant(NAME(HYP_STR(DIF_DEPTH)), DefaultImageFormat::DIF_DEPTH),
@@ -328,7 +328,7 @@ namespace hyperion {
 
 #pragma region TextureType Reflection Data
 
-HYP_BEGIN_ENUM(TextureType, 315, 0, {})
+HYP_BEGIN_ENUM(TextureType, 318, 0, {})
     HypConstant(NAME(HYP_STR(TT_INVALID)), TextureType::TT_INVALID),
     HypConstant(NAME(HYP_STR(TT_TEX2_D)), TextureType::TT_TEX2D),
     HypConstant(NAME(HYP_STR(TT_TEX3_D)), TextureType::TT_TEX3D),
@@ -347,7 +347,7 @@ namespace hyperion {
 
 #pragma region TextureData Reflection Data
 
-HYP_BEGIN_STRUCT(TextureData, 316, 0, {})
+HYP_BEGIN_STRUCT(TextureData, 319, 0, {})
     HypField(NAME(HYP_STR(ImageData)), &TextureData::imageData, offsetof(TextureData, imageData), Span<const HypClassAttribute> { {HypClassAttribute("property", "ImageData"), HypClassAttribute("serialize", true), HypClassAttribute("compressed", true) } })
 HYP_END_STRUCT
 
@@ -360,7 +360,7 @@ namespace hyperion {
 
 #pragma region TextureFilterMode Reflection Data
 
-HYP_BEGIN_ENUM(TextureFilterMode, 317, 0, {})
+HYP_BEGIN_ENUM(TextureFilterMode, 320, 0, {})
     HypConstant(NAME(HYP_STR(TFM_NEAREST)), TextureFilterMode::TFM_NEAREST),
     HypConstant(NAME(HYP_STR(TFM_LINEAR)), TextureFilterMode::TFM_LINEAR),
     HypConstant(NAME(HYP_STR(TFM_NEAREST_LINEAR)), TextureFilterMode::TFM_NEAREST_LINEAR),
@@ -378,7 +378,7 @@ namespace hyperion {
 
 #pragma region TextureBaseFormat Reflection Data
 
-HYP_BEGIN_ENUM(TextureBaseFormat, 318, 0, {})
+HYP_BEGIN_ENUM(TextureBaseFormat, 321, 0, {})
     HypConstant(NAME(HYP_STR(TFB_NONE)), TextureBaseFormat::TFB_NONE),
     HypConstant(NAME(HYP_STR(TFB_R)), TextureBaseFormat::TFB_R),
     HypConstant(NAME(HYP_STR(TFB_RG)), TextureBaseFormat::TFB_RG),

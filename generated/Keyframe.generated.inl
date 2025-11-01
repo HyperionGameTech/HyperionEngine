@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Keyframe Reflection Data
 
-HYP_BEGIN_STRUCT(Keyframe, 387, 0, {})
+HYP_BEGIN_STRUCT(Keyframe, 367, 0, {})
     HypField(NAME(HYP_STR(Time)), &Keyframe::time, offsetof(Keyframe, time), Span<const HypClassAttribute> { {HypClassAttribute("property", "Time"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Transform)), &Keyframe::transform, offsetof(Keyframe, transform), Span<const HypClassAttribute> { {HypClassAttribute("property", "Transform"), HypClassAttribute("serialize", true) } }),
     HypMethod(NAME(HYP_STR(Blend)), &Keyframe::Blend)

@@ -6,7 +6,7 @@ namespace hyperion {
 
 #pragma region LightmapVolumeComponent Reflection Data
 
-HYP_BEGIN_STRUCT(LightmapVolumeComponent, 409, 0, {}, HypClassAttribute("component", true))
+HYP_BEGIN_STRUCT(LightmapVolumeComponent, 381, 0, {}, HypClassAttribute("component", true))
     HypField(NAME(HYP_STR(Volume)), &LightmapVolumeComponent::volume, offsetof(LightmapVolumeComponent, volume), Span<const HypClassAttribute> { {HypClassAttribute("property", "Volume") } })
 HYP_END_STRUCT
 

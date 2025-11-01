@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region Quaternion Reflection Data
 
-HYP_BEGIN_STRUCT(Quaternion, 242, 0, {}, HypClassAttribute("size", 16))
+HYP_BEGIN_STRUCT(Quaternion, 243, 0, {}, HypClassAttribute("size", 16))
     HypField(NAME(HYP_STR(X)), &Quaternion::x, offsetof(Quaternion, x)),
     HypField(NAME(HYP_STR(Y)), &Quaternion::y, offsetof(Quaternion, y)),
     HypField(NAME(HYP_STR(Z)), &Quaternion::z, offsetof(Quaternion, z)),

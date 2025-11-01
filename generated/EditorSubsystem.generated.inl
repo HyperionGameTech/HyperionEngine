@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region NullEditorManipulationWidget Reflection Data
 
-HYP_BEGIN_CLASS(NullEditorManipulationWidget, 206, 0, NAME("EditorManipulationWidgetBase"))
+HYP_BEGIN_CLASS(NullEditorManipulationWidget, 40, 0, NAME("EditorManipulationWidgetBase"))
 HYP_END_CLASS
 
 #pragma endregion NullEditorManipulationWidget Reflection Data
@@ -17,7 +17,7 @@ namespace hyperion {
 
 #pragma region TranslateEditorManipulationWidget Reflection Data
 
-HYP_BEGIN_CLASS(TranslateEditorManipulationWidget, 207, 0, NAME("EditorManipulationWidgetBase"))
+HYP_BEGIN_CLASS(TranslateEditorManipulationWidget, 41, 0, NAME("EditorManipulationWidgetBase"))
 HYP_END_CLASS
 
 #pragma endregion TranslateEditorManipulationWidget Reflection Data
@@ -29,7 +29,7 @@ namespace hyperion {
 
 #pragma region EditorSubsystem Reflection Data
 
-HYP_BEGIN_CLASS(EditorSubsystem, 164, 0, NAME("Subsystem"))
+HYP_BEGIN_CLASS(EditorSubsystem, 147, 0, NAME("Subsystem"))
     HypMethod(NAME(HYP_STR(GetCurrentProject)), &EditorSubsystem::GetCurrentProject),
     HypMethod(NAME(HYP_STR(GetActiveScene)), &EditorSubsystem::GetActiveScene),
     HypMethod(NAME(HYP_STR(NewProject)), &EditorSubsystem::NewProject),
@@ -56,7 +56,7 @@ namespace hyperion {
 
 #pragma region GenerateLightmapsEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(GenerateLightmapsEditorTask, 204, 0, NAME("TickableEditorTask"))
+HYP_BEGIN_CLASS(GenerateLightmapsEditorTask, 45, 0, NAME("TickableEditorTask"))
     HypMethod(NAME(HYP_STR(GetWorld)), &GenerateLightmapsEditorTask::GetWorld),
     HypMethod(NAME(HYP_STR(SetWorld)), &GenerateLightmapsEditorTask::SetWorld),
     HypMethod(NAME(HYP_STR(GetScene)), &GenerateLightmapsEditorTask::GetScene),
@@ -78,7 +78,7 @@ namespace hyperion {
 
 #pragma region EditorManipulationWidgetBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorManipulationWidgetBase, 205, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorManipulationWidgetBase, 39, 2, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
 HYP_END_CLASS
 
 #pragma endregion EditorManipulationWidgetBase Reflection Data

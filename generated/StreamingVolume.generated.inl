@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region StreamingVolumeShape Reflection Data
 
-HYP_BEGIN_ENUM(StreamingVolumeShape, 277, 0, {})
+HYP_BEGIN_ENUM(StreamingVolumeShape, 405, 0, {})
     HypConstant(NAME(HYP_STR(SPHERE)), StreamingVolumeShape::SPHERE),
     HypConstant(NAME(HYP_STR(BOX)), StreamingVolumeShape::BOX),
     HypConstant(NAME(HYP_STR(MAX)), StreamingVolumeShape::MAX),
@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region StreamingVolumeBase Reflection Data
 
-HYP_BEGIN_CLASS(StreamingVolumeBase, 68, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(StreamingVolumeBase, 182, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetShape)), &StreamingVolumeBase::GetShape, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(GetBoundingBox)), &StreamingVolumeBase::GetBoundingBox, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(GetBoundingSphere)), &StreamingVolumeBase::GetBoundingSphere, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),

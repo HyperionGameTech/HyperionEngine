@@ -6,6 +6,7 @@
 #define MAX_BONE_INDICES 4
 
 #include <core/containers/FixedArray.hpp>
+#include <core/containers/String.hpp>
 
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/ByteUtil.hpp>
@@ -41,7 +42,7 @@ struct VertexAttribute
         MESH_INPUT_ATTRIBUTE_TANGENT = 0x10,
         MESH_INPUT_ATTRIBUTE_BITANGENT = 0x20,
         MESH_INPUT_ATTRIBUTE_BONE_INDICES = 0x40,
-        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80,
+        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80
     };
 
     static const EnumOptions<Type, VertexAttribute, 16> mapping;

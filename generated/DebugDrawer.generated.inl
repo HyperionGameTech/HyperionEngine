@@ -5,9 +5,7 @@ namespace hyperion {
 
 #pragma region DebugDrawer Reflection Data
 
-HYP_BEGIN_CLASS(DebugDrawer, 140, 0, NAME("HypObjectBase"))
-    HypMethod(NAME(HYP_STR(IsEnabled)), &DebugDrawer::IsEnabled),
-    HypMethod(NAME(HYP_STR(GetConfig)), &DebugDrawer::GetConfig, Span<const HypClassAttribute> { {HypClassAttribute("property", "Config") } })
+HYP_BEGIN_CLASS(DebugDrawer, 118, 0, NAME("HypObjectBase"))
 HYP_END_CLASS
 
 #pragma endregion DebugDrawer Reflection Data
@@ -19,7 +17,7 @@ namespace hyperion {
 
 #pragma region DebugDrawerConfig Reflection Data
 
-HYP_BEGIN_STRUCT(DebugDrawerConfig, 364, 0, {}, HypClassAttribute("configname", "GlobalConfig"),HypClassAttribute("jsonpath", "Rendering.Debug.DebugDrawer"))
+HYP_BEGIN_STRUCT(DebugDrawerConfig, 324, 0, {}, HypClassAttribute("configname", "GlobalConfig"),HypClassAttribute("jsonpath", "Rendering.Debug.DebugDrawer"))
     HypField(NAME(HYP_STR(Enabled)), &DebugDrawerConfig::enabled, offsetof(DebugDrawerConfig, enabled), Span<const HypClassAttribute> { {HypClassAttribute("description", "Enable or disable the debug drawer.") } })
 HYP_END_STRUCT
 

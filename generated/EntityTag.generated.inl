@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region EntityTag Reflection Data
 
-HYP_BEGIN_ENUM(EntityTag, 372, 0, {})
+HYP_BEGIN_ENUM(EntityTag, 354, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), EntityTag::NONE),
     HypConstant(NAME(HYP_STR(STATIC)), EntityTag::STATIC),
     HypConstant(NAME(HYP_STR(DYNAMIC)), EntityTag::DYNAMIC),
@@ -33,7 +33,7 @@ namespace hyperion {
 
 #pragma region TagComponentBase Reflection Data
 
-HYP_BEGIN_STRUCT(TagComponentBase, 373, 0, {}, HypClassAttribute("component", true))
+HYP_BEGIN_STRUCT(TagComponentBase, 355, 0, {}, HypClassAttribute("component", true))
     HypField(NAME(HYP_STR(Value)), &TagComponentBase::value, offsetof(TagComponentBase, value))
 HYP_END_STRUCT
 

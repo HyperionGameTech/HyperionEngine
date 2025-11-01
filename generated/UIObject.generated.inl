@@ -5,8 +5,7 @@ namespace hyperion {
 
 #pragma region UIObject Reflection Data
 
-HYP_BEGIN_CLASS(UIObject, 5, 22, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
-    HypConstant(NAME(HYP_STR(Tmpfield)), &UIObject::tmpField),
+HYP_BEGIN_CLASS(UIObject, 193, 22, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetEntity)), &UIObject::GetEntity),
     HypMethod(NAME(HYP_STR(GetStage)), &UIObject::GetStage),
     HypMethod(NAME(HYP_STR(SetStage)), &UIObject::SetStage),
@@ -113,7 +112,7 @@ namespace hyperion {
 
 #pragma region UIObjectSize Reflection Data
 
-HYP_BEGIN_STRUCT(UIObjectSize, 217, 0, {})
+HYP_BEGIN_STRUCT(UIObjectSize, 408, 0, {})
     HypField(NAME(HYP_STR(Flags)), &UIObjectSize::flags, offsetof(UIObjectSize, flags)),
     HypField(NAME(HYP_STR(Value)), &UIObjectSize::value, offsetof(UIObjectSize, value))
 HYP_END_STRUCT
@@ -127,7 +126,7 @@ namespace hyperion {
 
 #pragma region UIObjectAspectRatio Reflection Data
 
-HYP_BEGIN_STRUCT(UIObjectAspectRatio, 218, 0, {})
+HYP_BEGIN_STRUCT(UIObjectAspectRatio, 409, 0, {})
     HypField(NAME(HYP_STR(X)), &UIObjectAspectRatio::x, offsetof(UIObjectAspectRatio, x)),
     HypField(NAME(HYP_STR(Y)), &UIObjectAspectRatio::y, offsetof(UIObjectAspectRatio, y))
 HYP_END_STRUCT
@@ -141,7 +140,7 @@ namespace hyperion {
 
 #pragma region UIObjectUpdateSizeFlags Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectUpdateSizeFlags, 219, 0, {})
+HYP_BEGIN_ENUM(UIObjectUpdateSizeFlags, 410, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectUpdateSizeFlags::NONE),
     HypConstant(NAME(HYP_STR(MAX_SIZE)), UIObjectUpdateSizeFlags::MAX_SIZE),
     HypConstant(NAME(HYP_STR(INNER_SIZE)), UIObjectUpdateSizeFlags::INNER_SIZE),
@@ -158,7 +157,7 @@ namespace hyperion {
 
 #pragma region UIObjectAlignment Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectAlignment, 220, 0, {})
+HYP_BEGIN_ENUM(UIObjectAlignment, 411, 0, {})
     HypConstant(NAME(HYP_STR(TOP_LEFT)), UIObjectAlignment::TOP_LEFT),
     HypConstant(NAME(HYP_STR(TOP_RIGHT)), UIObjectAlignment::TOP_RIGHT),
     HypConstant(NAME(HYP_STR(CENTER)), UIObjectAlignment::CENTER),
@@ -175,7 +174,7 @@ namespace hyperion {
 
 #pragma region UIEventHandlerResult Reflection Data
 
-HYP_BEGIN_STRUCT(UIEventHandlerResult, 221, 0, {}, HypClassAttribute("size", 24))
+HYP_BEGIN_STRUCT(UIEventHandlerResult, 412, 0, {}, HypClassAttribute("size", 24))
 HYP_END_STRUCT
 
 #pragma endregion UIEventHandlerResult Reflection Data
@@ -188,7 +187,7 @@ namespace hyperion {
 
 #pragma region UIObjectBorderFlags Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectBorderFlags, 222, 0, {})
+HYP_BEGIN_ENUM(UIObjectBorderFlags, 413, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectBorderFlags::NONE),
     HypConstant(NAME(HYP_STR(TOP)), UIObjectBorderFlags::TOP),
     HypConstant(NAME(HYP_STR(LEFT)), UIObjectBorderFlags::LEFT),
@@ -206,7 +205,7 @@ namespace hyperion {
 
 #pragma region UIObjectUpdateType Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectUpdateType, 223, 0, {})
+HYP_BEGIN_ENUM(UIObjectUpdateType, 414, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectUpdateType::NONE),
     HypConstant(NAME(HYP_STR(UPDATE_SIZE)), UIObjectUpdateType::UPDATE_SIZE),
     HypConstant(NAME(HYP_STR(UPDATE_POSITION)), UIObjectUpdateType::UPDATE_POSITION),
@@ -235,7 +234,7 @@ namespace hyperion {
 
 #pragma region UIObjectFocusState Reflection Data
 
-HYP_BEGIN_ENUM(UIObjectFocusState, 224, 0, {})
+HYP_BEGIN_ENUM(UIObjectFocusState, 415, 0, {})
     HypConstant(NAME(HYP_STR(NONE)), UIObjectFocusState::NONE),
     HypConstant(NAME(HYP_STR(HOVER)), UIObjectFocusState::HOVER),
     HypConstant(NAME(HYP_STR(PRESSED)), UIObjectFocusState::PRESSED),
@@ -252,7 +251,7 @@ namespace hyperion {
 
 #pragma region ScrollAxis Reflection Data
 
-HYP_BEGIN_ENUM(ScrollAxis, 225, 0, {})
+HYP_BEGIN_ENUM(ScrollAxis, 416, 0, {})
     HypConstant(NAME(HYP_STR(SA_NONE)), ScrollAxis::SA_NONE),
     HypConstant(NAME(HYP_STR(SA_HORIZONTAL)), ScrollAxis::SA_HORIZONTAL),
     HypConstant(NAME(HYP_STR(SA_VERTICAL)), ScrollAxis::SA_VERTICAL),

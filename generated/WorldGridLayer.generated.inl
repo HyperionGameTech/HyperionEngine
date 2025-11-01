@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region WorldGridLayerInfo Reflection Data
 
-HYP_BEGIN_STRUCT(WorldGridLayerInfo, 414, 0, {}, HypClassAttribute("size", 80))
+HYP_BEGIN_STRUCT(WorldGridLayerInfo, 397, 0, {}, HypClassAttribute("size", 80))
     HypField(NAME(HYP_STR(GridSize)), &WorldGridLayerInfo::gridSize, offsetof(WorldGridLayerInfo, gridSize), Span<const HypClassAttribute> { {HypClassAttribute("property", "GridSize"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(CellSize)), &WorldGridLayerInfo::cellSize, offsetof(WorldGridLayerInfo, cellSize), Span<const HypClassAttribute> { {HypClassAttribute("property", "CellSize"), HypClassAttribute("serialize", true) } }),
     HypField(NAME(HYP_STR(Offset)), &WorldGridLayerInfo::offset, offsetof(WorldGridLayerInfo, offset), Span<const HypClassAttribute> { {HypClassAttribute("property", "Offset"), HypClassAttribute("serialize", true) } }),
@@ -27,7 +27,7 @@ namespace hyperion {
 
 #pragma region WorldGridLayer Reflection Data
 
-HYP_BEGIN_CLASS(WorldGridLayer, 192, 1, NAME("HypObjectBase"))
+HYP_BEGIN_CLASS(WorldGridLayer, 176, 1, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetLayerInfo)), &WorldGridLayer::GetLayerInfo),
     HypMethod(NAME(HYP_STR(OnAdded)), &WorldGridLayer::OnAdded, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(OnRemoved)), &WorldGridLayer::OnRemoved, Span<const HypClassAttribute> { {HypClassAttribute("scriptable", true) } }),

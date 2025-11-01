@@ -721,6 +721,7 @@ private:
                     seenInlNames[inlFilename] = headerPath;
                 }
             }
+
             // Inline mode: generate one small cpp for builtins and per-module .inl files
             if (builtinsModule->GetHypClasses().Any())
             {
@@ -920,18 +921,13 @@ private:
         if (!cxxPath.Exists() || cxxPath.IsDirectory())
         {
             // No implementation file exists in src; create a small generated .cpp that includes the header and the .inl
-            FilePath relHeaderPath = FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory());
-            FilePath genCppPath = inlPath.BasePath() / (stem + ".generated.cpp");
+            const FilePath relHeaderPath = FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory());
 
+            const FilePath genCppPath = inlPath.BasePath() / (stem + ".generated.cpp");
             Assert(genCppPath.BasePath().MkDir(), "Failed to create output directory for {}", genCppPath);
 
             // Compute include path for .inl relative to generated dir
-            FilePath relInlPathForGen = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
-            String includeInlPathStr = relInlPathForGen.Data();
-            includeInlPathStr.ReplaceAll("\\", "/");
-
-            String includeHeaderStr = relHeaderPath.Data();
-            includeHeaderStr.ReplaceAll("\\", "/");
+            const FilePath relInlPathForGen = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
 
             FileByteWriter writer { genCppPath };
             if (!writer.IsOpen())
@@ -940,7 +936,7 @@ private:
             }
 
             writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory())));
-            writer.WriteString(HYP_FORMAT("#include <{}>\n", includeHeaderStr));
+            writer.WriteString(HYP_FORMAT("#include <{}>\n", relHeaderPath.ReplaceAll("\\", "/")));
 
             // Include dependency module headers (relative to source directory), like the non-inline path
             if (mod.GetDependencyModules().Any())
@@ -957,23 +953,22 @@ private:
 
                     FilePath relDepPath = FilePath::Relative(dependencyModule->GetPath(), m_analyzer.GetSourceDirectory());
                     String includeDepPathStr = relDepPath.Data();
-                    includeDepPathStr.ReplaceAll("\\", "/");
-                    writer.WriteString(HYP_FORMAT("#include <{}>\n", includeDepPathStr));
+                    writer.WriteString(HYP_FORMAT("#include <{}>\n", includeDepPathStr.ReplaceAll("\\", "/")));
                 }
 
                 writer.WriteString("\n");
             }
-            writer.WriteString(HYP_FORMAT("#include <{}>\n", includeInlPathStr));
+
+            writer.WriteString(HYP_FORMAT("#include <{}>\n", relInlPathForGen.ReplaceAll("\\", "/")));
             writer.Close();
 
             return {};
         }
 
         // Compute include path relative to generated include root
-        FilePath relInlPath = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
-        String includePathStr = relInlPath.Data();
-        includePathStr.ReplaceAll("\\", "/");
-        const String includeLine = HYP_FORMAT("#include <{}>", includePathStr);
+        const FilePath relInlPath = FilePath::Relative(inlPath, m_analyzer.GetCXXOutputDirectory());
+
+        const String includeLine = HYP_FORMAT("#include <{}>", relInlPath.ReplaceAll("\\", "/"));
 
         // Read source file lines
         FileBufferedReaderSource source { cxxPath };

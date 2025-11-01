@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region UIImage Reflection Data
 
-HYP_BEGIN_CLASS(UIImage, 22, 0, NAME("UIObject"))
+HYP_BEGIN_CLASS(UIImage, 196, 0, NAME("UIObject"))
 HYP_END_CLASS
 
 #pragma endregion UIImage Reflection Data

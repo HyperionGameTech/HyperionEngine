@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region AssetObject Reflection Data
 
-HYP_BEGIN_CLASS(AssetObject, 45, 9, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(AssetObject, 16, 9, NAME("HypObjectBase"), HypClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetUUID)), &AssetObject::GetUUID),
     HypMethod(NAME(HYP_STR(GetName)), &AssetObject::GetName),
     HypMethod(NAME(HYP_STR(Rename)), &AssetObject::Rename),
@@ -47,7 +47,7 @@ namespace hyperion {
 
 #pragma region AssetObjectFlags Reflection Data
 
-HYP_BEGIN_ENUM(AssetObjectFlags, 261, 0, {})
+HYP_BEGIN_ENUM(AssetObjectFlags, 216, 0, {})
     HypConstant(NAME(HYP_STR(AOF_NONE)), AssetObjectFlags::AOF_NONE),
     HypConstant(NAME(HYP_STR(AOF_PERSISTENT)), AssetObjectFlags::AOF_PERSISTENT),
     HypConstant(NAME(HYP_STR(AOF_TRANSIENT)), AssetObjectFlags::AOF_TRANSIENT),

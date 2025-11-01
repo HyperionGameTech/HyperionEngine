@@ -40,7 +40,7 @@ namespace hyperion {
 
 #pragma region DescriptorTableBase Reflection Data
 
-HYP_BEGIN_CLASS(DescriptorTableBase, 79, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(DescriptorTableBase, 86, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion DescriptorTableBase Reflection Data
@@ -98,7 +98,7 @@ namespace hyperion {
 
 #pragma region DescriptorSetBase Reflection Data
 
-HYP_BEGIN_CLASS(DescriptorSetBase, 81, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(DescriptorSetBase, 88, 1, NAME("HypObjectBase"), HypClassAttribute("abstract", true),HypClassAttribute("noscriptbindings", true))
 HYP_END_CLASS
 
 #pragma endregion DescriptorSetBase Reflection Data

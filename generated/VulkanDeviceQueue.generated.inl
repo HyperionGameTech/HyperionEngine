@@ -5,7 +5,7 @@ namespace hyperion {
 
 #pragma region VulkanDeviceQueueType Reflection Data
 
-HYP_BEGIN_ENUM(VulkanDeviceQueueType, 362, 0, {})
+HYP_BEGIN_ENUM(VulkanDeviceQueueType, 349, 0, {})
     HypConstant(NAME(HYP_STR(GRAPHICS)), VulkanDeviceQueueType::GRAPHICS),
     HypConstant(NAME(HYP_STR(COMPUTE)), VulkanDeviceQueueType::COMPUTE),
     HypConstant(NAME(HYP_STR(TRANSFER)), VulkanDeviceQueueType::TRANSFER),
