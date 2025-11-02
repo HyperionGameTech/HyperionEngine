@@ -356,7 +356,6 @@ static inline void UpdateRefs_Impl(ResourceTracker<AllocatorType, ObjId<ElementT
             if (!pProxy)
             {
                 pProxy = resourceTracker.SetProxy(ObjId<ElementType>(resource->Id()), ProxyType());
-                HYP_LOG_TEMP("Created new proxy for resource {}", resource->Id());
             }
 
             AssertDebug(pProxy != nullptr);

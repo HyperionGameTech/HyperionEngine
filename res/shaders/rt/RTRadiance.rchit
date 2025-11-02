@@ -232,7 +232,7 @@ void main()
             ? GetSquareFalloffAttenuation(position.xyz, light.position_intensity.xyz, radius)
             : 1.0;
 
-        vec4 local_light = vec4(NdotL) * UINT_TO_VEC4(light.color_encoded) * light.position_intensity.w * attenuation;
+        vec4 local_light = vec4(NdotL) * light.color * light.position_intensity.w * attenuation;
 
         if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW)) {
             local_light *= GetShadowStandard(light, position.xyz);

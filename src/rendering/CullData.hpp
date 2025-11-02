@@ -4,6 +4,8 @@
 
 #include <core/math/Extent.hpp>
 
+#include <core/reflection/Handle.hpp>
+
 #include <rendering/RenderObject.hpp>
 
 namespace hyperion {

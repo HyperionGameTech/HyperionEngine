@@ -17,6 +17,8 @@
 
 #include <core/math/Transform.hpp>
 
+#include <core/Types.hpp>
+
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -29,8 +31,6 @@
 #include <rendering/RenderProxyList.hpp>
 
 #include <engine/EngineStats.hpp>
-
-#include <core/Types.hpp>
 
 namespace hyperion {
 

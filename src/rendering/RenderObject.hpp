@@ -3,32 +3,16 @@
 #pragma once
 
 #include <core/Defines.hpp>
-
-#include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/GlobalContext.hpp>
-
-#include <core/threading/Threads.hpp>
-#include <core/threading/DataRaceDetector.hpp>
-
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/HashSet.hpp>
-
-#include <core/reflection/HypObject.hpp>
-
-#include <core/memory/MemoryPool.hpp>
-
-#include <core/Name.hpp>
-
 #include <core/HashCode.hpp>
 #include <core/Constants.hpp>
 #include <core/Types.hpp>
 
+#include <core/reflection/Handle.hpp>
+
+#include <core/threading/Threads.hpp>
+
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderResult.hpp>
-#include <rendering/Shared.hpp>
-
-#include <mutex>
 
 namespace hyperion {
 

@@ -40,6 +40,7 @@ namespace hyperion {
 namespace Attributes {
 
 HYP_API const Name g_attrSerialize = NAME("serialize");
+HYP_API const Name g_attrDeserialize = NAME("deserialize");
 HYP_API const Name g_attrTransient = NAME("transient");
 HYP_API const Name g_attrComponent = NAME("component");
 HYP_API const Name g_attrSize = NAME("size");

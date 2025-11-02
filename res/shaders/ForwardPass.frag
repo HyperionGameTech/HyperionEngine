@@ -293,7 +293,7 @@ void main()
                 shadow = GetShadow(light, P, texcoord, camera.dimensions.xy, NdotL);
             }
 
-            vec3 light_color = UINT_TO_VEC4(light.color_encoded).rgb;
+            vec3 light_color = light.color.rgb;
 
             const float D = CalculateDistributionTerm(roughness, NdotH);
             const float G = CalculateGeometryTerm(NdotL, NdotV, HdotV, NdotH);

@@ -1,7 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
+#if defined(HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA) || defined(HYP_FEATURES_BINDLESS_TEXTURES)
 #extension GL_EXT_nonuniform_qualifier : require
 #endif
 
@@ -114,6 +114,6 @@ void main()
         ui_color.a *= mix(1.0, roundedness, 1.0 - step(properties.border_radius, 0.0));
     }
 
-    gbuffer_albedo = vec4(v_texcoord0.xy, 0.0, 1.0); // ui_color * v_color;
+    gbuffer_albedo = ui_color * v_color;
     gbuffer_mask = GET_OBJECT_BUCKET(object) | OBJECT_MASK_UI;
 }

@@ -69,10 +69,11 @@ void GameThread::SetGame(const Handle<Game>& game)
 
 void GameThread::operator()()
 {
+    InitObject(g_engineDriver->GetDefaultWorld());
+
     GameCounter counter;
 
     Assert(m_game != nullptr);
-
     InitObject(m_game);
 
     Queue<Scheduler::ScheduledTask> tasks;

@@ -352,7 +352,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                     continue;
                 }
 
-                if (!pMember->GetAttribute(Attributes::g_attrSerialize).GetBool(true) || pMember->GetAttribute(Attributes::g_attrTransient).GetBool(false))
+                if (!pMember->GetAttribute(Attributes::g_attrDeserialize).GetBool(true) || pMember->GetAttribute(Attributes::g_attrTransient).GetBool(false))
                 {
                     continue;
                 }

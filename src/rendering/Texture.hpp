@@ -6,6 +6,7 @@
 #include <asset/AssetObject.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 
 #include <core/containers/FixedArray.hpp>
 

@@ -76,9 +76,9 @@ static constexpr SizeType ResourcePoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType AssetPoolBlockSize = 16 * 1024 * 1024;
 static constexpr SizeType StreamingPoolBlockSize = 16 * 1024 * 1024;
 
-static constexpr SizeType SceneArenaSize = 8 * 1024 * 1024;     // 8 MB
-static constexpr SizeType RenderArenaSize = 8 * 1024 * 1024;    // 8 MB
-static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024; // 1 MB -- not much needed for now, we'll adjust as needed
+static constexpr SizeType SceneArenaSize = 1 * 1024 * 1024;
+static constexpr SizeType RenderArenaSize = 1 * 1024 * 1024;
+static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;
 
 HYP_API Pool* g_objectPool;
 HYP_API Pool* g_renderPool;

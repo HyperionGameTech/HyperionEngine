@@ -144,7 +144,7 @@ Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(LightmapJobBase* 
 
         // Lambert BRDF with delta light sampling (pdf = 1)
         const Vec3f f = albedo * (1.0f / MathUtil::pi<float>);
-        const Vec3f Li = ByteUtil::UnpackVec4f(SwapEndian(bufferData.colorPacked)).GetXYZ() * bufferData.positionIntensity.w;
+        const Vec3f Li = bufferData.color.GetXYZ() * bufferData.positionIntensity.w;
 
         return f * Li * NoL;
     }
@@ -160,7 +160,7 @@ Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(LightmapJobBase* 
         float factor = distSqr * (invRadius * invRadius);
         float smoothFactor = MathUtil::Max(1.0f - (factor * factor), 0.0f);
 
-        return (ByteUtil::UnpackVec4f(SwapEndian(bufferData.colorPacked)) * ((smoothFactor * smoothFactor) / MathUtil::Max(distSqr, 1e4f)) * bufferData.positionIntensity.w).GetXYZ();
+        return (bufferData.color * ((smoothFactor * smoothFactor) / MathUtil::Max(distSqr, 1e4f)) * bufferData.positionIntensity.w).GetXYZ();
     }
     default:
         // Not implemented
