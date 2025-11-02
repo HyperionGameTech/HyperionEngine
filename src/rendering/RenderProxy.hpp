@@ -201,14 +201,16 @@ public:
 struct alignas(16) LightShaderData
 {
     uint32 lightType;
-    uint32 colorPacked;
+    uint32 materialIndex;
     uint32 radiusFalloffPacked;
     uint32 flags;
 
     Vec2f areaSize; // also angles for spot lights
 
     Vec4f positionIntensity;
-    Vec4f normal;
+    Vec4f color;
+
+    Vec4f normal; // area light normal / spot light direction
 
     // Shadow map data
     Mat4f shadowMatrix;
@@ -217,8 +219,6 @@ struct alignas(16) LightShaderData
     Vec4f dimensionsScale; // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
     Vec2f offsetUv;        // offset in the atlas texture array
     uint32 layerIndex;     // index of the atlas in the shadow map texture array, or cubemap index for point lights
-
-    uint32 materialIndex;
 };
 
 class RenderProxyLight final : public IRenderProxy

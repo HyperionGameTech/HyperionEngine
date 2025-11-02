@@ -975,6 +975,7 @@ protected:
 namespace Attributes {
 
 HYP_API extern const Name g_attrSerialize;
+HYP_API extern const Name g_attrDeserialize;
 HYP_API extern const Name g_attrTransient;
 HYP_API extern const Name g_attrComponent;
 HYP_API extern const Name g_attrSize;

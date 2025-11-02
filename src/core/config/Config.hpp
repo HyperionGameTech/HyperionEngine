@@ -192,7 +192,7 @@ public:
             return FromConfig(configName);
         }
 
-        return FromConfig(*Derived::Class()->GetName());
+        return FromConfig(TypeName<Derived>().Data());
     }
 
     static Derived FromConfig(const String& configName)

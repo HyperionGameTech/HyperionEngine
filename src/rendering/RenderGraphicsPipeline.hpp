@@ -5,6 +5,10 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
+#include <core/reflection/HypObjectBase.hpp>
+
+#include <core/containers/Array.hpp>
+
 #include <core/math/Vertex.hpp>
 
 #include <core/Defines.hpp>

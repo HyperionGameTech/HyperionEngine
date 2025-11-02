@@ -1,5 +1,6 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 #include "include/defines.inc"
 
@@ -14,7 +15,7 @@ layout(location = 0) out vec4 output_color;
 #ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
 HYP_DESCRIPTOR_SRV(View, GBufferTextures, count = 7) uniform texture2D gbuffer_textures[NUM_GBUFFER_TEXTURES];
 #else
-HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) unifortm texture2D gbuffer_albedo_texture;
+HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
 HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
@@ -219,7 +220,7 @@ void main()
 #endif
 
         vec4 light_rays = vec4(0.0);
-        vec4 light_color = UINT_TO_VEC4(light.color_encoded);
+        vec4 light_color = light.color;
 
 #ifdef LIGHT_TYPE_POINT
         if (bool(light.flags & LF_SHADOW))

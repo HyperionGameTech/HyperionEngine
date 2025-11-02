@@ -3,6 +3,7 @@
 #pragma once
 
 #include <core/reflection/ObjId.hpp>
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/HashMap.hpp>
 

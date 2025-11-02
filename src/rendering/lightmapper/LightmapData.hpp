@@ -60,7 +60,7 @@ template <>
 class LightmapData<LightmapVolume> : public LightmapDataBase
 {
 public:
-    using BitmapType = Bitmap_RGBA8;
+    using BitmapType = Bitmap_RGBA16;
 
     using MeshFloatDataArray = Array<float, DynamicAllocator>;
     using MeshIndexArray = Array<uint32, DynamicAllocator>;

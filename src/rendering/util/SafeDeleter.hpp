@@ -2,15 +2,17 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
-
 #include <core/Constants.hpp>
 #include <core/Defines.hpp>
+
+#include <core/reflection/Handle.hpp>
 
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/LinkedList.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -20,7 +22,6 @@
 
 #include <core/memory/pool/Pool.hpp>
 
-#include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>
 
 namespace hyperion {
@@ -44,6 +45,27 @@ public:
     };
 
     HYP_API SafeDeleterEntry(HypObjectBase* ptr, ConstructFromHandleTag);
+
+    SafeDeleterEntry(const SafeDeleterEntry&) = delete;
+    SafeDeleterEntry& operator=(const SafeDeleterEntry&) = delete;
+
+    SafeDeleterEntry(SafeDeleterEntry&& other) noexcept
+        : ptr(other.ptr)
+    {
+        other.ptr = nullptr;
+    }
+
+    SafeDeleterEntry& operator=(SafeDeleterEntry&& other) noexcept
+    {
+        if (this != &other)
+        {
+            ptr = other.ptr;
+            other.ptr = nullptr;
+        }
+
+        return *this;
+    }
+
     HYP_API ~SafeDeleterEntry();
 
 protected:

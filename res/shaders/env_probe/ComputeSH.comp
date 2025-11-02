@@ -192,7 +192,7 @@ vec4 CalculateDirectLighting(in vec3 P, in vec3 N)
         return vec4(0.0);
     }
 
-    const vec4 light_color = UINT_TO_VEC4(light.color_encoded);
+    const vec4 light_color = light.color;
 
     vec3 L = normalize(light.position_intensity.xyz);
 

@@ -3,9 +3,11 @@
 #pragma once
 
 #include <core/reflection/Handle.hpp>
-#include <rendering/RenderObject.hpp>
 
 #include <core/Types.hpp>
+
+#include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 
 namespace hyperion {
 

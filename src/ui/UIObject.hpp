@@ -1195,7 +1195,7 @@ public:
 
         if (!name.IsValid())
         {
-            name = NAME_FMT("<unnamed {}>", T::Class()->GetName());
+            name = NAME("<unnamed>");
         }
 
         Handle<Entity> entity = CreateObject<Entity>();

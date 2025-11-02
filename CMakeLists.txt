@@ -488,8 +488,10 @@ set(SUB_LIBRARIES "")
 collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
 source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES})
 
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty SOURCES SUB_LIBRARIES)
-source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${SOURCES})
+set(THIRD_PARTY_SOURCES "")
+set(THIRD_PARTY_LIBRARIES "")
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES})
 
 file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
@@ -792,11 +794,8 @@ file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
 message(STATUS "Reflection generated sources directory: ${HYP_GENERATED_DIR}")
 source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
 
-foreach(GENERATED_SOURCE ${REFLECTION_GENERATED_SOURCES})
-    message(STATUS "Adding generated source file: ${GENERATED_SOURCE}")
-
-    set(SOURCES ${SOURCES} ${GENERATED_SOURCE})
-endforeach()
+set(SOURCES ${SOURCES} ${REFLECTION_GENERATED_SOURCES})
+set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
 
 add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 
@@ -813,6 +812,8 @@ if(NOT DEFINED WIN32)
         ${SDL2_LIBRARIES}
     )
 endif()
+
+set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 
 message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
 

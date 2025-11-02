@@ -41,13 +41,15 @@ struct Camera
 struct Light
 {
     uint type;
-    uint color_encoded;
+    uint material_index; // for area lights - ~0u == no material
     uint radius_falloff; // packed as half
     uint flags;
 
     vec2 area_size; // for area lights = area size, for spot lights = spot angles
 
     vec4 position_intensity; // position or direction
+    vec4 color;
+
     vec4 normal;             // for area lights - x,y,z = normal
 
     /// shadow map data
@@ -58,7 +60,6 @@ struct Light
     vec2 offset_uv;
     uint layer_index; // atlas index, also used for point light shadow map index
 
-    uint material_index; // for area lights - ~0u == no material
 };
 
 // Maps to LightFlags

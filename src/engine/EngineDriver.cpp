@@ -14,6 +14,7 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderCommand.hpp>
 
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
@@ -287,7 +288,6 @@ HYP_API void EngineDriver::Init()
 
     m_defaultWorld = CreateObject<World>();
     m_defaultWorld->SetName(NAME("DefaultWorld"));
-    InitObject(m_defaultWorld);
 
     for (Handle<World>& currentWorld : m_currentWorldBuffered)
     {

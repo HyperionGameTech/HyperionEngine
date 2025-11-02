@@ -1243,14 +1243,22 @@ private:
 };
 
 using Bitmap_RGBA8_SRGB = Bitmap<TF_RGBA8_SRGB>;
+
 using Bitmap_RGBA8 = Bitmap<TF_RGBA8>;
 using Bitmap_RGB8 = Bitmap<TF_RGB8>;
 using Bitmap_RG8 = Bitmap<TF_RG8>;
 using Bitmap_R8 = Bitmap<TF_R8>;
+
+using Bitmap_RGBA16 = Bitmap<TF_RGBA16>;
+using Bitmap_RGB16 = Bitmap<TF_RGB16>;
+using Bitmap_RG16 = Bitmap<TF_RG16>;
+using Bitmap_R16 = Bitmap<TF_R16>;
+
 using Bitmap_RGBA16F = Bitmap<TF_RGBA16F>;
 using Bitmap_RGB16F = Bitmap<TF_RGB16F>;
 using Bitmap_RG16F = Bitmap<TF_RG16F>;
 using Bitmap_R16F = Bitmap<TF_R16F>;
+
 using Bitmap_RGBA32F = Bitmap<TF_RGBA32F>;
 using Bitmap_RGB32F = Bitmap<TF_RGB32F>;
 using Bitmap_RG32F = Bitmap<TF_RG32F>;

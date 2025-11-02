@@ -4,13 +4,12 @@
 
 #include <rendering/RenderGlobalState.hpp>
 
-// temp
-#include <rendering/Texture.hpp>
-
 #include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <scripting/ScriptObjectResource.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
@@ -29,28 +28,38 @@ SafeDeleterEntry<HypObjectBase*>::SafeDeleterEntry(HypObjectBase* ptr, Construct
 {
     if (ptr)
     {
-        const bool hasScriptObjectResource = ptr->GetScriptObjectResource() != nullptr;
+#ifdef HYP_DOTNET
+        ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+        const bool hasExtraRef = scriptObjectResource && scriptObjectResource->GetScriptLanguage() == SL_CSHARP;
+#else
+        const bool hasExtraRef = false;
+#endif
+        HypObjectHeader* header = ptr->GetObjectHeader_Internal();
 
         // ADD weak ref, so no other releases of weak references when our strong count is zero triggers a Release()
-        ptr->GetObjectHeader_Internal()->IncRefWeak();
+        header->IncRefWeak();
 
-        int32 count = AtomicAdd(&ptr->GetObjectHeader_Internal()->refCountStrong, 0);
+        int32 count = AtomicAdd(&header->refCountStrong, 0);
 
         // manually decrease strong refcount by 1
         // ternary is here due to the fact that the c# object would have an extra ref.
-        while (count != (hasScriptObjectResource ? 1 : 0))
+        while (count != (hasExtraRef ? 1 : 0))
         {
-            if (AtomicCompareExchange(&ptr->GetObjectHeader_Internal()->refCountStrong, count, count - 1))
+            if (AtomicCompareExchange(&header->refCountStrong, count, count - 1))
             {
 
 #ifdef HYP_DOTNET
-                if (hasScriptObjectResource)
+                if (hasExtraRef)
+                {
                     HypObject_DecScriptObjectRef(ptr);
+                }
 #endif
 
                 break;
             }
         }
+
+        AssertDebug(AtomicAdd(&header->refCountWeak, 0) > 0);
     }
 }
 
@@ -61,14 +70,15 @@ SafeDeleterEntry<HypObjectBase*>::~SafeDeleterEntry()
     {
         HypObjectHeader* header = ptr->GetObjectHeader_Internal();
         AssertDebug(header != nullptr); // weird bug?
+        AssertDebug(AtomicAdd(&header->refCountWeak, 0) > 0);
 
         if (AtomicAdd(&header->refCountStrong, 0) == 0)
         {
             ptr->~HypObjectBase();
-            
-            // this will free the slot if no other weak references remain
-            header->DecRefWeak();
         }
+            
+        // this will free the slot if no other weak references remain
+        header->DecRefWeak();
     }
 }
 

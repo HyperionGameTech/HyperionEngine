@@ -691,7 +691,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
     LightShaderData& bufferData = proxy->bufferData;
     bufferData.lightType = uint32(m_type);
-    bufferData.colorPacked = uint32(m_color);
+    bufferData.color = Vec4f(m_color);
     bufferData.radiusFalloffPacked = (uint32(Float16(m_falloff).Raw()) << 16) | Float16(m_radius).Raw();
     bufferData.positionIntensity = Vec4f(m_position, m_intensity);
     bufferData.normal = Vec4f(m_normal, 0.0f);
