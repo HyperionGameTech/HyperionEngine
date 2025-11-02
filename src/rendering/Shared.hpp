@@ -416,6 +416,17 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
     }
 }
 
+template <SizeType Size>
+struct SizedUInt;
+
+template <> struct SizedUInt<1> { using Type = uint8; };
+template <> struct SizedUInt<2> { using Type = uint16; };
+template <> struct SizedUInt<4> { using Type = uint32; };
+template <> struct SizedUInt<8> { using Type = uint64; };
+
+template <SizeType Size>
+using SizedUIntT = typename SizedUInt<Size>::Type;
+
 template <TextureFormat Format>
 struct TextureFormatHelper
 {
@@ -427,7 +438,7 @@ struct TextureFormatHelper
     using ElementType = std::conditional_t<
         isFloatType,
         std::conditional_t<(uint32(Format) <= TF_RGBA16F), Float16, float>,
-        ubyte>;
+        SizedUIntT<bytesPerComponent>>;
 };
 
 HYP_STRUCT()

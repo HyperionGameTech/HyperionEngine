@@ -34,8 +34,6 @@
 
 namespace hyperion {
 
-/// @TODO: Move declaration to EngineGlobals.hpp and init in HyperionEngine.cpp!
-
 #pragma region Helpers
 
 static const FixedArray<StreamingCellNeighbor, 8> GetCellNeighbors(const Vec2i& coord)
@@ -145,7 +143,7 @@ public:
     friend class StreamingManager;
 
     StreamingManagerThread()
-        : Thread(ThreadId(Name::Unique("StreamingManagerThread")), ThreadPriorityValue::NORMAL),
+        : Thread(ThreadId(NAME("StreamingManagerThread")), ThreadPriorityValue::NORMAL),
           m_threadPool(MakeUnique<StreamingThreadPool>())
     {
     }

@@ -356,7 +356,10 @@ bool LightmapVolume::BuildElementTextures(const LightmapData<LightmapVolume>& li
                 TWM_CLAMP_TO_EDGE },
             TextureData { ByteBuffer(pBitmap->ToByteView()) });
 
-        Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize());
+        Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize(),
+            "Bitmap byte size {} does not match texture byte size {}",
+            pBitmap->GetByteSize(),
+            texture->GetTextureDesc().GetByteSize());
 
         texture->SetName(NAME_FMT("LightmapVolumeTexture_{}_{}_{}", m_uuid, elementIndex, TextureTypeNames[i]));
         InitObject(texture);
