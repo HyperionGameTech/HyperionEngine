@@ -4,9 +4,11 @@
 
 #include <stdio.h>
 
-static const int g_bytesPerPixel = 3;
-static const int g_fileHeaderSize = 14;
-static const int g_infoHeaderSize = 40;
+namespace hyperion {
+
+static constexpr int BytesPerPixel = 3;
+static constexpr int FileHeaderSize = 14;
+static constexpr int InfoHeaderSize = 40;
 
 void GenerateBitmapImage(unsigned char* image, int height, int width, char* imageFileName);
 unsigned char* CreateBitmapFileHeader(int height, int stride);
@@ -14,7 +16,7 @@ unsigned char* CreateBitmapInfoHeader(int height, int width);
 
 unsigned char* CreateBitmapFileHeader(int height, int stride)
 {
-    int fileSize = g_fileHeaderSize + g_infoHeaderSize + (stride * height);
+    int fileSize = FileHeaderSize + InfoHeaderSize + (stride * height);
 
     static unsigned char fileHeader[] = {
         0, 0,       /// signature
@@ -29,7 +31,7 @@ unsigned char* CreateBitmapFileHeader(int height, int stride)
     fileHeader[3] = (unsigned char)(fileSize >> 8);
     fileHeader[4] = (unsigned char)(fileSize >> 16);
     fileHeader[5] = (unsigned char)(fileSize >> 24);
-    fileHeader[10] = (unsigned char)(g_fileHeaderSize + g_infoHeaderSize);
+    fileHeader[10] = (unsigned char)(FileHeaderSize + InfoHeaderSize);
 
     return fileHeader;
 }
@@ -50,7 +52,7 @@ unsigned char* CreateBitmapInfoHeader(int height, int width)
         0, 0, 0, 0, /// important color count
     };
 
-    infoHeader[0] = (unsigned char)(g_infoHeaderSize);
+    infoHeader[0] = (unsigned char)(InfoHeaderSize);
     infoHeader[4] = (unsigned char)(width);
     infoHeader[5] = (unsigned char)(width >> 8);
     infoHeader[6] = (unsigned char)(width >> 16);
@@ -60,12 +62,11 @@ unsigned char* CreateBitmapInfoHeader(int height, int width)
     infoHeader[10] = (unsigned char)(height >> 16);
     infoHeader[11] = (unsigned char)(height >> 24);
     infoHeader[12] = (unsigned char)(1);
-    infoHeader[14] = (unsigned char)(g_bytesPerPixel * 8);
+    infoHeader[14] = (unsigned char)(BytesPerPixel * 8);
 
     return infoHeader;
 }
 
-namespace hyperion {
 bool WriteBitmap::Write(
     ByteWriter* byteWriter,
     int width,
@@ -77,7 +78,7 @@ bool WriteBitmap::Write(
         return false;
     }
 
-    int widthInBytes = width * g_bytesPerPixel;
+    int widthInBytes = width * BytesPerPixel;
 
     unsigned char padding[3] = { 0, 0, 0 };
     int paddingSize = (4 - (widthInBytes) % 4) % 4;
@@ -85,15 +86,15 @@ bool WriteBitmap::Write(
     int stride = (widthInBytes) + paddingSize;
 
     unsigned char* fileHeader = CreateBitmapFileHeader(height, stride);
-    byteWriter->Write(fileHeader, g_fileHeaderSize);
+    byteWriter->Write(fileHeader, FileHeaderSize);
 
     unsigned char* infoHeader = CreateBitmapInfoHeader(height, width);
-    byteWriter->Write(infoHeader, g_infoHeaderSize);
+    byteWriter->Write(infoHeader, InfoHeaderSize);
 
     int i;
     for (i = 0; i < height; i++)
     {
-        byteWriter->Write(bytes + (i * widthInBytes), g_bytesPerPixel * width);
+        byteWriter->Write(bytes + (i * widthInBytes), BytesPerPixel * width);
         byteWriter->Write(padding, paddingSize);
     }
 
