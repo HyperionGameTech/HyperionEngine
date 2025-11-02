@@ -781,16 +781,19 @@ void StreamingManager::Start()
 {
     Assert(g_streamingPool != nullptr);
 
-    m_thread = MakeUnique<StreamingManagerThread>();
-
-    if (!m_thread->IsRunning())
+    if (!m_thread)
     {
         m_thread = MakeUnique<StreamingManagerThread>();
+    }
 
-        if (!m_thread->Start(this))
-        {
-            HYP_FAIL("Failed to start StreamingManagerThread!");
-        }
+    if (m_thread->IsRunning())
+    {
+        return;
+    }
+
+    if (!m_thread->Start(this))
+    {
+        HYP_FAIL("Failed to start StreamingManagerThread!");
     }
 }
 
