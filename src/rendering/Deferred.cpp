@@ -333,6 +333,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 void DeferredPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
+
+    m_directLightGraphicsPipelines = {};
 }
 
 void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
@@ -978,6 +980,8 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
     SafeDelete(std::move(m_deferredResultImageView));
 
     FullScreenPass::Resize_Internal(newSize);
+
+    m_cubemapGraphicsPipelines = {};
 
     if (ShouldRenderSSR())
     {

@@ -225,12 +225,25 @@ class BindGraphicsPipeline final : public CmdBase
 public:
 #ifdef HYP_DEBUG_MODE
     HYP_API BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
+
+    BindGraphicsPipeline(GraphicsPipelineBase* pipeline, const Viewport& viewport)
+        : BindGraphicsPipeline(pipeline, viewport.position, viewport.extent)
+    {
+    }
+
     HYP_API BindGraphicsPipeline(GraphicsPipelineBase* pipeline);
 #else
     BindGraphicsPipeline(GraphicsPipelineBase* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
         : m_pipeline(pipeline),
           m_viewportOffset(viewportOffset),
           m_viewportExtent(viewportExtent)
+    {
+    }
+
+    BindGraphicsPipeline(GraphicsPipelineBase* pipeline, const Viewport& viewport)
+        : m_pipeline(pipeline),
+          m_viewportOffset(viewport.position),
+          m_viewportExtent(viewport.extent)
     {
     }
 
