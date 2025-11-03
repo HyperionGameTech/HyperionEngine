@@ -53,18 +53,12 @@ public:
         return m_acquiredImageIndex;
     }
 
-    HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
-    {
-        return m_currentFrameIndex;
-    }
-
     virtual RendererResult Create() = 0;
 
 protected:
     SwapchainBase()
         : m_extent(Vec2i::Zero()),
           m_acquiredImageIndex(0),
-          m_currentFrameIndex(0),
           m_imageFormat(TF_NONE),
           m_isPqHdr(false)
     {
@@ -75,7 +69,6 @@ protected:
     Vec2u m_extent;
     TextureFormat m_imageFormat;
     uint32 m_acquiredImageIndex;
-    uint32 m_currentFrameIndex;
     bool m_isPqHdr : 1;
 };
 

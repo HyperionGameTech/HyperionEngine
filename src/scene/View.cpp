@@ -299,13 +299,17 @@ void View::UpdateViewport()
     Threads::AssertOnThread(g_gameThread);
     AssertReady();
 
-    const uint32 idx = RenderApi::GetFrameIndex();
+    if (m_camera != nullptr)
+    {
+        m_viewport.extent = MathUtil::Max(Vec2u(m_camera->GetDimensions()), Vec2u::One());
+    }
 
-    m_viewportBuffered[idx] = m_viewport;
+    const uint32 frameIndex = RenderApi::GetFrameIndex();
+    m_viewportBuffered[frameIndex] = m_viewport;
 
     if (m_readbackTexture)
     {
-        m_readbackTextureGpuImages[idx] = m_readbackTexture->GetGpuImage();
+        m_readbackTextureGpuImages[frameIndex] = m_readbackTexture->GetGpuImage();
     }
 }
 
@@ -402,11 +406,18 @@ void View::SetViewport(const Viewport& viewport)
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
+    if (viewport == m_viewport)
+    {
+        return;
+    }
+
+    const Vec2u prevExtent = m_viewport.extent;
+
     m_viewport = viewport;
 
     if (IsInitCalled())
     {
-        if (m_flags & ViewFlags::ENABLE_READBACK)
+        if (prevExtent != m_viewport.extent && (m_flags & ViewFlags::ENABLE_READBACK))
         {
             m_readbackTexture.Reset();
 

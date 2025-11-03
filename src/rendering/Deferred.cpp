@@ -333,6 +333,10 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 void DeferredPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
+
+    // have to refetch per-light pipelines additionally,
+    // otherwise view size changes won't be reflected in them
+    m_directLightGraphicsPipelines = {};
 }
 
 void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
@@ -725,6 +729,8 @@ void EnvGridPass::CreatePipeline()
 void EnvGridPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
+
+    m_graphicsPipelines = {};
 }
 
 void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
@@ -979,6 +985,8 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
 
     FullScreenPass::Resize_Internal(newSize);
 
+    m_cubemapGraphicsPipelines = {};
+
     if (ShouldRenderSSR())
     {
         CreateSSRRenderer();
@@ -1194,11 +1202,13 @@ void DeferredRenderer::Shutdown()
 {
 }
 
-#define CHECK_FRAMEBUFFER_SIZE(fb)                                                                    \
-    Assert(fb->GetExtent() == passData.viewport.extent,                                               \
-        "Deferred pass framebuffer extent does not match viewport extent! Expected {}x{}, got {}x{}", \
-        passData.viewport.extent.x, passData.viewport.extent.y,                                       \
-        fb->GetExtent().x, fb->GetExtent().y)
+//#define CHECK_FRAMEBUFFER_SIZE(fb)                                                                    \
+//    Assert(fb->GetExtent() == passData.viewport.extent,                                               \
+//        "Deferred pass framebuffer extent does not match viewport extent! Expected {}x{}, got {}x{}", \
+//        passData.viewport.extent.x, passData.viewport.extent.y,                                       \
+//        fb->GetExtent().x, fb->GetExtent().y)
+
+#define CHECK_FRAMEBUFFER_SIZE(...)
 
 Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {

@@ -322,11 +322,19 @@ void FullScreenPass::CreateFramebuffer()
 {
     HYP_SCOPE;
 
-    if (m_framebuffer.IsValid())
+    if (m_framebuffer != nullptr)
     {
-        DeferCreate(m_framebuffer);
+        // already created; check if size matches
 
-        return;
+        if (m_framebuffer->GetExtent() == m_extent)
+        {
+            // already created with correct extent
+            DeferCreate(m_framebuffer);
+
+            return;
+        }
+
+        SafeDelete(std::move(m_framebuffer));
     }
 
     Assert(m_extent.Volume() != 0);
@@ -388,14 +396,15 @@ void FullScreenPass::CreatePipeline()
         .flags = MAF_NONE
     };
 
-    CreatePipeline(RenderableAttributeSet(
-        meshAttributes,
-        materialAttributes));
+    CreatePipeline(RenderableAttributeSet(meshAttributes, materialAttributes));
 }
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 {
     HYP_SCOPE;
+
+    Assert(m_shader != nullptr);
+    Assert(m_framebuffer != nullptr);
 
     m_graphicsPipelineCacheHandle = g_renderGlobalState->graphicsPipelineCache->GetOrCreate(
         m_shader,

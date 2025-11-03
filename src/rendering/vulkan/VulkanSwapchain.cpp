@@ -91,11 +91,6 @@ bool VulkanSwapchain::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-void VulkanSwapchain::NextFrame()
-{
-    m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
-}
-
 RendererResult VulkanSwapchain::PrepareFrame(bool& outNeedsRecreate)
 {
     static const auto handleFrameResult = [](VkResult result, bool& outNeedsRecreate) -> RendererResult
@@ -252,18 +247,18 @@ RendererResult VulkanSwapchain::Create()
 
     VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
 
-    for (uint32 i = 0; i < m_frames.Size(); i++)
+    for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
     {
+        VulkanFrameRef& frame = m_frames[frameIndex];
+        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[frameIndex];
+
         VkCommandPool pool = queue->commandPools[0];
         HYP_GFX_ASSERT(pool != VK_NULL_HANDLE);
 
-        m_commandBuffers[i] = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        m_frames[i] = CreateObject<VulkanFrame>(i);
+        commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        frame = CreateObject<VulkanFrame>(frameIndex);
 
-        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[i];
         HYP_GFX_CHECK(commandBuffer->Create(pool));
-
-        VulkanFrameRef& frame = m_frames[i];
         HYP_GFX_CHECK(frame->Create());
     }
 
