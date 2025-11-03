@@ -19,7 +19,7 @@
 #include <core/reflection/HypDataJSONHelpers.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypProperty.hpp>
 
 #include <core/io/ByteWriter.hpp>
@@ -2653,7 +2653,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             break;
             case HypMemberType::TYPE_FIELD:
             {
-                const HypField* field = static_cast<const HypField*>(&member);
+                const Field* field = static_cast<const Field*>(&member);
                 memberData = field->Get(current);
             }
             break;

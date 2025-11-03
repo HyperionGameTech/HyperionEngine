@@ -42,8 +42,7 @@ namespace hyperion {
 
 #pragma region Render command
 
-struct RENDER_COMMAND(LightmapRender)
-    : RenderCommand
+struct LightmapRender : RenderCommand
 {
     LightmapJobBase* job;
     Handle<World> world;
@@ -51,8 +50,7 @@ struct RENDER_COMMAND(LightmapRender)
     Array<LightmapRay> rays;
     uint32 rayOffset;
 
-    RENDER_COMMAND(LightmapRender)
-    (LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
+    LightmapRender(LightmapJobBase* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
         : job(job),
           world(world),
           view(view),
@@ -62,7 +60,7 @@ struct RENDER_COMMAND(LightmapRender)
         job->numConcurrentRenderingTasks.Increment(1, MemoryOrder::RELEASE);
     }
 
-    virtual ~RENDER_COMMAND(LightmapRender)() override
+    virtual ~LightmapRender() override
     {
         job->numConcurrentRenderingTasks.Decrement(1, MemoryOrder::RELEASE);
     }
@@ -400,7 +398,7 @@ void LightmapJob<LightmapVolume>::Start_Internal()
         {
             return;
         }
-        
+
         HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
 
         m_buildTask = TaskSystem::GetInstance().Enqueue([this]() -> Result
@@ -485,7 +483,7 @@ void LightmapJob<LightmapVolume>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-#pragma endregion LightmapJob<LightmapVolume>
+#pragma endregion LightmapJob < LightmapVolume>
 
 #pragma region LightmapJob<EnvProbe>
 
@@ -506,6 +504,6 @@ void LightmapJob<EnvProbe>::Process_Internal(bool* outIsReadyToProcess)
     }
 }
 
-#pragma endregion LightmapJob<EnvProbe>
+#pragma endregion LightmapJob < EnvProbe>
 
 } // namespace hyperion

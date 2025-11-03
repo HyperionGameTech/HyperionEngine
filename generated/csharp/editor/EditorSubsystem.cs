@@ -64,29 +64,29 @@ namespace Hyperion
         }
         public static ScriptableDelegate GetOnFocusedNodeChangedDelegate(this EditorSubsystem obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(8203682563661799343));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(8203682563661799343));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnProjectClosingDelegate(this EditorSubsystem obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(10330235780829939156));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(10330235780829939156));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnProjectOpenedDelegate(this EditorSubsystem obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(18446235940589482160));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(18446235940589482160));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnActiveSceneChangedDelegate(this EditorSubsystem obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(8993977355566992078));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(8993977355566992078));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }

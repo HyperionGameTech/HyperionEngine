@@ -34,7 +34,7 @@ class HypObjectContainerBase;
 class HypObjectBase;
 struct HypObjectHeader;
 class IHypMember;
-class HypField;
+class Field;
 class HypMethod;
 class HypConstant;
 class HypProperty;

@@ -31,7 +31,7 @@ class HYP_API FullScreenPass : public HypObjectBase
     HYP_OBJECT_BODY(FullScreenPass);
 
 public:
-    friend struct RenderCommand_RecreateFullScreenPassFramebuffer;
+    friend struct RecreateFullScreenPassFramebuffer;
 
     FullScreenPass(
         TextureFormat imageFormat,

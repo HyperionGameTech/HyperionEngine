@@ -72,13 +72,11 @@ struct GpuLightmapperReadyNotification : Semaphore<int>
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
-    : RenderCommand
+struct CreateLightmapGPUPathTracerUniformBuffer : RenderCommand
 {
     GpuBufferRef uniformBuffer;
 
-    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
-    (GpuBufferRef uniformBuffer)
+    CreateLightmapGPUPathTracerUniformBuffer(GpuBufferRef uniformBuffer)
         : uniformBuffer(std::move(uniformBuffer))
     {
     }
@@ -92,13 +90,11 @@ struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
     }
 };
 
-struct RENDER_COMMAND(SetGpuLightmapperReady)
-    : RenderCommand
+struct SetGpuLightmapperReady : RenderCommand
 {
     RC<GpuLightmapperReadyNotification> notification;
 
-    RENDER_COMMAND(SetGpuLightmapperReady)
-    (const RC<GpuLightmapperReadyNotification>& notification)
+    SetGpuLightmapperReady(const RC<GpuLightmapperReadyNotification>& notification)
         : notification(notification)
     {
         Assert(notification != nullptr);

@@ -18,9 +18,6 @@ namespace hyperion {
 class GBuffer;
 class PassData;
 
-struct RenderCommand_DestroyRaytracingReflections;
-struct RenderCommand_CreateRTRadianceImageOutputs;
-
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.RayTracing")
 struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConfig>
 {
@@ -43,8 +40,8 @@ struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConf
 class RaytracingReflections
 {
 public:
-    friend struct RenderCommand_DestroyRaytracingReflections;
-    friend struct RenderCommand_CreateRTRadianceImageOutputs;
+    friend struct DestroyRaytracingReflections;
+    friend struct CreateRTRadianceImageOutputs;
 
     HYP_API RaytracingReflections(
         RaytracingReflectionsConfig&& config,

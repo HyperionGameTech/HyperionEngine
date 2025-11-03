@@ -21,9 +21,6 @@ class Material;
 class Entity;
 struct RenderSetup;
 
-struct RenderCommand_CreateIndirectRenderer;
-struct RenderCommand_DestroyIndirectRenderer;
-
 struct DrawCallStorage;
 struct InstancedDrawCallStorage;
 
@@ -93,8 +90,8 @@ private:
 class IndirectRenderer
 {
 public:
-    friend struct RenderCommand_CreateIndirectRenderer;
-    friend struct RenderCommand_DestroyIndirectRenderer;
+    friend struct CreateIndirectRenderer;
+    friend struct DestroyIndirectRenderer;
 
     IndirectRenderer();
 

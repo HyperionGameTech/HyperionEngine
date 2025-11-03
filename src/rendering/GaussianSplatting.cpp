@@ -62,8 +62,7 @@ struct alignas(8) GaussianSplatIndex
     float32 distance;
 };
 
-struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
-    : RenderCommand
+struct CreateGaussianSplattingInstanceBuffers : RenderCommand
 {
     GpuBufferRef splatBuffer;
     GpuBufferRef splatIndicesBuffer;
@@ -71,7 +70,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
     GpuBufferRef indirectBuffer;
     RC<GaussianSplattingModelData> model;
 
-    RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)(
+    CreateGaussianSplattingInstanceBuffers(
         GpuBufferRef splatBuffer,
         GpuBufferRef splatIndicesBuffer,
         GpuBufferRef sceneBuffer,
@@ -85,7 +84,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)() override = default;
+    virtual ~CreateGaussianSplattingInstanceBuffers() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -141,13 +140,12 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
     }
 };
 
-struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)
-    : RenderCommand
+struct CreateGaussianSplattingIndirectBuffers : RenderCommand
 {
     GpuBufferRef stagingBuffer;
     Handle<Mesh> quadMesh;
 
-    RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)(
+    CreateGaussianSplattingIndirectBuffers(
         GpuBufferRef stagingBuffer,
         Handle<Mesh> quadMesh)
         : stagingBuffer(std::move(stagingBuffer)),
@@ -155,7 +153,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)() override = default;
+    virtual ~CreateGaussianSplattingIndirectBuffers() override = default;
 
     virtual RendererResult operator()() override
     {

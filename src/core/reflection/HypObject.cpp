@@ -173,7 +173,7 @@ HypObjectBase::~HypObjectBase()
 
             while (cls != nullptr && cls->IsDynamic())
             {
-                for (HypField* field : cls->GetFields())
+                for (Field* field : cls->GetFields())
                 {
                     // align field offset
                     fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypData));

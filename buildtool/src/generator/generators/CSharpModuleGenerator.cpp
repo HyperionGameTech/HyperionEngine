@@ -269,8 +269,8 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                 writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managedName, cls.name));
                 writer.WriteString("        {\n");
 
-                writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.Class.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.friendlyName.Data()))));
-                writer.WriteString("            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);\n\n");
+                writer.WriteString(HYP_FORMAT("            Field field = (Field)obj.Class.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.friendlyName.Data()))));
+                writer.WriteString("            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);\n\n");
                 writer.WriteString("            return new ScriptableDelegate(obj, fieldAddress);\n");
 
                 writer.WriteString("        }\n");

@@ -388,15 +388,13 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
     // set new allocated slot to the graphics pipeline we just created
     *cacheHandle.m_pRef = std::move(graphicsPipeline);
 
-    struct RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)
-        : RenderCommand
+    struct CreateGraphicsPipelineAndAddToCache : RenderCommand
     {
         GraphicsPipelineBase* graphicsPipeline;
         uint32 slot;
         Proc<void(GraphicsPipelineBase*, uint32)> callback;
 
-        RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)
-        (
+        CreateGraphicsPipelineAndAddToCache(
             GraphicsPipelineBase* graphicsPipeline,
             uint32 slot,
             Proc<void(GraphicsPipelineBase*, uint32)>&& callback)
@@ -407,7 +405,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
             Assert(graphicsPipeline != nullptr && slot != ~0u);
         }
 
-        virtual ~RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)() override = default;
+        virtual ~CreateGraphicsPipelineAndAddToCache() override = default;
 
         virtual RendererResult operator()() override
         {
@@ -463,7 +461,8 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
         if ((*pPipeline)->MatchesSignature(shader, descriptorTableDecl, Map(framebuffers, [](const FramebufferRef& framebuffer)
                                                                             {
                                                                                 return static_cast<const FramebufferBase*>(framebuffer.Get());
-                                                                            }), attributes))
+                                                                            }),
+                attributes))
         {
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 

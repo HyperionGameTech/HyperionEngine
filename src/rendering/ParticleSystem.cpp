@@ -50,15 +50,14 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateParticleSpawnerBuffers)
-    : RenderCommand
+struct CreateParticleSpawnerBuffers : RenderCommand
 {
     GpuBufferRef particleBuffer;
     GpuBufferRef indirectBuffer;
     GpuBufferRef noiseBuffer;
     ParticleSpawnerParams params;
 
-    RENDER_COMMAND(CreateParticleSpawnerBuffers)(
+    CreateParticleSpawnerBuffers(
         GpuBufferRef particleBuffer,
         GpuBufferRef indirectBuffer,
         GpuBufferRef noiseBuffer,
@@ -70,7 +69,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers)
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateParticleSpawnerBuffers)() override
+    virtual ~CreateParticleSpawnerBuffers() override
     {
         SafeDelete(std::move(particleBuffer));
         SafeDelete(std::move(indirectBuffer));
@@ -105,18 +104,17 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers)
     }
 };
 
-struct RENDER_COMMAND(DestroyParticleSystem)
-    : RenderCommand
+struct DestroyParticleSystem : RenderCommand
 {
     ThreadSafeContainer<ParticleSpawner>* spawners;
 
-    RENDER_COMMAND(DestroyParticleSystem)(
+    DestroyParticleSystem(
         ThreadSafeContainer<ParticleSpawner>* spawners)
         : spawners(spawners)
     {
     }
 
-    virtual ~RENDER_COMMAND(DestroyParticleSystem)() override = default;
+    virtual ~DestroyParticleSystem() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -133,19 +131,18 @@ struct RENDER_COMMAND(DestroyParticleSystem)
     }
 };
 
-struct RENDER_COMMAND(CreateParticleSystemBuffers)
-    : RenderCommand
+struct CreateParticleSystemBuffers : RenderCommand
 {
     GpuBufferRef stagingBuffer;
     ByteBuffer indirectDrawCommandsBuffer;
 
-    RENDER_COMMAND(CreateParticleSystemBuffers)(GpuBufferRef stagingBuffer, ByteBuffer&& indirectDrawCommandsBuffer)
+    CreateParticleSystemBuffers(GpuBufferRef stagingBuffer, ByteBuffer&& indirectDrawCommandsBuffer)
         : stagingBuffer(std::move(stagingBuffer)),
           indirectDrawCommandsBuffer(std::move(indirectDrawCommandsBuffer))
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateParticleSystemBuffers)() override = default;
+    virtual ~CreateParticleSystemBuffers() override = default;
 
     virtual RendererResult operator()() override
     {

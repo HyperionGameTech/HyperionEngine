@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <dotnet/Property.hpp>
+#include <dotnet/ManagedProperty.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/Assembly.hpp>
 
 namespace hyperion::dotnet {
 
-void Property::InvokeGetter_Internal(const ManagedObject* pManagedObject, HypData* outReturnHypData)
+void ManagedProperty::InvokeGetter_Internal(const ManagedObject* pManagedObject, HypData* outReturnHypData)
 {
     Assert(pManagedObject != nullptr);
     Assert(pManagedObject->GetClass() != nullptr);
@@ -17,7 +17,7 @@ void Property::InvokeGetter_Internal(const ManagedObject* pManagedObject, HypDat
     assembly->GetInvokeGetterFunction()(m_guid, const_cast<ObjectReference*>(&pManagedObject->GetObjectReference()), nullptr, outReturnHypData);
 }
 
-void Property::InvokeSetter_Internal(const ManagedObject* pManagedObject, const HypData** valueHypData)
+void ManagedProperty::InvokeSetter_Internal(const ManagedObject* pManagedObject, const HypData** valueHypData)
 {
     Assert(pManagedObject != nullptr);
     Assert(pManagedObject->GetClass() != nullptr);

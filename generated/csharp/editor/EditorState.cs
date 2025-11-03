@@ -19,8 +19,8 @@ namespace Hyperion
         }
         public static ScriptableDelegate GetOnCurrentProjectChangedDelegate(this EditorState obj)
         {
-            HypField field = (HypField)obj.Class.GetField(new Name(1428352274621675706));
-            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
+            Field field = (Field)obj.Class.GetField(new Name(1428352274621675706));
+            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((Field)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }

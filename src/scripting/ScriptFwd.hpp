@@ -10,7 +10,7 @@ namespace hyperion {
 namespace dotnet {
 class ManagedClass;
 class ManagedObject;
-class Method;
+class ManagedMethod;
 struct ObjectReference;
 } // namespace dotnet
 

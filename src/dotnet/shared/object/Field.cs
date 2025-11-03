@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public struct HypField
+    public struct Field
     {
-        public static readonly HypField Invalid = new HypField(IntPtr.Zero);
+        public static readonly Field Invalid = new Field(IntPtr.Zero);
 
         internal IntPtr ptr;
 
-        internal HypField(IntPtr ptr)
+        internal Field(IntPtr ptr)
         {
             this.ptr = ptr;
         }
@@ -46,7 +46,7 @@ namespace Hyperion
         {
             if (ptr == IntPtr.Zero)
             {
-                throw new Exception("HypField pointer is null");
+                throw new Exception("Field pointer is null");
             }
 
             if (target == null)

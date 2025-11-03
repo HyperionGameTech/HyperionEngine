@@ -16,13 +16,9 @@ class FullScreenPass;
 class Mesh;
 struct RenderSetup;
 
-struct RENDER_COMMAND(SetUILayerImageView);
-
 class FinalPass final
 {
 public:
-    friend struct RENDER_COMMAND(SetUILayerImageView);
-
     FinalPass(const SwapchainRef& swapchain);
     FinalPass(const FinalPass& other) = delete;
     FinalPass& operator=(const FinalPass& other) = delete;
