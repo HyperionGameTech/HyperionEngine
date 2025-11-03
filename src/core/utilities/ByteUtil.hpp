@@ -6,8 +6,9 @@
 #include <core/math/Vector4.hpp>
 
 #include <core/Types.hpp>
-
 #include <core/Defines.hpp>
+
+#include <climits>
 
 namespace hyperion {
 namespace utilities {

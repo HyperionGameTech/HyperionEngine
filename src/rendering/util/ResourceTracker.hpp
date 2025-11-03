@@ -1187,7 +1187,7 @@ public:
             AssertDebug(elements.HasIndex(idx));
 
             ProxyType* pExistingProxy = proxies.TryGet(idx);
-            AssertDebug(pExistingProxy != std::addressof(proxy));
+            AssertDebug(pExistingProxy != &proxy);
 
             if (pExistingProxy)
             {
@@ -1211,7 +1211,7 @@ public:
             AssertDebug(elements.HasIndex(idx));
 
             ProxyType* pExistingProxy = proxies.TryGet(idx);
-            AssertDebug(pExistingProxy != std::addressof(proxy));
+            AssertDebug(pExistingProxy != &proxy);
 
             if (pExistingProxy)
             {

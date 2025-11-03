@@ -95,9 +95,6 @@ set(HYPERION_ENGINE 1)
 
 
 if(HYP_DEBUG_MODE)
-    # experimental - use ctti library (it's faster than our compile time string manipulation for TypeId generation)
-    add_definitions(-DHYP_USE_CTTI=1)
-
     # enable TypeId generatation at compile time
     # will increase compile times slightly but improve runtime performance
     add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)

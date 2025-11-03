@@ -71,7 +71,7 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
 
     Proc_Impl& operator=(Proc_Impl&& other) noexcept
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return *this;
         }
@@ -315,7 +315,7 @@ public:
 
     Proc& operator=(Proc&& other) noexcept
     {
-        if (std::addressof(other) == this)
+        if (this == &other)
         {
             return *this;
         }
