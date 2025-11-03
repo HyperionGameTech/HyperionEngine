@@ -221,7 +221,7 @@ namespace hyperion {
 #pragma region TextureData Reflection Data
 
 HYP_BEGIN_STRUCT(TextureData, 308, 0, {})
-    HypField(NAME(HYP_STR(ImageData)), &TextureData::imageData, offsetof(TextureData, imageData), Span<const ClassAttribute> { {ClassAttribute("property", "ImageData"), ClassAttribute("serialize", true), ClassAttribute("compressed", true) } })
+    Field(NAME(HYP_STR(ImageData)), &TextureData::imageData, offsetof(TextureData, imageData), Span<const ClassAttribute> { {ClassAttribute("property", "ImageData"), ClassAttribute("serialize", true), ClassAttribute("compressed", true) } })
 HYP_END_STRUCT
 
 #pragma endregion TextureData Reflection Data
@@ -410,12 +410,12 @@ namespace hyperion {
 #pragma region StencilFunction Reflection Data
 
 HYP_BEGIN_STRUCT(StencilFunction, 317, 0, {})
-    HypField(NAME(HYP_STR(PassOp)), &StencilFunction::passOp, offsetof(StencilFunction, passOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FailOp)), &StencilFunction::failOp, offsetof(StencilFunction, failOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(DepthFailOp)), &StencilFunction::depthFailOp, offsetof(StencilFunction, depthFailOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(CompareOp)), &StencilFunction::compareOp, offsetof(StencilFunction, compareOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Mask)), &StencilFunction::mask, offsetof(StencilFunction, mask), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Value)), &StencilFunction::value, offsetof(StencilFunction, value), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(PassOp)), &StencilFunction::passOp, offsetof(StencilFunction, passOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FailOp)), &StencilFunction::failOp, offsetof(StencilFunction, failOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(DepthFailOp)), &StencilFunction::depthFailOp, offsetof(StencilFunction, depthFailOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(CompareOp)), &StencilFunction::compareOp, offsetof(StencilFunction, compareOp), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Mask)), &StencilFunction::mask, offsetof(StencilFunction, mask), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Value)), &StencilFunction::value, offsetof(StencilFunction, value), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion StencilFunction Reflection Data
@@ -428,14 +428,14 @@ namespace hyperion {
 #pragma region TextureDesc Reflection Data
 
 HYP_BEGIN_STRUCT(TextureDesc, 318, 0, {})
-    HypField(NAME(HYP_STR(Type)), &TextureDesc::type, offsetof(TextureDesc, type), Span<const ClassAttribute> { {ClassAttribute("property", "Type"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Format)), &TextureDesc::format, offsetof(TextureDesc, format), Span<const ClassAttribute> { {ClassAttribute("property", "Format"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Extent)), &TextureDesc::extent, offsetof(TextureDesc, extent), Span<const ClassAttribute> { {ClassAttribute("property", "Extent"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FilterModeMin)), &TextureDesc::filterModeMin, offsetof(TextureDesc, filterModeMin), Span<const ClassAttribute> { {ClassAttribute("property", "MinFilterMode"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FilterModeMag)), &TextureDesc::filterModeMag, offsetof(TextureDesc, filterModeMag), Span<const ClassAttribute> { {ClassAttribute("property", "MagFilterMode"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(WrapMode)), &TextureDesc::wrapMode, offsetof(TextureDesc, wrapMode), Span<const ClassAttribute> { {ClassAttribute("property", "TextureWrapMode"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(NumLayers)), &TextureDesc::numLayers, offsetof(TextureDesc, numLayers), Span<const ClassAttribute> { {ClassAttribute("property", "NumLayers"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(ImageUsage)), &TextureDesc::imageUsage, offsetof(TextureDesc, imageUsage), Span<const ClassAttribute> { {ClassAttribute("property", "ImageUsage"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Type)), &TextureDesc::type, offsetof(TextureDesc, type), Span<const ClassAttribute> { {ClassAttribute("property", "Type"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Format)), &TextureDesc::format, offsetof(TextureDesc, format), Span<const ClassAttribute> { {ClassAttribute("property", "Format"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Extent)), &TextureDesc::extent, offsetof(TextureDesc, extent), Span<const ClassAttribute> { {ClassAttribute("property", "Extent"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FilterModeMin)), &TextureDesc::filterModeMin, offsetof(TextureDesc, filterModeMin), Span<const ClassAttribute> { {ClassAttribute("property", "MinFilterMode"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FilterModeMag)), &TextureDesc::filterModeMag, offsetof(TextureDesc, filterModeMag), Span<const ClassAttribute> { {ClassAttribute("property", "MagFilterMode"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(WrapMode)), &TextureDesc::wrapMode, offsetof(TextureDesc, wrapMode), Span<const ClassAttribute> { {ClassAttribute("property", "TextureWrapMode"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(NumLayers)), &TextureDesc::numLayers, offsetof(TextureDesc, numLayers), Span<const ClassAttribute> { {ClassAttribute("property", "NumLayers"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(ImageUsage)), &TextureDesc::imageUsage, offsetof(TextureDesc, imageUsage), Span<const ClassAttribute> { {ClassAttribute("property", "ImageUsage"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion TextureDesc Reflection Data
@@ -500,8 +500,8 @@ namespace hyperion {
 #pragma region SSGIConfig Reflection Data
 
 HYP_BEGIN_STRUCT(SSGIConfig, 322, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.SSGI"))
-    HypField(NAME(HYP_STR(Quality)), &SSGIConfig::quality, offsetof(SSGIConfig, quality), Span<const ClassAttribute> { {ClassAttribute("description", "The quality level of the SSGI effect. 0 = quarter res, 1 = half res") } }),
-    HypField(NAME(HYP_STR(Extent)), &SSGIConfig::extent, offsetof(SSGIConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } })
+    Field(NAME(HYP_STR(Quality)), &SSGIConfig::quality, offsetof(SSGIConfig, quality), Span<const ClassAttribute> { {ClassAttribute("description", "The quality level of the SSGI effect. 0 = quarter res, 1 = half res") } }),
+    Field(NAME(HYP_STR(Extent)), &SSGIConfig::extent, offsetof(SSGIConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } })
 HYP_END_STRUCT
 
 #pragma endregion SSGIConfig Reflection Data
@@ -646,15 +646,15 @@ namespace hyperion {
 #pragma region RendererConfig Reflection Data
 
 HYP_BEGIN_STRUCT(RendererConfig, 323, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering"))
-    HypField(NAME(HYP_STR(PathTracer)), &RendererConfig::pathTracer, offsetof(RendererConfig, pathTracer), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.PathTracing.Enabled") } }),
-    HypField(NAME(HYP_STR(RaytracingReflections)), &RendererConfig::raytracingReflections, offsetof(RendererConfig, raytracingReflections), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.Reflections.Enabled") } }),
-    HypField(NAME(HYP_STR(RaytracingGlobalIllumination)), &RendererConfig::raytracingGlobalIllumination, offsetof(RendererConfig, raytracingGlobalIllumination), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.GI.Enabled") } }),
-    HypField(NAME(HYP_STR(HbaoEnabled)), &RendererConfig::hbaoEnabled, offsetof(RendererConfig, hbaoEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "HBAO.Enabled") } }),
-    HypField(NAME(HYP_STR(HbilEnabled)), &RendererConfig::hbilEnabled, offsetof(RendererConfig, hbilEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "HBIL.Enabled") } }),
-    HypField(NAME(HYP_STR(SsgiEnabled)), &RendererConfig::ssgiEnabled, offsetof(RendererConfig, ssgiEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "SSGI.Enabled") } }),
-    HypField(NAME(HYP_STR(EnvGridGiEnabled)), &RendererConfig::envGridGiEnabled, offsetof(RendererConfig, envGridGiEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "EnvGrid.GI.Enabled") } }),
-    HypField(NAME(HYP_STR(EnvGridRadianceEnabled)), &RendererConfig::envGridRadianceEnabled, offsetof(RendererConfig, envGridRadianceEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "EnvGrid.Reflections.Enabled") } }),
-    HypField(NAME(HYP_STR(TaaEnabled)), &RendererConfig::taaEnabled, offsetof(RendererConfig, taaEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "TAA.Enabled") } })
+    Field(NAME(HYP_STR(PathTracer)), &RendererConfig::pathTracer, offsetof(RendererConfig, pathTracer), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.PathTracing.Enabled") } }),
+    Field(NAME(HYP_STR(RaytracingReflections)), &RendererConfig::raytracingReflections, offsetof(RendererConfig, raytracingReflections), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.Reflections.Enabled") } }),
+    Field(NAME(HYP_STR(RaytracingGlobalIllumination)), &RendererConfig::raytracingGlobalIllumination, offsetof(RendererConfig, raytracingGlobalIllumination), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "RayTracing.GI.Enabled") } }),
+    Field(NAME(HYP_STR(HbaoEnabled)), &RendererConfig::hbaoEnabled, offsetof(RendererConfig, hbaoEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "HBAO.Enabled") } }),
+    Field(NAME(HYP_STR(HbilEnabled)), &RendererConfig::hbilEnabled, offsetof(RendererConfig, hbilEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "HBIL.Enabled") } }),
+    Field(NAME(HYP_STR(SsgiEnabled)), &RendererConfig::ssgiEnabled, offsetof(RendererConfig, ssgiEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "SSGI.Enabled") } }),
+    Field(NAME(HYP_STR(EnvGridGiEnabled)), &RendererConfig::envGridGiEnabled, offsetof(RendererConfig, envGridGiEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "EnvGrid.GI.Enabled") } }),
+    Field(NAME(HYP_STR(EnvGridRadianceEnabled)), &RendererConfig::envGridRadianceEnabled, offsetof(RendererConfig, envGridRadianceEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "EnvGrid.Reflections.Enabled") } }),
+    Field(NAME(HYP_STR(TaaEnabled)), &RendererConfig::taaEnabled, offsetof(RendererConfig, taaEnabled), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "TAA.Enabled") } })
 HYP_END_STRUCT
 
 #pragma endregion RendererConfig Reflection Data
@@ -933,15 +933,15 @@ namespace hyperion {
 #pragma region SSRRendererConfig Reflection Data
 
 HYP_BEGIN_STRUCT(SSRRendererConfig, 327, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.SSR"))
-    HypField(NAME(HYP_STR(Enabled)), &SSRRendererConfig::enabled, offsetof(SSRRendererConfig, enabled)),
-    HypField(NAME(HYP_STR(Quality)), &SSRRendererConfig::quality, offsetof(SSRRendererConfig, quality), Span<const ClassAttribute> { {ClassAttribute("description", "The quality level of the SSR effect. 0 = low, 1 = medium, 2 = high") } }),
-    HypField(NAME(HYP_STR(RoughnessScattering)), &SSRRendererConfig::roughnessScattering, offsetof(SSRRendererConfig, roughnessScattering), Span<const ClassAttribute> { {ClassAttribute("description", "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.") } }),
-    HypField(NAME(HYP_STR(ConeTracing)), &SSRRendererConfig::coneTracing, offsetof(SSRRendererConfig, coneTracing), Span<const ClassAttribute> { {ClassAttribute("description", "Enables cone tracing for the SSR effect. Causes the result to become blurrier based on distance of the reflection.") } }),
-    HypField(NAME(HYP_STR(RayStep)), &SSRRendererConfig::rayStep, offsetof(SSRRendererConfig, rayStep), Span<const ClassAttribute> { {ClassAttribute("description", "The distance between rays when tracing the SSR effect.") } }),
-    HypField(NAME(HYP_STR(NumIterations)), &SSRRendererConfig::numIterations, offsetof(SSRRendererConfig, numIterations), Span<const ClassAttribute> { {ClassAttribute("description", "The maximum number of iterations to perform for the SSR effect before stopping.") } }),
-    HypField(NAME(HYP_STR(EyeFade)), &SSRRendererConfig::eyeFade, offsetof(SSRRendererConfig, eyeFade), Span<const ClassAttribute> { {ClassAttribute("description", "Where to start and end fading the SSR effect based on the eye vector.") } }),
-    HypField(NAME(HYP_STR(ScreenEdgeFade)), &SSRRendererConfig::screenEdgeFade, offsetof(SSRRendererConfig, screenEdgeFade), Span<const ClassAttribute> { {ClassAttribute("description", "Where to start and end fading the SSR effect based on the screen edges.") } }),
-    HypField(NAME(HYP_STR(Extent)), &SSRRendererConfig::extent, offsetof(SSRRendererConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } })
+    Field(NAME(HYP_STR(Enabled)), &SSRRendererConfig::enabled, offsetof(SSRRendererConfig, enabled)),
+    Field(NAME(HYP_STR(Quality)), &SSRRendererConfig::quality, offsetof(SSRRendererConfig, quality), Span<const ClassAttribute> { {ClassAttribute("description", "The quality level of the SSR effect. 0 = low, 1 = medium, 2 = high") } }),
+    Field(NAME(HYP_STR(RoughnessScattering)), &SSRRendererConfig::roughnessScattering, offsetof(SSRRendererConfig, roughnessScattering), Span<const ClassAttribute> { {ClassAttribute("description", "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.") } }),
+    Field(NAME(HYP_STR(ConeTracing)), &SSRRendererConfig::coneTracing, offsetof(SSRRendererConfig, coneTracing), Span<const ClassAttribute> { {ClassAttribute("description", "Enables cone tracing for the SSR effect. Causes the result to become blurrier based on distance of the reflection.") } }),
+    Field(NAME(HYP_STR(RayStep)), &SSRRendererConfig::rayStep, offsetof(SSRRendererConfig, rayStep), Span<const ClassAttribute> { {ClassAttribute("description", "The distance between rays when tracing the SSR effect.") } }),
+    Field(NAME(HYP_STR(NumIterations)), &SSRRendererConfig::numIterations, offsetof(SSRRendererConfig, numIterations), Span<const ClassAttribute> { {ClassAttribute("description", "The maximum number of iterations to perform for the SSR effect before stopping.") } }),
+    Field(NAME(HYP_STR(EyeFade)), &SSRRendererConfig::eyeFade, offsetof(SSRRendererConfig, eyeFade), Span<const ClassAttribute> { {ClassAttribute("description", "Where to start and end fading the SSR effect based on the eye vector.") } }),
+    Field(NAME(HYP_STR(ScreenEdgeFade)), &SSRRendererConfig::screenEdgeFade, offsetof(SSRRendererConfig, screenEdgeFade), Span<const ClassAttribute> { {ClassAttribute("description", "Where to start and end fading the SSR effect based on the screen edges.") } }),
+    Field(NAME(HYP_STR(Extent)), &SSRRendererConfig::extent, offsetof(SSRRendererConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } })
 HYP_END_STRUCT
 
 #pragma endregion SSRRendererConfig Reflection Data
@@ -972,11 +972,11 @@ namespace hyperion {
 #pragma region MeshInstanceData Reflection Data
 
 HYP_BEGIN_STRUCT(MeshInstanceData, 328, 0, {}, ClassAttribute("postload", "MeshInstanceData_OnPostLoad"),ClassAttribute("size", 88))
-    HypField(NAME(HYP_STR(NumInstances)), &MeshInstanceData::numInstances, offsetof(MeshInstanceData, numInstances), Span<const ClassAttribute> { {ClassAttribute("property", "NumInstances"), ClassAttribute("serialize", true), ClassAttribute("editor", true), ClassAttribute("description", "The number of instances of this mesh. This is used to determine how many instances to render in a single draw call. If this is set to 1, the mesh will be rendered as a single instance. If this is greater than 1, the mesh will be rendered as multiple instances.") } }),
-    HypField(NAME(HYP_STR(EnableAutoInstancing)), &MeshInstanceData::enableAutoInstancing, offsetof(MeshInstanceData, enableAutoInstancing), Span<const ClassAttribute> { {ClassAttribute("property", "EnableAutoInstancing"), ClassAttribute("serialize", true), ClassAttribute("editor", true), ClassAttribute("description", "Enable automatic instancing for this mesh instance data. If enabled, the renderer will automatically batch instances of this mesh together for rendering, regardless of the explicitly set number of instances. This can improve performance by reducing draw calls for duplicate meshes, but may consume more GPU memory if instancing is under utilized for this mesh.") } }),
-    HypField(NAME(HYP_STR(Buffers)), &MeshInstanceData::buffers, offsetof(MeshInstanceData, buffers), Span<const ClassAttribute> { {ClassAttribute("property", "Buffers"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(BufferStructSizes)), &MeshInstanceData::bufferStructSizes, offsetof(MeshInstanceData, bufferStructSizes), Span<const ClassAttribute> { {ClassAttribute("property", "BufferStructSizes"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(BufferStructAlignments)), &MeshInstanceData::bufferStructAlignments, offsetof(MeshInstanceData, bufferStructAlignments), Span<const ClassAttribute> { {ClassAttribute("property", "BufferStructAlignments"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(NumInstances)), &MeshInstanceData::numInstances, offsetof(MeshInstanceData, numInstances), Span<const ClassAttribute> { {ClassAttribute("property", "NumInstances"), ClassAttribute("serialize", true), ClassAttribute("editor", true), ClassAttribute("description", "The number of instances of this mesh. This is used to determine how many instances to render in a single draw call. If this is set to 1, the mesh will be rendered as a single instance. If this is greater than 1, the mesh will be rendered as multiple instances.") } }),
+    Field(NAME(HYP_STR(EnableAutoInstancing)), &MeshInstanceData::enableAutoInstancing, offsetof(MeshInstanceData, enableAutoInstancing), Span<const ClassAttribute> { {ClassAttribute("property", "EnableAutoInstancing"), ClassAttribute("serialize", true), ClassAttribute("editor", true), ClassAttribute("description", "Enable automatic instancing for this mesh instance data. If enabled, the renderer will automatically batch instances of this mesh together for rendering, regardless of the explicitly set number of instances. This can improve performance by reducing draw calls for duplicate meshes, but may consume more GPU memory if instancing is under utilized for this mesh.") } }),
+    Field(NAME(HYP_STR(Buffers)), &MeshInstanceData::buffers, offsetof(MeshInstanceData, buffers), Span<const ClassAttribute> { {ClassAttribute("property", "Buffers"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(BufferStructSizes)), &MeshInstanceData::bufferStructSizes, offsetof(MeshInstanceData, bufferStructSizes), Span<const ClassAttribute> { {ClassAttribute("property", "BufferStructSizes"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(BufferStructAlignments)), &MeshInstanceData::bufferStructAlignments, offsetof(MeshInstanceData, bufferStructAlignments), Span<const ClassAttribute> { {ClassAttribute("property", "BufferStructAlignments"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion MeshInstanceData Reflection Data
@@ -1030,13 +1030,13 @@ namespace hyperion {
 #pragma region MaterialAttributes Reflection Data
 
 HYP_BEGIN_STRUCT(MaterialAttributes, 330, 0, {})
-    HypField(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(BlendFunction)), &MaterialAttributes::blendFunction, offsetof(MaterialAttributes, blendFunction), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(CullFaces)), &MaterialAttributes::cullFaces, offsetof(MaterialAttributes, cullFaces), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &MaterialAttributes::flags, offsetof(MaterialAttributes, flags), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(StencilFunction)), &MaterialAttributes::stencilFunction, offsetof(MaterialAttributes, stencilFunction), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(ShaderDefinition)), &MaterialAttributes::shaderDefinition, offsetof(MaterialAttributes, shaderDefinition), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Bucket)), &MaterialAttributes::bucket, offsetof(MaterialAttributes, bucket), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FillMode)), &MaterialAttributes::fillMode, offsetof(MaterialAttributes, fillMode), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(BlendFunction)), &MaterialAttributes::blendFunction, offsetof(MaterialAttributes, blendFunction), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(CullFaces)), &MaterialAttributes::cullFaces, offsetof(MaterialAttributes, cullFaces), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Flags)), &MaterialAttributes::flags, offsetof(MaterialAttributes, flags), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(StencilFunction)), &MaterialAttributes::stencilFunction, offsetof(MaterialAttributes, stencilFunction), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion MaterialAttributes Reflection Data
@@ -1049,9 +1049,9 @@ namespace hyperion {
 #pragma region MeshAttributes Reflection Data
 
 HYP_BEGIN_STRUCT(MeshAttributes, 331, 0, {})
-    HypField(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(VertexAttributes)), &MeshAttributes::vertexAttributes, offsetof(MeshAttributes, vertexAttributes), Span<const ClassAttribute> { {ClassAttribute("property", "VertexAttributes"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Topology)), &MeshAttributes::topology, offsetof(MeshAttributes, topology), Span<const ClassAttribute> { {ClassAttribute("property", "Topology"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(IndexBufferElemType)), &MeshAttributes::indexBufferElemType, offsetof(MeshAttributes, indexBufferElemType), Span<const ClassAttribute> { {ClassAttribute("property", "IndexBufferElemType"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion MeshAttributes Reflection Data
@@ -1089,7 +1089,7 @@ HYP_BEGIN_CLASS(Texture, 51, 0, NAME("AssetObject"))
     HypMethod(NAME(HYP_STR(Rename)), &Texture::Rename),
     HypMethod(NAME(HYP_STR(GetAssetReference)), &Texture::GetAssetReference, Span<const ClassAttribute> { {ClassAttribute("property", "AssetReference") } }),
     HypMethod(NAME(HYP_STR(SetAssetReference)), &Texture::SetAssetReference, Span<const ClassAttribute> { {ClassAttribute("property", "AssetReference") } }),
-    HypField(NAME(HYP_STR(GpuImage)), &Texture::m_gpuImage, offsetof(Texture, m_gpuImage), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(GpuImage)), &Texture::m_gpuImage, offsetof(Texture, m_gpuImage), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_CLASS
 
 #pragma endregion Texture Reflection Data
@@ -1135,9 +1135,9 @@ namespace hyperion {
 #pragma region HBAOConfig Reflection Data
 
 HYP_BEGIN_STRUCT(HBAOConfig, 332, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.HBAO"))
-    HypField(NAME(HYP_STR(Radius)), &HBAOConfig::radius, offsetof(HBAOConfig, radius)),
-    HypField(NAME(HYP_STR(Power)), &HBAOConfig::power, offsetof(HBAOConfig, power)),
-    HypField(NAME(HYP_STR(UseTemporalBlending)), &HBAOConfig::useTemporalBlending, offsetof(HBAOConfig, useTemporalBlending))
+    Field(NAME(HYP_STR(Radius)), &HBAOConfig::radius, offsetof(HBAOConfig, radius)),
+    Field(NAME(HYP_STR(Power)), &HBAOConfig::power, offsetof(HBAOConfig, power)),
+    Field(NAME(HYP_STR(UseTemporalBlending)), &HBAOConfig::useTemporalBlending, offsetof(HBAOConfig, useTemporalBlending))
 HYP_END_STRUCT
 
 #pragma endregion HBAOConfig Reflection Data
@@ -1250,9 +1250,9 @@ HYP_BEGIN_CLASS(Mesh, 52, 0, NAME("AssetObject"))
     HypMethod(NAME(HYP_STR(SetAABB)), &Mesh::SetAABB, Span<const ClassAttribute> { {ClassAttribute("property", "AABB"), ClassAttribute("editor", true) } }),
     HypMethod(NAME(HYP_STR(GetMeshAsset)), &Mesh::GetMeshAsset, Span<const ClassAttribute> { {ClassAttribute("property", "MeshAsset") } }),
     HypMethod(NAME(HYP_STR(SetMeshAsset)), &Mesh::SetMeshAsset, Span<const ClassAttribute> { {ClassAttribute("property", "MeshAsset") } }),
-    HypField(NAME(HYP_STR(Aabb)), &Mesh::m_aabb, offsetof(Mesh, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } }),
-    HypField(NAME(HYP_STR(Bvh)), &Mesh::m_bvh, offsetof(Mesh, m_bvh), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &Mesh::m_flags, offsetof(Mesh, m_flags))
+    Field(NAME(HYP_STR(Aabb)), &Mesh::m_aabb, offsetof(Mesh, m_aabb), Span<const ClassAttribute> { {ClassAttribute("property", "AABB") } }),
+    Field(NAME(HYP_STR(Bvh)), &Mesh::m_bvh, offsetof(Mesh, m_bvh), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Flags)), &Mesh::m_flags, offsetof(Mesh, m_flags))
 HYP_END_CLASS
 
 #pragma endregion Mesh Reflection Data
@@ -1282,7 +1282,7 @@ namespace hyperion {
 #pragma region MeshRaytracingData Reflection Data
 
 HYP_BEGIN_STRUCT(MeshRaytracingData, 337, 0, {})
-    HypField(NAME(HYP_STR(Blas)), &MeshRaytracingData::blas, offsetof(MeshRaytracingData, blas), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
+    Field(NAME(HYP_STR(Blas)), &MeshRaytracingData::blas, offsetof(MeshRaytracingData, blas), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
 
 #pragma endregion MeshRaytracingData Reflection Data
@@ -1303,12 +1303,12 @@ namespace hyperion {
 #pragma region DescriptorUsage Reflection Data
 
 HYP_BEGIN_STRUCT(DescriptorUsage, 338, 0, {})
-    HypField(NAME(HYP_STR(Slot)), &DescriptorUsage::slot, offsetof(DescriptorUsage, slot), Span<const ClassAttribute> { {ClassAttribute("property", "Slot"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(SetName)), &DescriptorUsage::setName, offsetof(DescriptorUsage, setName), Span<const ClassAttribute> { {ClassAttribute("property", "SetName"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(DescriptorName)), &DescriptorUsage::descriptorName, offsetof(DescriptorUsage, descriptorName), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorName"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Type)), &DescriptorUsage::type, offsetof(DescriptorUsage, type), Span<const ClassAttribute> { {ClassAttribute("property", "Type"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &DescriptorUsage::flags, offsetof(DescriptorUsage, flags), Span<const ClassAttribute> { {ClassAttribute("property", "Flags"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Params)), &DescriptorUsage::params, offsetof(DescriptorUsage, params), Span<const ClassAttribute> { {ClassAttribute("property", "Params"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Slot)), &DescriptorUsage::slot, offsetof(DescriptorUsage, slot), Span<const ClassAttribute> { {ClassAttribute("property", "Slot"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(SetName)), &DescriptorUsage::setName, offsetof(DescriptorUsage, setName), Span<const ClassAttribute> { {ClassAttribute("property", "SetName"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(DescriptorName)), &DescriptorUsage::descriptorName, offsetof(DescriptorUsage, descriptorName), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorName"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Type)), &DescriptorUsage::type, offsetof(DescriptorUsage, type), Span<const ClassAttribute> { {ClassAttribute("property", "Type"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Flags)), &DescriptorUsage::flags, offsetof(DescriptorUsage, flags), Span<const ClassAttribute> { {ClassAttribute("property", "Flags"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Params)), &DescriptorUsage::params, offsetof(DescriptorUsage, params), Span<const ClassAttribute> { {ClassAttribute("property", "Params"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion DescriptorUsage Reflection Data
@@ -1321,11 +1321,11 @@ namespace hyperion {
 #pragma region CompiledShader Reflection Data
 
 HYP_BEGIN_STRUCT(CompiledShader, 339, 0, {})
-    HypField(NAME(HYP_STR(Definition)), &CompiledShader::definition, offsetof(CompiledShader, definition), Span<const ClassAttribute> { {ClassAttribute("property", "Definition") } }),
-    HypField(NAME(HYP_STR(DescriptorTableDeclaration)), &CompiledShader::descriptorTableDeclaration, offsetof(CompiledShader, descriptorTableDeclaration), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorTableDeclaration"), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(DescriptorUsageSet)), &CompiledShader::descriptorUsageSet, offsetof(CompiledShader, descriptorUsageSet), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorUsageSet") } }),
-    HypField(NAME(HYP_STR(EntryPointName)), &CompiledShader::entryPointName, offsetof(CompiledShader, entryPointName), Span<const ClassAttribute> { {ClassAttribute("property", "EntryPointName") } }),
-    HypField(NAME(HYP_STR(Modules)), &CompiledShader::modules, offsetof(CompiledShader, modules), Span<const ClassAttribute> { {ClassAttribute("property", "Modules") } }),
+    Field(NAME(HYP_STR(Definition)), &CompiledShader::definition, offsetof(CompiledShader, definition), Span<const ClassAttribute> { {ClassAttribute("property", "Definition") } }),
+    Field(NAME(HYP_STR(DescriptorTableDeclaration)), &CompiledShader::descriptorTableDeclaration, offsetof(CompiledShader, descriptorTableDeclaration), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorTableDeclaration"), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(DescriptorUsageSet)), &CompiledShader::descriptorUsageSet, offsetof(CompiledShader, descriptorUsageSet), Span<const ClassAttribute> { {ClassAttribute("property", "DescriptorUsageSet") } }),
+    Field(NAME(HYP_STR(EntryPointName)), &CompiledShader::entryPointName, offsetof(CompiledShader, entryPointName), Span<const ClassAttribute> { {ClassAttribute("property", "EntryPointName") } }),
+    Field(NAME(HYP_STR(Modules)), &CompiledShader::modules, offsetof(CompiledShader, modules), Span<const ClassAttribute> { {ClassAttribute("property", "Modules") } }),
     HypMethod(NAME(HYP_STR(GetRevisionNumber)), &CompiledShader::GetRevisionNumber, Span<const ClassAttribute> { {ClassAttribute("property", "RevisionNumber"), ClassAttribute("noscriptbindings", true) } })
 HYP_END_STRUCT
 
@@ -1354,8 +1354,8 @@ namespace hyperion {
 #pragma region ShaderDefinition Reflection Data
 
 HYP_BEGIN_STRUCT(ShaderDefinition, 341, 0, {})
-    HypField(NAME(HYP_STR(Name)), &ShaderDefinition::name, offsetof(ShaderDefinition, name)),
-    HypField(NAME(HYP_STR(Properties)), &ShaderDefinition::properties, offsetof(ShaderDefinition, properties))
+    Field(NAME(HYP_STR(Name)), &ShaderDefinition::name, offsetof(ShaderDefinition, name)),
+    Field(NAME(HYP_STR(Properties)), &ShaderDefinition::properties, offsetof(ShaderDefinition, properties))
 HYP_END_STRUCT
 
 #pragma endregion ShaderDefinition Reflection Data
@@ -1382,9 +1382,9 @@ namespace hyperion {
 #pragma region ShaderProperties Reflection Data
 
 HYP_BEGIN_STRUCT(ShaderProperties, 343, 0, {})
-    HypField(NAME(HYP_STR(Props)), &ShaderProperties::m_props, offsetof(ShaderProperties, m_props)),
-    HypField(NAME(HYP_STR(RequiredVertexAttributes)), &ShaderProperties::m_requiredVertexAttributes, offsetof(ShaderProperties, m_requiredVertexAttributes)),
-    HypField(NAME(HYP_STR(OptionalVertexAttributes)), &ShaderProperties::m_optionalVertexAttributes, offsetof(ShaderProperties, m_optionalVertexAttributes))
+    Field(NAME(HYP_STR(Props)), &ShaderProperties::m_props, offsetof(ShaderProperties, m_props)),
+    Field(NAME(HYP_STR(RequiredVertexAttributes)), &ShaderProperties::m_requiredVertexAttributes, offsetof(ShaderProperties, m_requiredVertexAttributes)),
+    Field(NAME(HYP_STR(OptionalVertexAttributes)), &ShaderProperties::m_optionalVertexAttributes, offsetof(ShaderProperties, m_optionalVertexAttributes))
 HYP_END_STRUCT
 
 #pragma endregion ShaderProperties Reflection Data
@@ -1397,10 +1397,10 @@ namespace hyperion {
 #pragma region ShaderProperty Reflection Data
 
 HYP_BEGIN_STRUCT(ShaderProperty, 344, 0, {})
-    HypField(NAME(HYP_STR(Name)), &ShaderProperty::name, offsetof(ShaderProperty, name)),
-    HypField(NAME(HYP_STR(Flags)), &ShaderProperty::flags, offsetof(ShaderProperty, flags)),
-    HypField(NAME(HYP_STR(CurrentValue)), &ShaderProperty::currentValue, offsetof(ShaderProperty, currentValue)),
-    HypField(NAME(HYP_STR(EnumValues)), &ShaderProperty::enumValues, offsetof(ShaderProperty, enumValues))
+    Field(NAME(HYP_STR(Name)), &ShaderProperty::name, offsetof(ShaderProperty, name)),
+    Field(NAME(HYP_STR(Flags)), &ShaderProperty::flags, offsetof(ShaderProperty, flags)),
+    Field(NAME(HYP_STR(CurrentValue)), &ShaderProperty::currentValue, offsetof(ShaderProperty, currentValue)),
+    Field(NAME(HYP_STR(EnumValues)), &ShaderProperty::enumValues, offsetof(ShaderProperty, enumValues))
 HYP_END_STRUCT
 
 #pragma endregion ShaderProperty Reflection Data
@@ -1427,10 +1427,10 @@ namespace hyperion {
 #pragma region VertexAttributeDefinition Reflection Data
 
 HYP_BEGIN_STRUCT(VertexAttributeDefinition, 346, 0, {})
-    HypField(NAME(HYP_STR(Name)), &VertexAttributeDefinition::name, offsetof(VertexAttributeDefinition, name)),
-    HypField(NAME(HYP_STR(TypeClass)), &VertexAttributeDefinition::typeClass, offsetof(VertexAttributeDefinition, typeClass)),
-    HypField(NAME(HYP_STR(Location)), &VertexAttributeDefinition::location, offsetof(VertexAttributeDefinition, location)),
-    HypField(NAME(HYP_STR(Condition)), &VertexAttributeDefinition::condition, offsetof(VertexAttributeDefinition, condition))
+    Field(NAME(HYP_STR(Name)), &VertexAttributeDefinition::name, offsetof(VertexAttributeDefinition, name)),
+    Field(NAME(HYP_STR(TypeClass)), &VertexAttributeDefinition::typeClass, offsetof(VertexAttributeDefinition, typeClass)),
+    Field(NAME(HYP_STR(Location)), &VertexAttributeDefinition::location, offsetof(VertexAttributeDefinition, location)),
+    Field(NAME(HYP_STR(Condition)), &VertexAttributeDefinition::condition, offsetof(VertexAttributeDefinition, condition))
 HYP_END_STRUCT
 
 #pragma endregion VertexAttributeDefinition Reflection Data
@@ -1443,8 +1443,8 @@ namespace hyperion {
 #pragma region CompiledShaderBatch Reflection Data
 
 HYP_BEGIN_STRUCT(CompiledShaderBatch, 347, 0, {})
-    HypField(NAME(HYP_STR(CompiledShaders)), &CompiledShaderBatch::compiledShaders, offsetof(CompiledShaderBatch, compiledShaders)),
-    HypField(NAME(HYP_STR(ErrorMessages)), &CompiledShaderBatch::errorMessages, offsetof(CompiledShaderBatch, errorMessages))
+    Field(NAME(HYP_STR(CompiledShaders)), &CompiledShaderBatch::compiledShaders, offsetof(CompiledShaderBatch, compiledShaders)),
+    Field(NAME(HYP_STR(ErrorMessages)), &CompiledShaderBatch::errorMessages, offsetof(CompiledShaderBatch, errorMessages))
 HYP_END_STRUCT
 
 #pragma endregion CompiledShaderBatch Reflection Data
@@ -1457,9 +1457,9 @@ namespace hyperion {
 #pragma region HashedShaderDefinition Reflection Data
 
 HYP_BEGIN_STRUCT(HashedShaderDefinition, 348, 0, {})
-    HypField(NAME(HYP_STR(Name)), &HashedShaderDefinition::name, offsetof(HashedShaderDefinition, name)),
-    HypField(NAME(HYP_STR(PropertySetHash)), &HashedShaderDefinition::propertySetHash, offsetof(HashedShaderDefinition, propertySetHash)),
-    HypField(NAME(HYP_STR(RequiredVertexAttributes)), &HashedShaderDefinition::requiredVertexAttributes, offsetof(HashedShaderDefinition, requiredVertexAttributes))
+    Field(NAME(HYP_STR(Name)), &HashedShaderDefinition::name, offsetof(HashedShaderDefinition, name)),
+    Field(NAME(HYP_STR(PropertySetHash)), &HashedShaderDefinition::propertySetHash, offsetof(HashedShaderDefinition, propertySetHash)),
+    Field(NAME(HYP_STR(RequiredVertexAttributes)), &HashedShaderDefinition::requiredVertexAttributes, offsetof(HashedShaderDefinition, requiredVertexAttributes))
 HYP_END_STRUCT
 
 #pragma endregion HashedShaderDefinition Reflection Data
@@ -1472,7 +1472,7 @@ namespace hyperion {
 #pragma region DescriptorUsageSet Reflection Data
 
 HYP_BEGIN_STRUCT(DescriptorUsageSet, 349, 0, {})
-    HypField(NAME(HYP_STR(Elements)), &DescriptorUsageSet::elements, offsetof(DescriptorUsageSet, elements))
+    Field(NAME(HYP_STR(Elements)), &DescriptorUsageSet::elements, offsetof(DescriptorUsageSet, elements))
 HYP_END_STRUCT
 
 #pragma endregion DescriptorUsageSet Reflection Data
@@ -1499,10 +1499,10 @@ namespace hyperion {
 #pragma region DescriptorUsageType Reflection Data
 
 HYP_BEGIN_STRUCT(DescriptorUsageType, 351, 0, {})
-    HypField(NAME(HYP_STR(Name)), &DescriptorUsageType::name, offsetof(DescriptorUsageType, name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Size)), &DescriptorUsageType::size, offsetof(DescriptorUsageType, size), Span<const ClassAttribute> { {ClassAttribute("property", "Size"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FieldNames)), &DescriptorUsageType::fieldNames, offsetof(DescriptorUsageType, fieldNames), Span<const ClassAttribute> { {ClassAttribute("property", "FieldNames"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(FieldTypes)), &DescriptorUsageType::fieldTypes, offsetof(DescriptorUsageType, fieldTypes), Span<const ClassAttribute> { {ClassAttribute("property", "FieldTypes"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Name)), &DescriptorUsageType::name, offsetof(DescriptorUsageType, name), Span<const ClassAttribute> { {ClassAttribute("property", "Name"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Size)), &DescriptorUsageType::size, offsetof(DescriptorUsageType, size), Span<const ClassAttribute> { {ClassAttribute("property", "Size"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FieldNames)), &DescriptorUsageType::fieldNames, offsetof(DescriptorUsageType, fieldNames), Span<const ClassAttribute> { {ClassAttribute("property", "FieldNames"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(FieldTypes)), &DescriptorUsageType::fieldTypes, offsetof(DescriptorUsageType, fieldTypes), Span<const ClassAttribute> { {ClassAttribute("property", "FieldTypes"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion DescriptorUsageType Reflection Data
@@ -1571,7 +1571,7 @@ HYP_BEGIN_STRUCT(ShadowMapAtlas, 354, 0, {})
     HypProperty(NAME(HYP_STR(AtlasDimensions)), &ShadowMapAtlas::atlasDimensions),
     HypProperty(NAME(HYP_STR(Elements)), &ShadowMapAtlas::elements),
     HypProperty(NAME(HYP_STR(FreeSpaces)), &ShadowMapAtlas::freeSpaces),
-    HypField(NAME(HYP_STR(AtlasIndex)), &ShadowMapAtlas::atlasIndex, offsetof(ShadowMapAtlas, atlasIndex), Span<const ClassAttribute> { {ClassAttribute("property", "AtlasIndex"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(AtlasIndex)), &ShadowMapAtlas::atlasIndex, offsetof(ShadowMapAtlas, atlasIndex), Span<const ClassAttribute> { {ClassAttribute("property", "AtlasIndex"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion ShadowMapAtlas Reflection Data
@@ -1599,8 +1599,8 @@ namespace hyperion {
 #pragma region RaytracingReflectionsConfig Reflection Data
 
 HYP_BEGIN_STRUCT(RaytracingReflectionsConfig, 356, 0, {}, ClassAttribute("configname", "GlobalConfig"),ClassAttribute("jsonpath", "Rendering.RayTracing"))
-    HypField(NAME(HYP_STR(Extent)), &RaytracingReflectionsConfig::extent, offsetof(RaytracingReflectionsConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } }),
-    HypField(NAME(HYP_STR(PathTracing)), &RaytracingReflectionsConfig::pathTracing, offsetof(RaytracingReflectionsConfig, pathTracing), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "PathTracing.Enabled") } })
+    Field(NAME(HYP_STR(Extent)), &RaytracingReflectionsConfig::extent, offsetof(RaytracingReflectionsConfig, extent), Span<const ClassAttribute> { {ClassAttribute("jsonignore", true) } }),
+    Field(NAME(HYP_STR(PathTracing)), &RaytracingReflectionsConfig::pathTracing, offsetof(RaytracingReflectionsConfig, pathTracing), Span<const ClassAttribute> { {ClassAttribute("jsonpath", "PathTracing.Enabled") } })
 HYP_END_STRUCT
 
 #pragma endregion RaytracingReflectionsConfig Reflection Data

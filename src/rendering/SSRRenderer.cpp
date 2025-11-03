@@ -44,13 +44,12 @@ struct SSRUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateSSRUniformBuffer)
-    : RenderCommand
+struct CreateSSRUniformBuffer : RenderCommand
 {
     SSRUniforms uniforms;
     GpuBufferRef uniformBuffer;
 
-    RENDER_COMMAND(CreateSSRUniformBuffer)(
+    CreateSSRUniformBuffer(
         const SSRUniforms& uniforms,
         const GpuBufferRef& uniformBuffer)
         : uniforms(uniforms),
@@ -61,7 +60,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer)
         Assert(this->uniformBuffer != nullptr);
     }
 
-    virtual ~RENDER_COMMAND(CreateSSRUniformBuffer)() override = default;
+    virtual ~CreateSSRUniformBuffer() override = default;
 
     virtual RendererResult operator()() override
     {

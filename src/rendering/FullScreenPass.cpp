@@ -43,20 +43,18 @@ struct MergeHalfResTexturesUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer)
-    : RenderCommand
+struct RecreateFullScreenPassFramebuffer : RenderCommand
 {
     WeakHandle<FullScreenPass> fullScreenPassWeak;
     Vec2u newSize;
 
-    RENDER_COMMAND(RecreateFullScreenPassFramebuffer)
-    (const WeakHandle<FullScreenPass>& fullScreenPassWeak, Vec2u newSize)
+    RecreateFullScreenPassFramebuffer(const WeakHandle<FullScreenPass>& fullScreenPassWeak, Vec2u newSize)
         : fullScreenPassWeak(fullScreenPassWeak),
           newSize(newSize)
     {
     }
 
-    virtual ~RENDER_COMMAND(RecreateFullScreenPassFramebuffer)() override = default;
+    virtual ~RecreateFullScreenPassFramebuffer() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -100,12 +98,12 @@ FullScreenPass::FullScreenPass(
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
-        shader,
-        descriptorTable,
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer)
+          shader,
+          descriptorTable,
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer)
 {
 }
 
@@ -115,12 +113,12 @@ FullScreenPass::FullScreenPass(
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
-        shader,
-        DescriptorTableRef::Null(),
-        FramebufferRef::Null(),
-        imageFormat,
-        extent,
-        gbuffer)
+          shader,
+          DescriptorTableRef::Null(),
+          FramebufferRef::Null(),
+          imageFormat,
+          extent,
+          gbuffer)
 {
 }
 

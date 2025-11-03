@@ -65,7 +65,7 @@ void ManagedObject::Reset()
     m_keepAlive.Set(false, MemoryOrder::RELEASE);
 }
 
-void ManagedObject::InvokeMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
+void ManagedObject::InvokeMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData)
 {
     Assert(IsValid());
 
@@ -80,7 +80,7 @@ void ManagedObject::InvokeMethod_Internal(const Method* methodPtr, const HypData
     methodPtr->Invoke(&m_objectReference, argsHypData, outReturnHypData);
 }
 
-const Method* ManagedObject::GetMethod(UTF8StringView methodName) const
+const ManagedMethod* ManagedObject::GetMethod(UTF8StringView methodName) const
 {
     if (!IsValid())
     {
@@ -97,7 +97,7 @@ const Method* ManagedObject::GetMethod(UTF8StringView methodName) const
     return &it->second;
 }
 
-const Property* ManagedObject::GetProperty(UTF8StringView propertyName) const
+const ManagedProperty* ManagedObject::GetProperty(UTF8StringView propertyName) const
 {
     if (!IsValid())
     {

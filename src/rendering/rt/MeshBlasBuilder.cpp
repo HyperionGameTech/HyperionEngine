@@ -25,8 +25,7 @@
 
 namespace hyperion {
 
-struct RENDER_COMMAND(BuildMeshBlas)
-    : public RenderCommand
+struct BuildMeshBlas : public RenderCommand
 {
     BLASRef blas;
     Array<PackedVertex> packedVertices;
@@ -38,7 +37,7 @@ struct RENDER_COMMAND(BuildMeshBlas)
     GpuBufferRef verticesStagingBuffer;
     GpuBufferRef indicesStagingBuffer;
 
-    RENDER_COMMAND(BuildMeshBlas)(BLASRef& blas, Array<PackedVertex>&& packedVertices, Array<uint32>&& packedIndices, const Handle<Material>& material)
+    BuildMeshBlas(BLASRef& blas, Array<PackedVertex>&& packedVertices, Array<uint32>&& packedIndices, const Handle<Material>& material)
         : packedVertices(std::move(packedVertices)),
           packedIndices(std::move(packedIndices)),
           material(material)
@@ -60,7 +59,7 @@ struct RENDER_COMMAND(BuildMeshBlas)
         this->blas = blas;
     }
 
-    virtual ~RENDER_COMMAND(BuildMeshBlas)() override
+    virtual ~BuildMeshBlas() override
     {
         SafeDelete(std::move(packedVerticesBuffer));
         SafeDelete(std::move(packedIndicesBuffer));

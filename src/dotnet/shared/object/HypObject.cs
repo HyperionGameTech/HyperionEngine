@@ -228,14 +228,14 @@ namespace Hyperion
                 throw new Exception("Class pointer is null");
             }
 
-            HypField? field = Class.GetField(name);
+            Field? field = Class.GetField(name);
 
             if (field == null)
             {
                 throw new Exception($"Field '{name}' not found in Class '{Class.Name}'");
             }
 
-            return ((HypField)field).ReadObject(this);
+            return ((Field)field).ReadObject(this);
         }
 
         public uint RefCount

@@ -40,7 +40,7 @@ enum class TemporalBlendFeedback
 class TemporalBlending
 {
 public:
-    friend struct RenderCommand_RecreateTemporalBlendingFramebuffer;
+    friend struct RecreateTemporalBlendingFramebuffer;
 
     TemporalBlending(
         const Vec2u& extent,

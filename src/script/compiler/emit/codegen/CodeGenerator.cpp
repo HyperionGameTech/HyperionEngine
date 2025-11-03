@@ -1,7 +1,7 @@
 #include <script/compiler/emit/codegen/CodeGenerator.hpp>
 
 #include <core/HashCode.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/HypConstant.hpp>
 #include <core/reflection/HypProperty.hpp>

@@ -35,66 +35,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(SetUILayerImageView)
-    : RenderCommand
-{
-    FinalPass& finalPass;
-    GpuImageViewRef imageView;
-
-    RENDER_COMMAND(SetUILayerImageView)(
-        FinalPass& finalPass,
-        const GpuImageViewRef& imageView)
-        : finalPass(finalPass),
-          imageView(imageView)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(SetUILayerImageView)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        SafeDelete(std::move(finalPass.m_uiLayerImageView));
-
-        if (g_engineDriver->IsShuttingDown())
-        {
-            // Don't set if the engine is in a shutdown state,
-            // pipeline may already have been deleted.
-            HYPERION_RETURN_OK;
-        }
-
-        if (finalPass.m_renderTextureToScreenPass != nullptr)
-        {
-            const DescriptorTableRef& descriptorTable = finalPass.m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable();
-            Assert(descriptorTable.IsValid());
-
-            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-            {
-                const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
-                Assert(descriptorSet != nullptr);
-
-                if (imageView != nullptr)
-                {
-                    descriptorSet->SetElement("InTexture", imageView);
-                }
-                else
-                {
-                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
-                }
-            }
-        }
-
-        // Set frames to be dirty so the descriptor sets get updated before we render the UI
-        finalPass.m_dirtyFrameIndices = (1u << NumFramesInFlight) - 1;
-        finalPass.m_uiLayerImageView = imageView;
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 #pragma region FinalPass
 
 FinalPass::FinalPass(const SwapchainRef& swapchain)
@@ -118,7 +58,42 @@ FinalPass::~FinalPass()
 
 void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
 {
-    PUSH_RENDER_COMMAND(SetUILayerImageView, *this, imageView);
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+    
+    SafeDelete(std::move(m_uiLayerImageView));
+
+    if (g_engineDriver->IsShuttingDown())
+    {
+        // Don't set if the engine is in a shutdown state,
+        // pipeline may already have been deleted.
+        return;
+    }
+
+    if (m_renderTextureToScreenPass != nullptr)
+    {
+        const DescriptorTableRef& descriptorTable = m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable();
+        Assert(descriptorTable.IsValid());
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
+            Assert(descriptorSet != nullptr);
+
+            if (imageView != nullptr)
+            {
+                descriptorSet->SetElement("InTexture", imageView);
+            }
+            else
+            {
+                descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            }
+        }
+    }
+
+    // Set frames to be dirty so the descriptor sets get updated before we render the UI
+    m_dirtyFrameIndices = (1u << NumFramesInFlight) - 1;
+    m_uiLayerImageView = imageView;
 }
 
 void FinalPass::Create()

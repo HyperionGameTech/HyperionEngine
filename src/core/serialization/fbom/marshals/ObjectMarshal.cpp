@@ -6,7 +6,7 @@
 #include <core/reflection/Class.hpp>
 #include <core/reflection/Struct.hpp>
 #include <core/reflection/HypProperty.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/HypObjectBase.hpp>
 

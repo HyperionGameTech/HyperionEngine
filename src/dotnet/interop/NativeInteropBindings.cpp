@@ -21,7 +21,7 @@
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/Method.hpp>
+#include <dotnet/ManagedMethod.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
 #include <dotnet/interop/ManagedAttribute.hpp>
@@ -234,7 +234,7 @@ extern "C"
 
         managedClass->AddMethod(
             methodName,
-            Method(guid, invokeFptr, std::move(attributes)));
+            ManagedMethod(guid, invokeFptr, std::move(attributes)));
     }
 
     HYP_EXPORT void ManagedClass_AddProperty(ManagedClass* managedClass, const char* propertyName, ManagedGuid guid, ManagedAttributeHolder* managedAttributeHolderPtr)
@@ -257,7 +257,7 @@ extern "C"
 
         managedClass->AddProperty(
             propertyName,
-            Property(guid, std::move(attributes)));
+            ManagedProperty(guid, std::move(attributes)));
     }
 
     HYP_EXPORT void ManagedClass_SetNewObjectFunction(ManagedClass* managedClass, ManagedClass::NewObjectFunction newObjectFptr)

@@ -55,13 +55,12 @@ struct SSGIUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateSSGIUniformBuffers)
-    : RenderCommand
+struct CreateSSGIUniformBuffers : RenderCommand
 {
     SSGIUniforms uniforms;
     FixedArray<GpuBufferRef, NumFramesInFlight> uniformBuffers;
 
-    RENDER_COMMAND(CreateSSGIUniformBuffers)(
+    CreateSSGIUniformBuffers(
         const SSGIUniforms& uniforms,
         const FixedArray<GpuBufferRef, NumFramesInFlight>& uniformBuffers)
         : uniforms(uniforms),
@@ -70,7 +69,7 @@ struct RENDER_COMMAND(CreateSSGIUniformBuffers)
         Assert(uniforms.dimensions.x * uniforms.dimensions.y != 0);
     }
 
-    virtual ~RENDER_COMMAND(CreateSSGIUniformBuffers)() override = default;
+    virtual ~CreateSSGIUniformBuffers() override = default;
 
     virtual RendererResult operator()() override
     {

@@ -49,7 +49,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
         if (dotnet::ManagedClass* classPtr = sor->GetManagedObject()->GetClass())
         {
-            if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
+            if (dotnet::ManagedMethod* methodPtr = classPtr->GetMethod(methodName))
             {
                 if (methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
                 {
@@ -269,7 +269,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                     if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
                     {
-                        if (dotnet::Method* beforeInitMethodPtr = classPtr->GetMethod("BeforeAdded"))
+                        if (dotnet::ManagedMethod* beforeInitMethodPtr = classPtr->GetMethod("BeforeAdded"))
                         {
                             HYP_NAMED_SCOPE("Call BeforeAdded() on script component");
                             HYP_LOG(Script, Debug, "Calling BeforeAdded() on script component");
@@ -282,7 +282,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                     if (!(scriptComponent.flags & ScriptComponentFlags::ON_ADDED_CALLED))
                     {
-                        if (dotnet::Method* initMethodPtr = classPtr->GetMethod("OnAdded"))
+                        if (dotnet::ManagedMethod* initMethodPtr = classPtr->GetMethod("OnAdded"))
                         {
                             HYP_NAMED_SCOPE("Call Init() on script component");
                             HYP_LOG(Script, Info, "Calling Init() on script component");

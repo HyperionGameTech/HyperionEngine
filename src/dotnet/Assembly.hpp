@@ -28,7 +28,7 @@ namespace dotnet {
 
 class ManagedClass;
 class Assembly;
-class Method;
+class ManagedMethod;
 
 class HYP_API Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {

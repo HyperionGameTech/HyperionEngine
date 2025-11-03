@@ -45,8 +45,8 @@ HYP_BEGIN_CLASS(AnimationTrack, 190, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetKeyframes)), &AnimationTrack::GetKeyframes),
     HypMethod(NAME(HYP_STR(GetLength)), &AnimationTrack::GetLength),
     HypMethod(NAME(HYP_STR(GetKeyframe)), &AnimationTrack::GetKeyframe),
-    HypField(NAME(HYP_STR(BoneName)), &AnimationTrack::m_boneName, offsetof(AnimationTrack, m_boneName)),
-    HypField(NAME(HYP_STR(Keyframes)), &AnimationTrack::m_keyframes, offsetof(AnimationTrack, m_keyframes))
+    Field(NAME(HYP_STR(BoneName)), &AnimationTrack::m_boneName, offsetof(AnimationTrack, m_boneName)),
+    Field(NAME(HYP_STR(Keyframes)), &AnimationTrack::m_keyframes, offsetof(AnimationTrack, m_keyframes))
 HYP_END_CLASS
 
 #pragma endregion AnimationTrack Reflection Data
@@ -69,8 +69,8 @@ HYP_BEGIN_CLASS(Animation, 191, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(NumTracks)), &Animation::NumTracks),
     HypMethod(NAME(HYP_STR(Apply)), &Animation::Apply),
     HypMethod(NAME(HYP_STR(ApplyBlended)), &Animation::ApplyBlended),
-    HypField(NAME(HYP_STR(Name)), &Animation::m_name, offsetof(Animation, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name") } }),
-    HypField(NAME(HYP_STR(Tracks)), &Animation::m_tracks, offsetof(Animation, m_tracks), Span<const ClassAttribute> { {ClassAttribute("property", "Tracks") } })
+    Field(NAME(HYP_STR(Name)), &Animation::m_name, offsetof(Animation, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name") } }),
+    Field(NAME(HYP_STR(Tracks)), &Animation::m_tracks, offsetof(Animation, m_tracks), Span<const ClassAttribute> { {ClassAttribute("property", "Tracks") } })
 HYP_END_CLASS
 
 #pragma endregion Animation Reflection Data
@@ -88,8 +88,8 @@ namespace hyperion {
 #pragma region Keyframe Reflection Data
 
 HYP_BEGIN_STRUCT(Keyframe, 387, 0, {})
-    HypField(NAME(HYP_STR(Time)), &Keyframe::time, offsetof(Keyframe, time), Span<const ClassAttribute> { {ClassAttribute("property", "Time"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Transform)), &Keyframe::transform, offsetof(Keyframe, transform), Span<const ClassAttribute> { {ClassAttribute("property", "Transform"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Time)), &Keyframe::time, offsetof(Keyframe, time), Span<const ClassAttribute> { {ClassAttribute("property", "Time"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Transform)), &Keyframe::transform, offsetof(Keyframe, transform), Span<const ClassAttribute> { {ClassAttribute("property", "Transform"), ClassAttribute("serialize", true) } }),
     HypMethod(NAME(HYP_STR(Blend)), &Keyframe::Blend)
 HYP_END_STRUCT
 
@@ -113,7 +113,7 @@ HYP_BEGIN_CLASS(Skeleton, 54, 0, NAME("AssetObject"))
     HypMethod(NAME(HYP_STR(SetRootBone)), &Skeleton::SetRootBone, Span<const ClassAttribute> { {ClassAttribute("property", "RootBone") } }),
     HypMethod(NAME(HYP_STR(GetSkeletonAsset)), &Skeleton::GetSkeletonAsset, Span<const ClassAttribute> { {ClassAttribute("property", "SkeletonAsset") } }),
     HypMethod(NAME(HYP_STR(SetSkeletonAsset)), &Skeleton::SetSkeletonAsset, Span<const ClassAttribute> { {ClassAttribute("property", "SkeletonAsset") } }),
-    HypField(NAME(HYP_STR(RootBone)), &Skeleton::m_rootBone, offsetof(Skeleton, m_rootBone), Span<const ClassAttribute> { {ClassAttribute("property", "RootBone") } })
+    Field(NAME(HYP_STR(RootBone)), &Skeleton::m_rootBone, offsetof(Skeleton, m_rootBone), Span<const ClassAttribute> { {ClassAttribute("property", "RootBone") } })
 HYP_END_CLASS
 
 #pragma endregion Skeleton Reflection Data
@@ -135,14 +135,14 @@ namespace hyperion {
 #pragma region Bone Reflection Data
 
 HYP_BEGIN_CLASS(Bone, 179, 0, NAME("Node"))
-    HypField(NAME(HYP_STR(Skeleton)), &Bone::m_skeleton, offsetof(Bone, m_skeleton), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(BoneMatrix)), &Bone::m_boneMatrix, offsetof(Bone, m_boneMatrix)),
-    HypField(NAME(HYP_STR(Keyframe)), &Bone::m_keyframe, offsetof(Bone, m_keyframe), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(BindingTransform)), &Bone::m_bindingTransform, offsetof(Bone, m_bindingTransform)),
-    HypField(NAME(HYP_STR(PoseTransform)), &Bone::m_poseTransform, offsetof(Bone, m_poseTransform)),
-    HypField(NAME(HYP_STR(WorldBoneTranslation)), &Bone::m_worldBoneTranslation, offsetof(Bone, m_worldBoneTranslation)),
-    HypField(NAME(HYP_STR(WorldBoneRotation)), &Bone::m_worldBoneRotation, offsetof(Bone, m_worldBoneRotation)),
-    HypField(NAME(HYP_STR(InvBindingRotation)), &Bone::m_invBindingRotation, offsetof(Bone, m_invBindingRotation))
+    Field(NAME(HYP_STR(Skeleton)), &Bone::m_skeleton, offsetof(Bone, m_skeleton), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(BoneMatrix)), &Bone::m_boneMatrix, offsetof(Bone, m_boneMatrix)),
+    Field(NAME(HYP_STR(Keyframe)), &Bone::m_keyframe, offsetof(Bone, m_keyframe), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(BindingTransform)), &Bone::m_bindingTransform, offsetof(Bone, m_bindingTransform)),
+    Field(NAME(HYP_STR(PoseTransform)), &Bone::m_poseTransform, offsetof(Bone, m_poseTransform)),
+    Field(NAME(HYP_STR(WorldBoneTranslation)), &Bone::m_worldBoneTranslation, offsetof(Bone, m_worldBoneTranslation)),
+    Field(NAME(HYP_STR(WorldBoneRotation)), &Bone::m_worldBoneRotation, offsetof(Bone, m_worldBoneRotation)),
+    Field(NAME(HYP_STR(InvBindingRotation)), &Bone::m_invBindingRotation, offsetof(Bone, m_invBindingRotation))
 HYP_END_CLASS
 
 #pragma endregion Bone Reflection Data
@@ -161,11 +161,11 @@ namespace hyperion {
 #pragma region LightmapElement Reflection Data
 
 HYP_BEGIN_STRUCT(LightmapElement, 388, 0, {}, ClassAttribute("noscriptbindings", true))
-    HypField(NAME(HYP_STR(Id)), &LightmapElement::id, offsetof(LightmapElement, id), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(OffsetUv)), &LightmapElement::offsetUv, offsetof(LightmapElement, offsetUv), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(OffsetCoords)), &LightmapElement::offsetCoords, offsetof(LightmapElement, offsetCoords), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Dimensions)), &LightmapElement::dimensions, offsetof(LightmapElement, dimensions), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Scale)), &LightmapElement::scale, offsetof(LightmapElement, scale), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Id)), &LightmapElement::id, offsetof(LightmapElement, id), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(OffsetUv)), &LightmapElement::offsetUv, offsetof(LightmapElement, offsetUv), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(OffsetCoords)), &LightmapElement::offsetCoords, offsetof(LightmapElement, offsetCoords), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Dimensions)), &LightmapElement::dimensions, offsetof(LightmapElement, dimensions), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Scale)), &LightmapElement::scale, offsetof(LightmapElement, scale), Span<const ClassAttribute> { {ClassAttribute("serialize", true) } }),
     HypMethod(NAME(HYP_STR(IsValid)), &LightmapElement::IsValid)
 HYP_END_STRUCT
 
@@ -198,10 +198,10 @@ namespace hyperion {
 HYP_BEGIN_CLASS(LightmapVolume, 178, 0, NAME("Entity"))
     HypMethod(NAME(HYP_STR(GetUUID)), &LightmapVolume::GetUUID, Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
     HypMethod(NAME(HYP_STR(GetAtlasTexture)), &LightmapVolume::GetAtlasTexture),
-    HypField(NAME(HYP_STR(Uuid)), &LightmapVolume::m_uuid, offsetof(LightmapVolume, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
-    HypField(NAME(HYP_STR(RadianceAtlasTextures)), &LightmapVolume::m_radianceAtlasTextures, offsetof(LightmapVolume, m_radianceAtlasTextures), Span<const ClassAttribute> { {ClassAttribute("property", "RadianceAtlasTextures") } }),
-    HypField(NAME(HYP_STR(IrradianceAtlasTextures)), &LightmapVolume::m_irradianceAtlasTextures, offsetof(LightmapVolume, m_irradianceAtlasTextures), Span<const ClassAttribute> { {ClassAttribute("property", "IrradianceAtlasTextures") } }),
-    HypField(NAME(HYP_STR(Atlases)), &LightmapVolume::m_atlases, offsetof(LightmapVolume, m_atlases), Span<const ClassAttribute> { {ClassAttribute("property", "Atlases") } })
+    Field(NAME(HYP_STR(Uuid)), &LightmapVolume::m_uuid, offsetof(LightmapVolume, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
+    Field(NAME(HYP_STR(RadianceAtlasTextures)), &LightmapVolume::m_radianceAtlasTextures, offsetof(LightmapVolume, m_radianceAtlasTextures), Span<const ClassAttribute> { {ClassAttribute("property", "RadianceAtlasTextures") } }),
+    Field(NAME(HYP_STR(IrradianceAtlasTextures)), &LightmapVolume::m_irradianceAtlasTextures, offsetof(LightmapVolume, m_irradianceAtlasTextures), Span<const ClassAttribute> { {ClassAttribute("property", "IrradianceAtlasTextures") } }),
+    Field(NAME(HYP_STR(Atlases)), &LightmapVolume::m_atlases, offsetof(LightmapVolume, m_atlases), Span<const ClassAttribute> { {ClassAttribute("property", "Atlases") } })
 HYP_END_CLASS
 
 #pragma endregion LightmapVolume Reflection Data
@@ -243,15 +243,15 @@ namespace hyperion {
 #pragma region MeshComponent Reflection Data
 
 HYP_BEGIN_STRUCT(MeshComponent, 391, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 240),ClassAttribute("label", "Mesh Component"),ClassAttribute("description", "Controls the rendering of an entity, including the mesh, material, and skeleton."),ClassAttribute("editor", true))
-    HypField(NAME(HYP_STR(Mesh)), &MeshComponent::mesh, offsetof(MeshComponent, mesh), Span<const ClassAttribute> { {ClassAttribute("property", "Mesh"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(Material)), &MeshComponent::material, offsetof(MeshComponent, material), Span<const ClassAttribute> { {ClassAttribute("property", "Material"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(Skeleton)), &MeshComponent::skeleton, offsetof(MeshComponent, skeleton), Span<const ClassAttribute> { {ClassAttribute("property", "Skeleton"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(InstanceData)), &MeshComponent::instanceData, offsetof(MeshComponent, instanceData), Span<const ClassAttribute> { {ClassAttribute("property", "InstanceData"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(PreviousModelMatrix)), &MeshComponent::previousModelMatrix, offsetof(MeshComponent, previousModelMatrix), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(UserData)), &MeshComponent::userData, offsetof(MeshComponent, userData), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(LightmapVolume)), &MeshComponent::lightmapVolume, offsetof(MeshComponent, lightmapVolume), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(LightmapVolumeUuid)), &MeshComponent::lightmapVolumeUuid, offsetof(MeshComponent, lightmapVolumeUuid), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(LightmapElementId)), &MeshComponent::lightmapElementId, offsetof(MeshComponent, lightmapElementId), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(Mesh)), &MeshComponent::mesh, offsetof(MeshComponent, mesh), Span<const ClassAttribute> { {ClassAttribute("property", "Mesh"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(Material)), &MeshComponent::material, offsetof(MeshComponent, material), Span<const ClassAttribute> { {ClassAttribute("property", "Material"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(Skeleton)), &MeshComponent::skeleton, offsetof(MeshComponent, skeleton), Span<const ClassAttribute> { {ClassAttribute("property", "Skeleton"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(InstanceData)), &MeshComponent::instanceData, offsetof(MeshComponent, instanceData), Span<const ClassAttribute> { {ClassAttribute("property", "InstanceData"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(PreviousModelMatrix)), &MeshComponent::previousModelMatrix, offsetof(MeshComponent, previousModelMatrix), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(UserData)), &MeshComponent::userData, offsetof(MeshComponent, userData), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(LightmapVolume)), &MeshComponent::lightmapVolume, offsetof(MeshComponent, lightmapVolume), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(LightmapVolumeUuid)), &MeshComponent::lightmapVolumeUuid, offsetof(MeshComponent, lightmapVolumeUuid), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(LightmapElementId)), &MeshComponent::lightmapElementId, offsetof(MeshComponent, lightmapElementId), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_STRUCT
 
 #pragma endregion MeshComponent Reflection Data
@@ -288,9 +288,9 @@ namespace hyperion {
 #pragma region VisibilityStateComponent Reflection Data
 
 HYP_BEGIN_STRUCT(VisibilityStateComponent, 393, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 32),ClassAttribute("serialize", false),ClassAttribute("editor", false))
-    HypField(NAME(HYP_STR(Flags)), &VisibilityStateComponent::flags, offsetof(VisibilityStateComponent, flags)),
-    HypField(NAME(HYP_STR(OctantId)), &VisibilityStateComponent::octantId, offsetof(VisibilityStateComponent, octantId)),
-    HypField(NAME(HYP_STR(VisibilityState)), &VisibilityStateComponent::visibilityState, offsetof(VisibilityStateComponent, visibilityState))
+    Field(NAME(HYP_STR(Flags)), &VisibilityStateComponent::flags, offsetof(VisibilityStateComponent, flags)),
+    Field(NAME(HYP_STR(OctantId)), &VisibilityStateComponent::octantId, offsetof(VisibilityStateComponent, octantId)),
+    Field(NAME(HYP_STR(VisibilityState)), &VisibilityStateComponent::visibilityState, offsetof(VisibilityStateComponent, visibilityState))
 HYP_END_STRUCT
 
 #pragma endregion VisibilityStateComponent Reflection Data
@@ -311,8 +311,8 @@ namespace hyperion {
 #pragma region BoundingBoxComponent Reflection Data
 
 HYP_BEGIN_STRUCT(BoundingBoxComponent, 394, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 64),ClassAttribute("editor", false))
-    HypField(NAME(HYP_STR(LocalAabb)), &BoundingBoxComponent::localAabb, offsetof(BoundingBoxComponent, localAabb), Span<const ClassAttribute> { {ClassAttribute("property", "LocalAABB") } }),
-    HypField(NAME(HYP_STR(WorldAabb)), &BoundingBoxComponent::worldAabb, offsetof(BoundingBoxComponent, worldAabb), Span<const ClassAttribute> { {ClassAttribute("property", "WorldAABB") } })
+    Field(NAME(HYP_STR(LocalAabb)), &BoundingBoxComponent::localAabb, offsetof(BoundingBoxComponent, localAabb), Span<const ClassAttribute> { {ClassAttribute("property", "LocalAABB") } }),
+    Field(NAME(HYP_STR(WorldAabb)), &BoundingBoxComponent::worldAabb, offsetof(BoundingBoxComponent, worldAabb), Span<const ClassAttribute> { {ClassAttribute("property", "WorldAABB") } })
 HYP_END_STRUCT
 
 #pragma endregion BoundingBoxComponent Reflection Data
@@ -333,7 +333,7 @@ namespace hyperion {
 #pragma region TransformComponent Reflection Data
 
 HYP_BEGIN_STRUCT(TransformComponent, 395, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Transform Component"),ClassAttribute("description", "Controls the translation, rotation, and scale of an object."),ClassAttribute("editor", false),ClassAttribute("serialize", false))
-    HypField(NAME(HYP_STR(Transform)), &TransformComponent::transform, offsetof(TransformComponent, transform), Span<const ClassAttribute> { {ClassAttribute("property", "Transform") } })
+    Field(NAME(HYP_STR(Transform)), &TransformComponent::transform, offsetof(TransformComponent, transform), Span<const ClassAttribute> { {ClassAttribute("property", "Transform") } })
 HYP_END_STRUCT
 
 #pragma endregion TransformComponent Reflection Data
@@ -372,11 +372,11 @@ namespace hyperion {
 #pragma region ScriptComponent Reflection Data
 
 HYP_BEGIN_STRUCT(ScriptComponent, 397, 0, {}, ClassAttribute("component", true),ClassAttribute("noscriptbindings", true),ClassAttribute("label", "Script Component"),ClassAttribute("description", "A script component that can be attached to an entity."))
-    HypField(NAME(HYP_STR(AssetReference)), &ScriptComponent::assetReference, offsetof(ScriptComponent, assetReference), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Assembly)), &ScriptComponent::assembly, offsetof(ScriptComponent, assembly), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(ScriptObjectResource)), &ScriptComponent::scriptObjectResource, offsetof(ScriptComponent, scriptObjectResource), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(NativeObject)), &ScriptComponent::nativeObject, offsetof(ScriptComponent, nativeObject), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &ScriptComponent::flags, offsetof(ScriptComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(AssetReference)), &ScriptComponent::assetReference, offsetof(ScriptComponent, assetReference), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Assembly)), &ScriptComponent::assembly, offsetof(ScriptComponent, assembly), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(ScriptObjectResource)), &ScriptComponent::scriptObjectResource, offsetof(ScriptComponent, scriptObjectResource), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(NativeObject)), &ScriptComponent::nativeObject, offsetof(ScriptComponent, nativeObject), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Flags)), &ScriptComponent::flags, offsetof(ScriptComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
     HypMethod(NAME(HYP_STR(GetAssetReference)), &ScriptComponent::GetAssetReference, Span<const ClassAttribute> { {ClassAttribute("property", "AssetReference") } }),
     HypMethod(NAME(HYP_STR(SetAssetReference)), &ScriptComponent::SetAssetReference, Span<const ClassAttribute> { {ClassAttribute("property", "AssetReference") } })
 HYP_END_STRUCT
@@ -398,7 +398,7 @@ namespace hyperion {
 #pragma region UIComponent Reflection Data
 
 HYP_BEGIN_STRUCT(UIComponent, 398, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 8),ClassAttribute("serialize", false))
-    HypField(NAME(HYP_STR(UiObject)), &UIComponent::uiObject, offsetof(UIComponent, uiObject))
+    Field(NAME(HYP_STR(UiObject)), &UIComponent::uiObject, offsetof(UIComponent, uiObject))
 HYP_END_STRUCT
 
 #pragma endregion UIComponent Reflection Data
@@ -417,7 +417,7 @@ namespace hyperion {
 #pragma region AnimationComponent Reflection Data
 
 HYP_BEGIN_STRUCT(AnimationComponent, 399, 0, {}, ClassAttribute("component", true))
-    HypField(NAME(HYP_STR(PlaybackState)), &AnimationComponent::playbackState, offsetof(AnimationComponent, playbackState), Span<const ClassAttribute> { {ClassAttribute("property", "PlaybackState"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } })
+    Field(NAME(HYP_STR(PlaybackState)), &AnimationComponent::playbackState, offsetof(AnimationComponent, playbackState), Span<const ClassAttribute> { {ClassAttribute("property", "PlaybackState"), ClassAttribute("serialize", true), ClassAttribute("editor", true) } })
 HYP_END_STRUCT
 
 #pragma endregion AnimationComponent Reflection Data
@@ -431,11 +431,11 @@ namespace hyperion {
 #pragma region AnimationPlaybackState Reflection Data
 
 HYP_BEGIN_STRUCT(AnimationPlaybackState, 400, 0, {})
-    HypField(NAME(HYP_STR(AnimationIndex)), &AnimationPlaybackState::animationIndex, offsetof(AnimationPlaybackState, animationIndex), Span<const ClassAttribute> { {ClassAttribute("property", "AnimationIndex"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(Status)), &AnimationPlaybackState::status, offsetof(AnimationPlaybackState, status), Span<const ClassAttribute> { {ClassAttribute("property", "Status"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(LoopMode)), &AnimationPlaybackState::loopMode, offsetof(AnimationPlaybackState, loopMode), Span<const ClassAttribute> { {ClassAttribute("property", "LoopMode"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(Speed)), &AnimationPlaybackState::speed, offsetof(AnimationPlaybackState, speed), Span<const ClassAttribute> { {ClassAttribute("property", "Speed"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(CurrentTime)), &AnimationPlaybackState::currentTime, offsetof(AnimationPlaybackState, currentTime), Span<const ClassAttribute> { {ClassAttribute("property", "CurrentTime"), ClassAttribute("editor", true) } })
+    Field(NAME(HYP_STR(AnimationIndex)), &AnimationPlaybackState::animationIndex, offsetof(AnimationPlaybackState, animationIndex), Span<const ClassAttribute> { {ClassAttribute("property", "AnimationIndex"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(Status)), &AnimationPlaybackState::status, offsetof(AnimationPlaybackState, status), Span<const ClassAttribute> { {ClassAttribute("property", "Status"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(LoopMode)), &AnimationPlaybackState::loopMode, offsetof(AnimationPlaybackState, loopMode), Span<const ClassAttribute> { {ClassAttribute("property", "LoopMode"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(Speed)), &AnimationPlaybackState::speed, offsetof(AnimationPlaybackState, speed), Span<const ClassAttribute> { {ClassAttribute("property", "Speed"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(CurrentTime)), &AnimationPlaybackState::currentTime, offsetof(AnimationPlaybackState, currentTime), Span<const ClassAttribute> { {ClassAttribute("property", "CurrentTime"), ClassAttribute("editor", true) } })
 HYP_END_STRUCT
 
 #pragma endregion AnimationPlaybackState Reflection Data
@@ -483,7 +483,7 @@ namespace hyperion {
 #pragma region SkyComponent Reflection Data
 
 HYP_BEGIN_STRUCT(SkyComponent, 403, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Sky Component"),ClassAttribute("description", "Controls the rendering of a dynamic skydome."),ClassAttribute("editor", true))
-    HypField(NAME(HYP_STR(Subsystem)), &SkyComponent::subsystem, offsetof(SkyComponent, subsystem), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(Subsystem)), &SkyComponent::subsystem, offsetof(SkyComponent, subsystem), Span<const ClassAttribute> { {ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true) } })
 HYP_END_STRUCT
 
 #pragma endregion SkyComponent Reflection Data
@@ -517,11 +517,11 @@ namespace hyperion {
 #pragma region AudioComponent Reflection Data
 
 HYP_BEGIN_STRUCT(AudioComponent, 405, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Audio Component"),ClassAttribute("description", "Controls the state of an audio source."),ClassAttribute("editor", true))
-    HypField(NAME(HYP_STR(AudioSource)), &AudioComponent::audioSource, offsetof(AudioComponent, audioSource), Span<const ClassAttribute> { {ClassAttribute("property", "AudioSource"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(PlaybackState)), &AudioComponent::playbackState, offsetof(AudioComponent, playbackState), Span<const ClassAttribute> { {ClassAttribute("property", "PlaybackState"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(Flags)), &AudioComponent::flags, offsetof(AudioComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(LastPosition)), &AudioComponent::lastPosition, offsetof(AudioComponent, lastPosition), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(Timer)), &AudioComponent::timer, offsetof(AudioComponent, timer), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(AudioSource)), &AudioComponent::audioSource, offsetof(AudioComponent, audioSource), Span<const ClassAttribute> { {ClassAttribute("property", "AudioSource"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(PlaybackState)), &AudioComponent::playbackState, offsetof(AudioComponent, playbackState), Span<const ClassAttribute> { {ClassAttribute("property", "PlaybackState"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(Flags)), &AudioComponent::flags, offsetof(AudioComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(LastPosition)), &AudioComponent::lastPosition, offsetof(AudioComponent, lastPosition), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(Timer)), &AudioComponent::timer, offsetof(AudioComponent, timer), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_STRUCT
 
 #pragma endregion AudioComponent Reflection Data
@@ -564,10 +564,10 @@ namespace hyperion {
 #pragma region AudioPlaybackState Reflection Data
 
 HYP_BEGIN_STRUCT(AudioPlaybackState, 408, 0, {})
-    HypField(NAME(HYP_STR(Status)), &AudioPlaybackState::status, offsetof(AudioPlaybackState, status), Span<const ClassAttribute> { {ClassAttribute("property", "Status"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(LoopMode)), &AudioPlaybackState::loopMode, offsetof(AudioPlaybackState, loopMode), Span<const ClassAttribute> { {ClassAttribute("property", "LoopMode"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(Speed)), &AudioPlaybackState::speed, offsetof(AudioPlaybackState, speed), Span<const ClassAttribute> { {ClassAttribute("property", "Speed"), ClassAttribute("editor", true) } }),
-    HypField(NAME(HYP_STR(CurrentTime)), &AudioPlaybackState::currentTime, offsetof(AudioPlaybackState, currentTime), Span<const ClassAttribute> { {ClassAttribute("property", "CurrentTime"), ClassAttribute("editor", true) } })
+    Field(NAME(HYP_STR(Status)), &AudioPlaybackState::status, offsetof(AudioPlaybackState, status), Span<const ClassAttribute> { {ClassAttribute("property", "Status"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(LoopMode)), &AudioPlaybackState::loopMode, offsetof(AudioPlaybackState, loopMode), Span<const ClassAttribute> { {ClassAttribute("property", "LoopMode"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(Speed)), &AudioPlaybackState::speed, offsetof(AudioPlaybackState, speed), Span<const ClassAttribute> { {ClassAttribute("property", "Speed"), ClassAttribute("editor", true) } }),
+    Field(NAME(HYP_STR(CurrentTime)), &AudioPlaybackState::currentTime, offsetof(AudioPlaybackState, currentTime), Span<const ClassAttribute> { {ClassAttribute("property", "CurrentTime"), ClassAttribute("editor", true) } })
 HYP_END_STRUCT
 
 #pragma endregion AudioPlaybackState Reflection Data
@@ -586,7 +586,7 @@ namespace hyperion {
 #pragma region LightmapVolumeComponent Reflection Data
 
 HYP_BEGIN_STRUCT(LightmapVolumeComponent, 409, 0, {}, ClassAttribute("component", true))
-    HypField(NAME(HYP_STR(Volume)), &LightmapVolumeComponent::volume, offsetof(LightmapVolumeComponent, volume), Span<const ClassAttribute> { {ClassAttribute("property", "Volume") } })
+    Field(NAME(HYP_STR(Volume)), &LightmapVolumeComponent::volume, offsetof(LightmapVolumeComponent, volume), Span<const ClassAttribute> { {ClassAttribute("property", "Volume") } })
 HYP_END_STRUCT
 
 #pragma endregion LightmapVolumeComponent Reflection Data
@@ -606,7 +606,7 @@ namespace hyperion {
 #pragma region NodeLinkComponent Reflection Data
 
 HYP_BEGIN_STRUCT(NodeLinkComponent, 410, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 8),ClassAttribute("serialize", false),ClassAttribute("editor", false))
-    HypField(NAME(HYP_STR(Node)), &NodeLinkComponent::node, offsetof(NodeLinkComponent, node))
+    Field(NAME(HYP_STR(Node)), &NodeLinkComponent::node, offsetof(NodeLinkComponent, node))
 HYP_END_STRUCT
 
 #pragma endregion NodeLinkComponent Reflection Data
@@ -629,10 +629,10 @@ namespace hyperion {
 #pragma region RigidBodyComponent Reflection Data
 
 HYP_BEGIN_STRUCT(RigidBodyComponent, 411, 0, {}, ClassAttribute("component", true),ClassAttribute("label", "Rigid Body Component"),ClassAttribute("description", "Controls the properties of an object with rigid body physics."),ClassAttribute("editor", true))
-    HypField(NAME(HYP_STR(RigidBody)), &RigidBodyComponent::rigidBody, offsetof(RigidBodyComponent, rigidBody), Span<const ClassAttribute> { {ClassAttribute("property", "RigidBody") } }),
-    HypField(NAME(HYP_STR(PhysicsMaterial)), &RigidBodyComponent::physicsMaterial, offsetof(RigidBodyComponent, physicsMaterial), Span<const ClassAttribute> { {ClassAttribute("property", "PhysicsMaterial") } }),
-    HypField(NAME(HYP_STR(Flags)), &RigidBodyComponent::flags, offsetof(RigidBodyComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(TransformHashCode)), &RigidBodyComponent::transformHashCode, offsetof(RigidBodyComponent, transformHashCode), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(RigidBody)), &RigidBodyComponent::rigidBody, offsetof(RigidBodyComponent, rigidBody), Span<const ClassAttribute> { {ClassAttribute("property", "RigidBody") } }),
+    Field(NAME(HYP_STR(PhysicsMaterial)), &RigidBodyComponent::physicsMaterial, offsetof(RigidBodyComponent, physicsMaterial), Span<const ClassAttribute> { {ClassAttribute("property", "PhysicsMaterial") } }),
+    Field(NAME(HYP_STR(Flags)), &RigidBodyComponent::flags, offsetof(RigidBodyComponent, flags), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(TransformHashCode)), &RigidBodyComponent::transformHashCode, offsetof(RigidBodyComponent, transformHashCode), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_STRUCT
 
 #pragma endregion RigidBodyComponent Reflection Data
@@ -667,9 +667,9 @@ namespace hyperion {
 #pragma region ReflectionProbeComponent Reflection Data
 
 HYP_BEGIN_STRUCT(ReflectionProbeComponent, 413, 0, {}, ClassAttribute("component", true),ClassAttribute("size", 24),ClassAttribute("label", "Reflection Probe Component"),ClassAttribute("description", "Handles cubemap reflection calculations for a single EnvProbe source"),ClassAttribute("editor", true))
-    HypField(NAME(HYP_STR(Dimensions)), &ReflectionProbeComponent::dimensions, offsetof(ReflectionProbeComponent, dimensions), Span<const ClassAttribute> { {ClassAttribute("property", "Dimensions"), ClassAttribute("editor", true), ClassAttribute("label", "Dimensions") } }),
-    HypField(NAME(HYP_STR(EnvProbe)), &ReflectionProbeComponent::envProbe, offsetof(ReflectionProbeComponent, envProbe), Span<const ClassAttribute> { {ClassAttribute("property", "EnvProbe"), ClassAttribute("editor", true), ClassAttribute("label", "EnvProbe") } }),
-    HypField(NAME(HYP_STR(ReflectionProbeRenderer)), &ReflectionProbeComponent::reflectionProbeRenderer, offsetof(ReflectionProbeComponent, reflectionProbeRenderer), Span<const ClassAttribute> { {ClassAttribute("property", "ReflectionProbeRenderer"), ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true), ClassAttribute("editor", false) } })
+    Field(NAME(HYP_STR(Dimensions)), &ReflectionProbeComponent::dimensions, offsetof(ReflectionProbeComponent, dimensions), Span<const ClassAttribute> { {ClassAttribute("property", "Dimensions"), ClassAttribute("editor", true), ClassAttribute("label", "Dimensions") } }),
+    Field(NAME(HYP_STR(EnvProbe)), &ReflectionProbeComponent::envProbe, offsetof(ReflectionProbeComponent, envProbe), Span<const ClassAttribute> { {ClassAttribute("property", "EnvProbe"), ClassAttribute("editor", true), ClassAttribute("label", "EnvProbe") } }),
+    Field(NAME(HYP_STR(ReflectionProbeRenderer)), &ReflectionProbeComponent::reflectionProbeRenderer, offsetof(ReflectionProbeComponent, reflectionProbeRenderer), Span<const ClassAttribute> { {ClassAttribute("property", "ReflectionProbeRenderer"), ClassAttribute("noscriptbindings", true), ClassAttribute("transient", true), ClassAttribute("editor", false) } })
 HYP_END_STRUCT
 
 #pragma endregion ReflectionProbeComponent Reflection Data
@@ -793,7 +793,7 @@ HYP_END_CLASS
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
+#include <dotnet/ManagedMethod.hpp>
 
 namespace hyperion {
 
@@ -826,7 +826,7 @@ bool ScriptableSystem::AllowParallelExecution() const
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("AllowParallelExecution");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -840,7 +840,7 @@ bool ScriptableSystem::RequiresGameThread() const
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("RequiresGameThread");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -854,7 +854,7 @@ bool ScriptableSystem::AllowUpdate() const
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("AllowUpdate");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -868,7 +868,7 @@ void ScriptableSystem::OnEntityAdded(Entity * entity)
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnEntityAdded");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -883,7 +883,7 @@ void ScriptableSystem::OnEntityRemoved(Entity * entity)
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnEntityRemoved");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -898,7 +898,7 @@ void ScriptableSystem::Init()
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Init");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -913,7 +913,7 @@ void ScriptableSystem::Shutdown()
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Shutdown");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -928,7 +928,7 @@ void ScriptableSystem::Process(float delta)
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Process");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -943,7 +943,7 @@ Array<ComponentInfo> ScriptableSystem::GetComponentInfos() const
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("GetComponentInfos");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1013,11 +1013,11 @@ namespace hyperion {
 #pragma region WorldGridLayerInfo Reflection Data
 
 HYP_BEGIN_STRUCT(WorldGridLayerInfo, 414, 0, {}, ClassAttribute("size", 80))
-    HypField(NAME(HYP_STR(GridSize)), &WorldGridLayerInfo::gridSize, offsetof(WorldGridLayerInfo, gridSize), Span<const ClassAttribute> { {ClassAttribute("property", "GridSize"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(CellSize)), &WorldGridLayerInfo::cellSize, offsetof(WorldGridLayerInfo, cellSize), Span<const ClassAttribute> { {ClassAttribute("property", "CellSize"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Offset)), &WorldGridLayerInfo::offset, offsetof(WorldGridLayerInfo, offset), Span<const ClassAttribute> { {ClassAttribute("property", "Offset"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(Scale)), &WorldGridLayerInfo::scale, offsetof(WorldGridLayerInfo, scale), Span<const ClassAttribute> { {ClassAttribute("property", "Scale"), ClassAttribute("serialize", true) } }),
-    HypField(NAME(HYP_STR(MaxDistance)), &WorldGridLayerInfo::maxDistance, offsetof(WorldGridLayerInfo, maxDistance), Span<const ClassAttribute> { {ClassAttribute("property", "MaxDistance"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(GridSize)), &WorldGridLayerInfo::gridSize, offsetof(WorldGridLayerInfo, gridSize), Span<const ClassAttribute> { {ClassAttribute("property", "GridSize"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(CellSize)), &WorldGridLayerInfo::cellSize, offsetof(WorldGridLayerInfo, cellSize), Span<const ClassAttribute> { {ClassAttribute("property", "CellSize"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Offset)), &WorldGridLayerInfo::offset, offsetof(WorldGridLayerInfo, offset), Span<const ClassAttribute> { {ClassAttribute("property", "Offset"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(Scale)), &WorldGridLayerInfo::scale, offsetof(WorldGridLayerInfo, scale), Span<const ClassAttribute> { {ClassAttribute("property", "Scale"), ClassAttribute("serialize", true) } }),
+    Field(NAME(HYP_STR(MaxDistance)), &WorldGridLayerInfo::maxDistance, offsetof(WorldGridLayerInfo, maxDistance), Span<const ClassAttribute> { {ClassAttribute("property", "MaxDistance"), ClassAttribute("serialize", true) } })
 HYP_END_STRUCT
 
 #pragma endregion WorldGridLayerInfo Reflection Data
@@ -1029,7 +1029,7 @@ static_assert(sizeof(WorldGridLayerInfo) == 80, "Expected sizeof(WorldGridLayerI
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
+#include <dotnet/ManagedMethod.hpp>
 
 namespace hyperion {
 
@@ -1057,7 +1057,7 @@ void WorldGridLayer::OnAdded(WorldGrid * worldGrid)
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnAdded");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1072,7 +1072,7 @@ void WorldGridLayer::OnRemoved(WorldGrid * worldGrid)
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("OnRemoved");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1087,7 +1087,7 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell(const StreamingCellInf
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("CreateStreamingCell");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1101,7 +1101,7 @@ void WorldGridLayer::Init()
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("Init");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1116,7 +1116,7 @@ WorldGridLayerInfo WorldGridLayer::CreateLayerInfo() const
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("CreateLayerInfo");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1145,7 +1145,7 @@ HYP_BEGIN_CLASS(WorldGrid, 194, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(AddLayer)), &WorldGrid::AddLayer),
     HypMethod(NAME(HYP_STR(RemoveLayer)), &WorldGrid::RemoveLayer),
     HypMethod(NAME(HYP_STR(GetLayers)), &WorldGrid::GetLayers),
-    HypField(NAME(HYP_STR(Layers)), &WorldGrid::m_layers, offsetof(WorldGrid, m_layers), Span<const ClassAttribute> { {ClassAttribute("property", "Layers"), ClassAttribute("serialize", true) } })
+    Field(NAME(HYP_STR(Layers)), &WorldGrid::m_layers, offsetof(WorldGrid, m_layers), Span<const ClassAttribute> { {ClassAttribute("property", "Layers"), ClassAttribute("serialize", true) } })
 HYP_END_CLASS
 
 #pragma endregion WorldGrid Reflection Data
@@ -1250,11 +1250,11 @@ HYP_BEGIN_CLASS(EditorActionStack, 196, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(Redo)), &EditorActionStack::Redo),
     HypMethod(NAME(HYP_STR(GetUndoAction)), &EditorActionStack::GetUndoAction),
     HypMethod(NAME(HYP_STR(GetRedoAction)), &EditorActionStack::GetRedoAction),
-    HypField(NAME(HYP_STR(OnBeforeActionPush)), &EditorActionStack::OnBeforeActionPush, offsetof(EditorActionStack, OnBeforeActionPush), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnBeforeActionPop)), &EditorActionStack::OnBeforeActionPop, offsetof(EditorActionStack, OnBeforeActionPop), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnAfterActionPush)), &EditorActionStack::OnAfterActionPush, offsetof(EditorActionStack, OnAfterActionPush), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnAfterActionPop)), &EditorActionStack::OnAfterActionPop, offsetof(EditorActionStack, OnAfterActionPop), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnStateChange)), &EditorActionStack::OnStateChange, offsetof(EditorActionStack, OnStateChange), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } })
+    Field(NAME(HYP_STR(OnBeforeActionPush)), &EditorActionStack::OnBeforeActionPush, offsetof(EditorActionStack, OnBeforeActionPush), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnBeforeActionPop)), &EditorActionStack::OnBeforeActionPop, offsetof(EditorActionStack, OnBeforeActionPop), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnAfterActionPush)), &EditorActionStack::OnAfterActionPush, offsetof(EditorActionStack, OnAfterActionPush), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnAfterActionPop)), &EditorActionStack::OnAfterActionPop, offsetof(EditorActionStack, OnAfterActionPop), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnStateChange)), &EditorActionStack::OnStateChange, offsetof(EditorActionStack, OnStateChange), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } })
 HYP_END_CLASS
 
 #pragma endregion EditorActionStack Reflection Data
@@ -1331,7 +1331,7 @@ namespace hyperion {
 HYP_BEGIN_CLASS(EditorState, 197, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetCurrentProject)), &EditorState::GetCurrentProject),
     HypMethod(NAME(HYP_STR(SetCurrentProject)), &EditorState::SetCurrentProject),
-    HypField(NAME(HYP_STR(OnCurrentProjectChanged)), &EditorState::OnCurrentProjectChanged, offsetof(EditorState, OnCurrentProjectChanged), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } })
+    Field(NAME(HYP_STR(OnCurrentProjectChanged)), &EditorState::OnCurrentProjectChanged, offsetof(EditorState, OnCurrentProjectChanged), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } })
 HYP_END_CLASS
 
 #pragma endregion EditorState Reflection Data
@@ -1353,7 +1353,7 @@ HYP_END_CLASS
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
-#include <dotnet/Method.hpp>
+#include <dotnet/ManagedMethod.hpp>
 
 namespace hyperion {
 
@@ -1376,16 +1376,16 @@ HYP_BEGIN_CLASS(EditorProject, 198, 0, NAME("HypObjectBase"))
     HypMethod(NAME(HYP_STR(GetNextDefaultProjectName)), &EditorProject::GetNextDefaultProjectName, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(GetActionStack)), &EditorProject::GetActionStack),
     HypMethod(NAME(HYP_STR(Close)), &EditorProject::Close),
-    HypField(NAME(HYP_STR(OnSceneAdded)), &EditorProject::OnSceneAdded, offsetof(EditorProject, OnSceneAdded), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnSceneRemoved)), &EditorProject::OnSceneRemoved, offsetof(EditorProject, OnSceneRemoved), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(OnProjectSaved)), &EditorProject::OnProjectSaved, offsetof(EditorProject, OnProjectSaved), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
-    HypField(NAME(HYP_STR(Uuid)), &EditorProject::m_uuid, offsetof(EditorProject, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
-    HypField(NAME(HYP_STR(Name)), &EditorProject::m_name, offsetof(EditorProject, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name") } }),
-    HypField(NAME(HYP_STR(LastSavedTime)), &EditorProject::m_lastSavedTime, offsetof(EditorProject, m_lastSavedTime), Span<const ClassAttribute> { {ClassAttribute("property", "LastSavedTime") } }),
-    HypField(NAME(HYP_STR(Filepath)), &EditorProject::m_filepath, offsetof(EditorProject, m_filepath), Span<const ClassAttribute> { {ClassAttribute("property", "FilePath") } }),
-    HypField(NAME(HYP_STR(Scenes)), &EditorProject::m_scenes, offsetof(EditorProject, m_scenes), Span<const ClassAttribute> { {ClassAttribute("property", "Scenes") } }),
-    HypField(NAME(HYP_STR(Package)), &EditorProject::m_package, offsetof(EditorProject, m_package), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
-    HypField(NAME(HYP_STR(ActionStack)), &EditorProject::m_actionStack, offsetof(EditorProject, m_actionStack), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
+    Field(NAME(HYP_STR(OnSceneAdded)), &EditorProject::OnSceneAdded, offsetof(EditorProject, OnSceneAdded), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnSceneRemoved)), &EditorProject::OnSceneRemoved, offsetof(EditorProject, OnSceneRemoved), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(OnProjectSaved)), &EditorProject::OnProjectSaved, offsetof(EditorProject, OnProjectSaved), Span<const ClassAttribute> { {ClassAttribute("scriptabledelegate", true) } }),
+    Field(NAME(HYP_STR(Uuid)), &EditorProject::m_uuid, offsetof(EditorProject, m_uuid), Span<const ClassAttribute> { {ClassAttribute("property", "UUID") } }),
+    Field(NAME(HYP_STR(Name)), &EditorProject::m_name, offsetof(EditorProject, m_name), Span<const ClassAttribute> { {ClassAttribute("property", "Name") } }),
+    Field(NAME(HYP_STR(LastSavedTime)), &EditorProject::m_lastSavedTime, offsetof(EditorProject, m_lastSavedTime), Span<const ClassAttribute> { {ClassAttribute("property", "LastSavedTime") } }),
+    Field(NAME(HYP_STR(Filepath)), &EditorProject::m_filepath, offsetof(EditorProject, m_filepath), Span<const ClassAttribute> { {ClassAttribute("property", "FilePath") } }),
+    Field(NAME(HYP_STR(Scenes)), &EditorProject::m_scenes, offsetof(EditorProject, m_scenes), Span<const ClassAttribute> { {ClassAttribute("property", "Scenes") } }),
+    Field(NAME(HYP_STR(Package)), &EditorProject::m_package, offsetof(EditorProject, m_package), Span<const ClassAttribute> { {ClassAttribute("transient", true) } }),
+    Field(NAME(HYP_STR(ActionStack)), &EditorProject::m_actionStack, offsetof(EditorProject, m_actionStack), Span<const ClassAttribute> { {ClassAttribute("transient", true) } })
 HYP_END_CLASS
 
 #pragma endregion EditorProject Reflection Data
@@ -1396,7 +1396,7 @@ Name EditorProject::GetNextDefaultProjectName(const String & defaultProjectName)
 {
     if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
         constexpr HashCode hash_code = HashCode::GetHashCode("GetNextDefaultProjectName");
-        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
             TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
             dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
 
@@ -1407,5 +1407,94 @@ Name EditorProject::GetNextDefaultProjectName(const String & defaultProjectName)
     return GetNextDefaultProjectName_Impl(defaultProjectName);
 }
 #pragma endregion EditorProject Scriptable Methods
+} // namespace hyperion
+
+/* Generated from: editor/EditorAction.hpp */
+
+#include <editor/EditorAction.hpp>
+#include <core/NameInternal.hpp>
+#include <editor/EditorSubsystem.hpp>
+#include <editor/EditorProject.hpp>
+
+#include <scripting/ScriptObjectResource.hpp>
+
+#include <dotnet/ManagedObject.hpp>
+#include <dotnet/ManagedClass.hpp>
+#include <dotnet/ManagedMethod.hpp>
+
+namespace hyperion {
+
+#pragma region EditorActionBase Reflection Data
+
+HYP_BEGIN_CLASS(EditorActionBase, 199, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+    HypMethod(NAME(HYP_STR(GetName)), &EditorActionBase::GetName, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(Execute)), &EditorActionBase::Execute, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
+    HypMethod(NAME(HYP_STR(Revert)), &EditorActionBase::Revert, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
+HYP_END_CLASS
+
+#pragma endregion EditorActionBase Reflection Data
+
+#pragma region EditorActionBase Scriptable Methods
+
+Name EditorActionBase::GetName() const
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("GetName");
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            return managed_object->InvokeMethod<Name>(method_ptr);
+        }
+    }
+
+    return GetName_Impl();
+}
+void EditorActionBase::Execute(EditorSubsystem * editorSubsystem, EditorProject * project)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("Execute");
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            managed_object->InvokeMethod<void>(method_ptr, editorSubsystem, project);
+            return;
+        }
+    }
+
+    Execute_Impl(editorSubsystem, project);
+}
+void EditorActionBase::Revert(EditorSubsystem * editorSubsystem, EditorProject * project)
+{
+    if (ScriptObjectResource* managed_object_resource = GetScriptObjectResource(); managed_object_resource && managed_object_resource->GetManagedClass()) {
+        constexpr HashCode hash_code = HashCode::GetHashCode("Revert");
+        if (dotnet::ManagedMethod *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {
+            TResourceHandle<ScriptObjectResource> resource_handle(*managed_object_resource);
+            dotnet::ManagedObject *managed_object = managed_object_resource->GetManagedObject();
+
+            managed_object->InvokeMethod<void>(method_ptr, editorSubsystem, project);
+            return;
+        }
+    }
+
+    Revert_Impl(editorSubsystem, project);
+}
+#pragma endregion EditorActionBase Scriptable Methods
+} // namespace hyperion
+
+
+namespace hyperion {
+
+#pragma region FunctionalEditorAction Reflection Data
+
+HYP_BEGIN_CLASS(FunctionalEditorAction, 200, 0, NAME("EditorActionBase"))
+    HypMethod(NAME(HYP_STR(GetName)), &FunctionalEditorAction::GetName),
+    HypMethod(NAME(HYP_STR(Execute)), &FunctionalEditorAction::Execute),
+    HypMethod(NAME(HYP_STR(Revert)), &FunctionalEditorAction::Revert)
+HYP_END_CLASS
+
+#pragma endregion FunctionalEditorAction Reflection Data
+
 } // namespace hyperion
 

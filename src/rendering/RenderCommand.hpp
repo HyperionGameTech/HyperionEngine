@@ -22,19 +22,17 @@
 
 namespace hyperion {
 
-#define RENDER_COMMAND(name) RenderCommand_##name
-
 /*! \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
  *  If called from the render thread, the command is executed immediately. */
-#define PUSH_RENDER_COMMAND(name, ...)                                                                                                                  \
-    if (::hyperion::Threads::IsOnThread(::hyperion::g_renderThread))                                                                                    \
-    {                                                                                                                                                   \
-        const ::hyperion::RendererResult commandResult = RENDER_COMMAND(name)(__VA_ARGS__).Call();                                                      \
-        Assert(commandResult, "Render command error! [{}]: {}", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage());        \
-    }                                                                                                                                                   \
-    else                                                                                                                                                \
-    {                                                                                                                                                   \
-        ::hyperion::RenderCommands::Push<RENDER_COMMAND(name)>(__VA_ARGS__);                                                                            \
+#define PUSH_RENDER_COMMAND(name, ...)                                                                                                           \
+    if (::hyperion::Threads::IsOnThread(::hyperion::g_renderThread))                                                                             \
+    {                                                                                                                                            \
+        const ::hyperion::RendererResult commandResult = name(__VA_ARGS__).Call();                                                               \
+        Assert(commandResult, "Render command error! [{}]: {}", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage()); \
+    }                                                                                                                                            \
+    else                                                                                                                                         \
+    {                                                                                                                                            \
+        ::hyperion::RenderCommands::Push<name>(__VA_ARGS__);                                                                                     \
     }
 
 /*! \brief If not on the render thread, waits for the render thread to finish executing all render commands. */
@@ -169,11 +167,10 @@ struct RenderCommandHolder
     \details This is useful for custom render commands that need to be executed
     in the render thread, but are not part of the main Hyperion DLL.
 */
-struct HYP_API RENDER_COMMAND(CustomRenderCommand)
-    : RenderCommand
+struct HYP_API CustomRenderCommand : RenderCommand
 {
-    RENDER_COMMAND(CustomRenderCommand)() = default;
-    virtual ~RENDER_COMMAND(CustomRenderCommand)() override = default;
+    CustomRenderCommand() = default;
+    virtual ~CustomRenderCommand() override = default;
 
     virtual RendererResult operator()() override = 0;
 };
@@ -243,12 +240,12 @@ public:
     }
 
     /*! \brief Push a custom render command to the render command queue.
-        The class must virtually inherit from RENDER_COMMAND(CustomRenderCommand) and implement the operator() method.
+        The class must virtually inherit from CustomRenderCommand and implement the operator() method.
 
         \details It is important to note that the memory for the command is NOT managed by the render command queue, but the destructor is will called without freeing the memory.
         Therefore, the object should be allocated using the following pattern:
         \code{.cpp}
-        struct MyCustomRenderCommand : public RENDER_COMMAND(CustomRenderCommand)
+        struct MyCustomRenderCommand : public CustomRenderCommand
         {
             // ... implementation here
         };
@@ -265,7 +262,7 @@ public:
         This is a complexity of the design due to how render commands within the Hyperion library are typically handled, using a custom allocation method.
         However, this allocation method is not suitable for use outside of the library, so this method is provided as a workaround to still allow you to use the render command queue.
     */
-    static HYP_API void PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) * command);
+    static HYP_API void PushCustomRenderCommand(CustomRenderCommand* command);
 
     static RendererResult Flush();
     static void Wait();

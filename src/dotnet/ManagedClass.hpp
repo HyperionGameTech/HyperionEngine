@@ -14,8 +14,8 @@
 
 #include <core/reflection/HypData.hpp>
 
-#include <dotnet/Method.hpp>
-#include <dotnet/Property.hpp>
+#include <dotnet/ManagedMethod.hpp>
+#include <dotnet/ManagedProperty.hpp>
 #include <dotnet/ManagedAttribute.hpp>
 #include <dotnet/ManagedObject.hpp>
 
@@ -169,7 +169,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE Method* GetMethodByHash(HashCode hashCode)
+    HYP_FORCE_INLINE ManagedMethod* GetMethodByHash(HashCode hashCode)
     {
         auto it = m_methods.FindByHashCode(hashCode);
         if (it == m_methods.End())
@@ -186,7 +186,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const Method* GetMethodByHash(HashCode hashCode) const
+    HYP_FORCE_INLINE const ManagedMethod* GetMethodByHash(HashCode hashCode) const
     {
         auto it = m_methods.FindByHashCode(hashCode);
         if (it == m_methods.End())
@@ -203,7 +203,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE Method* GetMethod(UTF8StringView methodName)
+    HYP_FORCE_INLINE ManagedMethod* GetMethod(UTF8StringView methodName)
     {
         auto it = m_methods.FindAs(methodName);
         if (it == m_methods.End())
@@ -220,7 +220,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const Method* GetMethod(UTF8StringView methodName) const
+    HYP_FORCE_INLINE const ManagedMethod* GetMethod(UTF8StringView methodName) const
     {
         auto it = m_methods.FindAs(methodName);
         if (it == m_methods.End())
@@ -236,7 +236,7 @@ public:
      *  \param methodName The name of the method to add.
      *  \param methodObject The method object to add.
      */
-    HYP_FORCE_INLINE void AddMethod(const String& methodName, Method&& methodObject)
+    HYP_FORCE_INLINE void AddMethod(const String& methodName, ManagedMethod&& methodObject)
     {
         m_methods[methodName] = std::move(methodObject);
     }
@@ -245,7 +245,7 @@ public:
      *
      *  \return A reference to the map of methods.
      */
-    HYP_FORCE_INLINE const HashMap<String, Method>& GetMethods() const
+    HYP_FORCE_INLINE const HashMap<String, ManagedMethod>& GetMethods() const
     {
         return m_methods;
     }
@@ -267,7 +267,7 @@ public:
      *
      *  \return A pointer to the property object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE Property* GetProperty(UTF8StringView propertyName)
+    HYP_FORCE_INLINE ManagedProperty* GetProperty(UTF8StringView propertyName)
     {
         auto it = m_properties.FindAs(propertyName);
         if (it == m_properties.End())
@@ -284,7 +284,7 @@ public:
      *
      *  \return A pointer to the property object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const Property* GetProperty(UTF8StringView propertyName) const
+    HYP_FORCE_INLINE const ManagedProperty* GetProperty(UTF8StringView propertyName) const
     {
         auto it = m_properties.FindAs(propertyName);
         if (it == m_properties.End())
@@ -300,7 +300,7 @@ public:
      *  \param propertyName The name of the property to add.
      *  \param propertyObject The property object to add.
      */
-    HYP_FORCE_INLINE void AddProperty(const String& propertyName, Property&& propertyObject)
+    HYP_FORCE_INLINE void AddProperty(const String& propertyName, ManagedProperty&& propertyObject)
     {
         m_properties[propertyName] = std::move(propertyObject);
     }
@@ -309,7 +309,7 @@ public:
      *
      *  \return A reference to the map of properties.
      */
-    HYP_FORCE_INLINE const HashMap<String, Property>& GetProperties() const
+    HYP_FORCE_INLINE const HashMap<String, ManagedProperty>& GetProperties() const
     {
         return m_properties;
     }
@@ -361,8 +361,8 @@ public:
         auto it = m_methods.FindAs(methodName);
         Assert(it != m_methods.End(), "Method not found");
 
-        const Method& methodObject = it->second;
-        const Method* methodPtr = &methodObject;
+        const ManagedMethod& methodObject = it->second;
+        const ManagedMethod* methodPtr = &methodObject;
 
         if constexpr (sizeof...(args) != 0)
         {
@@ -412,7 +412,7 @@ public:
     }
 
 private:
-    void InvokeStaticMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
+    void InvokeStaticMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
 
     String m_name;
     uint32 m_size;
@@ -420,8 +420,8 @@ private:
     const Class* m_class;
     ManagedClass* m_parentClass;
     EnumFlags<ManagedClassFlags> m_flags;
-    HashMap<String, Method> m_methods;
-    HashMap<String, Property> m_properties;
+    HashMap<String, ManagedMethod> m_methods;
+    HashMap<String, ManagedProperty> m_properties;
 
     Weak<Assembly> m_assembly;
 

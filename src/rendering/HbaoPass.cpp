@@ -44,13 +44,12 @@ struct HBAOUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateHBAOUniformBuffer)
-    : RenderCommand
+struct CreateHBAOUniformBuffer : RenderCommand
 {
     HBAOUniforms uniforms;
     GpuBufferRef uniformBuffer;
 
-    RENDER_COMMAND(CreateHBAOUniformBuffer)(
+    CreateHBAOUniformBuffer(
         const HBAOUniforms& uniforms,
         const GpuBufferRef& uniformBuffer)
         : uniforms(uniforms),
@@ -61,7 +60,7 @@ struct RENDER_COMMAND(CreateHBAOUniformBuffer)
         Assert(this->uniformBuffer != nullptr);
     }
 
-    virtual ~RENDER_COMMAND(CreateHBAOUniformBuffer)() override = default;
+    virtual ~CreateHBAOUniformBuffer() override = default;
 
     virtual RendererResult operator()() override
     {

@@ -22,7 +22,7 @@
 
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypMethod.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
 #include <core/reflection/ClassRegistry.hpp>
 
@@ -328,7 +328,7 @@ bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue,
 
     if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
     {
-        HypField* field = static_cast<HypField*>(member);
+        Field* field = static_cast<Field*>(member);
 
         outValue = ScriptApi_MakeValue(field->Get(targetValue));
 
@@ -381,7 +381,7 @@ bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&&
     const Class* cls = object.ptr->InstanceClass();
     Assert(cls != nullptr);
 
-    HypField* field = cls->GetField(WeakName(memberName));
+    Field* field = cls->GetField(WeakName(memberName));
 
     if (!field)
     {

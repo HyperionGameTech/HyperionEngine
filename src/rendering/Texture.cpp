@@ -47,8 +47,7 @@ static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateTextureGpuImage)
-    : RenderCommand
+struct CreateTextureGpuImage : RenderCommand
 {
     Handle<TextureAsset> textureAsset;
     ResourceHandle resourceHandle;
@@ -56,8 +55,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
     GpuImageRef image;
     bool uploadTextureData;
 
-    RENDER_COMMAND(CreateTextureGpuImage)
-    (
+    CreateTextureGpuImage(
         Handle<TextureAsset>&& textureAsset,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
@@ -77,7 +75,7 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
         }
     }
 
-    virtual ~RENDER_COMMAND(CreateTextureGpuImage)() override = default;
+    virtual ~CreateTextureGpuImage() override = default;
 
     bool CheckImageData() const
     {
@@ -225,12 +223,12 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
 Texture::Texture()
     : Texture(TextureDesc {
-        TT_TEX2D,
-        TF_RGBA8,
-        Vec3u { 1, 1, 1 },
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE })
+          TT_TEX2D,
+          TF_RGBA8,
+          Vec3u { 1, 1, 1 },
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE })
 {
 }
 

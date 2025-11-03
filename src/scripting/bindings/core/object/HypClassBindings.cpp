@@ -212,7 +212,7 @@ extern "C"
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_EXPORT HypField* Class_GetField(const Class* cls, const Name* name)
+    HYP_EXPORT Field* Class_GetField(const Class* cls, const Name* name)
     {
         if (!cls || !name)
         {

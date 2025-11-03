@@ -34,7 +34,7 @@ void RenderScheduler::AcceptAll(Array<RenderCommand*>& outContainer)
 
 #pragma region RenderCommands
 
-void RenderCommands::PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) * command)
+void RenderCommands::PushCustomRenderCommand(CustomRenderCommand* command)
 {
     Buffer& buffer = s_buffers[CurrentBufferIndex()];
 

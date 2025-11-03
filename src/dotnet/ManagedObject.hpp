@@ -33,8 +33,8 @@ namespace hyperion::dotnet {
 class ManagedClass;
 class ManagedObject;
 class Assembly;
-class Method;
-class Property;
+class ManagedMethod;
+class ManagedProperty;
 
 struct ObjectReference
 {
@@ -101,10 +101,10 @@ public:
      *  \param keepAlive Whether or not to allow the object to exist in memory persistently */
     bool SetKeepAlive(bool keepAlive);
 
-    const Method* GetMethod(UTF8StringView methodName) const;
+    const ManagedMethod* GetMethod(UTF8StringView methodName) const;
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod(const Method* methodPtr, Args&&... args)
+    ReturnType InvokeMethod(const ManagedMethod* methodPtr, Args&&... args)
     {
         return InvokeMethod_CheckArgs<ReturnType>(methodPtr, std::forward<Args>(args)...);
     }
@@ -114,7 +114,7 @@ public:
     {
         Assert(IsValid());
 
-        const Method* methodPtr = GetMethod(methodName);
+        const ManagedMethod* methodPtr = GetMethod(methodName);
         Assert(methodPtr != nullptr, "Method {} not found", methodName);
 
         return InvokeMethod_CheckArgs<ReturnType>(methodPtr, std::forward<Args>(args)...);
@@ -126,10 +126,10 @@ private:
      * */
     void Reset();
 
-    void InvokeMethod_Internal(const Method* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
+    void InvokeMethod_Internal(const ManagedMethod* methodPtr, const HypData** argsHypData, HypData* outReturnHypData);
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod_CheckArgs(const Method* methodPtr, Args&&... args)
+    ReturnType InvokeMethod_CheckArgs(const ManagedMethod* methodPtr, Args&&... args)
     {
         if constexpr (sizeof...(args) != 0)
         {
@@ -178,7 +178,7 @@ private:
         }
     }
 
-    const Property* GetProperty(UTF8StringView methodName) const;
+    const ManagedProperty* GetProperty(UTF8StringView methodName) const;
 
     RC<ManagedClass> m_classPtr;
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE

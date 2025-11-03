@@ -52,7 +52,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
         if (dotnet::ManagedClass* classPtr = sor->GetManagedObject()->GetClass())
         {
-            if (dotnet::Method* methodPtr = classPtr->GetMethod(methodName))
+            if (dotnet::ManagedMethod* methodPtr = classPtr->GetMethod(methodName))
             {
                 if (methodPtr->GetAttributes().HasAttribute("ScriptMethodStub"))
                 {

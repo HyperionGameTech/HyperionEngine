@@ -15,34 +15,34 @@ namespace hyperion::dotnet {
 
 struct ObjectReference;
 
-class Method
+class ManagedMethod
 {
 public:
-    Method()
+    ManagedMethod()
         : m_invokeFptr(nullptr)
     {
     }
 
-    Method(ManagedGuid guid, InvokeMethodFunction invokeFptr)
+    ManagedMethod(ManagedGuid guid, InvokeMethodFunction invokeFptr)
         : m_guid(guid),
           m_invokeFptr(invokeFptr)
     {
     }
 
-    Method(ManagedGuid guid, InvokeMethodFunction invokeFptr, ManagedAttributeSet&& attributes)
+    ManagedMethod(ManagedGuid guid, InvokeMethodFunction invokeFptr, ManagedAttributeSet&& attributes)
         : m_guid(guid),
           m_invokeFptr(invokeFptr),
           m_attributes(std::move(attributes))
     {
     }
 
-    Method(const Method& other) = delete;
-    Method& operator=(const Method& other) = delete;
+    ManagedMethod(const ManagedMethod& other) = delete;
+    ManagedMethod& operator=(const ManagedMethod& other) = delete;
 
-    Method(Method&& other) noexcept = default;
-    Method& operator=(Method&& other) noexcept = default;
+    ManagedMethod(ManagedMethod&& other) noexcept = default;
+    ManagedMethod& operator=(ManagedMethod&& other) noexcept = default;
 
-    ~Method() = default;
+    ~ManagedMethod() = default;
 
     HYP_FORCE_INLINE ManagedGuid GetGuid() const
     {

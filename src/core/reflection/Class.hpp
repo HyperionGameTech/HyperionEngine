@@ -31,7 +31,7 @@ class HypObjectContainerBase;
 struct HypMember;
 class HypProperty;
 class HypMethod;
-class HypField;
+class Field;
 class HypConstant;
 class Class;
 class Struct;
@@ -566,14 +566,14 @@ public:
 
     Array<HypMethod*> GetMethodsInherited() const;
 
-    HypField* GetField(WeakName name, bool deep = true) const;
+    Field* GetField(WeakName name, bool deep = true) const;
 
-    HYP_FORCE_INLINE const Array<HypField*>& GetFields() const
+    HYP_FORCE_INLINE const Array<Field*>& GetFields() const
     {
         return m_fields;
     }
 
-    Array<HypField*> GetFieldsInherited() const;
+    Array<Field*> GetFieldsInherited() const;
 
     HypConstant* GetConstant(WeakName name, bool deep = true) const;
 
@@ -663,7 +663,7 @@ protected:
 
     void AddProperty(HypProperty* property);
     void AddMethod(HypMethod* method);
-    void AddField(HypField* field);
+    void AddField(Field* field);
     void AddConstant(HypConstant* constant);
 
     TypeId m_typeId;
@@ -685,8 +685,8 @@ protected:
     Array<HypMethod*> m_methods;
     HashMap<Name, HypMethod*> m_methodsByName;
 
-    Array<HypField*> m_fields;
-    HashMap<Name, HypField*> m_fieldsByName;
+    Array<Field*> m_fields;
+    HashMap<Name, Field*> m_fieldsByName;
 
     Array<HypConstant*> m_constants;
     HashMap<Name, HypConstant*> m_constantsByName;
@@ -948,7 +948,7 @@ public:
     using Class::AddMethod;
     using Class::AddProperty;
 
-    void SetField(uint32 index, HypField* field);
+    void SetField(uint32 index, Field* field);
     void SetMethod(uint32 index, HypMethod* method);
     void SetProperty(uint32 index, HypProperty* property);
     void SetConstant(uint32 index, HypConstant* constant);

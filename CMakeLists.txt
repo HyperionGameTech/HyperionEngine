@@ -382,8 +382,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_
 
 add_definitions(-DHYP_SCRIPT=1)
 
-# uncomment to explicitly disable dotnet
-# set(HYP_NO_DOTNET 1)
+# Disable .NET support by default (comment to enable)
+set(HYP_NO_DOTNET 1)
 
 if(NOT HYP_NO_DOTNET)
     # if dotnet headers exist, set HYP_DOTNET to 1

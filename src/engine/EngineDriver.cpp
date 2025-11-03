@@ -188,18 +188,16 @@ void HandleSignal(int signum)
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RecreateSwapchain)
-    : RenderCommand
+struct RecreateSwapchain : RenderCommand
 {
     WeakHandle<EngineDriver> engineWeak;
 
-    RENDER_COMMAND(RecreateSwapchain)
-    (const Handle<EngineDriver>& engine)
+    RecreateSwapchain(const Handle<EngineDriver>& engine)
         : engineWeak(engine)
     {
     }
 
-    virtual ~RENDER_COMMAND(RecreateSwapchain)() override = default;
+    virtual ~RecreateSwapchain() override = default;
 
     virtual RendererResult operator()() override
     {

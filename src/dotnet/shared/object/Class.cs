@@ -242,7 +242,7 @@ namespace Hyperion
             return new HypMethod(methodPtr);
         }
 
-        public IEnumerable<HypField> Fields
+        public IEnumerable<Field> Fields
         {
             get
             {
@@ -252,12 +252,12 @@ namespace Hyperion
                 for (int i = 0; i < count; i++)
                 {
                     IntPtr fieldPtr = Marshal.ReadIntPtr(fieldsPtr, i * IntPtr.Size);
-                    yield return new HypField(fieldPtr);
+                    yield return new Field(fieldPtr);
                 }
             }
         }
 
-        public HypField? GetField(Name name)
+        public Field? GetField(Name name)
         {
             IntPtr fieldPtr = Class_GetField(ptr, ref name);
 
@@ -266,7 +266,7 @@ namespace Hyperion
                 return null;
             }
 
-            return new HypField(fieldPtr);
+            return new Field(fieldPtr);
         }
 
         public IEnumerable<HypConstant> Constants
@@ -329,7 +329,7 @@ namespace Hyperion
                 throw new Exception("Invalid Class type");
             }
 
-            ClassAttribute? sizeAttribute = this.GetAttribute("size");
+            ClassAttribute? sizeAttribute = GetAttribute("size");
 
             if (sizeAttribute != null)
             {
@@ -342,18 +342,18 @@ namespace Hyperion
             }
 
             // Validate that all fields from the struct are present in the Class
-            foreach (FieldInfo field in type.GetFields())
+            foreach (FieldInfo fieldInfo in type.GetFields())
             {
-                HypField? hypField = this.GetField(new Name(field.Name));
+                Field? field = GetField(new Name(fieldInfo.Name));
 
-                if (hypField == null)
+                if (field == null)
                 {
-                    throw new Exception($"Field {field.Name} not found in Class");
+                    throw new Exception($"Field {fieldInfo.Name} not found in Class");
                 }
 
-                if ((int)hypField.Value.Offset != Marshal.OffsetOf(type, field.Name).ToInt32())
+                if ((int)field.Value.Offset != Marshal.OffsetOf(type, fieldInfo.Name).ToInt32())
                 {
-                    throw new Exception($"Field {field.Name} offset mismatch: Class offset ({hypField.Value.Offset}) does not match C# offset ({Marshal.OffsetOf(type, field.Name).ToInt32()})");
+                    throw new Exception($"Field {fieldInfo.Name} offset mismatch: Class offset ({field.Value.Offset}) does not match C# offset ({Marshal.OffsetOf(type, fieldInfo.Name).ToInt32()})");
                 }
             }
         }

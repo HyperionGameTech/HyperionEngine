@@ -9,7 +9,7 @@
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/Class.hpp>
 #include <core/reflection/HypMember.hpp>
-#include <core/reflection/HypField.hpp>
+#include <core/reflection/Field.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/ClassRegistry.hpp>
@@ -1485,7 +1485,7 @@ public:
             return;
         }
 
-        HypField* field = cls->GetField(WeakName(NameID(hash)));
+        Field* field = cls->GetField(WeakName(NameID(hash)));
 
         if (!field)
         {
@@ -1540,7 +1540,7 @@ public:
 
         if (member->GetMemberType() == HypMemberType::TYPE_FIELD)
         {
-            HypField* field = static_cast<HypField*>(member);
+            Field* field = static_cast<Field*>(member);
 
             instance->thread.m_regs[dstReg] = ScriptApi_MakeValue(field->Get(src));
         }
@@ -1900,7 +1900,7 @@ public:
                     bs->Read(&size);
 
                     // Create field
-                    members.PushBack(HypMember(HypField(
+                    members.PushBack(HypMember(Field(
                         CreateNameFromDynamicString(memberNameStr),
                         &TypeInfo::ForType<HypData>(),       // TypeId(memberTypeIdValue),
                         &TypeInfo::ForType<HypObjectBase>(), // TypeId(targetTypeIdValue),
