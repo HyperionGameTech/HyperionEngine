@@ -289,7 +289,7 @@ static void RenderAll(
     const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
     const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);
 
-    frame->renderQueue << BindGraphicsPipeline(pipeline);
+    frame->renderQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
     if (globalDescriptorSetIndex != ~0u)
     {
@@ -498,7 +498,7 @@ static void RenderAll_Parallel(
 
     RenderQueue& rootQueue = parallelRenderingState->rootQueue;
 
-    rootQueue << BindGraphicsPipeline(pipeline);
+    rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
     if (globalDescriptorSetIndex != ~0u)
     {

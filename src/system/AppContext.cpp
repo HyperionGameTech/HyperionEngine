@@ -370,6 +370,28 @@ int SDLAppContext::PollEvent(SystemEvent& event)
             event.GetEventData().Set(Vec2i(sdlEvent.wheel.x, sdlEvent.wheel.y));
             break;
         }
+        case SDL_WINDOWEVENT:
+        {
+            switch (sdlEvent.window.event)
+            {
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+            {
+                int width = sdlEvent.window.data1;
+                int height = sdlEvent.window.data2;
+
+                HYP_LOG_TEMP("SDLAppContext: Window resized to {}x{}", width, height);
+
+                event = SystemEvent(SystemEventType::EVENT_WINDOW_RESIZED, PlatformEvent(sdlEvent));
+                event.GetEventData().Set(Vec2i(width, height));
+
+                break;
+            }
+            default:
+                break;
+            }
+
+            break;
+        }
         default:
             break;
         }

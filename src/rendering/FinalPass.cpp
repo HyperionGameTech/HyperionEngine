@@ -60,7 +60,7 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
-    
+
     SafeDelete(std::move(m_uiLayerImageView));
 
     if (g_engineDriver->IsShuttingDown())
@@ -165,7 +165,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(framebuffer != nullptr);
 
     frame->renderQueue << BeginFramebuffer(framebuffer);
-    frame->renderQueue << BindGraphicsPipeline(m_renderTextureToScreenPass->GetGraphicsPipeline());
+    frame->renderQueue << BindGraphicsPipeline(m_renderTextureToScreenPass->GetGraphicsPipeline(), Viewport { m_swapchain->GetExtent() });
 
     frame->renderQueue << BindDescriptorTable(
         m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable(),

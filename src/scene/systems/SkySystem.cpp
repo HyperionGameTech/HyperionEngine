@@ -136,7 +136,9 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
                 ShaderProperties(mesh->GetVertexAttributes())
             };
             materialAttributes.bucket = RB_SKYBOX;
+            // flip cull faces.
             materialAttributes.cullFaces = FCM_FRONT;
+            // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
             materialAttributes.flags = MAF_DEPTH_TEST;
 
             material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);

@@ -24,7 +24,7 @@ namespace hyperion {
 #endif
 
 static constexpr bool UseTripleBuffering = true;
-static constexpr uint32 NumMultiBuffers = UseTripleBuffering ? 3 : 2;
+static constexpr uint32 RingBufferDepth = UseTripleBuffering ? 3 : 2;
 
 constexpr uint8 EngineVersionMajor = HYP_VERSION_MAJOR;
 constexpr uint8 EngineVersionMinor = HYP_VERSION_MINOR;

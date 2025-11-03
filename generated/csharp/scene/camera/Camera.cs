@@ -96,9 +96,9 @@ namespace Hyperion
                 return resultData.ReadBool();
             }
         }
-        public static void AddCameraController(this Camera obj, CameraController cameraController)
+        public static void AddCameraController(this Camera obj, CameraController cameraController, int index)
         {
-            obj.GetMethod(new Name(286427900756848031)).InvokeNative(obj, cameraController);
+            obj.GetMethod(new Name(286427900756848031)).InvokeNative(obj, cameraController, index);
         }
         public static bool RemoveCameraController(this Camera obj, CameraController cameraController)
         {
@@ -106,28 +106,6 @@ namespace Hyperion
             {
                 return resultData.ReadBool();
             }
-        }
-        public static int GetWidth(this Camera obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(2679327923908145529)).InvokeNative(obj))
-            {
-                return resultData.ReadInt32();
-            }
-        }
-        public static void SetWidth(this Camera obj, int width)
-        {
-            obj.GetMethod(new Name(11528835016345583445)).InvokeNative(obj, width);
-        }
-        public static int GetHeight(this Camera obj)
-        {
-            using (HypDataBuffer resultData = obj.GetMethod(new Name(6633444563479593448)).InvokeNative(obj))
-            {
-                return resultData.ReadInt32();
-            }
-        }
-        public static void SetHeight(this Camera obj, int height)
-        {
-            obj.GetMethod(new Name(16957179919397905388)).InvokeNative(obj, height);
         }
         public static Vec2i GetDimensions(this Camera obj)
         {

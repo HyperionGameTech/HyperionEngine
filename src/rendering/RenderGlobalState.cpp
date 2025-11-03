@@ -73,8 +73,8 @@
 
 namespace hyperion {
 
-static_assert(NumMultiBuffers <= MinSafeDeleteCycles,
-    "NumMultiBuffers must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
+static_assert(RingBufferDepth <= MinSafeDeleteCycles,
+    "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
 static constexpr uint32 MaxFramesBeforeDiscard = 60; // number of frames before ViewData is discarded if not written to
 
@@ -93,8 +93,8 @@ static thread_local uint32* s_threadFrameIndex;
 static volatile int64 s_frameCounter; // atomic
 static uint32 s_frameIndex[2] = { 0 };
 
-static std::counting_semaphore<NumMultiBuffers> s_fullSemaphore { 0 };
-static std::counting_semaphore<NumMultiBuffers> s_freeSemaphore { NumMultiBuffers };
+static std::counting_semaphore<RingBufferDepth> s_fullSemaphore { 0 };
+static std::counting_semaphore<RingBufferDepth> s_freeSemaphore { RingBufferDepth };
 
 enum
 {
@@ -522,7 +522,7 @@ struct FrameData
     RenderStats renderStats {}; // for game thread to write to and render thread to read from
 };
 
-static FrameData s_frameData[NumMultiBuffers];
+static FrameData s_frameData[RingBufferDepth];
 static HashMap<View*, ViewData*> s_viewData;
 static ResourceContainer* s_resources;
 
@@ -808,7 +808,7 @@ void Shutdown()
     HYP_SCOPE;
     Threads::AssertOnThread(g_mainThread);
 
-    for (uint32 i = 0; i < NumMultiBuffers; i++)
+    for (uint32 i = 0; i < RingBufferDepth; i++)
     {
         for (auto& it : s_frameData[i].viewFrameData)
         {
@@ -859,12 +859,12 @@ static inline int CurrentThreadType()
     return -1;
 }
 
-uint32 GetFrameIndex()
+uint32 GetRingIndex()
 {
     if (HYP_UNLIKELY(!s_threadFrameIndex))
     {
         const int threadType = CurrentThreadType();
-        Assert(threadType >= 0, "GetFrameIndex called from an invalid thread!");
+        Assert(threadType >= 0, "GetRingIndex called from an invalid thread!");
 
         s_threadFrameIndex = &s_frameIndex[threadType];
     }
@@ -1034,7 +1034,7 @@ void EndFrame_GameThread()
 
     g_sceneArena->Reset();
 
-    s_frameIndex[PRODUCER] = (s_frameIndex[PRODUCER] + 1) % NumMultiBuffers;
+    s_frameIndex[PRODUCER] = (s_frameIndex[PRODUCER] + 1) % RingBufferDepth;
 
     s_fullSemaphore.release();
 }
@@ -1166,8 +1166,8 @@ void BeginFrame_RenderThread()
 
             // Handle proxies that were updated on game thread
             for (Bitset::BitIndex i = subtypeData.indicesPendingUpdate.FirstSetBitIndex();
-                 i != Bitset::NotFound;
-                 i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
+                i != Bitset::NotFound;
+                i = subtypeData.indicesPendingUpdate.NextSetBitIndex(i + 1))
             {
                 if (!currentBoundIndices.Test(i))
                 {
@@ -1323,7 +1323,7 @@ void EndFrame_RenderThread()
 
     g_renderArena->Reset();
 
-    s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % NumMultiBuffers;
+    s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
     AtomicIncrement(&s_frameCounter);
 

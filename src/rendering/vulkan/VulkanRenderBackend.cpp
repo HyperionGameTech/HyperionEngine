@@ -810,8 +810,6 @@ void VulkanRenderBackend::PresentFrame(FrameBase* frame)
     m_textureCache->CleanupUnusedTextures();
 
     CHECK_FRAME_RESULT(m_instance->GetSwapchain()->PresentFrame(&m_instance->GetDevice()->GetGraphicsQueue()));
-
-    m_instance->GetSwapchain()->NextFrame();
 }
 
 DescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)

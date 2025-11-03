@@ -125,7 +125,7 @@ private:
 
     UniquePtr<ScriptingService> m_scriptingService;
 
-    FixedArray<Handle<World>, NumMultiBuffers> m_currentWorldBuffered;
+    FixedArray<Handle<World>, RingBufferDepth> m_currentWorldBuffered;
     Handle<World> m_defaultWorld;
 
     EngineDelegates m_delegates;

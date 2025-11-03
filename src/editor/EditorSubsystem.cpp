@@ -1316,7 +1316,7 @@ void EditorSubsystem::Update(float delta)
             continue; // skip non-primary views
         }
 
-        for (Mesh* mesh : view->GetRenderProxyList(RenderApi::GetFrameIndex())->GetMeshes())
+        for (Mesh* mesh : view->GetRenderProxyList(RenderApi::GetRingIndex())->GetMeshes())
         {
             pickRpl.GetMeshes().Track(mesh->Id(), mesh);
         }
@@ -1527,7 +1527,7 @@ void EditorSubsystem::InitViewport()
     m_views.PushBack(view);
 
     m_delegateHandlers.Remove(&sceneImageObject->OnSizeChange);
-    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), viewWeak = view.ToWeak()]()
+    m_delegateHandlers.Add(sceneImageObject->OnSizeChange.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak(), cameraWeak = m_camera.ToWeak()]()
         {
             Handle<UIObject> sceneImageObject = sceneImageObjectWeak.Lock();
             if (!sceneImageObject)
@@ -1536,21 +1536,21 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::ERR;
             }
 
-            Handle<View> view = viewWeak.Lock();
-            if (!view)
+            Handle<Camera> camera = cameraWeak.Lock();
+            if (!camera)
             {
-                HYP_LOG(Editor, Warning, "View is no longer valid!");
+                HYP_LOG(Editor, Warning, "Camera is no longer valid!");
                 return UIEventHandlerResult::ERR;
             }
 
-            Vec2u viewportSize = MathUtil::Max(Vec2u(sceneImageObject->GetActualSize()), Vec2u::One());
+            Vec2i viewportSize = MathUtil::Max(sceneImageObject->GetActualSize(), Vec2i::One());
 
-            view->SetViewport(Viewport { .extent = viewportSize, .position = Vec2i::Zero() });
-
-            HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewportSize);
+            m_camera->SetDimensions(viewportSize);
 
             return UIEventHandlerResult::OK;
         }));
+
+    m_camera->SetDimensions(Vec2i(viewportSize));
 
     Handle<UIImage> uiImage = ObjCast<UIImage>(sceneImageObject);
     Assert(uiImage.IsValid());

@@ -11,7 +11,7 @@ namespace hyperion {
 
 #pragma region EditorTaskBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorTaskBase, 201, 3, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorTaskBase, 202, 3, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(IsCommitted)), &EditorTaskBase::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &EditorTaskBase::Cancel),
     HypMethod(NAME(HYP_STR(IsCompleted)), &EditorTaskBase::IsCompleted),
@@ -35,7 +35,7 @@ namespace hyperion {
 
 #pragma region LongRunningEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(LongRunningEditorTask, 202, 0, NAME("EditorTaskBase"), ClassAttribute("abstract", true),ClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
+HYP_BEGIN_CLASS(LongRunningEditorTask, 203, 0, NAME("EditorTaskBase"), ClassAttribute("abstract", true),ClassAttribute("description", "A task that runs on a Task thread and has Process called one time only"))
     HypMethod(NAME(HYP_STR(IsCommitted)), &LongRunningEditorTask::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &LongRunningEditorTask::Cancel, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(IsCompleted)), &LongRunningEditorTask::IsCompleted, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
@@ -100,7 +100,7 @@ namespace hyperion {
 
 #pragma region TickableEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(TickableEditorTask, 203, 1, NAME("EditorTaskBase"), ClassAttribute("abstract", true),ClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
+HYP_BEGIN_CLASS(TickableEditorTask, 204, 1, NAME("EditorTaskBase"), ClassAttribute("abstract", true),ClassAttribute("description", "A task that runs on the game thread and is has Process called every tick"))
     HypMethod(NAME(HYP_STR(IsCommitted)), &TickableEditorTask::IsCommitted),
     HypMethod(NAME(HYP_STR(Cancel)), &TickableEditorTask::Cancel, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(IsCompleted)), &TickableEditorTask::IsCompleted, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
@@ -207,7 +207,7 @@ namespace hyperion {
 
 #pragma region NullEditorManipulationWidget Reflection Data
 
-HYP_BEGIN_CLASS(NullEditorManipulationWidget, 206, 0, NAME("EditorManipulationWidgetBase"))
+HYP_BEGIN_CLASS(NullEditorManipulationWidget, 207, 0, NAME("EditorManipulationWidgetBase"))
 HYP_END_CLASS
 
 #pragma endregion NullEditorManipulationWidget Reflection Data
@@ -219,7 +219,7 @@ namespace hyperion {
 
 #pragma region TranslateEditorManipulationWidget Reflection Data
 
-HYP_BEGIN_CLASS(TranslateEditorManipulationWidget, 207, 0, NAME("EditorManipulationWidgetBase"))
+HYP_BEGIN_CLASS(TranslateEditorManipulationWidget, 208, 0, NAME("EditorManipulationWidgetBase"))
 HYP_END_CLASS
 
 #pragma endregion TranslateEditorManipulationWidget Reflection Data
@@ -258,7 +258,7 @@ namespace hyperion {
 
 #pragma region GenerateLightmapsEditorTask Reflection Data
 
-HYP_BEGIN_CLASS(GenerateLightmapsEditorTask, 204, 0, NAME("TickableEditorTask"))
+HYP_BEGIN_CLASS(GenerateLightmapsEditorTask, 205, 0, NAME("TickableEditorTask"))
     HypMethod(NAME(HYP_STR(GetWorld)), &GenerateLightmapsEditorTask::GetWorld),
     HypMethod(NAME(HYP_STR(SetWorld)), &GenerateLightmapsEditorTask::SetWorld),
     HypMethod(NAME(HYP_STR(GetScene)), &GenerateLightmapsEditorTask::GetScene),
@@ -280,7 +280,7 @@ namespace hyperion {
 
 #pragma region EditorManipulationWidgetBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorManipulationWidgetBase, 205, 2, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorManipulationWidgetBase, 206, 2, NAME("HypObjectBase"), ClassAttribute("abstract", true))
 HYP_END_CLASS
 
 #pragma endregion EditorManipulationWidgetBase Reflection Data
@@ -349,7 +349,7 @@ namespace hyperion {
 
 #pragma region FpsCounter Reflection Data
 
-HYP_BEGIN_CLASS(FpsCounter, 209, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(FpsCounter, 210, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion FpsCounter Reflection Data
@@ -361,7 +361,7 @@ namespace hyperion {
 
 #pragma region StatOverlay Reflection Data
 
-HYP_BEGIN_CLASS(StatOverlay, 210, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(StatOverlay, 211, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion StatOverlay Reflection Data
@@ -379,7 +379,7 @@ namespace hyperion {
 
 #pragma region TextureEditorDebugOverlay Reflection Data
 
-HYP_BEGIN_CLASS(TextureEditorDebugOverlay, 211, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(TextureEditorDebugOverlay, 212, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion TextureEditorDebugOverlay Reflection Data
@@ -391,7 +391,7 @@ namespace hyperion {
 
 #pragma region TextEditorDebugOverlay Reflection Data
 
-HYP_BEGIN_CLASS(TextEditorDebugOverlay, 212, 0, NAME("EditorDebugOverlayBase"))
+HYP_BEGIN_CLASS(TextEditorDebugOverlay, 213, 0, NAME("EditorDebugOverlayBase"))
 HYP_END_CLASS
 
 #pragma endregion TextEditorDebugOverlay Reflection Data
@@ -408,7 +408,7 @@ namespace hyperion {
 
 #pragma region EditorDebugOverlayBase Reflection Data
 
-HYP_BEGIN_CLASS(EditorDebugOverlayBase, 208, 4, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(EditorDebugOverlayBase, 209, 4, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(GetUIObject)), &EditorDebugOverlayBase::GetUIObject),
     HypMethod(NAME(HYP_STR(GetPlacement)), &EditorDebugOverlayBase::GetPlacement, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
     HypMethod(NAME(HYP_STR(Update)), &EditorDebugOverlayBase::Update, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } }),
@@ -513,7 +513,7 @@ namespace hyperion {
 
 #pragma region EditorMain Reflection Data
 
-HYP_BEGIN_CLASS(EditorMain, 213, 0, NAME("HypObjectBase"), ClassAttribute("noscriptbindings", true))
+HYP_BEGIN_CLASS(EditorMain, 214, 0, NAME("HypObjectBase"), ClassAttribute("noscriptbindings", true))
     HypMethod(NAME(HYP_STR(BeforeAdded)), &EditorMain::BeforeAdded),
     HypMethod(NAME(HYP_STR(OnAdded)), &EditorMain::OnAdded),
     HypMethod(NAME(HYP_STR(OpenProjectClicked)), &EditorMain::OpenProjectClicked),
@@ -552,7 +552,7 @@ namespace hyperion {
 
 #pragma region ConsoleCommandBase Reflection Data
 
-HYP_BEGIN_CLASS(ConsoleCommandBase, 214, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
+HYP_BEGIN_CLASS(ConsoleCommandBase, 215, 1, NAME("HypObjectBase"), ClassAttribute("abstract", true))
     HypMethod(NAME(HYP_STR(Execute)), &ConsoleCommandBase::Execute, Span<const ClassAttribute> { {ClassAttribute("scriptable", true) } })
 HYP_END_CLASS
 
@@ -600,7 +600,7 @@ namespace hyperion {
 
 #pragma region LogEntitiesCommand Reflection Data
 
-HYP_BEGIN_CLASS(LogEntitiesCommand, 215, 0, NAME("ConsoleCommandBase"), ClassAttribute("command", "log_entities"))
+HYP_BEGIN_CLASS(LogEntitiesCommand, 216, 0, NAME("ConsoleCommandBase"), ClassAttribute("command", "log_entities"))
 HYP_END_CLASS
 
 #pragma endregion LogEntitiesCommand Reflection Data

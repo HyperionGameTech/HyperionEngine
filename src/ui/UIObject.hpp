@@ -686,7 +686,7 @@ public:
 
     /*! \brief Set the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
-     *  Set the depth to a value between UIStage::g_minDepth and UIStage::g_maxDepth. If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
+     *  Set the depth to a value between UIStage::MinDepth and UIStage::MaxDepth. If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \param depth The depth of the UI object */
     HYP_METHOD(Property = "Depth")
     void SetDepth(int depth);
