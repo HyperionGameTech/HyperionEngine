@@ -192,6 +192,8 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     m_surfaceSize = surfaceSize;
 
+    HYP_LOG_TEMP("UIStage: Set surface size to {}", m_surfaceSize);
+
     if (m_camera.IsValid())
     {
         m_camera->SetDimensions(surfaceSize);
@@ -313,6 +315,7 @@ void UIStage::Init()
         }
 
         const Vec2i size = Vec2i(window->GetDimensions());
+        HYP_LOG_TEMP("UIStage: Window size  = {}", size);
 
         m_surfaceSize = Vec2i(size);
 

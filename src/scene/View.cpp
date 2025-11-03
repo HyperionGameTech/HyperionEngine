@@ -299,13 +299,24 @@ void View::UpdateViewport()
     Threads::AssertOnThread(g_gameThread);
     AssertReady();
 
-    if (m_camera != nullptr)
+    if ((m_flags & ViewFlags::MATCH_CAMERA_DIMENSIONS))
     {
-        m_viewport.extent = MathUtil::Max(Vec2u(m_camera->GetDimensions()), Vec2u::One());
+        if (m_camera != nullptr)
+        {
+            m_viewport.extent = MathUtil::Max(Vec2u(m_camera->GetDimensions()), Vec2u::One());
+        }
+        else
+        {
+            m_viewport.extent = Vec2u::One();
+        }
     }
 
     const uint32 slot = RenderApi::GetRingIndex();
-    m_viewportBuffered[slot] = m_viewport;
+
+    Viewport& viewportBuffered = m_viewportBuffered[slot];
+    viewportBuffered = m_viewport;
+
+    viewportBuffered.extent = Vec2u(MathUtil::Ceil(Vec2f(viewportBuffered.extent) * m_viewDesc.resolutionScale));
 
     if (m_readbackTexture)
     {

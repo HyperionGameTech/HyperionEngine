@@ -325,7 +325,6 @@ public:
         m_height = dimensions.y;
 
         UpdateProjectionMatrix();
-        UpdateViewProjectionMatrix();
     }
 
     HYP_METHOD(Property = "Near", Editor = true)

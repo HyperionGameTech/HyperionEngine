@@ -72,7 +72,9 @@ enum class ViewFlags : uint32
     // enable flags
     RAYTRACING = 0x100000, //!< Does this View contain raytracing data (acceleration structures)? (Raytracing must be enabled in the global config and must have RT hardware support)
 
-    DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
+    MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the View's viewport dimensions will always match the Camera's dimensions.
+
+    DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES | MATCH_CAMERA_DIMENSIONS
 };
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
@@ -101,6 +103,7 @@ struct ViewDesc
     Array<Scene*> scenes;
     Camera* camera = nullptr;
     int priority = 0;
+    float resolutionScale = 1.0f;
     Optional<RenderableAttributeSet> overrideAttributes;
     EntityBatchAllocatorBase* batchAllocator = nullptr;
     TextureFormat readbackTextureFormat = TF_R10G10B10A2; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.

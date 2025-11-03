@@ -348,6 +348,8 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
 
+    const Viewport& viewport = rs.view->GetViewport();
+
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
@@ -436,7 +438,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             {
                 pipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
 
-                frame->renderQueue << BindGraphicsPipeline(pipeline);
+                frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
                 // Bind textures globally (bindless)
                 if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
@@ -742,6 +744,8 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
 
+    const Viewport& viewport = rs.view->GetViewport();
+
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
 
@@ -793,11 +797,11 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
             const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
             const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewportOffset, viewportExtent);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
         }
         else
         {
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
         }
 
         frame->renderQueue << BindDescriptorSet(
@@ -1002,6 +1006,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.passData != nullptr);
 
+    const Viewport& viewport = rs.view->GetViewport();
+
     const uint32 frameIndex = frame->GetFrameIndex();
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
@@ -1064,11 +1070,11 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
             const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
             const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewportOffset, viewportExtent);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
         }
         else
         {
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
         }
 
         const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
@@ -1925,6 +1931,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     View* view = rs.view;
 
+    const Viewport& viewport = view->GetViewport();
+
     Assert(view->GetFlags() & ViewFlags::GBUFFER);
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
@@ -2146,7 +2154,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
             AssertDebug(pipeline != nullptr);
 
-            frame->renderQueue << BindGraphicsPipeline(pipeline);
+            frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
             frame->renderQueue << BindDescriptorTable(
                 pipeline->GetDescriptorTable(),

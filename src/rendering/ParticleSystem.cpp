@@ -448,7 +448,7 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& renderSetup)
     {
         const GraphicsPipelineRef& graphicsPipeline = particleSpawner->GetGraphicsPipeline();
 
-        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
 
         frame->renderQueue << BindDescriptorTable(
             graphicsPipeline->GetDescriptorTable(),

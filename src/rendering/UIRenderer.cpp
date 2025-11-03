@@ -278,8 +278,8 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSetup)
     {
         /// @TODO: Implement me!
 
-        HYP_LOG(UI, Warning, "UIRenderer: Viewport size changed from {} to {}, resizing view pass data",
-            pd->viewport.extent, m_view->GetViewport().extent);
+        // HYP_LOG(UI, Warning, "UIRenderer: Viewport size changed from {} to {}, resizing view pass data",
+        //     pd->viewport.extent, m_view->GetViewport().extent);
     }
 
     // Don't include UI rendering in global render stats

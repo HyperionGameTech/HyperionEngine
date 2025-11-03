@@ -797,6 +797,8 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
     bufferData.cameraFov = m_fov;
+
+    // HYP_LOG_TEMP("Update camera {} render data, width: {}, height: {}", Id().Value(), m_width, m_height);
 }
 
 #pragma endregion Camera

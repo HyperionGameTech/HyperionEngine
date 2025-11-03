@@ -677,7 +677,7 @@ void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     const GraphicsPipelineRef& graphicsPipeline = m_gaussianSplattingInstance->GetGraphicsPipeline();
 
-    frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+    frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
 
     frame->renderQueue << BindDescriptorTable(
         graphicsPipeline->GetDescriptorTable(),

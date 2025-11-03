@@ -662,6 +662,8 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     Assert(renderSetup.HasView());
 
+    const Viewport& viewport = renderSetup.view->GetViewport();
+
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
@@ -822,7 +824,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
                 // new graphics pipeline, commit current draws then bind new pipeline to keep adding draws
                 commitCurrentDraws();
 
-                frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
+                frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
 
                 frame->renderQueue << BindDescriptorTable(
                     m_descriptorTable,

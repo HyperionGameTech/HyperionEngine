@@ -1196,7 +1196,7 @@ void EditorSubsystem::OnAddedToWorld()
     m_camera = CreateObject<Camera>();
     m_camera->AddCameraController(CreateObject<EditorCameraController>());
     m_camera->SetName(NAME("EditorCamera"));
-    m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
+    // m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
     m_camera->SetFOV(70.0f);
     m_camera->SetNear(0.1f);
     m_camera->SetFar(3000.0f);
@@ -1545,10 +1545,26 @@ void EditorSubsystem::InitViewport()
 
             Vec2i viewportSize = MathUtil::Max(sceneImageObject->GetActualSize(), Vec2i::One());
 
-            camera->SetDimensions(viewportSize);
+            if (g_appContext->GetMainWindow()->IsHighDPI())
+            {
+                m_camera->SetDimensions(viewportSize * 2);
+            }
+            else
+            {
+                m_camera->SetDimensions(viewportSize);
+            }
 
             return UIEventHandlerResult::OK;
         }));
+
+    if (g_appContext->GetMainWindow()->IsHighDPI())
+    {
+        m_camera->SetDimensions(viewportSize * 2);
+    }
+    else
+    {
+        m_camera->SetDimensions(viewportSize);
+    }
 
     Handle<UIImage> uiImage = ObjCast<UIImage>(sceneImageObject);
     Assert(uiImage.IsValid());
