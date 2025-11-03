@@ -62,6 +62,11 @@ static RendererResult HandleNextFrame(
 #pragma region Swapchain
 
 VulkanSwapchain::VulkanSwapchain()
+    : m_handle(VK_NULL_HANDLE),
+      m_surface(VK_NULL_HANDLE),
+      m_surfaceFormat(),
+      m_presentMode(),
+      m_supportDetails()
 {
 }
 
@@ -214,7 +219,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = m_presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = m_handle; // gets set when recreating
 
     VULKAN_CHECK_MSG(
         vkCreateSwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle),

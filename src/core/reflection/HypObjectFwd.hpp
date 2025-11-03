@@ -272,6 +272,9 @@ HYP_API extern const Class* GetClass(const TypeId& typeId);
 template <class T>
 const Class* GetClass()
 {
+    // If you get an unresolved external for GetClassHelper<T>::Get(),
+    // it means that T does not have Class info generated for it. Ensure that
+    // the build tool was run and that the generated files are included in the build.
     return GetClassHelper<T>::Get();
 }
 
