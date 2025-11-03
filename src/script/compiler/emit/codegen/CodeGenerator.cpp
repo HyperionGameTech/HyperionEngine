@@ -5,7 +5,7 @@
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/HypConstant.hpp>
 #include <core/reflection/HypProperty.hpp>
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 
 #include <iostream>
 
@@ -334,7 +334,7 @@ void CodeGenerator::Visit(ClassTable* node)
                 uint16 numAttrs = (uint16)member.attrs.Size();
                 m_ibs.Put(reinterpret_cast<ubyte*>(&numAttrs), sizeof(numAttrs));
 
-                for (const HypClassAttribute& attr : member.attrs)
+                for (const ClassAttribute& attr : member.attrs)
                 {
                     const char* attrStr = attr.name.LookupString();
                     Assert(attrStr != nullptr, "Invalid attribute name");
@@ -345,13 +345,13 @@ void CodeGenerator::Visit(ClassTable* node)
                     m_ibs.Put(reinterpret_cast<ubyte*>(&attrLen), sizeof(attrLen));
                     m_ibs.Put(reinterpret_cast<const ubyte*>(attrStr), attrLen);
 
-                    const HypClassAttributeValue& value = attr.value;
+                    const ClassAttributeValue& value = attr.value;
                     uint8 attrType = uint8(value.GetType());
                     m_ibs.Put(attrType);
 
                     switch (value.GetType())
                     {
-                    case HypClassAttributeType::STRING:
+                    case ClassAttributeType::STRING:
                     {
                         const String& str = value.GetString();
                         uint32 strLen = (uint32)str.Size();
@@ -360,20 +360,20 @@ void CodeGenerator::Visit(ClassTable* node)
 
                         break;
                     }
-                    case HypClassAttributeType::INT:
+                    case ClassAttributeType::INT:
                     {
                         int intValue = value.GetInt();
                         m_ibs.Put(reinterpret_cast<ubyte*>(&intValue), sizeof(intValue));
 
                         break;
                     }
-                    case HypClassAttributeType::BOOLEAN:
+                    case ClassAttributeType::BOOLEAN:
                     {
                         bool boolValue = value.GetBool();
                         m_ibs.Put(boolValue ? 1 : 0);
                         break;
                     }
-                    case HypClassAttributeType::NONE: // fallthrough
+                    case ClassAttributeType::NONE: // fallthrough
                     default:
                         HYP_UNREACHABLE();
                         break;

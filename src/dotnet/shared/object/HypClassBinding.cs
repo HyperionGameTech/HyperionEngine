@@ -5,42 +5,42 @@ using System.Reflection;
 namespace Hyperion
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum, Inherited = false)]
-    public class HypClassBinding : Attribute
+    public class ClassBinding : Attribute
     {
         public string? Name { get; set; }
         public bool IsDynamic { get; set; }
 
-        public HypClass GetClass(Type type)
+        public Class GetClass(Type type)
         {
-            // @TODO Needs to deal with DynamicHypStruct.
+            // @TODO Needs to deal with DynamicStruct.
 
             // temp; refactor
             if (type.IsValueType && IsDynamic)
             {
-                return DynamicHypStruct.GetOrCreate(type).HypClass;
+                return DynamicStruct.GetOrCreate(type).Class;
             }
 
-            HypClass? hypClass = HypClass.TryGetClass(type);
+            Class? cls = Class.TryGetClass(type);
 
-            if (hypClass == null || !((HypClass)hypClass).IsValid)
+            if (cls == null || !((Class)cls).IsValid)
             {
-                throw new Exception("Failed to load HypClass for type " + type.Name);
+                throw new Exception("Failed to load Class for type " + type.Name);
             }
 
-            return (HypClass)hypClass;
+            return (Class)cls;
         }
 
-        public static HypClassBinding? ForType(Type type) 
+        public static ClassBinding? ForType(Type type) 
         {
             Type? currentType = type;
 
             do
             {
-                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(HypClassBinding));
+                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(ClassBinding));
 
                 if (attribute != null)
                 {
-                    return (HypClassBinding)attribute;
+                    return (ClassBinding)attribute;
                 }
 
                 currentType = ((Type)currentType).BaseType;

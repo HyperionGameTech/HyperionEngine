@@ -381,7 +381,7 @@ public:
     }
 
     HYP_METHOD()
-    Handle<Entity> AddTypedEntity(const HypClass* hypClass);
+    Handle<Entity> AddTypedEntity(const Class* cls);
 
     /*! \brief Moves an entity from one EntityManager to another.
      *  This is useful for moving entities between scenes.
@@ -1071,7 +1071,7 @@ private:
 
     bool IsEntityInitializedForSystem(SystemBase* system, const Entity* entity) const;
 
-    void GetSystemClasses(Array<const HypClass*>& outClasses) const;
+    void GetSystemClasses(Array<const Class*>& outClasses) const;
 
     ThreadId m_ownerThreadId;
     World* m_world;

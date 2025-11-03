@@ -7,7 +7,10 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderFrame.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/RenderComputePipeline.hpp>
+#include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -230,9 +233,8 @@ void TemporalBlending::CreatePipeline()
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("TemporalBlending"), GetShaderProperties());
     Assert(shader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     const FixedArray<Handle<Texture>*, 2> textures = {
         &m_resultTexture,
@@ -243,7 +245,10 @@ void TemporalBlending::CreatePipeline()
     {
         if (!m_uniformBuffers[frameIndex])
         {
-            m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TemporalBlendingUniforms));
+            m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(
+                GpuBufferType::CBUFF,
+                sizeof(TemporalBlendingUniforms));
+
             HYP_GFX_ASSERT(m_uniformBuffers[frameIndex]->Create());
         }
 
@@ -306,9 +311,7 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& renderSetup)
     const Vec3u& extent = activeImage->GetExtent();
 
     const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE)
-                                             .GetGBufferAttachment(GTN_DEPTH)
-                                             ->GetImage()
-                                             ->GetExtent();
+        .GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
 
     // Copy uniform data to gpu buffer
     TemporalBlendingUniforms uniforms {};

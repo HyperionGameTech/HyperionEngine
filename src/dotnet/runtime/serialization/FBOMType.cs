@@ -92,19 +92,19 @@ namespace Hyperion
             }
         }
 
-        public HypClass? HypClass
+        public Class? Class
         {
             get
             {
-                IntPtr hypClassPtr = IntPtr.Zero;
-                hypClassPtr = FBOMType_GetHypClass(ptr);
+                IntPtr classPtr = IntPtr.Zero;
+                classPtr = FBOMType_GetClass(ptr);
 
-                if (hypClassPtr == IntPtr.Zero)
+                if (classPtr == IntPtr.Zero)
                 {
                     return null;
                 }
 
-                return new HypClass(hypClassPtr);
+                return new Class(classPtr);
             }
         }
 
@@ -134,8 +134,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "FBOMType_GetNativeTypeId")]
         public static extern void FBOMType_GetNativeTypeId([In] IntPtr ptr, [Out] out TypeId typeId);
 
-        [DllImport("hyperion", EntryPoint = "FBOMType_GetHypClass")]
-        public static extern IntPtr FBOMType_GetHypClass([In] IntPtr ptr);
+        [DllImport("hyperion", EntryPoint = "FBOMType_GetClass")]
+        public static extern IntPtr FBOMType_GetClass([In] IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "FBOMType_Unset")]
         public static extern IntPtr FBOMType_Unset();

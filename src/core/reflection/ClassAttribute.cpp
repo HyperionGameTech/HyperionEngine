@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 
 #include <core/utilities/StringUtil.hpp>
 
@@ -8,16 +8,16 @@
 
 namespace hyperion {
 
-#pragma region HypClassAttributeValue
+#pragma region ClassAttributeValue
 
-const HypClassAttributeValue HypClassAttributeValue::empty = HypClassAttributeValue();
+const ClassAttributeValue ClassAttributeValue::empty = ClassAttributeValue();
 
-bool HypClassAttributeValue::IsString() const
+bool ClassAttributeValue::IsString() const
 {
     return value.Is<String>();
 }
 
-const String& HypClassAttributeValue::GetString(const String& defaultValue) const
+const String& ClassAttributeValue::GetString(const String& defaultValue) const
 {
     if (!IsString())
     {
@@ -27,12 +27,12 @@ const String& HypClassAttributeValue::GetString(const String& defaultValue) cons
     return value.Get<String>();
 }
 
-bool HypClassAttributeValue::IsBool() const
+bool ClassAttributeValue::IsBool() const
 {
     return value.Is<bool>();
 }
 
-bool HypClassAttributeValue::GetBool(bool defaultValue) const
+bool ClassAttributeValue::GetBool(bool defaultValue) const
 {
     if (!value.HasValue())
     {
@@ -57,12 +57,12 @@ bool HypClassAttributeValue::GetBool(bool defaultValue) const
     return defaultValue;
 }
 
-bool HypClassAttributeValue::IsInt() const
+bool ClassAttributeValue::IsInt() const
 {
     return value.Is<int>();
 }
 
-int HypClassAttributeValue::GetInt(int defaultValue) const
+int ClassAttributeValue::GetInt(int defaultValue) const
 {
     if (!value.HasValue())
     {
@@ -94,7 +94,7 @@ int HypClassAttributeValue::GetInt(int defaultValue) const
     return defaultValue;
 }
 
-String HypClassAttributeValue::ToString() const
+String ClassAttributeValue::ToString() const
 {
     json::JSONValue jsonValue;
 
@@ -109,6 +109,6 @@ String HypClassAttributeValue::ToString() const
     return jsonValue.ToString(true);
 }
 
-#pragma endregion HypClassAttributeValue
+#pragma endregion ClassAttributeValue
 
 } // namespace hyperion

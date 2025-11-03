@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "StreamableKey")]
+    [ClassBinding(Name = "StreamableKey")]
     [StructLayout(LayoutKind.Explicit, Size = 24)]
     public struct StreamableKey
     {
@@ -26,7 +26,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name = "StreamableBase")]
+    [ClassBinding(Name = "StreamableBase")]
     public abstract class StreamableBase : HypObject
     {
         public StreamableBase() : base()

@@ -44,7 +44,7 @@ struct ProcessAssetFunctor;
 
 using AssetLoadFlags = uint32;
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
 
 enum AssetLoadFlagBits : AssetLoadFlags
 {
@@ -60,14 +60,14 @@ struct AssetLoaderDefinition
 
     TypeId loaderTypeId;
     TypeId resultTypeId;
-    const HypClass* resultHypClass = nullptr;
+    const Class* resultClass = nullptr;
     FlatSet<String> extensions;
     Handle<AssetLoaderBase> loader;
 
     HYP_FORCE_INLINE bool HandlesResultType(TypeId typeId) const
     {
         return resultTypeId == typeId
-            || (resultHypClass != nullptr && IsA(resultHypClass, GetClass(typeId)));
+            || (resultClass != nullptr && IsA(resultClass, GetClass(typeId)));
     }
 
     HYP_FORCE_INLINE bool HandlesExtension(const String& filepath) const
@@ -224,7 +224,7 @@ public:
         AssetLoaderDefinition& assetLoaderDefinition = m_loaders.EmplaceBack();
         assetLoaderDefinition.loaderTypeId = TypeId::ForType<Loader>();
         assetLoaderDefinition.resultTypeId = TypeId::ForType<ResultType>();
-        assetLoaderDefinition.resultHypClass = GetClass(TypeId::ForType<ResultType>());
+        assetLoaderDefinition.resultClass = GetClass(TypeId::ForType<ResultType>());
         assetLoaderDefinition.extensions = FlatSet<String>(formatStrings.Begin(), formatStrings.End());
         assetLoaderDefinition.loader = CreateObject<Loader>();
 

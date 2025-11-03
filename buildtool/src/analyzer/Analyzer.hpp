@@ -28,7 +28,7 @@ struct AnalyzerState
     }
 };
 
-const String& HypClassDefinitionTypeToString(HypClassDefinitionType type);
+const String& ClassDefinitionTypeToString(ClassDefinitionType type);
 const String& HypMemberTypeToString(HypMemberType type);
 
 class Analyzer
@@ -162,26 +162,26 @@ public:
         m_state.errors.PushBack(error);
     }
 
-    HYP_FORCE_INLINE HashMap<String, HypClassDefinition>& GetBuiltinHypClasses()
+    HYP_FORCE_INLINE HashMap<String, ClassDefinition>& GetBuiltinClasses()
     {
-        return m_builtinHypClasses;
+        return m_builtinClasses;
     }
 
-    HYP_FORCE_INLINE const HashMap<String, HypClassDefinition>& GetBuiltinHypClasses() const
+    HYP_FORCE_INLINE const HashMap<String, ClassDefinition>& GetBuiltinClasses() const
     {
-        return m_builtinHypClasses;
+        return m_builtinClasses;
     }
 
-    const HypClassDefinition* FindHypClassDefinition(UTF8StringView className) const;
+    const ClassDefinition* FindClassDefinition(UTF8StringView className) const;
 
     Module* AddModule(const FilePath& path);
 
     TResult<void, AnalyzerError> ProcessModule(Module& mod);
 
-    bool HasBaseClass(const HypClassDefinition& hypClassDefinition, UTF8StringView baseClassName) const;
+    bool HasBaseClass(const ClassDefinition& classDefinition, UTF8StringView baseClassName) const;
 
 private:
-    const HypClassDefinition* FindHypClassDefinition_Internal(UTF8StringView className) const;
+    const ClassDefinition* FindClassDefinition_Internal(UTF8StringView className) const;
 
     FilePath m_workingDirectory;
     FilePath m_sourceDirectory;
@@ -198,7 +198,7 @@ private:
     HashMap<String, String> m_globalDefines;
     HashSet<String> m_includePaths;
 
-    HashMap<String, HypClassDefinition> m_builtinHypClasses;
+    HashMap<String, ClassDefinition> m_builtinClasses;
 };
 
 } // namespace buildtool

@@ -3,12 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="AnimationTrack")]
+    [ClassBinding(Name="AnimationTrack")]
     public class AnimationTrack : HypObject
     {
     }
 
-    [HypClassBinding(Name="Animation")]
+    [ClassBinding(Name="Animation")]
     public class Animation : HypObject
     {
         public Animation()

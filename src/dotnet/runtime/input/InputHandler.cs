@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="InputHandlerBase")]
+    [ClassBinding(Name="InputHandlerBase")]
     public abstract class InputHandlerBase : HypObject
     {
         public InputHandlerBase()
@@ -46,7 +46,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="NullInputHandler")]
+    [ClassBinding(Name="NullInputHandler")]
     public class NullInputHandler : InputHandlerBase
     {
         public NullInputHandler()

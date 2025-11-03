@@ -19,11 +19,11 @@
 
 namespace hyperion {
 
-HYP_API extern const HypClass* GetClass(TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
 HYP_API extern SizeType GetNumDescendants(TypeId typeId);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
-HYP_API extern const TypeInfo& HypClass_GetTypeInfo(const HypClass& hypClass);
+HYP_API extern const TypeInfo& Class_GetTypeInfo(const Class& cls);
 
 class NullProxy;
 
@@ -292,7 +292,7 @@ public:
           cachedDiffNeedsUpdate(false)
     {
         // Setup the subclass implementations array, we initialize them as they get used
-        const SizeType numDescendants = GetNumDescendants(IdType::typeIdStatic);
+        const SizeType numDescendants = GetNumDescendants(TypeIdOf<typename IdType::ObjectType>());
         subclassImpls.Resize(numDescendants);
     }
 
@@ -322,7 +322,7 @@ public:
 
     uint32 NumCurrent(TypeId typeId) const
     {
-        if (typeId == IdType::typeIdStatic)
+        if (typeId == TypeIdOf<typename IdType::ObjectType>())
         {
             return baseImpl.next.Count();
         }
@@ -342,8 +342,8 @@ public:
     const ElementArrayType& GetElements(TypeId typeId) const
     {
         static const ElementArrayType s_emptyArray {};
-
-        if (typeId == IdType::typeIdStatic)
+        
+        if (typeId == TypeIdOf<typename IdType::ObjectType>())
         {
             return baseImpl.elements;
         }
@@ -442,10 +442,10 @@ public:
 
         if (!subclassIndices.Test(subclassIndex))
         {
-            const HypClass* hypClass = GetClass(typeId);
-            AssertDebug(hypClass != nullptr);
+            const Class* cls = GetClass(typeId);
+            AssertDebug(cls != nullptr);
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass), pAllocator);
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls), pAllocator);
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -694,10 +694,10 @@ public:
 
         if (!subclassIndices.Test(subclassIndex))
         {
-            const HypClass* hypClass = GetClass(typeId);
-            AssertDebug(hypClass != nullptr, "HypClass for TypeId {} not found", typeId.Value());
+            const Class* cls = GetClass(typeId);
+            AssertDebug(cls != nullptr, "Class for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass), pAllocator);
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls), pAllocator);
             subclassIndices.Set(subclassIndex, true);
         }
 
@@ -724,10 +724,10 @@ public:
 
         if (!subclassIndices.Test(subclassIndex))
         {
-            const HypClass* hypClass = GetClass(typeId);
-            AssertDebug(hypClass != nullptr, "HypClass for TypeId {} not found", typeId.Value());
+            const Class* cls = GetClass(typeId);
+            AssertDebug(cls != nullptr, "Class for TypeId {} not found", typeId.Value());
 
-            subclassImpls[subclassIndex] = MakePimpl<Impl>(&HypClass_GetTypeInfo(*hypClass), pAllocator);
+            subclassImpls[subclassIndex] = MakePimpl<Impl>(&Class_GetTypeInfo(*cls), pAllocator);
             subclassIndices.Set(subclassIndex, true);
         }
 

@@ -2,7 +2,7 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/reflection/HypData.hpp>
 
@@ -17,12 +17,12 @@
 
 namespace hyperion::serialization {
 
-class AssetPackageMarshal : public HypClassInstanceMarshal
+class AssetPackageMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        if (FBOMResult err = ObjectMarshal::Serialize(in, out))
         {
             return err;
         }
@@ -55,7 +55,7 @@ public:
         Handle<AssetPackage> assetPackage = CreateObject<AssetPackage>();
         out = HypData(assetPackage);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetPackage::Class(), out))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, AssetPackage::StaticClass(), out))
         {
             return err;
         }

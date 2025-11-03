@@ -15,7 +15,7 @@ namespace Hyperion
 
     internal delegate void HandleAssetResultDelegate(IntPtr assetPtr);
 
-    [HypClassBinding(Name="AssetCollector")]
+    [ClassBinding(Name="AssetCollector")]
     public class AssetCollector : HypObject
     {
         private static readonly LogChannel logChannel = LogChannel.ByName("Assets");
@@ -131,7 +131,7 @@ namespace Hyperion
         }
     }
     
-    [HypClassBinding(Name="AssetManager")]
+    [ClassBinding(Name="AssetManager")]
     public class AssetManager : HypObject
     {
         private static AssetManager? instance = null;
@@ -142,7 +142,7 @@ namespace Hyperion
             {
                 if (instance == null)
                 {
-                    using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass(typeof(AssetManager)), new Name("GetInstance", weak: true)).InvokeNative())
+                    using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass(typeof(AssetManager)), new Name("GetInstance", weak: true)).InvokeNative())
                     {
                         instance = (AssetManager)resultData.GetValue();
                     }
@@ -168,12 +168,12 @@ namespace Hyperion
 
         public LoadedAsset<T> Load<T>(string path)
         {
-            HypClass? hypClass = HypClass.TryGetClass<T>();
+            Class? cls = Class.TryGetClass<T>();
 
-            if (hypClass == null)
-                throw new Exception("Failed to get HypClass for type: " + typeof(T).Name + ", cannot load asset!");
+            if (cls == null)
+                throw new Exception("Failed to get Class for type: " + typeof(T).Name + ", cannot load asset!");
 
-            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeId);
+            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((Class)cls).TypeId);
 
             if (loaderDefinitionPtr == IntPtr.Zero)
                 throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");
@@ -183,12 +183,12 @@ namespace Hyperion
 
         public async Task<LoadedAsset<T>> LoadAsync<T>(string path)
         {
-            HypClass? hypClass = HypClass.TryGetClass<T>();
+            Class? cls = Class.TryGetClass<T>();
 
-            if (hypClass == null)
-                throw new Exception("Failed to get HypClass for type: " + typeof(T).Name + ", cannot load asset!");
+            if (cls == null)
+                throw new Exception("Failed to get Class for type: " + typeof(T).Name + ", cannot load asset!");
 
-            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeId);
+            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((Class)cls).TypeId);
 
             if (loaderDefinitionPtr == IntPtr.Zero)
                 throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");

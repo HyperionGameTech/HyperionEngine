@@ -24,7 +24,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

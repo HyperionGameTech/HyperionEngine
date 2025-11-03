@@ -3,14 +3,14 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/String.hpp>
 
-#include <core/reflection/HypClassUtils.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassUtils.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
 
-HYP_API const HypClass* g_clsScript_String = nullptr;
+HYP_API const Class* g_clsScript_String = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Script_String, -1, 0, {})

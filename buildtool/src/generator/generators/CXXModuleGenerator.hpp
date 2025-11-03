@@ -24,8 +24,8 @@ public:
     Result GenerateInline(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const;
     FilePath GetInlineOutputFilePath(const Analyzer& analyzer, const Module& mod) const;
 
-    Result GenerateHypClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
-    Result GenerateHypClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const;
+    Result GenerateClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
+    Result GenerateClassDeclImplementation(const Analyzer& analyzer, ByteWriter& writer) const;
 
 protected:
 };

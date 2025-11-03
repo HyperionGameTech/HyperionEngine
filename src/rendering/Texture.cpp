@@ -19,7 +19,7 @@
 #include <core/utilities/DeferredScope.hpp>
 
 // for EnumToString
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Enum.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -56,7 +56,8 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
     GpuImageRef image;
     bool uploadTextureData;
 
-    RENDER_COMMAND(CreateTextureGpuImage)(
+    RENDER_COMMAND(CreateTextureGpuImage)
+    (
         Handle<TextureAsset>&& textureAsset,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
@@ -224,12 +225,12 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
 
 Texture::Texture()
     : Texture(TextureDesc {
-          TT_TEX2D,
-          TF_RGBA8,
-          Vec3u { 1, 1, 1 },
-          TFM_NEAREST,
-          TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE })
+        TT_TEX2D,
+        TF_RGBA8,
+        Vec3u { 1, 1, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE })
 {
 }
 

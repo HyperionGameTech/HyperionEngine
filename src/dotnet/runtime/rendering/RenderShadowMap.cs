@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="ShadowMapFilter")]
+    [ClassBinding(Name="ShadowMapFilter")]
     public enum ShadowMapFilter : uint
     {
         Standard = 0,
@@ -14,7 +14,7 @@ namespace Hyperion
         Count
     }
 
-    [HypClassBinding(Name="ShadowMapType")]
+    [ClassBinding(Name="ShadowMapType")]
     public enum ShadowMapType : uint
     {
         Directional = 0,

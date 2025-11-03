@@ -2,32 +2,32 @@
 
 #pragma once
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
 
 namespace hyperion {
 
 template <class T>
-struct HypEnumRegistration;
+struct EnumRegistration;
 
-class HypEnum : protected HypClass
+class Enum : protected Class
 {
 public:
-    HypEnum(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(typeId, name, staticIndex, numDescendants, parentName, attributes, flags, members)
+    Enum(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+        : Class(typeId, name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
     }
 
-    virtual ~HypEnum() override = default;
+    virtual ~Enum() override = default;
 
     virtual bool IsValid() const override
     {
         return true;
     }
 
-    virtual HypClassAllocationMethod GetAllocationMethod() const override
+    virtual ClassAllocationMethod GetAllocationMethod() const override
     {
-        return HypClassAllocationMethod::NONE;
+        return ClassAllocationMethod::NONE;
     }
 
 #ifdef HYP_DOTNET
@@ -44,27 +44,27 @@ protected:
 };
 
 template <class T>
-class HypEnumInstance final : protected HypEnum
+class EnumInstance final : protected Enum
 {
 public:
     template <class U>
-    friend struct HypEnumRegistration;
+    friend struct EnumRegistration;
 
-    static HypEnumInstance& GetInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static EnumInstance& GetInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
     {
-        static HypEnumInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
+        static EnumInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
         return s_instance;
     }
 
-    HypEnumInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypEnum(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
+    EnumInstance(Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+        : Enum(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
     }
 
-    virtual ~HypEnumInstance() override = default;
+    virtual ~EnumInstance() override = default;
 
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override
@@ -119,8 +119,8 @@ protected:
 
 HYP_API extern HypData GetEnumMemberValue(const IHypMember& enumMember);
 
-/*! \brief Iterate over the members of an enum HypClass.
- *  \tparam EnumType The enum type to iterate over. The enum must have a HypClass associated with it, otherwise this function will do nothing.
+/*! \brief Iterate over the members of an enum Class.
+ *  \tparam EnumType The enum type to iterate over. The enum must have a Class associated with it, otherwise this function will do nothing.
  *  \tparam Function The function type to call for each member.
  *  \param function The function to call for each member. The function should have the following signature:
  *  \code
@@ -132,16 +132,16 @@ void ForEachEnumMember(Function&& function)
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const HypClass* hypClass = GetClass<EnumType>();
+    const Class* cls = GetClass<EnumType>();
 
-    if (!hypClass || !hypClass->IsEnumType())
+    if (!cls || !cls->IsEnumType())
     {
         return;
     }
 
     bool stopIteration = false;
 
-    for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_CONSTANT))
+    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_CONSTANT))
     {
         // If the function sets stopIteration to true, stop iteration
         function(member.GetName(), static_cast<EnumType>(GetEnumMemberValue(member).Get<EnumUnderlyingType>()), &stopIteration);
@@ -153,9 +153,9 @@ void ForEachEnumMember(Function&& function)
     }
 }
 
-/*! \brief Find the name of an enum member for a given HypClass, using the members' value.
- *  \tparam EnumType The enum type the member is a part of. The enum must have a HypClass associated with it, otherwise this function will return an empty String.
- *  If the member is not found in the registered HypClass, this function will return a default string (e.g "EnumType(value)").
+/*! \brief Find the name of an enum member for a given Class, using the members' value.
+ *  \tparam EnumType The enum type the member is a part of. The enum must have a Class associated with it, otherwise this function will return an empty String.
+ *  If the member is not found in the registered Class, this function will return a default string (e.g "EnumType(value)").
  *  \param value The string value of the enum member to find the name of, or EnumName(value) if the member is not found.
  */
 template <class EnumType, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
@@ -163,14 +163,14 @@ String EnumToString(EnumType value)
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const HypClass* hypClass = GetClass<EnumType>();
+    const Class* cls = GetClass<EnumType>();
 
-    if (!hypClass || !hypClass->IsEnumType())
+    if (!cls || !cls->IsEnumType())
     {
         return String::empty;
     }
 
-    for (IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_CONSTANT))
+    for (IHypMember& member : cls->GetMembers(HypMemberType::TYPE_CONSTANT))
     {
         // If the function sets stopIteration to true, stop iteration
         if (static_cast<EnumType>(GetEnumMemberValue(member).Get<EnumUnderlyingType>()) == value)
@@ -183,8 +183,8 @@ String EnumToString(EnumType value)
     return HYP_FORMAT("{}", EnumUnderlyingType(value));
 }
 
-/*! \brief Get the value of an enum member for a given HypClass dynamically, given the name of the enum member.
- *  \tparam EnumType The enum type the member is a part of. The enum must have a HypClass associated with it, otherwise this function will do nothing.
+/*! \brief Get the value of an enum member for a given Class dynamically, given the name of the enum member.
+ *  \tparam EnumType The enum type the member is a part of. The enum must have a Class associated with it, otherwise this function will do nothing.
  *  \param name The name of the enum member to get the value of.
  *  \param errorValue The value to return if the member is not found.
  */
@@ -193,14 +193,14 @@ EnumType EnumValue(WeakName memberName, EnumType errorValue = EnumType())
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const HypClass* hypClass = GetClass<EnumType>();
+    const Class* cls = GetClass<EnumType>();
 
-    if (!hypClass || !hypClass->IsEnumType())
+    if (!cls || !cls->IsEnumType())
     {
         return errorValue;
     }
 
-    if (IHypMember* pMember = hypClass->GetMember(memberName, HypMemberType::TYPE_CONSTANT))
+    if (IHypMember* pMember = cls->GetMember(memberName, HypMemberType::TYPE_CONSTANT))
     {
         return static_cast<EnumType>(GetEnumMemberValue(*pMember).Get<EnumUnderlyingType>());
     }

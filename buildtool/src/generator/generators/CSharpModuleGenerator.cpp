@@ -57,16 +57,16 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         // check if all classes are empty; if so, skip generation entirely
         bool allEmpty = true;
 
-        for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
+        for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
         {
-            const HypClassDefinition& hypClass = pair.second;
+            const ClassDefinition& cls = pair.second;
 
-            if (noScriptBindingsPredicate(hypClass))
+            if (noScriptBindingsPredicate(cls))
             {
                 continue;
             }
 
-            if (hypClass.members.Any())
+            if (cls.members.Any())
             {
                 allEmpty = false;
                 break;
@@ -94,9 +94,9 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
     writer.WriteString("namespace Hyperion\n");
     writer.WriteString("{\n");
 
-    for (const Pair<String, HypClassDefinition>& pair : mod.GetHypClasses())
+    for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
     {
-        const HypClassDefinition& hypClass = pair.second;
+        const ClassDefinition& cls = pair.second;
 
         SizeType positionBeforeLocal = writer.Position();
         int numMembersWritten = 0;
@@ -112,23 +112,23 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             }
         });
 
-        if (noScriptBindingsPredicate(hypClass))
+        if (noScriptBindingsPredicate(cls))
         {
             continue;
         }
 
         // skip generation if no members to serialize
-        if (hypClass.members.Empty())
+        if (cls.members.Empty())
         {
             continue;
         }
 
-        writer.WriteString(HYP_FORMAT("    public static class {}Extensions\n", hypClass.name));
+        writer.WriteString(HYP_FORMAT("    public static class {}Extensions\n", cls.name));
         writer.WriteString("    {\n");
 
-        for (SizeType i = 0; i < hypClass.members.Size(); ++i)
+        for (SizeType i = 0; i < cls.members.Size(); ++i)
         {
-            const HypMemberDefinition& member = hypClass.members[i];
+            const HypMemberDefinition& member = cls.members[i];
 
             if (noScriptBindingsPredicate(member))
             {
@@ -137,7 +137,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
             String managedName = member.friendlyName;
 
-            if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
+            if (const ClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
             {
                 managedName = attr.GetString();
             }
@@ -194,32 +194,32 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     methodArgNames.PushBack(parameter->name);
                 }
 
-                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", returnTypeMapping.typeName, managedName, hypClass.name, methodArgDecls.Any() ? ", " + String::Join(methodArgDecls, ", ") : ""));
+                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", returnTypeMapping.typeName, managedName, cls.name, methodArgDecls.Any() ? ", " + String::Join(methodArgDecls, ", ") : ""));
                 writer.WriteString("        {\n");
 
                 if (functionType->returnType->IsVoid())
                 {
-                    if (hypClass.type == HypClassDefinitionType::STRUCT)
+                    if (cls.type == ClassDefinitionType::STRUCT)
                     {
-                        writer.WriteString(HYP_FORMAT("            HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).InvokeNative(obj{});\n",
-                            hypClass.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
+                        writer.WriteString(HYP_FORMAT("            HypObject.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{});\n",
+                            cls.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                     }
-                    else if (hypClass.type == HypClassDefinitionType::CLASS)
+                    else if (cls.type == ClassDefinitionType::CLASS)
                     {
                         writer.WriteString(HYP_FORMAT("            obj.GetMethod(new Name({})).InvokeNative(obj{});\n",
                             uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                     }
                     else
                     {
-                        return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
+                        return HYP_MAKE_ERROR(Error, "Unsupported Class type");
                     }
                 }
                 else
                 {
-                    if (hypClass.type == HypClassDefinitionType::STRUCT)
+                    if (cls.type == ClassDefinitionType::STRUCT)
                     {
-                        writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
-                            hypClass.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
+                        writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
+                            cls.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
                         writer.WriteString("            {\n");
 
                         if (returnTypeMapping.getValueOverload.HasValue())
@@ -233,7 +233,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
 
                         writer.WriteString("            }\n");
                     }
-                    else if (hypClass.type == HypClassDefinitionType::CLASS)
+                    else if (cls.type == ClassDefinitionType::CLASS)
                     {
                         writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = obj.GetMethod(new Name({})).InvokeNative(obj{}))\n",
                             uint64(CreateWeakNameFromDynamicString(member.name.Data())), methodArgNames.Any() ? ", " + String::Join(methodArgNames, ", ") : ""));
@@ -252,7 +252,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     }
                     else
                     {
-                        return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
+                        return HYP_MAKE_ERROR(Error, "Unsupported Class type");
                     }
                 }
 
@@ -266,10 +266,10 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             // Generate code to get a ScriptableDelegate C# object corresponding to the C++ object
             if (member.type == HypMemberType::TYPE_FIELD && member.cxxType->IsScriptableDelegate())
             {
-                writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managedName, hypClass.name));
+                writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managedName, cls.name));
                 writer.WriteString("        {\n");
 
-                writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.HypClass.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.friendlyName.Data()))));
+                writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.Class.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.friendlyName.Data()))));
                 writer.WriteString("            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);\n\n");
                 writer.WriteString("            return new ScriptableDelegate(obj, fieldAddress);\n");
 

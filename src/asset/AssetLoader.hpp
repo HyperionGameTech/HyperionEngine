@@ -33,7 +33,7 @@ class AssetManager;
 template <class T>
 struct TLoadedAsset;
 
-HYP_API extern void OnPostLoad_Impl(const HypClass* hypClass, void* objectPtr);
+HYP_API extern void OnPostLoad_Impl(const Class* cls, void* objectPtr);
 
 struct LoadedAsset
 {

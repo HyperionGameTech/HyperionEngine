@@ -12,7 +12,6 @@
 
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderCollection.hpp>
-
 #include <rendering/RenderObject.hpp>
 
 #include <scene/Scene.hpp>

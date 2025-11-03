@@ -76,7 +76,7 @@ namespace Hyperion
         ArrowUp = 0x52
     }
 
-    [HypClassBinding(Name = "KeyboardEvent")]
+    [ClassBinding(Name = "KeyboardEvent")]
     [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct KeyboardEvent
     {

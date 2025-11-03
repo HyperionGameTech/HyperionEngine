@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypClassRegistry.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/ClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/threading/ThreadLocalStorage.hpp>
 #include <core/threading/Thread.hpp>
@@ -20,13 +20,13 @@
 
 namespace hyperion {
 
-HYP_API const HypClass* g_hypObjectBaseClass = nullptr;
+HYP_API const Class* g_hypObjectBaseClass = nullptr;
 
-#pragma region HypClassRegistry
+#pragma region ClassRegistry
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
 
-using ThreadLocalCacheMap = HashMap<TypeId, const HypClass*>;
+using ThreadLocalCacheMap = HashMap<TypeId, const Class*>;
 
 static ThreadLocalCacheMap& GetDummyThreadLocalCache()
 {
@@ -34,7 +34,7 @@ static ThreadLocalCacheMap& GetDummyThreadLocalCache()
     return s_dummy;
 }
 
-thread_local ThreadLocalCacheMap* g_pThreadLocalCache;
+thread_local ThreadLocalCacheMap* s_cache;
 
 static void InitThreadLocalCache()
 {
@@ -42,15 +42,15 @@ static void InitThreadLocalCache()
 
     if (thisThread)
     {
-        g_pThreadLocalCache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
+        s_cache = thisThread->GetTLS().Allocate<ThreadLocalCacheMap>();
 
-        if (g_pThreadLocalCache)
+        if (s_cache)
         {
-            new (g_pThreadLocalCache) ThreadLocalCacheMap;
+            new (s_cache) ThreadLocalCacheMap;
 
             thisThread->AtExit([]()
                 {
-                    g_pThreadLocalCache->~ThreadLocalCacheMap();
+                    s_cache->~ThreadLocalCacheMap();
                 });
 
             return;
@@ -58,45 +58,45 @@ static void InitThreadLocalCache()
     }
 
     // not mutated, just used as a fallback for searching from (won't return any results)
-    g_pThreadLocalCache = &GetDummyThreadLocalCache();
+    s_cache = &GetDummyThreadLocalCache();
 }
 
 #endif
 
-HYP_API bool HypClassRegistry_IsInitialized()
+HYP_API bool ClassRegistry_IsInitialized()
 {
-    return HypClassRegistry::GetInstance().IsInitialized();
+    return ClassRegistry::GetInstance().IsInitialized();
 }
 
-HypClassRegistry& HypClassRegistry::GetInstance()
+ClassRegistry& ClassRegistry::GetInstance()
 {
-    static HypClassRegistry s_instance;
+    static ClassRegistry s_instance;
     return s_instance;
 }
 
-HypClassRegistry::HypClassRegistry()
+ClassRegistry::ClassRegistry()
     : m_isInitialized(false)
 {
 }
 
-HypClassRegistry::~HypClassRegistry()
+ClassRegistry::~ClassRegistry()
 {
 }
 
-const HypClass* HypClassRegistry::GetClass(TypeId typeId) const
+const Class* ClassRegistry::GetClass(TypeId typeId) const
 {
     HYP_SCOPE;
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
     if (!typeId.IsDynamicType())
     {
-        if (HYP_UNLIKELY(!g_pThreadLocalCache))
+        if (HYP_UNLIKELY(!s_cache))
         {
             InitThreadLocalCache();
         }
 
-        auto it = g_pThreadLocalCache->Find(typeId);
-        if (it != g_pThreadLocalCache->End())
+        auto it = s_cache->Find(typeId);
+        if (it != s_cache->End())
         {
             return it->second;
         }
@@ -125,16 +125,16 @@ const HypClass* HypClassRegistry::GetClass(TypeId typeId) const
     }
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
-    if (g_pThreadLocalCache && g_pThreadLocalCache != &GetDummyThreadLocalCache())
+    if (s_cache && s_cache != &GetDummyThreadLocalCache())
     {
-        (*g_pThreadLocalCache)[typeId] = it->second;
+        (*s_cache)[typeId] = it->second;
     }
 #endif
 
     return it->second;
 }
 
-const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
+const Class* ClassRegistry::GetClass(WeakName typeName) const
 {
     HYP_SCOPE;
 
@@ -163,44 +163,44 @@ const HypClass* HypClassRegistry::GetClass(WeakName typeName) const
     return it->second;
 }
 
-const HypClass* HypClassRegistry::GetEnum(TypeId typeId) const
+const Class* ClassRegistry::GetEnum(TypeId typeId) const
 {
     HYP_SCOPE;
 
-    const HypClass* hypClass = GetClass(typeId);
+    const Class* cls = GetClass(typeId);
 
-    if (!hypClass || !(hypClass->GetFlags() & HypClassFlags::ENUM_TYPE))
+    if (!cls || !(cls->GetFlags() & ClassFlags::ENUM_TYPE))
     {
         return nullptr;
     }
 
-    return hypClass;
+    return cls;
 }
 
-const HypClass* HypClassRegistry::GetEnum(WeakName typeName) const
+const Class* ClassRegistry::GetEnum(WeakName typeName) const
 {
     HYP_SCOPE;
 
-    const HypClass* hypClass = GetClass(typeName);
+    const Class* cls = GetClass(typeName);
 
-    if (!hypClass || !(hypClass->GetFlags() & HypClassFlags::ENUM_TYPE))
+    if (!cls || !(cls->GetFlags() & ClassFlags::ENUM_TYPE))
     {
         return nullptr;
     }
 
-    return hypClass;
+    return cls;
 }
 
-void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
+void ClassRegistry::RegisterClass(TypeId typeId, Class* cls)
 {
     HYP_SCOPE;
 
-    if (typeId == TypeId::Void() || !hypClass)
+    if (typeId == TypeId::Void() || !cls)
     {
         return;
     }
 
-    HYP_CORE_ASSERT(typeId.IsDynamicType() == hypClass->IsDynamic());
+    HYP_CORE_ASSERT(typeId.IsDynamicType() == cls->IsDynamic());
 
     m_mutex.Lock();
 
@@ -209,18 +209,18 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
 
         if (m_isInitialized)
         {
-            hypClass->Initialize();
+            cls->Initialize();
         }
     });
 
-    if (hypClass->IsDynamic())
+    if (cls->IsDynamic())
     {
         if (m_dynamicClasses.Contains(typeId))
         {
             return;
         }
 
-        m_dynamicClasses.Set(typeId, hypClass);
+        m_dynamicClasses.Set(typeId, cls);
 
         return;
     }
@@ -231,48 +231,48 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
         return;
     }
 
-    m_classesByTypeId[typeId] = hypClass;
+    m_classesByTypeId[typeId] = cls;
 
-    if (hypClass->GetStaticIndex() >= 0)
+    if (cls->GetStaticIndex() >= 0)
     {
-        if (hypClass->GetStaticIndex() >= m_classesByStaticIndex.Size())
+        if (cls->GetStaticIndex() >= m_classesByStaticIndex.Size())
         {
-            const SizeType minSize = hypClass->GetStaticIndex() + 1;
+            const SizeType minSize = cls->GetStaticIndex() + 1;
             m_classesByStaticIndex.Resize((minSize + 15) & ~15); // grow by chunks of 16
         }
 
-        m_classesByStaticIndex[hypClass->GetStaticIndex()] = hypClass;
+        m_classesByStaticIndex[cls->GetStaticIndex()] = cls;
     }
 
 #if defined(HYP_CLASS_REGISTRY_USE_TLS) && HYP_CLASS_REGISTRY_USE_TLS
-    if (HYP_UNLIKELY(!g_pThreadLocalCache))
+    if (HYP_UNLIKELY(!s_cache))
     {
         InitThreadLocalCache();
     }
 
-    if (g_pThreadLocalCache && g_pThreadLocalCache != &GetDummyThreadLocalCache())
+    if (s_cache && s_cache != &GetDummyThreadLocalCache())
     {
-        (*g_pThreadLocalCache)[typeId] = hypClass;
+        (*s_cache)[typeId] = cls;
     }
 #endif
 
     if (m_isInitialized)
     {
-        hypClass->Initialize();
+        cls->Initialize();
     }
 }
 
-bool HypClassRegistry::UnregisterClass(const HypClass* hypClass)
+bool ClassRegistry::UnregisterClass(const Class* cls)
 {
     HYP_SCOPE;
 
-    HYP_CORE_ASSERT(hypClass->IsDynamic(), "Cannot unregister class - must be a dynamic HypClass to unregister");
+    HYP_CORE_ASSERT(cls->IsDynamic(), "Cannot unregister class - must be a dynamic Class to unregister");
 
     Mutex::Guard guard(m_mutex);
 
-    auto it = m_dynamicClasses.FindIf([hypClass](auto&& item)
+    auto it = m_dynamicClasses.FindIf([cls](auto&& item)
         {
-            return item.second == hypClass;
+            return item.second == cls;
         });
 
     if (it == m_dynamicClasses.End())
@@ -287,11 +287,11 @@ bool HypClassRegistry::UnregisterClass(const HypClass* hypClass)
     return true;
 }
 
-void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass*)>& callback, bool includeDynamicClasses) const
+void ClassRegistry::ForEachClass(const ProcRef<IterationResult(const Class*)>& callback, bool includeDynamicClasses) const
 {
     HYP_SCOPE;
 
-    Array<const HypClass*> classes;
+    Array<const Class*> classes;
     classes.Reserve(m_classesByTypeId.Size() + (includeDynamicClasses ? m_dynamicClasses.Size() : 0));
 
     {
@@ -311,16 +311,16 @@ void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass
         }
     }
 
-    for (const HypClass* hypClass : classes)
+    for (const Class* cls : classes)
     {
-        if (callback(hypClass) == IterationResult::STOP)
+        if (callback(cls) == IterationResult::STOP)
         {
             return;
         }
     }
 }
 
-void HypClassRegistry::Initialize()
+void ClassRegistry::Initialize()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_mainThread);
@@ -343,6 +343,6 @@ void HypClassRegistry::Initialize()
     }
 }
 
-#pragma endregion HypClassRegistry
+#pragma endregion ClassRegistry
 
 } // namespace hyperion

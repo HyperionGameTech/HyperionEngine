@@ -20,11 +20,11 @@
 
 #include <script/vm/Interpreter.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypMethod.hpp>
 #include <core/reflection/HypField.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/io/BufferedByteReader.hpp>
 
@@ -33,6 +33,8 @@
 
 #include <core/utilities/Format.hpp>
 #include <core/utilities/Result.hpp>
+
+#include <iostream>
 
 namespace hyperion {
 
@@ -314,10 +316,10 @@ bool HypScript::GetMember(Script_Instance* instance, const HypData& targetValue,
         return false;
     }
 
-    const HypClass* hypClass = object.ptr->InstanceClass();
-    Assert(hypClass != nullptr);
+    const Class* cls = object.ptr->InstanceClass();
+    Assert(cls != nullptr);
 
-    IHypMember* member = hypClass->GetMember(WeakName(memberName));
+    IHypMember* member = cls->GetMember(WeakName(memberName));
 
     if (!member)
     {
@@ -376,10 +378,10 @@ bool HypScript::SetField(HypData& targetValue, const char* memberName, HypData&&
         return false;
     }
 
-    const HypClass* hypClass = object.ptr->InstanceClass();
-    Assert(hypClass != nullptr);
+    const Class* cls = object.ptr->InstanceClass();
+    Assert(cls != nullptr);
 
-    HypField* field = hypClass->GetField(WeakName(memberName));
+    HypField* field = cls->GetField(WeakName(memberName));
 
     if (!field)
     {

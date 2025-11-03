@@ -8,6 +8,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Float16.hpp>
+#include <core/Name.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 
@@ -809,6 +810,31 @@ struct BlendFunction
 };
 
 HYP_ENUM()
+enum class RenderPassStage : uint8
+{
+    NONE,
+    PRESENT, /* for presentation on screen */
+    SHADER   /* for use as a sampled texture in a shader */
+};
+
+HYP_ENUM()
+enum class LoadOperation : uint8
+{
+    UNDEFINED,
+    NONE,
+    CLEAR,
+    LOAD
+};
+
+HYP_ENUM()
+enum class StoreOperation : uint8
+{
+    UNDEFINED,
+    NONE,
+    STORE
+};
+
+HYP_ENUM()
 enum StencilCompareOp : uint8
 {
     SCO_ALWAYS,
@@ -1013,6 +1039,136 @@ struct Viewport
     HYP_FORCE_INLINE bool operator!=(const Viewport& other) const
     {
         return position != other.position || extent != other.extent;
+    }
+};
+
+HYP_ENUM()
+enum class DescriptorSetElementType : uint32
+{
+    UNSET,
+    UNIFORM_BUFFER,
+    UNIFORM_BUFFER_DYNAMIC,
+    SSBO,
+    STORAGE_BUFFER_DYNAMIC,
+    IMAGE,
+    IMAGE_STORAGE,
+    SAMPLER,
+    TLAS,
+    MAX
+};
+
+HYP_STRUCT()
+struct DescriptorSetOffsetMap
+{
+    HYP_STRUCT_BODY(DescriptorSetOffsetMap);
+
+    static constexpr uint32 MaxOffsets = 8;
+
+    WeakName keys[MaxOffsets];
+    uint32 values[MaxOffsets];
+    uint32 count;
+
+    DescriptorSetOffsetMap()
+        : keys(),
+          values(),
+          count(0)
+    {
+    }
+
+    DescriptorSetOffsetMap(std::initializer_list<Pair<const char*, uint32>> v)
+        : keys(),
+          values(),
+          count(v.size())
+    {
+        AssertDebug(v.size() <= MaxOffsets, "too many values provided to constructor!");
+
+        for (auto it = v.begin(); it != v.end(); ++it)
+        {
+            keys[it - v.begin()] = it->first;
+            values[it - v.begin()] = it->second;
+        }
+    }
+
+    template <SizeType Count>
+    DescriptorSetOffsetMap(Pair<const char*, uint32> const (&kv)[Count])
+        : keys(),
+          values(),
+          count(Count)
+    {
+        static_assert(Count <= MaxOffsets, "too many values provided to constructor!");
+
+        for (uint32 i = 0; i < Count; i++)
+        {
+            keys[i] = kv[i].first;
+            values[i] = kv[i].second;
+        }
+    }
+
+    HYP_FORCE_INLINE void Add(WeakName key, uint32 value)
+    {
+        uint32 idx = count++;
+        AssertDebug(idx < MaxOffsets, "too many offsets!");
+
+        keys[idx] = key;
+        values[idx] = value;
+    }
+};
+
+HYP_STRUCT()
+struct DescriptorTableOffsetMap
+{
+    HYP_STRUCT_BODY(DescriptorTableOffsetMap);
+
+    static constexpr uint32 MaxSets = 4;
+
+    WeakName setNames[MaxSets];
+    DescriptorSetOffsetMap setOffsets[MaxSets];
+    uint32 count;
+
+    DescriptorTableOffsetMap()
+        : setNames(),
+          setOffsets(),
+          count(0)
+    {
+    }
+
+    DescriptorTableOffsetMap(std::initializer_list<Pair<const char*, DescriptorSetOffsetMap>> v)
+        : setNames(),
+          setOffsets(),
+          count(v.size())
+    {
+        AssertDebug(v.size() <= MaxSets, "too many values provided to constructor!");
+
+        for (auto it = v.begin(); it != v.end(); ++it)
+        {
+            setNames[it - v.begin()] = it->first;
+            setOffsets[it - v.begin()] = it->second;
+        }
+    }
+
+    template <SizeType Count>
+    DescriptorTableOffsetMap(Pair<const char*, DescriptorSetOffsetMap> const (&v)[Count])
+        : setNames(),
+          setOffsets(),
+          count(Count)
+    {
+        static_assert(Count <= MaxSets, "too many values provided to constructor!");
+
+        for (uint32 i = 0; i < Count; i++)
+        {
+            setNames[i] = v[i].first;
+            setOffsets[i] = v[i].second;
+        }
+    }
+
+    HYP_FORCE_INLINE DescriptorSetOffsetMap& Add(WeakName setName)
+    {
+        uint32 idx = count++;
+        AssertDebug(idx < MaxSets, "too many offsets!");
+
+        setNames[idx] = setName;
+
+        return setOffsets[count];
     }
 };
 

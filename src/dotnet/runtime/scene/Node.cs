@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [Flags]
-    [HypClassBinding(Name="NodeFlags")]
+    [ClassBinding(Name="NodeFlags")]
     public enum NodeFlags : uint
     {
         None = 0x0,
@@ -21,7 +21,7 @@ namespace Hyperion
         HideInSceneOutline = 0x1000 // Should this node be hidden in the editor's outline window?
     }
 
-    [HypClassBinding(Name="Node")]
+    [ClassBinding(Name="Node")]
     public class Node : HypObject
     {
         public Node()

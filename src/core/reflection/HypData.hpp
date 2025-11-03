@@ -49,8 +49,8 @@ class FilePath;
 
 using filesystem::FilePath;
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
 template <class T, class T2 = void>
 struct HypDataHelper;
@@ -129,7 +129,7 @@ struct HypData
         Float16,
         Name,
         ObjIdBase,
-        HypClassRef,
+        ClassRef,
         AnyHandle,
         RC<void>,
         AnyRef,
@@ -151,7 +151,7 @@ struct HypData
         /*! All ObjId<T> are stored as ObjIdBase */
         || std::is_base_of_v<ObjIdBase, T>
 
-        || std::is_same_v<T, HypClassRef>
+        || std::is_same_v<T, ClassRef>
 
         /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
         || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle> || std::is_base_of_v<HypObjectBase, T>
@@ -989,53 +989,53 @@ struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
     }
 };
 
-/// HypClassRef specialization - stores as HypClassRef internally, not serializable.
+/// ClassRef specialization - stores as ClassRef internally, not serializable.
 
 template <>
-struct HypDataHelperDecl<HypClassRef>
+struct HypDataHelperDecl<ClassRef>
 {
 };
 
 template <>
-struct HypDataHelper<HypClassRef>
+struct HypDataHelper<ClassRef>
 {
-    using StorageType = HypClassRef;
+    using StorageType = ClassRef;
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const HypClassRef& value) const
+    HYP_FORCE_INLINE bool Is(const ClassRef& value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE HypClassRef& Get(HypClassRef& value) const
+    HYP_FORCE_INLINE ClassRef& Get(ClassRef& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const HypClassRef& Get(const HypClassRef& value) const
+    HYP_FORCE_INLINE const ClassRef& Get(const ClassRef& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, const HypClassRef& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, const ClassRef& value) const
     {
         hypData.Set_Internal(value);
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hypData, HypClassRef&& value) const
+    HYP_FORCE_INLINE void Set(HypData& hypData, ClassRef&& value) const
     {
         hypData.Set_Internal(std::move(value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(HypClassRef value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(ClassRef value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
-        return { FBOMResult::FBOM_ERR, "Cannot serialize HypClassRef!" };
+        return { FBOMResult::FBOM_ERR, "Cannot serialize ClassRef!" };
     }
 
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
-        return { FBOMResult::FBOM_ERR, "Cannot deserialize HypClassRef!" };
+        return { FBOMResult::FBOM_ERR, "Cannot deserialize ClassRef!" };
     }
 };
 

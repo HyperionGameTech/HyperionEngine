@@ -5,8 +5,8 @@
 
 namespace hyperion {
 
-HYP_API extern const HypClass* GetClass(TypeId typeId);
-HYP_API extern bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 #pragma region UIDataSource
@@ -24,15 +24,15 @@ Handle<UIElementFactoryBase> UIDataSource::GetElementFactoryForType(TypeId typeI
 
     if (it == m_elementFactories.End())
     {
-        const HypClass* hypClass = GetClass(typeId);
+        const Class* cls = hyperion::GetClass(typeId);
 
-        if (hypClass != nullptr)
+        if (cls != nullptr)
         {
             // slow path (using derived types to look up chain)
             int subclassIndex = -1;
             for (auto jt = m_elementFactories.Begin(); jt != m_elementFactories.End(); ++jt)
             {
-                if (::hyperion::IsA(GetClass(jt->first), hypClass))
+                if (::hyperion::IsA(GetClass(jt->first), cls))
                 {
                     const int currSubclassIndex = GetSubclassIndex(jt->first, typeId);
 
@@ -76,15 +76,15 @@ Handle<UIElementFactoryBase> UIElementFactoryRegistry::GetFactory(TypeId typeId)
 
     if (it == m_elementFactories.End())
     {
-        const HypClass* hypClass = GetClass(typeId);
+        const Class* cls = GetClass(typeId);
 
-        if (hypClass != nullptr)
+        if (cls != nullptr)
         {
             // slow path (using derived types to look up chain)
             int subclassIndex = -1;
             for (auto jt = m_elementFactories.Begin(); jt != m_elementFactories.End(); ++jt)
             {
-                if (IsA(GetClass(jt->first), hypClass))
+                if (IsA(GetClass(jt->first), cls))
                 {
                     const int currSubclassIndex = GetSubclassIndex(jt->first, typeId);
                     if (currSubclassIndex < subclassIndex || (currSubclassIndex > 0 && subclassIndex < 0))

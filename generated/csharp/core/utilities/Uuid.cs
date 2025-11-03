@@ -8,7 +8,7 @@ namespace Hyperion
     {
         public static string ToString(this Uuid obj)
         {
-            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<Uuid>(), new Name(11688614581569845925)).InvokeNative(obj))
+            using (HypDataBuffer resultData = HypObject.GetMethod(Class.GetClass<Uuid>(), new Name(11688614581569845925)).InvokeNative(obj))
             {
                 return resultData.ReadString();
             }

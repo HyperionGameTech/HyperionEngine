@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="SDLApplicationWindow")]
+    [ClassBinding(Name="SDLApplicationWindow")]
     public class SDLApplicationWindow : ApplicationWindow
     {
         public SDLApplicationWindow()

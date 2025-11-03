@@ -25,7 +25,7 @@
 
 #include <core/threading/Task.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/HypProperty.hpp>
 
@@ -42,27 +42,27 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
     Assert(spawnParent != nullptr);
     Assert(property != nullptr);
 
-    const HypClass* propertyPanelClass = nullptr;
+    const Class* propertyPanelClass = nullptr;
 
-    if (const HypClassAttributeValue& attr = property->GetAttribute("editorpropertypanelclass"))
+    if (const ClassAttributeValue& attr = property->GetAttribute("editorpropertypanelclass"))
     {
-        const HypClass* hypClass = GetClass(CreateNameFromDynamicString(attr.GetString()));
+        const Class* cls = GetClass(CreateNameFromDynamicString(attr.GetString()));
 
-        if (!hypClass)
+        if (!cls)
         {
-            HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
+            HYP_LOG(Editor, Error, "No Class registered for editor property panel class \"{}\"", attr.GetString());
 
             return nullptr;
         }
 
-        if (!hypClass->IsDerivedFrom(EditorPropertyPanelBase::Class()))
+        if (!cls->IsDerivedFrom(EditorPropertyPanelBase::StaticClass()))
         {
-            HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", hypClass->GetName());
+            HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", cls->GetName());
 
             return nullptr;
         }
 
-        propertyPanelClass = hypClass;
+        propertyPanelClass = cls;
     }
 
     if (!propertyPanelClass)
@@ -70,16 +70,16 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
         // try to get the property panel class from the type of the property
         const TypeId propertyTypeId = property->GetTypeId();
 
-        const HypClass* hypClass = GetClass(propertyTypeId);
+        const Class* cls = GetClass(propertyTypeId);
 
-        if (!hypClass)
+        if (!cls)
         {
-            HYP_LOG(Editor, Error, "No HypClass registered for TypeId {}", propertyTypeId.Value());
+            HYP_LOG(Editor, Error, "No Class registered for TypeId {}", propertyTypeId.Value());
 
             return nullptr;
         }
 
-        const HypClassAttributeValue& attr = hypClass->GetAttribute("editorpropertypanelclass");
+        const ClassAttributeValue& attr = cls->GetAttribute("editorpropertypanelclass");
 
         if (attr.IsValid())
         {
@@ -94,12 +94,12 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
 
             if (!propertyPanelClass)
             {
-                HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
+                HYP_LOG(Editor, Error, "No Class registered for editor property panel class \"{}\"", attr.GetString());
 
                 return nullptr;
             }
 
-            if (!propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::Class()))
+            if (!propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::StaticClass()))
             {
                 HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", propertyPanelClass->GetName());
 
@@ -118,7 +118,7 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const HypData
     Handle<UIObject> element;
 
     Assert(propertyPanelClass != nullptr, "No property panel class found for property {}", property->GetName());
-    Assert(propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::Class()), "Property panel class {} does not inherit from EditorPropertyPanelBase", propertyPanelClass->GetName());
+    Assert(propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::StaticClass()), "Property panel class {} does not inherit from EditorPropertyPanelBase", propertyPanelClass->GetName());
 
     Handle<UIObject> propertyPanel = spawnParent->CreateUIObject(propertyPanelClass, Name::Unique(propertyPanelClass->GetName().LookupString()), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
@@ -150,8 +150,8 @@ public:
     {
         const HypData& target = value;
 
-        const HypClass* hypClass = GetClass(value.GetTypeId());
-        Assert(hypClass != nullptr);
+        const Class* cls = GetClass(value.GetTypeId());
+        Assert(cls != nullptr);
 
         if (value.IsNull())
         {
@@ -165,7 +165,7 @@ public:
 
         HashMap<String, HypProperty*> propertiesByName;
 
-        for (auto it = hypClass->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hypClass->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
+        for (auto it = cls->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != cls->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
         {
             if (HypProperty* property = dynamic_cast<HypProperty*>(&*it))
             {
@@ -201,7 +201,7 @@ public:
             Handle<UIObject> uiObject = CreatePropertyPanel(parent, value, property);
             if (!uiObject)
             {
-                HYP_LOG(Editor, Error, "Failed to create property panel for property \"{}\" of class \"{}\"", propertyName, hypClass->GetName());
+                HYP_LOG(Editor, Error, "Failed to create property panel for property \"{}\" of class \"{}\"", propertyName, cls->GetName());
 
                 continue;
             }
@@ -723,7 +723,7 @@ public:
                     continue;
                 }
 
-                const HypClass* propertyPanelClass = nullptr;
+                const Class* propertyPanelClass = nullptr;
 
                 if (componentInterface->GetClass())
                 {
@@ -733,7 +733,7 @@ public:
                         continue;
                     }
 
-                    const HypClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("editorpropertypanelclass");
+                    const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("editorpropertypanelclass");
 
                     if (attr.IsValid())
                     {
@@ -741,7 +741,7 @@ public:
 
                         if (!propertyPanelClass)
                         {
-                            HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
+                            HYP_LOG(Editor, Error, "No Class registered for editor property panel class \"{}\"", attr.GetString());
 
                             continue;
                         }
@@ -752,7 +752,7 @@ public:
 
                 if (propertyPanelClass)
                 {
-                    if (!propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::Class()))
+                    if (!propertyPanelClass->IsDerivedFrom(EditorPropertyPanelBase::StaticClass()))
                     {
                         HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", propertyPanelClass->GetName());
 
@@ -812,12 +812,12 @@ public:
 
                 if (componentInterface->GetClass())
                 {
-                    if (const HypClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("label"))
+                    if (const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("label"))
                     {
                         componentHeaderTextOpt = attr.GetString();
                     }
 
-                    if (const HypClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("description"))
+                    if (const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("description"))
                     {
                         componentDescriptionOpt = attr.GetString();
                     }

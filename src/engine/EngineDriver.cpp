@@ -45,7 +45,7 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <core/reflection/HypEnum.hpp> // For EnumValue()
+#include <core/reflection/Enum.hpp> // For EnumValue()
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

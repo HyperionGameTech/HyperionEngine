@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
@@ -18,7 +18,7 @@
 
 #include <core/reflection/HypDataJSONHelpers.hpp>
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypField.hpp>
 #include <core/reflection/HypProperty.hpp>
 
@@ -2616,14 +2616,14 @@ void AssetRegistry::RegisterAssetsRecursively(
         }
 
         const TypeId typeId = current.GetTypeId();
-        const HypClass* hypClass = GetClass(typeId);
+        const Class* cls = GetClass(typeId);
 
-        if (!hypClass) // no HypClass; not an object we can iterate over.
+        if (!cls) // no Class; not an object we can iterate over.
         {
             return;
         }
 
-        for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
+        for (const IHypMember& member : cls->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD, /* deep */ true))
         {
             if (member.IsDelegate())
             {
@@ -2667,7 +2667,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                 continue;
             }
 
-            const HypClass* memberClass = memberData.GetTypeInfo()->GetHypClass();
+            const Class* memberClass = memberData.GetTypeInfo()->GetClass();
             if (memberClass != nullptr && !memberClass->GetAttribute(Attributes::g_attrSerialize).GetBool(true))
             {
                 // skip members with Serialize=false on class

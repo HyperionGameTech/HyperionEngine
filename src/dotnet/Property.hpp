@@ -8,7 +8,7 @@
 #include <core/utilities/StringView.hpp>
 
 #include <dotnet/Helpers.hpp>
-#include <dotnet/Attribute.hpp>
+#include <dotnet/ManagedAttribute.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
 
@@ -28,7 +28,7 @@ public:
     {
     }
 
-    Property(ManagedGuid guid, AttributeSet&& attributes)
+    Property(ManagedGuid guid, ManagedAttributeSet&& attributes)
         : m_guid(guid),
           m_attributes(std::move(attributes))
     {
@@ -47,7 +47,7 @@ public:
         return m_guid;
     }
 
-    HYP_FORCE_INLINE const AttributeSet& GetAttributes() const
+    HYP_FORCE_INLINE const ManagedAttributeSet& GetAttributes() const
     {
         return m_attributes;
     }
@@ -75,7 +75,7 @@ private:
     void InvokeSetter_Internal(const ManagedObject* pManagedObject, const HypData** valueHypData);
 
     ManagedGuid m_guid;
-    AttributeSet m_attributes;
+    ManagedAttributeSet m_attributes;
 };
 
 } // namespace hyperion::dotnet

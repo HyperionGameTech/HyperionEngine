@@ -2,11 +2,11 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/threading/Threads.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypData.hpp>
 
@@ -36,12 +36,12 @@
 
 namespace hyperion::serialization {
 
-class EntityMarshal : public HypClassInstanceMarshal
+class EntityMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        if (FBOMResult err = ObjectMarshal::Serialize(in, out))
         {
             return err;
         }
@@ -168,23 +168,23 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        const HypClass* hypClass = in.GetHypClass();
-        Assert(hypClass);
+        const Class* cls = in.GetClass();
+        Assert(cls);
 
-        if (!hypClass->IsDerivedFrom(Entity::Class()))
+        if (!cls->IsDerivedFrom(Entity::StaticClass()))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, serialized data with type '{}' (HypClass: {}, TypeId: {}) is not a subclass of Entity", in.GetType().name, hypClass->GetName(), in.GetType().GetNativeTypeId().Value()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with ObjectMarshal, serialized data with type '{}' (Class: {}, TypeId: {}) is not a subclass of Entity", in.GetType().name, cls->GetName(), in.GetType().GetNativeTypeId().Value()) };
         }
 
-        if (!hypClass->CreateInstance(out))
+        if (!cls->CreateInstance(out))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with ObjectMarshal, Class '{}' instance creation failed", cls->GetName()) };
         }
 
         const Handle<Entity>& entity = out.Get<Handle<Entity>>();
         HypData entityData = HypData(entity);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, in.GetHypClass(), entityData))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, in.GetClass(), entityData))
         {
             return err;
         }

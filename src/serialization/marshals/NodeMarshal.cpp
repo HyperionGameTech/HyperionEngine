@@ -3,10 +3,10 @@
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
+#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -16,7 +16,7 @@
 
 namespace hyperion::serialization {
 
-class NodeMarshal : public HypClassInstanceMarshal
+class NodeMarshal : public ObjectMarshal
 {
 public:
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
@@ -30,7 +30,7 @@ public:
             return { FBOMResult::FBOM_ERR, "Cannot serialize Node: TRANSIENT flag is set" };
         }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        if (FBOMResult err = ObjectMarshal::Serialize(in, out))
         {
             return err;
         }
@@ -73,24 +73,24 @@ public:
             return err;
         }
 
-        const HypClass* hypClass = in.GetHypClass();
+        const Class* cls = in.GetClass();
 
-        if (!hypClass)
+        if (!cls)
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Object {} does not have a HypClass defined", in.GetType().ToString()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Object {} does not have a Class defined", in.GetType().ToString()) };
         }
 
-        if (!hypClass->IsDerivedFrom(Node::Class()))
+        if (!cls->IsDerivedFrom(Node::StaticClass()))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("HypClass {} is not derived from Node", hypClass->GetName()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Class {} is not derived from Node", cls->GetName()) };
         }
 
-        if (!hypClass->CreateInstance(out))
+        if (!cls->CreateInstance(out))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of HypClass {}", hypClass->GetName()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of Class {}", cls->GetName()) };
         }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, hypClass, out))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, cls, out))
         {
             return err;
         }

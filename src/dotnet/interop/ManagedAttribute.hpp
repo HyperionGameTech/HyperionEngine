@@ -15,7 +15,6 @@ class ManagedClass;
 
 extern "C"
 {
-
     struct ManagedAttribute
     {
         ManagedClass* classPtr;
@@ -31,7 +30,6 @@ extern "C"
     };
 
     static_assert(sizeof(ManagedAttributeHolder) == 16, "sizeof(ManagedAttributeHolder) must match C# struct size");
-
 } // extern "C"
 
 } // namespace hyperion::dotnet

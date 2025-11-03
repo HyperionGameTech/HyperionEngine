@@ -3,12 +3,11 @@
 #pragma once
 
 #include <core/json/parser/SourceLocation.hpp>
+
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 
-#include <string>
-#include <sstream>
-#include <map>
+#include <core/utilities/Format.hpp>
 
 namespace hyperion::json {
 
@@ -123,10 +122,8 @@ private:
         {
             if (*format == '%')
             {
-                std::stringstream sstream;
-                sstream << value;
-                m_text += sstream.str().c_str();
-                MakeMessage(format + 1, args...);
+                m_text += HYP_FORMAT("{}", value);
+                MakeMessage(format + 1, std::forward<Args>(args)...);
                 return;
             }
 

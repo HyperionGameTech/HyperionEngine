@@ -21,8 +21,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypMethod.hpp>
 
 #ifdef HYP_SCRIPT
@@ -165,7 +165,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         sor = AllocateResource<ScriptObjectResource>(scriptComponent.nativeObject);
         sor->IncRef();
 
-        const HypClass* nativeClass = scriptComponent.nativeObject->InstanceClass();
+        const Class* nativeClass = scriptComponent.nativeObject->InstanceClass();
         AssertDebug(nativeClass != nullptr);
 
         HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());

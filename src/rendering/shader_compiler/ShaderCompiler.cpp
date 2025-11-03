@@ -1,15 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/filesystem/FsUtil.hpp>
-#include <core/json/JSON.hpp>
-#include <core/utilities/ByteUtil.hpp>
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
-#include <util/ini/INIFile.hpp>
 
 #include <core/Defines.hpp>
 
-#include <core/utilities/ForEach.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
+#include <core/json/JSON.hpp>
+
+#include <core/utilities/ByteUtil.hpp>
+#include <core/utilities/ForEach.hpp>
 #include <core/utilities/Time.hpp>
 
 #include <core/reflection/HypData.hpp>
@@ -20,11 +20,14 @@
 
 #include <core/threading/TaskSystem.hpp>
 
+#include <core/io/ByteWriter.hpp>
+
+#include <util/ini/INIFile.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <asset/Assets.hpp>
-#include <core/io/ByteWriter.hpp>
 
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
@@ -32,11 +35,13 @@
 #include <core/math/MathUtil.hpp>
 
 #include <HyperionEngine.hpp>
+
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #define HYP_SHADER_REFLECTION
 
@@ -252,6 +257,82 @@ static bool SatisfiesRequestedPropertySet(const ShaderProperties& requested, con
 
 #pragma region CompiledShader
 
+CompiledShader::CompiledShader(const CompiledShader& other)
+    : definition(other.definition),
+      descriptorUsageSet(other.descriptorUsageSet),
+      entryPointName(other.entryPointName),
+      modules(other.modules)
+{
+    if (other.descriptorTableDeclaration != nullptr)
+    {
+        descriptorTableDeclaration = new DescriptorTableDeclaration(*other.descriptorTableDeclaration);
+    }
+}
+
+CompiledShader& CompiledShader::operator=(const CompiledShader& other)
+{
+    if (this != &other)
+    {
+        definition = other.definition;
+        entryPointName = other.entryPointName;
+        modules = other.modules;
+        descriptorUsageSet = other.descriptorUsageSet;
+
+        if (descriptorTableDeclaration != nullptr)
+        {
+            delete descriptorTableDeclaration;
+            descriptorTableDeclaration = nullptr;
+        }
+
+        if (other.descriptorTableDeclaration != nullptr)
+        {
+            descriptorTableDeclaration = new DescriptorTableDeclaration(*other.descriptorTableDeclaration);
+        }
+    }
+
+    return *this;
+}
+
+CompiledShader::CompiledShader(CompiledShader&& other) noexcept
+    : definition(std::move(other.definition)),
+      descriptorUsageSet(std::move(other.descriptorUsageSet)),
+      entryPointName(std::move(other.entryPointName)),
+      modules(std::move(other.modules)),
+      descriptorTableDeclaration(other.descriptorTableDeclaration)
+{
+    other.descriptorTableDeclaration = nullptr;
+}
+
+CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
+{
+    if (this != &other)
+    {
+        definition = std::move(other.definition);
+        entryPointName = std::move(other.entryPointName);
+        modules = std::move(other.modules);
+        descriptorUsageSet = std::move(other.descriptorUsageSet);
+
+        if (descriptorTableDeclaration != nullptr)
+        {
+            delete descriptorTableDeclaration;
+            descriptorTableDeclaration = nullptr;
+        }
+
+        descriptorTableDeclaration = other.descriptorTableDeclaration;
+        other.descriptorTableDeclaration = nullptr;
+    }
+    return *this;
+}
+
+CompiledShader::~CompiledShader()
+{
+    if (descriptorTableDeclaration != nullptr)
+    {
+        delete descriptorTableDeclaration;
+        descriptorTableDeclaration = nullptr;
+    }
+}
+
 uint64 CompiledShader::GetRevisionNumber() const
 {
     return GetStaticDescriptorTableDeclaration().GetHashCode().Value();
@@ -291,10 +372,8 @@ bool ShaderCache::GetShaderInstance(Name name, const ShaderProperties& propertie
 
 #pragma region DescriptorUsageSet
 
-DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration() const
+void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const
 {
-    DescriptorTableDeclaration table;
-
     for (const DescriptorUsage& descriptorUsage : elements)
     {
         Assert(descriptorUsage.slot != DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptorUsage.slot < DescriptorSlot::DESCRIPTOR_SLOT_MAX,
@@ -351,8 +430,6 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
             descriptorSetDeclaration->AddDescriptorDeclaration(std::move(desc));
         }
     }
-
-    return table;
 }
 
 #pragma endregion DescriptorUsageSet
@@ -811,8 +888,10 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
 
     glslang_shader_t* shader = glslang_shader_create(&input);
 
-    String preamble = BuildDescriptorTableDefines(
-        descriptorUsages.BuildDescriptorTableDeclaration());
+    DescriptorTableDeclaration table;
+    descriptorUsages.BuildDescriptorTableDeclaration(table);
+
+    String preamble = BuildDescriptorTableDefines(table);
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -2712,7 +2791,16 @@ bool ShaderCompiler::CompileBundle(
             numCompiledPermutations.Increment(uint32(!anyFilesErrored.Get(MemoryOrder::RELAXED) && anyFilesCompiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
             numErroredPermutations.Increment(uint32(anyFilesErrored.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
 
-            compiledShader.descriptorTableDeclaration = compiledShader.descriptorUsageSet.BuildDescriptorTableDeclaration();
+            if (!compiledShader.descriptorTableDeclaration)
+            {
+                compiledShader.descriptorTableDeclaration = new DescriptorTableDeclaration();
+            }
+            else
+            {
+                *compiledShader.descriptorTableDeclaration = DescriptorTableDeclaration();
+            }
+
+            compiledShader.descriptorUsageSet.BuildDescriptorTableDeclaration(*compiledShader.descriptorTableDeclaration);
 
             Mutex::Guard guard(compiledShadersMutex);
             out.compiledShaders.PushBack(std::move(compiledShader));

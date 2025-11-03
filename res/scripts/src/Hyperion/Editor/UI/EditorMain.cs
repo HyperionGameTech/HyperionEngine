@@ -19,7 +19,7 @@ public class CustomSystem : ScriptableSystem
     {
         return new ComponentInfo[]
         {
-            // new ComponentInfo(HypClass.GetClass<LightComponent>().TypeId, ComponentRWFlags.Read, true)
+            // new ComponentInfo(Class.GetClass<LightComponent>().TypeId, ComponentRWFlags.Read, true)
         };
     }
 

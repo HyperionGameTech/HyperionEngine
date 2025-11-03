@@ -9,6 +9,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGraphicsPipeline.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -104,9 +105,8 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 {
     HYP_SCOPE;
 
-    const DescriptorTableDeclaration& descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

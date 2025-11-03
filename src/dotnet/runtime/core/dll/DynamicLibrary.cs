@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "DynamicLibrary")]
+    [ClassBinding(Name = "DynamicLibrary")]
     [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 8)]
     public struct DynamicLibrary
     {

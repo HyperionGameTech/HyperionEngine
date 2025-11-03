@@ -1,8 +1,8 @@
 #include <scripting/ScriptObjectResource.hpp>
 #include <scripting/Script.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/HypObject.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -173,20 +173,20 @@ void ScriptObjectResource::Initialize()
 
         // Need to recreate the managed object; could be queued for finalization.
         // In this case, the ref count will be decremented once the queued object is finalized
-        const HypClass* hypClass = m_ptr.GetClass();
+        const Class* cls = m_ptr.GetClass();
 
-        HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
+        HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
             Threads::CurrentThreadId().GetName(),
-            hypClass->GetName(), m_ptr.GetPointer(),
+            cls->GetName(), m_ptr.GetPointer(),
             (void*)dotNetData->objectPtr);
 
         if (dotNetData->managedClass)
         {
-            dotnet::ManagedObject* newManagedObject = dotNetData->managedClass->NewObject(hypClass, m_ptr.GetPointer());
+            dotnet::ManagedObject* newManagedObject = dotNetData->managedClass->NewObject(cls, m_ptr.GetPointer());
 
             if (!newManagedObject)
             {
-                HYP_FAIL("Failed to recreate managed object for HypClass %s", hypClass->GetName().LookupString());
+                HYP_FAIL("Failed to recreate managed object for Class %s", cls->GetName().LookupString());
             }
 
             delete dotNetData->objectPtr;
@@ -196,7 +196,7 @@ void ScriptObjectResource::Initialize()
         }
         else
         {
-            HYP_FAIL("Failed to recreate managed object for HypClass %s", hypClass->GetName().LookupString());
+            HYP_FAIL("Failed to recreate managed object for Class %s", cls->GetName().LookupString());
         }
     }
 #endif
@@ -230,7 +230,7 @@ void ScriptObjectResource::Destroy()
 
 #ifdef HYP_DOTNET
 
-#pragma region HypObject Extensions for .NET
+#pragma region HypObject Extensions for.NET
 
 HYP_API void HypObject_IncScriptObjectRef(HypObjectBase* ptr)
 {

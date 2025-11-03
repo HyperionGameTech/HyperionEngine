@@ -17,7 +17,7 @@ namespace Hyperion
         public byte depth;
     }
 
-    [HypClassBinding(Name="VisibilityStateComponent")]
+    [ClassBinding(Name="VisibilityStateComponent")]
     [StructLayout(LayoutKind.Sequential, Size = 32)]
     public struct VisibilityStateComponent : IComponent
     {

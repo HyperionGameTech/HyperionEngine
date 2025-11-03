@@ -10,6 +10,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -217,9 +218,8 @@ void ParticleSpawner::CreateGraphicsPipeline()
     m_shader = g_shaderManager->GetOrCreate(NAME("Particle"));
     Assert(m_shader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -259,9 +259,8 @@ void ParticleSpawner::CreateComputePipelines()
     ShaderRef updateParticlesShader = g_shaderManager->GetOrCreate(NAME("UpdateParticles"), properties);
     Assert(updateParticlesShader.IsValid());
 
-    const DescriptorTableDeclaration& descriptorTableDecl = updateParticlesShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        updateParticlesShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 struct HypData;
 
 enum class AssemblyFlags : uint32
@@ -56,7 +56,7 @@ public:
         return m_flags;
     }
 
-    RC<ManagedClass> NewClass(const HypClass* hypClass, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
+    RC<ManagedClass> NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
     RC<ManagedClass> FindClassByName(const char* typeName);
     RC<ManagedClass> FindClassByTypeHash(int32 typeHash);
 

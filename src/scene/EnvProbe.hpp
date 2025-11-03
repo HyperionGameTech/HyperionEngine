@@ -14,8 +14,6 @@
 
 #include <scene/Entity.hpp>
 
-#include <rendering/RenderCollection.hpp>
-
 #include <rendering/RenderCommand.hpp>
 
 #include <core/HashCode.hpp>
@@ -25,6 +23,7 @@ namespace hyperion {
 class Texture;
 class View;
 class Light;
+class Camera;
 class RenderProxyEnvProbe;
 
 enum class EnvProbeFlags : uint32
@@ -52,6 +51,14 @@ enum EnvProbeType : uint32
     EPT_AMBIENT,
 
     EPT_MAX
+};
+
+HYP_STRUCT(Serialize = "bitwise")
+struct EnvProbeSphericalHarmonics
+{
+    HYP_STRUCT_BODY(EnvProbeSphericalHarmonics);
+
+    Vec4f values[9];
 };
 
 /*! \brief An EnvProbe handles rendering of reflection probes, sky probes, shadow probes, and ambient probes.

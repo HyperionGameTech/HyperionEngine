@@ -10,6 +10,8 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderCollection.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -108,9 +110,8 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
     ShaderRef shader = g_shaderManager->GetOrCreate(shaderNames[IsPathTracer()]);
     Assert(shader != nullptr);
 
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

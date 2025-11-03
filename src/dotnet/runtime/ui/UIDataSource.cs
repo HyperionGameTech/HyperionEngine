@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIDataSourceBase")]
+    [ClassBinding(Name="UIDataSourceBase")]
     public abstract class UIDataSourceBase : HypObject
     {
         public UIDataSourceBase()
@@ -31,7 +31,7 @@ namespace Hyperion
         private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref Uuid uuid, [In] ref HypDataBuffer data, [In] ref Uuid parentUUID);
     }
 
-    [HypClassBinding(Name="UIDataSource")]
+    [ClassBinding(Name="UIDataSource")]
     public class UIDataSource : UIDataSourceBase
     {
         public UIDataSource()
@@ -47,7 +47,7 @@ namespace Hyperion
         private static extern void UIDataSource_SetElementFactory([In] IntPtr uiDataSource, [In] ref TypeId elementTypeId, [In] IntPtr elementFactory);
     }
 
-    [HypClassBinding(Name="UIElementFactoryBase")]
+    [ClassBinding(Name="UIElementFactoryBase")]
     public abstract class UIElementFactoryBase : HypObject
     {
         public UIElementFactoryBase()

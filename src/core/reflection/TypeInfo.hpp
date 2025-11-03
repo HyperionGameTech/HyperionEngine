@@ -58,14 +58,14 @@ enum class TypeInfoFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(TypeInfoFlags)
 
-class HypClass;
+class Class;
 struct HypData;
 struct GenericArrayWrapper;
 
 struct Float16;
 
-HYP_API extern const HypClass* GetClass(TypeId typeId);
-HYP_API extern bool HypClassRegistry_IsInitialized();
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool ClassRegistry_IsInitialized();
 namespace containers {
 
 template <int TStringType>
@@ -375,7 +375,7 @@ struct HYP_API TypeInfoEx
 
     /*! \brief Tagged union holding either:
      *  - const TypeInfo* for container element types (single type)
-     *  - const HypClass* for types with HypClass reflection info */
+     *  - const Class* for types with Class reflection info */
     union
     {
         const TypeInfo* typeInfo;
@@ -571,7 +571,7 @@ struct TypeInfo
         return id != TypeId::Void();
     }
 
-    HYP_API static const TypeInfo& ForHypClass(const HypClass* hypClass);
+    HYP_API static const TypeInfo& ForClass(const Class* cls);
 
     template <class T>
     static const TypeInfo& ForType()
@@ -709,9 +709,9 @@ struct TypeInfo
         return flags & TypeInfoFlags::FLOAT_TYPE;
     }
 
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+    HYP_FORCE_INLINE const Class* GetClass() const
     {
-        return GetClass(id);
+        return hyperion::GetClass(id);
     }
 
     HYP_FORCE_INLINE bool IsArrayType() const
@@ -2055,9 +2055,9 @@ inline const TypeInfo& TypeInfo_Void()
     return TypeInfo::Void();
 }
 
-inline const TypeInfo& TypeInfo_ForHypClass(const HypClass* hypClass)
+inline const TypeInfo& TypeInfo_ForClass(const Class* cls)
 {
-    return TypeInfo::ForHypClass(hypClass);
+    return TypeInfo::ForClass(cls);
 }
 
 inline const TypeId& TypeInfo_GetId(const TypeInfo& typeInfo)
@@ -2070,9 +2070,9 @@ inline const Name& TypeInfo_GetName(const TypeInfo& typeInfo)
     return typeInfo.name;
 }
 
-inline const HypClass* TypeInfo_GetClass(const TypeInfo& typeInfo)
+inline const Class* TypeInfo_GetClass(const TypeInfo& typeInfo)
 {
-    return typeInfo.GetHypClass();
+    return typeInfo.GetClass();
 }
 
 inline SizeType TypeInfo_GetSize(const TypeInfo& typeInfo)
@@ -2108,7 +2108,7 @@ using utilities::ITypeInfoSetHandler;
 using utilities::ITypeInfoStringHandler;
 using utilities::ITypeInfoVectorHandler;
 
-using utilities::TypeInfo_ForHypClass;
+using utilities::TypeInfo_ForClass;
 using utilities::TypeInfo_Void;
 using utilities::TypeOf;
 

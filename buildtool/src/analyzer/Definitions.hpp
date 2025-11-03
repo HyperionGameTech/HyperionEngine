@@ -13,7 +13,7 @@
 #include <core/utilities/StringView.hpp>
 
 #include <core/reflection/HypMemberFwd.hpp>
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 
 #include <core/Defines.hpp>
 
@@ -25,7 +25,7 @@ struct ASTMemberDecl;
 class Analyzer;
 class Module;
 
-enum class HypClassDefinitionType : int
+enum class ClassDefinitionType : int
 {
     NONE = 0,
     CLASS,
@@ -40,7 +40,7 @@ struct HypMemberDefinition
     HypMemberType type;
     String name;
     String friendlyName;
-    Array<Pair<String, HypClassAttributeValue>> attributes;
+    Array<Pair<String, ClassAttributeValue>> attributes;
     RC<ASTType> cxxType;
     RC<ASTMemberDecl> cxxDecl;
     String source;
@@ -55,7 +55,7 @@ struct HypMemberDefinition
         return it != attributes.End();
     }
 
-    const HypClassAttributeValue& GetAttribute(UTF8StringView key) const
+    const ClassAttributeValue& GetAttribute(UTF8StringView key) const
     {
         auto it = attributes.FindIf([keyLower = String(key).ToLower()](const auto& item)
             {
@@ -64,10 +64,10 @@ struct HypMemberDefinition
 
         return it != attributes.End()
             ? it->second
-            : HypClassAttributeValue::empty;
+            : ClassAttributeValue::empty;
     }
 
-    bool AddAttribute(const String& key, const HypClassAttributeValue& value)
+    bool AddAttribute(const String& key, const ClassAttributeValue& value)
     {
         if (HasAttribute(key))
         {
@@ -80,13 +80,13 @@ struct HypMemberDefinition
     }
 };
 
-struct HypClassDefinition
+struct ClassDefinition
 {
-    HypClassDefinitionType type;
+    ClassDefinitionType type;
     String name;
     int staticIndex = -1;
     uint32 numDescendants = 0;
-    Array<Pair<String, HypClassAttributeValue>> attributes;
+    Array<Pair<String, ClassAttributeValue>> attributes;
     Array<String> baseClassNames;
     Array<HypMemberDefinition> members;
     String source;
@@ -98,8 +98,8 @@ struct HypClassDefinition
     bool isCXXEnum : 1;      //<! original type is enum
     bool isCXXEnumClass : 1; //<! original type is enum class
 
-    HypClassDefinition()
-        : type(HypClassDefinitionType::NONE),
+    ClassDefinition()
+        : type(ClassDefinitionType::NONE),
           isCXXClass(false),
           isCXXStruct(false),
           isCXXEnum(false),
@@ -107,13 +107,13 @@ struct HypClassDefinition
     {
     }
 
-    HypClassDefinition(const HypClassDefinition& other) = default;
-    HypClassDefinition& operator=(const HypClassDefinition& other) = default;
+    ClassDefinition(const ClassDefinition& other) = default;
+    ClassDefinition& operator=(const ClassDefinition& other) = default;
 
-    HypClassDefinition(HypClassDefinition&& other) noexcept = default;
-    HypClassDefinition& operator=(HypClassDefinition&& other) noexcept = default;
+    ClassDefinition(ClassDefinition&& other) noexcept = default;
+    ClassDefinition& operator=(ClassDefinition&& other) noexcept = default;
 
-    ~HypClassDefinition() = default;
+    ~ClassDefinition() = default;
 
     HYP_FORCE_INLINE bool HasAttribute(UTF8StringView key) const
     {
@@ -125,7 +125,7 @@ struct HypClassDefinition
         return it != attributes.End();
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue& GetAttribute(UTF8StringView key) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(UTF8StringView key) const
     {
         auto it = attributes.FindIf([keyLower = String(key).ToLower()](const auto& item)
             {
@@ -134,7 +134,7 @@ struct HypClassDefinition
 
         return it != attributes.End()
             ? it->second
-            : HypClassAttributeValue::empty;
+            : ClassAttributeValue::empty;
     }
 
     HYP_FORCE_INLINE bool HasScriptableMethods() const

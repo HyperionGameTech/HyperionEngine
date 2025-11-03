@@ -1,7 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/reflection/TypeInfo.hpp>
 
@@ -262,59 +262,59 @@ const TypeInfo& TypeInfo::Void()
     return s_voidTypeInfo;
 }
 
-const TypeInfo& TypeInfo::ForHypClass(const HypClass* hypClass)
+const TypeInfo& TypeInfo::ForClass(const Class* cls)
 {
-    if (!hypClass)
+    if (!cls)
     {
         return Void();
     }
 
     Mutex::Guard guard(GetTypeInfoCacheMutex());
 
-    const auto it = GetTypeInfoCache().Find(hypClass->GetTypeId());
+    const auto it = GetTypeInfoCache().Find(cls->GetTypeId());
     if (it != GetTypeInfoCache().End())
     {
         if (s_typeInfoSystemInitialized) // don't check during static initialization
         {
-            AssertDebug(it->second != nullptr && it->second->GetHypClass() == hypClass);
+            AssertDebug(it->second != nullptr && it->second->GetClass() == cls);
         }
         return *it->second;
     }
 
     // pass nullptr as we already hold the mutex
     TypeInfo* pTypeInfo = TypeInfo_Alloc(
-        hypClass->GetTypeId(),
-        hypClass->GetSize(),
-        hypClass->GetAlignment(),
+        cls->GetTypeId(),
+        cls->GetSize(),
+        cls->GetAlignment(),
         nullptr);
 
     AssertDebug(pTypeInfo != nullptr);
 
     new (pTypeInfo) TypeInfo();
-    pTypeInfo->id = hypClass->GetTypeId();
-    pTypeInfo->name = hypClass->GetName();
-    pTypeInfo->size = uint16(hypClass->GetSize());
-    pTypeInfo->alignment = uint16(hypClass->GetAlignment());
+    pTypeInfo->id = cls->GetTypeId();
+    pTypeInfo->name = cls->GetName();
+    pTypeInfo->size = uint16(cls->GetSize());
+    pTypeInfo->alignment = uint16(cls->GetAlignment());
     pTypeInfo->flags = TypeInfoFlags::NONE;
 
     AssertDebug(pTypeInfo->name.IsValid());
 
-    if (hypClass->IsClassType())
+    if (cls->IsClassType())
     {
         pTypeInfo->flags |= TypeInfoFlags::CLASS_TYPE;
     }
 
-    if (hypClass->IsStructType())
+    if (cls->IsStructType())
     {
         pTypeInfo->flags |= TypeInfoFlags::STRUCT_TYPE;
     }
 
-    if (hypClass->IsEnumType())
+    if (cls->IsEnumType())
     {
         pTypeInfo->flags |= TypeInfoFlags::ENUM_TYPE;
     }
 
-    if (hypClass->IsPodType())
+    if (cls->IsPodType())
     {
         pTypeInfo->flags |= TypeInfoFlags::POD_TYPE;
     }

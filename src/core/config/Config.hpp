@@ -92,16 +92,20 @@ class HYP_API ConfigurationTable
     friend class ConfigBase;
 
 protected:
-    ConfigurationTable(const String& configName, const HypClass* hypClass);
+    ConfigurationTable(const String& configName, const Class* cls);
 
 public:
     ConfigurationTable();
-    ConfigurationTable(const String& configName);
+
+    explicit ConfigurationTable(const String& configName);
     ConfigurationTable(const String& configName, const String& subobjectPath);
+
     ConfigurationTable(const ConfigurationTable& other);
     ConfigurationTable& operator=(const ConfigurationTable& other);
+
     ConfigurationTable(ConfigurationTable&& other) noexcept;
     ConfigurationTable& operator=(ConfigurationTable&& other) noexcept;
+
     virtual ~ConfigurationTable() = default;
 
     bool IsChanged() const;
@@ -126,7 +130,7 @@ public:
     }
 
 protected:
-    static const String& GetDefaultConfigName(const HypClass* hypClass);
+    static const String& GetDefaultConfigName(const Class* cls);
 
     FilePath GetFilePath() const;
 
@@ -136,7 +140,7 @@ protected:
     void LogErrors() const;
     void LogErrors(UTF8StringView message) const;
 
-    bool SetHypClassFields(const HypClass* hypClass, const void* ptr);
+    bool SetClassFields(const Class* cls, const void* ptr);
 
     bool Validate() const
     {
@@ -174,7 +178,7 @@ protected:
     ConfigBase() = default;
 
     ConfigBase(const String& configName)
-        : ConfigurationTable(configName, GetHypClass())
+        : ConfigurationTable(configName, GetDerivedClass())
     {
     }
 
@@ -187,7 +191,7 @@ public:
 
     static Derived FromConfig()
     {
-        if (const String& configName = GetDefaultConfigName(GetHypClass()); configName.Any())
+        if (const String& configName = GetDefaultConfigName(GetDerivedClass()); configName.Any())
         {
             return FromConfig(configName);
         }
@@ -203,14 +207,14 @@ public:
             return {};
         }
 
-        const HypClass* hypClass = GetHypClass();
+        const Class* cls = GetDerivedClass();
 
         Derived result;
-        static_cast<ConfigurationTable&>(result) = ConfigurationTable { configName, hypClass };
+        static_cast<ConfigurationTable&>(result) = ConfigurationTable { configName, cls };
 
-        if (hypClass)
+        if (cls)
         {
-            static_cast<ConfigurationTable&>(result).SetHypClassFields(hypClass, &result);
+            static_cast<ConfigurationTable&>(result).SetClassFields(cls, &result);
         }
 
         result.PostLoadCallback();
@@ -236,9 +240,10 @@ public:
     }
 
 private:
-    HYP_FORCE_INLINE static const HypClass* GetHypClass()
+    HYP_FORCE_INLINE static const Class* GetDerivedClass()
     {
-        return GetClass(TypeId::ForType<Derived>());
+        static const TypeId s_derivedTypeId = TypeId::ForType<Derived>();
+        return GetClass(s_derivedTypeId);
     }
 };
 

@@ -12,10 +12,11 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderMemory.hpp>
-
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
@@ -45,7 +46,7 @@
 
 namespace hyperion {
 
-HYP_API extern const char* LookupTypeName(TypeId typeId);
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 

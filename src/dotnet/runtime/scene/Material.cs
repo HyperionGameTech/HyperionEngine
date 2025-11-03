@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name = "MaterialParameterKey")]
+    [ClassBinding(Name = "MaterialParameterKey")]
     public enum MaterialParameterKey : ulong
     {
         None = 0x0,
@@ -223,7 +223,7 @@ namespace Hyperion
         DepthMap = 0x2000
     }
 
-    [HypClassBinding(Name="Material")]
+    [ClassBinding(Name="Material")]
     public class Material : HypObject
     {
         public Material()

@@ -8,7 +8,7 @@
 
 #include <core/Core.hpp>
 
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 #include <core/reflection/TypeInfo.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -128,7 +128,7 @@ static void HandleFatalError(const char* message)
         .Text(message)
         .Show();
 
-    std::terminate();
+    debug::TerminateProgram();
 }
 
 template <auto DirectoryStaticString>
@@ -195,7 +195,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
     NameRegistry_Initialize();
 
-    HypClassRegistry::GetInstance().Initialize();
+    ClassRegistry::GetInstance().Initialize();
     HypScript::GetInstance().Initialize();
 
     if (!CoreApi_Initialize(argc, argv))

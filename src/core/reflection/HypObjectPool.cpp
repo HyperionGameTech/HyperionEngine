@@ -1,7 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/HypObjectPool.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -16,13 +16,13 @@ HYP_API void ReleaseHypObject(HypObjectHeader* header)
 {
     AssertDebug(header != nullptr);
 
-    const HypClass* hypClass = header->hypClass;
-    AssertDebug(hypClass != nullptr);
+    const Class* cls = header->cls;
+    AssertDebug(cls != nullptr);
 
-    HypObjectContainerBase* container = hypClass->GetObjectContainer();
-    AssertDebug(container != nullptr, "HypClass has no HypObjectContainer");
+    HypObjectContainerBase* container = cls->GetObjectContainer();
+    AssertDebug(container != nullptr, "Class has no HypObjectContainer");
 
-    hypClass->GetObjectContainer()->Release(header);
+    cls->GetObjectContainer()->Release(header);
 }
 
 HypObjectPool::ContainerMap::~ContainerMap()
@@ -44,11 +44,11 @@ HypObjectPool::ContainerMap& HypObjectPool::GetObjectContainerMap()
     return s_objectContainerMap;
 }
 
-HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const HypClass* hypClass, HypObjectContainerBase* (*createFn)(const HypClass* hypClass))
+HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const Class* cls, HypObjectContainerBase* (*createFn)(const Class* cls))
 {
-    AssertDebug(hypClass != nullptr);
-    AssertDebug(hypClass->GetTypeId() != TypeId::Void());
-    AssertDebug(hypClass->GetSize() != 0 && hypClass->GetAlignment() != 0);
+    AssertDebug(cls != nullptr);
+    AssertDebug(cls->GetTypeId() != TypeId::Void());
+    AssertDebug(cls->GetSize() != 0 && cls->GetAlignment() != 0);
 
     Mutex::Guard guard(m_mutex);
 
@@ -61,7 +61,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
     {
         if (it->second == nullptr)
         {
-            it->second = createFn(hypClass);
+            it->second = createFn(cls);
 
             AssertDebug(it->second != nullptr);
         }
@@ -69,11 +69,11 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::GetOrCreate(TypeId typeId, 
         return *it->second;
     }
 
-    HypObjectContainerBase* container = createFn(hypClass);
+    HypObjectContainerBase* container = createFn(cls);
     AssertDebug(container != nullptr);
 
     container->m_typeId = typeId;
-    container->m_hypClass = hypClass;
+    container->m_class = cls;
 
     return *m_map.EmplaceBack(typeId, container).second;
 }
@@ -89,7 +89,7 @@ HypObjectContainerBase& HypObjectPool::ContainerMap::Get(TypeId typeId)
 
     if (it == m_map.End())
     {
-        HYP_FAIL("No object container for HypClass: {}", LookupTypeName(typeId));
+        HYP_FAIL("No object container for Class: {}", LookupTypeName(typeId));
     }
 
     AssertDebug(it->second != nullptr);
@@ -132,13 +132,13 @@ static Pool* GetPool()
 #endif
 }
 
-static Pool* GetPoolForClass(const HypClass* hypClass)
+static Pool* GetPoolForClass(const Class* cls)
 {
-    AssertDebug(hypClass != nullptr);
+    AssertDebug(cls != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    Pool* const* pool = g_enginePools[hypClass->GetEnginePoolName()];
-    AssertDebug(pool != nullptr && *pool != nullptr, "Engine pool not found for %u", uint32(hypClass->GetEnginePoolName()));
+    Pool* const* pool = g_enginePools[cls->GetEnginePoolName()];
+    AssertDebug(pool != nullptr && *pool != nullptr, "Engine pool not found for %u", uint32(cls->GetEnginePoolName()));
 
     return *pool;
 #endif
@@ -148,16 +148,16 @@ static Pool* GetPoolForClass(const HypClass* hypClass)
 
 #pragma region HypObjectContainerBase
 
-HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const HypClass* hypClass)
+HypObjectContainerBase::HypObjectContainerBase(TypeId typeId, const Class* cls)
     : m_typeId(typeId),
-      m_hypClass(hypClass)
+      m_class(cls)
 {
     HYP_CORE_ASSERT(typeId != TypeId::Void());
 }
 
 Pool* HypObjectContainerBase::GetPool() const
 {
-    return GetPoolForClass(m_hypClass);
+    return GetPoolForClass(m_class);
 }
 
 void HypObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGuard, int flags)
@@ -181,7 +181,7 @@ void HypObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, LockGuard& outGu
     /*if (!Threads::IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
     {
         HYP_LOG(Core, Warning, "Create/destroying object of type {} from thread: {} but its pool is owned by thread: {}",
-            m_hypClass->GetName(),
+            m_class->GetName(),
             Threads::CurrentThreadId().GetName(),
             EngineMemory_GetPoolThreadId(poolName).GetName());
     }*/

@@ -2,12 +2,12 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderProxy.hpp>
-
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -17,7 +17,6 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
-#include <core/Types.hpp>
 
 namespace hyperion {
 

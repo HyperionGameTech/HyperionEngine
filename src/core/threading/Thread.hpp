@@ -9,7 +9,6 @@
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/StringView.hpp>
 
-#include <core/Name.hpp>
 #include <core/Defines.hpp>
 
 #include <core/Types.hpp>

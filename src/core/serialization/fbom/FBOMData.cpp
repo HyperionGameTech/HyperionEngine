@@ -556,8 +556,8 @@ String FBOMData::ToString(bool deep) const
 {
     std::stringstream stream;
     stream << "FBOM[";
-    stream << "type: " << m_type.name << ", ";
-    stream << "size: " << String::ToString(m_bytes.Size()) << ", ";
+    stream << "type: " << m_type.name.Data() << ", ";
+    stream << "size: " << String::ToString(m_bytes.Size()).Data() << ", ";
     stream << "data: { ";
 
     if (deep)

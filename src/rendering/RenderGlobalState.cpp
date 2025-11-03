@@ -12,11 +12,13 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderCollection.hpp>
 #include <rendering/RenderStats.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderShader.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -35,7 +37,7 @@
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -52,7 +54,7 @@
 #include <core/logging/Logger.hpp>
 
 // for EnumToString
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Enum.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -219,11 +221,11 @@ static ResourceBinderBase* s_resourceBinders[] = {
 
 struct SubtypeResourceBindings
 {
-    const HypClass* resourceClass;
+    const Class* resourceClass;
     GpuBufferHolderBase* gpuBufferHolder;
     SparsePagedArray<uint32, 1024, RenderAllocator> bindingIndices;
 
-    SubtypeResourceBindings(const HypClass* resourceClass, GpuBufferHolderBase* gpuBufferHolder)
+    SubtypeResourceBindings(const Class* resourceClass, GpuBufferHolderBase* gpuBufferHolder)
         : resourceClass(resourceClass),
           gpuBufferHolder(gpuBufferHolder)
     {
@@ -233,18 +235,18 @@ struct SubtypeResourceBindings
 
 static SparsePagedArray<SubtypeResourceBindings, 64> s_subtypeBindings;
 
-static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const HypClass* hypClass)
+static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const Class* cls)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    AssertDebug(hypClass != nullptr);
+    AssertDebug(cls != nullptr);
 
-    int staticIndex = hypClass->GetStaticIndex();
-    AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *hypClass->GetName());
+    int staticIndex = cls->GetStaticIndex();
+    AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *cls->GetName());
 
     SubtypeResourceBindings* bindings = s_subtypeBindings.TryGet(staticIndex);
-    AssertDebug(bindings != nullptr, "No SubtypeBindings container found for {}", hypClass->GetName());
+    AssertDebug(bindings != nullptr, "No SubtypeBindings container found for {}", cls->GetName());
 
     return *bindings;
 }
@@ -399,14 +401,14 @@ struct ResourceSubtypeData final
 
 struct ResourceContainer
 {
-    ResourceSubtypeData& GetSubtypeData(const HypClass* hypClass)
+    ResourceSubtypeData& GetSubtypeData(const Class* cls)
     {
-        AssertDebug(hypClass != nullptr);
+        AssertDebug(cls != nullptr);
 
-        int staticIndex = hypClass->GetStaticIndex();
-        AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *hypClass->GetName());
+        int staticIndex = cls->GetStaticIndex();
+        AssertDebug(staticIndex >= 0, "Invalid class: '{}' has no assigned static index!", *cls->GetName());
 
-        AssertDebug(dataByType.HasIndex(staticIndex), "Missing resource data for {}", *hypClass->GetName());
+        AssertDebug(dataByType.HasIndex(staticIndex), "Missing resource data for {}", *cls->GetName());
 
         return dataByType.Get(staticIndex);
     }
@@ -437,10 +439,9 @@ template <class ResourceType, class ProxyType>
 struct ResourceContainerFactory
 {
 public:
-    static const HypClass* GetResourceClass()
+    static const Class* GetResourceClass()
     {
-        static const HypClass* s_resourceClass = GetClass<ResourceType>();
-        return s_resourceClass;
+        return ResourceType::StaticClass();
     }
 
     template <class... ResourceBinderTypes>
@@ -452,7 +453,7 @@ public:
         ResourceContainerFactoryRegistry::GetInstance().funcs.PushBack(
             [=](ResourceContainer& container)
             {
-                const HypClass* resourceClass = GetResourceClass();
+                const Class* resourceClass = GetResourceClass();
                 AssertDebug(resourceClass != nullptr);
 
                 const int staticIndex = resourceClass->GetStaticIndex();

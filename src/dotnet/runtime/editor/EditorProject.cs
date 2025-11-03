@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="EditorProject")]
+    [ClassBinding(Name="EditorProject")]
     public class EditorProject : HypObject
     {
         private static LogChannel logChannel = LogChannel.ByName("Editor");

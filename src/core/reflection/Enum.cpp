@@ -1,4 +1,4 @@
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Enum.hpp>
 #include <core/reflection/HypConstant.hpp>
 
 namespace hyperion {

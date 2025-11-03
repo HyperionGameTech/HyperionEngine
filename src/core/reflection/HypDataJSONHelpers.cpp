@@ -4,7 +4,7 @@
 
 #include <core/json/JSON.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypProperty.hpp>
 #include <core/reflection/HypField.hpp>
 #include <core/reflection/HypConstant.hpp>
@@ -263,7 +263,7 @@ bool HypDataToJSON(
             ToJSONOptions newOpts = opts;
             newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetHypClass() != element.GetTypeInfo()->GetHypClass())
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetClass() != element.GetTypeInfo()->GetClass())
             {
                 newOpts.writeClassNames = true;
             }
@@ -319,7 +319,7 @@ bool HypDataToJSON(
 
             HypData elementData(element);
 
-            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetHypClass() != elementData.GetTypeInfo()->GetHypClass())
+            if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && typeInfo.extendedInfo.GetElementType()->GetClass() != elementData.GetTypeInfo()->GetClass())
             {
                 newOpts.writeClassNames = true;
             }
@@ -383,9 +383,9 @@ bool HypDataToJSON(
         return false;
     }
 
-    const HypClass* hypClass = GetClass(value.GetTypeId());
+    const Class* cls = GetClass(value.GetTypeId());
 
-    if (hypClass)
+    if (cls)
     {
         Pair<TypeId, const void*> pair = { value.GetTypeId(), value.ToRef().GetPointer() };
 
@@ -406,7 +406,7 @@ bool HypDataToJSON(
 
         GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };
 
-        if (!ObjectToJSON(hypClass, value, jsonObject, opts))
+        if (!ObjectToJSON(cls, value, jsonObject, opts))
         {
             return false;
         }
@@ -422,7 +422,7 @@ bool HypDataToJSON(
 }
 
 bool ObjectToJSON(
-    const HypClass* hypClass,
+    const Class* cls,
     const HypData& target,
     json::JSONObject& outJson,
     ToJSONOptions opts)
@@ -434,19 +434,19 @@ bool ObjectToJSON(
 
     HashSet<Name> usedMembers;
 
-    const HypClass* originalClass = hypClass;
+    const Class* originalClass = cls;
 
-    while (hypClass != nullptr)
+    while (cls != nullptr)
     {
         // look for signature void ToJSON(JSONValue& out)
-        if (const HypMethod* toJsonMethod = hypClass->GetMethod("ToJSON", /* deep */ false))
+        if (const HypMethod* toJsonMethod = cls->GetMethod("ToJSON", /* deep */ false))
         {
             if (toJsonMethod->GetParameters().Size() != 2
                 || toJsonMethod->GetTypeId() != TypeId::Void()
-                || toJsonMethod->GetParameters()[0].typeInfo->id != hypClass->GetTypeId()
+                || toJsonMethod->GetParameters()[0].typeInfo->id != cls->GetTypeId()
                 || toJsonMethod->GetParameters()[1].typeInfo->id != TypeId::ForType<json::JSONValue>())
             {
-                HYP_LOG(Core, Warning, "HypClass \"{}\" has a ToJSON method but it has an invalid signature", hypClass->GetName());
+                HYP_LOG(Core, Warning, "Class \"{}\" has a ToJSON method but it has an invalid signature", cls->GetName());
             }
             else
             {
@@ -468,22 +468,22 @@ bool ObjectToJSON(
                     }
                     else
                     {
-                        HYP_LOG(Core, Warning, "ToJSON method of HypClass \"{}\" did not return a valid JSON object, got JSON value: {}", hypClass->GetName(), jsonValue.ToString());
+                        HYP_LOG(Core, Warning, "ToJSON method of Class \"{}\" did not return a valid JSON object, got JSON value: {}", cls->GetName(), jsonValue.ToString());
                     }
                 }
                 else
                 {
-                    HYP_LOG(Core, Warning, "Failed to invoke ToJSON method of HypClass \"{}\", got type {} but expected JSONValue!",
-                        hypClass->GetName(), returnValue.GetTypeInfo()->name);
+                    HYP_LOG(Core, Warning, "Failed to invoke ToJSON method of Class \"{}\", got type {} but expected JSONValue!",
+                        cls->GetName(), returnValue.GetTypeInfo()->name);
                 }
             }
         }
 
-        for (const IHypMember& member : hypClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY, /* deep */ false))
+        for (const IHypMember& member : cls->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY, /* deep */ false))
         {
             if (opts.skipTransientProperties)
             {
-                if (const HypClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrTransient); attribute.IsValid() && attribute.GetBool())
+                if (const ClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrTransient); attribute.IsValid() && attribute.GetBool())
                 {
                     continue;
                 }
@@ -495,7 +495,7 @@ bool ObjectToJSON(
                 continue;
             }
 
-            if (const HypClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
+            if (const ClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
             }
@@ -518,7 +518,7 @@ bool ObjectToJSON(
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && property->GetTypeInfo().GetHypClass() != GetClass(value.GetTypeId()))
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && property->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
@@ -527,15 +527,15 @@ bool ObjectToJSON(
 
                 if (!HypDataToJSON(value, jsonValue, newOpts))
                 {
-                    HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of HypClass \"{}\" to json",
-                        member.GetName(), hypClass->GetName());
+                    HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of Class \"{}\" to json",
+                        member.GetName(), cls->GetName());
 
                     continue;
                 }
 
                 String path = *property->GetName();
 
-                if (const HypClassAttributeValue& pathAttribute = property->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
+                if (const ClassAttributeValue& pathAttribute = property->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -560,7 +560,7 @@ bool ObjectToJSON(
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && field->GetTypeInfo().GetHypClass() != GetClass(value.GetTypeId()))
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && field->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
@@ -569,15 +569,15 @@ bool ObjectToJSON(
 
                 if (!HypDataToJSON(value, jsonValue, newOpts))
                 {
-                    HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of HypClass \"{}\" to json",
-                        member.GetName(), hypClass->GetName());
+                    HYP_LOG(Core, Warning, "Failed to serialize field \"{}\" of Class \"{}\" to json",
+                        member.GetName(), cls->GetName());
 
                     continue;
                 }
 
                 String path = *field->GetName();
 
-                if (const HypClassAttributeValue& pathAttribute = field->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
+                if (const ClassAttributeValue& pathAttribute = field->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -604,7 +604,7 @@ bool ObjectToJSON(
                 ToJSONOptions newOpts = opts;
                 newOpts.writeClassNames = newOpts.writeClassNamesRecursively;
 
-                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && constant->GetTypeInfo().GetHypClass() != GetClass(value.GetTypeId()))
+                if (!newOpts.writeClassNames && ForceWriteClassNamesWhenTypesDiffer && constant->GetTypeInfo().GetClass() != GetClass(value.GetTypeId()))
                 {
                     newOpts.writeClassNames = true;
                 }
@@ -613,15 +613,15 @@ bool ObjectToJSON(
 
                 if (!HypDataToJSON(constant->Get(), jsonValue, newOpts))
                 {
-                    HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of HypClass \"{}\" to json",
-                        member.GetName(), hypClass->GetName());
+                    HYP_LOG(Core, Warning, "Failed to serialize constant \"{}\" of Class \"{}\" to json",
+                        member.GetName(), cls->GetName());
 
                     continue;
                 }
 
                 String path = *constant->GetName();
 
-                if (const HypClassAttributeValue& pathAttribute = constant->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
+                if (const ClassAttributeValue& pathAttribute = constant->GetAttribute(Attributes::g_attrJsonPath); pathAttribute.IsValid())
                 {
                     path = pathAttribute.GetString();
 
@@ -642,7 +642,7 @@ bool ObjectToJSON(
             }
         }
 
-        hypClass = hypClass->GetParent();
+        cls = cls->GetParent();
     }
 
     if (originalClass && opts.writeClassNames)
@@ -660,7 +660,7 @@ bool ObjectToJSON(
     return true;
 }
 
-bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClass, HypData& target)
+bool JSONToObject(const json::JSONObject& jsonObject, const Class* targetClass, HypData& target)
 {
     auto resolveMember = [&target](const IHypMember& member, const json::JSONValue& value) -> bool
     {
@@ -713,7 +713,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
 
     json::JSONValue jsonObjectValue { jsonObject };
 
-    const HypClass* instanceClass = target.GetTypeInfo()->GetHypClass();
+    const Class* instanceClass = target.GetTypeInfo()->GetClass();
 
     if (instanceClass != nullptr)
     {
@@ -727,12 +727,12 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
         // reoslve jsonpath members first
         for (const IHypMember& member : instanceClass->GetMembers(HypMemberType::TYPE_FIELD | HypMemberType::TYPE_PROPERTY))
         {
-            if (const HypClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
+            if (const ClassAttributeValue& attribute = member.GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
             }
 
-            const HypClassAttributeValue& pathAttribute = member.GetAttribute(Attributes::g_attrJsonPath);
+            const ClassAttributeValue& pathAttribute = member.GetAttribute(Attributes::g_attrJsonPath);
 
             if (!pathAttribute.IsValid())
             {
@@ -745,12 +745,12 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
 
             if (!value.value)
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", path, instanceClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for Class \"{}\"", path, instanceClass->GetName());
 
                 continue;
             }
 
-            if (const HypClassAttributeValue& sortOrderAttribute = member.GetAttribute(Attributes::g_attrLoadOrder); sortOrderAttribute.IsValid())
+            if (const ClassAttributeValue& sortOrderAttribute = member.GetAttribute(Attributes::g_attrLoadOrder); sortOrderAttribute.IsValid())
             {
                 sortedMembers.Insert({ sortOrderAttribute.GetInt(), &member });
 
@@ -765,7 +765,7 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
         {
             if (!resolveMember(*pair.second, *jsonObjectValue.Get(pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString()).value))
             {
-                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for HypClass \"{}\"", pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString(), instanceClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for Class \"{}\"", pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString(), instanceClass->GetName());
                 continue;
             }
         }
@@ -796,12 +796,12 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
             }
 
             // skip if jsonignore is set
-            if (const HypClassAttributeValue& attribute = member->GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
+            if (const ClassAttributeValue& attribute = member->GetAttribute(Attributes::g_attrJsonIgnore); attribute.IsValid() && attribute.GetBool())
             {
                 continue;
             }
 
-            if (const HypClassAttributeValue& sortOrderAttribute = member->GetAttribute(Attributes::g_attrLoadOrder); sortOrderAttribute.IsValid())
+            if (const ClassAttributeValue& sortOrderAttribute = member->GetAttribute(Attributes::g_attrLoadOrder); sortOrderAttribute.IsValid())
             {
                 sortedMembers.Insert({ sortOrderAttribute.GetInt(), member });
 
@@ -816,14 +816,14 @@ bool JSONToObject(const json::JSONObject& jsonObject, const HypClass* targetClas
         {
             if (!resolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
             {
-                HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for HypClass \"{}\"", pair.second->GetName(), instanceClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for Class \"{}\"", pair.second->GetName(), instanceClass->GetName());
                 continue;
             }
         }
     }
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>() && targetClass != AssetReference::Class())
+    if (IsGlobalContextActive<LoadAssetsFromReferencesContext>() && target.Is<AssetReference>() && targetClass != AssetReference::StaticClass())
     {
         AssetReference& assetReference = target.Get<AssetReference>();
 
@@ -1391,13 +1391,13 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
     // Object types
     if (jsonValue.IsObject())
     {
-        const HypClass* typeInfoClass = typeInfo.GetHypClass();
-        const HypClass* instanceClass = typeInfoClass;
+        const Class* typeInfoClass = typeInfo.GetClass();
+        const Class* instanceClass = typeInfoClass;
 
         // first check for $Class property to override type
         if (auto classValue = jsonValue.Get("$Class"); classValue && classValue.IsString())
         {
-            const HypClass* derivedClass = GetClass(*classValue.AsString());
+            const Class* derivedClass = GetClass(*classValue.AsString());
 
             if (derivedClass)
             {
@@ -1420,7 +1420,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
 
             if (!instanceClass->CreateInstance(instance))
             {
-                HYP_LOG(Core, Warning, "Failed to create instance of HypClass \"{}\"", instanceClass->GetName());
+                HYP_LOG(Core, Warning, "Failed to create instance of Class \"{}\"", instanceClass->GetName());
                 return false;
             }
 
@@ -1435,7 +1435,7 @@ bool JSONToHypData(const json::JSONValue& jsonValue, const TypeInfo& typeInfo, H
             return true;
         }
 
-        HYP_LOG(Core, Warning, "Could not find HypClass for type: {}", typeInfo.name);
+        HYP_LOG(Core, Warning, "Could not find Class for type: {}", typeInfo.name);
 
         return false;
     }

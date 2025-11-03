@@ -8,7 +8,8 @@
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderGlobalState.hpp>
-
+#include <rendering/Shared.hpp>
+#include <rendering/RenderCollection.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 
@@ -381,7 +382,7 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
     const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
     Memory::MemCpy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
-    Memory::MemCpy(bufferData.sh.values, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));
+    Memory::MemCpy(bufferData.shData, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));
 
     bufferData.positionInGrid = m_positionInGrid;
 }

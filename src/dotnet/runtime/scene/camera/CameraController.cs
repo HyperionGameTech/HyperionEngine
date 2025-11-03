@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="CameraController")]
+    [ClassBinding(Name="CameraController")]
     public class CameraController : HypObject
     {
         public CameraController()
@@ -11,7 +11,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="OrthoCameraController")]
+    [ClassBinding(Name="OrthoCameraController")]
     public class OrthoCameraController : CameraController
     {
         public OrthoCameraController()
@@ -19,7 +19,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="PerspectiveCameraController")]
+    [ClassBinding(Name="PerspectiveCameraController")]
     public class PerspectiveCameraController : CameraController
     {
         public PerspectiveCameraController()
@@ -27,14 +27,14 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="FirstPersonCameraControllerMode")]
+    [ClassBinding(Name="FirstPersonCameraControllerMode")]
     public enum FirstPersonCameraControllerMode : uint
     {
         MouseLocked = 0,
         MouseFree = 1
     }
 
-    [HypClassBinding(Name="FollowCameraController")]
+    [ClassBinding(Name="FollowCameraController")]
     public class FollowCameraController : PerspectiveCameraController
     {
         public FollowCameraController()
@@ -42,7 +42,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="FirstPersonCameraController")]
+    [ClassBinding(Name="FirstPersonCameraController")]
     public class FirstPersonCameraController : PerspectiveCameraController
     {
         public FirstPersonCameraController()
@@ -50,7 +50,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="CameraTrackController")]
+    [ClassBinding(Name="CameraTrackController")]
     public class CameraTrackController : PerspectiveCameraController
     {
         public CameraTrackController()

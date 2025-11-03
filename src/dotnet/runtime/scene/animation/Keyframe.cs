@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Keyframe")]
+    [ClassBinding(Name="Keyframe")]
     [StructLayout(LayoutKind.Sequential, Size=128)]
     public struct Keyframe
     {

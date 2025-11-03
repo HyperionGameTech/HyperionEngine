@@ -85,7 +85,7 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
 
             realFilename = FilePath(realFilename).StripExtension();
 
-            os << "\33[0m" << "In file \"" << realFilename << "\":\n";
+            os << "\33[0m" << "In file \"" << *realFilename << "\":\n";
         }
 
         const String& errorText = error.GetText();
@@ -107,12 +107,12 @@ std::ostream& ErrorList::WriteOutput(std::ostream& os) const
            << " at line " << (error.GetLocation().GetLine() + 1)
            << ", col " << (error.GetLocation().GetColumn() + 1);
 
-        os << ": " << errorText << '\n';
+        os << ": " << *errorText << '\n';
 
         if (currentFileLines.Size() > error.GetLocation().GetLine())
         {
             // render the line in question
-            os << "\n\t" << currentFileLines[error.GetLocation().GetLine()];
+            os << "\n\t" << *currentFileLines[error.GetLocation().GetLine()];
             os << "\n\t";
 
             for (SizeType i = 0; i < error.GetLocation().GetColumn(); i++)

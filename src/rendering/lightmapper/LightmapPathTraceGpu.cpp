@@ -16,6 +16,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Renderer.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -282,10 +283,8 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
     Assert(shader.IsValid());
 
     /// Descriptors
-
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
+        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

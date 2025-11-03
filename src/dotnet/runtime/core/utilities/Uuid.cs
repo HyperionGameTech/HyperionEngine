@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Uuid")]
+    [ClassBinding(Name="Uuid")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 8)]
     public struct Uuid
     {

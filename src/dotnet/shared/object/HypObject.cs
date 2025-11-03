@@ -7,7 +7,7 @@ namespace Hyperion
 {
     public class HypObject : IDisposable
     {
-        public IntPtr _hypClassPtr;
+        public IntPtr _classPtr;
         public IntPtr _nativeAddress;
 
         protected HypObject()
@@ -18,16 +18,16 @@ namespace Hyperion
             {
                 Type type = this.GetType();
 
-                HypClass hypClass = HypClass.GetClass(type);
+                Class cls = Class.GetClass(type);
 
-                if (hypClass == HypClass.Invalid)
+                if (cls == Class.Invalid)
                 {
-                    throw new Exception("Invalid HypClass returned from HypClassBinding attribute");
+                    throw new Exception("Invalid Class returned from ClassBinding attribute");
                 }
 
-                if (!hypClass.IsReferenceCounted)
+                if (!cls.IsReferenceCounted)
                 {
-                    throw new Exception("Can only create instances of reference counted HypClass objects (using Handle<T>) from managed code");
+                    throw new Exception("Can only create instances of reference counted Class objects (using Handle<T>) from managed code");
                 }
 
                 // Need to add this to managed object cache,
@@ -60,54 +60,54 @@ namespace Hyperion
                     }
 #endif
 
-                    _hypClassPtr = hypClass.Address;
+                    _classPtr = cls.Address;
                     
-                    HypObject_Initialize(_hypClassPtr, pClass, ref objectReference, out _nativeAddress);
+                    HypObject_Initialize(_classPtr, pClass, ref objectReference, out _nativeAddress);
                 }
 
                 gcHandle.Free();
             }
             else
             {
-                if (_hypClassPtr == IntPtr.Zero)
-                    throw new Exception("HypClass pointer is null - object is not correctly initialized");
+                if (_classPtr == IntPtr.Zero)
+                    throw new Exception("Class pointer is null - object is not correctly initialized");
 
                 if (_nativeAddress == IntPtr.Zero)
                     throw new Exception("Native address is null - object is not correctly initialized");
 
-                HypObject_IncRef(_hypClassPtr, _nativeAddress, false);
+                HypObject_IncRef(_classPtr, _nativeAddress, false);
             }
             
-            Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~HypObject()
         {
-            Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
 
-            if (IsValid && HypClass.IsReferenceCounted)
-                HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
+            if (IsValid && Class.IsReferenceCounted)
+                HypObject_DecRef(_classPtr, _nativeAddress, false);
         }
 
         public void Dispose()
         {
             if (IsValid)
             {
-                if (HypClass.IsReferenceCounted)
+                if (Class.IsReferenceCounted)
                 {
 #if DEBUG
-                    Assert.Throw(HypObject_GetRefCountStrong(_hypClassPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
+                    Assert.Throw(HypObject_GetRefCountStrong(_classPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
 #endif
 
-                    HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
+                    HypObject_DecRef(_classPtr, _nativeAddress, false);
 
-                    Logger.Log(LogType.Debug, "Disposed HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+                    Logger.Log(LogType.Debug, "Disposed HypObject of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
                 }
 
                 GC.SuppressFinalize(this);
             }
 
-            _hypClassPtr = IntPtr.Zero;
+            _classPtr = IntPtr.Zero;
             _nativeAddress = IntPtr.Zero;
         }
 
@@ -115,16 +115,16 @@ namespace Hyperion
         {
             get
             {
-                return _hypClassPtr != IntPtr.Zero
+                return _classPtr != IntPtr.Zero
                     && _nativeAddress != IntPtr.Zero;
             }
         }
 
-        public HypClass HypClass
+        public Class Class
         {
             get
             {
-                return new HypClass(_hypClassPtr);
+                return new Class(_classPtr);
             }
         }
 
@@ -138,23 +138,23 @@ namespace Hyperion
 
         public HypProperty GetProperty(Name name)
         {
-            if (_hypClassPtr == IntPtr.Zero)
+            if (_classPtr == IntPtr.Zero)
             {
-                throw new Exception("HypClass pointer is null");
+                throw new Exception("Class pointer is null");
             }
 
-            IntPtr propertyPtr = HypClass_GetProperty(_hypClassPtr, ref name);
+            IntPtr propertyPtr = Class_GetProperty(_classPtr, ref name);
 
             if (propertyPtr == IntPtr.Zero)
             {
                 string propertiesString = "";
 
-                foreach (HypProperty property in HypClass.Properties)
+                foreach (HypProperty property in Class.Properties)
                 {
                     propertiesString += property.Name + ", ";
                 }
 
-                throw new Exception("Failed to get property \"" + name + "\" from HypClass \"" + HypClass.Name + "\". Available properties: " + propertiesString);
+                throw new Exception("Failed to get property \"" + name + "\" from Class \"" + Class.Name + "\". Available properties: " + propertiesString);
             }
 
             return new HypProperty(propertyPtr);
@@ -162,28 +162,28 @@ namespace Hyperion
 
         public HypMethod GetMethod(Name name)
         {
-            if (_hypClassPtr == IntPtr.Zero)
+            if (_classPtr == IntPtr.Zero)
             {
-                throw new Exception("HypClass pointer is null");
+                throw new Exception("Class pointer is null");
             }
 
-            IntPtr methodPtr = HypClass_GetMethod(_hypClassPtr, ref name);
+            IntPtr methodPtr = Class_GetMethod(_classPtr, ref name);
 
             if (methodPtr == IntPtr.Zero)
             {
-                throw new Exception("Failed to get method \"" + name + "\" from HypClass \"" + HypClass.Name + "\"");
+                throw new Exception("Failed to get method \"" + name + "\" from Class \"" + Class.Name + "\"");
             }
 
             return new HypMethod(methodPtr);
         }
 
-        public static HypMethod GetMethod(HypClass hypClass, Name name)
+        public static HypMethod GetMethod(Class cls, Name name)
         {
-            IntPtr methodPtr = HypClass_GetMethod(hypClass.Address, ref name);
+            IntPtr methodPtr = Class_GetMethod(cls.Address, ref name);
 
             if (methodPtr == IntPtr.Zero)
             {
-                throw new Exception("Failed to get method \"" + name + "\" from HypClass \"" + hypClass.Name + "\"");
+                throw new Exception("Failed to get method \"" + name + "\" from Class \"" + cls.Name + "\"");
             }
 
             return new HypMethod(methodPtr);
@@ -191,9 +191,9 @@ namespace Hyperion
 
         public T? InvokeNativeMethod<T>(Name name, object[]? args = null)
         {
-            if (_hypClassPtr == IntPtr.Zero)
+            if (_classPtr == IntPtr.Zero)
             {
-                throw new Exception("HypClass pointer is null");
+                throw new Exception("Class pointer is null");
             }
 
             HypMethod method = GetMethod(name);
@@ -206,9 +206,9 @@ namespace Hyperion
 
         public void InvokeNativeMethod(Name name, object[]? args = null)
         {
-            if (_hypClassPtr == IntPtr.Zero)
+            if (_classPtr == IntPtr.Zero)
             {
-                throw new Exception("HypClass pointer is null");
+                throw new Exception("Class pointer is null");
             }
 
             Logger.Log(LogType.Debug, $"Invoking native method {name} on {this}");
@@ -223,16 +223,16 @@ namespace Hyperion
 
         public object? ReadNativeField(Name name)
         {
-            if (_hypClassPtr == IntPtr.Zero)
+            if (_classPtr == IntPtr.Zero)
             {
-                throw new Exception("HypClass pointer is null");
+                throw new Exception("Class pointer is null");
             }
 
-            HypField? field = HypClass.GetField(name);
+            HypField? field = Class.GetField(name);
 
             if (field == null)
             {
-                throw new Exception($"Field '{name}' not found in HypClass '{HypClass.Name}'");
+                throw new Exception($"Field '{name}' not found in Class '{Class.Name}'");
             }
 
             return ((HypField)field).ReadObject(this);
@@ -242,9 +242,9 @@ namespace Hyperion
         {
             get
             {
-                if (_hypClassPtr == IntPtr.Zero)
+                if (_classPtr == IntPtr.Zero)
                 {
-                    throw new Exception("HypClass pointer is null");
+                    throw new Exception("Class pointer is null");
                 }
 
                 if (_nativeAddress == IntPtr.Zero)
@@ -252,32 +252,32 @@ namespace Hyperion
                     throw new Exception("Native address is null");
                 }
 
-                return HypObject_GetRefCountStrong(_hypClassPtr, _nativeAddress);
+                return HypObject_GetRefCountStrong(_classPtr, _nativeAddress);
             }
         }
 
         public override string ToString()
         {
-            return $"[HypObject: {HypClass.Name}, Address: 0x{(long)NativeAddress:X}]";
+            return $"[HypObject: {Class.Name}, Address: 0x{(long)NativeAddress:X}]";
         }
         
         [DllImport("hyperion", EntryPoint = "HypObject_Initialize")]
-        private static extern void HypObject_Initialize([In] IntPtr hypClassPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
+        private static extern void HypObject_Initialize([In] IntPtr classPtr, [In] IntPtr pClass, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
 
         [DllImport("hyperion", EntryPoint = "HypObject_GetRefCountStrong")]
-        private static extern uint HypObject_GetRefCountStrong([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+        private static extern uint HypObject_GetRefCountStrong([In] IntPtr classPtr, [In] IntPtr nativeAddress);
 
         [DllImport("hyperion", EntryPoint = "HypObject_IncRef")]
-        private static extern void HypObject_IncRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+        private static extern void HypObject_IncRef([In] IntPtr classPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
 
         [DllImport("hyperion", EntryPoint = "HypObject_DecRef")]
-        private static extern void HypObject_DecRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+        private static extern void HypObject_DecRef([In] IntPtr classPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetProperty")]
-        private static extern IntPtr HypClass_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetProperty")]
+        private static extern IntPtr Class_GetProperty([In] IntPtr classPtr, [In] ref Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetMethod")]
-        private static extern IntPtr HypClass_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "Class_GetMethod")]
+        private static extern IntPtr Class_GetMethod([In] IntPtr classPtr, [In] ref Name name);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_AddObjectToCache")]
         private static extern void NativeInterop_AddObjectToCache([In] IntPtr objectWrapperPtr, [Out] out IntPtr outClassObjectPtr, [Out] IntPtr outObjectReferencePtr, [MarshalAs(UnmanagedType.I1)] bool isWeak);

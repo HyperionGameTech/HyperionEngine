@@ -11,6 +11,7 @@
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -216,8 +217,8 @@ void SSRRenderer::CreateComputePipelines()
     ShaderRef writeUvsShader = g_shaderManager->GetOrCreate(NAME("SSRWriteUVs"), shaderProperties);
     Assert(writeUvsShader.IsValid());
 
-    const DescriptorTableDeclaration& writeUvsShaderDescriptorTableDecl = writeUvsShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef writeUvsShaderDescriptorTable = g_renderBackend->MakeDescriptorTable(&writeUvsShaderDescriptorTableDecl);
+    DescriptorTableRef writeUvsShaderDescriptorTable = g_renderBackend->MakeDescriptorTable(
+        writeUvsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -248,8 +249,8 @@ void SSRRenderer::CreateComputePipelines()
     ShaderRef sampleGbufferShader = g_shaderManager->GetOrCreate(NAME("SSRSampleGBuffer"), shaderProperties);
     Assert(sampleGbufferShader.IsValid());
 
-    const DescriptorTableDeclaration& sampleGbufferShaderDescriptorTableDecl = sampleGbufferShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef sampleGbufferShaderDescriptorTable = g_renderBackend->MakeDescriptorTable(&sampleGbufferShaderDescriptorTableDecl);
+    DescriptorTableRef sampleGbufferShaderDescriptorTable = g_renderBackend->MakeDescriptorTable(
+        sampleGbufferShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

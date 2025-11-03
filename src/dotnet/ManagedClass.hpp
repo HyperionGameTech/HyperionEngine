@@ -16,14 +16,14 @@
 
 #include <dotnet/Method.hpp>
 #include <dotnet/Property.hpp>
-#include <dotnet/Attribute.hpp>
+#include <dotnet/ManagedAttribute.hpp>
 #include <dotnet/ManagedObject.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
 enum class ManagedClassFlags : uint32
 {
@@ -63,20 +63,20 @@ public:
      *  until the object is released via \ref{ManagedClass::~ManagedClass}.
      *  If false, only a weak GCHandle will be created.
      *
-     *  If hypClass is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
+     *  If cls is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
      *  In this case, nativeObjectPtr must also be provided.
-     *  Both hypClass and nativeObjectPtr can be nullptr. */
+     *  Both cls and nativeObjectPtr can be nullptr. */
     using InitializeObjectCallbackFunction = void (*)(void* ctx, void* dst, uint32 dstSize);
 
-    using NewObjectFunction = ObjectReference (*)(bool keepAlive, const HypClass* hypClass, void* nativeObjectPtr, void* contextPtr, InitializeObjectCallbackFunction callback);
+    using NewObjectFunction = ObjectReference (*)(bool keepAlive, const Class* cls, void* nativeObjectPtr, void* contextPtr, InitializeObjectCallbackFunction callback);
     using MarshalObjectFunction = ObjectReference (*)(const void* intptr, uint32 size);
 
-    ManagedClass(const Weak<Assembly>& assembly, String name, uint32 size, TypeId typeId, const HypClass* hypClass, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
+    ManagedClass(const Weak<Assembly>& assembly, String name, uint32 size, TypeId typeId, const Class* cls, ManagedClass* parentClass, EnumFlags<ManagedClassFlags> flags)
         : m_assembly(assembly),
           m_name(std::move(name)),
           m_size(size),
           m_typeId(typeId),
-          m_hypClass(hypClass),
+          m_class(cls),
           m_parentClass(parentClass),
           m_flags(flags),
           m_newObjectFptr(nullptr),
@@ -86,8 +86,10 @@ public:
 
     ManagedClass(const ManagedClass&) = delete;
     ManagedClass& operator=(const ManagedClass&) = delete;
+
     ManagedClass(ManagedClass&&) noexcept = delete;
     ManagedClass& operator=(ManagedClass&&) noexcept = delete;
+
     ~ManagedClass();
 
     HYP_FORCE_INLINE const String& GetName() const
@@ -105,9 +107,9 @@ public:
         return m_typeId;
     }
 
-    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+    HYP_FORCE_INLINE const Class* GetClass() const
     {
-        return m_hypClass;
+        return m_class;
     }
 
     HYP_FORCE_INLINE ManagedClass* GetParentClass() const
@@ -140,12 +142,12 @@ public:
         return m_marshalObjectFptr;
     }
 
-    HYP_FORCE_INLINE const AttributeSet& GetAttributes() const
+    HYP_FORCE_INLINE const ManagedAttributeSet& GetAttributes() const
     {
         return m_attributes;
     }
 
-    HYP_FORCE_INLINE void SetAttributes(AttributeSet&& attributes)
+    HYP_FORCE_INLINE void SetAttributes(ManagedAttributeSet&& attributes)
     {
         m_attributes = std::move(attributes);
     }
@@ -328,7 +330,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD ManagedObject* NewObject(const HypClass* hypClass, void* pOwner);
+    HYP_NODISCARD ManagedObject* NewObject(const Class* cls, void* pOwner);
 
     /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
      *  A struct containing the object's GUID and .NET object address will be returned.
@@ -415,7 +417,7 @@ private:
     String m_name;
     uint32 m_size;
     TypeId m_typeId;
-    const HypClass* m_hypClass;
+    const Class* m_class;
     ManagedClass* m_parentClass;
     EnumFlags<ManagedClassFlags> m_flags;
     HashMap<String, Method> m_methods;
@@ -426,7 +428,7 @@ private:
     NewObjectFunction m_newObjectFptr;
     MarshalObjectFunction m_marshalObjectFptr;
 
-    AttributeSet m_attributes;
+    ManagedAttributeSet m_attributes;
 };
 
 } // namespace hyperion::dotnet

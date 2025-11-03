@@ -6,7 +6,7 @@ using Hyperion;
 
 namespace Hyperion.Editor.UI;
 
-[HypClassBinding(IsDynamic = true)]
+[ClassBinding(IsDynamic = true)]
 public unsafe struct FileInfo
 {
     private fixed byte name[2048];
@@ -133,7 +133,7 @@ public class FileBrowserDialog : UIEventHandler
     {
         Logger.Log(LogType.Info, "OnAttached");
 
-        HypClass hypClass = HypClass.GetClass<FileInfo>();
+        Class cls = Class.GetClass<FileInfo>();
 
         contentsGrid = UIObject.Find<UIGrid>(new Name("File_Browser_Dialog_Contents", weak: true));
         contentsGrid?.SetIsVisible(false);

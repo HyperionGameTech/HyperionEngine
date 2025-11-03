@@ -5,7 +5,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 namespace hyperion {
 

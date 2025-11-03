@@ -8,8 +8,8 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UITextbox.hpp>
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -23,14 +23,14 @@ EditorObjectPropertiesBase::EditorObjectPropertiesBase(TypeId typeId)
 {
 }
 
-const HypClass* EditorObjectPropertiesBase::GetClass() const
+const Class* EditorObjectPropertiesBase::GetClass() const
 {
-    return HypClassRegistry::GetInstance().GetClass(m_typeId);
+    return ClassRegistry::GetInstance().GetClass(m_typeId);
 }
 
 #pragma endregion EditorObjectPropertiesBase
 
-#pragma region EditorObjectProperties<Vec2f>
+#pragma region EditorObjectProperties < Vec2f>
 
 Handle<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIObject* parent) const
 {

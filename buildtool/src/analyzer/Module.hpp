@@ -22,7 +22,7 @@ namespace buildtool {
 class Module
 {
 public:
-    using HypClassDefinitionMap = HashMap<String, HypClassDefinition, DynamicNodeAllocator>;
+    using ClassDefinitionMap = HashMap<String, ClassDefinition, DynamicNodeAllocator>;
 
     explicit Module(const FilePath& path);
 
@@ -39,19 +39,19 @@ public:
         return m_path;
     }
 
-    HYP_FORCE_INLINE HypClassDefinitionMap& GetHypClasses()
+    HYP_FORCE_INLINE ClassDefinitionMap& GetClasses()
     {
-        return m_hypClasses;
+        return m_classes;
     }
 
-    HYP_FORCE_INLINE const HypClassDefinitionMap& GetHypClasses() const
+    HYP_FORCE_INLINE const ClassDefinitionMap& GetClasses() const
     {
-        return m_hypClasses;
+        return m_classes;
     }
 
-    Result AddHypClassDefinition(HypClassDefinition&& hypClassDefinition);
+    Result AddClassDefinition(ClassDefinition&& classDefinition);
 
-    const HypClassDefinition* FindHypClassDefinition(UTF8StringView className) const;
+    const ClassDefinition* FindClassDefinition(UTF8StringView className) const;
 
     void AddDependencyModule(Module* dep)
     {
@@ -72,7 +72,7 @@ public:
 
 private:
     FilePath m_path;
-    HypClassDefinitionMap m_hypClasses;
+    ClassDefinitionMap m_classes;
     Array<Module*> m_deps;
 
     mutable Mutex m_mutex;

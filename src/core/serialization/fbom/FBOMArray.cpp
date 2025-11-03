@@ -112,7 +112,7 @@ String FBOMArray::ToString(bool deep) const
     {
         for (const FBOMData& value : m_values)
         {
-            ss << value.ToString(deep);
+            ss << *value.ToString(deep);
         }
     }
     else

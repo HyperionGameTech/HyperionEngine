@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="BoundingSphere")]
+    [ClassBinding(Name="BoundingSphere")]
     [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct BoundingSphere
     {

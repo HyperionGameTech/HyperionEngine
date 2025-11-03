@@ -436,6 +436,64 @@ constexpr auto Apply(FunctionType&& function, TupleType&& argsTuple)
 
 #pragma endregion Apply
 
+#pragma region Comparators
+
+struct EqualImpl
+{
+    template <class T>
+    HYP_FORCE_INLINE constexpr bool operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs == rhs;
+    }
+};
+
+struct NotEqualImpl
+{
+    template <class T>
+    HYP_FORCE_INLINE constexpr bool operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs != rhs;
+    }
+};
+
+struct LessImpl
+{
+    template <class T>
+    HYP_FORCE_INLINE constexpr bool operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs < rhs;
+    }
+};
+
+struct LessEqImpl
+{
+    template <class T>
+    HYP_FORCE_INLINE constexpr bool operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs <= rhs;
+    }
+};
+
+struct GreaterImpl
+{
+    template <class T>
+    HYP_FORCE_INLINE constexpr bool operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs > rhs;
+    }
+};
+
+struct GreaterEqImpl
+{
+    template <class T>
+    HYP_FORCE_INLINE constexpr bool operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs >= rhs;
+    }
+};
+
+#pragma endregion Comparators
+
 } // namespace helpers
 
 template <std::size_t Index, class... Types>
@@ -531,22 +589,22 @@ public:
 
     HYP_FORCE_INLINE constexpr bool operator<(const Tuple& other) const
     {
-        return Tuple_Compare<std::less<>, 0>(m_impl, other.m_impl);
+        return Tuple_Compare<helpers::LessImpl, 0>(m_impl, other.m_impl);
     }
 
     HYP_FORCE_INLINE constexpr bool operator<=(const Tuple& other) const
     {
-        return Tuple_Compare<std::less_equal<>, 0>(m_impl, other.m_impl);
+        return Tuple_Compare<helpers::LessEqImpl, 0>(m_impl, other.m_impl);
     }
 
     HYP_FORCE_INLINE constexpr bool operator>(const Tuple& other) const
     {
-        return Tuple_Compare<std::greater<>, 0>(m_impl, other.m_impl);
+        return Tuple_Compare<helpers::GreaterImpl, 0>(m_impl, other.m_impl);
     }
 
     HYP_FORCE_INLINE constexpr bool operator>=(const Tuple& other) const
     {
-        return Tuple_Compare<std::greater_equal<>, 0>(m_impl, other.m_impl);
+        return Tuple_Compare<helpers::GreaterEqImpl, 0>(m_impl, other.m_impl);
     }
 
     template <SizeType Index>

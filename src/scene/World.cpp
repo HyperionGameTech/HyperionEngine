@@ -12,7 +12,7 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -28,6 +28,8 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderProxy.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
@@ -488,9 +490,9 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
 
     const auto it = m_subsystemsArray.FindIf([name](Subsystem* subsystem)
         {
-            const HypClass* hypClass = subsystem->InstanceClass();
+            const Class* cls = subsystem->InstanceClass();
 
-            return hypClass->GetName() == name;
+            return cls->GetName() == name;
         });
 
     if (it == m_subsystemsArray.End())

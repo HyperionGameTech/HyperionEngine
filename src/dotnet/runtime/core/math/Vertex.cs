@@ -17,7 +17,7 @@ namespace Hyperion
         BoneWeights = 0x80
     }
 
-    [HypClassBinding(Name="VertexAttributeSet")]
+    [ClassBinding(Name="VertexAttributeSet")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct VertexAttributeSet
     {
@@ -57,7 +57,7 @@ namespace Hyperion
         }
     }
 
-    [HypClassBinding(Name="Vertex")]
+    [ClassBinding(Name="Vertex")]
     [StructLayout(LayoutKind.Explicit, Size = 128, Pack = 16)]
     public unsafe struct Vertex
     {

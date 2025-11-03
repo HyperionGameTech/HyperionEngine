@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="CameraProjectionMode")]
+    [ClassBinding(Name="CameraProjectionMode")]
     public enum CameraProjectionMode : uint
     {
         None = 0,
@@ -11,7 +11,7 @@ namespace Hyperion
         Orthographic = 2
     }
 
-    [HypClassBinding(Name="CameraFlags")]
+    [ClassBinding(Name="CameraFlags")]
     [Flags]
     public enum CameraFlags : uint
     {
@@ -19,7 +19,7 @@ namespace Hyperion
         MatchWindowSize = 0x1
     }
 
-    [HypClassBinding(Name="Camera")]
+    [ClassBinding(Name="Camera")]
     public class Camera : Entity
     {
         public Camera()

@@ -16,7 +16,6 @@
 
 #include <scene/Entity.hpp>
 
-#include <rendering/RenderCollection.hpp>
 #include <rendering/RenderCommand.hpp>
 
 #include <core/HashCode.hpp>
@@ -27,6 +26,7 @@ class View;
 class Scene;
 class EnvProbe;
 class Texture;
+class Camera;
 class RenderProxyEnvGrid;
 
 enum class EnvGridFlags : uint32

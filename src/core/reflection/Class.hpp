@@ -6,7 +6,7 @@
 #include <core/reflection/HypObjectEnums.hpp>
 #include <core/reflection/HypData.hpp>
 #include <core/reflection/HypMemberFwd.hpp>
-#include <core/reflection/HypClassAttribute.hpp>
+#include <core/reflection/ClassAttribute.hpp>
 
 #include <core/containers/HashMap.hpp>
 #include <core/containers/Array.hpp>
@@ -33,20 +33,20 @@ class HypProperty;
 class HypMethod;
 class HypField;
 class HypConstant;
-class HypClass;
-class HypStruct;
+class Class;
+class Struct;
 
 template <class T>
-class HypClassInstance;
+class ClassInstance;
 
 template <class T>
-class HypStructInstance;
+class StructInstance;
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 enum EnginePoolName : int;
 #endif
 
-enum class HypClassFlags : uint8
+enum class ClassFlags : uint8
 {
     NONE = 0x0,
     CLASS_TYPE = 0x1,
@@ -59,30 +59,31 @@ enum class HypClassFlags : uint8
     ANONYMOUS = 0x80 // not registered in the class registry
 };
 
-HYP_MAKE_ENUM_FLAGS(HypClassFlags)
+HYP_MAKE_ENUM_FLAGS(ClassFlags)
 
-enum class HypClassSerializationMode : uint8
+enum class ClassSerializationMode : uint8
 {
     NONE = 0x0,
 
-    MEMBERWISE = 0x1, // Use HypClassInstanceMarshal - Serialize members
-    BITWISE = 0x2,    // Use HypClassInstanceMarshal - Serialize as FBOMStruct (binary)
+    MEMBERWISE = 0x1, // Use ObjectMarshal - Serialize members
+    BITWISE = 0x2,    // Use ObjectMarshal - Serialize as FBOMStruct (binary)
 
     USE_MARSHAL_CLASS = 0x80, // Use Marshal class as override
 
     DEFAULT = MEMBERWISE | USE_MARSHAL_CLASS
 };
 
-HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)
+HYP_MAKE_ENUM_FLAGS(ClassSerializationMode)
 
-HYP_API extern const HypClass* g_hypObjectBaseClass;
+HYP_API extern const Class* g_hypObjectBaseClass;
 
 #pragma region Helpers
 
-HYP_API const HypClass* GetClass(TypeId typeId);
-HYP_API const HypClass* GetClass(WeakName typeName);
-HYP_API const HypClass* GetEnum(TypeId typeId);
-HYP_API const HypClass* GetEnum(WeakName typeName);
+HYP_API const Class* GetClass(const TypeId& typeId);
+HYP_API const Class* GetClass(WeakName typeName);
+
+HYP_API const Class* GetEnum(const TypeId& typeId);
+HYP_API const Class* GetEnum(WeakName typeName);
 
 HYP_API SizeType GetNumDescendants(TypeId typeId);
 
@@ -102,20 +103,14 @@ static inline int GetSubclassIndex()
     return s_subclassIndex;
 }
 
-template <class T>
-HYP_FORCE_INLINE const HypClass* GetEnum()
-{
-    return GetEnum(TypeId::ForType<T>());
-}
+HYP_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+HYP_API bool IsA(const Class* cls, const Class* instanceClass);
 
-HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
-HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
-
-HYP_API const char* LookupTypeName(TypeId typeId);
+HYP_API const char* LookupTypeName(const TypeId& typeId);
 
 #pragma endregion Helpers
 
-class HypClassMemberIterator
+class ClassMemberIterator
 {
     enum class Phase
     {
@@ -126,7 +121,7 @@ class HypClassMemberIterator
         MAX
     };
 
-    friend class HypClassMemberList;
+    friend class ClassMemberList;
 
     static Phase NextPhase(EnumFlags<HypMemberType> allowedTypes, Phase current)
     {
@@ -167,28 +162,28 @@ class HypClassMemberIterator
         return nextPhase;
     }
 
-    HYP_API HypClassMemberIterator(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep = true);
+    HYP_API ClassMemberIterator(const Class* cls, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep = true);
 
 public:
-    HypClassMemberIterator(const HypClassMemberIterator& other) = default;
-    HypClassMemberIterator& operator=(const HypClassMemberIterator& other) = default;
+    ClassMemberIterator(const ClassMemberIterator& other) = default;
+    ClassMemberIterator& operator=(const ClassMemberIterator& other) = default;
 
-    HypClassMemberIterator(HypClassMemberIterator&& other) noexcept = default;
-    HypClassMemberIterator& operator=(HypClassMemberIterator&& other) noexcept = default;
+    ClassMemberIterator(ClassMemberIterator&& other) noexcept = default;
+    ClassMemberIterator& operator=(ClassMemberIterator&& other) noexcept = default;
 
-    HYP_FORCE_INLINE bool operator==(const HypClassMemberIterator& other) const = default;
-    HYP_FORCE_INLINE bool operator!=(const HypClassMemberIterator& other) const = default;
+    HYP_FORCE_INLINE bool operator==(const ClassMemberIterator& other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const ClassMemberIterator& other) const = default;
 
-    HYP_FORCE_INLINE HypClassMemberIterator& operator++()
+    HYP_FORCE_INLINE ClassMemberIterator& operator++()
     {
         Advance();
 
         return *this;
     }
 
-    HypClassMemberIterator operator++(int)
+    ClassMemberIterator operator++(int)
     {
-        HypClassMemberIterator result(*this);
+        ClassMemberIterator result(*this);
         ++result;
         return result;
     }
@@ -218,58 +213,58 @@ private:
 
     EnumFlags<HypMemberType> m_memberTypes;
     Phase m_phase;
-    const HypClass* m_target;
+    const Class* m_target;
     bool m_deep;
 
     SizeType m_currentIndex;
     mutable IHypMember* m_currentValue;
 };
 
-class HypClassMemberList
+class ClassMemberList
 {
 public:
-    using Iterator = HypClassMemberIterator;
-    using ConstIterator = HypClassMemberIterator;
+    using Iterator = ClassMemberIterator;
+    using ConstIterator = ClassMemberIterator;
 
-    HypClassMemberList(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, bool deep = true)
-        : m_hypClass(hypClass),
+    ClassMemberList(const Class* cls, EnumFlags<HypMemberType> memberTypes, bool deep = true)
+        : m_class(cls),
           m_memberTypes(memberTypes),
           m_deep(deep)
     {
     }
 
-    HypClassMemberList(const HypClassMemberList& other) = default;
-    HypClassMemberList& operator=(const HypClassMemberList& other) = default;
+    ClassMemberList(const ClassMemberList& other) = default;
+    ClassMemberList& operator=(const ClassMemberList& other) = default;
 
-    HypClassMemberList(HypClassMemberList&& other) noexcept = default;
-    HypClassMemberList& operator=(HypClassMemberList&& other) noexcept = default;
+    ClassMemberList(ClassMemberList&& other) noexcept = default;
+    ClassMemberList& operator=(ClassMemberList&& other) noexcept = default;
 
-    ~HypClassMemberList() = default;
+    ~ClassMemberList() = default;
 
-    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hypClass, m_memberTypes, HypClassMemberIterator::Phase::ITERATE_PROPERTIES, m_deep), HypClassMemberIterator(nullptr, m_memberTypes, HypClassMemberIterator::Phase::MAX, m_deep))
+    HYP_DEF_STL_BEGIN_END(ClassMemberIterator(m_class, m_memberTypes, ClassMemberIterator::Phase::ITERATE_PROPERTIES, m_deep), ClassMemberIterator(nullptr, m_memberTypes, ClassMemberIterator::Phase::MAX, m_deep))
 
 private:
-    const HypClass* m_hypClass;
+    const Class* m_class;
     EnumFlags<HypMemberType> m_memberTypes;
     bool m_deep;
 };
 
-enum class HypClassCallbackType
+enum class ClassCallbackType
 {
     ON_POST_LOAD = 0
 };
 
-class IHypClassCallbackWrapper
+class IClassCallbackWrapper
 {
 public:
-    virtual ~IHypClassCallbackWrapper() = default;
+    virtual ~IClassCallbackWrapper() = default;
 };
 
 template <class Callback>
-class HypClassCallbackWrapper : public IHypClassCallbackWrapper
+class ClassCallbackWrapper : public IClassCallbackWrapper
 {
 public:
-    HypClassCallbackWrapper(Callback&& callback)
+    ClassCallbackWrapper(Callback&& callback)
         : m_callback(std::forward<Callback>(callback))
     {
     }
@@ -283,17 +278,17 @@ private:
     Callback m_callback;
 };
 
-template <HypClassCallbackType CallbackType>
-class HypClassCallbackCollection
+template <ClassCallbackType CallbackType>
+class ClassCallbackCollection
 {
 public:
-    static HypClassCallbackCollection& GetInstance()
+    static ClassCallbackCollection& GetInstance()
     {
-        static HypClassCallbackCollection instance;
+        static ClassCallbackCollection instance;
         return instance;
     }
 
-    const IHypClassCallbackWrapper* GetCallback(const TypeId& typeId) const
+    const IClassCallbackWrapper* GetCallback(const TypeId& typeId) const
     {
         Mutex::Guard guard(m_mutex);
 
@@ -307,7 +302,7 @@ public:
         return nullptr;
     }
 
-    void SetCallback(const TypeId& typeId, const IHypClassCallbackWrapper* callback)
+    void SetCallback(const TypeId& typeId, const IClassCallbackWrapper* callback)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -315,44 +310,44 @@ public:
     }
 
 private:
-    HashMap<TypeId, const IHypClassCallbackWrapper*> m_callbacks;
+    HashMap<TypeId, const IClassCallbackWrapper*> m_callbacks;
     mutable Mutex m_mutex;
 };
 
-template <HypClassCallbackType CallbackType>
-struct HypClassCallbackRegistration
+template <ClassCallbackType CallbackType>
+struct ClassCallbackRegistration
 {
     template <auto Callback>
-    HypClassCallbackRegistration(const TypeId& typeId, ValueWrapper<Callback>)
+    ClassCallbackRegistration(const TypeId& typeId, ValueWrapper<Callback>)
     {
-        static const HypClassCallbackWrapper callbackWrapper(Callback);
+        static const ClassCallbackWrapper callbackWrapper(Callback);
 
-        HypClassCallbackCollection<CallbackType>::GetInstance().SetCallback(typeId, &callbackWrapper);
+        ClassCallbackCollection<CallbackType>::GetInstance().SetCallback(typeId, &callbackWrapper);
     }
 };
 
-class HYP_API HypClass
+class HYP_API Class
 {
 public:
-    friend struct HypClassRegistrationBase;
+    friend struct ClassRegistrationBase;
     friend class HypObjectPool;
     friend class HypObjectContainerBase;
 
-    HypClass(
+    Class(
         TypeId typeId,
         Name name,
         int staticIndex,
         uint32 numDescendants,
         Name parentName,
-        Span<const HypClassAttribute> attributes,
-        EnumFlags<HypClassFlags> flags,
+        Span<const ClassAttribute> attributes,
+        EnumFlags<ClassFlags> flags,
         Span<HypMember> members);
 
-    HypClass(const HypClass& other) = delete;
-    HypClass& operator=(const HypClass& other) = delete;
-    HypClass(HypClass&& other) noexcept = delete;
-    HypClass& operator=(HypClass&& other) noexcept = delete;
-    virtual ~HypClass();
+    Class(const Class& other) = delete;
+    Class& operator=(const Class& other) = delete;
+    Class(Class&& other) noexcept = delete;
+    Class& operator=(Class&& other) noexcept = delete;
+    virtual ~Class();
 
     virtual void Initialize();
 
@@ -383,16 +378,16 @@ public:
     }
 #endif
 
-    virtual HypClassAllocationMethod GetAllocationMethod() const = 0;
+    virtual ClassAllocationMethod GetAllocationMethod() const = 0;
 
     HYP_FORCE_INLINE bool UseHandles() const
     {
-        return GetAllocationMethod() == HypClassAllocationMethod::HANDLE;
+        return GetAllocationMethod() == ClassAllocationMethod::HANDLE;
     }
 
     HYP_FORCE_INLINE bool IsReferenceCounted() const
     {
-        return GetAllocationMethod() == HypClassAllocationMethod::HANDLE;
+        return GetAllocationMethod() == ClassAllocationMethod::HANDLE;
     }
 
     HYP_FORCE_INLINE Name GetName() const
@@ -400,17 +395,17 @@ public:
         return m_name;
     }
 
-    /*! \brief Returns the statically assigned index of this class in the global HypClass table.
+    /*! \brief Returns the statically assigned index of this class in the global Class table.
      *  Only classes that are picked up by the build tool at configuration time will have a static index assigned.
      *  (Dynamic types created in managed code will return -1 for this)
-     *  \note GetStaticIndex is used mainly for fast type checking internally, as it can be used to compare with HypClass::GetNumDescendants to check
+     *  \note GetStaticIndex is used mainly for fast type checking internally, as it can be used to compare with Class::GetNumDescendants to check
      *  if the static index is within the expected range. It can also be used to preallocate slots for subclasses (see ResourceBinder in rendering/util/ResourceBinder.hpp for example usage) */
     HYP_FORCE_INLINE int GetStaticIndex() const
     {
         return m_staticIndex;
     }
 
-    /*! \brief Returns the total number of descendants of this HypClass. */
+    /*! \brief Returns the total number of descendants of this Class. */
     HYP_FORCE_INLINE uint32 GetNumDescendants() const
     {
         return m_numDescendants;
@@ -422,20 +417,20 @@ public:
         return TypeId::Void();
     }
 
-    HYP_FORCE_INLINE const HypClass* GetParent() const
+    HYP_FORCE_INLINE const Class* GetParent() const
     {
         return m_parent;
     }
 
-    /*! \brief Check if this HypClass is derived from the given HypClass or is equal to it.
-     *  \param other The HypClass to check this against
-     *  \return True if this HypClass is derived from or equal to the given HypClass, false otherwise. */
-    bool IsDerivedFrom(const HypClass* other) const;
+    /*! \brief Check if this Class is derived from the given Class or is equal to it.
+     *  \param other The Class to check this against
+     *  \return True if this Class is derived from or equal to the given Class, false otherwise. */
+    bool IsDerivedFrom(const Class* other) const;
 
-    /*! \brief Check if this HypClass is a base class of the given HypClass or is equal to it.
-     *  \param other The HypClass to check against
-     *  \return True if this HypClass is a base class of or equal to the given HypClass, false otherwise. */
-    bool IsBaseOf(const HypClass* other) const;
+    /*! \brief Check if this Class is a base class of the given Class or is equal to it.
+     *  \param other The Class to check against
+     *  \return True if this Class is a base class of or equal to the given Class, false otherwise. */
+    bool IsBaseOf(const Class* other) const;
 
     HYP_FORCE_INLINE TypeId GetTypeId() const
     {
@@ -447,90 +442,90 @@ public:
         return m_typeInfo;
     }
 
-    HYP_FORCE_INLINE EnumFlags<HypClassFlags> GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<ClassFlags> GetFlags() const
     {
         return m_flags;
     }
 
     HYP_FORCE_INLINE bool IsClassType() const
     {
-        return m_flags & HypClassFlags::CLASS_TYPE;
+        return m_flags & ClassFlags::CLASS_TYPE;
     }
 
     HYP_FORCE_INLINE bool IsStructType() const
     {
-        return m_flags & HypClassFlags::STRUCT_TYPE;
+        return m_flags & ClassFlags::STRUCT_TYPE;
     }
 
     HYP_FORCE_INLINE bool IsEnumType() const
     {
-        return m_flags & HypClassFlags::ENUM_TYPE;
+        return m_flags & ClassFlags::ENUM_TYPE;
     }
 
     HYP_FORCE_INLINE bool IsPodType() const
     {
-        return m_flags & HypClassFlags::POD_TYPE;
+        return m_flags & ClassFlags::POD_TYPE;
     }
 
     HYP_FORCE_INLINE bool IsAbstract() const
     {
-        return m_flags & HypClassFlags::ABSTRACT;
+        return m_flags & ClassFlags::ABSTRACT;
     }
 
     HYP_FORCE_INLINE bool IsDynamic() const
     {
-        return m_flags & HypClassFlags::DYNAMIC;
+        return m_flags & ClassFlags::DYNAMIC;
     }
 
     bool CanSerialize() const;
 
-    HYP_FORCE_INLINE EnumFlags<HypClassSerializationMode> GetSerializationMode() const
+    HYP_FORCE_INLINE EnumFlags<ClassSerializationMode> GetSerializationMode() const
     {
         return m_serializationMode;
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeSet& GetAttributes() const
+    HYP_FORCE_INLINE const ClassAttributeSet& GetAttributes() const
     {
         return m_attributes;
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue& GetAttribute(WeakName key) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(WeakName key) const
     {
         return m_attributes[key];
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue& GetAttribute(WeakName key, const HypClassAttributeValue& defaultValue) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttribute(WeakName key, const ClassAttributeValue& defaultValue) const
     {
         return m_attributes.Get(key, defaultValue);
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue& GetAttributeDeep(WeakName key) const
+    HYP_FORCE_INLINE const ClassAttributeValue& GetAttributeDeep(WeakName key) const
     {
-        static const HypClassAttributeValue s_invalidValue {};
+        static const ClassAttributeValue s_invalidValue {};
 
         return GetAttributeDeep(key, s_invalidValue);
     }
 
-    const HypClassAttributeValue& GetAttributeDeep(WeakName key, const HypClassAttributeValue& defaultValue) const
+    const ClassAttributeValue& GetAttributeDeep(WeakName key, const ClassAttributeValue& defaultValue) const
     {
-        const HypClass* hypClass = this;
+        const Class* cls = this;
 
-        while (hypClass)
+        while (cls)
         {
-            const HypClassAttributeValue& value = hypClass->GetAttribute(key);
+            const ClassAttributeValue& value = cls->GetAttribute(key);
 
             if (value.IsValid())
             {
                 return value;
             }
 
-            hypClass = hypClass->GetParent();
+            cls = cls->GetParent();
         }
 
         return defaultValue;
     }
 
-    HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> memberTypes, bool deep = true) const
+    HYP_FORCE_INLINE ClassMemberList GetMembers(EnumFlags<HypMemberType> memberTypes, bool deep = true) const
     {
         return {
             this,
@@ -539,7 +534,7 @@ public:
         };
     }
 
-    HYP_FORCE_INLINE HypClassMemberList GetMembers(bool includeProperties = true, bool deep = true) const
+    HYP_FORCE_INLINE ClassMemberList GetMembers(bool includeProperties = true, bool deep = true) const
     {
         return {
             this,
@@ -611,7 +606,7 @@ public:
 
     HYP_FORCE_INLINE bool CreateInstance(HypData& out, bool allowAbstract = false) const
     {
-        HYP_CORE_ASSERT(CanCreateInstance() && (allowAbstract || !IsAbstract()), "Cannot create a new instance for HypClass %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
+        HYP_CORE_ASSERT(CanCreateInstance() && (allowAbstract || !IsAbstract()), "Cannot create a new instance for Class %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
             GetName().LookupString(), CanCreateInstance() ? "true" : "false", IsAbstract() ? "true" : "false", allowAbstract ? "true" : "false");
 
         return CreateInstance_Internal(out);
@@ -619,13 +614,13 @@ public:
 
     HYP_FORCE_INLINE bool CreateInstanceArray(Span<HypData> elements, HypData& out, bool allowAbstract = false) const
     {
-        HYP_CORE_ASSERT(CanCreateInstance() && (allowAbstract || !IsAbstract()), "Cannot create a new instance for HypClass %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
+        HYP_CORE_ASSERT(CanCreateInstance() && (allowAbstract || !IsAbstract()), "Cannot create a new instance for Class %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
             GetName().LookupString(), CanCreateInstance() ? "true" : "false", IsAbstract() ? "true" : "false", allowAbstract ? "true" : "false");
 
         return CreateInstanceArray_Internal(elements, out);
     }
 
-    /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this HypClass's TypeId.
+    /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this Class's TypeId.
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
      *  \returns True if the operation was successful. */
@@ -641,13 +636,13 @@ public:
             return;
         }
 
-        const HypClass* hypClass = this;
+        const Class* cls = this;
 
-        while (hypClass)
+        while (cls)
         {
-            hypClass->PostLoad_Internal(objectPtr);
+            cls->PostLoad_Internal(objectPtr);
 
-            hypClass = hypClass->GetParent();
+            cls = cls->GetParent();
         }
     }
 
@@ -677,9 +672,9 @@ protected:
     int m_staticIndex;
     uint32 m_numDescendants;
     Name m_parentName;
-    const HypClass* m_parent;
-    HypClassAttributeSet m_attributes;
-    EnumFlags<HypClassFlags> m_flags;
+    const Class* m_parent;
+    ClassAttributeSet m_attributes;
+    EnumFlags<ClassFlags> m_flags;
 
     SizeType m_size;
     SizeType m_alignment;
@@ -696,7 +691,7 @@ protected:
     Array<HypConstant*> m_constants;
     HashMap<Name, HypConstant*> m_constantsByName;
 
-    EnumFlags<HypClassSerializationMode> m_serializationMode;
+    EnumFlags<ClassSerializationMode> m_serializationMode;
 
     HypObjectContainerBase* m_objectContainer;
 
@@ -710,34 +705,34 @@ private:
 };
 
 template <class T>
-class HypClassInstance final : public HypClass
+class ClassInstance final : public Class
 {
 public:
     using PostLoadCallback = void (*)(T&);
 
-    static HypClassInstance& GetInstance(
+    static ClassInstance& GetInstance(
         Name name,
         int staticIndex,
         uint32 numDescendants,
         Name parentName,
-        Span<const HypClassAttribute> attributes,
-        EnumFlags<HypClassFlags> flags,
+        Span<const ClassAttribute> attributes,
+        EnumFlags<ClassFlags> flags,
         Span<HypMember> members)
     {
-        static HypClassInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
+        static ClassInstance s_instance { name, staticIndex, numDescendants, parentName, attributes, flags, members };
 
         return s_instance;
     }
 
-    HypClassInstance(
+    ClassInstance(
         Name name,
         int staticIndex,
         uint32 numDescendants,
         Name parentName,
-        Span<const HypClassAttribute> attributes,
-        EnumFlags<HypClassFlags> flags,
+        Span<const ClassAttribute> attributes,
+        EnumFlags<ClassFlags> flags,
         Span<HypMember> members)
-        : HypClass(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
+        : Class(TypeId::ForType<T>(), name, staticIndex, numDescendants, parentName, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
@@ -745,22 +740,22 @@ public:
         m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
     }
 
-    virtual ~HypClassInstance() = default;
+    virtual ~ClassInstance() = default;
 
     virtual bool IsValid() const override
     {
         return true;
     }
 
-    virtual HypClassAllocationMethod GetAllocationMethod() const override
+    virtual ClassAllocationMethod GetAllocationMethod() const override
     {
         if constexpr (std::is_base_of_v<HypObjectBase, T>)
         {
-            return HypClassAllocationMethod::HANDLE;
+            return ClassAllocationMethod::HANDLE;
         }
         else
         {
-            return HypClassAllocationMethod::NONE;
+            return ClassAllocationMethod::NONE;
         }
     }
 
@@ -816,14 +811,14 @@ protected:
             return;
         }
 
-        const IHypClassCallbackWrapper* callbackWrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeId());
+        const IClassCallbackWrapper* callbackWrapper = ClassCallbackCollection<ClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeId());
 
         if (!callbackWrapper)
         {
             return;
         }
 
-        const HypClassCallbackWrapper<PostLoadCallback>* callbackWrapperCasted = dynamic_cast<const HypClassCallbackWrapper<PostLoadCallback>*>(callbackWrapper);
+        const ClassCallbackWrapper<PostLoadCallback>* callbackWrapperCasted = dynamic_cast<const ClassCallbackWrapper<PostLoadCallback>*>(callbackWrapper);
         HYP_CORE_ASSERT(callbackWrapperCasted != nullptr);
 
         callbackWrapperCasted->GetCallback()(*static_cast<T*>(objectPtr));
@@ -920,23 +915,23 @@ protected:
 protected:
 };
 
-/*! \brief a runtime created HypClass instance, for use in scripts or external code such as .NET or HypScript */
-class DynamicHypClassInstance final : public HypClass
+/*! \brief a runtime created Class instance, for use in scripts or external code such as .NET or HypScript */
+class DynamicClassInstance final : public Class
 {
 public:
 #ifdef HYP_DOTNET
-    DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::ManagedClass* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* classPtr, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members);
 #endif
 
 #ifdef HYP_SCRIPT
-    DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members);
 #endif
 
-    virtual ~DynamicHypClassInstance() override;
+    virtual ~DynamicClassInstance() override;
 
     virtual bool IsValid() const override;
 
-    virtual HypClassAllocationMethod GetAllocationMethod() const override;
+    virtual ClassAllocationMethod GetAllocationMethod() const override;
 
     virtual TypeId GetUnderlyingTypeId() const override;
 
@@ -948,10 +943,10 @@ public:
 
     virtual bool ToHypData(ByteView memory, HypData& outHypData) const override;
 
-    using HypClass::AddConstant;
-    using HypClass::AddField;
-    using HypClass::AddMethod;
-    using HypClass::AddProperty;
+    using Class::AddConstant;
+    using Class::AddField;
+    using Class::AddMethod;
+    using Class::AddProperty;
 
     void SetField(uint32 index, HypField* field);
     void SetMethod(uint32 index, HypMethod* method);

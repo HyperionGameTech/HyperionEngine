@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/HypClass.hpp>
-#include <core/reflection/HypEnum.hpp>
+#include <core/reflection/Class.hpp>
+#include <core/reflection/Enum.hpp>
 #include <core/reflection/HypMember.hpp>
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypConstant.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <core/utilities/Format.hpp>
 
@@ -60,27 +60,27 @@ HYP_API const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
 
 #pragma region Helpers
 
-HYP_API const HypClass* GetClass(TypeId typeId)
+HYP_API const Class* GetClass(const TypeId& typeId)
 {
-    return HypClassRegistry::GetInstance().GetClass(typeId);
+    return ClassRegistry::GetInstance().GetClass(typeId);
 }
 
-HYP_API const HypClass* GetClass(WeakName typeName)
+HYP_API const Class* GetClass(WeakName typeName)
 {
-    return HypClassRegistry::GetInstance().GetClass(typeName);
+    return ClassRegistry::GetInstance().GetClass(typeName);
 }
 
-HYP_API const HypClass* GetEnum(TypeId typeId)
+HYP_API const Class* GetEnum(const TypeId& typeId)
 {
-    return HypClassRegistry::GetInstance().GetEnum(typeId);
+    return ClassRegistry::GetInstance().GetEnum(typeId);
 }
 
-HYP_API const HypClass* GetEnum(WeakName typeName)
+HYP_API const Class* GetEnum(WeakName typeName)
 {
-    return HypClassRegistry::GetInstance().GetEnum(typeName);
+    return ClassRegistry::GetInstance().GetEnum(typeName);
 }
 
-HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId)
+HYP_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
 {
     if (!ptr)
     {
@@ -89,86 +89,86 @@ HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId)
 
     // we assume ptr is of the type TypeId, this is on the caller to ensure it's correct
 
-    if (!hypClass)
+    if (!cls)
     {
         return false;
     }
 
-    if (hypClass->GetTypeId() == typeId)
+    if (cls->GetTypeId() == typeId)
     {
         return true;
     }
 
-    const HypClass* otherHypClass = GetClass(typeId);
+    const Class* otherClass = GetClass(typeId);
 
-    if (otherHypClass != nullptr)
+    if (otherClass != nullptr)
     {
         // fast path
-        if (otherHypClass->GetStaticIndex() >= 0)
+        if (otherClass->GetStaticIndex() >= 0)
         {
-            return uint32(otherHypClass->GetStaticIndex() - hypClass->GetStaticIndex()) <= hypClass->GetNumDescendants();
+            return uint32(otherClass->GetStaticIndex() - cls->GetStaticIndex()) <= cls->GetNumDescendants();
         }
 
-        if (otherHypClass->UseHandles()) // check is HypObjectBase
+        if (otherClass->UseHandles()) // check is HypObjectBase
         {
-            // since we got the HypClass we can assume ptr is a HypObjectBase or derived type.
+            // since we got the Class we can assume ptr is a HypObjectBase or derived type.
             // this could get iffy with multiple inheritance so it's best we disallow MI for HypObjects.
             const HypObjectBase* hypObjectBase = reinterpret_cast<const HypObjectBase*>(ptr);
-            otherHypClass = hypObjectBase->InstanceClass();
+            otherClass = hypObjectBase->InstanceClass();
         }
     }
 
     // slow path
-    while (otherHypClass != nullptr)
+    while (otherClass != nullptr)
     {
-        if (otherHypClass == hypClass)
+        if (otherClass == cls)
         {
             return true;
         }
 
-        otherHypClass = otherHypClass->GetParent();
+        otherClass = otherClass->GetParent();
     }
 
     return false;
 }
 
-HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass)
+HYP_API bool IsA(const Class* cls, const Class* instanceClass)
 {
-    if (!hypClass || !instanceHypClass)
+    if (!cls || !instanceClass)
     {
         return false;
     }
 
     // fast path
-    if (instanceHypClass->GetStaticIndex() >= 0)
+    if (instanceClass->GetStaticIndex() >= 0)
     {
-        return uint32(instanceHypClass->GetStaticIndex() - hypClass->GetStaticIndex()) <= hypClass->GetNumDescendants();
+        return uint32(instanceClass->GetStaticIndex() - cls->GetStaticIndex()) <= cls->GetNumDescendants();
     }
 
     // slow path
     do
     {
-        if (instanceHypClass == hypClass)
+        if (instanceClass == cls)
         {
             return true;
         }
 
-        instanceHypClass = instanceHypClass->GetParent();
+        instanceClass = instanceClass->GetParent();
     }
-    while (instanceHypClass != nullptr);
+    while (instanceClass != nullptr);
 
     return false;
 }
 
 HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
 {
-    const HypClass* base = GetClass(baseTypeId);
+    const Class* base = GetClass(baseTypeId);
     if (!base)
     {
         return -2;
     }
 
-    const HypClass* subclass = GetClass(subclassTypeId);
+    const Class* subclass = GetClass(subclassTypeId);
 
     if (!subclass)
     {
@@ -199,7 +199,7 @@ HYP_API int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId)
 
 HYP_API SizeType GetNumDescendants(TypeId typeId)
 {
-    const HypClass* base = GetClass(typeId);
+    const Class* base = GetClass(typeId);
     if (!base)
     {
         return 0;
@@ -215,7 +215,7 @@ HypProperty* MakeHypProperty(const HypField* field)
 
     Name propertyName;
 
-    if (const HypClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty); attr.IsString())
+    if (const ClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty); attr.IsString())
     {
         propertyName = CreateNameFromDynamicString(attr.GetString());
     }
@@ -277,7 +277,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
 
     if (hasGetter)
     {
-        if (const HypClassAttributeValue& attr = getter->GetAttribute(Attributes::g_attrProperty))
+        if (const ClassAttributeValue& attr = getter->GetAttribute(Attributes::g_attrProperty))
         {
             propertyAttributeOpt = attr.GetString();
         }
@@ -292,7 +292,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     {
         if (!propertyAttributeOpt)
         {
-            if (const HypClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty))
+            if (const ClassAttributeValue& attr = field->GetAttribute(Attributes::g_attrProperty))
             {
                 propertyAttributeOpt = attr.GetString();
             }
@@ -324,7 +324,7 @@ HypProperty* MakeHypProperty(const HypField* field, const HypMethod* getter, con
     {
         if (!propertyAttributeOpt)
         {
-            if (const HypClassAttributeValue& attr = setter->GetAttribute(Attributes::g_attrProperty))
+            if (const ClassAttributeValue& attr = setter->GetAttribute(Attributes::g_attrProperty))
             {
                 propertyAttributeOpt = attr.GetString();
             }
@@ -499,13 +499,13 @@ static void InitFormattedStringMap(void* mem)
 #undef ADD_TYPE_NAME
 }
 
-const char* LookupTypeName(TypeId typeId)
+const char* LookupTypeName(const TypeId& typeId)
 {
-    const HypClass* hypClass = GetClass(typeId);
+    const Class* cls = GetClass(typeId);
 
-    if (hypClass)
+    if (cls)
     {
-        return *hypClass->GetName();
+        return *cls->GetName();
     }
 
     if (!s_formattedStringMap)
@@ -538,20 +538,20 @@ const char* LookupTypeName(TypeId typeId)
 
 #pragma endregion Helpers
 
-#pragma region HypClassMemberIterator
+#pragma region ClassMemberIterator
 
-HypClassMemberIterator::HypClassMemberIterator(const HypClass* hypClass, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep)
+ClassMemberIterator::ClassMemberIterator(const Class* cls, EnumFlags<HypMemberType> memberTypes, Phase phase, bool deep)
     : m_memberTypes(memberTypes),
       m_phase(phase),
       m_deep(deep),
-      m_target(hypClass),
+      m_target(cls),
       m_currentIndex(0),
       m_currentValue(nullptr)
 {
     Advance();
 }
 
-void HypClassMemberIterator::Advance()
+void ClassMemberIterator::Advance()
 {
     // HYP_LOG(Object, Debug, "Iterating class {} members: {}, parent = {}, index = {}", target->GetName(), m_phase,
     //     target->GetParent() ? target->GetParent()->GetName().LookupString() : "null", m_currentIndex);
@@ -644,11 +644,11 @@ void HypClassMemberIterator::Advance()
     }
 }
 
-#pragma endregion HypClassMemberIterator
+#pragma endregion ClassMemberIterator
 
-#pragma region HypClass
+#pragma region Class
 
-HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
     : m_typeId(typeId),
       m_typeInfo(nullptr),
       m_name(name),
@@ -660,11 +660,11 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
       m_flags(flags),
       m_size(0),
       m_alignment(0),
-      m_serializationMode(HypClassSerializationMode::DEFAULT),
+      m_serializationMode(ClassSerializationMode::DEFAULT),
       m_objectContainer(nullptr)
 {
     // needs to be set after name is set
-    m_typeInfo = &TypeInfo::ForHypClass(this);
+    m_typeInfo = &TypeInfo::ForClass(this);
     AssertDebug(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -674,13 +674,13 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
 
     // @NOTE: Can't reliably use the Attributes namespace values, as they might noe be
     // initialized yet by the time this constructor is called (static init order fiasco)
-    static const ArrayMap<WeakName, HypClassFlags> s_attributeToFlags = {
-        { "abstract", HypClassFlags::ABSTRACT },
-        { "noscriptbindings", HypClassFlags::NO_SCRIPT_BINDINGS }
+    static const ArrayMap<WeakName, ClassFlags> s_attributeToFlags = {
+        { "abstract", ClassFlags::ABSTRACT },
+        { "noscriptbindings", ClassFlags::NO_SCRIPT_BINDINGS }
     };
 
     // Apply flags for all values in s_attributeToFlags
-    for (const HypClassAttribute& attr : m_attributes)
+    for (const ClassAttribute& attr : m_attributes)
     {
         if (!attr.GetValue().GetBool())
         {
@@ -740,7 +740,7 @@ HypClass::HypClass(TypeId typeId, Name name, int staticIndex, uint32 numDescenda
     }
 }
 
-HypClass::~HypClass()
+Class::~Class()
 {
     for (HypProperty* propertyPtr : m_properties)
     {
@@ -763,18 +763,18 @@ HypClass::~HypClass()
     }
 }
 
-void HypClass::Initialize()
+void Class::Initialize()
 {
-    HYP_LOG(Object, Info, "Initializing HypClass \"{}\"", m_name);
+    HYP_LOG(Object, Info, "Initializing Class \"{}\"", m_name);
 
     AssertDebug(m_typeInfo != nullptr);
 
-    m_serializationMode = HypClassSerializationMode::DEFAULT;
+    m_serializationMode = ClassSerializationMode::DEFAULT;
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     if (UseHandles())
     {
-        if (const HypClassAttributeValue& poolAttribute = GetAttributeDeep("pool"))
+        if (const ClassAttributeValue& poolAttribute = GetAttributeDeep("pool"))
         {
             if (poolAttribute.IsString())
             {
@@ -797,11 +797,11 @@ void HypClass::Initialize()
     }
 #endif
 
-    if (const HypClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize))
+    if (const ClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize))
     {
         if (serializeAttribute.IsString())
         {
-            m_serializationMode = HypClassSerializationMode::NONE;
+            m_serializationMode = ClassSerializationMode::NONE;
 
             const String stringValue = serializeAttribute.GetString().ToLower();
 
@@ -812,7 +812,7 @@ void HypClass::Initialize()
                     HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: {}", m_name);
                 }
 
-                m_serializationMode = HypClassSerializationMode::BITWISE | HypClassSerializationMode::USE_MARSHAL_CLASS;
+                m_serializationMode = ClassSerializationMode::BITWISE | ClassSerializationMode::USE_MARSHAL_CLASS;
             }
             else
             {
@@ -821,18 +821,18 @@ void HypClass::Initialize()
         }
         else if (!serializeAttribute.GetBool())
         {
-            m_serializationMode = HypClassSerializationMode::NONE;
+            m_serializationMode = ClassSerializationMode::NONE;
         }
     }
 
-    // Disable USE_MARSHAL_CLASS if no marshal is registered by the time this HypClass is initialized
-    if (m_serializationMode & HypClassSerializationMode::USE_MARSHAL_CLASS)
+    // Disable USE_MARSHAL_CLASS if no marshal is registered by the time this Class is initialized
+    if (m_serializationMode & ClassSerializationMode::USE_MARSHAL_CLASS)
     {
         FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeId(), /* allowFallback */ false);
 
         if (!marshal)
         {
-            m_serializationMode &= ~HypClassSerializationMode::USE_MARSHAL_CLASS;
+            m_serializationMode &= ~ClassSerializationMode::USE_MARSHAL_CLASS;
         }
     }
 
@@ -847,7 +847,7 @@ void HypClass::Initialize()
 
         if (!IsDynamic())
         {
-            AssertDebug(!m_parent->IsDynamic(), "Non-dynamic HypClass cannot have a dynamic parent class!");
+            AssertDebug(!m_parent->IsDynamic(), "Non-dynamic Class cannot have a dynamic parent class!");
         }
     }
 
@@ -856,7 +856,7 @@ void HypClass::Initialize()
 
     for (IHypMember& member : GetMembers(/* includeProperties */ false, /* deep */ false))
     {
-        if (const HypClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrProperty))
+        if (const ClassAttributeValue& attr = member.GetAttribute(Attributes::g_attrProperty))
         {
             const String& attrString = attr.GetString();
 
@@ -918,24 +918,24 @@ void HypClass::Initialize()
     }
 }
 
-bool HypClass::CanSerialize() const
+bool Class::CanSerialize() const
 {
-    if (m_serializationMode == HypClassSerializationMode::NONE)
+    if (m_serializationMode == ClassSerializationMode::NONE)
     {
         return false;
     }
 
-    if (m_serializationMode & HypClassSerializationMode::USE_MARSHAL_CLASS)
+    if (m_serializationMode & ClassSerializationMode::USE_MARSHAL_CLASS)
     {
         return true;
     }
 
-    if (m_serializationMode & HypClassSerializationMode::MEMBERWISE)
+    if (m_serializationMode & ClassSerializationMode::MEMBERWISE)
     {
         return true;
     }
 
-    if (m_serializationMode & HypClassSerializationMode::BITWISE)
+    if (m_serializationMode & ClassSerializationMode::BITWISE)
     {
         if (IsStructType())
         {
@@ -946,7 +946,7 @@ bool HypClass::CanSerialize() const
     return false;
 }
 
-IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes, bool deep) const
+IHypMember* Class::GetMember(WeakName name, EnumFlags<HypMemberType> memberTypes, bool deep) const
 {
     if (memberTypes & HypMemberType::TYPE_PROPERTY)
     {
@@ -982,7 +982,7 @@ IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTy
 
     if (deep)
     {
-        if (const HypClass* parent = GetParent())
+        if (const Class* parent = GetParent())
         {
             return parent->GetMember(name, memberTypes, /* deep */ true);
         }
@@ -991,7 +991,7 @@ IHypMember* HypClass::GetMember(WeakName name, EnumFlags<HypMemberType> memberTy
     return nullptr;
 }
 
-HypProperty* HypClass::GetProperty(WeakName name, bool deep) const
+HypProperty* Class::GetProperty(WeakName name, bool deep) const
 {
     const auto it = m_propertiesByName.FindAs(name);
 
@@ -999,7 +999,7 @@ HypProperty* HypClass::GetProperty(WeakName name, bool deep) const
     {
         if (deep)
         {
-            if (const HypClass* parent = GetParent())
+            if (const Class* parent = GetParent())
             {
                 return parent->GetProperty(name);
             }
@@ -1011,9 +1011,9 @@ HypProperty* HypClass::GetProperty(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypProperty*> HypClass::GetPropertiesInherited() const
+Array<HypProperty*> Class::GetPropertiesInherited() const
 {
-    if (const HypClass* parent = GetParent())
+    if (const Class* parent = GetParent())
     {
         FlatSet<HypProperty*> properties { GetProperties().Begin(), GetProperties().End() };
 
@@ -1030,7 +1030,7 @@ Array<HypProperty*> HypClass::GetPropertiesInherited() const
     return m_properties;
 }
 
-HypMethod* HypClass::GetMethod(WeakName name, bool deep) const
+HypMethod* Class::GetMethod(WeakName name, bool deep) const
 {
     const auto it = m_methodsByName.FindAs(name);
 
@@ -1038,7 +1038,7 @@ HypMethod* HypClass::GetMethod(WeakName name, bool deep) const
     {
         if (deep)
         {
-            if (const HypClass* parent = GetParent())
+            if (const Class* parent = GetParent())
             {
                 return parent->GetMethod(name);
             }
@@ -1050,9 +1050,9 @@ HypMethod* HypClass::GetMethod(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypMethod*> HypClass::GetMethodsInherited() const
+Array<HypMethod*> Class::GetMethodsInherited() const
 {
-    if (const HypClass* parent = GetParent())
+    if (const Class* parent = GetParent())
     {
         FlatSet<HypMethod*> methods { m_methods.Begin(), m_methods.End() };
 
@@ -1069,7 +1069,7 @@ Array<HypMethod*> HypClass::GetMethodsInherited() const
     return m_methods;
 }
 
-HypField* HypClass::GetField(WeakName name, bool deep) const
+HypField* Class::GetField(WeakName name, bool deep) const
 {
     const auto it = m_fieldsByName.FindAs(name);
 
@@ -1077,7 +1077,7 @@ HypField* HypClass::GetField(WeakName name, bool deep) const
     {
         if (deep)
         {
-            if (const HypClass* parent = GetParent())
+            if (const Class* parent = GetParent())
             {
                 return parent->GetField(name);
             }
@@ -1089,9 +1089,9 @@ HypField* HypClass::GetField(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypField*> HypClass::GetFieldsInherited() const
+Array<HypField*> Class::GetFieldsInherited() const
 {
-    if (const HypClass* parent = GetParent())
+    if (const Class* parent = GetParent())
     {
         FlatSet<HypField*> fields { m_fields.Begin(), m_fields.End() };
 
@@ -1108,7 +1108,7 @@ Array<HypField*> HypClass::GetFieldsInherited() const
     return m_fields;
 }
 
-HypConstant* HypClass::GetConstant(WeakName name, bool deep) const
+HypConstant* Class::GetConstant(WeakName name, bool deep) const
 {
     const auto it = m_constantsByName.FindAs(name);
 
@@ -1116,7 +1116,7 @@ HypConstant* HypClass::GetConstant(WeakName name, bool deep) const
     {
         if (deep)
         {
-            if (const HypClass* parent = GetParent())
+            if (const Class* parent = GetParent())
             {
                 return parent->GetConstant(name);
             }
@@ -1128,9 +1128,9 @@ HypConstant* HypClass::GetConstant(WeakName name, bool deep) const
     return it->second;
 }
 
-Array<HypConstant*> HypClass::GetConstantsInherited() const
+Array<HypConstant*> Class::GetConstantsInherited() const
 {
-    if (const HypClass* parent = GetParent())
+    if (const Class* parent = GetParent())
     {
         FlatSet<HypConstant*> constants { m_constants.Begin(), m_constants.End() };
 
@@ -1147,47 +1147,47 @@ Array<HypConstant*> HypClass::GetConstantsInherited() const
     return m_constants;
 }
 
-void HypClass::AddProperty(HypProperty* property)
+void Class::AddProperty(HypProperty* property)
 {
-    AssertDebug(property != nullptr, "Cannot add null property to HypClass {}", GetName());
+    AssertDebug(property != nullptr, "Cannot add null property to Class {}", GetName());
     AssertDebug(m_propertiesByName.Find(property->GetName()) == m_propertiesByName.End(),
-        "Property with name {} already exists in HypClass {}", property->GetName(), GetName());
+        "Property with name {} already exists in Class {}", property->GetName(), GetName());
 
     m_properties.PushBack(property);
     m_propertiesByName[property->GetName()] = property;
 }
 
-void HypClass::AddMethod(HypMethod* method)
+void Class::AddMethod(HypMethod* method)
 {
-    AssertDebug(method != nullptr, "Cannot add null method to HypClass {}", GetName());
+    AssertDebug(method != nullptr, "Cannot add null method to Class {}", GetName());
     AssertDebug(m_methodsByName.Find(method->GetName()) == m_methodsByName.End(),
-        "Method with name {} already exists in HypClass {}", method->GetName(), GetName());
+        "Method with name {} already exists in Class {}", method->GetName(), GetName());
 
     m_methods.PushBack(method);
     m_methodsByName[method->GetName()] = method;
 }
 
-void HypClass::AddField(HypField* field)
+void Class::AddField(HypField* field)
 {
-    AssertDebug(field != nullptr, "Cannot add null field to HypClass {}", GetName());
+    AssertDebug(field != nullptr, "Cannot add null field to Class {}", GetName());
     AssertDebug(m_fieldsByName.Find(field->GetName()) == m_fieldsByName.End(),
-        "Field with name {} already exists in HypClass {}", field->GetName(), GetName());
+        "Field with name {} already exists in Class {}", field->GetName(), GetName());
 
     m_fields.PushBack(field);
     m_fieldsByName[field->GetName()] = field;
 }
 
-void HypClass::AddConstant(HypConstant* constant)
+void Class::AddConstant(HypConstant* constant)
 {
-    AssertDebug(constant != nullptr, "Cannot add null constant to HypClass {}", GetName());
+    AssertDebug(constant != nullptr, "Cannot add null constant to Class {}", GetName());
     AssertDebug(m_constantsByName.Find(constant->GetName()) == m_constantsByName.End(),
-        "Constant with name {} already exists in HypClass {}", constant->GetName(), GetName());
+        "Constant with name {} already exists in Class {}", constant->GetName(), GetName());
 
     m_constants.PushBack(constant);
     m_constantsByName[constant->GetName()] = constant;
 }
 
-bool HypClass::IsDerivedFrom(const HypClass* other) const
+bool Class::IsDerivedFrom(const Class* other) const
 {
     if (other == nullptr)
     {
@@ -1206,7 +1206,7 @@ bool HypClass::IsDerivedFrom(const HypClass* other) const
     }
 
     // slow path
-    const HypClass* current = this;
+    const Class* current = this;
 
     while (current != nullptr)
     {
@@ -1221,7 +1221,7 @@ bool HypClass::IsDerivedFrom(const HypClass* other) const
     return false;
 }
 
-bool HypClass::IsBaseOf(const HypClass* other) const
+bool Class::IsBaseOf(const Class* other) const
 {
     if (other == nullptr)
     {
@@ -1240,7 +1240,7 @@ bool HypClass::IsBaseOf(const HypClass* other) const
     }
 
     // slow path
-    const HypClass* current = other;
+    const Class* current = other;
 
     while (current != nullptr)
     {
@@ -1257,7 +1257,7 @@ bool HypClass::IsBaseOf(const HypClass* other) const
 
 #ifdef HYP_DOTNET
 
-bool HypClass::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
+bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
     if (!UseHandles()) // check is HypObjectBase
     {
@@ -1285,13 +1285,13 @@ bool HypClass::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& 
 
 #endif
 
-#pragma endregion HypClass
+#pragma endregion Class
 
-#pragma region DynamicHypClassInstance
+#pragma region DynamicClassInstance
 
 #ifdef HYP_DOTNET
-DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const HypClass* parentClass, dotnet::ManagedClass* classPtr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-    : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::DYNAMIC, members)
+DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* classPtr, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<HypMember> members)
+    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
@@ -1315,14 +1315,14 @@ DynamicHypClassInstance::DynamicHypClassInstance(TypeId typeId, Name name, const
 #endif
 
 #ifdef HYP_SCRIPT
-DynamicHypClassInstance::DynamicHypClassInstance(
+DynamicClassInstance::DynamicClassInstance(
     TypeId typeId,
     Name name,
-    const HypClass* parentClass,
-    Span<const HypClassAttribute> attributes,
-    EnumFlags<HypClassFlags> flags,
+    const Class* parentClass,
+    Span<const ClassAttribute> attributes,
+    EnumFlags<ClassFlags> flags,
     Span<HypMember> members)
-    : HypClass(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | HypClassFlags::DYNAMIC, members)
+    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
@@ -1331,11 +1331,11 @@ DynamicHypClassInstance::DynamicHypClassInstance(
     SizeType dynamicSize = sizeof(HypObjectBase);
     SizeType dynamicAlignment = alignof(HypObjectBase);
 
-    auto calculateDynamicHypClassSize = [](const HypClass* hypClass, SizeType& dynamicSize, SizeType& dynamicAlignment)
+    auto calculateDynamicClassSize = [](const Class* cls, SizeType& dynamicSize, SizeType& dynamicAlignment)
     {
-        AssertDebug(hypClass->IsDynamic());
+        AssertDebug(cls->IsDynamic());
 
-        for (const HypField* field : hypClass->GetFields())
+        for (const HypField* field : cls->GetFields())
         {
             // In dynamic classes for scripts, all fields are stored as HypData
             const SizeType fieldSize = sizeof(HypData);
@@ -1345,7 +1345,7 @@ DynamicHypClassInstance::DynamicHypClassInstance(
 
             AssertDebug(field != nullptr);
             AssertDebug(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: {}, class: {}), expected {}, got {}",
-                field->GetName(), hypClass->GetName(),
+                field->GetName(), cls->GetName(),
                 dynamicSize, field->GetOffset());
 
             dynamicSize += fieldSize;
@@ -1354,8 +1354,8 @@ DynamicHypClassInstance::DynamicHypClassInstance(
         }
     };
 
-    const HypClass* currentParent = m_parent;
-    Array<const HypClass*> dynamicParents;
+    const Class* currentParent = m_parent;
+    Array<const Class*> dynamicParents;
 
     while (currentParent != nullptr && currentParent->IsDynamic())
     {
@@ -1374,33 +1374,33 @@ DynamicHypClassInstance::DynamicHypClassInstance(
     }
 
     // add 'class' field space
-    dynamicSize = ByteUtil::AlignAs(dynamicSize, alignof(HypClassRef));
-    dynamicSize += sizeof(HypClassRef);
+    dynamicSize = ByteUtil::AlignAs(dynamicSize, alignof(ClassRef));
+    dynamicSize += sizeof(ClassRef);
 
     for (SizeType i = dynamicParents.Size(); i > 0; --i)
     {
-        calculateDynamicHypClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
+        calculateDynamicClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
     }
 
-    calculateDynamicHypClassSize(this, dynamicSize, dynamicAlignment);
+    calculateDynamicClassSize(this, dynamicSize, dynamicAlignment);
 
     // if no fields, we must at least be the size of HypObjectBase
     m_size = MathUtil::Max(sizeof(HypObjectBase), dynamicSize);
     m_alignment = MathUtil::Max(alignof(HypObjectBase), dynamicAlignment);
 
-    m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const HypClass* thisHypClass) -> HypObjectContainerBase*
+    m_objectContainer = &HypObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> HypObjectContainerBase*
         {
-            return new HypObjectContainer<HypObjectBase>(thisHypClass);
+            return new HypObjectContainer<HypObjectBase>(thisClass);
         });
 }
 #endif
 
-DynamicHypClassInstance::~DynamicHypClassInstance()
+DynamicClassInstance::~DynamicClassInstance()
 {
-    Assert(AtomicAdd(&m_refCount, 0) <= 0, "DynamicHypClassInstance destroyed while still being referenced!");
+    Assert(AtomicAdd(&m_refCount, 0) <= 0, "DynamicClassInstance destroyed while still being referenced!");
 }
 
-bool DynamicHypClassInstance::IsValid() const
+bool DynamicClassInstance::IsValid() const
 {
     if (m_parent != nullptr)
     {
@@ -1410,28 +1410,28 @@ bool DynamicHypClassInstance::IsValid() const
     return true;
 }
 
-HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
+ClassAllocationMethod DynamicClassInstance::GetAllocationMethod() const
 {
     if (m_parent != nullptr)
     {
         return m_parent->GetAllocationMethod();
     }
 
-    return HypClassAllocationMethod::HANDLE;
+    return ClassAllocationMethod::HANDLE;
 }
 
-TypeId DynamicHypClassInstance::GetUnderlyingTypeId() const
+TypeId DynamicClassInstance::GetUnderlyingTypeId() const
 {
     if (!IsEnumType())
     {
-        return HypClass::GetUnderlyingTypeId();
+        return Class::GetUnderlyingTypeId();
     }
 
     return m_enumUnderlyingTypeId;
 }
 
 #ifdef HYP_DOTNET
-bool DynamicHypClassInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
+bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
     Assert(m_parent != nullptr);
     Assert(m_parent->UseHandles(), "Must be HypObjectBase type to call GetManagedObject");
@@ -1457,7 +1457,7 @@ bool DynamicHypClassInstance::GetManagedObject(const void* objectPtr, dotnet::Ob
 }
 #endif
 
-bool DynamicHypClassInstance::CanCreateInstance() const
+bool DynamicClassInstance::CanCreateInstance() const
 {
 #ifdef HYP_DOTNET
     RC<dotnet::ManagedClass> managedClass = GetManagedClass();
@@ -1478,7 +1478,7 @@ bool DynamicHypClassInstance::CanCreateInstance() const
     return false;
 }
 
-bool DynamicHypClassInstance::ToHypData(ByteView memory, HypData& outHypData) const
+bool DynamicClassInstance::ToHypData(ByteView memory, HypData& outHypData) const
 {
     if (m_parent != nullptr)
     {
@@ -1492,11 +1492,11 @@ bool DynamicHypClassInstance::ToHypData(ByteView memory, HypData& outHypData) co
     return false;
 }
 
-void DynamicHypClassInstance::PostLoad_Internal(void* objectPtr) const
+void DynamicClassInstance::PostLoad_Internal(void* objectPtr) const
 {
 }
 
-bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
+bool DynamicClassInstance::CreateInstance_Internal(HypData& out) const
 {
 #ifdef HYP_DOTNET
     RC<dotnet::ManagedClass> managedClass = GetManagedClass();
@@ -1561,8 +1561,8 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     Assert(container != nullptr);
     Assert(container->GetObjectTypeId() == m_typeId);
 
-    Array<const HypClass*> dynamicParents;
-    const HypClass* topParent = m_parent;
+    Array<const Class*> dynamicParents;
+    const Class* topParent = m_parent;
 
     if (m_parent != nullptr)
     {
@@ -1585,10 +1585,10 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         }
     }
 
-    PushGlobalContext(HypObjectInitializerContext { .hypClass = this, .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+    PushGlobalContext(HypObjectInitializerContext { .cls = this, .flags = HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
     HypObjectHeader* header = container->Allocate(m_size);
-    header->hypClass = this;
+    header->cls = this;
 
     HypObjectBase* ptr = HypObjectHeader::GetObjectPointer(header);
     new (ptr) HypObjectBase();
@@ -1598,20 +1598,20 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
         + sizeof(HypObjectBase);
 
     // add 'class' field
-    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
-    AssertDebug(fieldOffset + sizeof(HypClassRef) <= m_size,
-        "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(HypClassRef), m_size);
+    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
+    AssertDebug(fieldOffset + sizeof(ClassRef) <= m_size,
+        "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(ClassRef), m_size);
 
-    HypClassRef* classFieldPtr = (HypClassRef*)(UIntPtr(ptr) + fieldOffset);
-    new (classFieldPtr) HypClassRef(this);
-    fieldOffset += sizeof(HypClassRef);
+    ClassRef* classFieldPtr = (ClassRef*)(UIntPtr(ptr) + fieldOffset);
+    new (classFieldPtr) ClassRef(this);
+    fieldOffset += sizeof(ClassRef);
 
     for (SizeType i = dynamicParents.Size(); i > 0; i--)
     {
-        const HypClass* dynamicParent = dynamicParents[i - 1];
+        const Class* dynamicParent = dynamicParents[i - 1];
         AssertDebug(dynamicParent->IsDynamic(), "Expected dynamic parent class");
 
-        const DynamicHypClassInstance* dynamicParentInstance = static_cast<const DynamicHypClassInstance*>(dynamicParent);
+        const DynamicClassInstance* dynamicParentInstance = static_cast<const DynamicClassInstance*>(dynamicParent);
 
         // Init all fields to HypData()
         for (HypField* field : dynamicParentInstance->GetFields())
@@ -1660,15 +1660,15 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     return false;
 }
 
-bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
+bool DynamicClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
 {
     HYP_NOT_IMPLEMENTED();
 }
 
-void DynamicHypClassInstance::SetField(uint32 index, HypField* field)
+void DynamicClassInstance::SetField(uint32 index, HypField* field)
 {
-    AssertDebug(field != nullptr, "Cannot set null field to DynamicHypClass {}", GetName());
-    AssertDebug(!m_fieldsByName.Contains(field->GetName()), "Field with name {} already exists in DynamicHypClass {}", field->GetName(), GetName());
+    AssertDebug(field != nullptr, "Cannot set null field to DynamicClass {}", GetName());
+    AssertDebug(!m_fieldsByName.Contains(field->GetName()), "Field with name {} already exists in DynamicClass {}", field->GetName(), GetName());
 
     if (index >= m_fields.Size())
     {
@@ -1679,10 +1679,10 @@ void DynamicHypClassInstance::SetField(uint32 index, HypField* field)
     m_fieldsByName[field->GetName()] = field;
 }
 
-void DynamicHypClassInstance::SetMethod(uint32 index, HypMethod* method)
+void DynamicClassInstance::SetMethod(uint32 index, HypMethod* method)
 {
-    AssertDebug(method != nullptr, "Cannot set null method to DynamicHypClass {}", GetName());
-    AssertDebug(!m_methodsByName.Contains(method->GetName()), "Method with name {} already exists in DynamicHypClass {}", method->GetName(), GetName());
+    AssertDebug(method != nullptr, "Cannot set null method to DynamicClass {}", GetName());
+    AssertDebug(!m_methodsByName.Contains(method->GetName()), "Method with name {} already exists in DynamicClass {}", method->GetName(), GetName());
 
     if (index >= m_methods.Size())
     {
@@ -1693,10 +1693,10 @@ void DynamicHypClassInstance::SetMethod(uint32 index, HypMethod* method)
     m_methodsByName[method->GetName()] = method;
 }
 
-void DynamicHypClassInstance::SetProperty(uint32 index, HypProperty* property)
+void DynamicClassInstance::SetProperty(uint32 index, HypProperty* property)
 {
-    AssertDebug(property != nullptr, "Cannot set null property to DynamicHypClass {}", GetName());
-    AssertDebug(!m_propertiesByName.Contains(property->GetName()), "Property with name {} already exists in DynamicHypClass {}", property->GetName(), GetName());
+    AssertDebug(property != nullptr, "Cannot set null property to DynamicClass {}", GetName());
+    AssertDebug(!m_propertiesByName.Contains(property->GetName()), "Property with name {} already exists in DynamicClass {}", property->GetName(), GetName());
 
     if (index >= m_properties.Size())
     {
@@ -1707,10 +1707,10 @@ void DynamicHypClassInstance::SetProperty(uint32 index, HypProperty* property)
     m_propertiesByName[property->GetName()] = property;
 }
 
-void DynamicHypClassInstance::SetConstant(uint32 index, HypConstant* constant)
+void DynamicClassInstance::SetConstant(uint32 index, HypConstant* constant)
 {
-    AssertDebug(constant != nullptr, "Cannot set null constant to DynamicHypClass {}", GetName());
-    AssertDebug(!m_constantsByName.Contains(constant->GetName()), "Constant with name {} already exists in DynamicHypClass {}", constant->GetName(), GetName());
+    AssertDebug(constant != nullptr, "Cannot set null constant to DynamicClass {}", GetName());
+    AssertDebug(!m_constantsByName.Contains(constant->GetName()), "Constant with name {} already exists in DynamicClass {}", constant->GetName(), GetName());
 
     if (index >= m_constants.Size())
     {
@@ -1721,103 +1721,103 @@ void DynamicHypClassInstance::SetConstant(uint32 index, HypConstant* constant)
     m_constantsByName[constant->GetName()] = constant;
 }
 
-void DynamicHypClassInstance::AddRef()
+void DynamicClassInstance::AddRef()
 {
     AtomicIncrement(&m_refCount);
 }
 
-void DynamicHypClassInstance::Release()
+void DynamicClassInstance::Release()
 {
     if (AtomicDecrement(&m_refCount) <= 0)
     {
-        if (!HypClassRegistry::GetInstance().UnregisterClass(this))
+        if (!ClassRegistry::GetInstance().UnregisterClass(this))
         {
-            HYP_LOG(Object, Warning, "Failed to unregister dynamic HypClass \"{}\"", GetName());
+            HYP_LOG(Object, Warning, "Failed to unregister dynamic Class \"{}\"", GetName());
         }
 
         delete this;
     }
 }
 
-#pragma endregion DynamicHypClassInstance
+#pragma endregion DynamicClassInstance
 
-#pragma region HypClassRef
+#pragma region ClassRef
 
-HypClassRef::HypClassRef(const HypClass* hypClass, int initialRefCount)
-    : hypClass(hypClass)
+ClassRef::ClassRef(const Class* cls, int initialRefCount)
+    : cls(cls)
 {
-    if (hypClass && hypClass->IsDynamic() && initialRefCount > 0)
+    if (cls && cls->IsDynamic() && initialRefCount > 0)
     {
-        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+        const_cast<DynamicClassInstance*>(static_cast<const DynamicClassInstance*>(cls))->AddRef();
     }
 }
 
-HypClassRef::HypClassRef(const HypClassRef& other)
-    : hypClass(other.hypClass)
+ClassRef::ClassRef(const ClassRef& other)
+    : cls(other.cls)
 {
-    if (hypClass)
+    if (cls)
     {
-        if (hypClass->IsDynamic())
+        if (cls->IsDynamic())
         {
-            const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+            const_cast<DynamicClassInstance*>(static_cast<const DynamicClassInstance*>(cls))->AddRef();
         }
     }
 }
 
-HypClassRef& HypClassRef::operator=(const HypClassRef& other)
+ClassRef& ClassRef::operator=(const ClassRef& other)
 {
-    if (this == &other || hypClass == other.hypClass)
+    if (this == &other || cls == other.cls)
     {
         return *this;
     }
 
-    if (hypClass && hypClass->IsDynamic())
+    if (cls && cls->IsDynamic())
     {
-        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+        const_cast<DynamicClassInstance*>(static_cast<const DynamicClassInstance*>(cls))->Release();
     }
 
-    hypClass = other.hypClass;
+    cls = other.cls;
 
-    if (hypClass && hypClass->IsDynamic())
+    if (cls && cls->IsDynamic())
     {
-        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->AddRef();
+        const_cast<DynamicClassInstance*>(static_cast<const DynamicClassInstance*>(cls))->AddRef();
     }
 
     return *this;
 }
 
-HypClassRef::HypClassRef(HypClassRef&& other) noexcept
-    : hypClass(other.hypClass)
+ClassRef::ClassRef(ClassRef&& other) noexcept
+    : cls(other.cls)
 {
-    other.hypClass = nullptr;
+    other.cls = nullptr;
 }
 
-HypClassRef& HypClassRef::operator=(HypClassRef&& other) noexcept
+ClassRef& ClassRef::operator=(ClassRef&& other) noexcept
 {
-    if (this == &other || hypClass == other.hypClass)
+    if (this == &other || cls == other.cls)
     {
         return *this;
     }
 
-    if (hypClass && hypClass->IsDynamic())
+    if (cls && cls->IsDynamic())
     {
-        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+        const_cast<DynamicClassInstance*>(static_cast<const DynamicClassInstance*>(cls))->Release();
     }
 
-    hypClass = other.hypClass;
-    other.hypClass = nullptr;
+    cls = other.cls;
+    other.cls = nullptr;
 
     return *this;
 }
 
-HypClassRef::~HypClassRef()
+ClassRef::~ClassRef()
 {
-    if (hypClass && hypClass->IsDynamic())
+    if (cls && cls->IsDynamic())
     {
-        const_cast<DynamicHypClassInstance*>(static_cast<const DynamicHypClassInstance*>(hypClass))->Release();
+        const_cast<DynamicClassInstance*>(static_cast<const DynamicClassInstance*>(cls))->Release();
     }
 }
 
-#pragma endregion HypClassRef
+#pragma endregion ClassRef
 
 } // namespace hyperion

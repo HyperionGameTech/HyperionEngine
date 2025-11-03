@@ -5,7 +5,7 @@ using Hyperion;
 
 namespace Hyperion
 {   
-    [HypClassBinding(Name="AssetRegistry")]
+    [ClassBinding(Name="AssetRegistry")]
     public class AssetRegistry : HypObject
     {
         public AssetRegistry()

@@ -80,7 +80,7 @@ using RendererResult = TResult<void, RendererError>;
             std::printf(                                                                           \
                 "Assertion failed in renderer!\n\tCondition: " #cond "\n\tMessage: " __VA_ARGS__); \
             HYP_PRINT_STACK_TRACE();                                                               \
-            std::terminate();                                                                      \
+            debug::TerminateProgram();                                                             \
         }                                                                                          \
     }                                                                                              \
     while (0)

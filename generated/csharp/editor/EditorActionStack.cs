@@ -48,35 +48,35 @@ namespace Hyperion
         }
         public static ScriptableDelegate GetOnBeforeActionPushDelegate(this EditorActionStack obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(8181443429468047689));
+            HypField field = (HypField)obj.Class.GetField(new Name(8181443429468047689));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnBeforeActionPopDelegate(this EditorActionStack obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(4187425417103726596));
+            HypField field = (HypField)obj.Class.GetField(new Name(4187425417103726596));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnAfterActionPushDelegate(this EditorActionStack obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(5101528683150347900));
+            HypField field = (HypField)obj.Class.GetField(new Name(5101528683150347900));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnAfterActionPopDelegate(this EditorActionStack obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(16395739445164795855));
+            HypField field = (HypField)obj.Class.GetField(new Name(16395739445164795855));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);
         }
         public static ScriptableDelegate GetOnStateChangeDelegate(this EditorActionStack obj)
         {
-            HypField field = (HypField)obj.HypClass.GetField(new Name(5182492799334485981));
+            HypField field = (HypField)obj.Class.GetField(new Name(5182492799334485981));
             IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);
 
             return new ScriptableDelegate(obj, fieldAddress);

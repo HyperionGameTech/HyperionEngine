@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
+#include <core/reflection/TypeInfoFwd.hpp>
 
 #include <core/utilities/FormatFwd.hpp>
 
@@ -14,14 +14,25 @@
 
 namespace hyperion {
 
-HYP_API extern ANSIStringView GetClassName(const TypeId& typeId);
+using utilities::TypeId; // fwd declared in TypeInfoFwd.hpp
+
+namespace utilities {
+
+template <class T>
+extern const TypeId& TypeIdOf();
+
+} // namespace utilities
+
+using utilities::TypeIdOf;
+
+HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 struct ObjIdBase
 {
     constexpr ObjIdBase() = default;
 
-    constexpr ObjIdBase(TypeId typeId, uint32 value)
-        : typeIdValue(typeId.Value()),
+    ObjIdBase(const TypeId& typeId, uint32 value)
+        : typeIdValue(reinterpret_cast<const uint32&>(typeId)),
           value(value)
     {
     }
@@ -44,9 +55,9 @@ struct ObjIdBase
         return value;
     }
 
-    HYP_FORCE_INLINE constexpr TypeId GetTypeId() const
+    HYP_FORCE_INLINE const TypeId& GetTypeId() const&
     {
-        return TypeId { typeIdValue };
+        return reinterpret_cast<const TypeId&>(typeIdValue);
     }
 
     HYP_FORCE_INLINE explicit constexpr operator bool() const
@@ -107,10 +118,9 @@ struct ObjId : ObjIdBase
     using ObjectType = T;
 
     static const ObjId invalid;
-    static const TypeId typeIdStatic;
 
-    constexpr ObjId()
-        : ObjIdBase { typeIdStatic, 0 }
+    ObjId()
+        : ObjIdBase { TypeIdOf<T>(), 0 }
     {
     }
 
@@ -129,7 +139,7 @@ struct ObjId : ObjIdBase
 
     static ObjId FromIndex(uint32 index)
     {
-        return ObjId { ObjIdBase { typeIdStatic, index + 1 } };
+        return ObjId { ObjIdBase { TypeIdOf<T>(), index + 1 } };
     }
 
     /*! \brief Allows implicit conversion to ObjId<Ty> where T is convertible to Ty.
@@ -159,9 +169,6 @@ struct ObjId : ObjIdBase
 template <class T>
 const ObjId<T> ObjId<T>::invalid = ObjId<T>();
 
-template <class T>
-const TypeId ObjId<T>::typeIdStatic = TypeId::ForType<NormalizedType<T>>();
-
 // string format specialization for ObjId<T>
 namespace utilities {
 
@@ -170,7 +177,7 @@ struct Formatter<StringType, ObjId<T>>
 {
     auto operator()(const ObjId<T>& value) const
     {
-        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeId())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+        return LookupTypeName(value.GetTypeId()) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
     }
 };
 
@@ -179,7 +186,7 @@ struct Formatter<StringType, ObjIdBase>
 {
     auto operator()(const ObjIdBase& value) const
     {
-        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeId())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+        return LookupTypeName(value.GetTypeId()) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
     }
 };
 

@@ -148,17 +148,17 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a C# type");
         }
 
-        // Find a HypClass with the same name. HypObjects (classes deriving HypObject.cs) and structs with HypClassBinding
+        // Find a Class with the same name. HypObjects (classes deriving HypObject.cs) and structs with ClassBinding
         // attribute can use custom overloads to try and get a specific method for reading the value.
-        const HypClassDefinition* definition = analyzer.FindHypClassDefinition(typeNameString);
+        const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
 
         if (definition)
         {
-            if (definition->type == HypClassDefinitionType::CLASS)
+            if (definition->type == ClassDefinitionType::CLASS)
             {
                 return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadObject<{}>", definition->name) };
             }
-            else if (definition->type == HypClassDefinitionType::STRUCT)
+            else if (definition->type == ClassDefinitionType::STRUCT)
             {
                 return CSharpTypeMapping { typeNameString, HYP_FORMAT("ReadStruct<{}>", definition->name) };
             }
@@ -324,9 +324,9 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
             return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a HypScript type");
         }
 
-        // Find a HypClass with the same name. HypObjects (classes deriving HypObject.cs) and structs with HypClassBinding
+        // Find a Class with the same name. HypObjects (classes deriving HypObject.cs) and structs with ClassBinding
         // attribute can use custom overloads to try and get a specific method for reading the value.
-        const HypClassDefinition* definition = analyzer.FindHypClassDefinition(typeNameString);
+        const ClassDefinition* definition = analyzer.FindClassDefinition(typeNameString);
 
         if (definition)
         {

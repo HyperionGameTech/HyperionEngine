@@ -18,10 +18,10 @@
 
 namespace hyperion {
 
-class HypClass;
+class Class;
 
-extern HYP_API const HypClass* GetClass(TypeId typeId);
-extern HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
 
 namespace memory {
 
@@ -404,14 +404,14 @@ public:
     }
 
     /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
-     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T or if IsA() would return true. */
+     *  If T has a Class registered, this function will also return true if the held object is a subclass of T or if IsA() would return true. */
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
         const TypeId typeId = TypeId::ForType<Ty>();
 
         return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_same_v<Ty, void> || GetTypeId() == typeId
-            || IsA(GetClass(typeId), m_holder.value, GetTypeId());
+            || IsA(hyperion::GetClass(typeId), m_holder.value, GetTypeId());
     }
 };
 
@@ -485,7 +485,7 @@ public:
         const TypeId typeId = TypeId::ForType<Ty>();
 
         return std::is_same_v<Ty, void> || GetTypeId() == typeId
-            || IsA(GetClass(typeId), m_holder.value, GetTypeId());
+            || IsA(hyperion::GetClass(typeId), m_holder.value, GetTypeId());
     }
 };
 

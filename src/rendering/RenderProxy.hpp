@@ -137,14 +137,6 @@ public:
     }
 };
 
-HYP_STRUCT(Serialize = "bitwise")
-struct EnvProbeSphericalHarmonics
-{
-    HYP_STRUCT_BODY(EnvProbeSphericalHarmonics);
-
-    Vec4f values[9];
-};
-
 struct EnvProbeShaderData
 {
     Mat4f faceViewMatrices[6];
@@ -162,7 +154,7 @@ struct EnvProbeShaderData
     uint64 visibilityBits = 0;
     Vec4i positionInGrid;
 
-    EnvProbeSphericalHarmonics sh;
+    Vec4f shData[9];
 };
 
 class RenderProxyEnvProbe final : public IRenderProxy

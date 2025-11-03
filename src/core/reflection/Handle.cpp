@@ -1,28 +1,28 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/reflection/Handle.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 
 namespace hyperion {
 
-HYP_API TypeId GetTypeIdForClass(const HypClass* hypClass)
+HYP_API TypeId GetTypeIdForClass(const Class* cls)
 {
-    if (hypClass == nullptr)
+    if (cls == nullptr)
     {
         return TypeId::Void();
     }
 
-    return hypClass->GetTypeId();
+    return cls->GetTypeId();
 }
 
-HYP_API HypObjectContainerBase* GetObjectContainerForClass(const HypClass* hypClass)
+HYP_API HypObjectContainerBase* GetObjectContainerForClass(const Class* cls)
 {
-    if (!hypClass)
+    if (!cls)
     {
         return nullptr;
     }
 
-    return hypClass->GetObjectContainer();
+    return cls->GetObjectContainer();
 }
 
 #pragma region AnyHandle
@@ -31,7 +31,7 @@ const AnyHandle AnyHandle::empty = {};
 
 AnyHandle::AnyHandle(HypObjectBase* hypObjectPtr)
     : ptr(hypObjectPtr),
-      typeId(hypObjectPtr ? GetTypeIdForClass(hypObjectPtr->m_header->hypClass) : TypeId::Void())
+      typeId(hypObjectPtr ? hypObjectPtr->m_header->cls->GetTypeId() : TypeId::Void())
 {
     if (IsValid())
     {
@@ -44,9 +44,9 @@ AnyHandle::AnyHandle(HypObjectBase* hypObjectPtr)
     }
 }
 
-AnyHandle::AnyHandle(const HypClass* hypClass, HypObjectBase* ptr)
+AnyHandle::AnyHandle(const Class* cls, HypObjectBase* ptr)
     : ptr(ptr),
-      typeId(hypClass ? hypClass->GetTypeId() : TypeId::Void())
+      typeId(cls ? cls->GetTypeId() : TypeId::Void())
 {
     if (IsValid())
     {
@@ -142,7 +142,7 @@ AnyHandle::IdType AnyHandle::Id() const
         return IdType();
     }
 
-    return IdType { ptr->m_header->hypClass->GetTypeId(), ptr->m_header->index + 1 };
+    return IdType { ptr->m_header->cls->GetTypeId(), ptr->m_header->index + 1 };
 }
 
 TypeId AnyHandle::GetTypeId() const
@@ -152,8 +152,8 @@ TypeId AnyHandle::GetTypeId() const
 
 AnyRef AnyHandle::ToRef() const
 {
-    const HypClass* hypClass = ptr ? ptr->m_header->hypClass : nullptr;
-    const TypeInfo* typeInfo = hypClass ? &TypeInfo_ForHypClass(hypClass) : &TypeInfo_Void();
+    const Class* cls = ptr ? ptr->m_header->cls : nullptr;
+    const TypeInfo* typeInfo = cls ? cls->GetTypeInfo() : &TypeInfo_Void();
 
     if (!IsValid())
     {

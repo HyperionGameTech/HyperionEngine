@@ -5,16 +5,16 @@
 #include <core/math/Mat3f.hpp>
 #include <core/math/Mat4f.hpp>
 
-#include <core/reflection/HypClassUtils.hpp>
-#include <core/reflection/HypClassRegistry.hpp>
+#include <core/reflection/ClassUtils.hpp>
+#include <core/reflection/ClassRegistry.hpp>
 
 #include <cmath>
 
 namespace hyperion {
 
-HYP_API const HypClass* g_clsVec3f = nullptr;
-HYP_API const HypClass* g_clsVec3i = nullptr;
-HYP_API const HypClass* g_clsVec3u = nullptr;
+HYP_API const Class* g_clsVec3f = nullptr;
+HYP_API const Class* g_clsVec3i = nullptr;
+HYP_API const Class* g_clsVec3u = nullptr;
 
 // clang-format off
 HYP_BEGIN_STRUCT(Vec3f, -1, 0, {})

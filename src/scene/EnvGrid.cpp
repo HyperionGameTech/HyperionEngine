@@ -12,10 +12,14 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 
 #include <rendering/Texture.hpp>
-#include <rendering/env_grid/EnvGridRenderer.hpp>
-#include <rendering/env_probe/EnvProbeRenderer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderProxy.hpp>
+#include <rendering/RenderProxyList.hpp>
+
+#include <rendering/env_grid/EnvGridRenderer.hpp>
+#include <rendering/env_probe/EnvProbeRenderer.hpp>
+
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/RenderDescriptorSet.hpp>
@@ -389,9 +393,6 @@ void LegacyEnvGrid::Update(float delta)
         rpl.GetEnvProbes().NumCurrent(),
         Id(),
         m_envProbeCollection.numProbes);
-
-    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes\t Found {} meshes", Id(), m_envProbeCollection.numProbes,
-        RenderApi::GetProducerProxyList(m_view).GetMeshEntities().NumCurrent());
 }
 
 void LegacyEnvGrid::CreateEnvProbes()

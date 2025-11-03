@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="Transform")]
+    [ClassBinding(Name="Transform")]
     [StructLayout(LayoutKind.Sequential, Size = 112, Pack = 16)]
     public struct Transform
     {

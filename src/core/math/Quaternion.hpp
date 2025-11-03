@@ -20,8 +20,6 @@ struct alignas(16) HYP_API Quaternion
 {
     HYP_STRUCT_BODY(Quaternion);
 
-    friend std::ostream& operator<<(std::ostream& out, const Quaternion& rot);
-
     HYP_FIELD()
     float x;
 

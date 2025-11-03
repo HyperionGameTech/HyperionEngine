@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
 
-    [HypClassBinding(Name="EditorPropertyPanelBase")]
+    [ClassBinding(Name="EditorPropertyPanelBase")]
     public abstract class EditorPropertyPanelBase : UIPanel
     {
         public EditorPropertyPanelBase()

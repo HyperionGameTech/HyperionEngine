@@ -29,7 +29,7 @@
 
 #include <core/reflection/HypObject.hpp>
 #include <core/reflection/HypData.hpp>
-#include <core/reflection/HypClass.hpp>
+#include <core/reflection/Class.hpp>
 #include <core/reflection/HypMethod.hpp>
 
 #include <core/containers/HashMap.hpp>
@@ -51,7 +51,7 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    EnumFlags<ClassFlags> flags,
+    EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_name(name),
@@ -72,16 +72,16 @@ AstClass::AstClass(
     const Array<RC<AstVariableDeclaration>>& dataMembers,
     const Array<RC<AstVariableDeclaration>>& functionMembers,
     const Array<RC<AstVariableDeclaration>>& staticMembers,
-    EnumFlags<ClassFlags> flags,
+    EnumFlags<AstClassFlags> flags,
     const SourceLocation& location)
     : AstClass(
-          name,
-          RC<AstTypeSpecifier>(),
-          dataMembers,
-          functionMembers,
-          staticMembers,
-          flags,
-          location)
+        name,
+        RC<AstTypeSpecifier>(),
+        dataMembers,
+        functionMembers,
+        staticMembers,
+        flags,
+        location)
 {
     m_baseType = baseType;
 }
@@ -665,8 +665,8 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
     SizeType fieldOffset = sizeof(HypObjectBase); // start after base object
 
     // reserve space for `class` field to hold reference to the class this object is an instance of
-    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(HypClassRef));
-    fieldOffset += sizeof(HypClassRef);
+    fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));
+    fieldOffset += sizeof(ClassRef);
 
     if (!IsEnum())
     {
@@ -759,21 +759,21 @@ UniquePtr<Buildable> AstClass::Build(AstVisitor* visitor, Module* mod)
         instrType->fields = std::move(fields);
         instrType->methods = std::move(methods);
 
-        instrType->flags = HypClassFlags::DYNAMIC; // all classes defined in script are dynamic
+        instrType->flags = ClassFlags::DYNAMIC; // all classes defined in script are dynamic
 
         if (IsAnonymous())
         {
-            instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::ANONYMOUS);
+            instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::ANONYMOUS);
         }
 
         if (IsEnum())
         {
-            instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::ENUM_TYPE);
+            instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::ENUM_TYPE);
         }
         else
         {
             // @TODO Struct types
-            instrType->flags = (HypClassFlags)((uint8)instrType->flags | (uint8)HypClassFlags::CLASS_TYPE);
+            instrType->flags = (ClassFlags)((uint8)instrType->flags | (uint8)ClassFlags::CLASS_TYPE);
         }
 
         chunk->Append(std::move(instrType));

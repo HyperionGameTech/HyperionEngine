@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="MouseButtonKey")]
+    [ClassBinding(Name="MouseButtonKey")]
     public enum MouseButtonKey : uint
     {
         Invalid = ~0u,
@@ -13,7 +13,7 @@ namespace Hyperion
         Max
     }
 
-    [HypClassBinding(Name="MouseButtonState")]
+    [ClassBinding(Name="MouseButtonState")]
     [Flags]
     public enum MouseButtonState : uint
     {
@@ -23,7 +23,7 @@ namespace Hyperion
         Right = (uint)(1 << (int)MouseButtonKey.Right)
     }
 
-    [HypClassBinding(Name="MouseEvent")]
+    [ClassBinding(Name="MouseEvent")]
     [StructLayout(LayoutKind.Explicit, Size = 56)]
     public struct MouseEvent
     {
