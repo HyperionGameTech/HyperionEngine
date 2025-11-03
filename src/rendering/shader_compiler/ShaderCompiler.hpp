@@ -69,7 +69,7 @@ struct VertexAttributeDefinition
 };
 
 HYP_STRUCT()
-struct HYP_API ShaderProperty
+struct ShaderProperty
 {
     HYP_STRUCT_BODY(ShaderProperty);
 
@@ -241,11 +241,11 @@ struct HYP_API ShaderProperty
         }
     }
 
-    String GetValueString() const;
+    HYP_API String GetValueString() const;
 
-    HashCode GetHashCode() const;
+    HYP_API HashCode GetHashCode() const;
 
-    String ToString() const;
+    HYP_API String ToString() const;
 };
 
 HYP_STRUCT()
