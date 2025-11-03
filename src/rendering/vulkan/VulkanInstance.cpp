@@ -12,6 +12,8 @@
 
 #include <rendering/RenderBackend.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <core/containers/Array.hpp>
 
 #include <core/utilities/Span.hpp>
@@ -447,7 +449,7 @@ RendererResult VulkanInstance::CreateSwapchain()
 
 RendererResult VulkanInstance::RecreateSwapchain()
 {
-    m_swapchain.Reset();
+    Handle<VulkanSwapchain> prevSwapchain = std::move(m_swapchain);
 
     if (m_surface == VK_NULL_HANDLE)
     {
@@ -458,7 +460,10 @@ RendererResult VulkanInstance::RecreateSwapchain()
 
     m_swapchain = CreateObject<VulkanSwapchain>();
     m_swapchain->m_surface = m_surface;
+    m_swapchain->m_handle = prevSwapchain->m_handle;
     HYP_GFX_CHECK(m_swapchain->Create());
+    
+    SafeDelete(std::move(prevSwapchain));
 
     HYPERION_RETURN_OK;
 }
